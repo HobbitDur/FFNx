@@ -14,63 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 289: "Brrawghh!" (enemy attack 131 of kernel.bin, Gerogero c0m034 and Gunblade c0m142;
-// MAG_289_*). No other kernel.bin entry uses effect 289.
-//
-// Structure (setup MAG_289_UNKNOWN 0x6777E0 -> _Init 0x677810, file loader 0x6777F0 = the texture
-// file named at 0x1074648; the setup keeps the action context (0x2507BD4) and the CASTER's entity
-// (0x2507BD8), starts camera animation 0x10724E0 and queues the TIM):
-//   MasterTask (0x677890) - alternates the packet arena (magic buffer + 0x1A40 / + 0x11A40); on
-//     counter 1 sets up the pools (sprites 0x40 x 0x24 at + 0, splash layouts 0x20 x 0x54 at + 0x900,
-//     main 1 x 0x1A0 at + 0x1380), starts the main task (the first target of action 0, its default
-//     effect point 0x571400, layout 0x1070804) and rewrites the w word of every vertex of the two tube
-//     meshes 0x106EDE4 / 0x106FAF4 as -z (0x677A10; static exe tables rewritten on EVERY cast, with the
-//     same values). Then the main, sprite and splash queues; ends when the main AND the splash queues
-//     are empty (sprites are abandoned).
-//   MainTask (0x677A30) - counters 0..0x1D. Counters 0..0x15: t = counter * 4096 / 22; P = the target
-//     point moved along x / -z by (t - 0x800) / 2 at the target's height word +0x24; B = the caster's
-//     bone 9 point 0x1072640 (0x678390, the bone matrices as they are); M = the basis of P - B (y and
-//     z the other way) scaled by its length, at B; three tube draws (0x678510) through the camera x M:
-//     mesh A, then mesh B twice (angles, wave amplitudes, fade offset, U scroll and x / y scale from
-//     the counter and sines of t / 2 and t). Counters 2..0xB: four spit sprites per tick at B (CRT
-//     rand: direction, speed, scale) through M; counters 0xE..0x15: a drip sprite and a splat sprite
-//     at P (CRT rand); counters 8..0x15: a splash layout task at P (layout 0x1071E08) and a splat
-//     sprite. Counters 0xA..0x1D: layout 0x1070804 at the target point. Sound at counter 0, damage
-//     at counter 0xF.
-//   TubeDraw (0x678510) - the mesh bent by 0x6790E0 (RotZ(angle) scaled in x / y, each y lowered by
-//     the table 0x1072648 at w / 2 and w, w -> |w - offset| up to 0x1000) into magic buffer + 0x1520,
-//     a 0x6C header (texture windows 0x100 x 0x100 and 0x80 x 0x100, U scroll, wrap 0x80) drawn by
-//     0x6785C0: far colour black, flat textured quads 0x678620 then Gouraud textured quads 0x678B00
-//     (back faces culled unless header flag 0x10 / 0x20; a vertex w of 0x1000 or more hides the quad,
-//     else w depth-cues its colours; header flags 2 / 8 force / clear semi-transparency).
-//   SpriteTask (0x6783F0, Saliva's spray 0x6AA890 shape) - a sprite sequence through the
-//     shadow-rotation camera; position += velocity; ends after its frame count.
-//   SplashTask (0x678490) - its layout at its point (RotY(0) composed with the camera, depth -0x80);
-//     ends when the layout ends.
-//   PrimCallback (0x6780F0, = Saliva's 0x6AA510 on this module's cursor) draws every layout object.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws THEN updates (the main counter after its draws, a layout in its
-// play, a sprite after its draw).
-// ENTITY / CAMERA: no task writes an entity (positions +0x1C..+0x20 and flags only read) or the camera
-// words (the camera animation is the engine's).
-// EXE DATA WRITES: the tube meshes 0x106EDE4 / 0x106FAF4 (vertex w words, every cast, counter 1).
-// Module globals: 0x2507BD0..0x2507C3C (texture file 0x2507BD0, context 0x2507BD4, caster entity
-// 0x2507BD8, the queues 0x2507BE0 sprites / 0x2507BF0 splashes / 0x2507C00 main / 0x2507C10 master,
-// master pool 0x2507C20, packet cursor 0x2507C34, magic buffer base 0x2507C38).
-// NEVER-WRITTEN STACK WORDS (the game's executor 0x508420 calls every task of a queue at one esp; the
-// master pushes its three queue arguments without popping: main entry esp E, sprites E - 4, splashes
-// E - 8):
-//   - MainTask's moved target point P word +6 (entry esp - 0x7E) is never written; on counters 8..0x15
-//     it is copied into a new splash node's word +0x12 (never read). Nothing the tick runs before the
-//     main task reaches it (the main task is the first module task of every tick): tick-start residue,
-//     i.e. whatever the battle loop left at that depth (0 under the game executor of the verification
-//     harness, which clears the stack at the tick start). MODEL: 0 (SplashResidue).
-//   - MainTask's bone point B word +6 (entry esp - 0x86) goes into a spit sprite's frame word, which the
-//     next statements overwrite with 0; the block / basis matrices' pad words (GTE R33 pad 0x1CA928E only)
-//     and the callback's record offset word +6 (GTE VZ0 high half 0x1CA8A16 only) reach no output.
-//   - The tube header's flag byte +0x1C (back faces, semi-transparency) is never written: Field_Alloc
-//     scratch, read where the port allocates it too.
-
 #include "fx_port.h"
 #include "mag_common.h"
 #include "mag_ice_common.h"
@@ -83,92 +26,86 @@ namespace brr289
 	using namespace magc;
 	using namespace icec;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2507BD4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507BD8); }        // caster entity (setup)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507BD8); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507C34); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507C38); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2507BE0; }        // pool: magic buffer, 0x40 x 0x24
-	inline TaskQueue *QSplashes() { return (TaskQueue *)0x2507BF0; }       // pool: + 0x900, 0x20 x 0x54
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507C00; }           // pool: + 0x1380, 1 x 0x1A0
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2507C38); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)0x2507BE0; }
+	inline TaskQueue *QSplashes() { return (TaskQueue *)0x2507BF0; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2507C00; }
 
 	static const uint32_t ORIG_MasterTask = 0x677890;
 	static const uint32_t ORIG_MainTask = 0x677A30;
 	static const uint32_t ORIG_SpriteTask = 0x6783F0;
 	static const uint32_t ORIG_SplashTask = 0x678490;
-	static const uint32_t VERTS = 0x1520;                // magic buffer: bent tube vertices / blended vertex frames
-	static const uint32_t ARENA_A = 0x1A40;              // magic buffer: packet arenas
+	static const uint32_t VERTS = 0x1520;
+	static const uint32_t ARENA_A = 0x1A40;
 	static const uint32_t ARENA_B = 0x11A40;
-	static uint8_t *const TUBE_A = (uint8_t *)0x106EDE4; // tube meshes: list offset, count, vertices (w rewritten), lists
+	static uint8_t *const TUBE_A = (uint8_t *)0x106EDE4;
 	static uint8_t *const TUBE_B = (uint8_t *)0x106FAF4;
-	static const uint32_t LAYOUT_Target = 0x1070804;     // prim-model layouts
+	static const uint32_t LAYOUT_Target = 0x1070804;
 	static const uint32_t LAYOUT_Splash = 0x1071E08;
-	static const uint32_t SEQ_Drip = 0x106EC38;          // sprite sequences
+	static const uint32_t SEQ_Drip = 0x106EC38;
 	static const uint32_t SEQ_Splat = 0x106E9B0;
 	static const uint32_t SEQ_Spit = 0x106EAF4;
-	static const int16_t *const POINT = (const int16_t *)0x1072640;   // caster bone point (x, y, z, bone 9)
-	static const int16_t *const WAVE = (const int16_t *)0x1072648;    // 0x1001 x s16, by vertex w and w / 2
+	static const int16_t *const POINT = (const int16_t *)0x1072640;
+	static const int16_t *const WAVE = (const int16_t *)0x1072648;
 	static const void *const SOUND_Roar = (const void *)0x1072638;
 
-	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }             // sub_56C220: a = a x b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }   // MAG_063_sub_701270
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }   // MAG_065_sub_7012C0
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }        // set_unk_1CA8A28
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }                                       // sub_45F270
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }               // set_param_with_dword_1CA8A68
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2507C20)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x1A0 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint8_t *target;   // +0x10 first target of action 0
-		int16_t pos[4];    // +0x14 the target's default effect point
-		uint8_t layout[0x184]; // +0x1C layout 0x1070804
+		uint8_t *target;
+		int16_t pos[4];
+		uint8_t layout[0x184];
 	};
-	struct SpriteNode // pool of 0x40 nodes of 0x24 bytes
+	struct SpriteNode
 	{
 		TaskNode hdr;
-		uint32_t seq;      // +0x0C sprite sequence
-		int32_t scale;     // +0x10
-		int16_t pos[3];    // +0x14
-		int16_t frame;     // +0x1A (also the 4th word of pos)
-		int16_t vel[3];    // +0x1C
-		int16_t frames;    // +0x22 (also the 4th word of vel)
+		uint32_t seq;
+		int32_t scale;
+		int16_t pos[3];
+		int16_t frame;
+		int16_t vel[3];
+		int16_t frames;
 	};
-	struct SplashNode // pool of 0x20 nodes of 0x54 bytes
+	struct SplashNode
 	{
 		TaskNode hdr;
-		int16_t pos[4];    // +0x0C (+0x12: a stack word of the main task, never read, see SplashResidue)
-		uint8_t layout[0x40]; // +0x14 layout 0x1071E08
+		int16_t pos[4];
+		uint8_t layout[0x40];
 	};
-	// the prim-player callback's parameter block (a stack block of the playing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 rotation (pad word +0x12: R33 pad only) and anchor
-		int32_t depth;     // +0x20 the prim header's +0x18
-		uint32_t morph;    // +0x24 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0x1A0, "Brrawghh nodes");
@@ -179,12 +116,6 @@ namespace brr289
 	static bool OffX(int16_t x) { return x < 0 || x > 0xA00; }
 	static bool OffY(int16_t y) { return y < 0 || y > 0x6C0; }
 
-	// ------------------------------------------------------------------
-	// Tube renderer (0x6785C0). Header (0x6C, Field_Alloc): +0x00 mesh, +0x04 vertices, +0x08 far
-	// colour bytes (0), +0x1C flags (never written: Field_Alloc scratch), +0x20 U scroll, +0x24 /
-	// +0x2C texture windows, +0x30 U wrap byte, +0x34 list cursor, +0x38 MAC0, +0x40 OTZ, +0x44
-	// FLAG, +0x48 the first vertex of the quad (its w = the depth cue).
-	// ------------------------------------------------------------------
 	static void ScrollU(uint8_t *p, const int *off, uint16_t add, uint8_t wrap)
 	{
 		uint32_t v[4], o = 0;
@@ -196,7 +127,6 @@ namespace brr289
 		for (int k = 0; k < 4; k++) p[off[k]] = (uint8_t)(o > 0xFF ? v[k] - wrap : v[k]);
 	}
 
-	// the main packet between the texture windows +0x24 / +0x2C (no draw mode)
 	static uint8_t *Windowed(const uint8_t *h, uint32_t otp, uint8_t *main, uint8_t *p)
 	{
 		uint8_t *t1 = p;
@@ -213,8 +143,6 @@ namespace brr289
 		return p + 0x18;
 	}
 
-	// a quad's screen clip bits (x 1 / 2 / 4 / 8, y 0x10 / 0x20 / 0x40 / 0x80): drawn unless all four off
-	// one side
 	static uint32_t TriClip(const uint8_t *a, const uint8_t *b, const uint8_t *c)
 	{
 		uint32_t clip = 0;
@@ -234,7 +162,6 @@ namespace brr289
 		return (clip & 0xF) == 0xF || (clip & 0xF0) == 0xF0;
 	}
 
-	// the quad's first vertex into the header (+0x48); its w word (+0x4E): 0x1000 or more = hidden
 	static bool FirstVertex(uint8_t *h, const uint8_t *verts, const uint8_t *rec)
 	{
 		const uint32_t i = *(const uint16_t *)(rec + 4);
@@ -243,8 +170,6 @@ namespace brr289
 		return *(const int16_t *)(h + 0x4E) < 0x1000;
 	}
 
-	// 0x678620: flat textured quads (0x18-byte records, 0x28-byte packets), back faces culled unless
-	// header flag 0x10, colour depth-cued by the first vertex's w
 	static uint32_t FlatTexQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x34);
@@ -304,9 +229,6 @@ namespace brr289
 		return (uint32_t)p;
 	}
 
-	// 0x678B00: Gouraud textured quads (0x24-byte records, 0x34-byte packets), header flag 2 / 8 sets /
-	// clears semi-transparency, back faces culled unless flag 0x20, colours depth-cued by the first
-	// vertex's w
 	static uint32_t GouraudTexQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x34);
@@ -377,8 +299,6 @@ namespace brr289
 		return (uint32_t)p;
 	}
 
-	// 0x6785C0: far colour from the header bytes +8..+0xA, the first list (flat textured quads), then
-	// the second (Gouraud textured quads); each list follows 0xC bytes after the previous one's end
 	static uint32_t TubeRender(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *m = Cursor(h, 0);
@@ -390,8 +310,6 @@ namespace brr289
 		return GouraudTexQuads(h, ot, shift, r);
 	}
 
-	// 0x6790E0: the mesh's vertices through RotZ(angle) (x / y columns scaled by `scale` unless 0x1000)
-	// into out; w -> |w - wofs| up to 0x1000; y lowered by (WAVE[w / 2] * amp_a + WAVE[w] * amp_b) >> 12
 	static void TubeBend(const uint8_t *model, int32_t angle, int32_t amp_a, int32_t amp_b, int32_t wofs, int32_t scale, int16_t *out)
 	{
 		uint32_t count = *(const uint32_t *)(model + 4);
@@ -425,8 +343,6 @@ namespace brr289
 		} while (--count);
 	}
 
-	// 0x678510: one tube draw: the mesh bent (TubeBend) into `verts`, a 0x6C header (windows 0x100 x
-	// 0x100 at 0 / 0 and 0x80 x 0x100 at 0 / 0, U scroll uadd & 0x7F, wrap 0x80), the camera x M
 	static void TubeDraw(const Mat4x3 *m, const uint8_t *model, int32_t angle, int32_t amp_a, int32_t amp_b, int32_t wofs, int32_t uadd, int32_t scale, uint32_t verts)
 	{
 		TubeBend(model, angle, amp_a, amp_b, wofs, scale, (int16_t *)verts);
@@ -449,12 +365,6 @@ namespace brr289
 		FieldFree(0x6C);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6780F0, = Saliva's 0x6AA510 on this module's cursor): one object of a
-	// layout. Vertex frame (or blend into the parameter block's morph buffer), rotation from the
-	// record's angles, the record's offset through the parameter matrix (flag 0x200: as is), the
-	// matrix composed with it, scale (flag 0x100: 3x3 product, else scale3DMatrix), drawn by 0x7043B0.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -493,7 +403,6 @@ namespace brr289
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAngles2(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		int32_t t[3];
 		if (r->flags & 0x200)
@@ -543,10 +452,6 @@ namespace brr289
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Helpers
-	// ------------------------------------------------------------------
-	// 0x677A10: w of every vertex = -z (the static exe meshes, rewritten on every cast)
 	static void NegateZ(uint8_t *model)
 	{
 		uint32_t count = *(const uint32_t *)(model + 4);
@@ -558,8 +463,6 @@ namespace brr289
 		} while (--count);
 	}
 
-	// 0x678390 (= Saliva's 0x6AA7B0 / Hypnotize's 0x6B18A0): a point through the caster's bone (word +6)
-	// composed with its matrix (the bone matrices as they are)
 	static void BonePoint(const int16_t *v, int16_t *out)
 	{
 		uint8_t *c = Caster();
@@ -572,12 +475,7 @@ namespace brr289
 		GteStoreIR123(out);
 	}
 
-	// ------------------------------------------------------------------
-	// The tubes of a main counter (counters 0..0x15)
-	// ------------------------------------------------------------------
 	static int32_t TubeT(int32_t c) { return shl32(c, 12) / 22; }
-	// draw k's arguments (TubeDraw angle, amp_a, amp_b, wofs, uadd, scale), its sines in the original's
-	// order
 	static void TubeArgs(int32_t c, int k, int32_t *x)
 	{
 		const int32_t t = TubeT(c);
@@ -611,7 +509,6 @@ namespace brr289
 		x[4] = uadd;
 		x[5] = scale;
 	}
-	// P: the target point moved along x / -z by (t - 0x800) / 2, at the target's height word +0x24
 	static void TubeTarget(const MainNode *w, int32_t c, int16_t *P)
 	{
 		const int32_t d = (TubeT(c) - 0x800) >> 1;
@@ -619,7 +516,6 @@ namespace brr289
 		P[1] = *(const int16_t *)(w->target + 0x24);
 		P[2] = (int16_t)(w->pos[2] - d);
 	}
-	// M: the basis of P - B (y and z the other way) scaled by its length, at B
 	static void TubeBasis(const int16_t *P, const int16_t *B, Mat4x3 *M)
 	{
 		const int32_t D[3] = { (int32_t)P[0] - B[0], (int32_t)B[1] - P[1], (int32_t)B[2] - P[2] };
@@ -637,7 +533,6 @@ namespace brr289
 		prim::play((prim::Layout *)layout, PrimCallback, (int)arg, 0);
 	}
 
-	// the block of a layout at a point: RotY(0) at the point composed with the camera
 	static void BlockAt(PrimArg *arg, const int16_t *p)
 	{
 		RotY(0, &arg->m);
@@ -647,9 +542,6 @@ namespace brr289
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 	}
 
-	// the main task's moved target point P word +6 (entry esp - 0x7E): never written, copied into a
-	// splash node's word +0x12 (never read) on counters 8..0x15; tick-start residue (see the module
-	// comment), 0 under the game executor
 	static int16_t SplashResidue()
 	{
 		return 0;
@@ -665,10 +557,6 @@ namespace ff8fx
 {
 namespace brr289
 {
-	// ------------------------------------------------------------------
-	// Sprites (0x6783F0, Saliva's spray 0x6AA890 shape): sequence through the shadow-rotation
-	// camera, frame +0x1A of +0x22
-	// ------------------------------------------------------------------
 	static void SpriteDraw(uint32_t seq, const int16_t *pos, int32_t scale, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, (int16_t)scale, -(scale >> 2));
@@ -683,7 +571,6 @@ namespace brr289
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		// 30 fps layer: see mag289_brrawghh_held.inc
 		FX_HELD(held_note_sprite(n);)
 		SpriteDraw(s->seq, s->pos, s->scale, s->frame);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
@@ -693,9 +580,6 @@ namespace brr289
 		return s->frame < s->frames ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Splash (0x678490): its layout at its point
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SplashTask(TaskNode *n)
 	{
 		SplashNode *s = (SplashNode *)n;
@@ -704,15 +588,10 @@ namespace brr289
 		BlockAt(&arg, s->pos);
 		arg.morph = TexBase() + VERTS;
 		arg.depth = -0x80;
-		// 30 fps layer: see mag289_brrawghh_held.inc
 		FX_HELD(held_note_play(SPLASH, n, (prim::Layout *)s->layout);)
 		return prim::play((prim::Layout *)s->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x677A30)
-	// ------------------------------------------------------------------
-	// a new sprite at pos +- spread on x / z, at the target's height + rand * (its word +0x92) >> 15
 	static void SpawnAtTarget(SpriteNode *s, const MainNode *w, uint32_t seq, int32_t mask, int32_t half)
 	{
 		s->seq = seq;
@@ -721,7 +600,6 @@ namespace brr289
 		const uint8_t *e = w->target;
 		s->pos[1] = (int16_t)((int16_t)(mul32(CrtRand(), *(const int16_t *)(e + 0x92)) >> 15) + *(const int16_t *)(e + 0x24));
 	}
-	// a sprite velocity through the rotation the GTE holds (M)
 	static void RotateVelocity(SpriteNode *s, int16_t frames, int32_t mask, int32_t add)
 	{
 		GteLoadV0(s->vel);
@@ -735,11 +613,11 @@ namespace brr289
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *w = (MainNode *)n;
-		int16_t B[4];      // entry esp - 0x8C: the bone point (4th word never written: copied into a spit sprite's frame word, then overwritten)
+		int16_t B[4];
 		B[3] = 0;
-		int16_t P[4];      // entry esp - 0x84: the moved target point (4th word never written, see SplashResidue)
+		int16_t P[4];
 		P[3] = SplashResidue();
-		Mat4x3 M = {};     // entry esp - 0x68
+		Mat4x3 M = {};
 		const int16_t c = w->counter;
 		if (c < 0x16)
 		{
@@ -752,7 +630,6 @@ namespace brr289
 			{
 				int32_t x[6];
 				TubeArgs(c, k, x);
-				// 30 fps layer: see mag289_brrawghh_held.inc
 				FX_HELD(held_note_tube(n, k, B, P);)
 				TubeDraw(&CM, TUBE_MESH[k], x[0], x[1], x[2], x[3], x[4], x[5], TexBase() + VERTS);
 			}
@@ -789,7 +666,6 @@ namespace brr289
 			BlockAt(&arg, w->pos);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = -0x80;
-			// 30 fps layer: see mag289_brrawghh_held.inc
 			FX_HELD(held_note_play(TARGET, n, (prim::Layout *)w->layout);)
 			Play(w->layout, &arg);
 		}
@@ -836,9 +712,6 @@ namespace brr289
 		return w->counter < 0x1E ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x677890)
-	// ------------------------------------------------------------------
 	static void StartMain(MasterNode *m)
 	{
 		m->started = 1;
@@ -857,7 +730,6 @@ namespace brr289
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag289_brrawghh_held.inc
 		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
@@ -890,7 +762,6 @@ namespace brr289
 		register_port(brr289::ORIG_MainTask, (void *)brr289::MainTask, "289 MainTask", 289);
 		register_port(brr289::ORIG_SpriteTask, (void *)brr289::SpriteTask, "289 SpriteTask", 289);
 		register_port(brr289::ORIG_SplashTask, (void *)brr289::SplashTask, "289 SplashTask", 289);
-		// 30 fps layer: see mag289_brrawghh_held.inc
 		FX_HELD(register_mag289_held();)
 	}
 }

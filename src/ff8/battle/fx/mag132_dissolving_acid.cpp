@@ -14,67 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 132: Dissolving Acid (enemy attack 183 of kernel.bin, Malboro c0m048; MAG_132_*). No other
-// kernel.bin entry uses effect 132.
-//
-// Structure (setup MAG_132_DISOLVING_ACID 0x6B19F0 -> _Init 0x6B1A20, file loader 0x6B1A00 = the
-// texture file named at 0x121906C; the setup keeps the CASTER's entity and the cast context, starts
-// camera animation 0x1214E1C and queues the TIM; setup / loader / _Init are the copies of 126..131):
-//   MasterTask (0x6B1AA0) - alternates the packet arena (magic buffer + 0x4BDC / + 0x14BDC); on
-//     counter 1 sets up the pools (first time: targets 3 x 0x14 at + 0x3B80, layouts 0x10 x 0x2D8 at
-//     + 0xE00, streams 0x10 x 0x40 at + 0xA00, an unused queue 0x20 x 0x18 at + 0x700, drops 0x40 x
-//     0x1C at + 0, the 0x80 stream points at + 0x3BBC freed) and starts a target task for the next
-//     action's first target (the action index runs 0..last_action, one per counter-1 tick; while a
-//     target task of that entity runs the counter stays at 1; after a spawn the counter moves on, so
-//     only action 0 is started). Then the target, layout, unused and stream queues and the drop list
-//     (0x6B1CC0); ends when all five are empty.
-//   TargetTask (0x6B1DB0) - counter 0..0x2D: sound at 0xA; on the even counters 0x14..0x1C one acid
-//     stream: its start = the table point 0x1214FE8 + 16 i through the caster's bone (0x6B2B70), its
-//     end = a random bone of the target (CRT rand), its control point = start + (the table's second
-//     vector through the caster's matrix) / 2 (x, z) (0x6B1EC0); when the table's flag word is 0 the
-//     end drops to the floor (y = 0) beside the target, x + table x / 2 through the caster's matrix.
-//     Damage at 0x2D, then ends.
-//   StreamTask (0x6B2030) - node 0x40, UPDATES THEN DRAWS: a chain of points (pool + 0x3BBC, 0x1C
-//     bytes) grows by one point per tick (8 more after the first); the phase += 0x100 picks the head's
-//     weight w = table 0x1219038[phase / 256] - 0xC0, every next point 0xC0 less (w >= 0x1080: 0x1000);
-//     each point = quadratic Bezier (start, control, end) at w through the GTE (IR0 interpolation);
-//     a head past 0x1080 is freed (the first one spawns the end layout: 0x6B23F0 splash on the body,
-//     0x6B27E0 puddle on the floor); fewer than 2 points: ends. Three random drops per tick (CRT rand
-//     & 3 = a point index) from that point towards the next. Then every point projected (OTZ =
-//     SZ3 / 4 via 0x704090), the textured ribbon 0x6B2870 (edges 0x6B29E0 = Breath's / Quezacotl's
-//     ribbon edges, GP0 0x3E quads for the first 8 points), and counters 0..7 a sprite sequence
-//     0x1212D90 at the start.
-//   DropTask (0x6B2310) - node 0x1C, DRAWS THEN UPDATES: run by the drop list (0x6B1CC0 / 0x6B1D60, a
-//     per-tick sprite header for model 0x1212B70 on the Field_Alloc scratch, published in 0x2520F84):
-//     the drop's position through the camera into the header, flipbook frame (counter) through
-//     0x683490; 8 frames; moves by its velocity.
-//   SplashTask (0x6B2450) - node 0x2D8, DRAWS THEN UPDATES: layout 0x1212F64 or 0x1213C04 (CRT rand)
-//     at the stream's end, callback 0x6B2560; sequences 0x1212E6C (counters 0..8) and 0x1212C4C
-//     (counters 4..15) through the shadow-rotation camera; 16 ticks.
-//   PuddleTask (0x6B2820) - node 0x2D8, DRAWS THEN UPDATES: layout 0x12148A4 on the floor, callback
-//     0x6B2560; ends when the layout is finished.
-//   PartCallback (0x6B2560) - Petrify Stare's 0x6BED30 / Trauma's 0x6DD630 without the rotation
-//     variants and the depth word, drawn by 0x572200.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// ENTITY / CAMERA: no task writes a battle entity (position +0x1C..+0x20 only read) or the camera
-// words (the camera animation is the engine's).
-// Module globals: 0x2520F60..0x2520FF0 (caster entity 0x2520F60, texture file 0x2520F64, magic
-// buffer base 0x2520F68, context 0x2520F6C, master pool 0x2520F70, drop header 0x2520F84, packet
-// cursor 0x2520F88, the queues 0x2520F90 drops / 0x2520FA0 unused / 0x2520FB0 streams / 0x2520FC0
-// layouts / 0x2520FD0 targets / 0x2520FE0 master).
-// NEVER-WRITTEN STACK WORDS (the game's executor 0x508420 calls every task of a queue at one esp;
-// the master pushes one more queue argument per executor call: target tasks start at E, layouts at
-// E - 4, the unused queue at E - 8, streams at E - 0xC; DR0 write watches under the game executor):
-//   - the ribbon draw's joint direction local (0x6B2870 [esp], stream task entry esp - 0x2C): read
-//     when the chain's first edge has no screen length (its first two points on one pixel). Its last
-//     writer is the projection loop's last 0x704090 (push ecx, then GTE_ReadDataReg(0x13) into that
-//     slot): the dword SZ3 of the last point (Ribbon's slot argument).
-//   - the stream's start comes from a stack vector of the target task (E - 8) whose 4th word (E - 2)
-//     0x6B2B70 never writes; 0x6B1EC0 copies it into the stream node's +0x1E (overwritten) and +0x26
-//     (kept, never read). The target task is the first task of a tick: the word is what lies there
-//     when the tick starts. The module's own writers come after it in the tick (the stream queue
-//     executor's push of the master's edi, each drop's return address 0x6B1D75); between two effect
-//     ticks the battle loop runs at the effect root's depth: engine residue, taken as 0.
+// Effect 132: Dissolving Acid
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
@@ -87,17 +27,16 @@ namespace acid132
 	using namespace magc;
 	using namespace icec;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520F60); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520F68); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520F60); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2520F68); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2520F6C); }
-	inline uint8_t *&DropHeader() { return var<uint8_t *>(0x2520F84); }    // the drop list's sprite header (per tick)
+	inline uint8_t *&DropHeader() { return var<uint8_t *>(0x2520F84); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520F88); }
-	inline TaskQueue *QDrops() { return (TaskQueue *)0x2520F90; }          // pool: magic buffer, 0x40 x 0x1C
-	inline TaskQueue *QUnused() { return (TaskQueue *)0x2520FA0; }         // pool: + 0x700, 0x20 x 0x18 (never used)
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x2520FB0; }        // pool: + 0xA00, 0x10 x 0x40
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2520FC0; }        // pool: + 0xE00, 0x10 x 0x2D8
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520FD0; }        // pool: + 0x3B80, 3 x 0x14
+	inline TaskQueue *QDrops() { return (TaskQueue *)0x2520F90; }
+	inline TaskQueue *QUnused() { return (TaskQueue *)0x2520FA0; }
+	inline TaskQueue *QStreams() { return (TaskQueue *)0x2520FB0; }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2520FC0; }
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520FD0; }
 
 	static const uint32_t ORIG_MasterTask = 0x6B1AA0;
 	static const uint32_t ORIG_TargetTask = 0x6B1DB0;
@@ -105,113 +44,100 @@ namespace acid132
 	static const uint32_t ORIG_DropTask = 0x6B2310;
 	static const uint32_t ORIG_SplashTask = 0x6B2450;
 	static const uint32_t ORIG_PuddleTask = 0x6B2820;
-	static const uint32_t POINTS = 0x3BBC;               // magic buffer: stream points, 0x80 x 0x1C
-	static const uint32_t MORPH = 0x49BC;                // magic buffer: blended vertex frames
-	static const uint32_t MODEL_Drop = 0x1212B70;        // drop sprite model (0x683490)
-	static const uint32_t SEQ_Stream = 0x1212D90;        // sprite sequence at a stream's start
+	static const uint32_t POINTS = 0x3BBC;
+	static const uint32_t MORPH = 0x49BC;
+	static const uint32_t MODEL_Drop = 0x1212B70;
+	static const uint32_t SEQ_Stream = 0x1212D90;
 	static const uint32_t SEQ_Splash1 = 0x1212E6C;
 	static const uint32_t SEQ_Splash2 = 0x1212C4C;
-	static const uint32_t MODEL_Splash1 = 0x1212F64;     // prim-model layouts
+	static const uint32_t MODEL_Splash1 = 0x1212F64;
 	static const uint32_t MODEL_Splash2 = 0x1213C04;
 	static const uint32_t MODEL_Puddle = 0x12148A4;
 	static const void *const SOUND_Acid = (const void *)0x1214FD0;
-	static const uint8_t *const STREAM_TABLE = (const uint8_t *)0x1214FE8; // 5 x 16: point, bone / vector, flag
-	static const int16_t *const WEIGHTS = (const int16_t *)0x1219038;     // head weight by phase / 256
-	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1215038;  // [|dy|][|dx|] -> length, 128 x 128
+	static const uint8_t *const STREAM_TABLE = (const uint8_t *)0x1214FE8;
+	static const int16_t *const WEIGHTS = (const int16_t *)0x1219038;
+	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x1215038;
 
-	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void StoreOTZ4(int16_t *dst) { fn<void (__cdecl *)(int16_t *)>(0x704090)(dst); } // MAG_138_sub_704090: GTE SZ3 >> 2 (read into a stack slot)
-	// MAG_106_sub_683490: the drop sprite (header +0x2C frame data, +0x30 its first word, +0x98 camera position)
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void StoreOTZ4(int16_t *dst) { fn<void (__cdecl *)(int16_t *)>(0x704090)(dst); }
 	inline uint32_t DrawDropSprite(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x683490)(h, ot, mode, cursor); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2520F70)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		uint8_t action;    // +0x0E next action to start
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0x14 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E
-		uint8_t *entity;   // +0x10 the action's first target
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
 	};
-	struct Point // stream point, pool of 0x80 x 0x1C (magic buffer + 0x3BBC)
+	struct Point
 	{
-		int16_t pos[3];    // +0x00 world position
-		int16_t width;     // +0x06 ribbon width (0x96); -1 = free
-		int16_t sx, sy;    // +0x08 screen position, then the ribbon edge (one side)
-		int16_t otz;       // +0x0C SZ3 / 4 (-1: hidden by a zero-length first edge)
-		int16_t idx;       // +0x0E creation order in the chain
-		int16_t sx2, sy2;  // +0x10 the ribbon edge (other side)
+		int16_t pos[3];
+		int16_t width;
+		int16_t sx, sy;
+		int16_t otz;
+		int16_t idx;
+		int16_t sx2, sy2;
 		uint8_t pad14[4];
-		Point *next;       // +0x18
+		Point *next;
 	};
-	struct StreamNode // pool of 0x10 nodes of 0x40 bytes
+	struct StreamNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t count;     // +0x0E points in the chain
-		Point *head;       // +0x10 oldest point
-		Point *tail;       // +0x14 newest point
-		int16_t start[3];  // +0x18 Bezier start (the caster's mouth)
-		int16_t phase;     // +0x1E
-		int16_t ctrl[4];   // +0x20 control point (+0x26: the never-written stack word, never read)
-		int16_t end[4];    // +0x28 end (+0x2E: 1 = on the floor -> puddle, 0 = on the body -> splash)
+		int16_t counter;
+		int16_t count;
+		Point *head;
+		Point *tail;
+		int16_t start[3];
+		int16_t phase;
+		int16_t ctrl[4];
+		int16_t end[4];
 		uint8_t pad30[8];
-		int16_t slot;      // +0x38 the target's entity slot (never read)
-		int16_t width;     // +0x3A point width (0x96)
-		int16_t add;       // +0x3C points still to add
+		int16_t slot;
+		int16_t width;
+		int16_t add;
 		int16_t pad3E;
 	};
-	struct DropNode // pool of 0x40 nodes of 0x1C bytes
+	struct DropNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t frame;     // +0x12
-		int16_t vel[3];    // +0x14
+		int16_t pos[3];
+		int16_t frame;
+		int16_t vel[3];
 		int16_t pad1A;
 	};
-	struct LayoutNode // pool of 0x10 nodes of 0x2D8 bytes (splash / puddle)
+	struct LayoutNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];    // +0x10 the stream's end (+0x16 its floor flag)
-		uint8_t layout[0x2C0]; // +0x18 prim-model layout
+		int16_t pos[4];
+		uint8_t layout[0x2C0];
 	};
-	// the prim-player callback's parameter block (a stack block of the layout tasks)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 the node's position (+0x10..+0x17)
-		uint32_t morph;    // +0x08 blended vertex frames
+		int16_t pos[4];
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(TargetNode) == 0x14 && sizeof(Point) == 0x1C && sizeof(StreamNode) == 0x40, "Dissolving Acid nodes");
 	static_assert(sizeof(DropNode) == 0x1C && sizeof(LayoutNode) == 0x2D8 && sizeof(PrimArg) == 0xC, "Dissolving Acid nodes");
 
-	// the never-written stack word below the target task (module comment): engine residue, 0
 	static const int16_t TARGET_PAD = 0;
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6B2560): one object of a splash / puddle layout. Vertex frame (or blend
-	// into the block's morph buffer), rotation from the record's angles; flag 0x200 = the anchor
-	// through the camera with the offset in screen axes, else anchor + offset through the camera and
-	// the rotation composed with it; scaled (scale3DMatrix); drawn by 0x572200.
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -249,11 +175,9 @@ namespace acid132
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x200)
 		{
-			// the anchor through the camera, the offset added in screen axes
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -264,7 +188,6 @@ namespace acid132
 		}
 		else
 		{
-			// anchor + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -291,14 +214,10 @@ namespace acid132
 			*(uint32_t *)(h + 0x1C) = 0x20F0;
 			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
 		}
-		// +0x18 (depth offset) is not written: the scratch word under the header
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Sprite sequence at a fixed position through the shadow-rotation camera (header 0xB4 bytes)
-	// ------------------------------------------------------------------
 	static void SequenceAt(uint8_t *h, const int16_t *pos, int32_t a, int32_t b, uint32_t seq, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, a, b);
@@ -308,7 +227,6 @@ namespace acid132
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// splash sequences of counter c (header allocated after the layout)
 	static void SplashSequences(const LayoutNode *s)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -318,7 +236,6 @@ namespace acid132
 		FieldFree(0xB4);
 	}
 
-	// stream sequence of counter c at the start (counters 0..7)
 	static void StreamSequence(const StreamNode *s)
 	{
 		TransformCameraByShadowRotation(s->start, 0x1000, -0x400);
@@ -330,10 +247,6 @@ namespace acid132
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Drop list header (0x6B1CC0): sprite model 0x1212B70, rotation / scale words, colour from the
-	// model; published in 0x2520F84
-	// ------------------------------------------------------------------
 	static uint8_t *DropListHeader()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -360,7 +273,6 @@ namespace acid132
 		return h;
 	}
 
-	// a drop's draw: its position through the camera into the header, flipbook frame
 	static void DropDraw(uint8_t *h, const DropNode *d)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -379,9 +291,6 @@ namespace acid132
 		PacketCursor() = DrawDropSprite(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// ------------------------------------------------------------------
-	// Stream points (0x6B1FF0: the first free point of the pool, its width set, next cleared)
-	// ------------------------------------------------------------------
 	static Point *AllocPoint(int16_t width)
 	{
 		Point *p = (Point *)(TexBase() + POINTS);
@@ -397,8 +306,6 @@ namespace acid132
 		return nullptr;
 	}
 
-	// a point of the stream at weight w: quadratic Bezier start / control / end through the GTE
-	// (IR0 interpolation: (start * (1 - w) + control * w) * (1 - w) + end * w)
 	static void BezierPoint(const StreamNode *s, int32_t w, int16_t *out)
 	{
 		const int32_t iw = 0x1000 - w;
@@ -419,8 +326,6 @@ namespace acid132
 		GteStoreIR123(out);
 	}
 
-	// projection of the chain (0x704090: OTZ = SZ3 >> 2); returns the last SZ3 (GTE data register 19,
-	// what 0x704090 leaves in its slot below the stream task: the ribbon's direction local)
 	static uint32_t ProjectChain(Point *p)
 	{
 		GteSetRotMatrix(&Camera());
@@ -436,8 +341,6 @@ namespace acid132
 		return var<uint32_t>(0x1CA8A5C);
 	}
 
-	// Ribbon edges of point s towards n (0x6B29E0, Breath's 0x6B6E50 / Quezacotl's 0x6C8DE0). dir
-	// carries the previous segment's direction (mitred joints).
 	static void SegEdges(Point *s, const Point *n, const int16_t *prev_dir, int16_t *dir)
 	{
 		if (s->otz < 0) return;
@@ -493,9 +396,6 @@ namespace acid132
 		s->sy = (int16_t)(y - oy);
 	}
 
-	// Ribbon (0x6B2870): the edges of every point (first, middle, last), then one GP0 0x3E quad
-	// (gouraud 0x808080, textured, texture row by the point's index) per pair whose both points are
-	// visible, for the first 8 points. The direction local starts with the slot word (module comment).
 	static void Ribbon(Point *head, int32_t count, uint32_t slot)
 	{
 		int16_t dir[2] = { (int16_t)slot, (int16_t)(slot >> 16) };
@@ -539,9 +439,6 @@ namespace acid132
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Layout spawns at the stream's end (0x6B23F0 splash / 0x6B27E0 puddle; no spawn check)
-	// ------------------------------------------------------------------
 	static void SpawnSplash(const int16_t *end)
 	{
 		LayoutNode *s = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_SplashTask);
@@ -560,10 +457,6 @@ namespace acid132
 		DecodeModelPrimLayout(MODEL_Puddle, s->layout, 0x78);
 	}
 
-	// ------------------------------------------------------------------
-	// Stream spawn (0x6B1EC0): its first point, the node (start a1, control a1 + v / 2 in x / z, end
-	// a2, which drops to the floor beside the target when the table's flag word is 0)
-	// ------------------------------------------------------------------
 	static void SpawnStream(const int16_t *a1, int16_t *a2, int32_t slot, int32_t width, const int16_t *v, const int16_t *entry)
 	{
 		Point *p = AllocPoint((int16_t)width);
@@ -601,7 +494,6 @@ namespace acid132
 		s->width = (int16_t)width;
 	}
 
-	// 0x6B2B70: a table point through the caster's bone (word +6) composed with its matrix
 	static void BonePoint(const int16_t *entry, int16_t *out)
 	{
 		uint8_t *c = Caster();
@@ -624,13 +516,9 @@ namespace ff8fx
 {
 namespace acid132
 {
-	// ------------------------------------------------------------------
-	// Drop (0x6B2310): run by the drop list
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DropTask(TaskNode *n)
 	{
 		DropNode *d = (DropNode *)n;
-		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_drop(d);)
 		DropDraw(DropHeader(), d);
 		d->frame++;
@@ -641,11 +529,8 @@ namespace acid132
 		return 0;
 	}
 
-	// Drop list (0x6B1CC0 + 0x6B1D60): the per-tick header, then every node of the list; finished
-	// nodes are freed and unlinked, the tail becomes the last survivor. Returns the nodes left.
 	static uint32_t RunDrops()
 	{
-		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_drop_list();)
 		DropListHeader();
 		TaskQueue *q = QDrops();
@@ -671,19 +556,14 @@ namespace acid132
 		return alive;
 	}
 
-	// ------------------------------------------------------------------
-	// Splash (0x6B2450) / puddle (0x6B2820) layouts
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SplashTask(TaskNode *n)
 	{
 		LayoutNode *s = (LayoutNode *)n;
 		PrimArg arg;
 		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, s->pos);
 		arg.morph = TexBase() + MORPH;
-		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_layout(s, &arg, true);)
 		prim::play((prim::Layout *)s->layout, PartCallback, (int)&arg, 0);
-		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_sequence(s, false);)
 		SplashSequences(s);
 		s->counter++;
@@ -696,14 +576,10 @@ namespace acid132
 		PrimArg arg;
 		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, s->pos);
 		arg.morph = TexBase() + MORPH;
-		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_layout(s, &arg, false);)
 		return prim::play((prim::Layout *)s->layout, PartCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Stream (0x6B2030)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl StreamTask(TaskNode *n)
 	{
 		StreamNode *s = (StreamNode *)n;
@@ -735,7 +611,6 @@ namespace acid132
 				w -= 0xC0;
 				if (w > 0x1080 && p == s->head)
 				{
-					// the head passed the end: freed (the first point starts the end layout)
 					if (p->idx == 0)
 					{
 						if (s->end[3] == 0) SpawnSplash(s->end);
@@ -752,7 +627,6 @@ namespace acid132
 				p = p->next;
 			} while (p);
 
-			// three random drops: from the point whose index is rand & 3 towards the next one
 			for (int32_t k = 3; k; k--)
 			{
 				const int32_t r = CrtRand() & 3;
@@ -774,13 +648,11 @@ namespace acid132
 				}
 			}
 		}
-		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_stream(s, grow);)
 		const uint32_t slot = ProjectChain(s->head);
 		if (s->count >= 2) Ribbon(s->head, s->count, slot);
 		if (s->counter < 8)
 		{
-			// 30 fps layer: see mag132_dissolving_acid_held.inc
 			FX_HELD(held_note_sequence(s, true);)
 			StreamSequence(s);
 		}
@@ -788,9 +660,6 @@ namespace acid132
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Target (0x6B1DB0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -820,13 +689,9 @@ namespace acid132
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6B1AA0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
@@ -903,7 +768,6 @@ namespace acid132
 		register_port(acid132::ORIG_DropTask, (void *)acid132::DropTask, "132 DropTask", 132);
 		register_port(acid132::ORIG_SplashTask, (void *)acid132::SplashTask, "132 SplashTask", 132);
 		register_port(acid132::ORIG_PuddleTask, (void *)acid132::PuddleTask, "132 PuddleTask", 132);
-		// 30 fps layer: see mag132_dissolving_acid_held.inc
 		FX_HELD(register_mag132_held();)
 	}
 }

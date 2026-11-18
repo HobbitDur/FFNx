@@ -14,36 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 171: Poison Gas (enemy attack 32 / 33 / 34 of kernel.bin; Tri-Face c0m036; MAG_171_*).
-//
-// Structure (file loader 0x5DB250 = the texture file 0xD68D00 -> 0x23AF810; _Init 0x5DB270 keeps the texture base 0x23AF814, the
-// context 0x23AF808, the first target's slot 0x23AD700 and the caster's slot 0x23AF80C, queues the root (one 0x10-byte node,
-// pool 0x23AD708, queue 0x23AD718) and the director in the effect queue 0x23AE9E8 (100 x 0x24, pool 0x23AE9F8), frees both
-// particle arrays (A 0x23AD728, B 0x23AE088: 100 x 0x18 each, word +0 = owner mask), plays the camera animation 0xD65640 and
-// queues the TIM; both run original):
-//   Root (0x5DC8C0) - packet arena = texture base / + 0xC000 on its counter's parity, the effect queue; ends when it is empty.
-//   Director (0x5DB340) - nothing on draw-only ticks. Tick 1: the tinted caster, the caster's effect point 0xF1 (its +0x10),
-//     two puffs (0x5DBED0, masks 1 / 2, table rows 0 / 2) and two wisps (0x5DC270, masks 1 / 2, rows 4 / 6) there, the sound
-//     0xD68CB4; tick 8: two clouds (0x5DC5B0); tick 0x1B: an emitter at every target's effect point 0xF1 (mask 4 << target);
-//     tick 0x1E: the action result of every target; the screen flash tick << 7 up to tick 0x10, (0x32 - tick) << 8 from tick
-//     0x2A; ends after tick 0x32 (flash 0).
-//   Tinted caster (0x5DB620 -> 0x5DB720 -> 0x5DB8B0 -> 0x5DBA00) - ticks 0..0x17: the caster hidden (entity flag 4) and its
-//     model redrawn with every face doubled by a semi-transparent gas face (texture page 0xB9, clut 0x3F54, a 0x80 x 0x80
-//     texture window, v scrolled by tick * 4, grey 0x20 * tick up to 0x80, down from tick 0x10); its weapon through
-//     RenderGeometry; at tick 0x18 the caster's flag 4 is restored as it was.
-//   Puff (0x5DBED0) - particles B of its mask: sequence 0xD658A0 (frame / 2, pull -size >> 4), size + size >> 5, moving,
-//     velocity - v >> 5; ticks 0..0x10: 2 new ones at table row +0x18 (0xD68CC0) through the caster's matrix, + its point,
-//     thrown toward row +0x18 + 1 (x + x / 32 * tick, z + z / 10 * tick); ends from tick 4 once none is left.
-//   Wisp (0x5DC270) - particles A of its mask as the puff (frame not halved), thrown toward the next row unmodified.
-//   Cloud (0x5DC5B0) - prim model 0xD65A4C in camera space (x angle + spin, scale x 1.5 / 1 / 1, at (x, 0, 0x1D8E038)), x +
-//     step, faded 0x1000 - tick * 170 down to tick 0xC, tick * 170 - 0x13E4 from tick 0x2A; 0x36 ticks.
-//   Emitter (0x5DC700) - particles B of its mask (sequence 0xD656F4, still); ticks 0..0xD: one new one at its point +-500 (size
-//     0x300..0xBFF); ends from tick 4 once none is left.
-// Every drawing task draws first and updates afterwards; on draw-only ticks it returns after drawing.
-// ENTITY WRITES: the caster's flag word +0 bit 2 (hidden while it is redrawn; restored at the end). CAMERA: the camera
-// animation 0xD65640 (engine). Module globals: 0x23AD700..0x23AF81C.
-// NEVER-WRITTEN STACK WORDS: the 4th word of the puff's / wisp's spawn point (0x56C4F0 writes 3 words) is copied into its
-// particles' +0x0E (only ever loaded into the GTE VZ0 pad: never read); modelled 0 (SpawnPad).
+// Effect 171: Poison Gas
 
 #include "mag_common.h"
 
@@ -62,7 +33,6 @@ namespace poisongas171
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	// --- module globals ---
 	inline TaskQueue *QRoot() { return (TaskQueue *)0x23AD718; }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23AE9E8; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x23AF808); }
@@ -70,8 +40,8 @@ namespace poisongas171
 	inline uint32_t &TexBase() { return var<uint32_t>(0x23AF814); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23AF818); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	static const uint32_t PARTS_A = 0x23AD728, PARTS_B = 0x23AE088, PARTS_END = 0x23AE9E8; // 100 x 0x18 each
-	static const uint32_t ROWS = 0xD68CC0;                                                 // spawn table rows (8 bytes)
+	static const uint32_t PARTS_A = 0x23AD728, PARTS_B = 0x23AE088, PARTS_END = 0x23AE9E8;
+	static const uint32_t ROWS = 0xD68CC0;
 
 	static const uint32_t ORIG_Root = 0x5DC8C0, ORIG_Director = 0x5DB340, ORIG_Tint = 0x5DB620, ORIG_Puff = 0x5DBED0,
 		ORIG_Wisp = 0x5DC270, ORIG_Cloud = 0x5DC5B0, ORIG_Emitter = 0x5DC700;
@@ -79,11 +49,10 @@ namespace poisongas171
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, mode, out); }
 	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(model, hdr, ot, mode, cursor); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -95,18 +64,15 @@ namespace poisongas171
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteLoadV0SVec3(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }                       // GTE_LoadV0FromSVec3
+	inline void GteLoadV0SVec3(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
-	inline void GteStoreIR123SVec(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(v); }                    // GTE_StoreIR123ToSVec
+	inline void GteStoreIR123SVec(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(v); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
 
-	// the 4th word of the puff's / wisp's spawn point (never written; see the module comment)
 	static int16_t SpawnPad() { return 0; }
 
-	// a particle (0x18 bytes): +0 owner mask, +4 frame, +6 size, +8 point (4 words), +0x10 velocity (3 words)
 	enum { P_MASK = 0, P_FRAME = 4, P_SIZE = 6, P_POS = 8, P_VEL = 0x10 };
 
-	// the first free particle of [lo, hi) (mask 0) among the first 100, or 0
 	static uint32_t FreeParticle(uint32_t lo, uint32_t hi)
 	{
 		int32_t i = 0;
@@ -126,17 +92,7 @@ namespace ff8fx
 {
 namespace poisongas171
 {
-	// ==================================================================
-	// Tinted caster
-	// Header (0xB0 bytes on the scratch): +0x00 primitive list, +0x04 vertex buffer, +0x08..+0x0E primitive counts, +0x10 /
-	// +0x14..+0x1A as RenderGeometry's, +0x1C code bits (entity +0x28), +0x20 visible objects, +0x28..+0x2A depth cue, +0x2C 0,
-	// +0x30 the v scroll, +0x34 / +0x36 texture window x / y, +0x38 / +0x3A its width / height, +0x3C NCLIP, +0x44 OTZ, +0x48 GTE
-	// FLAG, +0x6C the gas colour, +0x70.. the scroll sums, +0x84 the scroll modulo the height, +0x88 / +0x8C the texture window
-	// set / reset words, +0x90 camera x entity
-	// ==================================================================
 
-	// the v bytes of n gas texture coordinates (o + off[i] + 1): + the scroll, then - the height when one reaches 0x100, else +
-	// it when one is negative (the sums at hdr + 0x70..)
 	static void GasScroll(uint32_t hdr, uint32_t o, const int32_t *off, int n, int32_t h)
 	{
 		const int32_t s = S32(hdr, 0x84);
@@ -152,8 +108,6 @@ namespace poisongas171
 		else for (int i = 0; i < n; i++) U8(o, off[i] + 1) = (uint8_t)a[i];
 	}
 
-	// 0x5DBA00: the object's flat textured triangles (0x10-byte records) and quads (0x14-byte records), each followed by its
-	// gas face (same corners, one bucket closer)
 	static uint32_t GasPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
@@ -247,8 +201,6 @@ namespace poisongas171
 		return pk;
 	}
 
-	// 0x5DB8B0: every visible object: its vertices through their bone matrices into the vertex buffer, then its faces through
-	// the camera (GasPrims)
 	static uint32_t GasObjects(uint32_t model, uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t bones = U32(model, 0) + 0x10;
@@ -293,8 +245,6 @@ namespace poisongas171
 		return cursor;
 	}
 
-	// 0x5DB720: the texture window words and the scroll, the entity's shadow, its model (GasObjects), its weapon through
-	// RenderGeometry; the bone matrices are rebuilt from the pose afterwards
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		uint32_t tw = ((uint32_t)U8(hdr, 0x36) & 0xF8) | 0xFFFE2000u;
@@ -305,7 +255,6 @@ namespace poisongas171
 		U32(hdr, 0x8C) = 0xE2000000;
 		S32(hdr, 0x84) = S32(hdr, 0x30) % (int32_t)S16(hdr, 0x3A);
 		const uint32_t anim = entity + 0x60;
-		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, FrameCursor());
@@ -335,10 +284,8 @@ namespace poisongas171
 		}
 	}
 
-	// the gas grey of a tick: up by 0x20 a tick to 0x80, 0x80, down by 0x10 a tick from tick 0x10
 	static int32_t TintGrey(int32_t c) { return c < 4 ? shl32(c, 5) : (c >= 0x10 ? shl32(0x18 - c, 4) : 0x80); }
 
-	// the caster hidden and redrawn with its gas faces (grey g, v scroll s)
 	static void TintDraw(int32_t g, int32_t s)
 	{
 		const uint32_t h = P(FieldAlloc(0xB0));
@@ -361,7 +308,6 @@ namespace poisongas171
 		const int16_t c = S16(n, 0xC);
 		if (c < 0x18)
 		{
-			// 30 fps layer: see mag171_poison_gas_held.inc
 			FX_HELD(held_note_node(REC_TINT, n);)
 			TintDraw(TintGrey(c), shl32(c, 2));
 		}
@@ -373,9 +319,6 @@ namespace poisongas171
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Cloud (0x5DC5B0): a prim model in camera space
-	// ------------------------------------------------------------------
 	static int32_t CloudFade(int32_t c) { return c < 0xC ? 0x1000 - mul32(c, 170) : (c >= 0x2A ? mul32(c, 170) - 0x13E4 : 0x800); }
 
 	static void CloudDraw(uint32_t n, int32_t fade)
@@ -404,7 +347,6 @@ namespace poisongas171
 	static uint32_t __cdecl CloudTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(held_note_node(REC_CLOUD, n);)
 		CloudDraw(n, CloudFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
@@ -414,10 +356,6 @@ namespace poisongas171
 		return S16(n, 0xC) >= 0x36 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Particles
-	// ------------------------------------------------------------------
-	// one particle's sequence at the shadow-rotation camera of its point
 	static void PartDraw(uint32_t h, uint32_t p, int16_t frame)
 	{
 		const int16_t size = S16(p, P_SIZE);
@@ -426,7 +364,6 @@ namespace poisongas171
 		PacketCursor() = InitEffectSequenceFromData((void *)h, RenderOT44(), 2, PacketCursor());
 	}
 
-	// the particles of [lo, hi) with the node's mask (frame halved when half), moving or still; the live ones counted
 	static int PartsDraw(uint32_t n, uint32_t lo, uint32_t hi, uint32_t seq, bool half, bool moving)
 	{
 		const uint32_t h = P(FieldAlloc(0xB4));
@@ -436,7 +373,6 @@ namespace poisongas171
 		for (uint32_t p = lo; p < hi; p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0xE))) continue;
-			// 30 fps layer: see mag171_poison_gas_held.inc
 			FX_HELD(held_note_particle(p);)
 			PartDraw(h, p, half ? (int16_t)(S16(p, P_FRAME) >> 1) : S16(p, P_FRAME));
 			if (DrawOnly()) continue;
@@ -458,8 +394,6 @@ namespace poisongas171
 		return alive;
 	}
 
-	// the puff's / wisp's spawn: row +0x18 through the caster's matrix + the node's point (from), row +0x18 + 1 (puff: x + x / 32
-	// * tick, z + z / 10 * tick) the same way (to); 2 particles at from thrown toward to (speed 40..134)
 	static void PartsSpawn(uint32_t n, uint32_t lo, uint32_t hi, bool puff)
 	{
 		const Mat4x3 *cm = (const Mat4x3 *)(Entity(CasterSlot()) + 0x40);
@@ -509,10 +443,8 @@ namespace poisongas171
 		}
 	}
 
-	// Puff (0x5DBED0, particles B) / Wisp (0x5DC270, particles A)
 	static uint32_t PuffTaskImpl(uint32_t n, bool puff)
 	{
-		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(held_note_parts(puff ? REC_PUFF : REC_WISP, n);)
 		const int alive = puff ? PartsDraw(n, PARTS_B, PARTS_END, SEQ_Puff, true, true) : PartsDraw(n, PARTS_A, PARTS_B, SEQ_Puff, false, true);
 		if (DrawOnly()) return 0;
@@ -529,11 +461,9 @@ namespace poisongas171
 	static uint32_t __cdecl PuffTask(TaskNode *tn) { return PuffTaskImpl(P(tn), true); }
 	static uint32_t __cdecl WispTask(TaskNode *tn) { return PuffTaskImpl(P(tn), false); }
 
-	// Emitter (0x5DC700, particles B): still particles around its point
 	static uint32_t __cdecl EmitterTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(held_note_parts(REC_EMITTER, n);)
 		const int alive = PartsDraw(n, PARTS_B, PARTS_END, SEQ_Emitter, false, false);
 		if (DrawOnly()) return 0;
@@ -557,9 +487,6 @@ namespace poisongas171
 		return S16(n, 0xC) >= 4 && !alive ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5DB340) and root (0x5DC8C0)
-	// ------------------------------------------------------------------
 	static uint32_t NewTask(uint32_t f)
 	{
 		const uint32_t t = (uint32_t)AddTaskToQueue(EffectQueue(), f);
@@ -625,7 +552,6 @@ namespace poisongas171
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? TexBase() + 0xC000 : TexBase();
 		const int running = ExecuteTaskQueue(EffectQueue());
@@ -642,7 +568,6 @@ namespace poisongas171
 		register_port(ORIG_Wisp, (void *)WispTask, "171 WispTask", 171);
 		register_port(ORIG_Cloud, (void *)CloudTask, "171 CloudTask", 171);
 		register_port(ORIG_Emitter, (void *)EmitterTask, "171 EmitterTask", 171);
-		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(register_mag171_held();)
 	}
 }

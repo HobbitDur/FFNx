@@ -14,39 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effects 327-330: Gilgamesh - Zantetsuken / Masamune / Excalibur / Excalipoor (timeline-B GF
-// family, MAG_327_*). One module serves the four ids: the four setups MAG_327..330_UNKNOWN
-// (0x58D760 / 0x58D930 / 0x58DB10 / 0x58DCF0, not ported: they run once) differ only in the
-// variant cell 0x21FFA70 (0..3) and the TIM they upload; every task below is shared and reads
-// the variant where the four attacks differ.
-//
-// Structure (gf_study/gf_inventory_timeline.md section 3.2):
-//   setup - model buffer mb = 0x20DFAB8 (dword 0x2200FB8); sprite pools 0xCD0398 = mb+0x2E000
-//     (pool B, 200 x 0x18), 0xCD039C = mb+0x2F800 (pool A, 200 x 0x20), vertex scratch 0xCD03A0 =
-//     mb+0x31800; root queue 0x21FF4A8 (pool 0x21FF468, 2 x 0x10) with the master, queue Q1
-//     0x21FFD58 (pool 0x21FFD68, 100 x 0x24) with the timeline, queue Q2 0x21FF458 (pool
-//     0x21FF3C8, 4 x 0x24) with the model tasks.
-//   SequenceTick (master, 0x596B70) - runs Q1 then Q2, ++counter, ends when both are empty.
-//   TimelineTask (0x592300) - 328 ticks: camera script, streams, loads, sounds, screen flash, party
-//     hide/show, spawns (fade tile 0, rings 8, flare row 18, risers 44, swords + Gilgamesh 76,
-//     sparks 101, puffs 113, spinners 121, dots 122, rising rings 123, horse 181, final pose 223,
-//     trail 263, the variant's sword attack 273, end 279).
-//   Models (battle-model blocks E, standard reader 0x509440 / 0x508F90):
-//     E0..E3 = 0x21FF4F0 + 0x9C*i  the four swords (per variant, exe .data 0xE808D0..0xE91520)
-//     E4     = 0x21FF760           Gilgamesh, first pose (mb)
-//     E5     = 0x2200F00           Gilgamesh on the horse (mb + 0x22000)
-//     B0..B3 = 0x21FF800 + 0x9C*j  its four arms' swords (mb + 0x2379C + j*0x1860)
-//     E6     = 0x2200FC0           Gilgamesh, final pose (mb)
-//   The timeline also queues the shared camera-script task MAG_066_sub_63E9C0 (Doomtrain file)
-//   into Q1; it is not part of this module and is not ported here. The module never writes the
-//   battle camera itself.
-// Every task tests battle_to_update_flags_dword_1D96A9C & 0x201 (draw-only when set), except the
-// master and the end task 0x596B30. The timeline returns at once on bit 0, and with bit 0x200
-// only while a file load is pending (then it runs its events).
-// Module-private renderers (pure functions of a scratch header: clipped target model 0x58E880,
-// clipped party 0x58FB50, clipped sword 0x595250, materialising model 0x5960A0) and the bone
-// midpoint helper 0x58E260 are called through their original addresses.
-
 #include "fx_port.h"
 
 namespace ff8fx
@@ -55,7 +22,6 @@ namespace g327
 {
 	using namespace eng;
 
-	// --- engine functions used by this module (original addresses) ---
 	namespace x
 	{
 		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
@@ -68,52 +34,48 @@ namespace g327
 		inline void BuildAxisAngleRotationMatrix(int32_t angle, Mat4x3 *out, const int32_t *axis) { fn<void (__cdecl *)(int32_t, Mat4x3 *, const int32_t *)>(0x5714F0)(angle, out, axis); }
 		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
 		inline void GetDefaultEffectPosition(void *entity, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x571400)(entity, out); }
-		inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }       // sub_571620
-		inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); } // sub_571690
-		inline void SetProjection(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }                                             // Call_Bs_parseCamera2 (GTE H)
-		// battle model
+		inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
+		inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
+		inline void SetProjection(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }
 		inline int32_t PreReadAnimation(void *header, void *cmd, int32_t id) { return fn<int32_t (__cdecl *)(void *, void *, int32_t)>(0x509440)(header, cmd, id); }
 		inline int32_t ReadAnimation(void *header, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(header, cmd); }
 		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(geom, hdr, ot, shift, cursor); }
-		inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); } // sub_5088A0
-		// sound / streams / files / camera script / battle
+		inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); }
 		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x501330)(se, a, b); }
 		inline void BdPlaySummonStream(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x5018C0)(a, b, c); }
 		inline void BdTransSummonStream(uint32_t src, uint32_t state) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x501860)(src, state); }
 		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(slot); }
 		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline void CameraScriptStart(uint32_t script, const void *frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, const void *, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); } // MAG_066_sub_63E960
-		inline void CameraShake(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); } // au_re_BdLinkTask_6
+		inline void CameraScriptStart(uint32_t script, const void *frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, const void *, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); }
+		inline void CameraShake(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
 		inline void ApplyActionResultToTargets(uint32_t list, uint32_t count) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x506BA0)(list, count); }
 		inline void ApplyActionResultToTarget(void *rec) { fn<void (__cdecl *)(void *)>(0x506690)(rec); }
-		inline void WaitAnimSeq(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(0x508630)(buffer, flag); }                   // sub_508630
-		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(0x508500)(); }                                                        // sub_508500: < 0 = file load busy
-		inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }                // BattleFile_CharacterLoad
-		inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }                                        // Battle_QueueTIMUpload_GetEOF
-		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(0x571B70)(); }                                                    // sub_571B70: 0x209FAB8
-		inline void AnimSeqText() { fn<void (__cdecl *)()>(0x50A750)(); }                                                                  // AnimSeqBB_handleText
-		inline void RequestScreenFeedback(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(0x47CF50)(a, b, c, d, e); } // Battle_RequestScreenFeedback
-		// software GTE
+		inline void WaitAnimSeq(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(0x508630)(buffer, flag); }
+		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
+		inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }
+		inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
+		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(0x571B70)(); }
+		inline void AnimSeqText() { fn<void (__cdecl *)()>(0x50A750)(); }
+		inline void RequestScreenFeedback(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(0x47CF50)(a, b, c, d, e); }
 		inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // MAG_148_sub_64DDA0: BK = m.t
+		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
 		inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }                 // MAG_163_sub_64DE00: R = s * I
-		inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); } // MAG_163_sub_64DD70: TR = v
-		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }                                 // MAG_164_sub_64DE40: TR = MAC123
+		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
+		inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
+		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
 		inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 		inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 		inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 		inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 		inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-		inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }                   // GTE_ReadOTZ
-		inline void GteReadSZ3(void *dst) { fn<void (__cdecl *)(void *)>(0x45E220)(dst); }                     // sub_45E220: *dst = SZ3
-		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }            // set_unk_1CA8A28
-		inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }                                         // sub_45F270
-		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }                   // set_param_with_dword_1CA8A68
-		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
-		inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); } // pre_someCameraWork_45DD60
-		// module-private renderers / helpers called through their original addresses
-		inline void BoneMid(void *entity, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x58E260)(entity, out); } // midpoint of bones 0xF0/0xF1, [3] = entity+0x24
+		inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+		inline void GteReadSZ3(void *dst) { fn<void (__cdecl *)(void *)>(0x45E220)(dst); }
+		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
+		inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
+		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
+		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
+		inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
+		inline void BoneMid(void *entity, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x58E260)(entity, out); }
 		inline uint32_t SliceRender(void *geom, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x58E880)(geom, h, ot, mode, cursor); }
 		inline uint32_t PartyRender(void *anim, void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x58FB50)(anim, h, ot, shift, cursor); }
 		inline uint32_t ClipRender(void *geom, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x595250)(geom, h, ot, mode, cursor); }
@@ -121,23 +83,22 @@ namespace g327
 	}
 	using namespace x;
 
-	// --- module globals ---
-	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x21FF3A0); }  // effect frame (setup: rotation, centroid 0x21FF3B4/B8/BC)
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x21FF488); }       // Camera o RootMatrix, rebuilt by the timeline every tick
-	inline TaskQueue &Q1() { return var<TaskQueue>(0x21FFD58); }     // timeline + effects
-	inline TaskQueue &Q2() { return var<TaskQueue>(0x21FF458); }     // model tasks
+	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; }
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x21FF3A0); }
+	inline Mat4x3 &Frame() { return var<Mat4x3>(0x21FF488); }
+	inline TaskQueue &Q1() { return var<TaskQueue>(0x21FFD58); }
+	inline TaskQueue &Q2() { return var<TaskQueue>(0x21FF458); }
 	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x21FF2A8); }
-	inline int32_t Variant() { return var<int32_t>(0x21FFA70); }     // 0 Zantetsuken, 1 Masamune, 2 Excalibur, 3 Excalipoor
+	inline int32_t Variant() { return var<int32_t>(0x21FFA70); }
 	inline uint8_t *CastCtx() { return var<uint8_t *>(0x2200DF0); }
-	inline uint32_t MB() { return var<uint32_t>(0x2200FB8); }        // model buffer (0x20DFAB8)
-	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }   // battle_texture_data_ptr_1D8E054
+	inline uint32_t MB() { return var<uint32_t>(0x2200FB8); }
+	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t RenderList() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t OT() { return RenderList() + 0x44; }
-	inline uint8_t *PoolB() { return var<uint8_t *>(0xCD0398); }     // mb + 0x2E000, 200 x 0x18
-	inline uint8_t *PoolA() { return var<uint8_t *>(0xCD039C); }     // mb + 0x2F800, 200 x 0x20
-	inline uint32_t VertexScratch() { return var<uint32_t>(0xCD03A0); } // mb + 0x31800 (RenderGeometry scratch)
-	inline uint8_t *Targets() { return *(uint8_t **)(CastCtx() + 4); } // +0x08 -> 0x18-byte records (byte 0 = slot, byte 3 bit 2 = skip), +0x10 u8 count
+	inline uint8_t *PoolB() { return var<uint8_t *>(0xCD0398); }
+	inline uint8_t *PoolA() { return var<uint8_t *>(0xCD039C); }
+	inline uint32_t VertexScratch() { return var<uint32_t>(0xCD03A0); }
+	inline uint8_t *Targets() { return *(uint8_t **)(CastCtx() + 4); }
 	inline uint32_t TargetCount() { return Targets()[0x10]; }
 	inline uint8_t *TargetRecs() { return *(uint8_t **)(Targets() + 8); }
 	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(0x1D972C0 + 156 * slot); }
@@ -178,20 +139,17 @@ namespace g327
 	static const uint32_t ORIG_Gil3Task = 0x596970;
 	static const uint32_t ORIG_Gil3DrawTask = 0x596A60;
 	static const uint32_t ORIG_EndTask = 0x596B30;
-	// variant 0 (Zantetsuken)
 	static const uint32_t ORIG_Zan_Task = 0x58DED0;
 	static const uint32_t ORIG_Zan_ScreenPrimTask = 0x58E120;
 	static const uint32_t ORIG_Zan_CutTask = 0x58E3E0;
 	static const uint32_t ORIG_Zan_SliceTask = 0x58E570;
 	static const uint32_t ORIG_Zan_PartyClipTask = 0x58F940;
-	// variant 1 (Masamune)
 	static const uint32_t ORIG_Masa_Task = 0x590510;
 	static const uint32_t ORIG_Masa_ScreenPrimTask = 0x590790;
 	static const uint32_t ORIG_Masa_PrimATask = 0x5908D0;
 	static const uint32_t ORIG_Masa_PrimBTask = 0x590A10;
 	static const uint32_t ORIG_Masa_SparkTask = 0x590B60;
 	static const uint32_t ORIG_Masa_DustTask = 0x590F10;
-	// variants 2 and 3 (Excalibur / Excalipoor: one code, node +0x0E selects the Excalipoor data)
 	static const uint32_t ORIG_Exca_Task = 0x591250;
 	static const uint32_t ORIG_Poor_Task = 0x5920E0;
 	static const uint32_t ORIG_Exca_ScreenPrimTask = 0x591470;
@@ -201,27 +159,24 @@ namespace g327
 	static const uint32_t ORIG_Exca_PillarTask = 0x591F50;
 
 #pragma pack(push, 1)
-	// every Q1/Q2 node is 0x24 bytes; field use differs per task
 	struct Node24
 	{
 		TaskNode hdr;
-		int16_t c;                  // +0x0C tick counter
-		int16_t e;                  // +0x0E delay / length / variant / target slot / Excalipoor flag / done flag
-		int16_t p10, p12, p14, p16; // +0x10 position (p16: pad, copied as part of dwords; delay of the cut tasks)
-		int16_t a18, a1A;           // +0x18 angle, spin (flash: level; slice: target index)
-		int16_t s1C, s1E;           // +0x1C scale, its speed (sword particles: owner mask, sword index)
-		int16_t s20, s22;           // +0x20 second scale / height, its speed / fade value
+		int16_t c;
+		int16_t e;
+		int16_t p10, p12, p14, p16;
+		int16_t a18, a1A;
+		int16_t s1C, s1E;
+		int16_t s20, s22;
 	};
-	// sprite record of pool A (0xCD039C, 0x20 bytes)
 	struct RecA
 	{
-		uint32_t mask;              // +0x00 owner bits
-		int16_t age, size;          // +0x04 flipbook frame / age, size
-		int16_t x, y, z, w0E;       // +0x08 position (w0E: initial size of the streaks / shards)
-		int16_t vx, vy, vz, w16;    // +0x10 velocity
-		int16_t w18, w1A, w1C, w1E; // +0x18 angles and spins / direction (streaks)
+		uint32_t mask;
+		int16_t age, size;
+		int16_t x, y, z, w0E;
+		int16_t vx, vy, vz, w16;
+		int16_t w18, w1A, w1C, w1E;
 	};
-	// sprite record of pool B (0xCD0398, 0x18 bytes)
 	struct RecB
 	{
 		uint32_t mask;
@@ -250,7 +205,6 @@ namespace g327
 	inline RecA *RA(int i) { return (RecA *)(PoolA() + 0x20 * i); }
 	inline RecB *RB(int i) { return (RecB *)(PoolB() + 0x18 * i); }
 
-	// first free record (dword 0) of a pool, -1 when none
 	static int FreeRecord(uint8_t *pool, int stride)
 	{
 		for (int i = 0; i < POOL_N; i++)
@@ -258,7 +212,6 @@ namespace g327
 		return -1;
 	}
 
-	// au_re_BdLinkTask_17 0x592970 (Q1) / _18 0x592990 (Q2) (no null check, as the original)
 	static Node24 *LinkQ1(uint32_t task_fn)
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), task_fn);
@@ -274,7 +227,6 @@ namespace g327
 		return n;
 	}
 
-	// MAG_327_sub_5904A0: rotation part = identity (translation and pad kept)
 	static void ResetRotation(void *m)
 	{
 		uint32_t *d = (uint32_t *)m;
@@ -287,7 +239,6 @@ namespace g327
 		*(uint16_t *)((uint8_t *)m + 0) = 0x1000;
 	}
 
-	// MAG_327_sub_5904D0 / 5904F0: stru_1D9898C[0..3].currentBsId bit 1 (hide / show the party)
 	static void HideParty()
 	{
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2;
@@ -297,7 +248,6 @@ namespace g327
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) &= 0xFD;
 	}
 
-	// MAG_327_sub_58E790: plane distance, n[3] = -(p . n) >> 12
 	static void PlaneDistance(const int16_t *p, int16_t *nrm)
 	{
 		int32_t d = mul32(p[2], nrm[2]) + mul32(p[1], nrm[1]);
@@ -305,17 +255,9 @@ namespace g327
 		nrm[3] = (int16_t)-(d >> 12);
 	}
 
-	// vertex scratch of the model renderers: the engine's (0xCD03A0, and 0x1D98B3C for the target /
-	// party renderers) unless another one is set here
 	static uint32_t g_vertex_scratch_override = 0;
 	static uint32_t ModelScratch() { return g_vertex_scratch_override ? g_vertex_scratch_override : VertexScratch(); }
 
-	// ------------------------------------------------------------------
-	// Generic prim model draw (Effect_RenderPrimModel 0x572200, header on the scratch stack): the
-	// shape shared by every node-driven prim task of the module. angles -> ZYX rotation, t, scale,
-	// optionally composed with the camera / the frame; screen = GTE H forced to 0x120 around the
-	// render (the screen-space sword prims).
-	// ------------------------------------------------------------------
 	struct PrimArgs
 	{
 		int16_t ang[3];
@@ -379,12 +321,8 @@ namespace g327
 		a.hC = v;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x596B70): node from pool 0x21FF468, +0x0C counter (increments even when paused)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
-		// 30 fps layer: see mag327_gilgamesh_held.inc
 		FX_HELD(held_note_master();)
 		int a = ExecuteTaskQueue(&Q1());
 		int b = ExecuteTaskQueue(&Q2());
@@ -392,10 +330,6 @@ namespace g327
 		return (a | b) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Spawners called by the timeline
-	// ------------------------------------------------------------------
-	// MAG_327_sub_5929B0: screen feedback request task for len ticks (flag: skip its first tick)
 	static void LinkFeedback(int32_t flag, int16_t len)
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), flag ? ORIG_Feedback2Task : ORIG_FeedbackTask);
@@ -403,7 +337,6 @@ namespace g327
 		n->e = len;
 	}
 
-	// au_re_BdLinkTask_19 0x592AB0 / _20 0x592B30: screen flash in / out, 16 ticks, level 0x800
 	static void LinkFlash(uint32_t task_fn)
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), task_fn);
@@ -412,7 +345,6 @@ namespace g327
 		n->a18 = 0x800;
 	}
 
-	// MAG_327_sub_592D00: the ground rings (a still one, two spinning pairs)
 	static void SpawnRings()
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RingTask);
@@ -466,7 +398,6 @@ namespace g327
 		n->s22 = 0x800;
 	}
 
-	// MAG_327_sub_5931E0: the flare row, 0x36B0 above the effect origin (world position)
 	static void SpawnFlareRow()
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_FlareTask);
@@ -482,7 +413,6 @@ namespace g327
 		n->s20 = 0x320;
 	}
 
-	// MAG_327_sub_593550: four rising prims on a circle of radius 1000, random phase
 	static void SpawnRisers()
 	{
 		int32_t base = CrtRand() % 0x1000;
@@ -502,8 +432,6 @@ namespace g327
 		}
 	}
 
-	// MAG_327_sub_5947F0: the four swords (clipped draw in Q1, normal draw in Q2) and their
-	// particles (puffs + shards per sword, owner mask 1 << k, sword index table 0xCD0480)
 	static void SpawnSwords()
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_SwordClipTask);
@@ -527,7 +455,6 @@ namespace g327
 		}
 	}
 
-	// MAG_327_sub_594160: three spinning prims from the table 0xCD0468 (delay, height, scale, height)
 	static void SpawnSpinners()
 	{
 		for (uint32_t t = 0xCD046A; t < 0xCD0482; t += 8)
@@ -549,7 +476,6 @@ namespace g327
 		}
 	}
 
-	// au_re_BdLinkTask_21 0x5943A0: the sword trail, its 10-entry history cleared
 	static void LinkTrail()
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_TrailTask);
@@ -557,9 +483,6 @@ namespace g327
 		for (uint32_t a = 0x2200DF8; a < 0x2200EC0; a += 0x14) var<uint32_t>(a) = 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Timeline (0x592300), 328 ticks. Load waits (sub_508500 < 0) repeat the tick.
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -607,7 +530,7 @@ namespace g327
 			else if (e == 2) SpawnFlareRow();
 			else if (e == 0x1C) SpawnRisers();
 		}
-		else if ((e -= 0x3C) < 0x2D) // 76
+		else if ((e -= 0x3C) < 0x2D)
 		{
 			if (e == 3) BdPlaySummonStream(0x80, 0, 0x60);
 			else if (e == 0)
@@ -626,7 +549,7 @@ namespace g327
 			else if (e == 0x19) LinkQ1(ORIG_SparkTask);
 			else if (e == 0x25) LinkQ1(ORIG_PuffTask);
 		}
-		else if ((e -= 0x2D) < 0x3C) // 121
+		else if ((e -= 0x2D) < 0x3C)
 		{
 			if (e == 0)
 			{
@@ -656,7 +579,7 @@ namespace g327
 			}
 			else if (e == 2) LinkQ1(ORIG_RisingRingSpawnerTask);
 		}
-		else if ((e -= 0x3C) < 0x2A) // 181
+		else if ((e -= 0x3C) < 0x2A)
 		{
 			if (e == 0)
 			{
@@ -678,7 +601,7 @@ namespace g327
 				BdTransSummonStream(SummonData(), STREAM_STATE);
 			}
 		}
-		else if ((e -= 0x2A) < 0x32) // 223
+		else if ((e -= 0x2A) < 0x32)
 		{
 			if (e == 0x14) BdPlaySummonStream(0x80, 0, 0x60);
 			else if (e == 0)
@@ -710,14 +633,14 @@ namespace g327
 			else if (e == 0x28) LinkTrail();
 			else if (e == 0xA) AnimSeqText();
 		}
-		else if ((e -= 0x32) < 0x32) // 273
+		else if ((e -= 0x32) < 0x32)
 		{
 			if (e == 0)
 			{
 				BdPlaySE(*(const uint32_t *)(0xCD04B0 + 4 * Variant()), 0, 0x80);
 				BdPlaySummonStream(0x80, 0, 0x60);
 				QueueTIMUpload(MB() + 0xE000);
-				LinkQ1(*(const uint32_t *)(0xCD0990 + 4 * Variant())); // the variant's sword attack
+				LinkQ1(*(const uint32_t *)(0xCD0990 + 4 * Variant()));
 			}
 			else if (e == 0x26) LinkFlash(ORIG_FlashOutTask);
 			else if (e == 6)
@@ -727,7 +650,7 @@ namespace g327
 			}
 			else if (e == 7) LinkFeedback(1, 0x2B);
 		}
-		else if ((e -= 0x32) < 4) // 323
+		else if ((e -= 0x32) < 4)
 		{
 			if (e == 1 && VoiceSlotBusy(VoiceSlot())) ReleaseVoiceSlot(VoiceSlot());
 		}
@@ -737,12 +660,6 @@ namespace g327
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Small screen tasks
-	// ------------------------------------------------------------------
-	// 0x592A00 / 0x592A50: Battle_RequestScreenFeedback every tick (0x592A50: from its second
-	// tick) for +0x0E ticks. The request is issued before the pause test: a per-frame draw-side
-	// request.
 	static uint32_t __cdecl FeedbackTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -761,7 +678,6 @@ namespace g327
 		return n->c >= n->e ? TASK_END : 0;
 	}
 
-	// 0x592AE0: screen flash up to +0x18 over +0x0E ticks
 	static uint32_t __cdecl FlashInTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -771,7 +687,6 @@ namespace g327
 		return n->c >= n->e ? TASK_END : 0;
 	}
 
-	// 0x592B60: screen flash down from +0x18, cleared at the end
 	static uint32_t __cdecl FlashOutTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -784,7 +699,6 @@ namespace g327
 		return TASK_END;
 	}
 
-	// MAG_327_sub_592C60: full-screen semi-transparent tile (GP0 0x62) + draw mode, OT bucket otz
 	static void Tile(int32_t r, int32_t g, int32_t b, int32_t otz)
 	{
 		uint32_t *p = (uint32_t *)Cursor();
@@ -803,7 +717,6 @@ namespace g327
 		Cursor() = (uint32_t)(p + 2);
 	}
 
-	// 0x592BC0: grey fade tile, in over 4 ticks, held to 8, out over 16 ticks, 24 ticks
 	static int32_t FadeTileLevel(int32_t c)
 	{
 		if (c < 4) return (mul32(c, 255) / 4) & 0xFF;
@@ -822,7 +735,6 @@ namespace g327
 		return n->c >= 0x18 ? TASK_END : 0;
 	}
 
-	// 0x596B30: end of effect, waits for the anim-seq task queued at tick 1 to clear +0x0E
 	static uint32_t __cdecl EndTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -832,12 +744,6 @@ namespace g327
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Lit sprite helpers (flipbooks through InitEffectSequenceFromData 0x571C80, header 0xB4 bytes
-	// on the scratch stack, positions lit/transformed through the GTE light matrix)
-	// ------------------------------------------------------------------
-	// scratch s (0x48 bytes at least): s+0 zero angles, s+8 frame matrix (identity rotation at the
-	// position, composed with comp), set as GTE light matrix / back colour
 	static void LitSetupAt(uint8_t *s, int32_t x, int32_t y, int32_t z, const Mat4x3 *comp)
 	{
 		*(int16_t *)(s + 0) = 0;
@@ -852,7 +758,6 @@ namespace g327
 		GteSetBackColorFromTrans(s + 8);
 	}
 
-	// s+8 = copy of the frame matrix (the ground puffs / sparks)
 	static void LitSetupFrame(uint8_t *s)
 	{
 		ff8fx::copy<(sizeof(Mat4x3))>(s + 8, &Frame());
@@ -860,7 +765,6 @@ namespace g327
 		GteSetBackColorFromTrans(s + 8);
 	}
 
-	// one sprite pushed towards the camera by size >> shift (view-space MAC, normalised)
 	static void LitSpriteMAC(uint8_t *h, uint8_t *s, const int16_t *pos, int16_t size, int16_t age, int shift, bool set8, int16_t w8)
 	{
 		GteLoadV0(pos);
@@ -879,7 +783,6 @@ namespace g327
 		Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 	}
 
-	// one sprite at the transformed position itself
 	static void LitSprite(uint8_t *h, const int16_t *pos, int16_t size, int16_t age)
 	{
 		GteLoadV0(pos);
@@ -890,10 +793,6 @@ namespace g327
 		Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 	}
 
-	// ------------------------------------------------------------------
-	// Screen-space sword prims (0x58E120 Zantetsuken / 0x590790 Masamune / 0x591470 Excalibur),
-	// 8 ticks: GTE H = 0x120, t.z = 0x120, scale (+0x1C, +0x20, +0x20) growing for 6 ticks
-	// ------------------------------------------------------------------
 	static uint32_t ScreenPrimModel(const Node24 *n, uint32_t orig)
 	{
 		if (orig == ORIG_Zan_ScreenPrimTask) return 0xCCDE04;
@@ -928,12 +827,6 @@ namespace g327
 	static uint32_t __cdecl MasaScreenPrimTask(TaskNode *tn) { return ScreenPrimTick((Node24 *)tn, ORIG_Masa_ScreenPrimTask); }
 	static uint32_t __cdecl ExcaScreenPrimTask(TaskNode *tn) { return ScreenPrimTick((Node24 *)tn, ORIG_Exca_ScreenPrimTask); }
 
-	// ------------------------------------------------------------------
-	// Zantetsuken (variant 0): 0x58DED0, 50 ticks. Tick 0 the screen prim; tick 16 per target:
-	// skipped targets (record byte 3 bit 2) get their action result at once, the others a cut
-	// task (0x58E3E0) and a slice task (0x58E570), delayed by the target index; with no target
-	// cut, the party clip task (0x58F940).
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ZanTask(TaskNode *tn)
 	{
 		if (Paused()) return 0;
@@ -1015,9 +908,6 @@ namespace g327
 		return n->c >= 0x32 ? TASK_END : 0;
 	}
 
-	// 0x58E3E0: the cut of one target, 40 ticks after its delay (+0x16): per-slot angles
-	// 0x2200B7C + 60*slot (x = c*a/40, y = (a/2)*c/40) and matrix 0x2200B94 + 60*slot = entity
-	// matrix o (rotation about the bone midpoint, lifted by +0x20, speed +0x22 decaying by 1/8).
 	static void CutMatrix(const Node24 *n, int16_t a0, int16_t a1, int16_t a2, int32_t lift, Mat4x3 *out, int16_t *A)
 	{
 		A[0] = a0;
@@ -1068,7 +958,6 @@ namespace g327
 		return n->c >= 0x28 ? TASK_END : 0;
 	}
 
-	// MAG_327_sub_58E7D0: target shadow, both root matrices, the clipped model, the bone matrices
 	static void TargetDraw(uint8_t *h, uint8_t *ent, const Mat4x3 *moved)
 	{
 		if (!(ent[0] & 0x20))
@@ -1082,10 +971,6 @@ namespace g327
 		BuildBoneMatricesFromPose(ent + 0x60);
 	}
 
-	// 0x58E570: the target cut in two by the plane through the bone midpoint (normal = the node
-	// angle), one half at the entity matrix, the other at the cut matrix; the target is flagged
-	// (+0 |= 0xC) and from tick 24 fades to the background colour (GTE DPCS). 41 ticks after its
-	// delay, then the target's action result.
 	static void SliceDraw(uint8_t *h, const Node24 *n, uint8_t *ent, const Mat4x3 *moved, int32_t c, int32_t w_override)
 	{
 		int16_t ang[4] = { 0, 0, n->a18, 0 };
@@ -1108,8 +993,6 @@ namespace g327
 			uint32_t col = ((((k | 0x3200u) << 8) | k) << 8) | k;
 			*(uint32_t *)(ent + 0x2C) = col;
 			GteSetFarColor(var<uint8_t>(0xB8B7D8), var<uint8_t>(0xB8B7D9), var<uint8_t>(0xB8B7DA));
-			// the original zeroes the dword of its own argument slot ([esp + 0x4C]) and passes its
-			// address: a zero RGBC
 			uint32_t zero = 0;
 			GteLoadRGBC(&zero);
 			GteSetIR0(w);
@@ -1147,9 +1030,6 @@ namespace g327
 		return TASK_END;
 	}
 
-	// MAG_327_sub_58FAA0: the four party entities (stru_1D9898C) through the clipped renderer
-	// 0x58FB50 (OT offset / shift per member from the table 0xCD0970); their bone matrices are
-	// rebuilt first
 	static void PartyDraw(uint8_t *h, const Mat4x3 *m)
 	{
 		ff8fx::copy<(sizeof(Mat4x3))>(h + 0x198, &Camera());
@@ -1168,9 +1048,6 @@ namespace g327
 		}
 	}
 
-	// 0x58F940 (no target cut): 65 ticks after a 20-tick delay, the party drawn clipped by the plane
-	// y = -0xBB8 tilted by -96 about z, the model matrix sinking by +0x20 (speed +0x22 decaying by
-	// 1/8); the party is shown each drawn tick and hidden at the end
 	static void PartyClipDraw(uint8_t *h, int32_t z)
 	{
 		int16_t ang[4] = { 0, 0, (int16_t)0xFFA0, 0 };
@@ -1226,11 +1103,6 @@ namespace g327
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Masamune (variant 1): 0x590510, 50 ticks. Tick 0 a screen prim per target (at the target's
-	// screen position); tick 16 per target two prims (0x5908D0 / 0x590A10), sparks (0x590B60) and
-	// dust (0x590F10, 3-tick delay), owner mask 1 << k; tick 17 the action result.
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasaTask(TaskNode *tn)
 	{
 		if (Paused()) return 0;
@@ -1250,7 +1122,6 @@ namespace g327
 				GteRTPS();
 				int16_t sxy[2];
 				GteReadSXY2(sxy);
-				// PC screen units fix (FFNx PR 1088): the slash is placed from a screen position in pixels
 				sxy[0] = PsxPixels(sxy[0]);
 				sxy[1] = PsxPixels(sxy[1]);
 				p->p10 = (int16_t)(sxy[0] - 0x168);
@@ -1303,9 +1174,6 @@ namespace g327
 		return n->c >= 0x32 ? TASK_END : 0;
 	}
 
-	// 0x5908D0 / 0x590A10: prim at the target, rotated +0x18 about z, uniform scale +0x1C growing
-	// (speed +0x1E decaying by 1/4), camera-relative, fading out (from 8: (c-8)*512, from 4:
-	// (c-4)*341), 16 ticks
 	static bool MasaFadeA(int32_t c, int32_t *v) { if (c < 8) return false; *v = shl32(c - 8, 9); return true; }
 	static bool MasaFadeB(int32_t c, int32_t *v) { if (c < 4) return false; *v = mul32(c - 4, 341); return true; }
 
@@ -1333,9 +1201,6 @@ namespace g327
 	static uint32_t __cdecl MasaPrimATask(TaskNode *tn) { return MasaPrimTick((Node24 *)tn, false); }
 	static uint32_t __cdecl MasaPrimBTask(TaskNode *tn) { return MasaPrimTick((Node24 *)tn, true); }
 
-	// 0x590B60: sparks in pool A (owner mask +0x16), 8 per tick for 3 ticks: random direction,
-	// start 300..699 out, speed 120..469 damped by 1/8, spinning (+0x1C angle, +0x1E spin);
-	// flipbook 0xCC7120 (h+0x24 = 9), pushed towards the camera by size/8; ends when none is left
 	static void MasaSparkSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
 		*(uint32_t *)h = 0xCC7120;
@@ -1410,9 +1275,6 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	// 0x590F10: dust in pool B (owner mask +0x16) after a 3-tick delay, 8 per tick for 3 ticks, on
-	// a ring of 400..699 round the target, speed 90..289 outwards damped by 1/8 (x/z); flipbook
-	// 0xCC6DC8 (h+0x24 = 8) at the target's ground point, pushed by size/8
 	static void MasaDustSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
 		*(uint32_t *)h = 0xCC6DC8;
@@ -1486,11 +1348,6 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Excalibur / Excalipoor (variants 2 / 3): 0x591250 / 0x5920E0, 50 ticks. Tick 0 the screen prim
-	// (+0x0E = Excalipoor); tick 18 per target a burst (0x5915C0), smoke (0x591850, mask 0x100 << k),
-	// streaks (0x591B80) and a pillar (0x591F50, 1-tick delay); tick 19 the action result.
-	// ------------------------------------------------------------------
 	static uint32_t ExcaTick(Node24 *n, int16_t poor)
 	{
 		if (Paused()) return 0;
@@ -1551,8 +1408,6 @@ namespace g327
 	static uint32_t __cdecl ExcaTask(TaskNode *tn) { return ExcaTick((Node24 *)tn, 0); }
 	static uint32_t __cdecl PoorTask(TaskNode *tn) { return ExcaTick((Node24 *)tn, 1); }
 
-	// 0x5915C0: burst in pool B, 2 per tick for 2 ticks at a random offset (+-600), standing,
-	// flipbook 0xCC6730 (Excalipoor 0xCC6954), pushed by size/8; ends when none is left
 	static void ExcaBurstSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
 		*(uint32_t *)h = n->e ? 0xCC6954 : 0xCC6730;
@@ -1606,9 +1461,6 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	// 0x591850: smoke in pool B (mask 0x100 << k), 6 per tick for 3 ticks, rising (y dir
-	// -0x800..-0xFFF), start 200..699 out, speed 100..399 damped by 1/8; flipbook 0xCC6F74 (h+0x24 =
-	// 0xC), colour 0x808080 (Excalipoor 0x404080)
 	static void ExcaSmokeSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
 		*(uint32_t *)h = 0xCC6F74;
@@ -1679,10 +1531,6 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	// 0x591B80: streaks in pool A (mask 1 << k), 4 per tick for 3 ticks: random direction (kept as
-	// s16 at +0x18), start 400..799 out, speed 140..519 damped by 1/8; each drawn as flipbook
-	// 0xCC6C0C frame 0 oriented along its direction (rotation (0,-0x1000,0) -> dir), scale (0xC00,
-	// size, 0); from age 6 the length shrinks ((0x1FFC - 682*age) * initial >> 12), 13 ticks
 	static void ExcaStreakSetup(uint8_t *h, uint8_t *s, const Node24 *n)
 	{
 		*(uint32_t *)h = 0xCC6C0C;
@@ -1792,9 +1640,6 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	// 0x591F50: pillar at the target's ground point after a 1-tick delay, rotated +0x18 about y,
-	// scale (+0x1C, +0x20, +0x1C) growing (speeds decaying by 1/4), camera-relative, fading from 4,
-	// 16 ticks
 	static void ExcaPillarDraw(const Node24 *n, int16_t a18, int16_t s1C, int16_t s20, bool fade, int32_t f)
 	{
 		PrimArgs a = Prim(0, a18, 0, n->p10, 0, n->p14, s1C, s20, s1C, &Camera(), 0xCCFAB4);
@@ -1827,10 +1672,6 @@ namespace g327
 		return n->c >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ground rings (tick 8), 68 ticks, frame-relative: 0x592E90 still (prim 0xCC8F5C, mode 1),
-	// 0x592F90 / 0x5930C0 spinning (+0x18 += +0x1A), fade value +0x22 (h+0x1C = 0xC3)
-	// ------------------------------------------------------------------
 	static void RingDraw(const Node24 *n)
 	{
 		PrimArgs a = Prim(0, 0, 0, n->p10, n->p12, n->p14, n->s1C, n->s20, n->s1C, &Frame(), 0xCC8F5C);
@@ -1873,13 +1714,6 @@ namespace g327
 	static uint32_t __cdecl RingSpinTask(TaskNode *tn) { return RingSpinTick((Node24 *)tn, false); }
 	static uint32_t __cdecl RingSpin2Task(TaskNode *tn) { return RingSpinTick((Node24 *)tn, true); }
 
-	// ------------------------------------------------------------------
-	// Flare row (0x593250, tick 18), 22 ticks: 8 flipbook sprites 0xCC6B64 (table 0xCD03A8: frame,
-	// size, offset) along the axis from the flare origin towards the camera eye (0xB8B7F0), each
-	// projected and drawn in screen space (MAG_327_sub_593490: GTE matrix 0x2201060 = size * I at
-	// the screen position / 8 - (160, 108), z = H); colour 0x00vvvv00 in over 2 ticks, out from 10,
-	// halved on odd ticks; the spread +0x20 grows (speed +0x22 decaying by 1/16)
-	// ------------------------------------------------------------------
 	static void ScreenSpriteMatrix(const int16_t *v, int16_t size, int32_t zoff)
 	{
 		var<int16_t>(0x2201070) = size;
@@ -1966,11 +1800,6 @@ namespace g327
 		return n->c >= 0x16 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Risers (0x593600, tick 44, four on a circle), 30 ticks: prim 0xCC78EC, frame-relative,
-	// rotated +0x18 about y, uniform scale +0x1C growing by 1/64 per tick, rising by +0x22
-	// (accelerating by 1/12), fading in over 6 ticks
-	// ------------------------------------------------------------------
 	static bool RiserFade(int32_t c, int32_t *v) { if (c >= 6) return false; *v = 0x1000 - shl32(mul32(c, 341), 1); return true; }
 
 	static void RiserDraw(const Node24 *n, int16_t y, int16_t s1C, bool fade, int32_t f)
@@ -1996,11 +1825,6 @@ namespace g327
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ground puffs (0x593770, tick 113): pool B mask 1, 8 per tick while the counter <= 62 on a
-	// ring shrinking from 2700 (27 per tick), standing; flipbook 0xCC6DC8 frame-relative. 68 ticks,
-	// then every mask-1 record is freed.
-	// ------------------------------------------------------------------
 	static void PuffSetup(uint8_t *h, uint8_t *s)
 	{
 		*(uint32_t *)h = 0xCC6DC8;
@@ -2062,11 +1886,6 @@ namespace g327
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Ground sparks (0x5939C0, tick 101): pool A mask 0x10, 12 per tick for 9 ticks on a ring
-	// growing from 200 (145 per tick), speed 150..249 outwards damped by 1/8 (x/z); flipbook
-	// 0xCC6DC8 frame-relative. Ends when none is left.
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2130,11 +1949,6 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Rising rings: spawner 0x593C70 (tick 123, 30 ticks, one ring on ticks 1, 9, 17) and ring
-	// 0x593D20 (30 ticks): prim 0xCCCB1C frame-relative, spinning (+0x1A = 0x32), height scale +0x20
-	// growing (speed +0x22 accelerating by 1/12), fading out from 18
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RisingRingSpawnerTask(TaskNode *tn)
 	{
 		if (Paused()) return 0;
@@ -2182,12 +1996,6 @@ namespace g327
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Dots (0x593E80, tick 122): pool A mask 1, 10 per tick while the counter <= 40 on a ring
-	// shrinking from 1900 (35 per tick), thrown out (90..329, damped by 1/8) and up (-10..-59,
-	// accelerating by 1/16); one GP0 0x6A dot each (colour table 0xCD0428 by age, OT = SZ3 >> 4),
-	// 16 ticks per dot. Ends when no dot moved.
-	// ------------------------------------------------------------------
 	static uint32_t DotEmit(uint8_t *s, uint32_t pk)
 	{
 		GteReadFLAG(s + 0x50);
@@ -2271,11 +2079,6 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Spinners (0x594210, tick 121, three from the table 0xCD0468) after their delay, 14 ticks:
-	// prim 0xCC7A94 frame-relative, spinning (+0x1A), scale (+0x1C, +0x20, +0x1C) with +0x1C
-	// growing (speed decaying by 1/12), fading in over 4 ticks and out from 6
-	// ------------------------------------------------------------------
 	static bool SpinnerFade(int32_t c, int32_t *v)
 	{
 		if (c < 4) { *v = shl32(4 - c, 10); return true; }
@@ -2313,21 +2116,12 @@ namespace g327
 		return n->c >= 0xE ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sword trail (0x5943D0, tick 263), 10 ticks: the variant's sword E[variant] base (bone 1) and
-	// a point 1400 along the blade go into a 10-entry history 0x2200DF8 (slot c % 10); the entries
-	// (newest first, up to 10) are splined into 32 samples per rail (0x21FFA78 / 0x21FFB78,
-	// sub_571620 / sub_571690, t = k * 0x1000 / 31) and drawn as 30 segments of two gouraud quads
-	// (GP0 0x3A): the rail colour (table 0xCD0490) fading to the far colour (0) along the trail
-	// (GTE DPCS, IR0 = k * 0x1000 / 30), and a black edge quad.
-	// ------------------------------------------------------------------
-	static const uint32_t TRAIL_RING = 0x2200DF8;  // 10 x 0x14: alive, base (s16 x4), tip (s16 x4)
-	static const uint32_t TRAIL_PTS_A = 0x21FF2E8; // gathered points (8 bytes each)
+	static const uint32_t TRAIL_RING = 0x2200DF8;
+	static const uint32_t TRAIL_PTS_A = 0x21FF2E8;
 	static const uint32_t TRAIL_PTS_B = 0x21FF340;
-	static const uint32_t TRAIL_SPL_A = 0x21FFA78; // 32 samples each (8 bytes)
+	static const uint32_t TRAIL_SPL_A = 0x21FFA78;
 	static const uint32_t TRAIL_SPL_B = 0x21FFB78;
 
-	// base and tip (1400 along the blade) of the variant's sword
 	static void TrailPoints(uint8_t *s)
 	{
 		int16_t *p0 = (int16_t *)(s + 0x20), *p1 = (int16_t *)(s + 0x28);
@@ -2343,7 +2137,6 @@ namespace g327
 		p1[2] = (int16_t)((int16_t)(mul32(d[2], 1400) >> 12) + p0[2]);
 	}
 
-	// newest-first gather of the history into the two point lists; returns the count
 	static int32_t TrailGather(const uint8_t *ring, int32_t idx, uint8_t *pa, uint8_t *pb)
 	{
 		int32_t cnt = 0;
@@ -2445,15 +2238,6 @@ namespace g327
 		return n->c >= 0xA ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sword particles (tick 76, per sword k: owner mask 1 << k, sword index +0x1E from 0xCD0480),
-	// both relative to the sword tip on the ground (GetEffectSpawnPosition bone 1, 0x1000, y = 0):
-	// 0x5948A0 shards in pool A, 6 per tick for 2 ticks, tumbling prims 0xCC8E64 thrown out and up,
-	//   shrinking from age 8 ((16 - age) * initial / 8), 17 ticks each;
-	// 0x594CA0 puffs in pool B after a k-tick delay, 4 per tick for 2 ticks, flipbook 0xCC6C34
-	//   (h+0x24 = 8), pushed by size/4, drifting out slowly.
-	// Both end when none is left.
-	// ------------------------------------------------------------------
 	static void SwordTipFrame(uint8_t *s, const Node24 *n)
 	{
 		*(int16_t *)(s + 0) = 0;
@@ -2643,13 +2427,6 @@ namespace g327
 		return count ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Models. Block E (0x9C bytes, battle-entity head layout): +0x00 u16 flags (bit0 no anim loop,
-	// bit2 hidden from the normal draw, bit3 not advanced), +0x07, +0x28 colour, +0x40 model matrix,
-	// +0x60 BattleAnimHeader, +0x64 comFileData, +0x6C BattleAnimCmd, +0x7C, +0x84 model data.
-	// Draws come before the advance (the tick shows the pose read on the previous tick).
-	// ------------------------------------------------------------------
-	// MAG_327_sub_595150: bind the model data (model file offsets table) to the block
 	static void ModelInit(uint8_t *E, uint8_t *data, uint8_t *buf, int32_t id)
 	{
 		*(uint16_t *)(E + 0) = 2;
@@ -2670,10 +2447,8 @@ namespace g327
 		*(uint8_t **)(data + 0x30) = buf + *(uint32_t *)(buf + 0x10);
 	}
 
-	// au_re_Battle_ReadAnimation_0 0x5951C0
 	static void SetAnim(uint8_t *E, int32_t id) { PreReadAnimation(E + 0x60, E + 0x6C, id); }
 
-	// model matrix = identity rotation (MAG_327_sub_5904A0 + diagonal) at t
 	static void ModelMatrixInit(uint8_t *M, int32_t tx, int32_t ty, int32_t tz)
 	{
 		ResetRotation(M);
@@ -2685,7 +2460,6 @@ namespace g327
 		*(int32_t *)(M + 0x14) = tx;
 	}
 
-	// GF_327Gilgamesh_AdvanceModelAnimLoop 0x595E00
 	static void AdvanceModel(uint8_t *E)
 	{
 		if (ReadAnimation(E + 0x60, E + 0x6C) == 1 && !(E[0] & 1))
@@ -2693,7 +2467,6 @@ namespace g327
 		FX_HELD(held_note_advanced(E);)
 	}
 
-	// MAG_327_sub_595E40 (shift 4) / MAG_327_sub_5968D0 (shift 3)
 	static void DrawModel(uint8_t *E, const Mat4x3 *frame, int32_t shift)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x4C);
@@ -2714,7 +2487,6 @@ namespace g327
 		FieldFree(0x4C);
 	}
 
-	// 0x594FD0 clip header: the ground plane y = 0 (normal (0, -0x1000, 0)), the vertex scratch
 	static void ClipSetup(uint8_t *h)
 	{
 		int16_t *p = (int16_t *)(h + 0x58), *nrm = (int16_t *)(h + 0xB8);
@@ -2728,8 +2500,6 @@ namespace g327
 		*(uint32_t *)(h + 4) = ModelScratch();
 	}
 
-	// MAG_327_sub_5951E0: the model clipped by the header's plane (root = its own matrix; the frame
-	// pointer goes to 0x21FF3C0 for the renderer 0x595250)
 	static void ClipDraw(uint8_t *h, uint8_t *E, const Mat4x3 *frame)
 	{
 		ComputeBonesWorldMatrices(E + 0x60, E + 0x40);
@@ -2741,8 +2511,6 @@ namespace g327
 		BuildBoneMatricesFromPose(E + 0x60);
 	}
 
-	// MAG_327_sub_596010: materialising draw, faces whose threshold (table h+0x2C, built by the
-	// renderer on the pass with h+0x44 = 0) is <= h+0x44
 	static void MaterialDraw(uint8_t *h, uint8_t *E)
 	{
 		ComputeBonesWorldMatrices(E + 0x60, E + 0x40);
@@ -2761,9 +2529,6 @@ namespace g327
 		BuildBoneMatricesFromPose(E + 0x60);
 	}
 
-	// 0x594FD0 (Q1, tick 76), 105 ticks: binds the four swords (variant's models, anim = variant) and
-	// draws them clipped at the ground every tick (sets E0 bit2: the normal draw skips them); E0
-	// bit3 (no advance) from 10 to 44
 	static uint32_t __cdecl SwordClipTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2805,8 +2570,6 @@ namespace g327
 		return n->c >= 0x69 ? TASK_END : 0;
 	}
 
-	// 0x595D50 (Q2, tick 76, +0x0E = 105 ticks): the four swords drawn normally unless E0 bit2 (E1-E3
-	// take E0's matrix and colour), advanced unless E0 bit3
 	static uint32_t __cdecl SwordDrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2831,8 +2594,6 @@ namespace g327
 		return n->c >= n->e ? TASK_END : 0;
 	}
 
-	// 0x595EE0 (Q1, tick 76), 60 ticks: binds Gilgamesh E4 (anim 0, hidden, frozen from 10), draws
-	// it materialising from 25 to 44 (threshold c - 25, table mb+0x22000 reset at 25), shows it at 45
 	static uint32_t __cdecl Gil1Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2875,7 +2636,6 @@ namespace g327
 		return n->c >= 0x3C ? TASK_END : 0;
 	}
 
-	// 0x5966B0 (Q2, tick 76), 105 ticks: E4 drawn unless bit2, advanced unless bit3
 	static uint32_t __cdecl Gil1DrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2890,8 +2650,6 @@ namespace g327
 		return n->c >= 0x69 ? TASK_END : 0;
 	}
 
-	// 0x596710 (Q1, tick 181), 42 ticks: binds Gilgamesh on the horse E5 (t.y = -1000, anim 0) and
-	// its four arms' swords B0-B3 (anim j)
 	static uint32_t __cdecl Gil2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2912,8 +2670,6 @@ namespace g327
 		return n->c >= 0x2A ? TASK_END : 0;
 	}
 
-	// 0x596800 (Q2, tick 181), 42 ticks: E5 (shift 3) and B0-B3 (E5's flags, matrix pushed 0x50 in z,
-	// colour), advanced unless E5 bit3
 	static uint32_t __cdecl Gil2DrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2942,8 +2698,6 @@ namespace g327
 		return n->c >= 0x2A ? TASK_END : 0;
 	}
 
-	// 0x596970 (Q1, tick 223), 50 ticks: binds the final pose E6 (anim 0) and rebinds the four swords
-	// (anim variant + 4)
 	static uint32_t __cdecl Gil3Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2963,8 +2717,6 @@ namespace g327
 		return n->c >= 0x32 ? TASK_END : 0;
 	}
 
-	// 0x596A60 (Q2, tick 223), 50 ticks: E6 and the swords (E6's flags, matrix, colour), advanced
-	// unless E5 (sic: 0x2200F00, not E6) bit3
 	static uint32_t __cdecl Gil3DrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2993,8 +2745,6 @@ namespace g327
 	}
 }
 
-	// One set of ports serves the four ids 327-330 (the tasks are shared, the variant is data):
-	// the ports are registered under 327.
 	void register_mag327_gilgamesh()
 	{
 		using namespace g327;
@@ -3046,7 +2796,6 @@ namespace g327
 		register_port(ORIG_Exca_SmokeTask, (void *)ExcaSmokeTask, "G327 ExcaSmokeTask", 327);
 		register_port(ORIG_Exca_StreakTask, (void *)ExcaStreakTask, "G327 ExcaStreakTask", 327);
 		register_port(ORIG_Exca_PillarTask, (void *)ExcaPillarTask, "G327 ExcaPillarTask", 327);
-		// 30 fps layer: see mag327_gilgamesh_held.inc
 		FX_HELD(register_mag327_held();)
 	}
 }

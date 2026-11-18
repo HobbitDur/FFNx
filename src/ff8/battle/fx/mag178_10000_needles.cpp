@@ -14,27 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 178: 10,000 Needles (enemy attack 230 of kernel.bin, used by the Jumbo Cactuar c0m084; MAG_178_*).
-// The same module as 1000 Needles (effect 177, mag177_1000_needles.cpp: same code at other addresses):
-// the needles start at the director's tick 0x24, the damage comes at 0x55, the director ends after
-// 0x5A and the needles are scaled by 0x480..0xA7F.
-//
-// Structure (setup MAG_178_10000_NEEDLES 0x5CEDD0, file loader 0x5CEDB0 = the texture file named at
-// 0xD44C50 (mag176.tim, file 0x2321920); the setup keeps the cast context 0x2321918, the first
-// target's slot 0x231AD10 and the caster's slot 0x232191C, sets up the root queue 0x231AD28 (1 node)
-// and the effect queue 0x2320AF8 (0x64 nodes of 0x24 bytes) with the director, clears the needle
-// and spark tables, starts camera animation 0xD4499C and queues the TIM):
-//   RootTask (0x5CF700) - alternates the module packet arena (0x2321924 / 0x2331924, 0x10000 each)
-//     on the counter's parity (cursor 0x2341924), runs the effect queue, ends when it is empty.
-//   Director (0x5CEE90) - nothing in the draw-only mode; counter 0 = the target's effect position
-//     (bone 0xF0) into its node +0x10, 0x24 = the needle task (with that position) and sound
-//     0xD44BBC, 0x55 = damage (action 0's targets); ends after counter 0x5A.
-//   NeedleTask (0x5CEF50) - as 177's 0x5CF8E0 (needle renderer 0x5CF4C0, sprite transform 0x5CF650,
-//     needle model 0xD44BC0 / 0xD44BE0, spark sequence 0xD44B94, spark y offsets 0xD44C34).
-// Needle table 0x231AD38: 300 entries of 0x38 bytes. Spark table 0x231EED8: 300 entries of 0x18.
-// Module globals: 0x231AD10..0x2341948 (target slot, root pool / queue, tables, effect queue /
-// pool, context 0x2321918, caster slot 0x232191C, texture file 0x2321920, the two packet arenas,
-// packet cursor 0x2341924, the sprite transform matrix 0x2341928).
+// Effect 178: 10
 
 #include "mag_common.h"
 
@@ -45,31 +25,28 @@ namespace needles178
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2321918); }
 	inline uint32_t &TargetSlot() { return var<uint32_t>(0x231AD10); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x232191C); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2341924); }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2320AF8; }
 	static const uint32_t ARENA0 = 0x2321924, ARENA1 = 0x2331924, ARENA_SIZE = 0x10000;
-	static const uint32_t SPRITE_MATRIX = 0x2341928;                          // Mat4x3 of the sprite transform
-	static const uint32_t NEEDLES = 0x231AD38, NEEDLES_END = 0x231EED8;       // 300 x 0x38
-	static const uint32_t SPARKS = 0x231EED8, SPARKS_END = 0x2320AF8;         // 300 x 0x18
+	static const uint32_t SPRITE_MATRIX = 0x2341928;
+	static const uint32_t NEEDLES = 0x231AD38, NEEDLES_END = 0x231EED8;
+	static const uint32_t SPARKS = 0x231EED8, SPARKS_END = 0x2320AF8;
 	static const int NEEDLE_COUNT = 300, SPARK_COUNT = 300;
 
 	static const uint32_t ORIG_RootTask = 0x5CF700;
 	static const uint32_t ORIG_Director = 0x5CEE90;
 	static const uint32_t ORIG_NeedleTask = 0x5CEF50;
-	static const uint32_t NEEDLE_VERTS = 0xD44BC0;    // 4 vertices (8 bytes each)
-	static const uint32_t NEEDLE_POLYS = 0xD44BE0;    // 4 triangles of 0x14 bytes
-	static const uint32_t SEQ_Spark = 0xD44B94;       // sprite sequence (0x28 bytes, copied to the scratch)
-	static const uint32_t SPARK_LIFT = 0xD44C34;      // int32 y offsets by the ticks left
+	static const uint32_t NEEDLE_VERTS = 0xD44BC0;
+	static const uint32_t NEEDLE_POLYS = 0xD44BE0;
+	static const uint32_t SEQ_Spark = 0xD44B94;
+	static const uint32_t SPARK_LIFT = 0xD44C34;
 	static const void *const SOUND_Needles = (const void *)0xD44BBC;
-	// timing and needle scale of this module (10,000 Needles)
 	static const int16_t TICK_SPAWN = 0x24, TICK_DAMAGE = 0x55, TICK_LAST = 0x5A;
 	static const int32_t SCALE_RANGE = 0x600, SCALE_BASE = 0x480;
 
-	// ---- engine functions (original addresses)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
 	inline void GteLoadIRFromMatrixColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
@@ -84,49 +61,44 @@ namespace needles178
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 
-	// ------------------------------------------------------------------
-	// Node / table layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad;
 	};
-	struct EffectNode // pool of 0x64 nodes of 0x24 bytes
+	struct EffectNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];    // +0x10 director: the target's effect position (copied to the needle task, unused)
+		int16_t pos[4];
 		uint8_t pad18[0xC];
 	};
-	struct Needle // 0x38 bytes
+	struct Needle
 	{
-		uint32_t active;   // +0x00 bit 0
-		int16_t steps;     // +0x04 steps left
+		uint32_t active;
+		int16_t steps;
 		uint8_t pad06[0xA];
-		int16_t step[3];   // +0x10 position change per tick
+		int16_t step[3];
 		int16_t pad16;
-		Mat4x3 m;          // +0x18 rotation * scale, translation = position
+		Mat4x3 m;
 	};
-	struct Spark // 0x18 bytes
+	struct Spark
 	{
-		uint32_t active;   // +0x00 bit 0
-		int16_t left;      // +0x04 ticks left (6 .. 1)
+		uint32_t active;
+		int16_t left;
 		int16_t pad06;
-		int16_t pos[3];    // +0x08
+		int16_t pos[3];
 		uint8_t pad0E[0xA];
 	};
-	// draw block of the needles (Field_Alloc 0xDC): +0x00 MAC0, +0x08 OTZ, +0x0C FLAG, +0x2C the camera,
-	// +0x4C camera o needle, +0x6C the vertices, +0x8C the triangles
-	struct PolyRec // 0x14 bytes
+	struct PolyRec
 	{
-		uint32_t code;     // colour + GPU code
-		uint16_t v[3];     // vertex byte offsets / 4
+		uint32_t code;
+		uint16_t v[3];
 		uint16_t pad;
-		uint32_t uv0, uv1; // packet words 3 and 5
+		uint32_t uv0, uv1;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "10,000 Needles nodes");
@@ -138,10 +110,6 @@ namespace needles178
 	inline uint8_t *Target() { return Entity((int)TargetSlot()); }
 	inline int32_t EffectBones(uint8_t *entity) { return **(const uint8_t *const *)*(const uint32_t *)(entity + 0x64); }
 
-	// ------------------------------------------------------------------
-	// Needle renderer (0x5CF4C0): the 4 triangles of the draw block, culled when a vertex
-	// overflows, back-facing, or every vertex is off screen on one axis
-	// ------------------------------------------------------------------
 	static uint32_t DrawNeedlePolys(uint8_t *b, uint32_t ot, int shift, uint32_t cursor)
 	{
 		const PolyRec *rec = (const PolyRec *)(b + 0x8C);
@@ -178,7 +146,6 @@ namespace needles178
 		return cursor;
 	}
 
-	// one needle: camera o needle matrix into the draw block, then its triangles
 	static void DrawNeedle(uint8_t *b, const Needle *n)
 	{
 		Mat4x3 *cam = (Mat4x3 *)(b + 0x2C);
@@ -202,8 +169,6 @@ namespace needles178
 		PacketCursor() = DrawNeedlePolys(b, RenderOT(), 2, PacketCursor());
 	}
 
-	// sprite transform (0x5CF650): a uniform scale on the screen position of pos (x / 8 - 0xA0,
-	// y / 8 - 0x6C, projection distance + z), the rotation part loaded into the GTE
 	static Mat4x3 *SpriteTransform(const int16_t *pos, int16_t scale, int32_t z)
 	{
 		Mat4x3 *m = (Mat4x3 *)SPRITE_MATRIX;
@@ -225,7 +190,6 @@ namespace needles178
 		return m;
 	}
 
-	// one spark with the sprite header h
 	static void DrawSpark(uint8_t *h, const Spark *s, int32_t lift)
 	{
 		*(int16_t *)(h + 4) = 0;
@@ -236,7 +200,6 @@ namespace needles178
 	}
 	inline int32_t SparkLift(int16_t left) { return var<int32_t>(SPARK_LIFT + (uint32_t)(int32_t)left * 4); }
 
-	// draw blocks (Field_Alloc): the needles' (0xDC) and the sparks' sequence copy (0x28) + header (0xB4)
 	static uint8_t *NeedleBlock()
 	{
 		uint8_t *b = (uint8_t *)FieldAlloc(0xDC);
@@ -270,7 +233,6 @@ namespace needles178
 		return -1;
 	}
 
-	// 25 needles (0x5CEF50, ticks 0..0x27); s = the task's Field_Alloc block (0x50)
 	static void SpawnNeedles(uint8_t *s)
 	{
 		int16_t *from = (int16_t *)s, *to = (int16_t *)(s + 8);
@@ -325,9 +287,6 @@ namespace ff8fx
 {
 namespace needles178
 {
-	// ------------------------------------------------------------------
-	// Needles and sparks (0x5CEF50)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl NeedleTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
@@ -337,7 +296,6 @@ namespace needles178
 		*(int32_t *)(s + 0x28) = -0x1000;
 		if (!DrawOnly() && t->counter >= 0 && t->counter <= 0x27) SpawnNeedles(s);
 		FieldFree(0x50);
-		// 30 fps layer: see mag178_10000_needles_held.inc
 		FX_HELD(held_note_needles(t);)
 		uint8_t *b = NeedleBlock();
 		int moved = 0;
@@ -366,7 +324,6 @@ namespace needles178
 			sp->pos[2] = (int16_t)n->m.t[2];
 		}
 		FieldFree(0xDC);
-		// 30 fps layer: see mag178_10000_needles_held.inc
 		FX_HELD(held_note_sparks();)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
@@ -391,9 +348,6 @@ namespace needles178
 		return (alive | moved) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5CEE90)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *nd)
 	{
 		if (DrawOnly()) return 0;
@@ -412,13 +366,9 @@ namespace needles178
 		return t->counter > TICK_LAST ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x5CF700)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		RootNode *r = (RootNode *)nd;
-		// 30 fps layer: see mag178_10000_needles_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = ARENA1;
 		if (!(r->counter & 1)) PacketCursor() = ARENA0;
@@ -433,7 +383,6 @@ namespace needles178
 		register_port(needles178::ORIG_RootTask, (void *)needles178::RootTask, "N178 RootTask", 178);
 		register_port(needles178::ORIG_Director, (void *)needles178::DirectorTask, "N178 Director", 178);
 		register_port(needles178::ORIG_NeedleTask, (void *)needles178::NeedleTask, "N178 NeedleTask", 178);
-		// 30 fps layer: see mag178_10000_needles_held.inc
 		FX_HELD(register_mag178_held();)
 	}
 }

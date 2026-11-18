@@ -14,47 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 215: My Final Heaven (Zell's Duel finisher; MAG_215_*). The Duel (effect 274) hands over to it when the player enters
-// the finisher's input; the battle casts it with Zell as the caster.
-//
-// Structure (setup 0x69AB60 -> _Init 0x69AB90 (not ported: the setup: TIM upload, magic buffer 0x25089A8, caster, root queue),
-// file loader 0x69AB70 (the module file 0x1172B1C)):
-//   RootTask (0x69AC00) - node 0x10 (pool 0x2508978): the packet cursor alternates between magic buffer + 0x10518 / + 0x22518
-//     (a second cursor 0x250898C + 0x22518 / + 0x34518, never used); on counter 1 sets up the director (1 x 0x1400 at the magic
-//     buffer) and the ring queue (0x24 x 0x294 at + 0x1400) and starts the director: the targets' records (entity, position,
-//     angles, zero angles), the box of their anchors, the centre x moved clear of the targets (0x69D500), Zell placed there
-//     0x1000 before the far z, facing 0, his position / angles saved, the camera anchors 0x2508998..0x25089A4, the debris pool
-//     (0x69B040), his animation set (0x5022C0, com 0x116D1AC) and chain 1, the stream state, the party hidden, Zell shown; then
-//     runs the director and the rings; when the director ends it waits for the streams (0x5342C0(2)), puts the targets / Zell
-//     back (chain 2), clears Zell's bit 8, puts the saved view back and ends.
-//   DirectorTask (0x69B070) - node 0x1400, counters 0..0x119 (the counter steps last; UPDATE AND DRAW in one call per tick):
-//     the screen flash (rising 0..0xB, 0x8FC, falling 0x10E..0x119); 1..0x3D a layout at Zell's anchor (0x11550A8, camera-
-//     aligned: 0x69C6B0); 0x3E..0x4B a layout at Zell walking back 0x100 a tick (0x1168A5C), rings at bones 0x14 / 0x13; 0x4C..
-//     0x73 a layout at Zell running (0x1160BB0; Zell placed 0x1800 behind the centre, then 0x4CC a tick; the targets turn to
-//     him from 0x60); 0x74..0xA3 a screen layout (0x11625E0; the targets' angles put back); 0xA4..0xB5 a layout far away
-//     (0x1169844); 0xB6..0xDD the jump: Zell drawn by the module (0x69D100) and moved, debris (0x69CC10) and rings each tick,
-//     rings on the targets at 0xD0, white flash 0xC0..0xD0, layouts 0x116703C at Zell and 0x115DCCC at his bone 0x16;
-//     0xDE..0xFD the crater layout (0x116AD0C); 0xDE..0x118 the targets thrown up and spun / put down (0x69D200, heights
-//     0x69D360); 0x18..0x73 a layout at his bone 0x16 (0x115A910, camera-aligned); the debris pool drawn (0x69CC90) and moved
-//     (0x69D080) every tick; sounds at 5 / 0xA2; the damage at 0x108; 0xA3 the targets shown and moved by the centre; the camera
-//     (0x69BEBB..0x69C18E); 0x11A the end (the targets' bits 0x0C and the party's bit 4 cleared, flash off).
-//   RingTask (0x69CB10) - node 0x294: a layout (0x115C4C8 / 0x115CA08) at its point, turned / scaled about Y (0x6ED1E0), until
-//     the layout ends.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Writes to battle entities: Zell (caster): position +0x1C / +0x20 (start; 0x3E..0x4B, 0x4C..0x55, 0xB6..0xD2), world
-//   translation +0x54..+0x5C (every director tick: his position; +0x5C at 0x4C), facing +0x0E (start: 0), flags bit 4
-//   (0xB6..0xD3 hidden, drawn by the module), bit 8 (0x56..0xBF; cleared by the root at the end), his position / angles put back
-//   by the root, his animation set / chains 1, 2; the targets: facing +0x0E (0x60..0x73 turning to him), angles +0x0C..+0x13
-//   (put back at 0x74), flags bit 4 (0x74..0xA2, 0xDE..0x118), bit 8 (0xDE..0x105), +0x1E height (0xDE..0x118), +0x20 moved by
-//   -centre z at 0xA3, bits 0x0C cleared at the end; positions / angles put back by the root; the party (slots 0..2) bit 4 (set
-//   at the start, cleared at the end); the screen flash words' bit 2 (0x74 cleared, 0xC0 set). Damage: 0x506BA0 at 0x108.
-// CAMERA (eye 0xB8B7F0, look-at 0xB8B7F8): 0x50A730 armed, field of view 0x1D8E038 = 0x120, roll 0x1D977A2 = 0 on 0; 0x657DF0
-//   lerps 0..0x17 (with the roll), set on 0x3D (roll ramp 0x3D..0x4A), set on 0x4B, set on 0xA3 (roll 0x200), lerps 0xDD..0xE0
-//   (roll - 0x80 a tick); the root puts back the saved view (0xB8B800) and the field of view (0x1D977A0) at its end.
-// Module globals: 0x2508938..0x25089AC (module file 0x2508938, context 0x250893C, caster 0x2508940, queues 0x2508948 rings /
-//   0x2508958 director / 0x2508968 root, root pool 0x2508978, packet cursors 0x2508988 / 0x250898C, zero angles 0x2508990 (never
-//   written), camera anchors 0x2508998 / 0x250899C (Zell's +0x1C / +0x20 dwords at the start), 0x25089A0 / 0x25089A4 (the centre
-//   dwords), magic buffer 0x25089A8).
+// Effect 215: My Final Heaven
 
 #include "mag_common.h"
 
@@ -65,18 +25,17 @@ namespace heaven215
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x250893C); }
 	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508940); }
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2508948; }            // rings (0x294)
-	inline TaskQueue *QDirector() { return (TaskQueue *)0x2508958; }         // the director (1 x 0x1400)
+	inline TaskQueue *QRings() { return (TaskQueue *)0x2508948; }
+	inline TaskQueue *QDirector() { return (TaskQueue *)0x2508958; }
 	inline TaskQueue *QRoot() { return (TaskQueue *)0x2508968; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508988); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x250898C); }    // (set by the root, never used)
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x250898C); }
 	inline const int16_t *ZeroAngles() { return (const int16_t *)0x2508990; }
-	inline uint32_t *CamAnchor() { return (uint32_t *)0x2508998; }          // Zell's +0x1C / +0x20 dwords at the start
-	inline uint32_t *CentreWords() { return (uint32_t *)0x25089A0; }        // the centre's +0x180 / +0x184 dwords
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25089A8); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t *CamAnchor() { return (uint32_t *)0x2508998; }
+	inline uint32_t *CentreWords() { return (uint32_t *)0x25089A0; }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25089A8); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
 	inline int16_t *CamEye() { return (int16_t *)0xB8B7F0; }
@@ -96,37 +55,35 @@ namespace heaven215
 	static const uint32_t LAYOUT_Bone = 0x115A910, LAYOUT_Ring = 0x115C4C8, LAYOUT_TargetRing = 0x115CA08;
 	static const uint32_t KIND_Anchor = 0x1172B34, KIND_Walk = 0xFE0FC8, KIND_Screen = 0x1172B2C, KIND_Plain = 0x1154F44;
 	static const uint32_t KIND_Jump = 0x1172B28, KIND_Crater = 0x1154F40, KIND_Ring = 0xFE0FB4;
-	static const uint32_t MODEL_Debris = 0x1154F58;           // the debris model (vertices; its triangle list at [0x1154F50] + 0x1154F60)
-	static const int16_t *const SINCOS = (const int16_t *)0x116EB1C; // 4096 pairs (sin, cos)
+	static const uint32_t MODEL_Debris = 0x1154F58;
+	static const int16_t *const SINCOS = (const int16_t *)0x116EB1C;
 	static const void *const SOUND_A = (const void *)0x1154F48;
 	static const void *const SOUND_B = (const void *)0x1154F4C;
 
-	// ---- engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(0x5022C0)(entity, out, data); } // BS_BindEntityModelFromComData
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(0x5022C0)(entity, out, data); }
 	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(a, out); }   // Effect_RotationYMatrix
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
+	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(a, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
-	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(0x56C090)(a, b, out); } // (out pad not written)
+	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(0x56C090)(a, b, out); }
 	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); } // MAG_063_RenderPrimSet
-	inline uint32_t DrawShadow(uint8_t *e, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(e, ot, a, cursor); } // BattleEntity_DrawShadow
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
+	inline uint32_t DrawShadow(uint8_t *e, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(e, ot, a, cursor); }
 	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, ctx, ot, a, cursor); }
-	inline int32_t SqrtScaled(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BED0)(v); }    // (int)(sqrt(v * k1) * k2)
-	inline void CamLerp(const int16_t *a, const int16_t *b, int32_t t) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t)>(0x657DF0)(a, b, t); } // MAG_325_CameraLerp
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }   // BS_Camera_ArmReturnAfterEffect
+	inline int32_t SqrtScaled(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BED0)(v); }
+	inline void CamLerp(const int16_t *a, const int16_t *b, int32_t t) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t)>(0x657DF0)(a, b, t); }
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
 	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); } // au_re_BattleFile_preLoad_0
-	// GTE (software PSX GTE) helpers not in fx_port.h
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }      // IR = MAC = R * V0
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }      // IR = R * IR
+	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteLoadIRFromColumn(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E180)(p); }
 	inline void GteStoreIRToColumn(void *p) { fn<void (__cdecl *)(void *)>(0x45E470)(p); }
 	inline void GteLoadV0FromDwords(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E060)(p); }
@@ -137,88 +94,85 @@ namespace heaven215
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteReadMAC0(void *p) { fn<void (__cdecl *)(void *)>(0x45E3C0)(p); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteReadOTZ32(void *p) { fn<void (__cdecl *)(void *)>(0x45E3D0)(p); }      // GTE_ReadOTZ (a dword)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }    // GTE_LoadV0_u16
-	inline void GteReadIR2Word(void *p) { fn<void (__cdecl *)(void *)>(0x703F90)(p); }    // GTE_ReadIR2Word
+	inline void GteReadOTZ32(void *p) { fn<void (__cdecl *)(void *)>(0x45E3D0)(p); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
+	inline void GteReadIR2Word(void *p) { fn<void (__cdecl *)(void *)>(0x703F90)(p); }
 
-	// layout sites (director node offsets of the decoded layouts, with the phase that plays them)
 	enum : int { SITE_ANCHOR = 1, SITE_BACK, SITE_RUN, SITE_SCREEN, SITE_FAR, SITE_JUMP, SITE_JUMPBONE, SITE_CRATER, SITE_BONE };
 
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes at 0x2508978
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		uint8_t state;     // +0x0E 0 = not set up, 1 = running
-		uint8_t parity;    // +0x0F packet arena parity
+		int16_t counter;
+		uint8_t state;
+		uint8_t parity;
 	};
-	struct TargetRec // 0x20 bytes from the director +0x40
+	struct TargetRec
 	{
-		uint8_t *e;        // +0x00
-		uint32_t pos01;    // +0x04 the entity's +0x1C / +0x1E at the start
-		uint32_t pos23;    // +0x08 +0x20 / +0x22
-		uint32_t rot01;    // +0x0C +0x0C / +0x0E
-		uint32_t rot23;    // +0x10 +0x10 / +0x12
-		int16_t ang[4];    // +0x14 its spin (0xDE..0x105; from the zero angles 0x2508990 at the start)
-		int16_t height[2]; // +0x1C its model top / bottom (0x69D360 at 0xDE and 0x106..0x118)
+		uint8_t *e;
+		uint32_t pos01;
+		uint32_t pos23;
+		uint32_t rot01;
+		uint32_t rot23;
+		int16_t ang[4];
+		int16_t height[2];
 	};
-	struct Debris // 0x16 bytes, 0x80 of them at the director +0x8FC
+	struct Debris
 	{
-		int16_t pos[3];    // +0x00
-		int16_t life;      // +0x06 0 = free
-		int16_t vel[3];    // +0x08 (gravity 0xA a tick, bounce on y >= 0)
-		int16_t scale;     // +0x0E
-		int16_t rx, ry;    // +0x10 angles (spin x 4 a tick)
-		int8_t spin[2];    // +0x14
+		int16_t pos[3];
+		int16_t life;
+		int16_t vel[3];
+		int16_t scale;
+		int16_t rx, ry;
+		int8_t spin[2];
 	};
-	struct DirectorNode // pool of 1 node of 0x1400 bytes (magic buffer)
+	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..0x119 (steps last)
+		int16_t counter;
 		int16_t pad0E;
-		uint8_t bind[0x20];// +0x10 Zell's bind block
-		uint32_t saved_pos[2]; // +0x30 Zell's +0x1C..+0x23
-		uint32_t saved_rot[2]; // +0x38 Zell's +0x0C..+0x13
-		TargetRec recs[10];// +0x40
-		int16_t centre[3]; // +0x180 the centre x (moved clear of the targets), 0, the far z
+		uint8_t bind[0x20];
+		uint32_t saved_pos[2];
+		uint32_t saved_rot[2];
+		TargetRec recs[10];
+		int16_t centre[3];
 		int16_t pad186;
-		uint8_t layout_b[0x188]; // +0x188 the walk / run / screen / far / jump layouts
-		uint8_t layout_c[0x27C]; // +0x310 the bone 0x16 layouts (0x115A910 / 0x115DCCC)
-		uint8_t layout_a[0x370]; // +0x58C the anchor / crater layouts (0x11550A8 / 0x116AD0C)
-		Debris debris[0x80];     // +0x8FC
-		Debris *cursor;          // +0x13FC the next free debris to try
+		uint8_t layout_b[0x188];
+		uint8_t layout_c[0x27C];
+		uint8_t layout_a[0x370];
+		Debris debris[0x80];
+		Debris *cursor;
 	};
-	// the prim-player callback 0x69C220's parameter block (part of the director's / ring task's stack frame)
 	struct ArgA
 	{
-		Mat4x3 m;          // +0x00 the layout's frame (the view composed)
-		const uint8_t *kind; // +0x20 per object: 0x31 / 0x32 / 0x33 texture windows (scrolled, -scrolled), 0x39 the wave (0x69C5A0)
-		int16_t depth;     // +0x24 header +0x18
-		int16_t scroll;    // +0x26 texture v (x 0x7F) / the wave's growth
-		int16_t fade;      // +0x28 non-zero: faded to black by it
+		Mat4x3 m;
+		const uint8_t *kind;
+		int16_t depth;
+		int16_t scroll;
+		int16_t fade;
 		int16_t pad2A;
-		uint32_t morph;    // +0x2C blended vertex frames
+		uint32_t morph;
 	};
-	// the camera-aligned prim-player callback 0x69C6B0's parameter block
 	struct ArgB
 	{
-		int16_t pos[3];    // +0x00 the world anchor
+		int16_t pos[3];
 		int16_t pad06;
-		const uint8_t *kind; // +0x08
-		int16_t depth;     // +0x0C
-		int16_t scroll;    // +0x0E
-		int16_t fade;      // +0x10
+		const uint8_t *kind;
+		int16_t depth;
+		int16_t scroll;
+		int16_t fade;
 		int16_t pad12;
-		uint32_t morph;    // +0x14
+		uint32_t morph;
 	};
-	struct RingNode // 0x294 (pool of 0x24)
+	struct RingNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t scale;     // +0x12 its Y scale (0x6ED1E0)
-		int16_t angle;     // +0x14 its turn about Y
+		int16_t pos[3];
+		int16_t scale;
+		int16_t angle;
 		int16_t pad16;
-		uint8_t layout[0x27C]; // +0x18
+		uint8_t layout[0x27C];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(DirectorNode) == 0x1400 && sizeof(TargetRec) == 0x20 && sizeof(Debris) == 0x16, "My Final Heaven nodes");
@@ -242,17 +196,11 @@ namespace heaven215
 	inline int32_t &W32(void *p, int off) { return *(int32_t *)((uint8_t *)p + off); }
 	inline uint32_t &U32(void *p, int off) { return *(uint32_t *)((uint8_t *)p + off); }
 	inline uint8_t &B8(void *p, int off) { return *((uint8_t *)p + off); }
-	// signed division by 4096 rounding toward zero (cdq / and 0xFFF / add / sar 12)
 	inline int32_t sdiv4096(int32_t v) { return (int32_t)((uint32_t)v + ((uint32_t)(v >> 31) & 0xFFFu)) >> 12; }
 
-	// action 0's target records / count (24 bytes each, +0 = the slot)
 	inline uint8_t *Targets() { return Ctx()->actions[0].targets; }
 	inline int32_t TargetCount() { return Ctx()->actions[0].target_count; }
 
-	// ------------------------------------------------------------------
-	// Matrices
-	// ------------------------------------------------------------------
-	// 0x6ED1E0 (Moomba's range: My Final Heaven calls it): a rotation about Y by -angle with the Y scale `scale` (rows x / z scaled)
 	static void ScaledRotY(int32_t angle, int32_t scale, Mat4x3 *out)
 	{
 		ff8fx::fill<(0x14)>(out, 0);
@@ -267,7 +215,6 @@ namespace heaven215
 		out->m[2][2] = (int16_t)c;
 	}
 
-	// 0x69CFC0: a rotation about X by `angle` scaled by `scale` (the sin / cos table 0x116EB1C)
 	static void ScaledRotX(int32_t angle, int32_t scale, Mat4x3 *out)
 	{
 		ff8fx::fill<(0x14)>(out, 0);
@@ -282,7 +229,6 @@ namespace heaven215
 		out->m[2][2] = (int16_t)b;
 	}
 
-	// 0x69D030: a rotation about Y by `angle` (the table 0x116EB1C)
 	static void RotYTable(int32_t angle, Mat4x3 *out)
 	{
 		ff8fx::fill<(0x14)>(out, 0);
@@ -294,8 +240,6 @@ namespace heaven215
 		out->m[2][2] = sc[1];
 	}
 
-	// 0x69C5A0: the wave (kind 0x39): the model's vertices up to n x s / 0x1000 (the rest at 0, 0, 0x4000), the last 0x40 of them
-	// drawn toward a neighbour ((i & 7) - 2 vertices back) the closer they are to the front
 	static void WaveVertices(uint32_t model, uint8_t *out, int32_t s)
 	{
 		const int32_t n = *(const int32_t *)(model + 4);
@@ -307,7 +251,7 @@ namespace heaven215
 			if (i > k)
 			{
 				*(uint32_t *)o = 0;
-				o[2] = 0x4000; // (the 4th word not written)
+				o[2] = 0x4000;
 				continue;
 			}
 			if ((uint32_t)(i - k + 0x40) < 0x40)
@@ -316,17 +260,13 @@ namespace heaven215
 				const int16_t *u = v + (2 - (i & 7)) * 4;
 				o[0] = (int16_t)(sdiv4096(mul32((int32_t)v[0] - (int32_t)u[0], w)) + u[0]);
 				o[1] = (int16_t)(sdiv4096(mul32((int32_t)v[1] - (int32_t)u[1], w)) + u[1]);
-				o[2] = v[2]; // (the 4th word not written)
+				o[2] = v[2];
 				continue;
 			}
 			ff8fx::copy<(8)>(o, v);
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callbacks (one object of a layout, 0x701DD0)
-	// ------------------------------------------------------------------
-	// the model / vertex frame of a record into the header (+0 model, +4 vertices: a frame, or the blend into `morph`)
 	static uint8_t *PartModel(prim::Layout *l, prim::Record *r, uint8_t *h, uint32_t morph)
 	{
 		const int32_t object = (int16_t)r->flags_lo;
@@ -361,7 +301,6 @@ namespace heaven215
 		return model;
 	}
 
-	// the header's fade / texture window by the object's kind (0x31 / 0x32 / 0x33 / 0x39), then the block's fade, then the draw
 	static void PartHeader(prim::Record *r, uint8_t *h, int16_t depth, const uint8_t *kind, int16_t scroll, int16_t fade, uint32_t morph)
 	{
 		*(uint32_t *)(h + 0x1C) = 0x2030;
@@ -416,10 +355,8 @@ namespace heaven215
 		FieldFree(0x6C);
 	}
 
-	// the record's offset is loaded into the GTE V0 with its 4th word never written (the stack's residue: the port loads 0)
 	static int16_t g_off_pad = 0;
 
-	// 0x69C220: an object at the block's frame (the record's offset through it unless flag 0x200)
 	static void __cdecl CallbackA(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const ArgA *arg = (const ArgA *)arg_;
@@ -475,10 +412,8 @@ namespace heaven215
 		PartHeader(r, h, arg->depth, arg->kind, arg->scroll, arg->fade, arg->morph);
 	}
 
-	// the residue under the camera-aligned callback's matrix pad (0x56C090 / the 0x200 copy never write it): modelled as 0
 	static int16_t g_m2_pad = 0;
 
-	// 0x69C6B0: an object at the block's world anchor, its rotation (and offset unless flag 0x200) in the camera's axes
 	static void __cdecl CallbackB(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const ArgB *arg = (const ArgB *)arg_;
@@ -516,7 +451,6 @@ namespace heaven215
 			}
 			else
 			{
-				// the rows scaled (x, y, z)
 				for (int i = 0; i < 3; i++)
 					for (int j = 0; j < 3; j++) m.m[i][j] = (int16_t)(mul32(m.m[i][j], r->scale[i]) >> 12);
 			}
@@ -538,18 +472,12 @@ namespace heaven215
 		PartHeader(r, h, arg->depth, arg->kind, arg->scroll, arg->fade, arg->morph);
 	}
 
-	// ------------------------------------------------------------------
-	// Debris (the director's pool of 0x80 at +0x8FC): flat-shaded chunks (0x69CE00), DRAW THEN UPDATE
-	// ------------------------------------------------------------------
-	// 0x69B040: every debris free, the cursor at the first
 	static void DebrisInit(DirectorNode *d)
 	{
 		for (int i = 0x7F; i >= 0; i--) d->debris[i].life = 0;
 		d->cursor = &d->debris[0];
 	}
 
-	// 0x69CC10: a free debris (the cursor's, else the first, else the first free one), its angles / spin random; the cursor moves
-	// past it (back to the first after the last)
 	static Debris *DebrisAlloc(DirectorNode *d)
 	{
 		Debris *k = d->cursor;
@@ -575,8 +503,6 @@ namespace heaven215
 		return k;
 	}
 
-	// 0x69CE00: gouraud triangles (POLY_G3) of a model (h[0] vertices, 4 bytes each; h[1] -> count, then 0x14-byte triangles)
-	// through the GTE, dropped when off-screen / back-facing (screen 0xA00 x 0x6C0); the block's +0x14.. hold FLAG / MAC0 / OTZ
 	static uint32_t TriRender(uint8_t *h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint8_t *v = *(const uint8_t **)h;
@@ -619,10 +545,8 @@ namespace heaven215
 		return (uint32_t)p;
 	}
 
-	// one debris: its X rotation (scaled) by its Y rotation, at its position, under the view; the model 0x1154F58
 	static void DebrisDrawOne(const Debris *k, uint8_t *h)
 	{
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(held_note_debris(k);)
 		Mat4x3 *m = (Mat4x3 *)h;
 		ScaledRotX(k->rx, k->scale, m);
@@ -661,7 +585,6 @@ namespace heaven215
 		FramePackets() = TriRender(h + 0x40, OTBase() + 0x44, 2, FramePackets());
 	}
 
-	// 0x69CC90: every live debris
 	static void DebrisDraw(DirectorNode *d)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -670,8 +593,6 @@ namespace heaven215
 		FieldFree(0x58);
 	}
 
-	// 0x69D080's step of one debris: its angles by its spin x 4, its position by its velocity, the gravity 0xA (on the ground:
-	// vy = -vy / 2)
 	static void DebrisStep(Debris *k)
 	{
 		k->rx = (int16_t)(k->rx + ((int32_t)k->spin[0] << 2));
@@ -684,7 +605,6 @@ namespace heaven215
 		k->vel[1] = vy;
 	}
 
-	// 0x69D080: every live debris ages (the one that ends becomes the cursor) or moves
 	static void DebrisMove(DirectorNode *d)
 	{
 		for (int i = 0; i < 0x80; i++)
@@ -700,14 +620,8 @@ namespace heaven215
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Entities drawn by the module
-	// ------------------------------------------------------------------
-	// 0x69D100: an entity at its world matrix: its shadow (OT + 0x84), its bones under the view, RenderGeometry (mode 6), its pose
-	// matrices rebuilt; the same for its weapon (+0x78)
 	static void DrawEntityWorld(uint8_t *e)
 	{
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(held_note_world(e);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x4C);
 		FramePackets() = DrawShadow(e, OTBase() + 0x84, 6, FramePackets());
@@ -735,12 +649,8 @@ namespace heaven215
 		FieldFree(0x4C);
 	}
 
-	// 0x69D200: an entity drawn by the module: its shadow (OT + 0x84), its bones' world matrices from its world matrix x (rotation
-	// `angles`, translation `off` minus the rotated `off`) under the view, RenderGeometry (mode 4), its pose matrices rebuilt; the
-	// same for its weapon (+0x78)
 	static void DrawEntity(uint8_t *e, const int16_t *angles, const int16_t *off)
 	{
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(held_note_entity(e, angles, off);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
 		Mat4x3 *m = (Mat4x3 *)h;
@@ -778,9 +688,6 @@ namespace heaven215
 		FieldFree(0x5C);
 	}
 
-	// 0x69D360: an entity's model height (out[0] = the lowest projected y (max), out[1] = the highest (min)) of its visible
-	// objects' vertices at its pose with its world translation taken from its position words (put back), then its pose matrices
-	// rebuilt; returns out[1]
 	static int32_t MeasureHeight(uint8_t *e, int16_t *out)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x24);
@@ -838,8 +745,6 @@ namespace heaven215
 		return out[1];
 	}
 
-	// 0x69D500: x moved by 0x80 until it is clear of every target taller than `height` (their +0x34 / +0x3A half extents about
-	// their x, against x +- size / 2)
 	static int32_t ClearX(int32_t x, int32_t size, int32_t height)
 	{
 		const int32_t half = size >> 1;
@@ -864,13 +769,9 @@ namespace heaven215
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// RingTask (0x69CB10): node 0x294, a layout at its point turned / scaled about Y; ends with its layout
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *k = (RingNode *)n;
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(held_note_ring(k);)
 		ArgA arg;
 		ScaledRotY(k->angle, k->scale, &arg.m);
@@ -882,12 +783,11 @@ namespace heaven215
 		arg.depth = -0x80;
 		arg.kind = (const uint8_t *)KIND_Ring;
 		arg.fade = 0;
-		arg.scroll = 0; // (not written by the original; the kind table has no scrolled object)
+		arg.scroll = 0;
 		const int r = prim::play((prim::Layout *)k->layout, CallbackA, (int)&arg, 0);
 		return r != 0 ? 0 : TASK_END;
 	}
 
-	// 0x69CBB0: a ring at Zell's bone `bone` (0x502170 with `flag`), Y scale `scale`, layout 0x115C4C8
 	static void SpawnBoneRing(int32_t bone, int32_t flag, int32_t scale)
 	{
 		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
@@ -899,27 +799,18 @@ namespace heaven215
 		DecodeModelPrimLayout(LAYOUT_Ring, k->layout, 0x40);
 	}
 
-	// ------------------------------------------------------------------
-	// DirectorTask (0x69B070): node 0x1400, counters 0..0x119 (the counter steps last)
-	// ------------------------------------------------------------------
-	// one layout of the director through the prim player (0x701970) with the callback 0x69C220: its frame (arg->m) under the view
-	// unless `view` is false (the screen layout)
 	static void PlayA(DirectorNode *d, int site, uint8_t *layout, ArgA *arg, bool view)
 	{
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(held_note_play(d, site, layout, arg, nullptr);)
 		if (view) ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		prim::play((prim::Layout *)layout, CallbackA, (int)arg, 0);
 	}
-	// the same with the camera-aligned callback 0x69C6B0 (its world anchor arg->pos)
 	static void PlayB(DirectorNode *d, int site, uint8_t *layout, ArgB *arg)
 	{
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(held_note_play(d, site, layout, nullptr, arg);)
 		prim::play((prim::Layout *)layout, CallbackB, (int)arg, 0);
 	}
 
-	// the screen flash level at counter c (rising 0..0xB, 0x8FC, falling 0x10E..0x119)
 	static int32_t FlashLevel(int32_t c)
 	{
 		if (c < 0xC) return c * 2300 / 12;
@@ -927,13 +818,11 @@ namespace heaven215
 		return 0x8FC;
 	}
 
-	// the jump's white flash (0xC0..0xD0): 0x1000 - (b - 0xA) x 449 / 4
 	static int32_t JumpFlash(int32_t b)
 	{
 		return 0x1000 - (shl32(mul32(b - 0xA, 449), 10) >> 12);
 	}
 
-	// the roll of the opening lerp: -(0x1000 - t) / 14 (the exe's reciprocal multiply)
 	static int32_t OpeningRoll(int32_t t)
 	{
 		const int32_t v = 0x1000 - t;
@@ -942,8 +831,6 @@ namespace heaven215
 		return q + (int32_t)((uint32_t)q >> 31);
 	}
 
-	// the director's camera at counter c (eye 0xB8B7F0, look-at 0xB8B7F8, roll 0x1D977A2): `engine`: the camera return armed
-	// on 0. X / Z = Zell's position at the start (0x2508998 / 0x250899C), CX / CZ = the centre (0x25089A0 / 0x25089A4)
 	static void DirectorCamera(int32_t c, bool engine)
 	{
 		if (c == 0)
@@ -1008,7 +895,6 @@ namespace heaven215
 		}
 	}
 
-	// a ring at Zell's feet (x +- 0xC8 alternately), Y scale 0x2000, layout 0x115C4C8 (the jump 0xB6..0xD2)
 	static void SpawnSideRing(int32_t b)
 	{
 		RingNode *k = (RingNode *)AddTaskToQueue(QRings(), ORIG_RingTask);
@@ -1026,11 +912,9 @@ namespace heaven215
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(held_note_director(d);)
 		const int16_t c = d->counter;
 		SetScreenFlash((uint32_t)FlashLevel(c), 0);
-		// the layouts' parameter blocks (one per call: blocks keep the fields they do not set)
 		ArgA arga;
 		ArgB argb;
 		ff8fx::fill<(sizeof(arga))>(&arga, 0);
@@ -1038,7 +922,6 @@ namespace heaven215
 		const uint32_t morph = TexBase() + 0xF918;
 		uint8_t *z = Caster();
 
-		// 1..0x3D: a layout at Zell's anchor (on the ground), camera-aligned
 		int32_t s = c - 1;
 		if ((uint32_t)s < 0x3D)
 		{
@@ -1052,7 +935,6 @@ namespace heaven215
 			argb.fade = 0;
 			PlayB(d, SITE_ANCHOR, d->layout_a, &argb);
 		}
-		// 0x3E..0x4B: Zell walks back 0x100 a tick, a layout at him; rings at his bones 0x14 / 0x13
 		s = c - 0x3E;
 		if ((uint32_t)s < 0xE)
 		{
@@ -1072,8 +954,6 @@ namespace heaven215
 			if (r == 2) SpawnBoneRing(0x14, 0x1000, 0x1000);
 			else if (r == 5) SpawnBoneRing(0x13, 0x1000, 0x1000);
 		}
-		// 0x4C..0x73: Zell runs in from 0x1800 behind the centre (0x4CC a tick to 0x55), a layout at him; the targets turn to him
-		// from 0x60
 		s = c - 0x4C;
 		if ((uint32_t)s < 0x28)
 		{
@@ -1118,8 +998,6 @@ namespace heaven215
 			arga.fade = 0;
 			PlayA(d, SITE_RUN, d->layout_b, &arga, true);
 		}
-		// 0x74..0xA3: a screen layout (the view not composed); 0x74: the flash words' bit 2 off, the targets hidden, their angles
-		// put back
 		s = c - 0x74;
 		if ((uint32_t)s < 0x30)
 		{
@@ -1147,7 +1025,6 @@ namespace heaven215
 			arga.fade = (uint32_t)s > 0x2C ? (int16_t)((s << 10) + 0x5200) : (int16_t)0;
 			PlayA(d, SITE_SCREEN, d->layout_b, &arga, false);
 		}
-		// 0xA4..0xB5: a layout far ahead (the centre's z + 0x5DC0)
 		s = c - 0xA4;
 		if ((uint32_t)s < 0x12)
 		{
@@ -1162,7 +1039,6 @@ namespace heaven215
 			arga.fade = 0;
 			PlayA(d, SITE_FAR, d->layout_b, &arga, true);
 		}
-		// 0xB6..0xDD: the jump
 		const int32_t b = c - 0xB6;
 		if ((uint32_t)b < 0x28)
 		{
@@ -1179,7 +1055,6 @@ namespace heaven215
 			}
 			if ((uint32_t)b < 0x1E)
 			{
-				// Zell drawn by the module and hidden; moved toward the targets
 				DrawEntityWorld(z);
 				B8(z, 0) |= 4;
 				arga.depth = (int16_t)0xF800;
@@ -1192,7 +1067,6 @@ namespace heaven215
 					v = (int32_t)((uint32_t)v + ((uint32_t)(v >> 31) & 3u)) >> 2;
 					W16(z, 0x20) = (int16_t)(W16(z, 0x20) - (mul32(0xE00 - v, 600) >> 12));
 				}
-				// rings (on the targets at 0xD0), debris (0xB6..0xCE)
 				if (b == 0x1A)
 				{
 					for (int32_t i = 0; i < TargetCount(); i++)
@@ -1234,7 +1108,7 @@ namespace heaven215
 			}
 			else if (b == 0x1E)
 			{
-				*(uint16_t *)z &= 0xFFFB; // (its fade is 0x1000: no layout drawn)
+				*(uint16_t *)z &= 0xFFFB;
 			}
 			else
 			{
@@ -1263,7 +1137,6 @@ namespace heaven215
 				}
 			}
 		}
-		// 0xDE..0xFD: the crater layout at the centre (turned 0x800); 0xFE: Zell shown
 		s = c - 0xDE;
 		if ((uint32_t)s < 0x20)
 		{
@@ -1283,8 +1156,6 @@ namespace heaven215
 		{
 			*(uint16_t *)z &= 0xFFFB;
 		}
-		// 0xDE..0x105: the targets thrown up (+0x1E) and spun (y by +-0xCC a tick), drawn by the module about their middle;
-		// 0x106..0x118: put down, drawn upright; 0x106: their bit 8 cleared, the streams 0x168 / 0x169 / 0x16A
 		const int32_t t = c - 0xDE;
 		if ((uint32_t)t < 0x28)
 		{
@@ -1344,11 +1215,9 @@ namespace heaven215
 				StreamQueueLoad(0x16A, TexBase() + 0x7118, 0);
 			}
 		}
-		// Zell's world translation from his position (every tick)
 		W32(z, 0x54) = W16(z, 0x1C);
 		W32(z, 0x58) = W16(z, 0x1E);
 		W32(z, 0x5C) = W16(z, 0x20);
-		// 0x18..0x73: a layout at his bone 0x16, camera-aligned
 		s = c - 0x18;
 		if ((uint32_t)s < 0x5C)
 		{
@@ -1367,7 +1236,6 @@ namespace heaven215
 		else if (c == 0x108) ApplyActionResultToTargets(Targets(), (uint32_t)TargetCount());
 		if (c == 0xA3)
 		{
-			// the targets shown and moved by the centre's -z
 			const int16_t mz = (int16_t)-d->centre[2];
 			d->centre[0] = 0;
 			for (int32_t i = 0; i < TargetCount(); i++)
@@ -1390,9 +1258,6 @@ namespace heaven215
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// RootTask (0x69AC00): node 0x10 (pool 0x2508978)
-	// ------------------------------------------------------------------
 	static void StartDirector(DirectorNode *d)
 	{
 		Memset32(&d->counter, 0, 0x4FD);
@@ -1446,7 +1311,6 @@ namespace heaven215
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(held_note_root(r);)
 		if (r->parity)
 		{
@@ -1483,7 +1347,6 @@ namespace heaven215
 			if (a == 0)
 			{
 				if (StreamPreload(2) == 0) return 0;
-				// the director ended: the targets / Zell put back, his bit 8 cleared, the saved view back
 				const DirectorNode *d = (const DirectorNode *)TexBase();
 				for (int32_t i = 0; i < TargetCount(); i++)
 				{
@@ -1516,7 +1379,6 @@ namespace heaven215
 		register_port(heaven215::ORIG_RootTask, (void *)heaven215::RootTask, "215 RootTask", 215);
 		register_port(heaven215::ORIG_DirectorTask, (void *)heaven215::DirectorTask, "215 DirectorTask", 215);
 		register_port(heaven215::ORIG_RingTask, (void *)heaven215::RingTask, "215 RingTask", 215);
-		// 30 fps layer: see mag215_my_final_heaven_held.inc
 		FX_HELD(register_mag215_held();)
 	}
 }

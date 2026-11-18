@@ -14,48 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 308: Mobile Type 8 and its two probes taken apart by bone scripts (enemy attack 286 of kernel.bin, no name; Mobile
-// Type 8 c0m105, whose next two entity slots hold its probes; no other kernel.bin entry uses effect 308; MAG_308_*).
-//
-// Structure (setup 0x667670 -> _Init 0x6676A0, file loader 0x667680 = mag307.tim (name at 0x102E940) into 0x25074D0; _Init
-// queues that TIM, keeps the context (0x25074D4) and the CASTER's entity (0x25074D8), clears its entity flags 0x0C, sets up
-// the root queue 0x2507520 (pool 0x2507530, 1 x 0x14) and starts camera animation 0x10257E8):
-//   RootTask (0x667720) - alternates the module packet arena (magic buffer + 0x2A18 / + 0x12A18); on counter 1 (once): music
-//     volume fade 0x47E3C0(0xF0), the pools (main 1 x 0xE94 at + 0x1B3C, layouts 8 x 0x190 at + 0xEBC, sprites 0x40 x 0x1C
-//     at + 0x7BC, bone scripts 0x2D x 0x2C at the magic buffer), the main task (voice slot 0x102590C, the three entities'
-//     colour words +0x2C kept, particle cursor), one bone script per entity (0x102E5A0 / 0x102E734 / 0x102E834 on the main's
-//     three pose arrays) and the stream state (+ 0x29D0). Then each tick: main, scripts, layouts, sprites; the stream pump;
-//     when the main queue is empty and the streams are done: screen flash 0, end.
-//   MainTask (0x668DE0) - counters 0..0x6D: screen flash ramps 0..7 / 0x67..0x6D (2300 / 8 a step), 2300 between;
-//     counters 0..0x13 the three colour words lerped toward 0x250754C (0, never written), byte +0x2F = 0x32; counters
-//     0..0x55 each entity drawn with its pose offsets (0x669070) and its flag 4; counters 0x46..0x55 a white tile rising
-//     (0x7040B0), on 0x55 the script / sprite / layout queues dropped; counters 0x56..0x65 the tile fading; before 0x56 the
-//     particles (0x669620: draw THEN move); sound 0x1025908 at 0, voice released at 0x6A, stream loads 0x168 / 0x169 (+ 0x2A18)
-//     at 0x67; at 0x6E flags 8 off, colour words back, end.
-//   BoneScriptTask (0x667990) - node 0x2C: byte code moving one pose entry (set / add translation, velocity, rotation, angular
-//     velocity, a step with a floor at y 0, copy entries, sparks from the model (0x1090: 0x667DB0), a layout at a bone
-//     (0x10A0 / 0x10A1), one sprite (0x10A8) or a random burst (0x10A9) at a bone, a flat full-screen quad (0x10B0),
-//     counted loops (0x10F0), end (0x1100); any other word yields until the next tick.
-//   LayoutTask (0x6685E0) - a prim-model layout (table 0x102A400) at its position turned by +0x14, scaled by +0x12, with the
-//     callback 0x668680 (vertex frames blended into magic buffer + 0x22A18); ends with the layout.
-//   SpriteTask (0x668A50) - sequence 0x10262F8[+0x15] at its position, draws THEN moves (4 x velocity, velocity += acceleration,
-//     y twice); ends after the last frame.
-// Sparks (0x667DB0): the listed bones of the entity are hidden (pose entry +6 = 2) and marked (bone matrix pad word = 1); the
-// marked bones' polygons throw particles along their normals (module LCG 0x2507548, shared LCG 0x7059E0) until the budget
-// is spent.
-// Draw-only flags (battle_to_update_flags 0x201) are not tested: everything updates always.
-// ENTITY WRITES: the three entities - flags words +0x00 (bit 2 while drawn, bit 3 cleared at the end), colour words +0x2C /
-// +0x2F, their bone matrices (and their pad words) every tick.
-// CAMERA: the setup's camera animation 0x10257E8 (engine); no camera word is written by the tasks.
-// Module globals: 0x25074D0..0x2507558 (texture file 0x25074D0, context 0x25074D4, caster 0x25074D8, script queue 0x25074E0,
-// sprite queue 0x25074F0, layout queue 0x2507500, main queue 0x2507510, root queue 0x2507520, root pool 0x2507530, packet
-// cursor 0x2507544, module LCG 0x2507548, colour lerp target 0x250754C, magic buffer base 0x2507550).
-// CODE OF OTHER MODULES: 314's 0x662C00 (pose offsets), 276's 0x687AE0 (bone group in world space) and 290's 0x676E00 (bone
-// group projection) are called at their addresses (as Griever's 064 does); 298's sprite renderer 0x672DB0 is ported in
-// fx_model_sweep.h. 0x6684C0 / 0x668970 / 0x669070 / 0x6691B0 / 0x6696B0 are the same code as 298's 0x671990 / 0x671E40 /
-// 0x672330 / 0x672470 / 0x672CD0 (and 290's 0x676B40 / 0x676C80).
-// NEVER-WRITTEN STACK WORDS: none read.
-
 #include "mag_common.h"
 #include "fx_params.h"
 #include "fx_model_sweep.h"
@@ -68,18 +26,17 @@ namespace mobile308
 	using namespace magc;
 	using namespace msweep;
 
-	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x25074D0); }        // the effect's file (its TIM)
+	inline uint32_t &TexFile() { return var<uint32_t>(0x25074D0); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25074D4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25074D8); }        // caster entity (setup); probes at + 0x9C / + 0x138
-	inline TaskQueue *QScripts() { return (TaskQueue *)0x25074E0; }        // pool: magic buffer, 0x2D x 0x2C
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x25074F0; }        // pool: + 0x7BC, 0x40 x 0x1C
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2507500; }        // pool: + 0xEBC, 8 x 0x190
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507510; }           // pool: + 0x1B3C, 1 x 0xE94
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2507520; }           // pool 0x2507530, 1 x 0x14
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x25074D8); }
+	inline TaskQueue *QScripts() { return (TaskQueue *)0x25074E0; }
+	inline TaskQueue *QSprites() { return (TaskQueue *)0x25074F0; }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2507500; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2507510; }
+	inline TaskQueue *QRoot() { return (TaskQueue *)0x2507520; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507544); }
 	inline uint32_t &Lcg() { return var<uint32_t>(0x2507548); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507550); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2507550); }
 
 	static const uint32_t ORIG_Setup = 0x667670, ORIG_FileLoader = 0x667680;
 	static const uint32_t ORIG_RootTask = 0x667720;
@@ -88,119 +45,114 @@ namespace mobile308
 	static const uint32_t ORIG_LayoutTask = 0x6685E0;
 	static const uint32_t ORIG_SpriteTask = 0x668A50;
 	static const uint32_t ORIG_PartCallback = 0x668680;
-	static const uint32_t TEXTURE_NAME = 0x102E940;    // "mag307.tim"
+	static const uint32_t TEXTURE_NAME = 0x102E940;
 	static const uint32_t CAMERA = 0x10257E8;
-	static const uint32_t LAYOUTS = 0x102A400;         // 8-byte entries: data, size
-	static const uint32_t SPRITES = 0x10262F8;         // sprite sequence pointers
-	static const uint32_t PART_SEQ0 = 0x1026038, PART_SEQ1 = 0x1025D20; // particle sequences (by +0x0B)
+	static const uint32_t LAYOUTS = 0x102A400;
+	static const uint32_t SPRITES = 0x10262F8;
+	static const uint32_t PART_SEQ0 = 0x1026038, PART_SEQ1 = 0x1025D20;
 	static const uint32_t SQRT_TABLE = 0x102E3A0;
-	static const uint32_t COLOUR_Target = 0x250754C;   // colour lerp target (never written: 0)
+	static const uint32_t COLOUR_Target = 0x250754C;
 	static const void *const SOUND_Voice = (const void *)0x102590C;
 	static const void *const SOUND_Start = (const void *)0x1025908;
 	static const uint32_t SCRIPTS[3] = { 0x102E5A0, 0x102E734, 0x102E834 };
-	static const uint32_t MAIN = 0x1B3C;               // magic buffer: the main node
-	static const uint32_t MORPH = 0x22A18;             // magic buffer: blended vertex frames
+	static const uint32_t MAIN = 0x1B3C;
+	static const uint32_t MORPH = 0x22A18;
 	static const uint32_t STREAM_STATE = 0x29D0, STREAM_DST = 0x2A18;
 	static const uint32_t ARENA_A = 0x2A18, ARENA_B = 0x12A18;
 
-	// engine functions not in fx_port.h / mag_common.h / fx_model_sweep.h
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); } // Stream_QueueLoad
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }                    // au_re_BattleFile_preLoad_0
+	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, void *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(0x502170)(entity, bone, flag, out); }
 	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); } // Effect_FullScreenTile
-	inline void PoseBones(uint8_t *anim, const void *pose) { fn<void (__cdecl *)(uint8_t *, const void *)>(0x662C00)(anim, pose); }        // 314's Battle_BuildBoneMatricesWithPoseOffsets
-	inline void WorldGroup(const uint8_t **data, uint8_t **out, uint8_t *h) { fn<void (__cdecl *)(const uint8_t **, uint8_t **, uint8_t *)>(0x687AE0)(data, out, h); } // MAG_276_TransformBoneGroupWorld
-	inline void ProjectGroup(const uint8_t **data, uint8_t **out, uint8_t *h, int32_t key) { fn<void (__cdecl *)(const uint8_t **, uint8_t **, uint8_t *, int32_t)>(0x676E00)(data, out, h, key); } // Battle_ProjectBoneGroupVertices
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }                                      // Effect_SharedLcg_Rand
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
+	inline void PoseBones(uint8_t *anim, const void *pose) { fn<void (__cdecl *)(uint8_t *, const void *)>(0x662C00)(anim, pose); }
+	inline void WorldGroup(const uint8_t **data, uint8_t **out, uint8_t *h) { fn<void (__cdecl *)(const uint8_t **, uint8_t **, uint8_t *)>(0x687AE0)(data, out, h); }
+	inline void ProjectGroup(const uint8_t **data, uint8_t **out, uint8_t *h, int32_t key) { fn<void (__cdecl *)(const uint8_t **, uint8_t **, uint8_t *, int32_t)>(0x676E00)(data, out, h, key); }
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }        // Effect_RotationYMatrix
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t obj, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(obj, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }        // GTE_MatrixMultiply: b = a x b
-	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }        // a = a x b (3x3)
-	inline void Matrix3x3Multiply(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); } // Matrix3x3_MultiplyPSX
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }                                                // IR = R * V0
+	inline void RotationY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t obj, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(obj, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void Matrix3x3Multiply(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2507530)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up, main task started
-		uint32_t parity;   // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t parity;
 	};
-	struct PoseEntry // 16 bytes, one per bone
+	struct PoseEntry
 	{
-		int16_t pos[3];    // +0x00 translation added to the bone after the entity matrix
-		int16_t vis;       // +0x06 >= 2 hidden; low byte = colour key
-		int16_t rot[3];    // +0x08 rotation added to the animation pose (0x662C00)
-		int16_t spin;      // +0x0E sparks: non-zero = the bone's world matrix turned by rot again
+		int16_t pos[3];
+		int16_t vis;
+		int16_t rot[3];
+		int16_t spin;
 	};
-	struct Particle // 12 bytes
+	struct Particle
 	{
-		int16_t pos[3];    // +0x00
-		int16_t life;      // +0x06 ticks left (0 = free); frame = frame count - life
-		int8_t vel[3];     // +0x08 x 4 a tick
-		uint8_t seq;       // +0x0B 0: 0x1026038, else 0x1025D20
+		int16_t pos[3];
+		int16_t life;
+		int8_t vel[3];
+		uint8_t seq;
 	};
-	struct MainNode // pool of 1 node of 0xE94 bytes (magic buffer + 0x1B3C)
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint32_t voice;    // +0x10 voice slot (0x4A29A0)
-		uint32_t colour[3]; // +0x14 the entities' colour words +0x2C at the start
-		PoseEntry pose[3][0x2D]; // +0x20 / +0x2F0 / +0x5C0
-		Particle parts[0x80];    // +0x890
-		Particle *next;    // +0xE90
+		uint32_t voice;
+		uint32_t colour[3];
+		PoseEntry pose[3][0x2D];
+		Particle parts[0x80];
+		Particle *next;
 	};
-	struct ScriptNode // pool of 0x2D nodes of 0x2C bytes
+	struct ScriptNode
 	{
 		TaskNode hdr;
-		uint8_t *entity;   // +0x0C
-		PoseEntry *pose;   // +0x10 the entity's pose array
-		PoseEntry *cur;    // +0x14 the entry this script moves
-		const int16_t *ip; // +0x18
-		int16_t vel[3];    // +0x1C
+		uint8_t *entity;
+		PoseEntry *pose;
+		PoseEntry *cur;
+		const int16_t *ip;
+		int16_t vel[3];
 		int16_t pad22;
-		int16_t avel[3];   // +0x24
+		int16_t avel[3];
 		int16_t pad2A;
 	};
-	struct LayoutNode // pool of 8 nodes of 0x190 bytes
+	struct LayoutNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t scale;     // +0x12
-		int16_t turn;      // +0x14 y rotation
-		int16_t depth;     // +0x16
-		uint8_t layout[0x178]; // +0x18 prim-model layout
+		int16_t pos[3];
+		int16_t scale;
+		int16_t turn;
+		int16_t depth;
+		uint8_t layout[0x178];
 	};
-	struct SpriteNode // pool of 0x40 nodes of 0x1C bytes
+	struct SpriteNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t size;      // +0x12 (TransformCameraByShadowRotation)
-		uint8_t frame;     // +0x14
-		uint8_t seq;       // +0x15 sequence index (0x10262F8)
-		int8_t vel[3];     // +0x16 (x 4 a tick)
-		int8_t acc[3];     // +0x19 x, y (y twice), - (not read)
+		int16_t pos[3];
+		int16_t size;
+		uint8_t frame;
+		uint8_t seq;
+		int8_t vel[3];
+		int8_t acc[3];
 	};
-	// the prim-player callback's parameter block (a stack block of the layout task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 anchor matrix (camera * turn, at the node's position)
-		int32_t scale[3];  // +0x20 the node's scale, x / y / z
-		int32_t scaled;    // +0x2C 1
-		int32_t depth;     // +0x30 prim header +0x18
-		uint32_t morph;    // +0x34 blended vertex frames
+		Mat4x3 m;
+		int32_t scale[3];
+		int32_t scaled;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(PoseEntry) == 0x10 && sizeof(Particle) == 0xC && sizeof(MainNode) == 0xE94, "308 nodes");
@@ -220,17 +172,12 @@ namespace mobile308
 	using namespace magc;
 	using namespace msweep;
 
-	// ------------------------------------------------------------------
-	// Module LCG (0x668450): seed = (seed * 125 + 14) & 0x7FFF
-	// ------------------------------------------------------------------
 	static int32_t Rand15()
 	{
 		Lcg() = (Lcg() * 125 + 0xE) & 0x7FFF;
 		return (int32_t)Lcg();
 	}
 
-	// particle slot (0x668470): the slot the cursor names when free, else the first free one (slots 0..0x7F; none: null);
-	// the cursor goes to the slot after it (wrapping)
 	static Particle *AllocParticle(MainNode *m)
 	{
 		Particle *s = m->next;
@@ -251,11 +198,6 @@ namespace mobile308
 		return s;
 	}
 
-	// ------------------------------------------------------------------
-	// A spark from a polygon (0x668230): along the normal of its first three vertices (GTE outer product), length
-	// +0x1C (normalised with the square-root table 0x102E3A0); 3 in 4 (module LCG > 0x2EE0): sequence 0, life 0xC, a
-	// quarter of the speed; else sequence 1, life 0xB
-	// ------------------------------------------------------------------
 	static void Spark(uint8_t *h)
 	{
 		const int32_t x0 = F<int16_t>(h, 0x2C), y0 = F<int16_t>(h, 0x2E), z0 = F<int16_t>(h, 0x30);
@@ -320,10 +262,6 @@ namespace mobile308
 		p->vel[2] = (int8_t)vz;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark polygons (0x6680A0): every polygon of the object whose vertices all come from marked bones: after a cool-down of
-	// 8 polygons, one passing the shared LCG (<= +0x24) throws a spark while the budget (+0x14) lasts (spent: the walk ends)
-	// ------------------------------------------------------------------
 	static void SparkPolys(uint8_t *h)
 	{
 		const uint8_t *verts = F<const uint8_t *>(h, 4);
@@ -392,9 +330,6 @@ namespace mobile308
 		}
 	}
 
-	// spark model walk (0x667F40): every object in the mask whose groups include a marked bone (pad word +0x22 of its
-	// record) - the marked groups in world space (276's 0x687AE0), the others' entries keyed 1 - then its polygons; an
-	// object is walked again while the budget lasts
 	static void SparkModel(const uint8_t *model, uint8_t *h)
 	{
 		const uint8_t *bones = *(const uint8_t *const *)model + 0x10;
@@ -446,11 +381,6 @@ namespace mobile308
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Sparks (0x667DB0, opcode 0x1090): bones from the pose plus the offsets, through the entity matrix (an entry with +0xE
-	// set turned by its rotation again), plus the translations; the listed bones (until -1) hidden and marked, then budget,
-	// speed, cool-down unused, probability, range; the marked polygons throw sparks; the bones from the pose again
-	// ------------------------------------------------------------------
 	static const int16_t *Sparks(const int16_t *ip, uint8_t *ent, PoseEntry *pose)
 	{
 		uint8_t *b = (uint8_t *)FieldAlloc(0xAC);
@@ -494,12 +424,6 @@ namespace mobile308
 		return ip + 4;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x668680): one object of a layout (vertex frames blended when the record's frames differ),
-	// turned by the record's angles (flag 0x40000: YXZ), at its position (scaled by the block's scale) through the block's
-	// matrix (flag 0x200: the block's translation only), scaled by the record's scale (flag 0x100: a diagonal matrix
-	// product), drawn by 0x7043B0 (channel A: fade toward the record's colour)
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		uint8_t *rr = (uint8_t *)r;
@@ -585,9 +509,6 @@ namespace mobile308
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Layout task (0x6685E0): the layout at the node (camera x turn about Y, at its position, scaled by +0x12)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *L = (LayoutNode *)n;
@@ -603,13 +524,10 @@ namespace mobile308
 		arg.scale[0] = L->scale;
 		arg.scaled = 1;
 		arg.depth = L->depth;
-		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(held_note_play(L, &arg);)
 		return prim::play((prim::Layout *)L->layout, PartCallback, (int)&arg, 0) != 0 ? 0 : TASK_END;
 	}
 
-	// 0x6684C0 (opcodes 0x10A0 / 0x10A1): a layout at a bone: bone, spawn-position flag, layout index, scale, turn, depth;
-	// ground = 1: y = 0 instead of the bone's y offset
 	static const int16_t *SpawnLayout(const int16_t *ip, uint8_t *ent, PoseEntry *pose, int32_t ground)
 	{
 		const int32_t bone = ip[0], flag = ip[1], layout = ip[2], scale = ip[3], turn = ip[4], depth = ip[5];
@@ -632,9 +550,6 @@ namespace mobile308
 		return ip;
 	}
 
-	// ------------------------------------------------------------------
-	// Sprite task (0x668A50): draws THEN moves
-	// ------------------------------------------------------------------
 	static void SpriteDraw(const SpriteNode *s)
 	{
 		TransformCameraByShadowRotation(s->pos, s->size, -0x400);
@@ -650,7 +565,6 @@ namespace mobile308
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		const int32_t frames = *(const int16_t *)(var<uint32_t>(SPRITES + s->seq * 4) + 8);
-		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(held_note_sprite(s);)
 		SpriteDraw(s);
 		const int8_t vx = s->vel[0], vy = s->vel[1];
@@ -663,8 +577,6 @@ namespace mobile308
 		return s->frame < frames ? 0 : TASK_END;
 	}
 
-	// 0x668970 (opcode 0x10A8): one sprite at a bone (mode, bone, spawn-position flag, sequence, size, velocity x / y / z,
-	// acceleration x / y / -); mode != 0 writes the fields into the ENTITY instead of a new node
 	static const int16_t *SpawnSprite(const int16_t *ip, uint8_t *ent, PoseEntry *pose)
 	{
 		const int32_t mode = *ip++;
@@ -689,15 +601,12 @@ namespace mobile308
 		return ip + 10;
 	}
 
-	// 0x668D30: Rand15() * range >> 15 + base (range 0: base)
 	static int32_t Spread(int32_t range, int32_t base)
 	{
 		if (range == 0) return base;
 		return (mul32(Rand15(), range) >> 0xF) + base;
 	}
 
-	// 0x668B20 (opcode 0x10A9): `count` sprites at a bone with random spreads (mode, bone, flag, sequence, size, count, then
-	// (range, base) pairs: x, y, z, velocity x / y / z, then a shift: acceleration = velocity >> shift (x, y, z))
 	static const int16_t *SpawnSprites(const int16_t *ip, uint8_t *ent, PoseEntry *pose)
 	{
 		const int32_t mode = ip[0], bone = ip[1], flag = ip[2], seq = ip[3], size = ip[4];
@@ -734,7 +643,6 @@ namespace mobile308
 		return ip;
 	}
 
-	// 0x668D60 (opcode 0x10B0): a flat semi-transparent full-screen quad of colour (ip[0], ip[1], ip[2]) (low bytes)
 	static const int16_t *ScriptQuad(const int16_t *ip)
 	{
 		uint8_t *q = (uint8_t *)PacketCursor();
@@ -752,15 +660,11 @@ namespace mobile308
 		q[6] = *(const uint8_t *)(ip + 2);
 		F<uint32_t>(q, 0) = 0x5000000;
 		q[7] = 0x2A;
-		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(held_note_quad(ip);)
 		InsertPrimAltViewport(OT(0x20), q);
 		return ip + 3;
 	}
 
-	// ------------------------------------------------------------------
-	// Bone script (0x667990)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ScriptTask(TaskNode *n)
 	{
 		ScriptNode *s = (ScriptNode *)n;
@@ -832,7 +736,6 @@ namespace mobile308
 		}
 	}
 
-	// 0x667940: a bone script moving pose entry script[0] of `pose`
 	static void StartScript(uint8_t *ent, PoseEntry *pose, const int16_t *script)
 	{
 		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), ORIG_ScriptTask);
@@ -843,9 +746,6 @@ namespace mobile308
 		s->ip = script + 1;
 	}
 
-	// ------------------------------------------------------------------
-	// Entity polygons (0x669330): as 064's 0x6E5960 without its hidden-bit and colour-key tests
-	// ------------------------------------------------------------------
 	static uint32_t DrawPolys(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -937,8 +837,6 @@ namespace mobile308
 		return (uint32_t)pk;
 	}
 
-	// entity model (0x6691B0): every object in the mask (+0x18); a bone whose pose entry is hidden (>= 2) marks its vertices
-	// clipped, else they are projected by 0x676E00 (colour key = the entry's low byte)
 	static uint32_t DrawModel(const uint8_t *model, uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t *objs = *(const uint32_t *const *)(model + 4);
@@ -987,10 +885,6 @@ namespace mobile308
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Entity draw (0x669070): its shadow, its bones from the pose plus the offsets, through its matrix, plus the offsets'
-	// translations, through the camera; its model into the frame arena; its bones from the pose again
-	// ------------------------------------------------------------------
 	static void EntityDraw(uint8_t *ent, const PoseEntry *pose)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x98);
@@ -1020,10 +914,6 @@ namespace mobile308
 		FieldFree(0x98);
 	}
 
-	// ------------------------------------------------------------------
-	// Particles (0x669620 -> 0x6696B0): drawn THEN moved: the sequence frame (frame count - life) through the camera at
-	// scale 0x1000 with 298's sprite renderer, into OT slot 2 of the module arena; then position += 4 x velocity, life - 1
-	// ------------------------------------------------------------------
 	static void ParticleDraw(uint8_t *h, Particle *p)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -1066,9 +956,6 @@ namespace mobile308
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Main task (0x668DE0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
@@ -1100,7 +987,6 @@ namespace mobile308
 		}
 		if ((uint16_t)m->counter < 0x56)
 		{
-			// 30 fps layer: see mag308_mobile_type8_held.inc
 			FX_HELD(held_note_entities(m);)
 			for (int k = 0; k < 3; k++)
 			{
@@ -1111,7 +997,6 @@ namespace mobile308
 		const uint32_t t = (uint32_t)(m->counter - 0x46);
 		if (t < 0x10)
 		{
-			// 30 fps layer: see mag308_mobile_type8_held.inc
 			FX_HELD(held_note_tile((int32_t)((t & 0xFFFFF) << 8));)
 			PacketCursor() = Tile(0xFF, 0xFF, 0xFF, (int32_t)((t & 0xFFFFF) << 8), PacketCursor());
 			if (t == 0xF)
@@ -1124,13 +1009,11 @@ namespace mobile308
 		const uint32_t t2 = (uint32_t)(m->counter - 0x56);
 		if (t2 >= 0x3E8)
 		{
-			// 30 fps layer: see mag308_mobile_type8_held.inc
 			FX_HELD(held_note_parts(m);)
 			Particles(m);
 		}
 		else if (t2 < 0x10)
 		{
-			// 30 fps layer: see mag308_mobile_type8_held.inc
 			FX_HELD(held_note_tile((int32_t)(0x1000 - ((t2 & 0xFFFFF) << 8)));)
 			PacketCursor() = Tile(0xFF, 0xFF, 0xFF, (int32_t)(0x1000 - ((t2 & 0xFFFFF) << 8)), PacketCursor());
 		}
@@ -1155,9 +1038,6 @@ namespace mobile308
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x667720)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1171,7 +1051,6 @@ namespace mobile308
 			PacketCursor() = TexBase() + ARENA_B;
 			r->parity = 1;
 		}
-		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter == 1 && !r->started)
 		{
@@ -1222,7 +1101,6 @@ namespace mobile308
 		register_port(mobile308::ORIG_ScriptTask, (void *)mobile308::ScriptTask, "308 ScriptTask", 308);
 		register_port(mobile308::ORIG_LayoutTask, (void *)mobile308::LayoutTask, "308 LayoutTask", 308);
 		register_port(mobile308::ORIG_SpriteTask, (void *)mobile308::SpriteTask, "308 SpriteTask", 308);
-		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(register_mag308_held();)
 	}
 }

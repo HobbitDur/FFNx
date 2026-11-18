@@ -14,43 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 168: Sleeping Gas (enemy attack 113 of kernel.bin, used by the Grat; MAG_168_*).
-//
-// Structure (setup MAG_168_SLEEPING_GAS_Init 0x5E1750, file loader MAG_168_SLEEPING_GAS_FL 0x5E1730 =
-// the texture file named at 0xD6F798; the setup keeps the cast context, the first target's slot
-// (0x23B3C10, never read) and the caster's slot, queues the root (one 0x10-byte node, pool 0x23B5C58,
-// queue 0x23B5C68) and the director in the effect queue 0x23B6A88 (0x64 nodes of 0x24 bytes, pool
-// 0x23B6A98), frees both sparkle pools, plays camera animation 0xD6BC70 and uploads the texture):
-//   Root (0x5E29A0) - alternates the packet arena (magic buffer / + 0x14000) on its counter's parity,
-//     runs the effect queue; ends when the queue is empty.
-//   Director (0x5E1820), nothing in the draw-only mode, 71 ticks: at 0 the caster's effect anchor
-//     (bone 0xF0, 0xA0 higher) and the cloud centre 13/16 of the way to the targets' centre, and the
-//     vertex pair table (0x5E1CA0); ticks 6..0xB two gas clouds per tick around the centre (random
-//     offset, size, wave parameters); 0x17 one target sparkle task per target; 4 the caster sparkle
-//     task; 0x3C damage; screen flash ramps up over ticks 4..0xC and down from 0x3E; sound at 1.
-//   Gas cloud (0x5E1D20), 60 ticks, updates its shape THEN draws: the wave (0x5E2220: 61 offsets
-//     x = sin(a) * amplitude a, y = sin(b) * amplitude b along the cloud, angle a advancing 100 per
-//     tick, its step decaying 1/32 along the cloud, amplitudes growing along it) is applied to the
-//     quad model 0xD6EDE4 (0x5E22E0: the model's 122 vertices in pairs sorted by depth, offset pair by
-//     pair; the pairs past the grown length collapse onto the last one; the length grows by 2 per
-//     tick up to 61 except in the draw-only mode); drawn by the module's quad renderer (0x5E1F00 /
-//     0x5E1F70) through a matrix turning the model from the caster towards the cloud position and
-//     scaled (width, 1.5 x width, distance / 1600); fades in over 24 ticks and out from 0x34.
-//   Target sparkles (0x5E2430), one task per target (bit mask): the flipbook 0xD6BDE8 of every
-//     particle of pool A (100 x 0x18 bytes at 0x23B6128) with its bit, drifting away from the caster,
-//     rising and decelerating (1/32), fading in while the task is young; one new particle per tick
-//     2..0x22 around the target; ends when none is left (after tick 4).
-//   Caster sparkles (0x5E2720): the same flipbook for pool B (50 x 0x18 bytes at 0x23B5C78), rising
-//     one unit per tick towards the cloud centre; one new particle per tick 0..0x32 at the caster's
-//     anchor; ends when none is left (after tick 4).
-// Every sprite / cloud task draws first (the gas cloud after its shape update); in the draw-only mode
-// (battle_to_update_flags & 0x201) it returns after drawing (the gas shape still moves: its wave
-// update does not test the mode, only the length growth does).
-// Module globals: 0x23B3C10..0x23BD350 (first target slot, cloud records 0x23B3C18 (12 x 0x1C), wave
-// offsets 0x23B3DD8 (12 x 61 x 8), root / effect queues and pools, sparkle pools, cloud centre
-// 0x23B78A8, context 0x23B78B0, caster slot 0x23B78B4, texture file 0x23B9268, caster anchor
-// 0x23B9270, cloud vertex buffers 0x23B9278 (12 x 122 x 8), vertex pair table 0x23BCF78, magic buffer
-// 0x23BD348, packet cursor 0x23BD34C).
+// Effect 168: Sleeping Gas
 
 #include "mag_common.h"
 
@@ -61,7 +25,6 @@ namespace gas168
 	using namespace eng;
 	using namespace magc;
 
-	// raw memory access (the renderers follow the listing offset by offset)
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline int16_t &S16(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 	inline uint16_t &U16(uint32_t p, int32_t o) { return AT<uint16_t>(p, o); }
@@ -70,44 +33,41 @@ namespace gas168
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	// --- module globals ---
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23B6A88; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x23B78B0); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23B78B4); }
-	inline int16_t *Centre() { return (int16_t *)0x23B78A8; }        // cloud centre x, y, z (+ pad)
-	inline int16_t *CasterAnchor() { return (int16_t *)0x23B9270; }  // caster's bone 0xF0, 0xA0 higher
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23BD348); }  // Magic_TextureOFF (magic buffer)
+	inline int16_t *Centre() { return (int16_t *)0x23B78A8; }
+	inline int16_t *CasterAnchor() { return (int16_t *)0x23B9270; }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x23BD348); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23BD34C); }
-	static const uint32_t CLOUDS = 0x23B3C18;     // 12 x 0x1C cloud records
-	static const uint32_t OFFSETS = 0x23B3DD8;    // [cloud][61] x (x, y) int32 wave offsets
-	static const uint32_t VERTS = 0x23B9278;      // [cloud][122] x 8 bytes: cloud vertex buffers
-	static const uint32_t PAIRS = 0x23BCF78;      // 122 x (model vertex, cloud vertex slot), sorted
+	static const uint32_t CLOUDS = 0x23B3C18;
+	static const uint32_t OFFSETS = 0x23B3DD8;
+	static const uint32_t VERTS = 0x23B9278;
+	static const uint32_t PAIRS = 0x23BCF78;
 	static const uint32_t PAIRS_END = 0x23BD348;
-	static const uint32_t POOL_A = 0x23B6128, POOL_A_END = 0x23B6A88; // 100 target sparkles
-	static const uint32_t POOL_B = 0x23B5C78, POOL_B_END = 0x23B6128; // 50 caster sparkles
-	static const int32_t WAVE = 0x3D;             // 61 offsets per cloud, 2 vertices each
-	static const uint32_t CLOUD_VERTS = 0x3D0;    // 122 vertices x 8 bytes
+	static const uint32_t POOL_A = 0x23B6128, POOL_A_END = 0x23B6A88;
+	static const uint32_t POOL_B = 0x23B5C78, POOL_B_END = 0x23B6128;
+	static const int32_t WAVE = 0x3D;
+	static const uint32_t CLOUD_VERTS = 0x3D0;
 
 	static const uint32_t ORIG_Root = 0x5E29A0;
 	static const uint32_t ORIG_Director = 0x5E1820;
 	static const uint32_t ORIG_Gas = 0x5E1D20;
 	static const uint32_t ORIG_SparkTarget = 0x5E2430;
 	static const uint32_t ORIG_SparkCaster = 0x5E2720;
-	static const uint32_t MODEL_Gas = 0xD6EDE4;         // quad model (+8 = its 122 vertices)
+	static const uint32_t MODEL_Gas = 0xD6EDE4;
 	static const uint32_t MODEL_GasVerts = 0xD6EDEC;
-	static const uint32_t SEQ_Sparkle = 0xD6BDE8;       // flipbook of both sparkle pools
-	static const int32_t *const AXIS_Model = (const int32_t *)0xD6F788; // model direction (unit vector)
+	static const uint32_t SEQ_Sparkle = 0xD6BDE8;
+	static const int32_t *const AXIS_Model = (const int32_t *)0xD6F788;
 	static const void *const SOUND_Gas = (const void *)0xD6F77C;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// ---- engine functions (original addresses)
 	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, void *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(0x502170)(entity, bone, mode, out); }
 	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); } // NormalizeVectorToFixedPoint
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	// software GTE (register files 0x1CA8A10 data / 0x1CA927C control)
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
@@ -117,68 +77,63 @@ namespace gas168
 	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
 	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E260)(dst); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }     // GTE_ReadOTZ
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }          // set_unk_1CA8A28
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }                                 // sub_45F270
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }         // set_param_with_dword_1CA8A68
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts (effect queue: pool of 0x64 nodes of 0x24 bytes)
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct RootNode { TaskNode hdr; uint16_t counter; uint16_t pad; };
 	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t clouds;    // +0x0E clouds spawned (the next cloud's record)
+		int16_t counter;
+		int16_t clouds;
 		uint8_t pad10[0x14];
 	};
 	struct GasNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t cloud;     // +0x0E cloud record / wave / vertex buffer index
-		int16_t pos[3];    // +0x10 cloud position (the model is turned towards it from the caster)
-		int16_t pad16;     // +0x16 (copied from the centre's pad word)
+		int16_t counter;
+		int16_t cloud;
+		int16_t pos[3];
+		int16_t pad16;
 		uint8_t pad18[4];
-		int16_t width;     // +0x1C model scale x (y: 1.5 x)
+		int16_t width;
 		uint8_t pad1E[6];
 	};
-	struct SparkNode // target sparkles (mask = the target's bit) and caster sparkles (mask unused)
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t mask;      // +0x0E
-		int16_t pos[4];    // +0x10 target: its bone 0xF1 anchor, y = entity +0x3C; caster: bone 0xF0, 0xA0 higher
+		int16_t counter;
+		int16_t mask;
+		int16_t pos[4];
 		uint8_t pad18[0xC];
 	};
-	// cloud record (12 at 0x23B3C18)
 	struct Cloud
 	{
-		int32_t count;     // +0x00 offsets applied (grows by `step` up to 61)
-		int32_t step;      // +0x04
-		int16_t angle_a;   // +0x08 wave a angle (100 more per tick)
-		int16_t speed_a;   // +0x0A its step along the cloud (decays 1/32 per offset, for good)
-		int16_t angle_a0;  // +0x0C angle a at the start of the update
-		int16_t amp_a;     // +0x0E wave a amplitude at the first offset
-		int16_t amp_a_step;// +0x10 its growth per offset
-		int16_t angle_b;   // +0x12 wave b angle (0x800, constant)
-		int16_t amp_b_step;// +0x14 wave b amplitude growth per offset
-		int16_t angle_b0;  // +0x16
-		int16_t amp_b;     // +0x18 wave b amplitude at the first offset
+		int32_t count;
+		int32_t step;
+		int16_t angle_a;
+		int16_t speed_a;
+		int16_t angle_a0;
+		int16_t amp_a;
+		int16_t amp_a_step;
+		int16_t angle_b;
+		int16_t amp_b_step;
+		int16_t angle_b0;
+		int16_t amp_b;
 		int16_t pad1A;
 	};
-	// sparkle particle (pools A and B)
 	struct Spark
 	{
-		int32_t owner;     // +0x00 A: target bit of its task (0 = free); B: bit 0 = used
-		int16_t frame;     // +0x04 flipbook time
-		int16_t scale;     // +0x06
-		int16_t pos[3];    // +0x08
-		int16_t fade;      // +0x0E A: fading in (B: z copy's pad word)
-		int16_t vel[3];    // +0x10 A: x, y (decays 1/32), z; B: x, (unused), z (y falls by 1 per tick)
-		int16_t fade_len;  // +0x16 A: fade-in ticks (task counter < fade_len)
+		int32_t owner;
+		int16_t frame;
+		int16_t scale;
+		int16_t pos[3];
+		int16_t fade;
+		int16_t vel[3];
+		int16_t fade_len;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10, "root node is 0x10 bytes");
@@ -189,31 +144,17 @@ namespace gas168
 	inline int32_t *CloudOffsets(int32_t i) { return (int32_t *)(OFFSETS + (uint32_t)(i * WAVE * 8)); }
 	inline uint32_t CloudVerts(int32_t i) { return VERTS + (uint32_t)(i * WAVE * 2 * 8); }
 
-	// x / 61 as compiled (0x4325C53F, sar 4)
 	static int32_t Div61(int32_t x)
 	{
 		int32_t q = (int32_t)(((int64_t)x * 0x4325C53F) >> 32) >> 4;
 		return q + (int32_t)((uint32_t)q >> 31);
 	}
-	// x / 1600 as compiled (0x51EB851F, sar 9)
 	static int32_t Div1600(int32_t x)
 	{
 		int32_t q = (int32_t)(((int64_t)x * 0x51EB851F) >> 32) >> 9;
 		return q + (int32_t)((uint32_t)q >> 31);
 	}
 
-	// ==================================================================
-	// Quad renderer (module copy of the engine's textured-quad list renderer)
-	// Header (0x58 bytes on the scratch): +0x00 model, +0x04 vertices, +0x08..+0x0A far colour,
-	// +0x0C depth cue (IR0), +0x10 / +0x14 texture page / CLUT override, +0x18 texture offset,
-	// +0x1C flags (1 / 4 semi-transparency on / off, 0x10 both faces, 0x40 depth cue, 0x100..0x800
-	// overrides, 0x1000 keep the texture offset, 0x2000 keep the vertices), +0x20 list cursor,
-	// +0x24 NCLIP, +0x2C OTZ, +0x30 GTE flags
-	// ==================================================================
-
-	// 0x5E1F70: the textured quads (0x18-byte records -> POLY_FT4 packets of 0x28 bytes): RTPT + RTPS,
-	// GTE-flag / back-face (a zero area is always rejected) / screen-clip rejection, optional depth
-	// cue, inserted at ot[otz >> shift]; returns the packet cursor
 	static uint32_t QuadList(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
@@ -281,8 +222,6 @@ namespace gas168
 		return pk;
 	}
 
-	// 0x5E1F00: the model's header set-up (vertices = model + 8 unless flag 0x2000, texture offset 0
-	// unless flag 0x1000, far colour) and its quad list (model + *model + 0xC)
 	static uint32_t QuadModel(uint32_t hdr, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		const uint32_t fl = U32(hdr, 0x1C);
@@ -295,12 +234,6 @@ namespace gas168
 		return QuadList(hdr, ot, mode, cursor);
 	}
 
-	// ==================================================================
-	// Gas cloud shape
-	// ==================================================================
-
-	// 0x5E1CA0: the vertex pair table: model vertex k / cloud vertex slot k (122 pairs, two per wave
-	// offset), sorted by the model vertex's z (descending; the slots follow their vertex)
 	static void InitPairs()
 	{
 		uint32_t a = MODEL_GasVerts, b = VERTS, e = PAIRS;
@@ -329,8 +262,6 @@ namespace gas168
 		}
 	}
 
-	// 0x5E2220: the wave offsets of a cloud (61 x (x, y)); angle a advances 100 per tick, its step
-	// decays along the cloud for good; angle b stays; the amplitudes grow along the cloud
 	static void WaveStep(Cloud *c, int32_t *out)
 	{
 		c->angle_a0 = c->angle_a;
@@ -349,10 +280,6 @@ namespace gas168
 		c->angle_b = c->angle_b0;
 	}
 
-	// 0x5E22E0: the cloud vertices: pair by pair (depth order) model vertex + wave offset (x, x / 2,
-	// y as z), the pairs past `count` a copy of the last vertex written; then (not in the draw-only
-	// mode) the length grows. verts = the cloud's vertex buffer (the pair table's slots are those of
-	// cloud 0: slot + verts - VERTS). node: read (its first 8 bytes) only when count <= 0.
 	static void WaveBuild(Cloud *c, const int32_t *offs, uint32_t verts, uint32_t node)
 	{
 		const int32_t count = c->count;
@@ -394,8 +321,6 @@ namespace gas168
 		if (c->count > WAVE) c->count = WAVE;
 	}
 
-	// the cloud's matrix: the model axis turned onto the caster -> cloud direction, at the caster's
-	// anchor, scaled (width, 1.5 x width, distance / 1600), through the camera; into the GTE
 	static void GasMatrix(const GasNode *g)
 	{
 		int32_t v[3];
@@ -420,8 +345,6 @@ namespace gas168
 		GteSetTransVector(&m);
 	}
 
-	// the cloud's draw header: fade in over 24 ticks, out from 0x34 (IR0 towards black); in between
-	// no depth cue (+0x0C keeps the scratch)
 	static void GasHeader(uint8_t *h, const GasNode *g, uint32_t verts)
 	{
 		*(uint32_t *)(h + 0) = MODEL_Gas;
@@ -441,7 +364,6 @@ namespace gas168
 		}
 	}
 
-	// flipbook draw of a target sparkle (header +0x04 time, +0x1C / +0x24 bit 2 = fade colour)
 	static void SparkTargetFade(uint8_t *h, Spark *e, int16_t counter)
 	{
 		*(int16_t *)(h + 4) = e->frame;
@@ -475,16 +397,12 @@ namespace ff8fx
 {
 namespace gas168
 {
-	// ------------------------------------------------------------------
-	// Gas cloud (0x5E1D20)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl GasTask(TaskNode *n)
 	{
 		GasNode *g = (GasNode *)n;
 		const int32_t i = g->cloud;
 		WaveStep(CloudRec(i), CloudOffsets(i));
 		WaveBuild(CloudRec(g->cloud), CloudOffsets(g->cloud), CloudVerts(g->cloud), P(g));
-		// 30 fps layer: see mag168_sleeping_gas_held.inc
 		FX_HELD(held_note_gas(g);)
 		GasMatrix(g);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -496,13 +414,9 @@ namespace gas168
 		return g->counter >= 0x3C ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Target sparkles (0x5E2430)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkTargetTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		// 30 fps layer: see mag168_sleeping_gas_held.inc
 		FX_HELD(held_note_spark(ORIG_SparkTarget, s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
@@ -569,13 +483,9 @@ namespace gas168
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Caster sparkles (0x5E2720)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkCasterTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		// 30 fps layer: see mag168_sleeping_gas_held.inc
 		FX_HELD(held_note_spark(ORIG_SparkCaster, s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
@@ -639,9 +549,6 @@ namespace gas168
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5E1820)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		if (DrawOnly()) return 0;
@@ -713,13 +620,9 @@ namespace gas168
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x5E29A0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag168_sleeping_gas_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x14000;
 		else PacketCursor() = TexBase();
@@ -736,7 +639,6 @@ namespace gas168
 		register_port(gas168::ORIG_Gas, (void *)gas168::GasTask, "G168 GasTask", 168);
 		register_port(gas168::ORIG_SparkTarget, (void *)gas168::SparkTargetTask, "G168 SparkTargetTask", 168);
 		register_port(gas168::ORIG_SparkCaster, (void *)gas168::SparkCasterTask, "G168 SparkCasterTask", 168);
-		// 30 fps layer: see mag168_sleeping_gas_held.inc
 		FX_HELD(register_mag168_held();)
 	}
 }

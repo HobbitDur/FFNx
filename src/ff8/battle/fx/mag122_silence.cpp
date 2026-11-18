@@ -14,26 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 122: Silence (spell, MAG_122_*).
-//
-// Structure (setup MAG_122_SILENCE 0x6BD8E0 -> _Init 0x6BD910, file loader 0x6BD8F0 = the texture
-// file named at 0x1272694; the setup starts camera animation 0x1271C68 and queues the TIM):
-//   RootTask (0x6BD980) - alternates the packet arena (magic buffer + 0x1124 / + 0x11124); on
-//     counter 1 of a 10-tick cycle sets up the target pool (first time) and starts the target task
-//     of the next action on its first target (no wait); runs the target queue, ends when it is
-//     empty.
-//   Target (0x6BDAC0) - node 0x4AC, one per action: marks the target entity (flags word bit
-//     0x2000) while it runs; plays the prim-model layout 0x126E4C0 with the callback MutePart
-//     (0x6BDB90) at the target's effect anchor 0xF0 every tick (sound at 0), depth offset from the
-//     target's size; damage at 50; ends at 60 (mark cleared).
-//   MutePart (0x6BDB90) - one object of the layout: record flag 0x200 = the offset stays in
-//     screen axes (the anchor through the camera, the offset added unrotated, the rotation not
-//     composed with the camera), else anchor + offset through the camera; flag 0x100 = scale by a
-//     diagonal matrix product, else scale3DMatrix; object 4 is drawn 0x20 nearer.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x25214B0..0x25214F8 (texture file, magic buffer base, context, root pool,
-// packet cursor 0x25214D4, target / root queues). The target pool (3 x 0x4AC), the morph vertex
-// buffer (+0xE04) and the packet arenas are in the magic buffer.
+// Effect 122: Silence
 
 #include "mag_common.h"
 
@@ -44,66 +25,53 @@ namespace silence122
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25214B4); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25214B4); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25214B8); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25214D4); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x25214D8; }         // pool: magic buffer, 3 x 0x4AC
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x25214D8; }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6BD980;
 	static const uint32_t ORIG_TargetTask = 0x6BDAC0;
-	static const uint32_t MODEL_Mute = 0x126E4C0;        // prim-model layout data (0x498-byte layout)
+	static const uint32_t MODEL_Mute = 0x126E4C0;
 	static const void *const SOUND_Silence = (const void *)0x1272690;
 
-	// engine functions not in fx_port.h / mag_common.h
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone` (x, y, z)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// MAG_070_sub_7043B0: prim model draw (header +0 model, +4 vertices, +8 fade colour, +0xC fade,
-	// +0x18 depth offset, +0x1C mode)
 	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }    // sub_56C220: a = a * b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pool set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0x4AC bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E action index
-		uint8_t *entity;   // +0x10 target entity
-		uint8_t mute[0x498]; // +0x14 prim-model layout (prim::Layout: data, frame, state)
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		uint8_t mute[0x498];
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 anchor x, y, z (+ a word never written)
-		int32_t depth;     // +0x08 prim header +0x18
-		uint32_t morph;    // +0x0C blended vertex frames
+		int16_t pos[4];
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x4AC, "Silence nodes");
 	static_assert(sizeof(PrimArg) == 0x10, "Silence prim block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6BDB90): one object of the layout
-	// ------------------------------------------------------------------
 	static void __cdecl MutePart(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -141,11 +109,9 @@ namespace silence122
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x200)
 		{
-			// the anchor through the camera, the offset added in screen axes
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -156,7 +122,6 @@ namespace silence122
 		}
 		else
 		{
-			// anchor + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -173,7 +138,6 @@ namespace silence122
 		{
 			if (r->flags & 0x100)
 			{
-				// diagonal matrix product (sub_56C220)
 				Mat4x3 d = {};
 				d.m[0][0] = r->scale[0];
 				d.m[1][1] = r->scale[1];
@@ -216,9 +180,6 @@ namespace ff8fx
 {
 namespace silence122
 {
-	// ------------------------------------------------------------------
-	// Target (0x6BDAC0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -226,12 +187,10 @@ namespace silence122
 		{
 			PrimArg arg;
 			GetEffectSpawnPosition(t->entity, 0xF0, 0, arg.pos);
-			// never written by the original (stack word), only loaded into the GTE V0 pad
 			arg.pos[3] = 0;
 			if (t->counter == 0) BdPlaySE3D(SOUND_Silence, 1, arg.pos);
 			arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)(int32_t)*(const int16_t *)(t->entity + 0x26)) >> 5;
 			arg.morph = TexBase() + 0xE04;
-			// 30 fps layer: see mag122_silence_held.inc
 			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->mute, MutePart, (int)&arg, 0);
 		}
@@ -245,13 +204,9 @@ namespace silence122
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6BD980)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag122_silence_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -296,7 +251,6 @@ namespace silence122
 	{
 		register_port(silence122::ORIG_RootTask, (void *)silence122::RootTask, "S122 RootTask", 122);
 		register_port(silence122::ORIG_TargetTask, (void *)silence122::TargetTask, "S122 TargetTask", 122);
-		// 30 fps layer: see mag122_silence_held.inc
 		FX_HELD(register_mag122_held();)
 	}
 }

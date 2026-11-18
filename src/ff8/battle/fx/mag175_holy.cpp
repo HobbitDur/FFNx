@@ -14,38 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 175: Holy (spell, MAG_175_*, file mag174).
-//
-// Structure (setup MAG_175_HOLY 0x5D1AD0, file loader MAG_175_HOLY_FL 0x5D1AB0 = mag174.tim):
-//   RootTask (0x5D44C0) - alternates the packet arena (magic buffer + 0 / + 0xC000), runs the
-//     effect queue; when it is empty spawns the texture restore task (unless cast flag bit 1).
-//   Director (0x5D1BD0, one per action, frame 0..0x6F) - frame 0: anchor on the target;
-//     1: rising sparkle emitter + sound; 3: builds the screen grid (15 x 21 jittered vertices, 14 x 20
-//     cell centres, 4 textured triangles per cell); 4: the triangles' shatter parameters;
-//     5: the shatter task; 6: two orbit controllers; 0x10: screen motes; 0x1E: texture upload,
-//     triangles go flat; 0x1F: spinning ring + two scrolling waves; 0x1F..0x49 every 6: an
-//     expanding ring; 0x2D: 12 light pillars around the target; 0x42: beam of 8 sprites toward
-//     the camera; 0x4E: two spinning disks; 0x5A: flash; 0x67..0x6F: screen flash ramp, stage groups
-//     hidden, the side's entities fade back in; 0x6A: damage; 0x6F: the next action's director.
-//   Shatter (0x5D2910) - frames 0..9: renders the battle stage into VRAM (576, 256) (the stage
-//     groups' bone matrices rebuilt); every frame while any triangle lives: the grid drawn with that
-//     capture, triangles past their delay fly apart and shrink (update inside the draw);
-//     frame 6: the entities of the target's opposite side fade out.
-//   Fade out / in (0x5D3030 / 0x5D27C0) - an entity's colour (entity +0x28 / +0x2C) toward black /
-//     back, through the GTE depth cue.
-//   Sparkles (0x5D3180) - pool of 100 sparkles (0x2374D90) spiralling inwards, 2 spawned per frame.
-//   Orbit controller (0x5D3420) - rotation matrix (0x23745B0 + 0x20 * index) that tilts over time;
-//     frame 0 spawns 8 orbiting sparks (0x5D3590) on it.
-//   Motes (0x5D37B0) - pool of 80 screen-space motes (0x2374610) rising and brightening.
-//   Ring (0x5D3A50), waves (0x5D3B80, via MAG_066_sub_650720), expanding rings (0x5D3CE0), light
-//     pillars (0x5D3E20), beam (0x5D3FB0), disks (0x5D42B0), flash (0x5D43B0) - prim models /
-//     sprite sequences with frame-driven fades.
-// Every task except the root tests the draw-only flags (battle_to_update_flags & 0x201): it then
-// only draws (the director, shatter and fades do nothing that moves).
-// Module globals: 0x2374578..0x2394208 (fade side, root pool / queue, orbit matrices, mote pool,
-// sparkle pool, grid cell centres, effect queue + pool, fade flags, triangles, triangle packets,
-// grid vertices, texture file, texture base 0x23941BC, packet cursor 0x23941C0, sprite matrix
-// 0x23941E8).
+// Effect 175: Holy
 
 #include "mag_common.h"
 
@@ -56,22 +25,21 @@ namespace holy175
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2392CE0); }            // mag174.tim
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23941BC); }            // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(0x2392CE0); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x23941BC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23941C0); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2377744); }
-	inline int32_t &FadeSide() { return var<int32_t>(0x2374578); }             // target slot: fades act on the other side
-	inline int32_t &GridTextured() { return var<int32_t>(0x2377740); }         // 1 until director frame 0x1E
-	inline int32_t &GridActive() { return var<int32_t>(0x2376880); }           // cleared when no triangle is left
-	inline TaskQueuePair &RootQueues() { return var<TaskQueuePair>(0x23745A0); } // .first = root / texture restore
-	inline TaskQueue &Tasks() { return var<TaskQueue>(0x2376870); }            // every effect task (100 nodes of 0x24)
-	inline uint32_t &FadeFlag(int slot) { return var<uint32_t>(0x2377698 + 0x18 * slot); } // entity faded out
+	inline int32_t &FadeSide() { return var<int32_t>(0x2374578); }
+	inline int32_t &GridTextured() { return var<int32_t>(0x2377740); }
+	inline int32_t &GridActive() { return var<int32_t>(0x2376880); }
+	inline TaskQueuePair &RootQueues() { return var<TaskQueuePair>(0x23745A0); }
+	inline TaskQueue &Tasks() { return var<TaskQueue>(0x2376870); }
+	inline uint32_t &FadeFlag(int slot) { return var<uint32_t>(0x2377698 + 0x18 * slot); }
 	inline Mat4x3 *OrbitMatrix(int index) { return (Mat4x3 *)(0x23745B0 + 0x20 * index); }
 	inline Mat4x3 *SpriteMatrix() { return (Mat4x3 *)0x23941E8; }
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }              // g_Battle_FrameRenderListBase
-	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }         // battle_texture_data_ptr: frame packet arena
-	inline int16_t ProjH() { return var<int16_t>(0x1D8E038); }                 // GTE projection distance
+	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
+	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
+	inline int16_t ProjH() { return var<int16_t>(0x1D8E038); }
 	inline uint8_t DisplayBuffer() { return var<uint8_t>(0x1D96A80); }
 
 	static const uint32_t ORIG_RootTask = 0x5D44C0;
@@ -93,14 +61,13 @@ namespace holy175
 	static const uint32_t ORIG_FlashTask = 0x5D43B0;
 
 	static const void *const SOUND_Holy = (const void *)0xD59180;
-	static const void *const TIM_Upload = (const void *)0xD45EAC;  // texture uploaded at director frame 0x1E
-	static const uint32_t PILLAR_Delays = 0xD59188;  // 12 x (word delay / 3, word unused)
-	static const uint32_t BEAM_Sprites = 0xD591D0;   // 8 x (word frame, word size, word distance, word)
-	static const uint32_t WAVE_Textures = 0xD59210;  // 16 dwords
-	static const uint32_t STAGE_Buckets = 0xD59250;  // 4 x (dword OT index, dword mode)
-	static const uint32_t STAGE_EnvRestore = 0xD592C0; // 2 x 0x18: draw environment of each buffer
-	static const uint32_t DRAWENV = 0x1D969C8;         // 2 x 0x5C
-	// sprite sequences / prim models
+	static const void *const TIM_Upload = (const void *)0xD45EAC;
+	static const uint32_t PILLAR_Delays = 0xD59188;
+	static const uint32_t BEAM_Sprites = 0xD591D0;
+	static const uint32_t WAVE_Textures = 0xD59210;
+	static const uint32_t STAGE_Buckets = 0xD59250;
+	static const uint32_t STAGE_EnvRestore = 0xD592C0;
+	static const uint32_t DRAWENV = 0x1D969C8;
 	static const uint32_t SEQ_Sparkle = 0xD524C4;
 	static const uint32_t SEQ_OrbitSpark = 0xD523E8;
 	static const uint32_t SEQ_Mote = 0xD52374;
@@ -112,35 +79,30 @@ namespace holy175
 	static const uint32_t MODEL_Disk = 0xD52DD8;
 	static const uint32_t MODEL_Flash = 0xD527F8;
 
-	// grid: 15 x 21 vertices, 14 x 20 cell centres, 14 x 20 x 4 triangles, their packets (2 per buffer)
 	static const uint32_t GRID_Vertices = 0x2392CE8, GRID_VerticesEnd = 0x2394098;
 	static const uint32_t GRID_Centres = 0x23756F0, GRID_CentresEnd = 0x2376870;
 	static const uint32_t GRID_Triangles = 0x2377748;
 	static const uint32_t GRID_Packets = 0x23814E0;
-	static const uint32_t GRID_CellPointers = 0x23814C8; // 5 pointers of the last cell built
+	static const uint32_t GRID_CellPointers = 0x23814C8;
 	static const int GRID_TriangleCount = 14 * 20 * 4;
-	static const uint32_t SPARKLES = 0x2374D90, SPARKLES_End = 0x23756F0; // 100 x 0x18
-	static const uint32_t MOTES = 0x2374610, MOTES_End = 0x2374D90;       // 80 x 0x18
-	static const uint32_t STAGE_AnimHeaders = 0x1D989A4;                   // 4 stage groups, 0x2C apart
+	static const uint32_t SPARKLES = 0x2374D90, SPARKLES_End = 0x23756F0;
+	static const uint32_t MOTES = 0x2374610, MOTES_End = 0x2374D90;
+	static const uint32_t STAGE_AnimHeaders = 0x1D989A4;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	inline void QueueTimUpload(const void *tim) { fn<void (__cdecl *)(const void *)>(0x505E30)(tim); } // Battle_QueueTIMUpload_GetEOF
+	inline void QueueTimUpload(const void *tim) { fn<void (__cdecl *)(const void *)>(0x505E30)(tim); }
 	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); } // b = a * b (3x3)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	inline Mat4x3 *ShadowRotation(const void *pos, int32_t a, int32_t b) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(0x571BC0)(pos, a, b); }
-	inline uint32_t RenderWaveModel(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x650720)(header, ot, mode, cursor); } // MAG_066_sub_650720
+	inline uint32_t RenderWaveModel(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x650720)(header, ot, mode, cursor); }
 	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
 	inline uint32_t RenderGeometry(void *group, void *header, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t, uint32_t)>(0x5099D0)(group, header, ot, mode, cursor); }
-	// packet builders (SSIGPU): draw environment, draw area, draw offset
 	inline void BuildDrawEnvPacket(void *packet, uint32_t env) { fn<void (__cdecl *)(void *, uint32_t)>(0x45C0F0)(packet, env); }
 	inline void BuildDrawAreaPacket(void *packet, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(0x45C940)(packet, rect); }
 	inline void BuildDrawOffsetPacket(void *packet, const void *xy) { fn<void (__cdecl *)(void *, const void *)>(0x45C9B0)(packet, xy); }
-	// GTE screen offset (OFX / OFY) read / write (sub_56CD10 / Call_Bs_ParseCamera)
 	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
 	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
-	// GTE: far colour, RGB, depth cue, RGB FIFO, three vertices
 	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
 	inline void GteSetRGB(const void *rgb) { fn<void (__cdecl *)(const void *)>(0x45E110)(rgb); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
@@ -149,151 +111,144 @@ namespace holy175
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadSXY012(void *s0, void *s1, void *s2) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(s0, s1, s2); }
 
-	// ------------------------------------------------------------------
-	// Node layouts (effect queue: pool of 100 nodes of 0x24 bytes; root queue: 2 of 0x10)
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C bit 0 = packet arena
+		int16_t counter;
 		int16_t pad0E;
 	};
 	struct RestoreNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		uint16_t done;    // +0x0E set by the texture restore task
+		int16_t counter;
+		uint16_t done;
 	};
 	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C 0..0x6F
-		int16_t action;   // +0x0E
-		int16_t pos[4];   // +0x10 target effect anchor (x, y, z, height)
+		int16_t counter;
+		int16_t action;
+		int16_t pos[4];
 		uint8_t pad18[8];
-		int16_t target;   // +0x20 target slot
+		int16_t target;
 		int16_t pad22;
 	};
 	struct ShatterNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C 0..0x32
+		int16_t counter;
 		uint8_t pad0E[0x16];
 	};
 	struct FadeNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t slot;     // +0x0E entity
+		int16_t counter;
+		int16_t slot;
 		uint8_t pad10[8];
-		int16_t duration; // +0x18
-		uint16_t saved;   // +0x1A entity flags & 0x800 before the fade
+		int16_t duration;
+		uint16_t saved;
 		uint8_t pad1C[8];
 	};
 	struct SparkleNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];   // +0x10
+		int16_t pos[4];
 		uint8_t pad18[0xC];
 	};
 	struct OrbitCtrlNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t index;    // +0x0E matrix 0 / 1
-		int16_t pos[4];   // +0x10
+		int16_t counter;
+		int16_t index;
+		int16_t pos[4];
 		int16_t pad18;
-		int16_t target;   // +0x1A
-		int16_t ax;       // +0x1C angle about X
-		int16_t dax;      // +0x1E
-		int16_t az;       // +0x20 angle about Z
-		int16_t daz;      // +0x22
+		int16_t target;
+		int16_t ax;
+		int16_t dax;
+		int16_t az;
+		int16_t daz;
 	};
 	struct OrbitNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t index;    // +0x0E controller matrix
+		int16_t counter;
+		int16_t index;
 		uint8_t pad10[6];
-		int16_t base;     // +0x16 radius from the target's size
-		int16_t angle;    // +0x18
-		int16_t phase;    // +0x1A
-		int16_t size;     // +0x1C
-		int16_t k;        // +0x1E spark number
-		int16_t radius;   // +0x20
-		int16_t dradius;  // +0x22
+		int16_t base;
+		int16_t angle;
+		int16_t phase;
+		int16_t size;
+		int16_t k;
+		int16_t radius;
+		int16_t dradius;
 	};
-	struct EmitterNode // motes
+	struct EmitterNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
+		int16_t counter;
 		uint8_t pad0E[0x16];
 	};
-	struct RingNode // ring, expanding ring, light pillar, disk, flash, wave, beam
+	struct RingNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t delay;    // +0x0E pillar: frames before it appears
-		int16_t pos[4];   // +0x10
-		int16_t angle;    // +0x18 spin angle (pillar: about X, its yaw is pos[3] = +0x16)
-		int16_t spin;     // +0x1A
-		int16_t scale;    // +0x1C
-		int16_t dscale;   // +0x1E
-		int16_t w20;      // +0x20 wave: texture scroll step
-		int16_t w22;      // +0x22 wave: texture frame
+		int16_t counter;
+		int16_t delay;
+		int16_t pos[4];
+		int16_t angle;
+		int16_t spin;
+		int16_t scale;
+		int16_t dscale;
+		int16_t w20;
+		int16_t w22;
 	};
-	// sparkle (pool of 100, 0x18 bytes)
 	struct Sparkle
 	{
-		uint32_t active;  // +0x00
-		uint16_t frame;   // +0x04 flipbook frame
-		int16_t size;     // +0x06
-		int16_t radius;   // +0x08
-		int16_t y;        // +0x0A
-		int16_t angle;    // +0x0C
+		uint32_t active;
+		uint16_t frame;
+		int16_t size;
+		int16_t radius;
+		int16_t y;
+		int16_t angle;
 		int16_t pad0E;
-		int16_t dradius;  // +0x10
-		int16_t dy;       // +0x12
-		int16_t dangle;   // +0x14
+		int16_t dradius;
+		int16_t dy;
+		int16_t dangle;
 		int16_t pad16;
 	};
-	// screen mote (pool of 80, 0x18 bytes)
 	struct Mote
 	{
-		uint32_t active;  // +0x00
-		uint16_t frame;   // +0x04
-		int16_t scale;    // +0x06
-		int16_t x, y, z;  // +0x08
-		int16_t age;      // +0x0E
+		uint32_t active;
+		uint16_t frame;
+		int16_t scale;
+		int16_t x, y, z;
+		int16_t age;
 		int16_t pad10;
-		int16_t speed;    // +0x12
+		int16_t speed;
 		int16_t pad14;
-		int16_t life;     // +0x16
+		int16_t life;
 	};
-	// grid vertex / cell centre (0x10 bytes)
 	struct Vertex
 	{
-		int16_t sxy[2];   // +0x00 projected screen position
-		int16_t x, y, z;  // +0x04 screen-space position (z = 0)
-		uint16_t flags;   // +0x0A bit0 = top / bottom row, bit1 = left / right column
-		int16_t u, v;     // +0x0C texture coordinates in the capture
+		int16_t sxy[2];
+		int16_t x, y, z;
+		uint16_t flags;
+		int16_t u, v;
 	};
-	// grid triangle (0x24 bytes)
 	struct Triangle
 	{
-		Vertex *v[3];     // +0x00
-		int16_t cx, cy;   // +0x0C centroid
+		Vertex *v[3];
+		int16_t cx, cy;
 		int16_t zero10;
-		int16_t delay;    // +0x12 frames before it moves (-1 = gone)
-		int16_t offx, offy; // +0x14 displacement
+		int16_t delay;
+		int16_t offx, offy;
 		int16_t zero18;
-		int16_t scale;    // +0x1A 0x1000 .. 0x180 (flat white at 0x180)
-		int16_t vx, vy;   // +0x1C
-		int16_t ay;       // +0x20 vy += ay / 2
-		int16_t dscale;   // +0x22
+		int16_t scale;
+		int16_t vx, vy;
+		int16_t ay;
+		int16_t dscale;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(RestoreNode) == 0x10, "Holy root nodes");
@@ -304,7 +259,6 @@ namespace holy175
 	inline TaskNode *AddTask(uint32_t fn) { return AddTaskToQueue(&Tasks(), fn); }
 	inline uint16_t &EntityFlags(int slot) { return *(uint16_t *)Entity(slot); }
 
-	// x / 3, x / 6, x / 20 exactly as the magic-number divisions of the original
 	static int32_t Div3(int32_t x) { int32_t hi = (int32_t)(((int64_t)x * 0x55555556) >> 32); return hi + (int32_t)((uint32_t)hi >> 31); }
 	static int32_t Div6(int32_t x) { int32_t hi = (int32_t)(((int64_t)x * 0x2AAAAAAB) >> 32); return hi + (int32_t)((uint32_t)hi >> 31); }
 	static int32_t Div20(int32_t x) { int32_t hi = (int32_t)(((int64_t)x * 0x66666667) >> 32) >> 3; return hi + (int32_t)((uint32_t)hi >> 31); }
@@ -321,13 +275,9 @@ namespace ff8fx
 {
 namespace holy175
 {
-	// ------------------------------------------------------------------
-	// Root (0x5D44C0) and texture restore (0x5D4540)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
@@ -351,13 +301,6 @@ namespace holy175
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Grid construction (director frames 3 and 4)
-	// ------------------------------------------------------------------
-	// MAG_175_HOLY_BuildGatherLightGrid (0x5D2210): screen grid 15 x 21 vertices (16 units apart,
-	// inner ones jittered, texture coordinates = grid position + the jitter), 14 x 20 cell centres
-	// (jittered by -3..2), then per cell 4 triangles (top, left, right, bottom around the centre)
-	// and their textured packets (two per buffer)
 	static uint32_t CellUV(const Vertex *v, uint8_t du, uint16_t tpage)
 	{
 		uint8_t u = (uint8_t)((uint8_t)v->u + du);
@@ -456,7 +399,6 @@ namespace holy175
 				uint32_t uvBR = CellUV(br, du, tpage), uvC = CellUV(cc, du, tpage);
 				for (int j = 7; j >= 0; j--) *(uint32_t *)(pk + 0x20 * j) = 0x7000000;
 				for (int j = 7; j >= 0; j--) *(uint32_t *)(pk + 0x20 * j + 4) = 0x26808080;
-				// top: TL TR C / left: TL C BL / right: TR BR C / bottom: C BR BL
 				t[0].v[0] = tl; t[0].v[1] = tr; t[0].v[2] = cc;
 				t[1].v[0] = tl; t[1].v[1] = cc; t[1].v[2] = bl;
 				t[2].v[0] = tr; t[2].v[1] = br; t[2].v[2] = cc;
@@ -469,9 +411,6 @@ namespace holy175
 		}
 	}
 
-	// MAG_175_HOLY_InitLightPillarTable (0x5D25D0): per triangle its centroid, the delay before it
-	// moves (distance of its first vertex's texture position from the corner / 35), velocity,
-	// fall and shrink speed
 	static void InitTriangles()
 	{
 		Triangle *t = (Triangle *)GRID_Triangles;
@@ -498,9 +437,6 @@ namespace holy175
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Fades of the other side's entities
-	// ------------------------------------------------------------------
 	static void FadeSlots(int32_t &lo, int32_t &hi)
 	{
 		if (FadeSide() >= 3)
@@ -515,7 +451,6 @@ namespace holy175
 		}
 	}
 
-	// au_re_BdLinkTask_33 (0x5D2F80): fade out every visible entity of the other side
 	static void SpawnFadeOuts(int16_t duration)
 	{
 		int32_t lo, hi;
@@ -536,7 +471,6 @@ namespace holy175
 		}
 	}
 
-	// au_re_BdLinkTask_32 (0x5D2720): fade back in the entities faded out
 	static void SpawnFadeIns(int16_t duration)
 	{
 		int32_t lo, hi;
@@ -552,7 +486,6 @@ namespace holy175
 		}
 	}
 
-	// entity colours (+0x2C, +0x28) = GTE depth cue of black toward the far colour by ir0
 	static void FadeColours(uint8_t *e, int32_t ir0)
 	{
 		uint32_t rgb = 0x32000000;
@@ -602,10 +535,6 @@ namespace holy175
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Shatter (0x5D2910)
-	// ------------------------------------------------------------------
-	// MAG_175_sub_5D21F0 / MAG_175_sub_5D29C0: stage groups' flag bit 1 set / cleared
 	static void StageGroupsFlag(bool set)
 	{
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C)
@@ -615,7 +544,6 @@ namespace holy175
 		}
 	}
 
-	// MAG_175_sub_5D2F50: identity rotation (translation untouched)
 	static void IdentityRotation(Mat4x3 *m)
 	{
 		uint32_t *d = (uint32_t *)m;
@@ -628,9 +556,6 @@ namespace holy175
 		m->m[0][0] = 0x1000;
 	}
 
-	// MAG_175_sub_5D29E0: the battle stage rendered into VRAM (576, 256, 320 x 232) with the other
-	// buffer's draw environment and a 160 / 116 screen offset (bone matrices rebuilt from the pose),
-	// then the draw environment of this buffer back
 	static void StageCapture()
 	{
 		uint32_t other = DisplayBuffer() ^ 1u;
@@ -667,7 +592,6 @@ namespace holy175
 		FieldFree(0x54);
 		SetScreenOffset(ofx, ofy);
 		uint8_t *env = (uint8_t *)(STAGE_EnvRestore + 0x18 * DisplayBuffer());
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(env = held_env_packet(env);)
 		InsertPrimAltViewport(OTBase() + 0x4484, env);
 		pk = (uint8_t *)FrameArena();
@@ -682,7 +606,6 @@ namespace holy175
 		FrameArena() = (uint32_t)pk;
 	}
 
-	// grid vertices and cell centres projected 1:1 (identity + (8, 4, H)) to screen positions
 	static void ProjectGrid(uint8_t *h)
 	{
 		Mat4x3 *m = (Mat4x3 *)(h + 0x84);
@@ -706,7 +629,6 @@ namespace holy175
 		}
 	}
 
-	// a triangle still in the grid: its projected vertices, colour (0x24 = semi-transparent POLY_FT3)
 	static void DrawStaticTriangle(const Triangle *t, uint8_t *pkt, uint32_t colour)
 	{
 		*(uint32_t *)(pkt + 4) = colour | 0x24000000;
@@ -728,8 +650,6 @@ namespace holy175
 		if (t->scale < 0x180) t->scale = 0x180;
 	}
 
-	// the triangle's vertices around its centroid, scaled by its scale in X / Y, through the GTE
-	// (translation h+0x78: centroid + displacement + (8, 4, H), set by the caller)
 	static void ProjectTriangle(uint8_t *h, const Triangle *t)
 	{
 		const uint8_t *v0 = (const uint8_t *)t->v[0];
@@ -757,7 +677,6 @@ namespace holy175
 		GteRTPT();
 	}
 
-	// flat white triangle (semi-transparent POLY_F3) at the projected vertices
 	static void FlatTriangle(uint8_t *pkt)
 	{
 		*(uint32_t *)pkt = 0x4000000;
@@ -766,7 +685,6 @@ namespace holy175
 		InsertPrimAutoDepth(OTBase() + 0x4064, pkt);
 	}
 
-	// a moving triangle in its packet: textured, flat white once shrunk to 0x180
 	static void EmitMovingTriangle(const Triangle *t, uint8_t *pkt, uint32_t colour)
 	{
 		if (t->scale == 0x180)
@@ -779,10 +697,6 @@ namespace holy175
 		InsertPrimAutoDepth(OTBase() + 0x4064, pkt);
 	}
 
-	// MAG_175_sub_5D2BC0: the grid at shatter frame `counter`, buffer `buf`: triangles whose delay
-	// has not passed are drawn in place; the others move (displacement / velocity / shrink, not in
-	// the draw-only mode) and are drawn around their centroid; a triangle leaving the screen
-	// (x > 168 or y < -116) is gone. No triangle drawn: the grid is finished.
 	static void GridDraw(int32_t counter, int32_t buf, uint32_t colour)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -826,7 +740,6 @@ namespace holy175
 		FieldFree(0xB4);
 	}
 
-	// grid brightness at shatter frame c: 0x80 + 12 c, at most 0xFF
 	static uint32_t GridColour(int32_t c)
 	{
 		int32_t level = c * 12 + 0x80;
@@ -839,7 +752,6 @@ namespace holy175
 		ShatterNode *p = (ShatterNode *)n;
 		if (p->counter < 0x32 && GridActive())
 		{
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(held_note_shatter(p);)
 			if (p->counter < 10) StageCapture();
 			int32_t c = p->counter;
@@ -852,9 +764,6 @@ namespace holy175
 		return p->counter > 0x32 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sparkles (0x5D3180): a sprite at (anchor + radius * (cos, sin)(angle), y)
-	// ------------------------------------------------------------------
 	static void SparkleDraw(uint8_t *h, int16_t *s, const Sparkle *e)
 	{
 		int32_t a = e->angle;
@@ -880,7 +789,6 @@ namespace holy175
 		for (Sparkle *e = (Sparkle *)SPARKLES; e < (Sparkle *)SPARKLES_End; e++)
 		{
 			if (!(e->active & 1)) continue;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(held_note_item(ORIG_SparkleTask, e, h);)
 			SparkleDraw(h, s, e);
 			if (DrawOnly()) continue;
@@ -928,9 +836,6 @@ namespace holy175
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Orbit controller (0x5D3420) and orbiting sparks (0x5D3590)
-	// ------------------------------------------------------------------
 	static void OrbitCtrlMatrix(const OrbitCtrlNode *p, Mat4x3 *m)
 	{
 		int16_t ang[3] = { p->ax, 0, p->az };
@@ -952,7 +857,6 @@ namespace holy175
 	static uint32_t __cdecl OrbitCtrlTask(TaskNode *n)
 	{
 		OrbitCtrlNode *p = (OrbitCtrlNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_OrbitCtrlTask, p, sizeof(*p));)
 		OrbitCtrlMatrix(p, OrbitMatrix(p->index));
 		if (DrawOnly()) return 0;
@@ -1000,8 +904,6 @@ namespace holy175
 		FieldFree(0xB4);
 	}
 
-	// frames 0..5 radius shrinks (step - step / 20); 6..57 bobbing radius (sin of the phase, 400),
-	// angle + 0x3C; 58..73 radius swings out (sin, 3000) then in, angle + 0x1E; 74: radius -base
 	static void OrbitUpdate(OrbitNode *p)
 	{
 		int32_t c = p->counter;
@@ -1039,7 +941,6 @@ namespace holy175
 	static uint32_t __cdecl OrbitTask(TaskNode *n)
 	{
 		OrbitNode *p = (OrbitNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_OrbitTask, p, sizeof(*p));)
 		OrbitDraw(p, OrbitMatrix(p->index));
 		if (DrawOnly()) return 0;
@@ -1048,14 +949,9 @@ namespace holy175
 		return p->counter >= 0x4B ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Screen motes (0x5D37B0): sprites in a fixed screen-space frame (rotation 0x1C2 about Z,
-	// depth H), brightness 21 x age
-	// ------------------------------------------------------------------
 	static void MoteDraw(uint8_t *h, uint8_t *m, const Mote *e)
 	{
 		int32_t level = e->age * 21;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(level = held_ramp(level, 21);)
 		if (level > 0x80) level = 0x80;
 		uint32_t colour = (((uint32_t)level << 8 | (uint32_t)level) << 8) | (uint32_t)level;
@@ -1097,7 +993,6 @@ namespace holy175
 		for (Mote *e = (Mote *)MOTES; e < (Mote *)MOTES_End; e++)
 		{
 			if (!(e->active & 1)) continue;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(held_note_item(ORIG_MoteTask, e, h);)
 			MoteDraw(h, m, e);
 			if (DrawOnly()) continue;
@@ -1143,9 +1038,6 @@ namespace holy175
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim models: GTE = camera * (translate pos, rotate, scale)
-	// ------------------------------------------------------------------
 	static void ModelGte(const int16_t ang[3], const int16_t *pos, int32_t scale)
 	{
 		Mat4x3 m = {};
@@ -1160,7 +1052,6 @@ namespace holy175
 		GteSetTransVector(&m);
 	}
 
-	// prim-model header (0x58 bytes of scratch): model, +8 = 0, +0x1C = 0x33 (no fade)
 	static uint8_t *ModelHeader(uint32_t model)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -1170,14 +1061,12 @@ namespace holy175
 		return h;
 	}
 
-	// fade toward black (header +0x0C, flags 0xF3)
 	static void ModelFade(uint8_t *h, int32_t fade)
 	{
 		*(uint32_t *)(h + 0x1C) = 0xF3;
 		*(int32_t *)(h + 0xC) = fade;
 	}
 
-	// Ring (0x5D3A50): spinning about Y, fades in over frames 0..7
 	static void RingDraw(const RingNode *p)
 	{
 		int16_t ang[3] = { 0, p->angle, 0 };
@@ -1186,7 +1075,6 @@ namespace holy175
 		if (p->counter < 8)
 		{
 			int32_t fade = (8 - p->counter) << 9;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(fade = held_ramp(fade, -0x200);)
 			ModelFade(h, fade);
 		}
@@ -1197,7 +1085,6 @@ namespace holy175
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_RingTask, p, sizeof(*p));)
 		RingDraw(p);
 		if (DrawOnly()) return 0;
@@ -1206,8 +1093,6 @@ namespace holy175
 		return p->counter >= 0x3A ? TASK_END : 0;
 	}
 
-	// Wave (0x5D3B80, MAG_066_sub_650720 header of 0x90 bytes): texture of the frame (+0x22 & 15),
-	// scroll step * frame, fades out over frames 0..0x37
 	static void WaveDraw(const RingNode *p)
 	{
 		int16_t ang[3] = { 0, 0, 0 };
@@ -1219,7 +1104,6 @@ namespace holy175
 		*(uint32_t *)(h + 0x24) = *(const uint32_t *)(WAVE_Textures + 4 * (*(const uint8_t *)&p->w22 & 0xF));
 		int32_t c = p->counter;
 		int32_t scroll = p->w20 * c;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(scroll = held_ramp(scroll, p->w20);)
 		*(uint32_t *)h = MODEL_Wave;
 		*(uint32_t *)(h + 0x20) = 0x33;
@@ -1230,7 +1114,6 @@ namespace holy175
 		if (c < 0x38)
 		{
 			int32_t fade = 0x1000 - c * 73;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(fade = held_ramp(fade, -73);)
 			*(uint32_t *)(h + 0x20) = 0xF3;
 			*(int32_t *)(h + 0xC) = fade;
@@ -1242,7 +1125,6 @@ namespace holy175
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_WaveTask, p, sizeof(*p));)
 		WaveDraw(p);
 		if (DrawOnly()) return 0;
@@ -1251,7 +1133,6 @@ namespace holy175
 		return p->counter >= 0x3A ? TASK_END : 0;
 	}
 
-	// Expanding ring (0x5D3CE0): grows by a decelerating step, fades from frame 8
 	static void ExpandDraw(const RingNode *p)
 	{
 		int16_t ang[3] = { 0, 0, 0 };
@@ -1260,7 +1141,6 @@ namespace holy175
 		if (p->counter >= 8)
 		{
 			int32_t fade = (p->counter - 8) << 9;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(fade = held_ramp(fade, 0x200);)
 			ModelFade(h, fade);
 		}
@@ -1278,7 +1158,6 @@ namespace holy175
 	static uint32_t __cdecl ExpandTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_ExpandTask, p, sizeof(*p));)
 		ExpandDraw(p);
 		if (DrawOnly()) return 0;
@@ -1287,8 +1166,6 @@ namespace holy175
 		return p->counter >= 0x10 ? TASK_END : 0;
 	}
 
-	// Light pillar (0x5D3E20): rotation (spin +0x18 about X, yaw +0x16 about Y); fades in over
-	// frames 0..7, out from frame 0x10; spins from frame 0xC, the spin speed growing by 1/16
 	static void PillarDraw(const RingNode *p)
 	{
 		int16_t ang[3] = { p->angle, p->pos[3], 0 };
@@ -1298,14 +1175,12 @@ namespace holy175
 		if (c < 8)
 		{
 			int32_t fade = (8 - c) << 9;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(fade = held_ramp(fade, -0x200);)
 			ModelFade(h, fade);
 		}
 		else if (c >= 0x10)
 		{
 			int32_t fade = (c - 0x10) * 409;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(fade = held_ramp(fade, 409);)
 			ModelFade(h, fade);
 		}
@@ -1330,7 +1205,6 @@ namespace holy175
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_PillarTask, p, sizeof(*p));)
 		PillarDraw(p);
 		if (DrawOnly()) return 0;
@@ -1339,8 +1213,6 @@ namespace holy175
 		return p->counter >= 0x1A ? TASK_END : 0;
 	}
 
-	// MAG_175_sub_5D41F0: sprite matrix 0x23941E8 = scale `size`, translation = the screen position
-	// of pos / 8 - (160, 108), depth H + depth (the GTE gets it)
 	static Mat4x3 *ScreenSpriteMatrix(const int16_t *pos, int16_t size, int32_t depth)
 	{
 		Mat4x3 *m = SpriteMatrix();
@@ -1363,8 +1235,6 @@ namespace holy175
 		return m;
 	}
 
-	// Beam (0x5D3FB0): 8 sprites (table 0xD591D0) along a direction that sweeps with the frame,
-	// turned toward the camera eye; brightness ramps in over frames 0..1, out over 0x10..0x17
 	static void BeamDraw(const RingNode *p)
 	{
 		int32_t a[3] = { 0, 0, -0x1000 };
@@ -1389,14 +1259,12 @@ namespace holy175
 		if (c < 2)
 		{
 			level = c << 6;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(level = held_ramp(level, 0x40);)
 			lit = true;
 		}
 		else if (c >= 0x10)
 		{
 			level = (0x18 - c) << 4;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(level = held_ramp(level, -0x10);)
 			lit = true;
 		}
@@ -1406,7 +1274,6 @@ namespace holy175
 			*(uint32_t *)(h + 0x1C) = (((uint32_t)level << 8) | (uint32_t)level) << 8;
 		}
 		int32_t d[3] = { -0x200 - c * 300, -0x100 - c * 30, c * 25 - 0xE00 };
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(d[0] = held_ramp(d[0], -300); d[1] = held_ramp(d[1], -30); d[2] = held_ramp(d[2], 25);)
 		NormalizeVector(d, d);
 		for (uint32_t k = 0; k < 8; k++)
@@ -1432,7 +1299,6 @@ namespace holy175
 	static uint32_t __cdecl BeamTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_BeamTask, p, sizeof(*p));)
 		BeamDraw(p);
 		if (DrawOnly()) return 0;
@@ -1440,8 +1306,6 @@ namespace holy175
 		return p->counter >= 0x18 ? TASK_END : 0;
 	}
 
-	// Disk (0x5D42B0): shadow-rotation frame of size `scale`, spinning about Z; the size grows by
-	// an accelerating step (overflow -> 0x7FFF)
 	static void DiskDraw(const RingNode *p)
 	{
 		Mat4x3 *s = ShadowRotation(p->pos, p->scale, 0);
@@ -1467,7 +1331,6 @@ namespace holy175
 	static uint32_t __cdecl DiskTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_DiskTask, p, sizeof(*p));)
 		DiskDraw(p);
 		if (DrawOnly()) return 0;
@@ -1476,8 +1339,6 @@ namespace holy175
 		return p->counter >= 0x18 ? TASK_END : 0;
 	}
 
-	// Flash (0x5D43B0): screen-space prim model (sprite matrix, X scale = size, Y 1), fades in over
-	// frames 0..3, out from 0x12; shrinks from frame 8
 	static void FlashDraw(const RingNode *p)
 	{
 		Mat4x3 *m = ScreenSpriteMatrix(p->pos, p->scale, 0);
@@ -1489,14 +1350,12 @@ namespace holy175
 		if (c < 4)
 		{
 			int32_t fade = (4 - c) << 10;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(fade = held_ramp(fade, -0x400);)
 			ModelFade(h, fade);
 		}
 		else if (c >= 0x12)
 		{
 			int32_t fade = (c - 0x12) * 682;
-			// 30 fps layer: see mag175_holy_held.inc
 			FX_HELD(fade = held_ramp(fade, 682);)
 			ModelFade(h, fade);
 		}
@@ -1515,7 +1374,6 @@ namespace holy175
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(held_note_draw(ORIG_FlashTask, p, sizeof(*p));)
 		FlashDraw(p);
 		if (DrawOnly()) return 0;
@@ -1524,9 +1382,6 @@ namespace holy175
 		return p->counter > 0x18 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5D1BD0)
-	// ------------------------------------------------------------------
 	static void CopyAnchor(int16_t *dst, const DirectorNode *p)
 	{
 		*(uint32_t *)&dst[0] = *(const uint32_t *)&p->pos[0];
@@ -1623,7 +1478,6 @@ namespace holy175
 		}
 		if (p->counter == 0x2D)
 		{
-			// 12 pillars on a circle of 2100 around the anchor, 1400 lower, turned toward the centre
 			int32_t r = CrtRand() % 0x1000;
 			int32_t acc = 0;
 			for (int k = 0; k < 12; k++, acc += 0x1000)
@@ -1728,7 +1582,6 @@ namespace holy175
 		register_port(holy175::ORIG_BeamTask, (void *)holy175::BeamTask, "H175 BeamTask", 175);
 		register_port(holy175::ORIG_DiskTask, (void *)holy175::DiskTask, "H175 DiskTask", 175);
 		register_port(holy175::ORIG_FlashTask, (void *)holy175::FlashTask, "H175 FlashTask", 175);
-		// 30 fps layer: see mag175_holy_held.inc
 		FX_HELD(register_mag175_held();)
 	}
 }

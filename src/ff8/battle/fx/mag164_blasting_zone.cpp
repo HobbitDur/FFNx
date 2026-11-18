@@ -13,77 +13,8 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// Effect 164: Blasting Zone (Squall's Renzokuken finisher, MAG_164_BLASTING_ZONE). It follows Renzokuken (160) like the
-// other finishers (163 Rough Divide, 162 Fated Circle).
-//
-// Structure (file loader 0x5F0240 = the texture file named at 0xD99DB8 into 0x23C9D8C; setup MAG_164 0x5F0260, not a task:
-// the texture base 0x23CA114 (Magic_TextureOFF_ToEAX1), the cast context 0x23C9D60, the first target 0x23C6950, the caster
-// slot 0x23C9D88, the root task in its 1-node pool 0x23C6958 (queue 0x23C6968), the director in the main pool 0x23C8F50
-// (100 x 0x24, queue 0x23C8F40), the three particle pools free, the TIM upload, the caster's rotation words (+0x0C / +0x10
-// dwords) kept in 0x23C8F18 (never read), the caster's effect bone 0xF1 (0x23C9DA0), the target centre (0x23C9D90), the
-// effect frame 0x23C8F20 = the rotation from 0xD99C60 to the horizontal direction caster -> centre at (bone x, 0, bone z),
-// and the caster's yaw (entity +0x0E) = that angle (negated when the axis points down): Squall faces the targets):
-//   RootTask (0x5F5B10) - packet arena parity (texture base, + 0x10000 on odd ticks; cursor 0x23CA118), the main queue;
-//     ends with it.
-//   DirectorTask (0x5F0430) - every tick, before the draw-only test: 0x23C9D68 = camera x effect frame, the pulsing colour
-//     0x23CA110 = GTE DPCS of 0x30587F toward far colour (0x30, 0x30, 0x80) by (cos(counter << 9) + 0x1000) / 2. When the
-//     tick is draw-only it stops there (with only flag 0x200 set it asks the pause query 0x508500 and goes on if >= 0).
-//     The choreography (counter):
-//     0     the camera script 0xD99C70 on the effect frame (shared camera-script task 0x63E9C0 in the main queue), camera
-//           return armed, the animation set 0xD88AA0 bound to the caster (out block 0x23C8EF8), his sequence 1
-//     5     character file 0x21A loaded into the texture base; 0xF texture upload (pause query first)
-//     0x23  sequence 2, the blade tip point 0x23C9D98 (weapon bone 1 + 380 along the blade), sound 0xD99C10
-//     0x24  FlareA; 0x2F FlareB; 0x33 OrbitSpark + Swirl; 0x39 4 Rings + Spawner (Pulses); 0x43 Shards; 0x55 Ball;
-//     0x61  FrameModel; 0x68 screen fade task (2, 1, 4, 0xFF); 0x6B Dome
-//     0x7C  stage groups shown (0x1D98991 bit 1 cleared), character file 0x21B, Dome2, Beam + 8 Rocks, 6 Debris
-//     0x86  texture upload (pause query first)
-//     0xA4  sound 0xD99C14, Starfield, ScreenFlash, the target hidden (entity flags |= 4)
-//     0xB9  RingFlat; 0xBC 4 Morphs, RingFlat2, MorphSpark
-//     0xE0  stage groups hidden (bit 1 set), BladeGlow, BurstSpark, Wave, the target shown again (flags &= ~4)
-//     0xF4  sequence 3; 0x105 camera Shake; 0x106 the caster hidden (flags |= 8); 0x107 Wave2; 0x108 Smoke;
-//     0x114 screen fade task (0xC, 6, 0xF, 0xFF)
-//     0x121 sequence 4, the caster shown again (flags &= ~8); 0x122 texture restore task
-//     0x132..0x13A screen flash (0x13A - counter) << 8; 0x133 the action result (ApplyActionResultToTargets); ends at
-//           0x13B (flash off).
-//   Single-model tasks (prim-model renderer 0x572200 unless noted; the angles / scales of their nodes as named below):
-//     FlareA (0x5F0B70, 14 ticks, model 0xD8F8B8) / FlareB (0x5F0D10, 0x3A ticks, model 0xD909F0, drawn twice: scaled
-//     at +angle, unscaled at -angle) / Ball (0x5F1E70, 0x1C ticks, model 0xD90F00) / Rock (0x5F3FA0, 0x28 ticks, model
-//     0xD8B180) - camera-facing (TransformCameraByShadowRotation), turned about z (Flare) or y (Rock);
-//     Ring (0x5F1500, 4 delayed, 0x28 ticks, model 0xD94FAC), PulseA / PulseB (0x5F1800 / 0x5F1970, model 0xD948C4),
-//     Debris (0x5F4180, 6 delayed, model 0xD8A048), Beam (0x5F3DF0, model 0xD9339C twice into OT + 0x4068), RingFlat /
-//     RingFlat2 (0x5F49B0 / 0x5F4B70, models 0xD8B610 / 0xD95B7C, flat), FrameModel (0x5F1F80, model 0xD92154 in the
-//     effect frame), Dome / Dome2 (0x5F2120 / 0x5F3B30, model 0xD8C130 through the module's renderer 0x5F2240 with the
-//     pulsing colour), BladeGlow (0x5F4FA0, model 0xD8EAA8 through 0x5F2240 at the weapon's bone 1 turned along the
-//     blade), ScreenFlash (0x5F44F0, model 0xD8B880 twice in view space into OT + 0x406C / 0x4068), Wave / Wave2
-//     (0x5F5430 / 0x5F55D0, models 0xD97D6C / 0xD95DEC through MAG_151's renderer 0x64E080, v scroll), Morph (0x5F4720, 4
-//     delayed copies of model 0xD8D918 through 0x5F2240, its 105 vertices morphed from 0xD8E410 toward 0xD8E760 into
-//     0x23C9DC8, camera-facing, its matrix kept in 0x23C9DA8).
-//   Pool A (0x23C6978, 100 x 0x18): OrbitSpark (0x5F0E80, type 1: sprite sequence 0xD99748 orbiting the tip point),
-//     Swirl (0x5F1190, type 2: model 0xD91AD0 through 0x64E080, camera-facing, scrolling), MorphSpark (0x5F4CC0, type 1:
-//     dots (TILE 1x1, colour table 0xD99C1C) from the morph's vertices through its matrix), BurstSpark (0x5F5120, type 1:
-//     sequence 0xD999AC flying out); pool B (0x23C72D8, 100 x 0x18): Shard (0x5F1AC0, type 1: model 0xD95904 standing
-//     around the tip point), Smoke (0x5F57C0, type 1: sequence 0xD9961C in the effect frame, moved toward the camera);
-//     pool C (0x23C7C38, 200 x 0x18): Starfield (0x5F4330, type 1: 160 grey dots at random screen positions, OT + 0x4478).
-//   Spawner (0x5F16A0, draws nothing): PulseA every 4 ticks up to 0x22, PulseB up to 0x24.
-//   Shake (0x5F5A50, 14 ticks): the camera shake word 0x1D97712 = +-(cos(counter * 0x400 / 14) * 140 >> 12) (sign
-//     alternating), written on draw-only ticks too.
-//   RestoreTask (0x5F5AD0) - Battle_RestoreDefaultEffectTexture on its tick 1, ends when it reports done.
-//   The renderer 0x5F2240 and its eight list functions 0x5F2380..0x5F36F0 are byte copies of Griever death's
-//   0x623240..0x6246F0 (mag066_griever_ultimecia_death.cpp, gu066::RenderModel): ported here as RenderModel.
-// Every task but the root / restore tests the draw-only flags (battle_to_update_flags 0x1D96A9C & 0x201).
-// ENTITY WRITES: the caster (entity 0x1D972C0 + 0x9C slot): yaw +0x0E (setup), BS_BindEntityModelFromComData (counter 0),
-// the AnimSeq chain starts 1 / 2 / 3 / 4 (counters 0 / 0x23 / 0xF4 / 0x121), flags +0 |= 8 (0x106) / &= ~8 (0x121); the
-// first target: flags +0 |= 4 (0xA4) / &= ~4 (0xE0). Stage groups 0x1D98991 (+0x2C x 4) bit 1: cleared at 0x7C, set at
-// 0xE0. Squall's own motion is his sequences (AnimSeq VM, the bound set's 4 sequences): 1 = animation 0 (35 frames) once
-// (A9: hold); 2 = animation 1 (10 frames) looping (E6 back to it); 3 = animation 2 (45 frames) once (A9); 4 = AC 00 (the
-// base model back, chain to the automatic sequence). No E5 opcode: his based position (+0x1C..+0x22) is never written.
-// CAMERA: the camera script 0xD99C70 (task 0x63E9C0, eye / look-at 0xB8B7F0 / 0xB8B7F8) relative to the effect frame;
-// the shake word 0x1D97712 (Shake); the module reads the camera matrix 0x1D97778 and the projection word 0x1D8E038.
-// Module globals: 0x23C6950..0x23CA11C (first target 0x23C6950, root pool / queue 0x23C6958 / 0x23C6968, pools A / B /
-// C, bind block 0x23C8EF8, kept rotation 0x23C8F18, effect frame 0x23C8F20, main queue / pool 0x23C8F40 / 0x23C8F50,
-// context 0x23C9D60, camera x frame 0x23C9D68, caster slot 0x23C9D88, file 0x23C9D8C, target centre 0x23C9D90, tip point
-// 0x23C9D98, caster bone 0x23C9DA0, morph matrix 0x23C9DA8, morph vertices 0x23C9DC8, colour 0x23CA110, texture base
-// 0x23CA114, packet cursor 0x23CA118).
+
+// Effect 164: Blasting Zone
 
 #include "mag_common.h"
 
@@ -94,7 +25,6 @@ namespace blast164
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline int32_t &TargetSlot() { return var<int32_t>(0x23C6950); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x23C9D88); }
 	inline CastContext *&Context() { return var<CastContext *>(0x23C9D60); }
@@ -104,15 +34,15 @@ namespace blast164
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
 	inline TaskQueue *QRoot() { return (TaskQueue *)0x23C6968; }
 	inline TaskQueue *QMain() { return (TaskQueue *)0x23C8F40; }
-	static const uint32_t POOL_A = 0x23C6978, POOL_A_END = 0x23C72D8;  // 100 x 0x18
-	static const uint32_t POOL_B = 0x23C72D8, POOL_B_END = 0x23C7C38;  // 100 x 0x18
-	static const uint32_t POOL_C = 0x23C7C38, POOL_C_END = 0x23C8EF8;  // 200 x 0x18
+	static const uint32_t POOL_A = 0x23C6978, POOL_A_END = 0x23C72D8;
+	static const uint32_t POOL_B = 0x23C72D8, POOL_B_END = 0x23C7C38;
+	static const uint32_t POOL_C = 0x23C7C38, POOL_C_END = 0x23C8EF8;
 	static const uint32_t BIND_OUT = 0x23C8EF8;
-	static const uint32_t FRAME = 0x23C8F20;      // effect frame (setup)
-	static const uint32_t CAM_FRAME = 0x23C9D68;  // camera x effect frame (director, every tick)
-	static const uint32_t POINT = 0x23C9D98;      // blade tip point (x, y, z, pad)
-	static const uint32_t MORPH_MAT = 0x23C9DA8;  // the morph's matrix (Morph draws, MorphSpark reads)
-	static const uint32_t MORPH_VTX = 0x23C9DC8;  // the morph's vertices (105 x 8)
+	static const uint32_t FRAME = 0x23C8F20;
+	static const uint32_t CAM_FRAME = 0x23C9D68;
+	static const uint32_t POINT = 0x23C9D98;
+	static const uint32_t MORPH_MAT = 0x23C9DA8;
+	static const uint32_t MORPH_VTX = 0x23C9DC8;
 
 	static const uint32_t ORIG_Root = 0x5F5B10, ORIG_Director = 0x5F0430, ORIG_FlareA = 0x5F0B70, ORIG_FlareB = 0x5F0D10,
 		ORIG_OrbitSpark = 0x5F0E80, ORIG_Swirl = 0x5F1190, ORIG_Ring = 0x5F1500, ORIG_Spawner = 0x5F16A0, ORIG_PulseA = 0x5F1800,
@@ -122,32 +52,30 @@ namespace blast164
 		ORIG_MorphSpark = 0x5F4CC0, ORIG_BladeGlow = 0x5F4FA0, ORIG_BurstSpark = 0x5F5120, ORIG_Wave = 0x5F5430,
 		ORIG_Wave2 = 0x5F55D0, ORIG_Smoke = 0x5F57C0, ORIG_Shake = 0x5F5A50, ORIG_Restore = 0x5F5AD0;
 
-	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xD88AA0, CAMERA_SCRIPT = 0xD99C70;
 	static const void *const SOUND_A = (const void *)0xD99C10, *const SOUND_B = (const void *)0xD99C14;
-	static const uint32_t GLOW_REF = 0xD99C50;    // reference direction of the blade glow
-	static const uint32_t DOT_COLOURS = 0xD99C1C; // 12 TILE code + colour words (MorphSpark, by life)
+	static const uint32_t GLOW_REF = 0xD99C50;
+	static const uint32_t DOT_COLOURS = 0xD99C1C;
 	static const uint32_t SEQ_ORBIT = 0xD99748, SEQ_BURST = 0xD999AC, SEQ_SMOKE = 0xD9961C;
 	static const uint32_t MODEL_FLAREA = 0xD8F8B8, MODEL_FLAREB = 0xD909F0, MODEL_SWIRL = 0xD91AD0, MODEL_RING = 0xD94FAC,
 		MODEL_PULSE = 0xD948C4, MODEL_SHARD = 0xD95904, MODEL_BALL = 0xD90F00, MODEL_FRAME = 0xD92154, MODEL_DOME = 0xD8C130,
 		MODEL_BEAM = 0xD9339C, MODEL_ROCK = 0xD8B180, MODEL_DEBRIS = 0xD8A048, MODEL_FLASH = 0xD8B880, MODEL_MORPH = 0xD8D918,
 		MODEL_RINGFLAT = 0xD8B610, MODEL_RINGFLAT2 = 0xD95B7C, MODEL_GLOW = 0xD8EAA8, MODEL_WAVE = 0xD97D6C, MODEL_WAVE2 = 0xD95DEC;
-	static const uint32_t MORPH_A = 0xD8E410, MORPH_B = 0xD8E760; // morph source / destination vertices
-	static const uint32_t MORPH_COUNT = 0xD8D91C;                 // the morph model's vertex count (+4)
+	static const uint32_t MORPH_A = 0xD8E410, MORPH_B = 0xD8E760;
+	static const uint32_t MORPH_COUNT = 0xD8D91C;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(0x508500)(); }                                          // sub_508500
-	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); } // MAG066_CamScript_Start
-	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(0x50A730)(); }                                                  // BS_Camera_ArmReturnAfterEffect
+	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
+	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); }
+	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
 	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }    // BattleFile_CharacterLoad
-	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }                           // Battle_QueueTIMUpload_GetEOF
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); } // NormalizeVectorToFixedPoint
-	inline void NormalizeS16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }       // VectorNormalS16
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }                                    // computeCosine
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }      // a = a x b (3x3)
+	inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }
+	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
+	inline void NormalizeS16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
 	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
@@ -163,86 +91,82 @@ namespace blast164
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }   // GTE_ReadOTZ
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteReadSZ3(void *dst) { fn<void (__cdecl *)(void *)>(0x45E220)(dst); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }             // MAC = LLM * V0 + BK
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // BK = m.t
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }   // R = s * I
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); } // TR = v
-	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }                   // TR = MAC1..3
-	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64E080)(h, ot, mode, cursor); } // MAG_151_sub_64E080
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); } // SSIGPU_InsertPrimAltViewport
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
+	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
+	inline uint32_t Mag151Render(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64E080)(h, ot, mode, cursor); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
 	inline uint32_t OT0() { return var<uint32_t>(0x1D8E04C); }
 
-	// ------------------------------------------------------------------
-	// Node / record layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // root pool, 1 x 0x10 (0x23C6958)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t c;         // +0x0C
+		int16_t c;
 		int16_t pad0E;
 	};
-	struct Node24 // main pool (0x23C8F50), 0x24 bytes
+	struct Node24
 	{
 		TaskNode hdr;
-		int16_t c;         // +0x0C counter
-		int16_t e;         // +0x0E delay (ring / debris / morph) / restore: done
-		int16_t w10, w12, w14, w16; // +0x10 position (ball: +0x16 = its height offset)
-		int16_t w18;       // +0x18 angle (morph: fade)
-		int16_t w1A;       // +0x1A angle rate
-		int16_t w1C;       // +0x1C x / z scale
-		int16_t w1E;       // +0x1E scale rate / rock: x step
-		int16_t w20;       // +0x20 y scale
-		int16_t w22;       // +0x22 y scale rate / flash: y step
+		int16_t c;
+		int16_t e;
+		int16_t w10, w12, w14, w16;
+		int16_t w18;
+		int16_t w1A;
+		int16_t w1C;
+		int16_t w1E;
+		int16_t w20;
+		int16_t w22;
 	};
-	struct PoolE // pools A / B / C, 0x18 bytes
+	struct PoolE
 	{
-		uint32_t flags;    // type bit, 0 = free
-		int16_t life;      // +0x04 sequence frame / age
-		int16_t scale;     // +0x06
-		int16_t a[8];      // +0x08..+0x16: per task (see the tasks)
+		uint32_t flags;
+		int16_t life;
+		int16_t scale;
+		int16_t a[8];
 	};
-	// the module's prim-model renderer header (0x6C bytes on the scratch stack; gu066::RenderHeader)
 	struct RenderHeader
 	{
-		uint32_t model;    // +0x00
-		uint32_t verts;    // +0x04 vertex base (model + 8 unless flag 0x2000)
-		uint8_t far_rgb[4];// +0x08 GTE far colour
-		int32_t fade;      // +0x0C depth-cue level (IR0) with flag 0x40 / 0x80
-		uint16_t u_off;    // +0x10 flags 0x400 (add) / 0x100 (set)
+		uint32_t model;
+		uint32_t verts;
+		uint8_t far_rgb[4];
+		int32_t fade;
+		uint16_t u_off;
 		uint16_t pad12;
-		uint16_t v_off;    // +0x14 flags 0x800 (add) / 0x200 (set)
+		uint16_t v_off;
 		uint16_t pad16;
-		int32_t depth;     // +0x18 added to the uv words (0 unless flag 0x1000)
-		uint32_t flags;    // +0x1C
-		uint32_t colour;   // +0x20 code / colour of the flat lists, colour scale of the gouraud lists
-		uint32_t list;     // +0x24 current primitive list
-		int32_t mac0;      // +0x28
+		int32_t depth;
+		uint32_t flags;
+		uint32_t colour;
+		uint32_t list;
+		int32_t mac0;
 		uint32_t pad2C;
-		int32_t otz;       // +0x30
-		uint32_t gte_flag; // +0x34
+		int32_t otz;
+		uint32_t gte_flag;
 		uint8_t pad38[0x20];
-		uint32_t scale_rgb;// +0x58 copy of +0x20 (gouraud lists)
-		uint32_t c[4];     // +0x5C vertex colours (gouraud lists)
+		uint32_t scale_rgb;
+		uint32_t c[4];
 	};
-	struct OrbitWork   // OrbitSpark's Field_Alloc block (0x68 bytes)
+	struct OrbitWork
 	{
-		int16_t pos[4];    // +0x00 angles (0) / the sprite's offset
-		Mat4x3 m1;         // +0x08 camera x (identity at the tip point)
-		Mat4x3 m2;         // +0x28 the orbit rotation
-		int32_t v[4];      // +0x48 the sprite's direction
-		int32_t axis[4];   // +0x58 its orbit axis
+		int16_t pos[4];
+		Mat4x3 m1;
+		Mat4x3 m2;
+		int32_t v[4];
+		int32_t axis[4];
 	};
-	struct ModelWork   // Swirl / Shard / Smoke / BurstSpark / MorphSpark blocks (0x68 / 0x48 / 0x58 bytes)
+	struct ModelWork
 	{
-		int16_t ang[4];    // +0x00 angles
-		Mat4x3 m1;         // +0x08
-		Mat4x3 m2;         // +0x28 (sprites: +0x28 direction, +0x38 camera-space position)
-		int32_t v[4];      // +0x48 scale vector (MorphSpark: +0x48 OT, +0x4C shift, +0x50 FLAG, +0x54 SZ3)
-		int32_t axis[4];   // +0x58
+		int16_t ang[4];
+		Mat4x3 m1;
+		Mat4x3 m2;
+		int32_t v[4];
+		int32_t axis[4];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node24) == 0x24 && sizeof(PoolE) == 0x18, "Blasting Zone nodes");
@@ -255,7 +179,6 @@ namespace blast164
 	inline int16_t PointZ() { return var<int16_t>(POINT + 4); }
 	inline PoolE *Entry(uint32_t pool, int32_t i) { return (PoolE *)(pool + 0x18 * i); }
 
-	// first free entry (flags 0) of a pool, or -1 (none / index >= max)
 	static int32_t FreeSlot(uint32_t pool, uint32_t end, int32_t max)
 	{
 		int32_t i = 0;
@@ -267,14 +190,12 @@ namespace blast164
 		return i >= max ? -1 : i;
 	}
 
-	// the type's entries of a pool freed (a task's end)
 	static void ClearType(uint32_t pool, uint32_t end, uint32_t type)
 	{
 		for (uint32_t a = pool; a < end; a += 0x18)
 			if (*(const uint8_t *)a & type) *(uint32_t *)a = 0;
 	}
 
-	// task end test of the counters: 2 when c >= limit
 	static inline uint32_t EndAt(int16_t c, int16_t limit) { return c >= limit ? TASK_END : 0; }
 }
 }
@@ -287,9 +208,6 @@ namespace ff8fx
 {
 namespace blast164
 {
-	// ------------------------------------------------------------------
-	// Prim-model renderer 0x5F2240 (= Griever death's 0x623240, gu066::RenderModel): eight primitive lists
-	// ------------------------------------------------------------------
 	static inline bool OutX(uint32_t xy) { int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
 	static inline bool OutY(uint32_t xy) { int16_t v = *(const int16_t *)(xy + 2); return v < 0 || v > 0x6C0; }
 
@@ -317,7 +235,6 @@ namespace blast164
 
 	static inline uint32_t Bucket(uint32_t ot, const RenderHeader *h, int32_t shift) { return ot + (uint32_t)(h->otz >> shift) * 4; }
 
-	// the flat / flat-textured lists' common steps: depth cue of the flat colour word
 	static inline void FlatDepthCue(RenderHeader *h, uint32_t pkt)
 	{
 		if (h->flags & 0x40)
@@ -329,7 +246,6 @@ namespace blast164
 		}
 	}
 
-	// Flat triangles (0x5F2380): 0xC-byte records (vertex indices +4/+6/+8) -> POLY_F3 (0x14)
 	static uint32_t ListF3(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -384,7 +300,6 @@ namespace blast164
 		return pkt;
 	}
 
-	// Flat quads (0x5F2590): 0xC-byte records (vertex indices +4/+6/+8/+0xA) -> POLY_F4 (0x18)
 	static uint32_t ListF4(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -444,7 +359,6 @@ namespace blast164
 		return pkt;
 	}
 
-	// Flat textured triangles (0x5F2820): 0x14-byte records -> POLY_FT3 (0x20)
 	static uint32_t ListFT3(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -503,7 +417,6 @@ namespace blast164
 		return pkt;
 	}
 
-	// Flat textured quads (0x5F2A80): 0x18-byte records -> POLY_FT4 (0x28)
 	static uint32_t ListFT4(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -569,7 +482,6 @@ namespace blast164
 		return pkt;
 	}
 
-	// Gouraud triangles (0x5F2D30): 0x14-byte records -> POLY_G3 (0x1C)
 	static uint32_t ListG3(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -639,7 +551,6 @@ namespace blast164
 		return pkt;
 	}
 
-	// Gouraud quads (0x5F3030): 0x18-byte records -> POLY_G4 (0x24)
 	static uint32_t ListG4(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -719,7 +630,6 @@ namespace blast164
 		return pkt;
 	}
 
-	// Gouraud textured triangles (0x5F33D0) -> POLY_GT3 (0x28)
 	static uint32_t ListGT3(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -793,7 +703,6 @@ namespace blast164
 		return pkt;
 	}
 
-	// Gouraud textured quads (0x5F36F0) -> POLY_GT4 (0x34)
 	static uint32_t ListGT4(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -879,8 +788,6 @@ namespace blast164
 		return pkt;
 	}
 
-	// Prim-model renderer (0x5F2240): header h, OT, OT shift, packet cursor; the eight lists in order (an empty list is
-	// one zero word)
 	static uint32_t RenderModel(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t fl = h->flags;
@@ -898,9 +805,6 @@ namespace blast164
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Weapon bone (0x5F0A90 / 0x5F0A10: Renzokuken's 0x5FFF60 / 0x5FFEE0)
-	// ------------------------------------------------------------------
 	static void BoneFrame(uint8_t *anim_header, int32_t bone, int32_t *dir, int16_t *pos)
 	{
 		const uint8_t *sk = *(uint8_t **)*(uint8_t **)(anim_header + 4);
@@ -921,7 +825,7 @@ namespace blast164
 		uint8_t *w = *(uint8_t **)(entity + 0x78);
 		if (!w) return;
 		BoneFrame(w, bone, dir, pos);
-		Mat4x3 m; // (pad +0x12: ComposeAffineTransform's)
+		Mat4x3 m;
 		ComposeAffineTransform((const Mat4x3 *)(entity + 0x40), (const Mat4x3 *)(w + 0x24), &m);
 		TransformVectorBy3x3Matrix(&m, dir, dir);
 		Normalize(dir, dir);
@@ -931,17 +835,15 @@ namespace blast164
 		pos[2] = (int16_t)(pos[2] + (int16_t)m.t[2]);
 	}
 
-	// 0x5F0990: the blade tip point = the weapon's bone 1 + 380 along the blade
 	static void SetTipPoint()
 	{
-		int32_t dir[4]; // (4th word never written)
+		int32_t dir[4];
 		WeaponBone(Caster(), 1, dir, (int16_t *)POINT);
 		var<int16_t>(POINT) = (int16_t)(var<int16_t>(POINT) + (int16_t)(mul32(dir[0], 380) >> 12));
 		var<int16_t>(POINT + 2) = (int16_t)(var<int16_t>(POINT + 2) + (int16_t)(mul32(dir[1], 380) >> 12));
 		var<int16_t>(POINT + 4) = (int16_t)(var<int16_t>(POINT + 4) + (int16_t)(mul32(dir[2], 380) >> 12));
 	}
 
-	// 0x5F0950 / 0x5F0970: the four stage groups' flag bit 1 set (hidden) / cleared (shown)
 	static void StageGroupsHide()
 	{
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2;
@@ -951,12 +853,8 @@ namespace blast164
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) &= 0xFD;
 	}
 
-	// ------------------------------------------------------------------
-	// Spawners (called by the director)
-	// ------------------------------------------------------------------
 	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), fn); }
 
-	// 0x5F0930: a task with counter / word +0xE cleared
 	static void AddCleared(uint32_t fn)
 	{
 		Node24 *t = AddMain(fn);
@@ -964,7 +862,6 @@ namespace blast164
 		t->e = 0;
 	}
 
-	// 0x5F0B10
 	static void AddFlareA()
 	{
 		Node24 *t = AddMain(ORIG_FlareA);
@@ -977,7 +874,6 @@ namespace blast164
 		t->w1C = 0x3A0;
 	}
 
-	// 0x5F0CB0
 	static void AddFlareB()
 	{
 		Node24 *t = AddMain(ORIG_FlareB);
@@ -989,7 +885,6 @@ namespace blast164
 		t->w1C = 0x1800;
 	}
 
-	// 0x5F1440: 4 rings at the tip point (y 0), delayed rand % 8 + i ticks
 	static void AddRings()
 	{
 		for (int32_t i = 0; i < 4; i++)
@@ -1009,7 +904,6 @@ namespace blast164
 		}
 	}
 
-	// 0x5F1E00: the ball at the tip point, lifted by the caster's size
 	static void AddBall()
 	{
 		Node24 *t = AddMain(ORIG_Ball);
@@ -1021,7 +915,6 @@ namespace blast164
 		t->w1C = 0x80;
 	}
 
-	// 0x5F1F40: the effect-frame model (0, -900, 0)
 	static void AddFrameModel()
 	{
 		Node24 *t = AddMain(ORIG_FrameModel);
@@ -1033,7 +926,6 @@ namespace blast164
 		t->w1C = 0x300;
 	}
 
-	// 0x5F20D0
 	static void AddDome()
 	{
 		Node24 *t = AddMain(ORIG_Dome);
@@ -1046,7 +938,6 @@ namespace blast164
 		t->w20 = 0x2000;
 	}
 
-	// 0x5F3AE0
 	static void AddDome2()
 	{
 		Node24 *t = AddMain(ORIG_Dome2);
@@ -1059,7 +950,6 @@ namespace blast164
 		t->w22 = 0x1AA;
 	}
 
-	// 0x5F3C70: the beam above the tip point, 8 rocks around it at heights -i * 700
 	static void AddPillars()
 	{
 		Node24 *t = AddMain(ORIG_Beam);
@@ -1089,7 +979,6 @@ namespace blast164
 		}
 	}
 
-	// 0x5F4090: 6 debris at heights -i * 900, delayed 3 i ticks
 	static void AddDebris()
 	{
 		for (int32_t i = 0; i < 6; i++)
@@ -1112,7 +1001,6 @@ namespace blast164
 		}
 	}
 
-	// 0x5F44A0
 	static void AddScreenFlash()
 	{
 		Node24 *t = AddMain(ORIG_ScreenFlash);
@@ -1124,7 +1012,6 @@ namespace blast164
 		t->w22 = 0x12;
 	}
 
-	// 0x5F46A0: 4 morphs, delayed 2 i ticks, fades 0 / 0x800 / 0xA00 / 0xC00
 	static void AddMorphs()
 	{
 		for (int32_t i = 0; i < 4; i++)
@@ -1143,7 +1030,6 @@ namespace blast164
 		}
 	}
 
-	// 0x5F4940
 	static void AddRingFlat()
 	{
 		Node24 *t = AddMain(ORIG_RingFlat);
@@ -1157,7 +1043,6 @@ namespace blast164
 		t->w1C = 0x60;
 	}
 
-	// 0x5F4B00
 	static void AddRingFlat2()
 	{
 		Node24 *t = AddMain(ORIG_RingFlat2);
@@ -1171,7 +1056,6 @@ namespace blast164
 		t->w1C = 0x10A;
 	}
 
-	// 0x5F4F70
 	static void AddBladeGlow()
 	{
 		Node24 *t = AddMain(ORIG_BladeGlow);
@@ -1180,7 +1064,6 @@ namespace blast164
 		t->w20 = 0x1E00;
 	}
 
-	// 0x5F53F0
 	static void AddWave()
 	{
 		Node24 *t = AddMain(ORIG_Wave);
@@ -1192,7 +1075,6 @@ namespace blast164
 		t->w20 = 0x2000;
 	}
 
-	// 0x5F5580
 	static void AddWave2()
 	{
 		Node24 *t = AddMain(ORIG_Wave2);
@@ -1206,9 +1088,6 @@ namespace blast164
 		t->w20 = 0x400;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5F0430)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -1220,7 +1099,6 @@ namespace blast164
 		GteSetIR0(ir0);
 		GteDPCS();
 		GteStoreRGB2(&Colour());
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_director(n);)
 		if (UpdateFlags() & 0x201)
 		{
@@ -1343,10 +1221,6 @@ namespace blast164
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Single models
-	// ------------------------------------------------------------------
-	// prim-model header (0x58) of the single models: model, far colour 0, mode 0x33 / 0xF3 with the fade
 	static uint8_t *ModelHeader(uint32_t model, bool fade_on, int32_t fade)
 	{
 		uint8_t *h = AllocHeader(0x58);
@@ -1361,10 +1235,9 @@ namespace blast164
 		return h;
 	}
 
-	// model matrix of the world models: angles (ax, yaw, 0), translation (x, y, z), scale (sx, sy, sz), through `view`
 	static void WorldMatrix(Mat4x3 *m, int16_t ax, int16_t yaw, const int16_t *pos, int32_t sx, int32_t sy, int32_t sz, const Mat4x3 *view)
 	{
-		int16_t ang[4]; // (4th word never written)
+		int16_t ang[4];
 		ang[0] = ax;
 		ang[1] = yaw;
 		ang[2] = 0;
@@ -1382,7 +1255,6 @@ namespace blast164
 		GteSetTransVector(m);
 	}
 
-	// camera-facing models (TransformCameraByShadowRotation at pos, scale s, offset off), turned about z by `roll`, scaled
 	static void FacingMatrix(Mat4x3 *m, int16_t roll, int32_t scale, const int16_t *pos, int16_t s, int32_t off)
 	{
 		int16_t ang[4];
@@ -1399,10 +1271,9 @@ namespace blast164
 		GteSetRotMatrix(m);
 	}
 
-	// FlareA (0x5F0B70): camera-facing, turned about z, growing, fading from tick 8
 	static void FlareADraw(const Node24 *n, int16_t roll, int16_t scale, int32_t c, int32_t fade)
 	{
-		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 high half only)
+		Mat4x3 m = {};
 		FacingMatrix(&m, roll, scale, &n->w10, scale, -(scale >> 4));
 		uint8_t *h = ModelHeader(MODEL_FLAREA, c >= 8, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
@@ -1412,7 +1283,6 @@ namespace blast164
 	static uint32_t __cdecl FlareATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_FlareA, n);)
 		FlareADraw(n, n->w18, n->w1C, n->c, mul32(n->c - 8, 682));
 		if (DrawOnly()) return 0;
@@ -1424,11 +1294,10 @@ namespace blast164
 		return EndAt(n->c, 0xE);
 	}
 
-	// FlareB (0x5F0D10): camera-facing, scaled at +angle, then unscaled at -angle (the same header); fading in up to 8
 	static void FlareBDraw(const Node24 *n, int16_t roll, int16_t scale, int32_t c, int32_t fade)
 	{
 		Mat4x3 m = {};
-		int16_t ang[4] = {}; // (4th word never written)
+		int16_t ang[4] = {};
 		ang[2] = roll;
 		ComposeZYXRotationMatrix(ang, &m);
 		int32_t sv[3];
@@ -1443,7 +1312,7 @@ namespace blast164
 		ang[2] = (int16_t)-roll;
 		ComposeZYXRotationMatrix(ang, &m);
 		GteSetRotMatrix(&m);
-		sv[2] = scale >> 1; // (stored, never read)
+		sv[2] = scale >> 1;
 		sv[0] = scale >> 1;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -1452,7 +1321,6 @@ namespace blast164
 	static uint32_t __cdecl FlareBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_FlareB, n);)
 		FlareBDraw(n, n->w18, n->w1C, n->c, shl32(8 - n->c, 9));
 		if (DrawOnly()) return 0;
@@ -1461,7 +1329,6 @@ namespace blast164
 		return EndAt(n->c, 0x3A);
 	}
 
-	// Ring (0x5F1500): turned about y, scaled (w1C, w20, w1C); fading in up to 6, out from 0x18
 	static void RingDraw(const Node24 *n, int16_t yaw, int16_t sy, int32_t c, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1482,7 +1349,6 @@ namespace blast164
 			n->e--;
 			return 0;
 		}
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Ring, n);)
 		RingDraw(n, n->w18, n->w20, n->c, RingFade(n->c));
 		if (DrawOnly()) return 0;
@@ -1494,7 +1360,6 @@ namespace blast164
 		return EndAt(n->c, 0x28);
 	}
 
-	// PulseA / PulseB (0x5F1800 / 0x5F1970): turned about y, scaled (w1C, w20, w1C), fading from 6 / 4
 	static void PulseDraw(const Node24 *n, int16_t yaw, int16_t sx, int16_t sy, bool fade_on, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1507,7 +1372,6 @@ namespace blast164
 	static uint32_t __cdecl PulseATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_PulseA, n);)
 		PulseDraw(n, n->w18, n->w1C, n->w20, n->c >= 6, shl32(n->c - 6, 9));
 		if (DrawOnly()) return 0;
@@ -1525,7 +1389,6 @@ namespace blast164
 	static uint32_t __cdecl PulseBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_PulseB, n);)
 		PulseDraw(n, n->w18, n->w1C, n->w20, n->c >= 4, shl32(n->c - 4, 9));
 		if (DrawOnly()) return 0;
@@ -1537,7 +1400,6 @@ namespace blast164
 		return EndAt(n->c, 0xC);
 	}
 
-	// Spawner (0x5F16A0): PulseA every 4 ticks (counter % 4 == 1) up to 0x22, PulseB up to 0x24
 	static uint32_t __cdecl SpawnerTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -1575,7 +1437,6 @@ namespace blast164
 		return EndAt(n->c, 0x30);
 	}
 
-	// Ball (0x5F1E70): camera-facing at the tip point lifted by +0x16, growing (faster from 0x12), fading from 0x14
 	static void BallDraw(const Node24 *n, int16_t scale, int32_t c, int32_t fade)
 	{
 		TransformCameraByShadowRotation(&n->w10, scale, -n->w16);
@@ -1587,7 +1448,6 @@ namespace blast164
 	static uint32_t __cdecl BallTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Ball, n);)
 		BallDraw(n, n->w1C, n->c, shl32(n->c - 0x14, 9));
 		if (DrawOnly()) return 0;
@@ -1598,7 +1458,6 @@ namespace blast164
 		return EndAt(n->c, 0x1C);
 	}
 
-	// FrameModel (0x5F1F80): in the effect frame at (w10, w12, w14), scaled w1C, fading from 4
 	static void FrameModelDraw(const Node24 *n, int16_t s, int32_t c, int32_t fade, const Mat4x3 *view)
 	{
 		Mat4x3 m = {};
@@ -1611,7 +1470,6 @@ namespace blast164
 	static uint32_t __cdecl FrameModelTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_FrameModel, n);)
 		FrameModelDraw(n, n->w1C, n->c, mul32(n->c - 4, 682), CamFrame());
 		if (DrawOnly()) return 0;
@@ -1622,7 +1480,6 @@ namespace blast164
 		return EndAt(n->c, 0xA);
 	}
 
-	// Dome / Dome2 (0x5F2120 / 0x5F3B30): model 0xD8C130 through the module's renderer with the pulsing colour
 	static uint32_t DomeDraw(const Node24 *n, int16_t sx, int16_t sy, uint32_t colour, int32_t shift, uint32_t cursor)
 	{
 		Mat4x3 m = {};
@@ -1640,7 +1497,6 @@ namespace blast164
 	static uint32_t __cdecl DomeTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Dome, n);)
 		PacketCursor() = DomeDraw(n, n->w1C, n->w20, Colour(), 3, PacketCursor());
 		if (DrawOnly()) return 0;
@@ -1654,7 +1510,6 @@ namespace blast164
 	static uint32_t __cdecl Dome2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Dome2, n);)
 		FrameArena() = DomeDraw(n, n->w1C, n->w20, Colour(), 2, FrameArena());
 		if (DrawOnly()) return 0;
@@ -1670,12 +1525,10 @@ namespace blast164
 		return EndAt(n->c, 0x28);
 	}
 
-	// Beam (0x5F3DF0): turned about y, scaled (w1C, w20, w1C) into OT + 0x4068 (shift 6), then turned by w1A, x / z scale
-	// - 0x100 (shift 7); the second draw keeps the first's GTE translation
 	static void BeamDraw(const Node24 *n, int16_t yaw1, int16_t yaw2)
 	{
 		Mat4x3 m = {};
-		int16_t ang[4] = {}; // (4th word never written)
+		int16_t ang[4] = {};
 		ang[1] = yaw1;
 		ComposeZYXRotationMatrix(ang, &m);
 		int32_t sv[3];
@@ -1711,7 +1564,6 @@ namespace blast164
 	static uint32_t __cdecl BeamTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Beam, n);)
 		BeamDraw(n, n->w18, n->w1A);
 		if (DrawOnly()) return 0;
@@ -1721,11 +1573,10 @@ namespace blast164
 		return EndAt(n->c, 0x28);
 	}
 
-	// Rock (0x5F3FA0): camera-facing at (w10, w12, w14), turned about y (0 / 0x800), scaled (w1C, w20, 0), drifting in x
 	static void RockDraw(const Node24 *n, const int16_t *pos)
 	{
 		Mat4x3 m = {};
-		int16_t ang[4] = {}; // (4th word never written)
+		int16_t ang[4] = {};
 		ang[1] = n->w18;
 		ComposeZYXRotationMatrix(ang, &m);
 		int32_t sv[3];
@@ -1743,7 +1594,6 @@ namespace blast164
 	static uint32_t __cdecl RockTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Rock, n);)
 		RockDraw(n, &n->w10);
 		if (DrawOnly()) return 0;
@@ -1752,7 +1602,6 @@ namespace blast164
 		return EndAt(n->c, 0x28);
 	}
 
-	// Debris (0x5F4180): turned about y, scaled (w1C, w20, w1C), fading from 0xC
 	static void DebrisDraw(const Node24 *n, int16_t yaw, int16_t sx, int16_t sy, int32_t c, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1771,7 +1620,6 @@ namespace blast164
 			n->e--;
 			return 0;
 		}
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Debris, n);)
 		DebrisDraw(n, n->w18, n->w1C, n->w20, n->c, shl32(n->c - 0xC, 9));
 		if (DrawOnly()) return 0;
@@ -1788,12 +1636,10 @@ namespace blast164
 		return EndAt(n->c, 0x14);
 	}
 
-	// ScreenFlash (0x5F44F0): model 0xD8B880 in view space at (0, w12, word 0x1D8E038), scaled w1C (OT + 0x406C, mode 0xCC,
-	// fade 0x400), then scaled w1C + 0x60 (OT + 0x4068, mode 0xC3, fade (0x50 - counter) << 5; the first's translation)
 	static void ScreenFlashDraw(int16_t y, int16_t s, int32_t fade2)
 	{
 		Mat4x3 m = {};
-		int16_t ang[4] = {}; // (4th word never written)
+		int16_t ang[4] = {};
 		ComposeZYXRotationMatrix(ang, &m);
 		int32_t sv[3];
 		m.t[2] = var<int16_t>(0x1D8E038);
@@ -1829,7 +1675,6 @@ namespace blast164
 	static uint32_t __cdecl ScreenFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_ScreenFlash, n);)
 		ScreenFlashDraw(n->w12, n->w1C, shl32(0x50 - n->c, 5));
 		if (DrawOnly()) return 0;
@@ -1844,13 +1689,10 @@ namespace blast164
 		return EndAt(n->c, 0x3C);
 	}
 
-	// Morph (0x5F4720): camera-facing (the shadow rotation's translation, the diagonal scale (w1C, w20, w1C) as rotation:
-	// kept in 0x23C9DA8 for MorphSpark), the 105 vertices from 0xD8E410 toward 0xD8E760 by t = (counter << 12) / 36 (y
-	// by t - 0x1000, z kept) into `verts`, model 0xD8D918 through the module's renderer, fade w18, the pulsing colour
 	static void MorphMatrix(const Node24 *n, int16_t sy, Mat4x3 *out)
 	{
 		Mat4x3 m = {};
-		int16_t ang[4] = {}; // (4th word never written)
+		int16_t ang[4] = {};
 		ComposeZYXRotationMatrix(ang, &m);
 		int32_t sv[3];
 		sv[2] = n->w1C;
@@ -1904,7 +1746,6 @@ namespace blast164
 			n->e--;
 			return 0;
 		}
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Morph, n);)
 		MorphMatrix(n, n->w20, (Mat4x3 *)MORPH_MAT);
 		MorphVertices(n->c, (uint8_t *)MORPH_VTX);
@@ -1917,7 +1758,6 @@ namespace blast164
 		return n->c >= 0x24 - n->e ? TASK_END : 0;
 	}
 
-	// RingFlat / RingFlat2 (0x5F49B0 / 0x5F4B70): x angle 0x400, turned about y, scaled (w1C, w1C, 0)
 	static void RingFlatDraw(const Node24 *n, uint32_t model, int16_t yaw, int16_t s, bool fade_on, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1930,7 +1770,6 @@ namespace blast164
 	static uint32_t __cdecl RingFlatTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_RingFlat, n);)
 		RingFlatDraw(n, MODEL_RINGFLAT, n->w18, n->w1C, n->c < 4, shl32(4 - n->c, 0xA));
 		if (DrawOnly()) return 0;
@@ -1945,7 +1784,6 @@ namespace blast164
 	static uint32_t __cdecl RingFlat2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_RingFlat2, n);)
 		RingFlatDraw(n, MODEL_RINGFLAT2, n->w18, n->w1C, n->c >= 2, shl32(n->c - 2, 8));
 		if (DrawOnly()) return 0;
@@ -1957,11 +1795,9 @@ namespace blast164
 		return EndAt(n->c, 0x12);
 	}
 
-	// BladeGlow (0x5F4FA0): at the weapon's bone 1, turned from 0xD99C50 to the blade direction, then by the effect
-	// frame (3x3), scaled (w1C, w20, w1C), model 0xD8EAA8 through the module's renderer, fading from 0x39
 	static void BladeGlowDraw(const Node24 *n, const int32_t *dir, const int16_t *pos, uint32_t colour, int32_t c, int32_t fade)
 	{
-		int32_t axis[4] = {}; // (4th word never written)
+		int32_t axis[4] = {};
 		const int32_t angle = RotationBetweenVectors((const int32_t *)GLOW_REF, dir, axis);
 		Mat4x3 m = {};
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
@@ -1994,10 +1830,9 @@ namespace blast164
 	static uint32_t __cdecl BladeGlowTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		int16_t pos[4]; // (4th word never written)
-		int32_t dir[4]; // (4th word never written)
+		int16_t pos[4];
+		int32_t dir[4];
 		WeaponBone(Caster(), 1, dir, pos);
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_glow(n, dir, pos);)
 		BladeGlowDraw(n, dir, pos, Colour(), n->c, shl32(n->c - 0x39, 9));
 		if (DrawOnly()) return 0;
@@ -2005,7 +1840,6 @@ namespace blast164
 		return EndAt(n->c, 0x41);
 	}
 
-	// Wave (0x5F5430): MAG_151's renderer, (w1C, w20, w1C), v scroll counter * 24, fading from 0xE
 	static void WaveDraw(const Node24 *n, int32_t c, int32_t scroll, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -2032,7 +1866,6 @@ namespace blast164
 	static uint32_t __cdecl WaveTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Wave, n);)
 		WaveDraw(n, n->c, mul32(n->c, 24), mul32(n->c - 0xE, 341));
 		if (DrawOnly()) return 0;
@@ -2040,12 +1873,10 @@ namespace blast164
 		return EndAt(n->c, 0x1A);
 	}
 
-	// Wave2 (0x5F55D0): MAG_151's renderer in the effect frame, (0x3800, w20, 0x1000) then (0x3880, w20, 0x10C0) (the
-	// first's translation), v scroll w1C, fading from 0x12
 	static void Wave2Draw(const Node24 *n, int16_t scroll, int16_t sy, int32_t c, int32_t fade, const Mat4x3 *view)
 	{
 		Mat4x3 m = {};
-		int16_t ang[4] = {}; // (4th word never written)
+		int16_t ang[4] = {};
 		ComposeZYXRotationMatrix(ang, &m);
 		int32_t sv[3];
 		sv[0] = 0x3800;
@@ -2088,7 +1919,6 @@ namespace blast164
 	static uint32_t __cdecl Wave2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_node(ORIG_Wave2, n);)
 		Wave2Draw(n, n->w1C, n->w20, n->c, shl32(n->c - 0x12, 9), CamFrame());
 		if (DrawOnly()) return 0;
@@ -2102,10 +1932,6 @@ namespace blast164
 		return EndAt(n->c, 0x1A);
 	}
 
-	// ------------------------------------------------------------------
-	// Pool A: OrbitSpark (0x5F0E80), Swirl (0x5F1190), MorphSpark (0x5F4CC0), BurstSpark (0x5F5120)
-	// ------------------------------------------------------------------
-	// OrbitSpark entry: +0x08 unit direction (s16 x3), +0x0E radius, +0x10 orbit angle, +0x12 angle rate
 	static void OrbitDraw(OrbitWork *w, uint8_t *h, const PoolE *p, int16_t angle)
 	{
 		const int32_t x = p->a[0], y = p->a[1], z = p->a[2];
@@ -2129,7 +1955,6 @@ namespace blast164
 		FrameArena() = InitEffectSequenceFromData(h, RenderOT(), 2, FrameArena());
 	}
 
-	// the sprite pools' light matrix: camera x (identity at (x, y, z)), as BK its translation
 	static void PoolLight(Mat4x3 *m, int16_t *ang, int32_t x, int32_t y, int32_t z, const Mat4x3 *view)
 	{
 		ang[0] = 0;
@@ -2170,7 +1995,6 @@ namespace blast164
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_ORBIT;
 		*(int16_t *)(h + 0x24) = 0;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_OrbitSpark, n, h);)
 		PoolLight(&w->m1, w->pos, PointX(), var<int16_t>(POINT + 2), PointZ(), &Camera());
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
@@ -2196,8 +2020,6 @@ namespace blast164
 		return TASK_END;
 	}
 
-	// Swirl entry: +0x0A v scroll, +0x0C z angle, +0x12 scroll rate, +0x14 angle rate; camera-facing at the tip point
-	// (one shadow rotation for all), turned about z, x scaled by the entry's scale; fading in up to 6, out from 10
 	static void SwirlHeader(uint8_t *h)
 	{
 		*(uint32_t *)(h + 8) = 0;
@@ -2257,7 +2079,6 @@ namespace blast164
 		}
 		uint8_t *h = AllocHeader(0x7C);
 		SwirlHeader(h);
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Swirl, n, h);)
 		TransformCameraByShadowRotation((const void *)POINT, 0x1000, 0);
 		w->v[2] = 0x1000;
@@ -2287,8 +2108,6 @@ namespace blast164
 		return TASK_END;
 	}
 
-	// MorphSpark entry: +0x08 position (the morph's vertex, s16 x4), +0x10 velocity; a TILE dot through the morph's matrix,
-	// colour by life (12 entries), moving, freed at life 0xC (after its last draw's projection)
 	static void MorphSparkSetup(const Mat4x3 *mat)
 	{
 		GteSetRotMatrix(mat);
@@ -2349,7 +2168,6 @@ namespace blast164
 				p->a[6] = (int16_t)(mul32(v[2], s) >> 12);
 			}
 		}
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_MorphSpark, n, nullptr);)
 		MorphSparkSetup((const Mat4x3 *)MORPH_MAT);
 		uint32_t pk = FrameArena();
@@ -2370,7 +2188,6 @@ namespace blast164
 		return TASK_END;
 	}
 
-	// BurstSpark entry: +0x08 position, +0x10 velocity; sequence 0xD999AC through the light matrix at the tip point (y 0)
 	static void SpriteAt(uint8_t *h, const int16_t *pos, int16_t scale, int16_t life)
 	{
 		GteLoadV0(pos);
@@ -2414,7 +2231,6 @@ namespace blast164
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_BURST;
 		*(int16_t *)(h + 0x24) = 0;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_BurstSpark, n, h);)
 		int32_t count = 0;
 		PoolLight(&w->m1, w->ang, PointX(), 0, PointZ(), &Camera());
@@ -2443,10 +2259,6 @@ namespace blast164
 		return count != 0 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Pool B: Shard (0x5F1AC0), Smoke (0x5F57C0); pool C: Starfield (0x5F4330)
-	// ------------------------------------------------------------------
-	// Shard entry: +0x08 x, +0x0C z (on a circle around the tip point), +0x0E y angle, +0x12 y scale, +0x16 its rate
 	static void ShardDraw(ModelWork *w, uint8_t *h, const PoolE *p, int16_t sy, int32_t life, int32_t fade)
 	{
 		w->ang[1] = p->a[3];
@@ -2469,7 +2281,6 @@ namespace blast164
 		FrameArena() = RenderPrimModel(h, RenderOT(), 2, FrameArena());
 	}
 
-	// the shards' frame: camera x (identity at (x, 0, z)); angles 0 / 0 kept for the draws, scale z 0
 	static void ShardFrame(ModelWork *w, const Mat4x3 *view)
 	{
 		w->ang[0] = 0;
@@ -2516,7 +2327,6 @@ namespace blast164
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)h = MODEL_SHARD;
 		*(uint32_t *)(h + 8) = 0;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Shard, n, h);)
 		ShardFrame(w, &Camera());
 		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
@@ -2544,8 +2354,6 @@ namespace blast164
 		return TASK_END;
 	}
 
-	// Smoke entry: +0x08 position in the effect frame (static); sequence 0xD9961C (header +0x24 = 8) through the light
-	// matrix camera x frame at the tip point (y 0), moved toward the camera by scale / 8
 	static void SmokeDraw(ModelWork *w, uint8_t *h, const PoolE *p)
 	{
 		GteLoadV0(&p->a[0]);
@@ -2585,7 +2393,6 @@ namespace blast164
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_SMOKE;
 		*(int16_t *)(h + 0x24) = 8;
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Smoke, n, h);)
 		PoolLight(&w->m1, w->ang, PointX(), 0, PointZ(), CamFrame());
 		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x18)
@@ -2606,7 +2413,6 @@ namespace blast164
 		return TASK_END;
 	}
 
-	// Starfield entry: +0x08 screen x / y, +0x10 TILE 1x1 code + grey colour
 	static uint32_t StarfieldDraw(uint32_t pool, uint32_t pool_end, uint32_t pk)
 	{
 		for (uint32_t a = pool; a < pool_end; a += 0x18)
@@ -2642,7 +2448,6 @@ namespace blast164
 				p->a[5] = (int16_t)(g | 0x6800);
 			}
 		}
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_pool(ORIG_Starfield, n, nullptr);)
 		FrameArena() = StarfieldDraw(POOL_C, POOL_C_END, FrameArena());
 		FieldFree(0x48);
@@ -2653,9 +2458,6 @@ namespace blast164
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Shake (0x5F5A50), Restore (0x5F5AD0), Root (0x5F5B10)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ShakeTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2681,7 +2483,6 @@ namespace blast164
 		RootNode *r = (RootNode *)tn;
 		if (r->c & 1) PacketCursor() = TexBase() + 0x10000;
 		else PacketCursor() = TexBase();
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(held_note_root();)
 		const int alive = ExecuteTaskQueue(QMain());
 		r->c++;
@@ -2723,7 +2524,6 @@ namespace blast164
 		register_port(ORIG_Smoke, (void *)SmokeTask, "164 Smoke", 164);
 		register_port(ORIG_Shake, (void *)ShakeTask, "164 Shake", 164);
 		register_port(ORIG_Restore, (void *)RestoreTask, "164 Restore", 164);
-		// 30 fps layer: see mag164_blasting_zone_held.inc
 		FX_HELD(register_mag164_held();)
 	}
 }

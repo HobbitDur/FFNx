@@ -14,64 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 276: X-ATM092's break-down (enemy attack 145 of kernel.bin, unnamed; X-ATM092 c0m092 at
-// Dollet only, the AI's death section; MAG_276_*). The machine is shaken by sparks and smoke while
-// arcs jump between its parts, five times a group of its bones bursts into flying polygon debris
-// (the bones vanish from the model), then the screen flashes white.
-//
-// Structure (setup MAG_276_UNKNOWN 0x684EE0 -> 0x684F10, file loader 0x684EF0 = the texture file
-// named at 0x10D9928; the setup keeps the CASTER's entity 0x2508278 (clears its flag bit 2), the
-// magic buffer base 0x2508280, the cast context 0x2508288, zeroes the module LCG 0x2508284, sets up
-// the root queue 0x2508318 (1 node of 0x14 bytes, pool 0x2508290) and starts camera animation
-// 0x10D4A78):
-//   RootTask (0x684FA0) - alternates the packet arena (magic buffer +0x4314 / +0x14314, cursor
-//     0x25082A4) on node +0x10; counter 1: music 0x47E3C0(0xF0), the seven queues in the magic
-//     buffer, the director (claims a voice slot for sound 0x10D4C5C) and the arc profile (8 sines,
-//     buffer +0x4304); then every tick: the caster's world bone matrices (0x5095B0), events, arcs,
-//     the caster's bone matrices from its pose (0x508C90), prim models, sparks, falling sparks,
-//     smoke, director. Ends when the director and the arcs are gone.
-//   Director (0x6851F0) - 0x90 ticks: draws and moves up to 0x80 debris polygons (node +0x54, 0x48
-//     bytes each: position, velocity with gravity bouncing at y = 0, a per-tick 3x3 spin matrix,
-//     4 rotated vertex offsets, uv / clut / tpage words) into the module arena, the white screen
-//     (0x7040B0) ramping up over 0x64..0x73, full over 0x74..0x7B, down over 0x7C..0x8F, and up to
-//     0x6C the caster's model itself without the bones listed in node +0xE (entity flag bit 2 set
-//     every tick: the battle renderer skips it); sound 0x10D4C58 on tick 0, the voice slot released
-//     on 0x8C; events on ticks 0, 0xC, 0x26, 0x32, 0x41 (tables 0x10D56A8, 0x10D55A8, 0x10D5528,
-//     0x10D5628, 0x10D5728).
-//   EventTask (0x685CF0) - one table (0x80 bytes): arcs between random triangle pairs of a bone
-//     table for its first ticks, sparks on random vertices of listed bones, smoke from a bone, at
-//     its end tick the listed bones are hidden and burst into debris (0x687150), a prim model at a
-//     bone, an engine screen fade (0x5712C0).
-//   ArcTask (0x686A10) - an arc between two triangles' centres along their normals (a 2-control-
-//     point curve, 8 points, jittered by the shared effect LCG 0x7059E0, amplitude by length), drawn
-//     as gouraud quads into the FRAME arena (0x1D8E054); fades after tick 10, ends when at most one
-//     point is still lit.
-//   PrimTask (0x6860B0) - the shared prim player (0x701970) with callback 0x686120 for 0x10 ticks.
-//   SparkTask (0x6866F0), FallTask (0x686820), SmokeTask (0x686000) - flipbooks (0x10D31C4,
-//     0x10D304C, 0x10D2EA0); sparks throw falling sparks on their tick 5.
-// The module's own LCG 0x2508284 ((125 s + 14) & 0x7FFF, 0x687300) shapes the debris.
-// No task has a draw-only mode (battle_to_update_flags is not tested).
-// Module globals: 0x2508278..0x2508348 (entity, texture file, magic buffer base, LCG, context, root
-// pool, packet cursor, queues 0x25082A8 smoke / 0x25082B8 falling sparks / 0x25082C8 sparks /
-// 0x25082D8 prim models / 0x25082E8 arcs / 0x25082F8 events / 0x2508308 director / 0x2508318
-// root, effect-camera matrix 0x2508328: read by the prim callback, never written).
-// Magic buffer: pools +0..+0x1C30, director +0x1C30 (0x2454), arc profile +0x4304, prim morph
-// scratch +0x4084, packet arenas +0x4314 / +0x14314.
-// Caster data written: entity flags bit 2 (set every director tick), the skeleton's bone
-// visibility words (bone +0x32), bone matrices (0x5095B0 / 0x508C90). Entity position (+0x1C..+0x20)
-// and the battle camera are not written (the camera only through the setup's camera animation).
-//
-// NEVER-WRITTEN STACK WORDS:
-//   - PrimTask's parameter block word +0x14 (entry esp - 0xC) is never written: the callback scales
-//     the record offsets and matrix by the block's scale when it is non-zero. Every table's scale is
-//     0x1000, so both paths draw identically (see PrimScaled).
-//   - The arc draw's joint direction (0x686DB0 local, arc entry esp - 0x6C) is read before it is
-//     written when the first two points project onto one pixel: the arc task's last write there is
-//     its own push of the address of its control point 1 (arc entry esp - 0x38, root entry esp - 0x6C)
-//     in the last curve step (0x686C13), see ArcResidue.
-//   - BonePosition's V0 4th word and the prim callback's offset 4th word only reach the GTE VZ0
-//     high half.
-
 #include "mag_common.h"
 #include <intrin.h>
 
@@ -89,12 +31,11 @@ namespace xatm276
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 
-	// --- module globals ---
-	inline uint32_t &Caster() { return var<uint32_t>(0x2508278); }        // caster entity
-	inline uint32_t &Buffer() { return var<uint32_t>(0x2508280); }        // magic buffer base
-	inline uint32_t &Seed() { return var<uint32_t>(0x2508284); }          // module LCG
+	inline uint32_t &Caster() { return var<uint32_t>(0x2508278); }
+	inline uint32_t &Buffer() { return var<uint32_t>(0x2508280); }
+	inline uint32_t &Seed() { return var<uint32_t>(0x2508284); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25082A4); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }   // frame packet arena cursor
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline TaskQueue *QSmoke() { return (TaskQueue *)0x25082A8; }
 	inline TaskQueue *QFall() { return (TaskQueue *)0x25082B8; }
@@ -116,57 +57,52 @@ namespace xatm276
 
 	static const uint32_t SEQ_Smoke = 0x10D2EA0, SEQ_Fall = 0x10D304C, SEQ_Spark = 0x10D31C4;
 	static const uint32_t PRIM_Model = 0x10D3364;
-	static const uint32_t DEBRIS_Shapes = 0x10D4DA0;   // 7 vectors (triangle 3, quad 4)
-	static const uint32_t ARC_Lengths = 0x10D9728;     // u16 square-root table
-	static const uint32_t ARC_Distance = 0x10D57A8;    // 128 x 128 bytes: screen distance of |dx|, |dy|
+	static const uint32_t DEBRIS_Shapes = 0x10D4DA0;
+	static const uint32_t ARC_Lengths = 0x10D9728;
+	static const uint32_t ARC_Distance = 0x10D57A8;
 	static const void *const SOUND_Start = (const void *)0x10D4C58;
 	static const void *const SOUND_Voice = (const void *)0x10D4C5C;
 	static const uint32_t EVENTS[5] = { 0x10D56A8, 0x10D55A8, 0x10D5528, 0x10D5628, 0x10D5728 };
 
-	// buffer offsets
-	static const uint32_t BUF_PROFILE = 0x4304, BUF_PROFILE_END = 0x4314; // 8 sines
+	static const uint32_t BUF_PROFILE = 0x4304, BUF_PROFILE_END = 0x4314;
 	static const uint32_t BUF_ARENA0 = 0x4314, BUF_ARENA1 = 0x14314;
 	static const uint32_t BUF_MORPH = 0x4084;
 	static const uint32_t BUF_DIRECTOR = 0x1C30;
 
-	// ---- engine functions (original addresses)
 	inline void Music_47E3C0(int32_t v) { fn<void (__cdecl *)(int32_t)>(0x47E3C0)(v); }
 	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
 	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); } // MAG_063_sub_7040B0
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
 	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFA0)(v); }
 	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFC0)(v); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); } // GTE_ReadSXY012_Split
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }   // GTE_ReadOTZ (dword)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }                     // IR = R * V0
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0
-	inline void GteStoreIRVertex(void *after) { fn<void (__cdecl *)(void *)>(0x703EF0)(after); } // sub_703EF0: IR1..3 -> after - 8
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
+	inline void GteStoreIRVertex(void *after) { fn<void (__cdecl *)(void *)>(0x703EF0)(after); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
 	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteSetRotMatrixW(const void *m) { fn<void (__cdecl *)(const void *)>(0x56BAE0)(m); }    // GTE_SetRotMatrix_W
-	inline void GteSetTransVectorW(const void *m) { fn<void (__cdecl *)(const void *)>(0x56BB30)(m); } // GTE_SetTransVector_W
+	inline void GteSetRotMatrixW(const void *m) { fn<void (__cdecl *)(const void *)>(0x56BAE0)(m); }
+	inline void GteSetTransVectorW(const void *m) { fn<void (__cdecl *)(const void *)>(0x56BB30)(m); }
 	inline void GteSetRotCtrl(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x45DE00)(m); }
 	inline void GteSetTransCtrl(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x45DEF0)(m); }
-	// another module's model vertex transform (bone group -> screen vertices with clip flags)
 	inline void TransformGroupScreen(uint32_t *objp, uint32_t *outp, uint32_t s) { fn<void (__cdecl *)(uint32_t *, uint32_t *, uint32_t)>(0x6A2A90)(objp, outp, s); }
-	// triangle (3 vertices of 8 bytes: x, y, z, bone) under the bones: centre and normal
 	inline void TriangleFrame(uint32_t bones, uint32_t tri, void *centre, void *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, void *)>(0x704130)(bones, tri, centre, normal); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }    // sub_56C220
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
 	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }  // MAG_106_sub_7059E0: (125 s + 14) & 0x7FFF
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
 
-	// sub_687300: the module's own LCG
 	static int32_t Rnd()
 	{
 		uint32_t s = Seed();
@@ -178,15 +114,14 @@ namespace xatm276
 		return (int32_t)s;
 	}
 
-	// prim callback parameter block (PrimTask's stack block)
 #pragma pack(push, 1)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 x, y, z, + the scale word
-		int32_t scale[3];  // +0x08
-		int32_t scaled;    // +0x14 never written by the task (see PrimScaled)
-		int32_t depth;     // +0x18 -0x80
-		uint32_t morph;    // +0x1C blended vertex frames (magic buffer +0x4084)
+		int16_t pos[4];
+		int32_t scale[3];
+		int32_t scaled;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(PrimArg) == 0x20, "X-ATM092 prim block");
@@ -203,9 +138,6 @@ namespace ff8fx
 namespace xatm276
 {
 
-	// ------------------------------------------------------------------
-	// Model drawing (the caster with hidden bones)
-	// ------------------------------------------------------------------
 	static inline void CopyVertex(uint32_t s, int32_t off, uint32_t verts, uint16_t index)
 	{
 		const uint32_t v = verts + (uint32_t)(index & 0xFFF) * 8;
@@ -213,9 +145,6 @@ namespace xatm276
 		U32(s, off + 4) = U32(v, 4);
 	}
 
-	// sub_6859D0: the object's textured triangles and quads in the entity's colour (block S: +0x00
-	// polygon cursor, +0x04 vertex buffer, +0x08 / +0x0A triangle / quad counts, +0x14 colour,
-	// +0x1C..+0x3B four vertices, +0x3C NCLIP, +0x44 OTZ)
 	static uint32_t ModelPolygons(uint32_t s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
@@ -304,8 +233,6 @@ namespace xatm276
 		return pk;
 	}
 
-	// sub_685860: every object of the model in the block's mask (+0x18); bone groups of a visible
-	// bone (bone +0x32 == 0) go through the vertex transform, the others' vertices get clip flag 0x10
 	static uint32_t ModelDraw(uint32_t model, uint32_t s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t table = U32(model, 4);
@@ -357,7 +284,6 @@ namespace xatm276
 		return cursor;
 	}
 
-	// sub_685750: the caster's shadow and model without the listed bones (frame arena)
 	static void DrawCaster(uint32_t entity, uint32_t list)
 	{
 		const uint32_t b = (uint32_t)FieldAlloc(0x6C);
@@ -383,10 +309,6 @@ namespace xatm276
 		FieldFree(0x6C);
 	}
 
-	// ------------------------------------------------------------------
-	// Debris (director node +0x54: 0x80 records of 0x48 bytes)
-	// ------------------------------------------------------------------
-	// sub_687A90: a free debris record (from the director's next-free pointer +0x50)
 	static uint32_t AllocDebris(uint32_t node)
 	{
 		uint32_t r = U32(node, 0x50);
@@ -407,10 +329,8 @@ namespace xatm276
 		return r;
 	}
 
-	// UVs half way to their centre (byte arithmetic of 0x687470)
 	static inline uint8_t Shrink(uint32_t v, int32_t avg, int32_t centre_lo) { return (uint8_t)((uint8_t)((int32_t)(v - (uint32_t)avg) >> 1) + (uint8_t)centre_lo); }
 
-	// sub_687470: debris from the polygons of the transformed bones (block S = 0x687150's +0x18)
 	static void SpawnDebris(uint32_t s)
 	{
 		const uint32_t verts = U32(s, 4);
@@ -548,7 +468,6 @@ namespace xatm276
 		} while (k != 0);
 	}
 
-	// sub_687AE0: one bone group's vertices through the bone matrix (world space, +6 = 0)
 	static void TransformGroupWorld(uint32_t *objp, uint32_t *outp)
 	{
 		uint32_t obj = *objp;
@@ -568,8 +487,6 @@ namespace xatm276
 		*outp = out;
 	}
 
-	// sub_687320: the model's objects in the mask (+0x10): groups of the marked bones (bone +0x32 !=
-	// 0) in world space, the others flagged 1; their polygons become debris while the count lasts
 	static void BurstModel(uint32_t model, uint32_t s)
 	{
 		const uint32_t table = U32(model, 4);
@@ -623,9 +540,6 @@ namespace xatm276
 		}
 	}
 
-	// sub_687150: the listed bones burst: 0x40 random orientations (x 2..3) and 0x40 small spins
-	// (x 0.94..0.97) in the packet arena's free space, the bones marked, debris from their polygons
-	// (probability a / 0x8000, at most b pieces, speed mask c)
 	static void Burst(uint32_t entity, uint32_t list, int32_t a, int32_t b, int32_t c)
 	{
 		const uint32_t B = (uint32_t)FieldAlloc(0xAC);
@@ -675,10 +589,6 @@ namespace xatm276
 		FieldFree(0xAC);
 	}
 
-	// ------------------------------------------------------------------
-	// Bone / vertex positions
-	// ------------------------------------------------------------------
-	// sub_6870D0: a point on the caster's bone (its parent's length word x scale along z)
 	static void BonePosition(int32_t bone, int32_t scale, void *out)
 	{
 		const uint32_t sk = U32(U32(Caster(), 0x64), 0) + 0x10;
@@ -688,7 +598,7 @@ namespace xatm276
 		v[1] = 0;
 		if (S16(rec, 0) >= 0) v[2] = (int16_t)(mul32(S16(sk, (int32_t)S16(rec, 0) * 0x30 + 2), scale) >> 12);
 		else v[2] = 0;
-		v[3] = 0; // never written in the original: only loaded into the GTE VZ0 high half
+		v[3] = 0;
 		GteSetRotMatrixW((const void *)(rec + 0x10));
 		GteSetTransVectorW((const void *)(rec + 0x10));
 		GteLoadV0(v);
@@ -696,7 +606,6 @@ namespace xatm276
 		GteStoreIR123(out);
 	}
 
-	// sub_6865B0: number of vertices of the bone's groups
 	static int32_t BoneVertexCount(uint32_t entity, int32_t bone)
 	{
 		const uint32_t base = U32(U32(entity, 0x64), 4);
@@ -726,7 +635,6 @@ namespace xatm276
 		return total;
 	}
 
-	// sub_686610: vertex `index` of the bone's groups through its bone matrix
 	static void BoneVertex(uint32_t entity, int32_t bone, int32_t index, void *out)
 	{
 		const uint32_t model = U32(entity, 0x64);
@@ -766,18 +674,9 @@ namespace xatm276
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Arcs
-	// ------------------------------------------------------------------
-	// The arc task's push of its control point 1's address (arc entry esp - 0x38, 0x686C13) is the
-	// last write at the draw's joint-direction local before the draw (see the module comment). The
-	// game's executor calls every arc at one esp: the root's entry esp - 0x34 (the root keeps two
-	// registers and its pushed 0x5095B0 / queue arguments, the executor four registers + the node).
-	static uint32_t g_root_esp = 0;     // RootTask's entry esp (its return address slot)
+	static uint32_t g_root_esp = 0;
 	static inline uint32_t ArcResidue() { return g_root_esp - 0x34 - 0x38; }
 
-	// sub_686F40: a point's ribbon edge (+0 / +8: screen point -/+ the half-width normal); the joint
-	// direction `dir` is the unit normal of this edge averaged with the previous one
 	static void ArcEdge(uint32_t p, uint32_t next, int16_t *prev, int16_t *out)
 	{
 		if (S16(p, 4) < 0) return;
@@ -848,8 +747,6 @@ namespace xatm276
 		S16(p, 2) = (int16_t)(y - oy);
 	}
 
-	// sub_686DB0: the 8 points (16 bytes: x, y, z, width, edge, brightness) projected, their
-	// ribbon edges, 7 gouraud textured quads into the frame arena
 	static void ArcDraw(uint32_t pts, uint32_t residue)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -896,8 +793,6 @@ namespace xatm276
 		}
 	}
 
-	// ArcTask (0x686A10), node 0x4C bytes: +0x0C counter, +0x0E amplitude shift, +0x0F fade shift,
-	// +0x10 / +0x14 the two triangles, +0x18 model, +0x1C 8 points (width, brightness, 0)
 	static uint32_t __cdecl ArcTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
@@ -985,7 +880,6 @@ namespace xatm276
 			S16(q, 2) = (int16_t)(S16(q, 2) + (mul32(SharedRand() - 0x4000, e) >> 18));
 			S16(q, 4) = (int16_t)(S16(q, 4) + (mul32(SharedRand() - 0x4000, e) >> 18));
 		}
-		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_arc(n, b, ArcResidue());)
 		ArcDraw(b, ArcResidue());
 		FieldFree(0x80);
@@ -1006,8 +900,6 @@ namespace xatm276
 		return 0;
 	}
 
-	// sub_6868D0: an arc between triangles i and j of the table unless their sums are closer than
-	// 0x100 on every axis
 	static int32_t SpawnArc(uint32_t model, uint32_t table, int32_t i, int32_t j, uint8_t amp_shift, uint8_t fade_shift)
 	{
 		const uint32_t a = table + (uint32_t)(i * 0x18), b = table + (uint32_t)(j * 0x18);
@@ -1039,10 +931,6 @@ namespace xatm276
 		return 1;
 	}
 
-	// ------------------------------------------------------------------
-	// Sprites
-	// ------------------------------------------------------------------
-	// a smoke / falling spark node's flipbook (frame = counter / 2)
 	static void DrawMoving(uint32_t n, uint32_t seq)
 	{
 		const uint32_t h = (uint32_t)AllocHeader(0xB4);
@@ -1055,11 +943,9 @@ namespace xatm276
 		FieldFree(0xB4);
 	}
 
-	// SmokeTask (0x686000), node 0x1C: +0x0C position, +0x12 counter, +0x14 velocity, +0x1A size
 	static uint32_t __cdecl SmokeTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
-		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_sprite(SPR_SMOKE, n);)
 		DrawMoving(n, SEQ_Smoke);
 		const int16_t vy = S16(n, 0x16);
@@ -1070,11 +956,9 @@ namespace xatm276
 		S16(n, 0x16) = (int16_t)(vy + 0x10);
 		return S16(n, 0x12) < 0x10 ? 0 : TASK_END;
 	}
-	// FallTask (0x686820), node 0x1C: as the smoke, gravity -5, 0x1C ticks
 	static uint32_t __cdecl FallTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
-		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_sprite(SPR_FALL, n);)
 		DrawMoving(n, SEQ_Fall);
 		const int16_t vy = S16(n, 0x16);
@@ -1086,7 +970,6 @@ namespace xatm276
 		return S16(n, 0x12) < 0x1C ? 0 : TASK_END;
 	}
 
-	// a spark node's flipbook (frame = counter)
 	static void DrawSpark(uint32_t n)
 	{
 		const uint32_t h = (uint32_t)AllocHeader(0xB4);
@@ -1099,12 +982,9 @@ namespace xatm276
 		FieldFree(0xB4);
 	}
 
-	// SparkTask (0x6866F0), node 0x18: +0x0C frame, +0x0E frame step, +0x0F falling sparks (count |
-	// first frame << 4), +0x10 position, +0x16 size; on frame 5 the falling sparks
 	static uint32_t __cdecl SparkTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
-		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_sprite(SPR_SPARK, n);)
 		DrawSpark(n);
 		if (S16(n, 0xC) == 5)
@@ -1131,7 +1011,6 @@ namespace xatm276
 		return S16(n, 0xC) < 0xE ? 0 : TASK_END;
 	}
 
-	// sub_686510: `count` sparks on random vertices of the bone
 	static void SpawnSparks(int32_t bone, int32_t size, int32_t step, int32_t count, uint8_t falling)
 	{
 		const int32_t n = BoneVertexCount(Caster(), bone);
@@ -1148,15 +1027,8 @@ namespace xatm276
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Prim models
-	// ------------------------------------------------------------------
-	// PrimTask's block word +0x14 is never written; non-zero = the callback scales by the block's
-	// scale. The scale is 0x1000 for every table (identity), so both paths draw the same.
 	static inline int32_t PrimScaled() { return 0; }
 
-	// Prim-player callback (0x686120): one object of the model (Flare's 0x6BC4A0 without the depth
-	// quartering of its objects 2 / 3)
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -1281,7 +1153,6 @@ namespace xatm276
 		FieldFree(0x58);
 	}
 
-	// PrimTask (0x6860B0), node 0x13C: +0x0C counter, +0x0E position, +0x14 scale, +0x18 layout
 	static uint32_t __cdecl PrimTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
@@ -1294,23 +1165,12 @@ namespace xatm276
 		a.scaled = PrimScaled();
 		a.depth = -0x80;
 		a.morph = Buffer() + BUF_MORPH;
-		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_prim(n, &a);)
 		prim::play((prim::Layout *)(n + 0x18), PrimCallback, (int)&a, 0);
 		S16(n, 0xC)++;
 		return S16(n, 0xC) < 0x10 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Events
-	// ------------------------------------------------------------------
-	// EventTask (0x685CF0), node 0x14: +0x0C tick (dword), +0x10 table:
-	//   +0x00 arc ticks, +0x01 arcs per tick, +0x02 end tick, +0x03 fade tick (0xFF none) + rgb
-	//   +0x04..+0x06, +0x08 prim model tick, +0x09 its bone, +0x0A bone scale, +0x0C model scale,
-	//   +0x0E burst probability (0 none), +0x10 burst count, +0x12 burst speed mask, +0x14 smoke
-	//   bone (0xFF none), +0x15 non-zero: the task outlives its end tick (its sparks' falling
-	//   sparks), +0x16 bone list (6 bytes: bone | 0x80 = not hidden, spark delay, size, end size,
-	//   probability, start size; 0xFF ends), +0x78 triangle count, +0x7C triangle table
 	static uint32_t __cdecl EventTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
@@ -1386,7 +1246,6 @@ namespace xatm276
 		return 0;
 	}
 
-	// sub_685CC0
 	static void SpawnEvent(uint32_t table)
 	{
 		const uint32_t n = (uint32_t)AddTaskToQueue(QEvent(), ORIG_EventTask);
@@ -1395,16 +1254,9 @@ namespace xatm276
 		U32(n, 0x10) = table;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x6851F0), node 0x2454: +0x0C counter, +0x0E hidden bone list (0x37 bytes, 0xFF),
-	// +0x48 list end, +0x4C voice slot, +0x50 next free debris, +0x54 debris (0x80 x 0x48: +0x00
-	// position, +0x06 kind 1 triangle / 2 quad, +0x08 velocity, +0x0E ticks left, +0x10 spin 3x3,
-	// +0x24 / +0x2A / +0x30 / +0x36 vertex offsets, +0x3C / +0x40 / +0x44 / +0x46 uv words)
-	// ------------------------------------------------------------------
 	static inline bool OffX(int16_t v) { return v < 0 || v > 0xA00; }
 	static inline bool OffY(int16_t v) { return v < 0 || v > 0x6C0; }
 
-	// the debris polygons into the module arena
 	static void DrawDebris(uint32_t node)
 	{
 		int16_t *v = (int16_t *)FieldAlloc(8);
@@ -1471,7 +1323,6 @@ namespace xatm276
 		FieldFree(8);
 	}
 
-	// the white screen level of a director tick (0 = none)
 	static void DrawWhite(int32_t c)
 	{
 		uint32_t cur;
@@ -1482,7 +1333,6 @@ namespace xatm276
 		if (c >= 0x74 && c < 0x7C) PacketCursor() = Tile(0xFF, 0xFF, 0xFF, 0x1000, cur);
 	}
 
-	// moves the debris (after the draw)
 	static void MoveDebris(uint32_t node)
 	{
 		uint32_t r = node + 0x54;
@@ -1526,7 +1376,6 @@ namespace xatm276
 	{
 		const uint32_t n = (uint32_t)t;
 		if (S16(n, 0xC) >= 0x90) return TASK_END;
-		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_director(n);)
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
@@ -1550,9 +1399,6 @@ namespace xatm276
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x684FA0), node 0x14: +0x0C counter, +0x0F started, +0x10 arena parity
-	// ------------------------------------------------------------------
 	static void Start()
 	{
 		Music_47E3C0(0xF0);
@@ -1586,7 +1432,6 @@ namespace xatm276
 			PacketCursor() = Buffer() + BUF_ARENA1;
 			U32(n, 0x10) = 1;
 		}
-		// 30 fps layer: see mag276_xatm092_death_held.inc
 		FX_HELD(held_note_root();)
 		if (S16(n, 0xC) == 1 && U8(n, 0xF) == 0)
 		{

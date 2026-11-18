@@ -14,47 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 301: Gargantua's burrow (enemy attack 265 of kernel.bin, no name; Gargantua c0m094; MAG_301_*).
-//
-// Structure (setup 0x66D8E0 -> _Init 0x66D910, file loader 0x66D8F0 = mag300.tim (name at 0x103DCA0) into 0x25076D8; _Init
-// queues the TIM, keeps the context (0x25076DC) and the CASTER's entity (0x25076E0, its word +0 in 0x2507740, never read
-// again), keeps the words +0 of the party entities 0 / 1 / 2 (0x2507744 / 48 / 4C) and sets their bit 2, sets bits 2 / 3 of
-// the caster's word +0, sets up the root queue 0x2507718 (pool 0x2507728, 1 x 0x14) and starts camera animation 0x103DB5C):
-//   RootTask (0x66D9F0) - alternates the packet arena (magic buffer + 0x6204 / + 0x16204), sets bits 2 / 3 of the caster's
-//     word +0; on counter 1 (once) sets up the pools (master 1 x 0xE14 at the magic buffer, rocks 0x20 x 0x1C at + 0xE14,
-//     dust 0x20 x 0x18 at + 0x1194) and starts the master: voice slot 0x103BBD8, layout 0x103D46C, the caster's default effect
-//     position (y = 0), the caster's colour +0x2C kept, an empty ground-mark table. Then the master, rock and dust queues; when
-//     the master queue is empty: bit 2 of the party entities' words put back, bits 2 / 3 of the caster's word cleared, the end.
-//   MasterTask (0x66DBD0) - counters 1..141. The caster's bit 3 cleared every tick. Counters 1..121: the layout at the
-//     position (prim player, callback 0x66DD50), the caster's bit 2 set, the caster's body redrawn by the module (0x66E300:
-//     polygons whose three / four vertices all lie below the ground line y > 0x40 are left out; polygons crossing it leave a
-//     ground mark at their centre every 8th polygon); counters 1..101: the rocks and dust puffs of this tick from the spawn
-//     stream (0x103DC9C: a count, then 10 words per rock / 6 words per puff). From counter 122: bits 2 / 3 of the caster
-//     cleared; counters 122..141 (d = counter - 122): the caster's colour +0x2C = its kept colour faded by
-//     0x1000 - sin((20 - d) x 0x400 / 20) (byte +0x2F = 0x32). Every tick: the ground marks (12 ticks each, flipbook
-//     0x103CFB8). Sound 0x103DC98 at counter 1, the voice slot released at counter 138.
-//   RockTask (0x66EC50) - prim model 0x103D314 at its position, turned by RotX(x angle) x RotY(y angle) (bytes x 16), then
-//     moves by its velocity bytes (x / z x 16, y x 4), bounces (y velocity -v / 2 at or below the ground), falls (y velocity +=
-//     2), spins; 16 ticks.
-//   DustTask (0x66EE60) - sprite sequence 0x103D118 through the shadow-rotation camera (0x1000, -0x400), frame = its counter,
-//     then moves by its velocity bytes; 16 ticks.
-//   PrimCallback (0x66DD50) - one layout object drawn by 0x7043B0 (header 0x58): vertex frame (or blend into the block's
-//     buffer), rotation from the record's angles, at the block's point + the record's offset, through the camera, scale, fade.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update); the master spawns its rocks / puffs after its
-// layout and body draws (they draw in the same tick), the marks after the body draw spawned this tick's marks.
-// ENTITY WRITES: the caster's word +0 bits 2 / 3, its world bone matrices (0x5095B0) and bone matrices from its pose (0x508C90)
-// on every body draw, its colour +0x2C / +0x2F (counters 122..141); bit 2 of the words +0 of the party entities 0..2 (put
-// back at the end). No position word is written.
-// CAMERA: the setup's camera animation 0x103DB5C (engine); no camera word is written by the tasks.
-// Module globals: 0x25076D8..0x2507758 (texture file 0x25076D8, context 0x25076DC, caster 0x25076E0, the queues 0x25076E8
-// dust / 0x25076F8 rocks / 0x2507708 master / 0x2507718 root, root pool 0x2507728, packet cursor 0x250773C, the kept words
-// 0x2507740..0x250774C, magic buffer base 0x2507754). Exe data the module writes: the spawn stream pointer 0x103DC9C
-// (0x103BD00 at start; it is never put back: a second cast reads on past the 101 ticks of the stream).
-// MAGIC BUFFER: + 0x1494 = the layout's blended vertex frames AND the body's vertex buffer (16 bytes per vertex).
-// STACK WORDS: the mark sprites' draw (0x66E090) keeps the bucket of its last inserted sprite in its own `mode` argument
-// slot: the next sprite's depth is shifted by it (and 31). The 4th words of the vectors loaded into GTE V0 (the record offset,
-// the dust position) reach the GTE's VZ0 high half (0x1CA8A16) only.
+// Effect 301: Gargantua's burrow
 
 #include "mag_common.h"
 
@@ -65,50 +25,47 @@ namespace burrow301
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25076DC); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25076E0); }        // caster entity (setup)
-	inline TaskQueue *QDust() { return (TaskQueue *)0x25076E8; }           // pool: + 0x1194, 0x20 x 0x18
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x25076F8; }          // pool: + 0xE14, 0x20 x 0x1C
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2507708; }         // pool: magic buffer, 1 x 0xE14
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x25076E0); }
+	inline TaskQueue *QDust() { return (TaskQueue *)0x25076E8; }
+	inline TaskQueue *QRocks() { return (TaskQueue *)0x25076F8; }
+	inline TaskQueue *QMaster() { return (TaskQueue *)0x2507708; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250773C); }
-	inline uint16_t &PartyWord(int i) { return var<uint16_t>(0x2507744 + i * 4); } // the party entities' words +0 (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507754); }        // Magic_TextureOFF (magic buffer)
-	inline uint8_t *&Stream() { return var<uint8_t *>(0x103DC9C); }        // spawn stream (exe data)
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
+	inline uint16_t &PartyWord(int i) { return var<uint16_t>(0x2507744 + i * 4); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2507754); }
+	inline uint8_t *&Stream() { return var<uint8_t *>(0x103DC9C); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_RootTask = 0x66D9F0;
 	static const uint32_t ORIG_MasterTask = 0x66DBD0;
 	static const uint32_t ORIG_RockTask = 0x66EC50;
 	static const uint32_t ORIG_DustTask = 0x66EE60;
-	static const uint32_t ORIG_PrimCallback = 0x66DD50;  // not a task: the layout's callback
+	static const uint32_t ORIG_PrimCallback = 0x66DD50;
 	static const uint32_t POOL_Rocks = 0xE14, POOL_Dust = 0x1194;
-	static const uint32_t VERTS = 0x1494;               // magic buffer: blended vertex frames / the body's vertices
-	static const uint32_t ARENA_A = 0x6204, ARENA_B = 0x16204; // magic buffer: packet arenas
-	static const uint32_t MODEL_Layout = 0x103D46C;      // prim-model layout
-	static const uint32_t MODEL_Rock = 0x103D314;        // prim model
-	static const uint32_t SEQ_Dust = 0x103D118;          // sprite sequence
-	static const uint32_t SEQ_Mark = 0x103CFB8;          // mark flipbook: +8 frame count, then the frames' offsets
+	static const uint32_t VERTS = 0x1494;
+	static const uint32_t ARENA_A = 0x6204, ARENA_B = 0x16204;
+	static const uint32_t MODEL_Layout = 0x103D46C;
+	static const uint32_t MODEL_Rock = 0x103D314;
+	static const uint32_t SEQ_Dust = 0x103D118;
+	static const uint32_t SEQ_Mark = 0x103CFB8;
 	static const void *const SOUND_Voice = (const void *)0x103BBD8;
 	static const void *const SOUND_Start = (const void *)0x103DC98;
-	static const int32_t GROUND = 0x40;                 // the body's ground line (y below it: under the ground)
+	static const int32_t GROUND = 0x40;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline uint32_t RenderPrimModel70(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel70(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }                // Effect_RotationYMatrix
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }                // MAG_063_RotationXMatrix
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }  // a.rot = a.rot x b.rot
-	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }   // IR1..3 = 3 x u8
-	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }        // IR1..3 low bytes
-	// software GTE
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
+	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
 	inline void GteWriteDataReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x45D7C0)(value, reg); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // V0 = 3 x u16
-	inline void GteStoreIR123Minus8(void *end) { fn<void (__cdecl *)(void *)>(0x703EF0)(end); } // IR1..3 -> end - 8
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
+	inline void GteStoreIR123Minus8(void *end) { fn<void (__cdecl *)(void *)>(0x703EF0)(end); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
@@ -116,71 +73,67 @@ namespace burrow301
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }    // GTE_ReadOTZ (dword)
-	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); } // GTE_LoadIRFromMatrixColumn
-	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }           // GTE_StoreIRToMatrixColumn
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
+	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); } // GTE_LoadV0FromDwords
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2507728)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct Mark // a ground mark (8 bytes)
+	struct Mark
 	{
-		int16_t x, z;      // +0x00 world position (y = 0)
-		int16_t index;     // +0x04 the polygon index that left it
-		int16_t life;      // +0x06 ticks left (12 .. 1; 0 = free)
+		int16_t x, z;
+		int16_t index;
+		int16_t life;
 	};
-	struct MasterNode // pool of 1 node of 0xE14 bytes (magic buffer)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 1..141
+		int16_t counter;
 		int16_t pad0E;
-		uint32_t voice;    // +0x10 voice slot
-		int16_t pos[4];    // +0x14 the caster's default effect position (y = 0)
-		uint8_t layout[0x90]; // +0x1C
-		Mark marks[0x80];  // +0xAC
-		uint8_t index[0x960]; // +0x4AC per polygon index: its mark (0xFF: none; never set by the module)
-		Mark *next;        // +0xE0C next mark slot to try
-		uint32_t colour;   // +0xE10 the caster's colour +0x2C as it was
+		uint32_t voice;
+		int16_t pos[4];
+		uint8_t layout[0x90];
+		Mark marks[0x80];
+		uint8_t index[0x960];
+		Mark *next;
+		uint32_t colour;
 	};
-	struct RockNode // pool of 0x20 nodes of 0x1C bytes
+	struct RockNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t counter;   // +0x12 0..15
-		int8_t vel[3];     // +0x14 x / z x 16, y x 4
-		int8_t gravity;    // +0x17 (2)
-		int8_t angle[2];   // +0x18 x / y (x 16)
-		int8_t spin[2];    // +0x1A
+		int16_t pos[3];
+		int16_t counter;
+		int8_t vel[3];
+		int8_t gravity;
+		int8_t angle[2];
+		int8_t spin[2];
 	};
-	struct DustNode // pool of 0x20 nodes of 0x18 bytes
+	struct DustNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t counter;   // +0x12 flipbook frame, 0..15
-		int8_t vel[3];     // +0x14
-		uint8_t pad17;     // +0x17 (2, unused)
+		int16_t pos[3];
+		int16_t counter;
+		int8_t vel[3];
+		uint8_t pad17;
 	};
-	// the prim-player callback's parameter block (a stack block of the master task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 the effect position (4th word: copied, unused)
-		int32_t depth;     // +0x08 the header's +0x18 (0x100)
-		uint32_t morph;    // +0x0C blended vertex frames
+		int16_t pos[4];
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MasterNode) == 0xE14 && sizeof(RockNode) == 0x1C && sizeof(DustNode) == 0x18, "Gargantua burrow nodes");
@@ -198,11 +151,6 @@ namespace ff8fx
 {
 namespace burrow301
 {
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x66DD50): one object of the layout. Vertex frame (or blend into the block's buffer), rotation
-	// from the record's angles at the block's point + the record's offset, composed with the camera, scale (scale3DMatrix),
-	// fade, drawn by 0x7043B0 (header 0x58; the fields it does not set keep the Field_Alloc scratch)
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -263,20 +211,8 @@ namespace burrow301
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// The body (0x66E300 -> 0x66E3B0 -> 0x66E9C0 / 0x66E4C0): the caster's model drawn by the module
-	// ------------------------------------------------------------------
-	// Work block (Field_Alloc 0x88): +0x00 polygon cursor, +0x04 vertex buffer, +0x08 / +0x0A triangle / quad counts, +0x0C
-	// clip rectangle (x0, y0, x1, y1: x 8 in the test), +0x14 colour word (entity +0x28), +0x18 object mask (entity +0x7C),
-	// +0x1C / +0x2C / +0x3C / +0x4C four vertices (16 bytes: sxy, otz, clip flags +6, ground side +7 (1 above / 2 below),
-	// the world point +8), +0x5C NCLIP, +0x64 OTZ, +0x6C ground line, +0x70 master counter, +0x74 depth limit of the marks
-	// (entity +0x5C - 0x320), +0x78 object cursor, +0x7C bucket table, +0x80 bucket shift, +0x84 vertex cursor.
-
-	// sub_66E930: a ground mark at (x, 0, z) for polygon index i: its mark if it has one (never), else the next free slot
-	// (from the cursor, then from the first slot), nothing when all 128 are in use; 12 ticks
 	static void MarkAt(int32_t x, int32_t z, int32_t i)
 	{
-		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(if (held_no_marks()) return;)
 		uint8_t *base = (uint8_t *)TexBase();
 		const int16_t index = (int16_t)i;
@@ -307,8 +243,6 @@ namespace burrow301
 		e->life = 0xC;
 	}
 
-	// sub_66E9C0: one bone group of vertices: each through the bone matrix (world point at +8), then projected with the camera,
-	// clip-flagged and sided against the ground line
 	static void BodyVertices(uint8_t *s)
 	{
 		uint8_t *p = F<uint8_t *>(s, 0x78);
@@ -370,9 +304,6 @@ namespace burrow301
 		F<uint32_t>(s, off + 0xC) = *(const uint32_t *)(v + 0xC);
 	}
 
-	// sub_66E4C0: the object's textured triangles and quads (each polygon's own semi-transparency bit kept, the code byte of
-	// the colour word or'ed in). A polygon all under the ground is left out; one crossing the ground line leaves a mark at its
-	// centre when (master counter + its index) & 7 is 0 and its first vertex's z is beyond the depth limit
 	static uint32_t BodyPolygons(uint8_t *s, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -484,7 +415,6 @@ namespace burrow301
 		return (uint32_t)pk;
 	}
 
-	// sub_66E3B0: every object of the model the mask shows (bone groups of vertices, then polygons)
 	static uint32_t BodyObjects(const uint8_t *model, uint8_t *s, uint32_t cursor)
 	{
 		const uint8_t *table = *(uint8_t *const *)(model + 4);
@@ -522,8 +452,6 @@ namespace burrow301
 		return cursor;
 	}
 
-	// sub_66E300: the entity's body (+0x64) into the frame arena, its vertices into buf; the world bone matrices of its pose
-	// (0x5095B0) first, its bone matrices rebuilt from its pose (0x508C90) after
 	static void DrawBody(uint8_t *entity, int32_t counter, int32_t ground, uint32_t buf)
 	{
 		uint8_t *s = (uint8_t *)FieldAlloc(0x88);
@@ -545,13 +473,6 @@ namespace burrow301
 		FieldFree(0x88);
 	}
 
-	// ------------------------------------------------------------------
-	// Ground marks (0x66DF20 -> 0x66DFB0 -> 0x66E090)
-	// ------------------------------------------------------------------
-	// sub_66E090: the frame's sprites (0x14-byte records: +0 colour word whose bytes 0 / 2 are also the half width / height,
-	// +4 uv / clut, +8 / +0xA offset (x 16), +0xE tpage, +0x10 / +0x12 scale x / y) as quads around the work block's point
-	// (+0x84 matrix, +0x98 translation), depth (OTZ >> shift) - 0x40; the shift is the `mode` argument, then the last depth
-	// (see STACK WORDS)
 	static uint32_t MarkSprites(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -643,7 +564,6 @@ namespace burrow301
 		return (uint32_t)pk;
 	}
 
-	// sub_66DFB0 (draw): the mark's point (x, 0, z) through the camera, flipbook frame 12 - life
 	static void MarkSprite(uint8_t *h, const Mark *e)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -664,7 +584,6 @@ namespace burrow301
 		PacketCursor() = MarkSprites(h, RenderOT44(), 2, PacketCursor());
 	}
 
-	// sub_66DFB0: draw, then one tick less (a freed mark clears its polygon's entry)
 	static void MarkDraw(uint8_t *h, Mark *e)
 	{
 		MarkSprite(h, e);
@@ -672,10 +591,8 @@ namespace burrow301
 		if (e->life == 0) ((uint8_t *)TexBase())[0x4AC + e->index] = 0xFF;
 	}
 
-	// sub_66DF20: every live mark (work block 0xB4: the identity rotation and the sprite vertices' z words zeroed)
 	static void DrawMarks(MasterNode *m)
 	{
-		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(held_note_marks(m);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint16_t>(h, 0x92) = 0;
@@ -694,9 +611,6 @@ namespace burrow301
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Rock (0x66EC50)
-	// ------------------------------------------------------------------
 	static void RockDraw(const int16_t pos[3], int16_t ax, int16_t ay)
 	{
 		uint8_t *h = AllocHeader(0x98);
@@ -719,7 +633,6 @@ namespace burrow301
 	static uint32_t __cdecl RockTask(TaskNode *n)
 	{
 		RockNode *r = (RockNode *)n;
-		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(held_note_rock(r);)
 		RockDraw(r->pos, (int16_t)(r->angle[0] << 4), (int16_t)(r->angle[1] << 4));
 		r->angle[0] = (int8_t)(r->angle[0] + r->spin[0]);
@@ -733,9 +646,6 @@ namespace burrow301
 		return r->counter < 0x10 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Dust puff (0x66EE60)
-	// ------------------------------------------------------------------
 	static void DustDraw(const int16_t *pos, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
@@ -750,7 +660,6 @@ namespace burrow301
 	static uint32_t __cdecl DustTask(TaskNode *n)
 	{
 		DustNode *d = (DustNode *)n;
-		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(held_note_dust(d);)
 		DustDraw(d->pos, d->counter);
 		d->pos[0] = (int16_t)(d->pos[0] + d->vel[0]);
@@ -760,10 +669,6 @@ namespace burrow301
 		return d->counter < 0x10 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Spawns from the stream (0x66EB10 rocks, 0x66ED70 dust): a count word, then per node its offset from the caster's
-	// position words (+0x54 / +0x58 / +0x5C) and its bytes, one per word
-	// ------------------------------------------------------------------
 	static void SpawnRocks()
 	{
 		uint8_t *g = Stream();
@@ -840,9 +745,6 @@ namespace burrow301
 		} while (--left != 0);
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x66DBD0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
@@ -860,11 +762,9 @@ namespace burrow301
 			ff8fx::copy<(sizeof(arg.pos))>(arg.pos, m->pos);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = 0x100;
-			// 30 fps layer: see mag301_gargantua_burrow_held.inc
 			FX_HELD(held_note_play(m, &arg);)
 			prim::play((prim::Layout *)m->layout, PrimCallback, (int)&arg, 0);
 			*(uint8_t *)Caster() |= 4;
-			// 30 fps layer: see mag301_gargantua_burrow_held.inc
 			FX_HELD(held_note_body(m);)
 			DrawBody(Caster(), c, GROUND, TexBase() + VERTS);
 			if ((uint32_t)c < 0x66)
@@ -894,13 +794,9 @@ namespace burrow301
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x66D9F0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *rn = (RootNode *)n;
-		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(held_note_root();)
 		if (rn->arena)
 		{
@@ -958,7 +854,6 @@ namespace burrow301
 		register_port(burrow301::ORIG_MasterTask, (void *)burrow301::MasterTask, "301 MasterTask", 301);
 		register_port(burrow301::ORIG_RockTask, (void *)burrow301::RockTask, "301 RockTask", 301);
 		register_port(burrow301::ORIG_DustTask, (void *)burrow301::DustTask, "301 DustTask", 301);
-		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(register_mag301_held();)
 	}
 }

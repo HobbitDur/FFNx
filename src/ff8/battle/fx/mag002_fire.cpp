@@ -14,19 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 2: Fire (spell, MAG_002_*).
-//
-// Structure (setup MAG_002_FIRE_Init 0x6298A0, file loader 0x629880 = mag001.tim):
-//   RootTask (0x62A610) - alternates the packet arena, runs the effect queue, ends when it is empty.
-//   Director, one per action: MultiTarget (0x629990, action with several targets) or
-//     SingleTarget (0x62A380, waits until its target is free); at tick 1 spawns flames around
-//     each target, 6 sound, 8 damage, 12 spawns the next action's director, ends at 22.
-//   Flame (0x629C10) - 16-frame flipbook at a fixed position + a ground glow; at its first
-//     drawn frame spawns 4 embers and 10 sparks.
-//   Spark (0x629F90) - shared sprite 5, drifts and decelerates, shrinks.
-//   Ember (0x62A0A0) - 16-frame flipbook rising faster and faster, shrinking.
-// Module globals: 0x24CA818..0x24DFD70 (queues, node pool, packet arenas 0x24CBD6C / 0x24D5D6C,
-// packet cursor 0x24DFD6C) and the per-slot "target free" flags 0xDEE360 (7 x u32, exe data).
+// Effect 2: Fire
 
 #include "mag_common.h"
 
@@ -37,11 +25,10 @@ namespace fire002
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24CA828); } // .first = root, .second = effect queue
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24CA828); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x24CBD60); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24DFD6C); }
-	inline uint32_t *TargetFree() { return (uint32_t *)0xDEE360; }      // [slot]: 1 = no Fire running on it
+	inline uint32_t *TargetFree() { return (uint32_t *)0xDEE360; }
 	static const uint32_t ARENA_EVEN = 0x24CBD6C, ARENA_ODD = 0x24D5D6C;
 
 	static const uint32_t ORIG_RootTask = 0x62A610;
@@ -57,51 +44,48 @@ namespace fire002
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// ------------------------------------------------------------------
-	// Node layouts (pool of 0x96 nodes of 0x24 bytes)
-	// ------------------------------------------------------------------
 	struct RootNode { TaskNode hdr; uint16_t counter; };
 	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t action;   // +0x0E action index
+		int16_t counter;
+		int16_t action;
 		uint8_t pad10[0x10];
-		int16_t slot;     // +0x20 target slot (single-target director)
-		int16_t sub;      // +0x22 ticks since spawn (next action at 12)
+		int16_t slot;
+		int16_t sub;
 	};
 	struct FlameNode
 	{
 		TaskNode hdr;
-		int16_t frame;    // +0x0C flipbook frame
-		int16_t delay;    // +0x0E ticks before the first draw
-		int16_t pos[3];   // +0x10 x, y, z
-		int16_t ground;   // +0x16 target height (glow plane)
+		int16_t frame;
+		int16_t delay;
+		int16_t pos[3];
+		int16_t ground;
 		uint8_t pad18[4];
-		int16_t scale;    // +0x1C
+		int16_t scale;
 		uint8_t pad1E[6];
 	};
 	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t life;     // +0x0C counts down, frame = 9 - life
-		int16_t delay;    // +0x0E
-		int16_t pos[3];   // +0x10
+		int16_t life;
+		int16_t delay;
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t vel[3];   // +0x18
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t scale;    // +0x20
+		int16_t scale;
 		int16_t pad22;
 	};
 	struct EmberNode
 	{
 		TaskNode hdr;
-		int16_t frame;    // +0x0C
-		int16_t delay;    // +0x0E
-		int16_t pos[3];   // +0x10
-		int16_t vel_y;    // +0x16
+		int16_t frame;
+		int16_t delay;
+		int16_t pos[3];
+		int16_t vel_y;
 		uint8_t pad18[4];
-		int16_t scale;    // +0x1C
+		int16_t scale;
 		uint8_t pad1E[6];
 	};
 	static_assert(sizeof(DirectorNode) == 0x24 && sizeof(FlameNode) == 0x24 && sizeof(SparkNode) == 0x24 && sizeof(EmberNode) == 0x24, "Fire nodes are 0x24 bytes");
@@ -116,13 +100,9 @@ namespace ff8fx
 {
 namespace fire002
 {
-	// ------------------------------------------------------------------
-	// Root task (0x62A610): node +0x0C counter
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag002_fire_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = ARENA_ODD;
 		if (!(r->counter & 1)) PacketCursor() = ARENA_EVEN;
@@ -131,8 +111,6 @@ namespace fire002
 		return alive ? 0 : TASK_END;
 	}
 
-	// director of action a+1, spawned by the director of action a (MultiTarget when the action
-	// has several targets)
 	static void SpawnNextDirector(DirectorNode *d)
 	{
 		ActionData *acts = Ctx()->actions;
@@ -155,16 +133,12 @@ namespace fire002
 		t->sub = 0;
 	}
 
-	// flame spread around a target: its size * 2800 / 4096, at most 1000
 	static int32_t SpreadOf(int slot)
 	{
 		int32_t s = (EntitySize(slot) * 2800) >> 12;
 		return s > 1000 ? 1000 : s;
 	}
 
-	// ------------------------------------------------------------------
-	// Director, action with several targets (0x629990)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorMulti(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
@@ -214,9 +188,6 @@ namespace fire002
 		return d->counter >= 0x16 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director, single target (0x62A380): waits until no other Fire runs on its target
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorSingle(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
@@ -261,10 +232,6 @@ namespace fire002
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Flame (0x629C10): flipbook frame `frame` at pos (camera-facing, size = scale), then a ground
-	// glow flat on the target's height plane, brighter the higher the flame (y clamped at -2000)
-	// ------------------------------------------------------------------
 	static void FlameDraw(const FlameNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 4));
@@ -287,7 +254,7 @@ namespace fire002
 		int32_t y = p->pos[1];
 		if (y < -2000) y = -2000;
 		int32_t q = (int32_t)(((int64_t)shl32(y, 12) * 0x10624DD3) >> 32) >> 7;
-		q += (int32_t)((uint32_t)q >> 31);                  // (y << 12) / 2000
+		q += (int32_t)((uint32_t)q >> 31);
 		uint8_t level = (uint8_t)((q * 160) / 4096 + 0xA0);
 		*(const void **)h = SEQ_FlameGlow;
 		*(uint16_t *)(h + 0x24) = 0xC;
@@ -308,7 +275,6 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag002_fire_held.inc
 		FX_HELD(held_note_draw(ORIG_FlameTask, p);)
 		FlameDraw(p);
 		if (DrawOnly()) return 0;
@@ -345,9 +311,6 @@ namespace fire002
 		return p->frame >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x629F90): shared sprite 5, frame 9 - life
-	// ------------------------------------------------------------------
 	static void SparkDraw(const SparkNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -360,7 +323,6 @@ namespace fire002
 		FieldFree(0xB4);
 	}
 
-	// drift: x and z decelerate by 1/16, y (upwards) accelerates by 1/16; shrink by 0x40
 	static void SparkUpdate(SparkNode *p)
 	{
 		int16_t v = p->vel[0];
@@ -385,7 +347,6 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag002_fire_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkTask, p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
@@ -393,9 +354,6 @@ namespace fire002
 		return p->life < 0 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ember (0x62A0A0): flipbook 0xDEDF84, frame `frame`
-	// ------------------------------------------------------------------
 	static void EmberDraw(const EmberNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -407,7 +365,6 @@ namespace fire002
 		FieldFree(0xB4);
 	}
 
-	// rise: y += vel_y, vel_y grows by 1/32; shrink by 1/64
 	static void EmberUpdate(EmberNode *p)
 	{
 		int16_t v = p->vel_y;
@@ -427,7 +384,6 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag002_fire_held.inc
 		FX_HELD(held_note_draw(ORIG_EmberTask, p);)
 		EmberDraw(p);
 		if (DrawOnly()) return 0;
@@ -444,7 +400,6 @@ namespace fire002
 		register_port(fire002::ORIG_FlameTask, (void *)fire002::FlameTask, "F002 FlameTask", 2);
 		register_port(fire002::ORIG_SparkTask, (void *)fire002::SparkTask, "F002 SparkTask", 2);
 		register_port(fire002::ORIG_EmberTask, (void *)fire002::EmberTask, "F002 EmberTask", 2);
-		// 30 fps layer: see mag002_fire_held.inc
 		FX_HELD(register_mag002_held();)
 	}
 }

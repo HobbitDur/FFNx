@@ -14,44 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 152: Ultrasonic Waves (enemy attacks 58 and 63 of kernel.bin, Red Bat; MAG_152_*).
-//
-// Structure (setup MAG_152_ULTRASONIC_WAVES_Init 0x60AFB0, file loader 0x60AF90 = the texture
-// file named at 0xDBEC80 (mag151.tim); the setup keeps the context, the caster slot and the
-// first target slot of action 0, sets up the root queue (2 x 0x10) with RootTask and the effect
-// queue (0x64 x 0x24) with the Controller, frees the 100 burst particles, starts camera
-// animation 0xDBE370 and queues the TIM):
-//   RootTask (0x60C8F0) - alternates the packet arena (magic buffer + 0 / + 0x8000), runs the
-//     effect queue; when it is empty queues WaitTexRestore in the root queue and ends.
-//   WaitTexRestore (0x60C960) - at counter 1 starts the engine texture restore task, ends when
-//     its done flag is set.
-//   Controller (0x60B070) - every tick (also in the draw-only mode): the rotation 0x244D638
-//     taking (0, 0, -1) onto the direction caster anchor -> target position. Then, updating
-//     ticks only: counter 0 takes the caster's effect anchor 0xF0 (0x244D660) and the target's
-//     default effect position (0x244D628); counters 1 / 6 / 11 spawn a Wave at the anchor
-//     (+-55 jitter, random roll, size 0x900..0xCFF); counters 5..20 spawn a Ring at the anchor
-//     flying 1/18 of the way to the target per tick; 25 spawns BurstA, 26 BurstB and BurstC at
-//     the target; 35 damage (action 0, first target); 1 sound 0xDBEC50; ends after 40.
-//   Wave (0x60B400) - flipbook 0xDBE5CC (12 frames, frame = counter) at a fixed position, roll
-//     and size; from frame 8 a grey level (12 - frame) * 32 in draw mode 0xD. Ends with the
-//     flipbook.
-//   Ring (0x60B4C0) - the ring prim model 0xDBE9E0: rotated about its z axis by its angle, scaled,
-//     turned along the flight direction (0x244D638), moved towards the camera by size / 16;
-//     colour from the 10-entry cycle 0xDBEC58, from counter 16 faded to black ((counter - 16)
-//     << 10, draw flags 0xF3 instead of 0x33). Moves, spins and grows every tick; ends after 20.
-//     Drawn by the module's private prim-model renderer (0x60B6C0: flat textured triangles
-//     0x60B7A0, flat textured quads 0x60BA00, gouraud textured triangles 0x60BCB0 and quads
-//     0x60BFD0; the ring only has flat textured quads, the other lists are ported as coded).
-//   BurstA / BurstB / BurstC (0x60C3C0 / 0x60C580 / 0x60C740) - each draws the particles of its
-//     type (1 / 2 / 4) of the shared pool 0x244BEA8 (100 x 0x18) with its flipbook (0xDBE420
-//     mode 8 / 0xDBE814 / 0xDBE904), advancing their frames (a particle is freed when its
-//     flipbook ends), and spawns 2 / 1 / 1 particles per tick for counters 0..8 / 0..13 / 0..13
-//     around its position (+-400 / +-450). Ends from counter 4 once none of its particles is left.
-// Every task but RootTask / WaitTexRestore tests the draw-only flags (battle_to_update_flags &
-// 0x201): the Controller after the rotation, the others after drawing.
-// Module globals: 0x244BE70..0x244D670 (target slot, root pool / queue, particle pool, effect
-// queue and node pool, target position, context, caster slot, rotation, texture file, anchor,
-// magic buffer base 0x244D668, packet cursor 0x244D66C).
+// Effect 152: Ultrasonic Waves
 
 #include "mag_common.h"
 
@@ -62,16 +25,15 @@ namespace ultrasonic152
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x244BE70); }       // first target of action 0
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x244BE98; }            // pool 0x244BE78, 2 x 0x10
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x244C808; }         // pool 0x244C818, 0x64 x 0x24
-	inline int16_t *TargetPos() { return (int16_t *)0x244D628; }            // target's default effect position
+	inline int32_t &TargetSlot() { return var<int32_t>(0x244BE70); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)0x244BE98; }
+	inline TaskQueue *QEffects() { return (TaskQueue *)0x244C808; }
+	inline int16_t *TargetPos() { return (int16_t *)0x244D628; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x244D630); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x244D634); }
-	inline Mat4x3 &Rot() { return var<Mat4x3>(0x244D638); }                 // (0, 0, -1) -> flight direction
-	inline int16_t *Anchor() { return (int16_t *)0x244D660; }               // caster's effect anchor 0xF0
-	inline uint32_t &TexBase() { return var<uint32_t>(0x244D668); }         // Magic_TextureOFF (magic buffer)
+	inline Mat4x3 &Rot() { return var<Mat4x3>(0x244D638); }
+	inline int16_t *Anchor() { return (int16_t *)0x244D660; }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x244D668); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x244D66C); }
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -88,14 +50,12 @@ namespace ultrasonic152
 	static const uint32_t SEQ_BurstB = 0xDBE814;
 	static const uint32_t SEQ_BurstC = 0xDBE904;
 	static const uint32_t MODEL_Ring = 0xDBE9E0;
-	static const uint32_t *const RingColours = (const uint32_t *)0xDBEC58; // 10 x (code / rgb)
+	static const uint32_t *const RingColours = (const uint32_t *)0xDBEC58;
 	static const void *const SOUND_Waves = (const void *)0xDBEC50;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	// software GTE (the prim-model renderer)
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
@@ -104,92 +64,88 @@ namespace ultrasonic152
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }      // GTE_ReadOTZ
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); } // set_unk_1CA8A28
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }         // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
 	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // root pool: 2 nodes of 0x10 bytes (RootTask, WaitTexRestore)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t done;      // +0x0E WaitTexRestore: texture restore finished
+		int16_t counter;
+		int16_t done;
 	};
-	struct ControllerNode // effect pool: 0x64 nodes of 0x24 bytes
+	struct ControllerNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E[0x16];
 	};
 	struct WaveNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C flipbook frame
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
-		int16_t pad16;     // +0x16 (the anchor's 4th word)
-		int16_t roll;      // +0x18
+		int16_t pos[3];
+		int16_t pad16;
+		int16_t roll;
 		int16_t pad1A;
-		int16_t scale;     // +0x1C
+		int16_t scale;
 		uint8_t pad1E[6];
 	};
 	struct RingNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
-		int16_t angle;     // +0x16 about the model's z axis
-		int16_t vel[3];    // +0x18 1/18 of caster anchor -> target
-		int16_t spin;      // +0x1E
-		int16_t scale;     // +0x20
-		int16_t grow;      // +0x22
+		int16_t pos[3];
+		int16_t angle;
+		int16_t vel[3];
+		int16_t spin;
+		int16_t scale;
+		int16_t grow;
 	};
 	struct BurstNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];    // +0x10 the target position (4th word copied along)
+		int16_t pos[4];
 		uint8_t pad18[0xC];
 	};
-	struct Particle // pool 0x244BEA8, 100 x 0x18
+	struct Particle
 	{
-		uint32_t type;     // +0x00 0 = free, 1 / 2 / 4 = BurstA / B / C
-		int16_t frame;     // +0x04 flipbook frame
-		int16_t scale;     // +0x06
-		int16_t pos[4];    // +0x08 (4th word copied along)
+		uint32_t type;
+		int16_t frame;
+		int16_t scale;
+		int16_t pos[4];
 		uint8_t pad10[8];
 	};
-	// render header of the private prim-model renderer (0x6C bytes on the scratch stack)
 	struct RenderHeader
 	{
-		uint32_t model;    // +0x00
-		uint32_t verts;    // +0x04 vertex base (model + 8 unless flag 0x2000)
-		uint8_t far_rgb[4];// +0x08 GTE far colour
-		int32_t fade;      // +0x0C depth-cue level (IR0) with flag 0x40 / 0x80
-		uint16_t u_off;    // +0x10 flags 0x400 (add) / 0x100 (set): packet word after uv1 / uv0
+		uint32_t model;
+		uint32_t verts;
+		uint8_t far_rgb[4];
+		int32_t fade;
+		uint16_t u_off;
 		uint16_t pad12;
-		uint16_t v_off;    // +0x14 flags 0x800 (add) / 0x200 (set): packet word after uv0
+		uint16_t v_off;
 		uint16_t pad16;
-		int32_t depth;     // +0x18 added to the uv words (0 unless flag 0x1000)
-		uint32_t flags;    // +0x1C
-		uint32_t colour;   // +0x20 code / colour of the flat lists, colour scale of the gouraud lists
-		uint32_t list;     // +0x24 current primitive list
-		int32_t mac0;      // +0x28
+		int32_t depth;
+		uint32_t flags;
+		uint32_t colour;
+		uint32_t list;
+		int32_t mac0;
 		uint32_t pad2C;
-		int32_t otz;       // +0x30
-		uint32_t gte_flag; // +0x34
+		int32_t otz;
+		uint32_t gte_flag;
 		uint8_t pad38[0x20];
-		uint32_t scale_rgb;// +0x58 copy of +0x20 (gouraud lists)
-		uint32_t c[4];     // +0x5C vertex colours (gouraud lists)
+		uint32_t scale_rgb;
+		uint32_t c[4];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10, "Ultrasonic Waves root nodes");
@@ -211,11 +167,9 @@ namespace ultrasonic152
 {
 	template<typename T> static inline T &At(uint32_t base, uint32_t off) { return *(T *)(base + off); }
 
-	// screen clip flags of one vertex (x out of 0..0xA00 -> bit, y out of 0..0x6C0 -> bit << 4)
 	static inline bool OutX(uint32_t xy) { int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
 	static inline bool OutY(uint32_t xy) { int16_t v = *(const int16_t *)(xy + 2); return v < 0 || v > 0x6C0; }
 
-	// packet uv word offsets (flags 0x400 / 0x100 on `u_word`, 0x800 / 0x200 on `v_word`)
 	static inline void UvOffsets(const RenderHeader *h, uint32_t pkt, uint32_t u_word, uint32_t v_word)
 	{
 		const uint32_t fl = h->flags;
@@ -225,7 +179,6 @@ namespace ultrasonic152
 		else if (fl & 0x200) At<uint16_t>(pkt, v_word) = h->v_off;
 	}
 
-	// the gouraud lists scale their vertex colours by the header colour (x * c >> 7, bytes)
 	static inline void ScaleColours(RenderHeader *h, int n)
 	{
 		h->scale_rgb = h->colour;
@@ -241,10 +194,6 @@ namespace ultrasonic152
 
 	static inline uint32_t Bucket(uint32_t ot, const RenderHeader *h, int32_t shift) { return ot + (uint32_t)(h->otz >> shift) * 4; }
 
-	// ------------------------------------------------------------------
-	// Flat textured triangles (0x60B7A0): 0x14-byte records (code/rgb unused, vertex indices
-	// +4/+6/+8, uv0/clut +0xC, uv1/tpage +0x10, uv2 = high half of +8) -> 0x20-byte packets
-	// ------------------------------------------------------------------
 	static uint32_t ListFT3(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -309,10 +258,6 @@ namespace ultrasonic152
 		return pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// Flat textured quads (0x60BA00): 0x18-byte records (vertex indices +4/+6/+8/+0xA, uv0/clut
-	// +0xC, uv1/tpage +0x10, uv2 / uv3 +0x14) -> 0x28-byte packets
-	// ------------------------------------------------------------------
 	static uint32_t ListFT4(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -384,12 +329,6 @@ namespace ultrasonic152
 		return pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// Gouraud textured triangles (0x60BCB0): 0x1C-byte records (code + colour 0, vertex indices
-	// +4/+6/+8, uv0/clut +0xC, uv1/tpage +0x10, colours 1 / 2 +0x14 / +0x18; uv2 = high half of +8)
-	// -> 0x28-byte packets; semi-transparency from header flags 2 / 8, double-sided flag 0x20,
-	// depth cue of the three colours with flag 0x80
-	// ------------------------------------------------------------------
 	static uint32_t ListGT3(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -463,11 +402,6 @@ namespace ultrasonic152
 		return pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// Gouraud textured quads (0x60BFD0): 0x24-byte records (code + colour 0, vertex indices
-	// +4/+6/+8/+0xA, uv0/clut +0xC, uv1/tpage +0x10, uv2 / uv3 +0x14, colours 1..3 +0x18..+0x20)
-	// -> 0x34-byte packets (flags as the gouraud triangles)
-	// ------------------------------------------------------------------
 	static uint32_t ListGT4(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -553,11 +487,6 @@ namespace ultrasonic152
 		return pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-model renderer (0x60B6C0): header h (0x6C bytes), OT, OT shift, packet cursor; the
-	// model's list block starts with two skipped words, a third list type between the flat and
-	// the gouraud lists is skipped too (2 words); an empty list is one zero word
-	// ------------------------------------------------------------------
 	static uint32_t RenderModel(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t fl = h->flags;
@@ -578,13 +507,9 @@ namespace ultrasonic152
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x60C8F0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
@@ -599,9 +524,6 @@ namespace ultrasonic152
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Texture restore wait (0x60C960)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl WaitTexRestore(TaskNode *n)
 	{
 		RootNode *w = (RootNode *)n;
@@ -611,9 +533,6 @@ namespace ultrasonic152
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Controller (0x60B070)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl Controller(TaskNode *n)
 	{
 		int32_t dir[3];
@@ -686,11 +605,6 @@ namespace ultrasonic152
 		return c->counter > 0x28 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Wave (0x60B400): flipbook frame `counter`; from frame 8 draw mode 0xD with grey level
-	// `level` (the task passes (12 - counter) * 32); returns the flipbook's next-frame word
-	// (header +0x28, negative = last frame)
-	// ------------------------------------------------------------------
 	static int16_t WaveDraw(const WaveNode *p, int32_t level)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -707,14 +621,12 @@ namespace ultrasonic152
 		}
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
-		// read after the free, as the original (the scratch keeps it)
 		return *(const int16_t *)(h + 0x28);
 	}
 
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		WaveNode *p = (WaveNode *)n;
-		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_draw(ORIG_WaveTask, p);)
 		const int16_t next = WaveDraw(p, shl32(0xC - p->counter, 5));
 		if (DrawOnly()) return 0;
@@ -722,13 +634,8 @@ namespace ultrasonic152
 		return next < 0 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ring (0x60B4C0): `colour` = RingColours[counter % 10], `fade` = (counter - 16) << 10 (used
-	// from counter 16)
-	// ------------------------------------------------------------------
 	static void RingDraw(const RingNode *p, uint32_t colour, int32_t fade)
 	{
-		// the 4th angle word is never written by the original (a stack word)
 		int16_t angles[4] = { 0, 0, p->angle, 0 };
 		Mat4x3 m = {};
 		BuildRotationMatrixFromAngles(angles, &m);
@@ -743,7 +650,6 @@ namespace ultrasonic152
 		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)Camera().t[0]);
 		m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)Camera().t[1]);
 		m.t[2] = (int32_t)((uint32_t)m.t[2] + (uint32_t)Camera().t[2]);
-		// towards the camera by size / 16
 		NormalizeVector(m.t, v);
 		const int32_t k = -(p->scale >> 4);
 		m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)(mul32(k, v[0]) >> 12));
@@ -777,7 +683,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_draw(ORIG_RingTask, p);)
 		RingDraw(p, RingColours[p->counter % 10], shl32(p->counter - 0x10, 10));
 		if (DrawOnly()) return 0;
@@ -786,12 +691,6 @@ namespace ultrasonic152
 		return p->counter > 0x14 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Bursts (0x60C3C0 / 0x60C580 / 0x60C740)
-	// ------------------------------------------------------------------
-	// draws every particle of `type` in `parts` with the flipbook `seq` (header +0x24 = mode) and,
-	// on updating ticks, advances its frame (freed when its flipbook ends); returns how many of
-	// them continue
 	static int BurstDraw(Particle *parts, uint32_t seq, uint16_t mode, uint32_t type)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -824,7 +723,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstA(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_burst(ORIG_BurstA, b);)
 		const int alive = BurstDraw(Parts(), SEQ_BurstA, 8, 1);
 		if (DrawOnly()) return 0;
@@ -850,7 +748,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstB(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_burst(ORIG_BurstB, b);)
 		const int alive = BurstDraw(Parts(), SEQ_BurstB, 0, 2);
 		if (DrawOnly()) return 0;
@@ -875,7 +772,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstC(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(held_note_burst(ORIG_BurstC, b);)
 		const int alive = BurstDraw(Parts(), SEQ_BurstC, 0, 4);
 		if (DrawOnly()) return 0;
@@ -908,7 +804,6 @@ namespace ultrasonic152
 		register_port(ultrasonic152::ORIG_BurstA, (void *)ultrasonic152::BurstA, "U152 BurstA", 152);
 		register_port(ultrasonic152::ORIG_BurstB, (void *)ultrasonic152::BurstB, "U152 BurstB", 152);
 		register_port(ultrasonic152::ORIG_BurstC, (void *)ultrasonic152::BurstC, "U152 BurstC", 152);
-		// 30 fps layer: see mag152_ultrasonic_waves_held.inc
 		FX_HELD(register_mag152_held();)
 	}
 }

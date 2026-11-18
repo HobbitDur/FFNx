@@ -14,29 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 209: "Sorceress" spawn (enemy attacks 319 / 327 of the time-compression sorceresses c0m115 / c0m116 /
-// c0m117; MAG_209_*): the battle stage is swapped for the next one while the stage, rendered into VRAM, ripples
-// on a warped screen grid.
-//
-// Structure (file loader 0x575520 = a bare ret: no file; setup 0x637500, not ported: it runs once):
-//   setup - packet arena = Magic_TextureOFF_ToEAX1 (0x24F7A5C), summon data 0x209FAB8 (0x24F4484, the grid packet
-//     table); cast context 0x24F4478, caster slot 0x24F4480, first target slot 0x24F361C; root queue 0x24F3640
-//     (pool 0x24F3620, 2 x 0x10) with the master, sub-queue 0x24F3658 (pool 0x24F3668, 100 x 0x24) with timeline A
-//     (0x6375D0), or B (0x638BD0) for the wormlike sorceress (caster entity +4 == 0x85); camera animation 0xE25AF0,
-//     TIM 0xF47340 queued.
-//   Master (0x639100) - packet cursor 0x24F7A60 = arena (+0x10000 on odd counters, not read), runs the sub-queue;
-//     when it is empty the end task 0x639170 (battle textures back: 0x508630) goes into the root queue.
-//   Timelines A / B (130 ticks): stage swap (2: load, 52: BS_ChangeStage, waits for the load), the screen task
-//     (16), caster flag 8 (0 .. 20 / 65), prims (1: 0x638490, 12 x 0x6385E0, A: 0x638770; then 0x638900 /
-//     0x638A80 series), screen flash in and out, B: screen fades, camera shake (0x1D97712), its voice slot.
-//   Screen task (0x637A40, 101 ticks): 0-35 the VRAM copy as tiles (0x6383B0); 36-37 + flash; 38-81 the stage
-//     on a rippling grid (0x637F40 / 0x6380F0 / 0x638250); 82-97 the grid fading to the new stage colours;
-//     the stage is rendered into VRAM (0x240, 0x100) every tick (0x637D30) except 36..81; ambient colours.
-// Every task but the master / end task tests battle_to_update_flags_dword_1D96A9C & 0x201 (draw-only when set);
-// the timelines return at once on bit 0, and with bit 0x200 only while a file load is pending.
-// Renderers of other modules called through their original addresses: MAG_166_sub_64F0A0 (prim model with two
-// draw-mode words), MAG_066_RenderScrollPrimModel 0x650720.
-
 #include "fx_port.h"
 #include <stddef.h>
 
@@ -46,62 +23,57 @@ namespace s209
 {
 	using namespace eng;
 
-	// --- engine functions used by this module (original addresses) ---
 	namespace x
 	{
 		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
 		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-		inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); } // Math_SqrtInt
+		inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x56CE30)(angles, out); }
 		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
 		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
 		inline void GetDefaultEffectPosition(void *entity, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x571400)(entity, out); }
-		inline void SetProjection(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); } // Battle_SetProjectionH
-		inline void SetScreenFlash2(int32_t level, int32_t mode) { fn<void (__cdecl *)(int32_t, int32_t)>(0x5713E0)(level, mode); } // Effect_SetScreenFlash
-		inline void ScreenFade(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); } // Effect_SpawnScreenFadeTask
+		inline void SetProjection(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }
+		inline void SetScreenFlash2(int32_t level, int32_t mode) { fn<void (__cdecl *)(int32_t, int32_t)>(0x5713E0)(level, mode); }
+		inline void ScreenFade(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
 		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(geom, hdr, ot, shift, cursor); }
-		// sound / stage / files / battle
 		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x501330)(se, a, b); }
-		inline uint32_t ClaimVoiceSlot2(uint32_t sound, int32_t a, int32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, int32_t, int32_t)>(0x4A29A0)(sound, a, b); } // BdSound_ClaimVoiceSlot
+		inline uint32_t ClaimVoiceSlot2(uint32_t sound, int32_t a, int32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, int32_t, int32_t)>(0x4A29A0)(sound, a, b); }
 		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(slot); }
 		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(0x508500)(); }                       // sub_508500: < 0 = file load busy
-		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(0x571B70)(); }                   // sub_571B70: 0x209FAB8
-		inline void WitchGetNewStage(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x50E3A0)(dst); }     // BS_WitchFight_GetNewStage
-		inline void ChangeStage(uint32_t src) { fn<void (__cdecl *)(uint32_t)>(0x50E3C0)(src); }          // BS_ChangeStage
+		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
+		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(0x571B70)(); }
+		inline void WitchGetNewStage(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x50E3A0)(dst); }
+		inline void ChangeStage(uint32_t src) { fn<void (__cdecl *)(uint32_t)>(0x50E3C0)(src); }
 		inline void ApplyActionResultToTarget(uint32_t rec) { fn<void (__cdecl *)(uint32_t)>(0x506690)(rec); }
-		inline void RestoreTexture(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(0x508630)(buffer, flag); } // Battle_RestoreDefaultEffectTexture
-		// GPU / GTE
-		inline void ClearImage(const int16_t *rect, int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(const int16_t *, int32_t, int32_t, int32_t)>(0x45BEE0)(rect, r, g, b); } // isDravingOverlayImage
-		inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(0x45B640)(env); }               // GPU_GetDrawEnv
+		inline void RestoreTexture(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(0x508630)(buffer, flag); }
+		inline void ClearImage(const int16_t *rect, int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(const int16_t *, int32_t, int32_t, int32_t)>(0x45BEE0)(rect, r, g, b); }
+		inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(0x45B640)(env); }
 		inline void SetDefDrawEnv(void *env, int32_t x, int32_t y, int32_t w, int32_t h) { fn<void (__cdecl *)(void *, int32_t, int32_t, int32_t, int32_t)>(0x45C2A0)(env, x, y, w, h); }
-		inline void SetDrawEnvPacket(void *packet, const void *env) { fn<void (__cdecl *)(void *, const void *)>(0x45C0F0)(packet, env); } // SSIGPU_SetDrawEnv
+		inline void SetDrawEnvPacket(void *packet, const void *env) { fn<void (__cdecl *)(void *, const void *)>(0x45C0F0)(packet, env); }
 		inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
 		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
 		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 		inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-		// renderers of other modules
-		inline uint32_t PrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64F0A0)(h, ot, mode, cursor); } // MAG_166_sub_64F0A0
-		inline uint32_t ScrollPrimModel(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); } // MAG_066_RenderScrollPrimModel
+		inline uint32_t PrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64F0A0)(h, ot, mode, cursor); }
+		inline uint32_t ScrollPrimModel(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); }
 	}
 	using namespace x;
 
-	// --- module globals ---
-	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
+	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; }
 	inline TaskQueue &RootQueue() { return var<TaskQueue>(0x24F3640); }
 	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x24F3658); }
 	inline uint8_t *CastCtx() { return var<uint8_t *>(0x24F4478); }
 	inline uint32_t CasterSlot() { return var<uint32_t>(0x24F4480); }
 	inline uint8_t *Caster() { return (uint8_t *)(0x1D972C0 + 156 * CasterSlot()); }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }   // battle_texture_data_ptr_1D8E054
+	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
-	static const uint32_t GRID = 0x24F4488;      // 28 rows x 41 columns of 0xC-byte grid points (to 0x24F7A58)
+	static const uint32_t GRID = 0x24F4488;
 	static const uint32_t GRID_END = 0x24F7A58;
-	inline uint8_t *Cells() { return var<uint8_t *>(0x24F4484); }    // 27 x 40 cells of 0x60 bytes (summon data)
-	inline uint32_t &ColA() { return var<uint32_t>(0x24F7A58); }     // 0xB8B7D8 (background colour) at the start
-	inline uint32_t &ColB() { return var<uint32_t>(0x24F3650); }     // 0xB8B9A8 (ambient colour) at the start
-	inline uint32_t &StageColA() { return var<uint32_t>(0x24F3618); } // the same after the stage swap
+	inline uint8_t *Cells() { return var<uint8_t *>(0x24F4484); }
+	inline uint32_t &ColA() { return var<uint32_t>(0x24F7A58); }
+	inline uint32_t &ColB() { return var<uint32_t>(0x24F3650); }
+	inline uint32_t &StageColA() { return var<uint32_t>(0x24F3618); }
 	inline uint32_t &StageColB() { return var<uint32_t>(0x24F447C); }
 
 	static const uint32_t ORIG_Master = 0x639100;
@@ -115,17 +87,16 @@ namespace s209
 	static const uint32_t ORIG_PrimDTask = 0x638900;
 	static const uint32_t ORIG_PrimETask = 0x638A80;
 
-	// every sub-queue node is 0x24 bytes (pool 0x24F3668); field use differs per task
 #pragma pack(push, 1)
 	struct Node24
 	{
 		TaskNode hdr;
-		int16_t c;                  // +0x0C tick counter
-		int16_t e;                  // +0x0E index / end task done flag
-		int16_t p10, p12, p14, p16; // +0x10 position (p16: B prims' short-life flag)
-		int16_t a18, s1A;           // +0x18 angle, its speed
-		int16_t s1C, s1E;           // +0x1C scale, its speed
-		int16_t s20, s22;           // +0x20 second scale, its speed
+		int16_t c;
+		int16_t e;
+		int16_t p10, p12, p14, p16;
+		int16_t a18, s1A;
+		int16_t s1C, s1E;
+		int16_t s20, s22;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(Node24) == 0x24, "sub-queue node is 0x24 bytes");
@@ -140,15 +111,11 @@ namespace ff8fx
 {
 namespace s209
 {
-	// ------------------------------------------------------------------
-	// Master (0x639100) and end task (0x639170)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl Master(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		uint32_t arena = var<uint32_t>(0x24F7A5C);
 		var<uint32_t>(0x24F7A60) = (*(const uint8_t *)&n->c & 1) ? arena + 0x10000 : arena;
-		// 30 fps layer: see mag209_sorceress_spawn_held.inc
 		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		if (!left)
@@ -170,14 +137,9 @@ namespace s209
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Helpers
-	// ------------------------------------------------------------------
-	// MAG_209_sub_637CC0 / 637CE0: the battle stage groups stru_1D9898C[0..3] +5 bit 1 (hide / show the stage)
 	static void HideStage() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2; }
 	static void ShowStage() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) &= 0xFD; }
 
-	// MAG_209_sub_637D00 (= MAG_076_SetAmbientColour): ambient colour 0xB8B9A8 and every shown entity's colour
 	static void SetAmbient(uint32_t c)
 	{
 		var<uint32_t>(0xB8B9A8) = c;
@@ -185,7 +147,6 @@ namespace s209
 			if (var<uint8_t>(a - 0x2C) & 2) var<uint32_t>(a) = c;
 	}
 
-	// MAG_209_sub_638370 (= GF_327_ResetRotation): rotation part = identity (translation and pad kept)
 	static void ResetRotation(void *m)
 	{
 		uint32_t *d = (uint32_t *)m;
@@ -199,8 +160,6 @@ namespace s209
 		w[0] = 0x1000;
 	}
 
-	// MAG_209_sub_637E90: a draw-environment packet at the OT bucket ot: drawing area (x, y) 0x140 x 0xD8 (the
-	// current environment's texture page / dither / draw-on-display), background cleared to black
 	static void DrawEnvAt(int32_t x, int32_t y, int32_t ot)
 	{
 		uint8_t env[0x5C], cur[0x5C];
@@ -219,9 +178,6 @@ namespace s209
 		InsertPrimAutoDepth(OTBase() + 4 * (uint32_t)ot, pk);
 	}
 
-	// MAG_209_sub_637D30: the battle stage rendered into VRAM (0x240, 0x100) (cleared first): every stage group's bone
-	// matrices rebuilt, the shown ones drawn between a draw environment at (0x240, 0x100) (OT 0x1121) and one back at
-	// (0, 0) (the lowest OT bucket of the shown groups, table 0xE2B4F8)
 	static void StageToVram()
 	{
 		int16_t rect[4] = { 0x240, 0x100, 0x140, 0xD8 };
@@ -258,8 +214,6 @@ namespace s209
 		FieldFree(0x2C);
 	}
 
-	// MAG_209_sub_6383B0: the VRAM copy drawn back over the screen: 10 x 7 textured 32 x 32 sprites (colour c,
-	// texture pages 0x139 + column / 2), at the far OT bucket 0x4068 through the alternative viewport
 	static void Tiles(uint32_t c)
 	{
 		uint8_t *p = (uint8_t *)Cursor();
@@ -287,9 +241,6 @@ namespace s209
 		Cursor() = (uint32_t)p;
 	}
 
-	// MAG_209_sub_637F40: the grid (28 x 41 points 8 apart around (-0xA4, -0x70), flat, edges flagged: rows 1,
-	// columns 2) and its 27 x 40 cells in the summon data: corner pointers and two textured quads (frame parity)
-	// on the VRAM copy (texture page 0x139 + u / 64, the last column / row one texel short)
 	static void GridInit()
 	{
 		uint8_t *g = (uint8_t *)GRID;
@@ -352,8 +303,6 @@ namespace s209
 		}
 	}
 
-	// MAG_209_sub_6380F0: the grid ripple of step i (of n): around the caster's bone 0xF1 on screen, every inner
-	// point's depth = (cos(96 d - 385 i) - 1) x amp x (600 - 9 i - d) / (600 - 9 i) >> 13, amp = 500 sin(i 2048 / n)
 	static void GridRipple(int32_t i, int32_t n)
 	{
 		int16_t *s = (int16_t *)FieldAlloc(0xC);
@@ -382,9 +331,6 @@ namespace s209
 		FieldFree(0xC);
 	}
 
-	// MAG_209_sub_638250: every grid point projected (rotation identity, translation (4, 4, 0x800), GTE H 0x800,
-	// screen pixels), then the cells' quads of this frame parity (colour c) at the far OT bucket 0x4068 through the
-	// alternative viewport
 	static void GridDraw(int32_t parity, uint32_t c)
 	{
 		Mat4x3 m;
@@ -419,16 +365,12 @@ namespace s209
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Screen task (0x637A40, timeline tick 16), 101 ticks; colour of the tick: table 0xE2B430 for 0..7, then
-	// 0xE2B450[(c - 8) % 24]
-	// ------------------------------------------------------------------
 	static uint32_t ScreenColour(int32_t c) { return c < 8 ? var<uint32_t>(0xE2B430 + 4 * c) : var<uint32_t>(0xE2B450 + 4 * ((c - 8) % 24)); }
 
 	static void ScreenDraw(int32_t c)
 	{
 		uint32_t col = ScreenColour(c);
-		uint32_t bg, amb;   // background / ambient colours of the tick
+		uint32_t bg, amb;
 		bool stage = true;
 		if (c < 0x24)
 		{
@@ -492,7 +434,6 @@ namespace s209
 	static uint32_t __cdecl ScreenTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag209_sorceress_spawn_held.inc
 		FX_HELD(held_note_gte();)
 		if (n->c < 0x64)
 		{
@@ -506,10 +447,6 @@ namespace s209
 		return n->c > 0x64 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Prims (node-driven prim models in the camera frame)
-	// ------------------------------------------------------------------
-	// t = position (y: an override), angles (0, ay, 0), scale (sx, sy, sx)
 	static void PrimMatrix(const Node24 *n, int16_t ay, int32_t sx, int32_t sy, int32_t ty)
 	{
 		int16_t v[4] = { 0, ay, 0, 0 };
@@ -525,8 +462,6 @@ namespace s209
 		GteSetTransVector(&m);
 	}
 
-	// 0x638490 (timeline tick 1): model 0xE288F0 through MAG_166_sub_64F0A0 (draw modes 0xE1000240 / 0xE1000220),
-	// growing 16 ticks (+0x1E decaying by 1/8), fading out from 102; 110 ticks
 	static void PrimADraw(const Node24 *n, int32_t s)
 	{
 		PrimMatrix(n, 0, s, s, n->p12);
@@ -548,7 +483,6 @@ namespace s209
 	static uint32_t __cdecl PrimATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag209_sorceress_spawn_held.inc
 		FX_HELD(held_note_gte();)
 		PrimADraw(n, n->s1C);
 		FX_HELD(MemoNode(n);)
@@ -564,8 +498,6 @@ namespace s209
 		return n->c >= 0x6E ? TASK_END : 0;
 	}
 
-	// 0x6385E0 (timeline tick 1, x 12): model table 0xE2B400[e], turning (+0x1A), scale (+0x1C, +0x20, +0x1C)
-	// growing 16 / 32 ticks (speeds decaying by 1/8), fading out over its last 8 ticks; 110 ticks (55 with +0x16)
 	static int32_t PrimBEnd(const Node24 *n) { return n->p16 ? 0x37 : 0x6E; }
 
 	static void PrimBDraw(const Node24 *n, int16_t a, int32_t sx, int32_t sy)
@@ -589,7 +521,6 @@ namespace s209
 	static uint32_t __cdecl PrimBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag209_sorceress_spawn_held.inc
 		FX_HELD(held_note_gte();)
 		PrimBDraw(n, n->a18, n->s1C, n->s20);
 		FX_HELD(MemoNode(n);)
@@ -613,9 +544,6 @@ namespace s209
 		return n->c >= end ? TASK_END : 0;
 	}
 
-	// 0x638770 (timeline A tick 1): scrolling prim model 0xE26340 (MAG_066_RenderScrollPrimModel) at the node's x / z
-	// and the caster's bone 0xF1 height, scroll 8 per tick, texture word table 0xE2B4B0[c % 18], fading out from 102;
-	// 110 ticks
 	static void PrimCDraw(const Node24 *n, int32_t c)
 	{
 		int16_t v[4] = { 0, 0, 0, 0 };
@@ -651,7 +579,6 @@ namespace s209
 	static uint32_t __cdecl PrimCTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag209_sorceress_spawn_held.inc
 		FX_HELD(held_note_gte();)
 		PrimCDraw(n, n->c);
 		FX_HELD(MemoNode(n);)
@@ -660,8 +587,6 @@ namespace s209
 		return n->c >= 0x6E ? TASK_END : 0;
 	}
 
-	// 0x638900 (A: ticks 31, 41 .. 91; B: 73, 79, 85): model 0xE277B8 at the caster's bone 0xF1 (+ random height),
-	// turning, growing (+0x1E decaying by 1/16), fading in 2 ticks and out from 8; 24 ticks
 	static void PrimDDraw(const Node24 *n, int16_t a, int32_t s)
 	{
 		PrimMatrix(n, a, s, s, n->p12);
@@ -687,7 +612,6 @@ namespace s209
 	static uint32_t __cdecl PrimDTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag209_sorceress_spawn_held.inc
 		FX_HELD(held_note_gte();)
 		PrimDDraw(n, n->a18, n->s1C);
 		FX_HELD(MemoNode(n);)
@@ -703,8 +627,6 @@ namespace s209
 		return n->c >= 0x18 ? TASK_END : 0;
 	}
 
-	// 0x638A80 (A: tick 115; B: ticks 96 .. 108 by 6): model 0xE290E0 at the caster's bone 0xF1 x / z (height 0),
-	// turning (speed decaying by 1/16), growing (1/16), fading out from 4; 20 ticks
 	static void PrimEDraw(const Node24 *n, int16_t a, int32_t s)
 	{
 		PrimMatrix(n, a, s, s, n->p12);
@@ -725,7 +647,6 @@ namespace s209
 	static uint32_t __cdecl PrimETask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag209_sorceress_spawn_held.inc
 		FX_HELD(held_note_gte();)
 		PrimEDraw(n, n->a18, n->s1C);
 		FX_HELD(MemoNode(n);)
@@ -739,9 +660,6 @@ namespace s209
 		return n->c >= 0x14 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Timelines A (0x6375D0) and B (0x638BD0), 131 ticks
-	// ------------------------------------------------------------------
 	static Node24 *Spawn(uint32_t fn_)
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), fn_);
@@ -807,7 +725,6 @@ namespace s209
 		else if (c >= 0x7A) SetScreenFlash2(192 * (0x82 - c), 0);
 	}
 
-	// returns -1 when the tick waits (file load pending)
 	static int32_t TimelineStart(Node24 *t, bool b)
 	{
 		const uint32_t f = var<uint32_t>(0x1D96A9C);
@@ -896,7 +813,7 @@ namespace s209
 			int32_t s = ComputeSin(shl32(c - 0x30, 10) / 8 + 0x400);
 			int32_t v = (60 * s) >> 12;
 			if (!(t->c & 1)) v = -v;
-			var<int16_t>(0x1D97712) = (int16_t)v;   // camera shake
+			var<int16_t>(0x1D97712) = (int16_t)v;
 		}
 		Flash(t->c);
 		if (t->c == 0x7C) ApplyActionResultToTarget(*(uint32_t *)(*(uint8_t **)(CastCtx() + 4) + 8));
@@ -919,7 +836,6 @@ namespace s209
 		register_port(s209::ORIG_PrimCTask, (void *)s209::PrimCTask, "209 PrimCTask", 209);
 		register_port(s209::ORIG_PrimDTask, (void *)s209::PrimDTask, "209 PrimDTask", 209);
 		register_port(s209::ORIG_PrimETask, (void *)s209::PrimETask, "209 PrimETask", 209);
-		// 30 fps layer: see mag209_sorceress_spawn_held.inc
 		FX_HELD(register_mag209_held();)
 	}
 }

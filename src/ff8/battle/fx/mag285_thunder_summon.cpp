@@ -14,45 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 285: Thunder Summon (enemy attack 242 of kernel.bin; Catoblepas c0m133; MAG_285_*).
-//
-// Structure (setup 0x67A860 -> _Init 0x67A890, file loader 0x67A870 = mag284.tim (name at 0x108FAC0) into 0x2507D08; _Init
-// queues the TIM, keeps the context and the CASTER's entity (0x2507D10), sets up the master queue 0x2507D38 (pool 0x2507D48,
-// 1 x 0x14); no camera animation: the main task drives the camera words):
-//   MasterTask (0x67A900) - alternates the packet arena (magic buffer + 0x1E80 / + 0x11E80), clears the screen-flash level
-//     (0x2507D64); on counter 1 (once): keeps the entity words +0 of the 7 slots (0x67ABD0 -> 0x2507D90), sets up the pools
-//     (main 1 x 0x15B8 at + 0x500, sparks 0x40 x 0x14 at + 0), starts the main task (layouts 0x1084BBC / 0x1089B00), the mean
-//     z (entity +0x20) of action 0's targets into 0x2507D5C, and the stream state (+ 0x1E38, 0x534110). Then: the effect camera
-//     (0x67AAE0 into 0x2507D70), the main and spark queues (the spark queue's result is ignored), the screen flash at the level;
-//     once the main queue is empty: stream pump, flash 0, it ends when 0x5342C0 (0) returns non-zero (the stream is done).
-//   MainTask (0x67AC00) - counters 0..23: 2 sparks at the caster's bone 10 points 0x108FAB8 / 0x108FAB0 (0x67B560, its world
-//     matrix x the bone matrix), counters 16..18 each with 4 more around it (CRT rand: +-0x100 in x, y, z); counters 0..31 the
-//     camera moved from (look-at caster + (-0x2C0, -0x6EF, 0x8ED), eye caster + (-0x4F6, -0x11, 0x13A4)) towards ((0x6E,
-//     -0xB52, 0x953), (0x27C, 0x952, 0x1A5D)) by counter x 0x80 (0x56CB90); counter 0: 0x50A730, word 0x1D8E038 = 0x120, the
-//     party's entity words +0 get bit 2, 0x1D977A2 = 0; counters 16..47 the eye orbits the look-at (0x67B5C0: RotY(c - 16),
-//     scale 1) and both sink (look-at y -= (c - 16) x 16, eye y -= (c - 16) x 4); counter 48: the slot flags (0x67B6C0 (0)), a
-//     fixed camera; counters 48..86 layout A at (0, -10000, 0) (camera composed, depth 0), counter 82 a white full-screen tile
-//     (0x7040B0); counters 86..133 layout B at (0, 0, the mean z) (depth -0x100, texture scroll ((86 - c) & 3) x 0x20), counter
-//     86: 0x67B6C0 (1), the camera at (0, -0x36D, mean z) / (-0x5DC, -0x5DC, mean z + 0x1518), a white tile; then the eye
-//     orbits by sin((c - 86) x 0x1000 / 48 / 2) >> 7 at scale 0xFC8; fades 0x5712C0 at counters 87 / 94 / 96. Flash level:
-//     counter x 300 until 8, (0x87 - counter) x 300 after 0x7F, else 0x960. Sounds 0x108FAA8 (counter 0) / 0x108FAAC (48);
-//     action results of every target at counter 110; after counter 134: the camera words back from 0xB8B800, word 0x1D8E038
-//     from 0x1D977A0, stream load of file 0x168 to magic buffer + 0x21E80.
-//   SparkTask (0x67B720) - sequence 0x1084AF8 through the shadow-rotation camera (0x800, -0x200), frame = its counter; 7 frames.
-//   PrimCallback (0x67B190) - one layout object drawn by 0x701DD0 (header 0x6C): the block's point through the camera, the
-//     record's offset added (flag 0x200), through the effect camera (flag 0x1000, composed with it) or with the point (composed
-//     with the camera); flag 0x100: the scale as a 3x3 product; texture scroll of object 0 from the block (+0x0A).
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update).
-// ENTITY WRITES: the entity words +0 of the slots (bit 2: party at counter 0, all slots at 48 / 86 from the kept words), the
-//   bytes 0x1D98991..0x1D98A15 (stride 0x2C) bit 1; the targets' action results (engine). No entity position word is written.
-// CAMERA: the eye 0xB8B7F0 / look-at 0xB8B7F8 words every tick of counters 0..47 and 86..133, set at 48 / 86, restored at the
-//   end (the in-game held camera is the frame gate's lerp of the real words).
-// Module globals: 0x2507D08..0x2507DAC (texture file 0x2507D08, context 0x2507D0C, caster 0x2507D10, the queues 0x2507D18
-// sparks / 0x2507D28 main / 0x2507D38 master, master pool 0x2507D48, mean z 0x2507D5C, packet cursor 0x2507D60, flash level
-// 0x2507D64, magic buffer base 0x2507D68, effect camera 0x2507D70, kept entity words 0x2507D90).
-// STACK WORDS: the 4th word of the layout blocks (their point, loaded into GTE V0) and of the records' offsets reach the GTE's
-// VZ0 high half (0x1CA8A16) only; 0x67B5C0's matrices / vector pads are never read.
+// Effect 285: Thunder Summon
 
 #include "mag_common.h"
 
@@ -63,96 +25,87 @@ namespace thunder285
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2507D0C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507D10); }        // caster entity (setup)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507D18; }         // pool: magic buffer, 0x40 x 0x14
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507D28; }           // pool: + 0x500, 1 x 0x15B8
-	inline int16_t &MeanZ() { return var<int16_t>(0x2507D5C); }            // mean z of action 0's targets
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507D10); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507D18; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2507D28; }
+	inline int16_t &MeanZ() { return var<int16_t>(0x2507D5C); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507D60); }
 	inline uint32_t &FlashLevel() { return var<uint32_t>(0x2507D64); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507D68); }        // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x2507D70); }             // the battle camera orthonormalised (0x67AAE0)
-	inline uint32_t *KeptWords() { return (uint32_t *)0x2507D90; }         // 7 entity words +0 (0x67ABD0)
-	inline int16_t *Eye() { return (int16_t *)0xB8B7F0; }                  // battle camera words
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2507D68); }
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x2507D70); }
+	inline uint32_t *KeptWords() { return (uint32_t *)0x2507D90; }
+	inline int16_t *Eye() { return (int16_t *)0xB8B7F0; }
 	inline int16_t *LookAt() { return (int16_t *)0xB8B7F8; }
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x67A900;
 	static const uint32_t ORIG_MainTask = 0x67AC00;
 	static const uint32_t ORIG_SparkTask = 0x67B720;
-	static const uint32_t ORIG_PrimCallback = 0x67B190;   // not a task: the layouts' callback
+	static const uint32_t ORIG_PrimCallback = 0x67B190;
 	static const uint32_t POOL_Main = 0x500;
-	static const uint32_t STREAM = 0x1E38;               // magic buffer: stream state
-	static const uint32_t MORPH = 0x1AB8;                // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x1E80, ARENA_B = 0x11E80; // magic buffer: packet arenas
-	static const uint32_t LOAD_Next = 0x21E80;           // magic buffer: the stream load at the end
-	static const uint32_t MODEL_Bolt = 0x1084BBC;        // prim-model layouts
+	static const uint32_t STREAM = 0x1E38;
+	static const uint32_t MORPH = 0x1AB8;
+	static const uint32_t ARENA_A = 0x1E80, ARENA_B = 0x11E80;
+	static const uint32_t LOAD_Next = 0x21E80;
+	static const uint32_t MODEL_Bolt = 0x1084BBC;
 	static const uint32_t MODEL_Ground = 0x1089B00;
-	static const uint32_t SEQ_Spark = 0x1084AF8;         // sprite sequence
-	static const uint32_t POINT_A = 0x108FAB8, POINT_B = 0x108FAB0; // the spark points (offset, bone 10)
+	static const uint32_t SEQ_Spark = 0x1084AF8;
+	static const uint32_t POINT_A = 0x108FAB8, POINT_B = 0x108FAB0;
 	static const void *const SOUND_Start = (const void *)0x108FAA8;
 	static const void *const SOUND_Bolt = (const void *)0x108FAAC;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply: b.rot = a.rot x b.rot
-	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }      // a = a x b (3x3)
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); } // matrixMultiplyVector
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); } // MAG_063_RenderPrimSet
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }                // Effect_RotationYMatrix
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }                // MAG_063_RotationXMatrix
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }
 	inline void VecLerp(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); } // Effect_FullScreenTile
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }   // BS_Camera_ArmReturnAfterEffect
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
 	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
 	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2507D48)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x15B8 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint8_t bolt[0x944];   // +0x10 layout A
-		uint8_t ground[0xC64]; // +0x954 layout B
+		uint8_t bolt[0x944];
+		uint8_t ground[0xC64];
 	};
-	struct SparkNode // pool of 0x40 nodes of 0x14 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t counter;   // +0x12 flipbook frame
+		int16_t pos[3];
+		int16_t counter;
 	};
-	// the prim-player callback's parameter block (a stack block of the main task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 the layout's point (4th word never written: the GTE V0 pad)
-		int16_t depth;     // +0x08 the header's +0x18
-		int16_t scroll;    // +0x0A texture scroll of object 0 (0: none)
-		uint32_t morph;    // +0x0C blended vertex frames
+		int16_t pos[4];
+		int16_t depth;
+		int16_t scroll;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0x15B8 && sizeof(SparkNode) == 0x14, "Thunder Summon nodes");
 	static_assert(sizeof(PrimArg) == 0x10, "Thunder Summon prim block");
 
-	// 0x67AAE0 (MAG_069_OrthonormalizeCameraMatrix, in this module's range; other modules call it too): column 1 of in normalised
-	// (v), w = (v.y, -v.x, 0) normalised, their cross product normalised; out = columns (w, v, w x v), translation copied (the pad
-	// word +0x12 is not written)
 	static void OrthonormalizeCamera(const Mat4x3 *in, Mat4x3 *out)
 	{
 		const int16_t *r = (const int16_t *)in;
@@ -178,7 +131,6 @@ namespace thunder285
 		out->t[2] = in->t[2];
 	}
 
-	// 0x67B560: the offset v (word +3 = bone) through the caster's world matrix x its bone matrix -> out (3 words, IR)
 	static void BonePoint(const int16_t *v, int16_t *out)
 	{
 		uint8_t *c = Caster();
@@ -191,7 +143,6 @@ namespace thunder285
 		GteStoreIR123(out);
 	}
 
-	// 0x67B5C0: the eye orbits the look-at: RotY(b) (x RotX(a) when a != 0), the eye -> look-at offset scaled by s (y twice)
 	static void CamOrbit(int32_t a, int32_t b, int32_t s)
 	{
 		Mat4x3 m;
@@ -215,7 +166,6 @@ namespace thunder285
 		eye[2] = (int16_t)(la[2] + v[2]);
 	}
 
-	// 0x67B6C0: the bytes 0x1D98991..0x1D98A15 (stride 0x2C) bit 1 = on; the 7 entity words +0 bit 2: the kept bit (on) / set
 	static void SlotFlags(int32_t on)
 	{
 		for (uint8_t *p = (uint8_t *)0x1D98A15; ; p -= 0x2C)
@@ -242,7 +192,6 @@ namespace thunder285
 		FieldFree(0xB4);
 	}
 
-	// the layouts' blocks at main counter c
 	static void BoltArg(PrimArg *arg)
 	{
 		arg->pos[0] = 0;
@@ -273,13 +222,6 @@ namespace ff8fx
 {
 namespace thunder285
 {
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x67B190): one object of a layout. Vertex frame (or blend into the block's morph buffer), rotation
-	// from the record's angles; flag 0x1000: the block's point through the camera + the record's offset through the effect camera,
-	// composed with the effect camera (unless flag 0x8000); flag 0x200: the point through the camera + the offset; else point +
-	// offset through the camera, composed with it (unless flag 0x8000); + the camera's translation, scale (flag 0x100: a 3x3
-	// product, else scale3DMatrix), fade, the texture scroll of object 0, drawn by 0x701DD0 (header 0x6C)
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -317,7 +259,6 @@ namespace thunder285
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x1000)
 		{
@@ -400,22 +341,15 @@ namespace thunder285
 		FieldFree(0x6C);
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x67B720)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		// 30 fps layer: see mag285_thunder_summon_held.inc
 		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->counter++;
 		return s->counter < 7 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x67AC00)
-	// ------------------------------------------------------------------
 	static void SpawnSparks(int32_t c)
 	{
 		for (uint32_t point = POINT_A; ; point -= 8)
@@ -443,7 +377,6 @@ namespace thunder285
 		}
 	}
 
-	// counters 0..31: the camera moved from its start towards its end by counter x 0x80
 	static void CameraTrack(int32_t c)
 	{
 		const uint8_t *e = Caster();
@@ -468,12 +401,10 @@ namespace thunder285
 		{
 			PrimArg arg;
 			BoltArg(&arg);
-			// 30 fps layer: see mag285_thunder_summon_held.inc
 			FX_HELD(held_note_play(m, PLAY_BOLT, &arg);)
 			prim::play((prim::Layout *)m->bolt, PrimCallback, (int)&arg, 0);
 			if (c - 0x30 == 0x22)
 			{
-				// 30 fps layer: see mag285_thunder_summon_held.inc
 				FX_HELD(held_note_tile();)
 				PacketCursor() = Tile(0x80, 0x80, 0x80, 0x1000, PacketCursor());
 			}
@@ -482,7 +413,6 @@ namespace thunder285
 		{
 			PrimArg arg;
 			GroundArg(c, &arg);
-			// 30 fps layer: see mag285_thunder_summon_held.inc
 			FX_HELD(held_note_play(m, PLAY_GROUND, &arg);)
 			prim::play((prim::Layout *)m->ground, PrimCallback, (int)&arg, 0);
 		}
@@ -531,7 +461,6 @@ namespace thunder285
 				const uint32_t mz = var<uint32_t>(0x2507D5C);
 				LookAt()[2] = (int16_t)mz;
 				Eye()[2] = (int16_t)(mz + 0x1518);
-				// 30 fps layer: see mag285_thunder_summon_held.inc
 				FX_HELD(held_note_tile();)
 				PacketCursor() = Tile(0x80, 0x80, 0x80, 0x1000, PacketCursor());
 				LookAt()[0] = 0;
@@ -559,13 +488,9 @@ namespace thunder285
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x67A900)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *mn = (MasterNode *)n;
-		// 30 fps layer: see mag285_thunder_summon_held.inc
 		FX_HELD(held_note_master();)
 		if (mn->arena)
 		{
@@ -624,7 +549,6 @@ namespace thunder285
 		register_port(thunder285::ORIG_MasterTask, (void *)thunder285::MasterTask, "285 MasterTask", 285);
 		register_port(thunder285::ORIG_MainTask, (void *)thunder285::MainTask, "285 MainTask", 285);
 		register_port(thunder285::ORIG_SparkTask, (void *)thunder285::SparkTask, "285 SparkTask", 285);
-		// 30 fps layer: see mag285_thunder_summon_held.inc
 		FX_HELD(register_mag285_held();)
 	}
 }

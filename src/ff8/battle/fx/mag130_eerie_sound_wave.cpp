@@ -14,49 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 130: Eerie Sound Wave (enemy attack 185 of kernel.bin, Malboro c0m048; MAG_130_*). No
-// other kernel.bin entry uses effect 130.
-//
-// Structure (setup MAG_130_EERIE_SOUND_WAVE 0x6B4240 -> _Init 0x6B4270, file loader 0x6B4250 = the
-// texture file named at 0x12238B0; the setup keeps the CASTER's entity, starts camera animation
-// 0x1223810 and queues the TIM; setup / loader / _Init are the copies of effects 126..129):
-//   MasterTask (0x6B42F0) - alternates the packet arena (magic buffer + 0xF7C / + 0x18F7C); on
-//     counter 1 sets up the pools (emitter 1 x 0x4CC, waves 0xC x 0x74, impacts 3 x 0xC0) and starts
-//     the emitter: the targets of action 0 sorted by entity x (largest first). Then the emitter,
-//     wave and impact queues; ends when all three are empty.
-//   EmitterTask (0x6B4520) - the layout 0x1221138 at the caster's bone 0xB (y scale 0x4000) lifted
-//     by 200, turned by the caster's facing; ends with the layout. Sound at counter 10. Every 3rd
-//     counter below 12 x targets: a wave from the caster's bone 0xB towards target counter / 12;
-//     the 4th wave of each target (counter % 12 == 9) carries the hit.
-//   WaveTask (0x6B4960) - the layout 0x12228A8 moving from its start to the target's default
-//     effect position (sine ease over 0x18 ticks, then on the target), turned along the start ->
-//     target line (0x50CBA0); ends with the layout. A hit wave starts an impact on its first tick.
-//   ImpactTask (0x6B4AD0) - the layout 0x1220990 at the target's default effect position (taken at
-//     the spawn); on the layout's frame 8 the damage of every target record of action 0 that is this
-//     entity (0x6B4B90, as Junk's 0x6E87A0); ends with the layout.
-//   PrimCallback (0x6B46C0, Moomba's 0x6ECCE0 on this module's cursor) draws every layout object.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (no draw-only pass).
-// The tasks write no entity position and no camera words (the camera animation is the engine's).
-// Module globals: 0x25210A8..0x2521110 (caster 0x25210A8, texture file 0x25210AC, magic buffer base
-// 0x25210B0, context 0x25210B4, master pool 0x25210B8, packet cursor 0x25210CC, the queues
-// 0x25210D0 impacts / 0x25210E0 waves / 0x25210F0 emitter / 0x2521100 master).
-//
-// NEVER-WRITTEN STACK WORDS (the game's executor 0x508420 calls every task of a queue at one esp;
-// the master runs the emitter, wave and impact queues 4 bytes deeper each: emitter entry esp E,
-// waves E - 4, impacts E - 8). Between two effect ticks the battle loop 0x500900 runs the engine
-// queues 0x1D96AA4 / 0x1D96A8C / 0x1D96AA0 at the effect root's depth: what lies below the master's
-// executors when a tick starts is engine residue (taken as 0 here; no output depends on it):
-//   - ImpactTask never writes its matrix's m[2][2] (entry esp - 0x18): the identity it builds keeps
-//     the word below, which ComposeAffineTransform reads. Its last writer is the last task that ran
-//     before it in the tick: the previous impact (its composed m[2][2]), else the last wave (its
-//     composed m[2][0], wave entry esp - 0x1C), else the emitter (its composed m[1][1], entry esp
-//     - 0x20), else the residue at the tick's start (0). Stack().m22 (see ImpactTask). No draw of the
-//     impact layout depends on the word (the matrix's third column reaches no vertex).
-//   - EmitterTask's second spawn position is copied to the wave's +0x14..+0x1B with its 4th word
-//     (entry esp - 0x2A) never written; no code reads the wave's +0x1A. The emitter is the tick's
-//     first task: on the first tick the master's Memset32 call left its push of the root executor's
-//     edi there (0: the master is the root queue's first node); later ticks: the residue (0).
+// Effect 130: Eerie Sound Wave
 
 #include "mag_common.h"
 
@@ -67,93 +25,83 @@ namespace eerie130
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25210A8); }         // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25210B0); }         // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x25210A8); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25210B0); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25210B4); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25210CC); }
-	inline TaskQueue *QImpacts() { return (TaskQueue *)0x25210D0; }          // pool: magic buffer, 3 x 0xC0
-	inline TaskQueue *QWaves() { return (TaskQueue *)0x25210E0; }            // pool: + 0x240, 0xC x 0x74
-	inline TaskQueue *QEmitter() { return (TaskQueue *)0x25210F0; }          // pool: + 0x7B0, 1 x 0x4CC
+	inline TaskQueue *QImpacts() { return (TaskQueue *)0x25210D0; }
+	inline TaskQueue *QWaves() { return (TaskQueue *)0x25210E0; }
+	inline TaskQueue *QEmitter() { return (TaskQueue *)0x25210F0; }
 	inline uint32_t RenderOT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x6B42F0;
 	static const uint32_t ORIG_EmitterTask = 0x6B4520;
 	static const uint32_t ORIG_WaveTask = 0x6B4960;
 	static const uint32_t ORIG_ImpactTask = 0x6B4AD0;
-	static const uint32_t MODEL_Emitter = 0x1221138;     // prim-model layouts
+	static const uint32_t MODEL_Emitter = 0x1221138;
 	static const uint32_t MODEL_Wave = 0x12228A8;
 	static const uint32_t MODEL_Impact = 0x1220990;
 	static const void *const SOUND_Wave = (const void *)0x122380C;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }             // sub_56C220: a = a x b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }                // MAG_063_sub_701270
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
-	// BuildOrthonormalBasis (0x50CBA0): 3x3 basis of the direction v (int32 x3), returns |v|
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	// sub_56CB90: out = (a * wa + b * wb) >> 12 through the GTE (IR loaded as u16, GPF / GPL)
 	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x25210B8)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct EmitterNode // pool of 1 node of 0x4CC bytes
+	struct EmitterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t count;     // +0x0E targets of action 0
-		uint8_t *ents[3];  // +0x10 target entities (sorted by x, largest first)
-		uint8_t idx[3];    // +0x1C their target record indexes
+		int16_t counter;
+		int16_t count;
+		uint8_t *ents[3];
+		uint8_t idx[3];
 		uint8_t pad1F;
-		uint8_t layout[0x4AC]; // +0x20 prim-model layout
+		uint8_t layout[0x4AC];
 	};
-	struct WaveNode // pool of 0xC nodes of 0x74 bytes
+	struct WaveNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		uint8_t no_hit;    // +0x0E 0 = the wave starts an impact on its first tick
-		uint8_t idx;       // +0x0F target record index (not read)
-		uint8_t *entity;   // +0x10 target entity
-		int16_t start[4];  // +0x14 caster's bone 0xB at the spawn (+0x1A: never-written stack word, not read)
-		uint8_t layout[0x58]; // +0x1C prim-model layout
+		int16_t counter;
+		uint8_t no_hit;
+		uint8_t idx;
+		uint8_t *entity;
+		int16_t start[4];
+		uint8_t layout[0x58];
 	};
-	struct ImpactNode // pool of 3 nodes of 0xC0 bytes
+	struct ImpactNode
 	{
 		TaskNode hdr;
-		int16_t pos[4];    // +0x0C the target's default effect position at the spawn
-		uint8_t *entity;   // +0x14 target entity
-		uint8_t layout[0xA8]; // +0x18 prim-model layout
+		int16_t pos[4];
+		uint8_t *entity;
+		uint8_t layout[0xA8];
 	};
-	// the prim-player callback's parameter block (a stack block of the drawing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 camera x object frame
-		int32_t depth;     // +0x20 the prim header's +0x18
-		uint32_t morph;    // +0x24 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(EmitterNode) == 0x4CC && sizeof(WaveNode) == 0x74 && sizeof(ImpactNode) == 0xC0, "Eerie Sound Wave nodes");
 	static_assert(sizeof(PrimArg) == 0x28, "Eerie Sound Wave prim block");
 
-	// the never-written stack word (see the module comment): what the module's own code last left in
-	// the impact's m[2][2] slot during the tick
 	struct StackWords
 	{
 		int16_t m22;
@@ -164,12 +112,6 @@ namespace eerie130
 		return s;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6B46C0, Moomba's 0x6ECCE0 on this module's cursor): one object of a
-	// layout. Vertex frame (or blend into the parameter block's morph buffer), rotation from the
-	// record's angles, the record's offset through the parameter matrix (flag 0x200: as is), the
-	// matrix composed with it, scale (flag 0x100: 3x3 product, else scale3DMatrix), drawn by 0x7043B0.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -208,7 +150,6 @@ namespace eerie130
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAngles2(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		int32_t t[3];
 		if (r->flags & 0x200)
@@ -268,7 +209,6 @@ namespace ff8fx
 {
 namespace eerie130
 {
-	// sub_6B4B90 (as Junk's 0x6E87A0): the damage of every target record of action 0 that is this entity
 	static void DamageEntity(uint8_t *entity)
 	{
 		const int32_t slot = (int32_t)((uint32_t)entity - 0x1D972C0u) / 0x9C;
@@ -279,9 +219,6 @@ namespace eerie130
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Impact (0x6B4AD0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ImpactTask(TaskNode *n)
 	{
 		ImpactNode *p = (ImpactNode *)n;
@@ -297,10 +234,8 @@ namespace eerie130
 		arg.m.m[0][2] = 0;
 		arg.m.m[0][1] = 0;
 		arg.m.t[2] = p->pos[2];
-		// m[2][2] is never written: the word the previous task left in the slot (module comment)
 		arg.m.m[2][2] = Stack().m22;
 		arg.m.pad = 0;
-		// 30 fps layer: see mag130_eerie_sound_wave_held.inc
 		FX_HELD(held_note_play(PLAY_IMPACT, n, (prim::Layout *)p->layout, &arg.m);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		Stack().m22 = arg.m.m[2][2];
@@ -312,9 +247,6 @@ namespace eerie130
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Wave (0x6B4960)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		WaveNode *w = (WaveNode *)n;
@@ -344,7 +276,6 @@ namespace eerie130
 		arg.m.t[0] = pos[0];
 		arg.m.t[1] = pos[1];
 		arg.m.t[2] = pos[2];
-		// 30 fps layer: see mag130_eerie_sound_wave_held.inc
 		FX_HELD(held_note_play(PLAY_WAVE, n, (prim::Layout *)w->layout, &arg.m);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		Stack().m22 = arg.m.m[2][0];
@@ -355,9 +286,6 @@ namespace eerie130
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Emitter (0x6B4520)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl EmitterTask(TaskNode *n)
 	{
 		EmitterNode *e = (EmitterNode *)n;
@@ -369,7 +297,6 @@ namespace eerie130
 		arg.m.t[0] = pos[0];
 		arg.m.t[1] = pos[1];
 		arg.m.t[2] = pos[2];
-		// 30 fps layer: see mag130_eerie_sound_wave_held.inc
 		FX_HELD(held_note_play(PLAY_EMITTER, n, (prim::Layout *)e->layout, &arg.m);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		Stack().m22 = arg.m.m[1][1];
@@ -377,7 +304,6 @@ namespace eerie130
 		arg.morph = TexBase() + 0xC7C;
 		if (prim::play((prim::Layout *)e->layout, PrimCallback, (int)&arg, 0) == 0) return TASK_END;
 		if (e->counter == 10) BdPlaySE(SOUND_Wave, 0, 0x80);
-		// the 4th word of the position is never written (module comment)
 		pos[3] = 0;
 		GetEffectSpawnPosition(Caster(), 0xB, 0x1000, pos);
 		const int32_t c = e->counter;
@@ -402,15 +328,10 @@ namespace eerie130
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6B42F0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag130_eerie_sound_wave_held.inc
 		FX_HELD(held_note_master();)
-		// the stack below the executors holds the engine's residue when the tick starts (module comment)
 		Stack().m22 = 0;
 		if (m->arena)
 		{
@@ -433,13 +354,11 @@ namespace eerie130
 			DecodeModelPrimLayout(MODEL_Emitter, e->layout, 0x4AC);
 			uint8_t *const b = (uint8_t *)e;
 			e->count = (int16_t)Ctx()->actions[0].target_count;
-			// target record indexes (+0x1C + i) and entities (+0x10 + 4 i), written in this order
 			for (int32_t i = 0; i < e->count; i++)
 			{
 				b[0x1C + i] = (uint8_t)i;
 				*(uint8_t **)(b + 0x10 + 4 * i) = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
 			}
-			// sorted by entity x, largest first (the record indexes follow)
 			for (int32_t i = 0; i < e->count - 1; i++)
 			{
 				for (int32_t j = i + 1; j < e->count; j++)
@@ -478,7 +397,6 @@ namespace eerie130
 		register_port(eerie130::ORIG_EmitterTask, (void *)eerie130::EmitterTask, "130 EmitterTask", 130);
 		register_port(eerie130::ORIG_WaveTask, (void *)eerie130::WaveTask, "130 WaveTask", 130);
 		register_port(eerie130::ORIG_ImpactTask, (void *)eerie130::ImpactTask, "130 ImpactTask", 130);
-		// 30 fps layer: see mag130_eerie_sound_wave_held.inc
 		FX_HELD(register_mag130_held();)
 	}
 }

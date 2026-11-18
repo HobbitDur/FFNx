@@ -14,27 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 118: Aero (spell, MAG_118_*).
-//
-// Structure (setup MAG_118_AERO 0x6C0C80 -> _Init 0x6C0CB0, file loader 0x6C0C90 = the texture
-// file named at 0x128E2C4; the setup starts camera animation 0x128D5B0 and queues the TIM):
-//   RootTask (0x6C0D20) - alternates the packet arena (magic buffer + 0x2584 / + 0x1A584); on
-//     counter 1 of a 10-tick cycle sets up the pools (first time) and starts the target task of the
-//     next action on its first target (no wait); computes the effect camera, runs the target and
-//     leaf queues, ends when both are empty.
-//   Target (0x6C0EC0) - node 0x68C, one per action: sound at 8; from tick 11 plays two prim-model
-//     layouts with the callback WindPart (0x6C10A0): the whirlwind 0x1287DBC at the target's feet
-//     and 0x128C110 at its effect anchor, both scaled by its size; over 0..19 spawns a leaf per
-//     tick; when both layouts are over: damage, ends.
-//   Leaf (0x6C14B0) - node 0x3C: the leaf prim model 0x1287C44 spinning on three axes: while its
-//     target task is younger than 40 ticks it grows in and circles the target, climbing (spiral
-//     radius shrinking with height), then it falls, bouncing on the ground and drifting outwards,
-//     and shrinks away after 17 more ticks.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x25215D8..0x2521650 (texture file, magic buffer base, context, root pool,
-// packet cursor 0x25215FC, effect camera 0x2521600, leaf / target / root queues). The target
-// pool (3 x 0x68C), the leaf pool (64 x 0x3C), the morph vertex buffer (+0x22A4) and the packet
-// arenas are in the magic buffer.
+// Effect 118: Aero
 
 #include "mag_common.h"
 
@@ -45,96 +25,84 @@ namespace aero118
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25215DC); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25215DC); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25215E0); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25215FC); }
 	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2521600); }
-	inline TaskQueue *QLeaves() { return (TaskQueue *)0x2521620; }          // pool: + 0x13A4, 0x40 x 0x3C
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521630; }         // pool: magic buffer, 3 x 0x68C
+	inline TaskQueue *QLeaves() { return (TaskQueue *)0x2521620; }
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521630; }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6C0D20;
 	static const uint32_t ORIG_TargetTask = 0x6C0EC0;
 	static const uint32_t ORIG_LeafTask = 0x6C14B0;
-	static const uint32_t MODEL_Whirl = 0x1287DBC;       // prim-model layout data (0x4EC-byte layout)
-	static const uint32_t MODEL_Gust = 0x128C110;        // prim-model layout data (0x184-byte layout)
-	static const uint32_t MODEL_Leaf = 0x1287C44;        // prim model
+	static const uint32_t MODEL_Whirl = 0x1287DBC;
+	static const uint32_t MODEL_Gust = 0x128C110;
+	static const uint32_t MODEL_Leaf = 0x1287C44;
 	static const void *const SOUND_Aero = (const void *)0x128D5AC;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// MAG_070_sub_7043B0: prim model draw (header +0 model, +4 vertices, +8 fade colour, +0xC fade,
-	// +0x18 depth offset, +0x1C mode)
 	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }    // sub_56C220: a = a * b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0x68C bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E action index (-1 once the damage is done)
-		uint8_t *entity;   // +0x10 target entity
-		int16_t pos[4];    // +0x14 effect anchor x, y, z, height (GetDefaultEffectPosition)
-		uint8_t whirl[0x4EC]; // +0x1C prim-model layout (prim::Layout: data, frame, state)
-		uint8_t gust[0x184];  // +0x508
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		int16_t pos[4];
+		uint8_t whirl[0x4EC];
+		uint8_t gust[0x184];
 	};
-	struct LeafNode // pool of 0x40 nodes of 0x3C bytes
+	struct LeafNode
 	{
 		TaskNode hdr;
-		int16_t action;    // +0x0C (the target task's action, not read)
-		int16_t reach;     // +0x0E spiral reach (target size / 2 + 0x800)
-		int16_t scale;     // +0x10 size 4.12, grows to 0x1000
-		int16_t angle;     // +0x12 around the target
-		int16_t speed;     // +0x14 angle step
-		int16_t cx;        // +0x16 target anchor x
-		int16_t cz;        // +0x18 target anchor z
-		int16_t pos[3];    // +0x1A x, y (0..0xFF at the spawn), z
+		int16_t action;
+		int16_t reach;
+		int16_t scale;
+		int16_t angle;
+		int16_t speed;
+		int16_t cx;
+		int16_t cz;
+		int16_t pos[3];
 		int16_t pad20;
-		int16_t cosv;      // +0x22 cos(angle) of the last circling tick
-		int16_t vy;        // +0x24 vertical speed
-		int16_t sinv;      // +0x26 sin(angle) of the last circling tick
+		int16_t cosv;
+		int16_t vy;
+		int16_t sinv;
 		int16_t pad28;
-		int16_t ang[3];    // +0x2A spin angles
-		int16_t fall;      // +0x30 ticks since the fall started
-		int8_t spin[3];    // +0x32 spin speeds (* 8)
+		int16_t ang[3];
+		int16_t fall;
+		int8_t spin[3];
 		uint8_t pad35[3];
-		void *owner;       // +0x38 its target task
+		void *owner;
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 x, y, z (+ height word)
-		int32_t scale[3];  // +0x08 4.12, applied to the record offsets and the matrix
-		int32_t scaled;    // +0x14 scale present
-		int32_t depth;     // +0x18 prim header +0x18
-		uint32_t morph;    // +0x1C blended vertex frames
+		int16_t pos[4];
+		int32_t scale[3];
+		int32_t scaled;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x68C && sizeof(LeafNode) == 0x3C, "Aero nodes");
 	static_assert(sizeof(PrimArg) == 0x20, "Aero prim block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6C10A0): one object of the whirlwind / gust models
-	// ------------------------------------------------------------------
 	static void __cdecl WindPart(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -172,7 +140,6 @@ namespace aero118
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset, scaled by the block's scale
 		int16_t off[4] = {};
 		const int32_t scaled = arg->scaled;
 		if (scaled)
@@ -191,7 +158,6 @@ namespace aero118
 		const uint32_t flags = r->flags;
 		if (flags & 0x1000)
 		{
-			// the block position through the camera, the offset through the effect camera
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -208,7 +174,6 @@ namespace aero118
 		}
 		else
 		{
-			// block position + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -225,7 +190,6 @@ namespace aero118
 		{
 			if (r->flags & 0x100)
 			{
-				// diagonal matrix product (sub_56C220)
 				Mat4x3 d = {};
 				d.m[0][0] = r->scale[0];
 				d.m[1][1] = r->scale[1];
@@ -234,7 +198,6 @@ namespace aero118
 			}
 			else
 			{
-				// each row of the rotation times its scale (a scale of 1.0 leaves the row)
 				for (int k = 0; k < 3; k++)
 				{
 					const int16_t s = r->scale[k];
@@ -259,16 +222,11 @@ namespace aero118
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Leaf (0x6C14B0)
-	// ------------------------------------------------------------------
-	// the tick's motion before the draw; false = finished (shrunk away)
 	static bool LeafMove(LeafNode *f)
 	{
 		const int16_t oc = ((const TargetNode *)f->owner)->counter;
 		if (oc < 0x28)
 		{
-			// circling the target, climbing: the spiral radius shrinks with the height
 			if (oc >= 0xA)
 			{
 				f->vy = (int16_t)(f->vy - 4);
@@ -289,7 +247,6 @@ namespace aero118
 		}
 		else
 		{
-			// falling, bouncing on the ground, drifting outwards; shrinks away after 17 ticks
 			const int16_t n = f->fall;
 			f->fall = (int16_t)(n + 1);
 			if (n > 0x10)
@@ -342,15 +299,11 @@ namespace aero118
 	{
 		LeafNode *f = (LeafNode *)n;
 		if (!LeafMove(f)) return TASK_END;
-		// 30 fps layer: see mag118_aero_held.inc
 		FX_HELD(held_note_leaf(f);)
 		LeafDraw(f);
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Target (0x6C0EC0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -359,23 +312,20 @@ namespace aero118
 		const int32_t reach = (*(const int16_t *)(t->entity + 0x26) >> 1) + 0x800;
 		if (t->counter > 0xA)
 		{
-			// the whirlwind at the target's feet, the gust at its anchor, scaled by its size
 			PrimArg arg;
 			arg.pos[0] = t->pos[0];
 			arg.pos[2] = t->pos[2];
 			arg.pos[1] = *(const int16_t *)(t->entity + 0x24);
-			arg.pos[3] = 0; // never written by the original, never read
+			arg.pos[3] = 0;
 			arg.scale[2] = reach;
 			arg.scale[1] = reach;
 			arg.scale[0] = reach;
 			arg.scaled = 1;
 			arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)(int32_t)*(const int16_t *)(t->entity + 0x26)) >> 5;
 			arg.morph = TexBase() + 0x22A4;
-			// 30 fps layer: see mag118_aero_held.inc
 			FX_HELD(held_note_play(t->whirl, &arg);)
 			alive = prim::play((prim::Layout *)t->whirl, WindPart, (int)&arg, 0);
 			GetDefaultEffectPosition(t->entity, arg.pos);
-			// 30 fps layer: see mag118_aero_held.inc
 			FX_HELD(held_note_play(t->gust, &arg);)
 			alive |= prim::play((prim::Layout *)t->gust, WindPart, (int)&arg, 0);
 		}
@@ -415,13 +365,9 @@ namespace aero118
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6C0D20)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag118_aero_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -478,7 +424,6 @@ namespace aero118
 		register_port(aero118::ORIG_RootTask, (void *)aero118::RootTask, "A118 RootTask", 118);
 		register_port(aero118::ORIG_TargetTask, (void *)aero118::TargetTask, "A118 TargetTask", 118);
 		register_port(aero118::ORIG_LeafTask, (void *)aero118::LeafTask, "A118 LeafTask", 118);
-		// 30 fps layer: see mag118_aero_held.inc
 		FX_HELD(register_mag118_held();)
 	}
 }

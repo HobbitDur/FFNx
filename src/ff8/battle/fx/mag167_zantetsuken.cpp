@@ -14,28 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 167: Zantetsuken of the monster Odin (enemy attack 274, c0m070; MAG_167_*). A small
-// relative of Odin's GF module 187 (mag187_odin.cpp): the same sword sparks, blade trail and target
-// slices, driven by the caster's own model instead of a summoned creature.
-//
-// Structure (file loader 0x5E29F0: "mag166.tim" (name 0xD716CC) into 0x23BEF58; setup 0x5E2A10, not
-// ported: it runs once):
-//   setup - packet arena = Magic_TextureOFF_ToEAX1 (0x23BF02C); cast context 0x23BEF50, caster slot
-//     0x23BEF54, first target slot 0x23BD400; root queue 0x23BD5A8 (pool 0x23BD598, 1 x 0x10) with
-//     the master, sub-queue 0x23BE130 (pool 0x23BE140, 100 x 0x24) with the timeline; spark pool
-//     0x23BD5B8 cleared; camera animation 0xD6F7A4, the TIM queued.
-//   Master (0x5E4E20, au_re_BdlinkTask_20) - packet cursor 0x23BF030 = arena (+0x8000 on odd
-//     counters), runs the sub-queue, ++counter, ends when it is empty (no pause test).
-//   Timeline (0x5E2AD0), 146 ticks: 27 sword sparks, 28 sound, 44 blade trail, 64 / 68 two screen
-//     prims, 64 stage shown + entities flagged (+0 |= 4), 72 screen fade, 74 entities flagged (|= 8)
-//     and the caster moved (+0x1E += 700, +0x20 += 0x1130; old words kept in 0x23BE118), 77 stage
-//     hidden + flags cleared, 97 one target slice per target, 143 the action results, end: caster
-//     sub-object +0x2C |= 0x40.
-//   Sparks (0x5E2F30), trail (0x5E33E0), prims (0x5E38D0 / 0x5E3A00), slices (0x5E3C20): below.
-// Every task except the master tests battle_to_update_flags_dword_1D96A9C & 0x201 (draw-only when
-// set).
-// The module-private renderer (clipped model 0x5E4030 with 0x5E4320 / 0x5E48A0..0x5E4D40, a pure
-// function of a scratch header, = Odin 187's 0x648ED0) is called through its original address.
+// Effect 167: Zantetsuken of the monster Odin
 
 #include "fx_port.h"
 #include <stddef.h>
@@ -46,67 +25,63 @@ namespace z167
 {
 	using namespace eng;
 
-	// --- engine functions used by this module (original addresses) ---
 	namespace x
 	{
 		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
 		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x56CE30)(angles, out); }
 		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
-		inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); } // b.rot = a.rot * b.rot
-		inline void NormalizeVector16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); } // VectorNormalS16 (float)
+		inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+		inline void NormalizeVector16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
 		inline uint32_t MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { return fn<uint32_t (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
 		inline void TransformVectorBy3x3Matrix(const Mat4x3 *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int32_t *, int32_t *)>(0x56C600)(m, in, out); }
 		inline void TransformCoordinateToCameraSpace(const int16_t *in, void *out, void *flag) { fn<void (__cdecl *)(const int16_t *, void *, void *)>(0x56C820)(in, out, flag); }
 		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-		inline void SplineSetup(int32_t n, uint32_t points, void *work) { fn<void (__cdecl *)(int32_t, uint32_t, void *)>(0x571620)(n, points, work); }             // Effect_SplineSetup
-		inline void SplineEval(int32_t n, void *work, uint32_t out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, uint32_t, int32_t)>(0x571690)(n, work, out, t); } // Effect_SplineEval
-		inline void SetProjection(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }                                             // Battle_SetProjectionH
-		inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); } // BattleEntity_DrawShadow
+		inline void SplineSetup(int32_t n, uint32_t points, void *work) { fn<void (__cdecl *)(int32_t, uint32_t, void *)>(0x571620)(n, points, work); }
+		inline void SplineEval(int32_t n, void *work, uint32_t out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, uint32_t, int32_t)>(0x571690)(n, work, out, t); }
+		inline void SetProjection(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }
+		inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); }
 		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x501330)(se, a, b); }
-		inline void ScreenFade(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); } // Effect_SpawnScreenFadeTask
+		inline void ScreenFade(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
 		inline void ApplyActionResultToTargets(uint32_t list, uint32_t count) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x506BA0)(list, count); }
-		// software GTE
 		inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // GTE_SetBackColorFromTrans: BK = m.t
+		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
 		inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }                 // GTE_SetRotScale: R = s * I
-		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }                                 // GTE_TransFromMAC: TR = MAC123
+		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
+		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
 		inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 		inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 		inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 		inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 		inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-		inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }                   // GTE_ReadOTZ
+		inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 		inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
-		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }  // GTE_SetFarColor
-		inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); } // pre_someCameraWork_45DD60
-		// module-private renderer called through its original address
-		inline uint32_t SliceRender(void *geom, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5E4030)(geom, h, ot, mode, cursor); } // MAG_167_sub_5E4030
+		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
+		inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
+		inline uint32_t SliceRender(void *geom, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5E4030)(geom, h, ot, mode, cursor); }
 	}
 	using namespace x;
 
-	// --- module globals ---
-	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
+	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; }
 	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x23BE130); }
 	inline uint8_t *CastCtx() { return var<uint8_t *>(0x23BEF50); }
 	inline uint32_t CasterSlot() { return var<uint32_t>(0x23BEF54); }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x23BF030); }        // the module's packet cursor (arena 0x23BF02C)
-	inline uint32_t &EngineCursor() { return var<uint32_t>(0x1D8E054); }  // battle_texture_data_ptr_1D8E054 (the target slices)
+	inline uint32_t &Cursor() { return var<uint32_t>(0x23BF030); }
+	inline uint32_t &EngineCursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
-	inline uint8_t *Actions() { return *(uint8_t **)(CastCtx() + 4); }    // +0x08 -> 0x18-byte target records (byte 0 = slot), +0x10 u8 count
+	inline uint8_t *Actions() { return *(uint8_t **)(CastCtx() + 4); }
 	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(0x1D972C0 + 156 * slot); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	static const uint32_t HIST_A = 0x23BD350;   // spline input points (8 bytes each)
-	static const uint32_t HIST_B = 0x23BD3A8;   // spline input directions / second rail
-	static const uint32_t SPARK_HIST = 0x23BD408; // 3 x 0x14 sword history of the sparks
-	static const uint32_t POOL = 0x23BD5B8;     // 100 x 0x18 spark records
-	static const uint32_t SPLINE_A = 0x23BDF18; // spline outputs (8 bytes each)
+	static const uint32_t HIST_A = 0x23BD350;
+	static const uint32_t HIST_B = 0x23BD3A8;
+	static const uint32_t SPARK_HIST = 0x23BD408;
+	static const uint32_t POOL = 0x23BD5B8;
+	static const uint32_t SPLINE_A = 0x23BDF18;
 	static const uint32_t SPLINE_B = 0x23BE018;
-	static const uint32_t BLADE_P0 = 0x23BE120;  // blade end points (world), written by the trail
+	static const uint32_t BLADE_P0 = 0x23BE120;
 	static const uint32_t BLADE_P1 = 0x23BE128;
-	static const uint32_t TRAIL_RECS = 0x23BEF60; // 10 x 0x14 blade trail history
+	static const uint32_t TRAIL_RECS = 0x23BEF60;
 
 	static const uint32_t ORIG_Master = 0x5E4E20;
 	static const uint32_t ORIG_TimelineTask = 0x5E2AD0;
@@ -116,29 +91,27 @@ namespace z167
 	static const uint32_t ORIG_PrimBTask = 0x5E3A00;
 	static const uint32_t ORIG_SliceTask = 0x5E3C20;
 
-	// every sub-queue node is 0x24 bytes (pool 0x23BE140); field use differs per task
 #pragma pack(push, 1)
 	struct Node24
 	{
 		TaskNode hdr;
-		int16_t c;                  // +0x0C tick counter
-		int16_t e;                  // +0x0E target slot (slices)
-		int16_t p10, p12, p14, p16; // +0x10 position
-		int16_t a18;                // +0x18 slice angle
+		int16_t c;
+		int16_t e;
+		int16_t p10, p12, p14, p16;
+		int16_t a18;
 		int16_t w1A;
-		int16_t s1C, s1E;           // +0x1C scale / slice offset, its speed
-		int16_t s20, s22;           // +0x20 second scale
+		int16_t s1C, s1E;
+		int16_t s20, s22;
 	};
-	// spark record of the pool 0x23BD5B8
 	struct Rec
 	{
-		uint32_t alive;       // +0x00
-		int16_t age;          // +0x04 flipbook frame
-		int16_t size;         // +0x06
-		int16_t x, y, z;      // +0x08
-		int16_t w0E;          // +0x0E
-		int16_t vx, vy, vz;   // +0x10
-		int16_t w16;          // +0x16
+		uint32_t alive;
+		int16_t age;
+		int16_t size;
+		int16_t x, y, z;
+		int16_t w0E;
+		int16_t vx, vy, vz;
+		int16_t w16;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(Node24) == 0x24, "sub-queue node is 0x24 bytes");
@@ -156,29 +129,20 @@ namespace z167
 {
 	inline Rec *RecOf(int i) { return (Rec *)(POOL + 0x18 * i); }
 
-	// ------------------------------------------------------------------
-	// Master (0x5E4E20, au_re_BdlinkTask_20): node from pool 0x23BD598, +0x0C counter
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl Master(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		uint32_t arena = var<uint32_t>(0x23BF02C);
 		Cursor() = (*(const uint8_t *)&n->c & 1) ? arena + 0x8000 : arena;
-		// 30 fps layer: see mag167_zantetsuken_held.inc
 		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		n->c++;
 		return left ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Timeline (0x5E2AD0), 146 ticks
-	// ------------------------------------------------------------------
-	// MAG_167_sub_5E2E20 / 5E2E40: the battle stage groups stru_1D9898C[0..3] +5 bit 1 (hide / show the stage)
 	static void HideStage() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2; }
 	static void ShowStage() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) &= 0xFD; }
 
-	// MAG_167_sub_5E2E60: caster +0 &= ~4, and every party entity with bit 1
 	static void ClearFlag4()
 	{
 		var<uint16_t>((uint32_t)Caster()) &= 0xFFFB;
@@ -189,7 +153,6 @@ namespace z167
 		}
 	}
 
-	// MAG_167_sub_5E2EB0 / 5E2EF0: caster +0 |= bit, and every party entity with bit 1
 	static void SetFlag(uint8_t bit)
 	{
 		Caster()[0] |= bit;
@@ -200,9 +163,6 @@ namespace z167
 		}
 	}
 
-	// MAG_167_sub_5E3B20 (= GF_327_BonePosition 0x58E2E0): the bone's position (camera space of its
-	// matrix: a point at bone length x frac along the bone); hidden model (+0 bit 1 clear): the entity
-	// position, returns -1
 	static int32_t BonePosition(uint8_t *ent, int32_t bone, int32_t frac, int16_t *out)
 	{
 		int16_t v[3] = { 0, 0, 0 };
@@ -247,8 +207,6 @@ namespace z167
 		return n;
 	}
 
-	// one target slice per target: position = the target's bone 0xF1 (jittered by its size), angle
-	// random +-0x280, offset 0, speed (0x30..0x5F) x min(size, 0xA00) >> 12
 	static void SpawnSlices()
 	{
 		for (int32_t i = 0; i < (int32_t)Actions()[0x10]; i++)
@@ -341,15 +299,6 @@ namespace z167
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Sword sparks (0x5E2F30, timeline tick 27): every tick the caster's bone 0x28 (base and tip
-	// direction) goes into the 3-entry ring 0x23BD408; while the counter <= 11 and at least 2
-	// entries exist, a spline through them (Effect_SplineSetup / Effect_SplineEval) seeds 5 sparks
-	// along 5 of 6 points. Every spark record (mask 1) is drawn first: flipbook 0xD6F8D0 colour
-	// 0x483830, lit by the camera matrix, sequence scale = its size (growing 1/32), moving by its
-	// velocity (drag 1/8); dies when its flipbook ends. Ends from tick 4 on the first tick with no
-	// live spark.
-	// ------------------------------------------------------------------
 	static int32_t BoneHistory(int32_t c, uint8_t *s)
 	{
 		GetEffectSpawnPosition(Caster(), 0x28, 0, (int16_t *)s);
@@ -381,7 +330,6 @@ namespace z167
 		return n;
 	}
 
-	// the sprite header and the light (camera matrix as light matrix, its translation as back colour)
 	static void SparkSetup(uint8_t *h, uint8_t *s)
 	{
 		ff8fx::copy<(0x20)>(s + 0x10, &Camera());
@@ -486,15 +434,6 @@ namespace z167
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Blade trail (0x5E33E0, timeline tick 44), 20 ticks: every tick the blade end points (world)
-	// are computed from the caster's matrix o its bone matrix (skeleton + 0xB30) o R(0x400, 0, 0x800)
-	// x 0x1A00: base (0, 1000, -1000) -> 0x23BE120, tip (0, 0x1838, 0x258) -> 0x23BE128; they go into
-	// the 10-entry ring 0x23BEF60; a 32-point spline through the history (base rail and tip rail) is
-	// drawn as 30 Gouraud quad pairs (semi-transparent, colour 0x903030 fading to the far colour 0
-	// along the trail through GTE DPCS), through the camera matrix.
-	// ------------------------------------------------------------------
-	// (the scale vector lives in the task's scratch block s + 0x30)
 	static void BladePoints(uint8_t *s, int16_t *p0, int16_t *p1)
 	{
 		int16_t v[4] = { 0x400, 0, 0x800, 0 };
@@ -585,7 +524,7 @@ namespace z167
 			pk += 0x48;
 			pk2 += 0x48;
 		}
-		Cursor() = pk2; // (vanilla: the cursor ends 0x24 bytes past the last packet)
+		Cursor() = pk2;
 	}
 
 	static uint32_t __cdecl TrailTask(TaskNode *tn)
@@ -625,14 +564,6 @@ namespace z167
 		return n->c >= 0x14 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Screen prims (prim models in screen space, GTE H forced to 0x120 around the draw):
-	//   0x5E38D0 (timeline tick 64): model 0xD6FA7C, rotation (0, 0, 0x8AC), t = (+0x10, +0x12,
-	//            0x120), scale (+0x1C, +0x20, +0x20); 13 ticks;
-	//   0x5E3A00 (timeline tick 68): model 0xD7042C, no rotation, t = (+0x10, +0x12, 0x120), scale
-	//            +0x1C; 9 ticks.
-	// +0x1C grows by +0x1E, which loses a third every tick.
-	// ------------------------------------------------------------------
 	static void PrimDraw(const Node24 *n, uint32_t model, int16_t rz, int32_t sx, int32_t syz)
 	{
 		int16_t v[4] = { 0, 0, rz, 0 };
@@ -681,15 +612,6 @@ namespace z167
 		return PrimTask(n, 9);
 	}
 
-	// ------------------------------------------------------------------
-	// Target slice (0x5E3C20, timeline tick 97, one per target), 41 ticks; drawn on ticks 0-39: the
-	// target entity is hidden from the normal pass (+0 |= 4) and drawn here in two halves by the
-	// clipped renderer MAG_167_sub_5E4030: the plane through the node position (normal = the slice
-	// angle), one half at the entity matrix, the other shifted along the plane by +0x1C (speed +0x1E:
-	// x3 for 4 ticks, then decaying by 1/10, >= 2); from tick 32 the target colour fades to the
-	// background colour (GTE DPCS). Its attached model (+0x78, when shown) is cut the same way.
-	// ------------------------------------------------------------------
-	// MAG_167_sub_5E3EE0: plane distance, n[3] = -(p . n) >> 12
 	static void PlaneDistance(const int16_t *p, int16_t *nrm)
 	{
 		int32_t d = mul32(p[2], nrm[2]) + mul32(p[1], nrm[1]);
@@ -697,11 +619,8 @@ namespace z167
 		nrm[3] = (int16_t)-(d >> 12);
 	}
 
-	// vertex scratch of the clipped renderer: the engine's (0x1D98B3C) unless another one is set here
 	static uint32_t g_vertex_scratch_override = 0;
 
-	// MAG_167_sub_5E3F20: shadow, both root matrices, the clipped model, the bone matrices; then the
-	// same for the attached model
 	static void TargetDraw(uint8_t *h, uint8_t *ent, const Mat4x3 *moved)
 	{
 		if (!(ent[0] & 0x20))
@@ -727,7 +646,6 @@ namespace z167
 
 	static int32_t SliceFadeW(int32_t c) { return 0x1000 - ComputeSin(shl32(c - 0x20, 10) / 8); }
 
-	// w < 0: the target colour as it is (no fade)
 	static void SliceDraw(uint8_t *h, const Node24 *n, uint8_t *ent, int32_t offset, int32_t w)
 	{
 		int16_t v[4] = { 0, 0, n->a18, 0 };
@@ -752,14 +670,12 @@ namespace z167
 		moved.t[0] = (int32_t)((uint32_t)moved.t[0] + (uint32_t)(mul32(v[0], d) >> 12));
 		moved.t[1] = (int32_t)((uint32_t)moved.t[1] + (uint32_t)(mul32(v[1], d) >> 12));
 		moved.t[2] = (int32_t)((uint32_t)moved.t[2] + (uint32_t)(mul32(v[2], d) >> 12));
-		if (w >= 0) // the target colour fade (from tick 32)
+		if (w >= 0)
 		{
 			uint32_t k = (uint32_t)(shl32(w, 7) >> 12);
 			uint32_t col = ((((k | 0x3200u) << 8) | k) << 8) | k;
 			*(uint32_t *)(ent + 0x2C) = col;
 			GteSetFarColor(var<uint8_t>(0xB8B7D8), var<uint8_t>(0xB8B7D9), var<uint8_t>(0xB8B7DA));
-			// the original zeroes the dword above its only argument ([esp + 0x4C], outside its
-			// frame) and passes its address: a zero RGBC
 			uint32_t zero = 0;
 			GteLoadRGBC(&zero);
 			GteSetIR0(w);
@@ -807,7 +723,6 @@ namespace z167
 		register_port(z167::ORIG_PrimATask, (void *)z167::PrimATask, "167 PrimATask", 167);
 		register_port(z167::ORIG_PrimBTask, (void *)z167::PrimBTask, "167 PrimBTask", 167);
 		register_port(z167::ORIG_SliceTask, (void *)z167::SliceTask, "167 SliceTask", 167);
-		// 30 fps layer: see mag167_zantetsuken_held.inc
 		FX_HELD(register_mag167_held();)
 	}
 }

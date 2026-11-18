@@ -14,40 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 190: Chain Gun (enemy attack 154 of kernel.bin, GIM47N; MAG_190_CHAIN_GUN).
-//
-// Structure (setup MAG_190_CHAIN_GUN 0x5BB2C0, file loader 0x5BB2A0 = the texture file named at
-// 0xD19574; the setup keeps the context, the first target's slot and the caster slot, clears both
-// particle arrays, starts camera animation 0xD186A0 and queues the TIM). All tasks live in one queue
-// 0x2283108 (pool 100 x 0x24):
-//   RootTask (0x5BC900) - alternates the packet arena (0x228BF40 on odd counters, else 0x2283F40),
-//     runs the effect queue, ends when it is empty.
-//   MasterTask (0x5BB380) - every tick (also in draw-only mode) the caster's effect anchor 0xB
-//     (muzzle) into 0x2283F38; counter 0: the 12 shots' impact points (BuildShots); 1: sound
-//     0xD1956C; 2: the smoke; every odd counter 3..25: a muzzle flash and the next shot (a hit on
-//     the target or a miss on the ground next to it); 30: damage; ends after 36.
-//   MuzzleTask (0x5BB5A0) - draws THEN updates: prim model 0xD18CDC at the muzzle (drawn twice),
-//     caster facing + random roll, random scale, fade counter << 11; ends at 2.
-//   SmokeTask (0x5BB6F0) - draws THEN updates every particle of array A (0x22824A0, 100 x 0x18)
-//     whose id has bit 0 set: flipbook 0xD1899C (frame++, dies when the flipbook ends), size +0x18,
-//     position += velocity, x / z velocity - 1/8. Counters 0..23: three new particles (id 1) near
-//     the muzzle, random direction. Ends past counter 15 with no live particle. (The miss dust
-//     groups have odd ids too: while the smoke runs it also draws and moves them.)
-//   MissTask (0x5BB9B0) / HitTask (0x5BBEC0) - one tick: the impact tasks of one shot.
-//     Miss: ImpactTask (model 0xD18FDC on the ground, growing), FlashTask (y -200) and DustTask.
-//     Hit: a point near the target (random direction through the target's matrix), SparkTask
-//     (model 0xD192A4), FlashTask and SparksTask.
-//   ImpactTask (0x5BBAA0) / SparkTask (0x5BC080) - draw THEN update: prim model, scale growing by a
-//     step that decays by 1/8, fade from the counter; end at 9 / 5.
-//   FlashTask (0x5BBBE0) - flipbook 0xD187A0 at the impact, frame = counter; ends at 16.
-//   DustTask (0x5BBC70) - draws THEN updates the array A particles with its shot's id (flipbook
-//     0xD1899C, colour 0x404040); counter 0: ten new ones around the impact point.
-//   SparksTask (0x5BC1F0) - the same over array B (0x2281B40, flipbook 0xD18B48, velocity - 1/3);
-//     counter 0: twelve new ones.
-// Every drawing task tests the draw-only flags (battle_to_update_flags 0x201) after drawing.
-// Module globals: 0x2281B18..0x2293F44 (target slot, root pool/queue, particle arrays B and A, the
-// shot table, effect queue + pool, context, caster slot, texture, muzzle, the two packet arenas,
-// packet cursor).
+// Effect 190: Chain Gun
 
 #include "mag_common.h"
 
@@ -58,14 +25,13 @@ namespace cg190
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2281B18); }  // the first target
+	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2281B18); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2283F28); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2283F2C); }
-	inline int16_t *Muzzle() { return (int16_t *)0x2283F38; }            // caster anchor 0xB
+	inline int16_t *Muzzle() { return (int16_t *)0x2283F38; }
 	inline uint32_t &Cursor() { return var<uint32_t>(0x2293F40); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2283108; }     // pool 0x2283118, 100 x 0x24
-	static const uint32_t ARENA_A = 0x228BF40, ARENA_B = 0x2283F40;     // 0x8000 bytes each
+	inline TaskQueue *QEffects() { return (TaskQueue *)0x2283108; }
+	static const uint32_t ARENA_A = 0x228BF40, ARENA_B = 0x2283F40;
 
 	static const uint32_t ORIG_RootTask = 0x5BC900;
 	static const uint32_t ORIG_MasterTask = 0x5BB380;
@@ -81,55 +47,50 @@ namespace cg190
 	static const uint32_t MODEL_Muzzle = 0xD18CDC;
 	static const uint32_t MODEL_Impact = 0xD18FDC;
 	static const uint32_t MODEL_Spark = 0xD192A4;
-	static const uint32_t SEQ_Smoke = 0xD1899C;  // smoke and dust
+	static const uint32_t SEQ_Smoke = 0xD1899C;
 	static const uint32_t SEQ_Flash = 0xD187A0;
 	static const uint32_t SEQ_Sparks = 0xD18B48;
 	static const void *const SOUND_Gun = (const void *)0xD1956C;
 
-	// engine functions not in fx_port.h / mag_common.h
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone`
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); } // sub_56C220
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
 		int16_t counter;
 		int16_t pad;
 	};
-	struct Node // effect queue nodes (0x24 bytes)
+	struct Node
 	{
 		TaskNode hdr;
-		int16_t counter; // +0x0C
-		int16_t f0E;     // +0x0E master: next shot / miss, hit: delay / dust, sparks: shot id
-		int16_t f10;     // +0x10 x
-		int16_t f12;     // +0x12 y
-		int16_t f14;     // +0x14 z
-		int16_t f16;     // +0x16 (4th word of the copied position)
-		int16_t f18;     // +0x18 yaw / miss, hit: shot id
-		int16_t f1A;     // +0x1A roll
-		int16_t f1C;     // +0x1C scale
-		int16_t f1E;     // +0x1E scale step
+		int16_t counter;
+		int16_t f0E;
+		int16_t f10;
+		int16_t f12;
+		int16_t f14;
+		int16_t f16;
+		int16_t f18;
+		int16_t f1A;
+		int16_t f1C;
+		int16_t f1E;
 		uint8_t pad20[4];
 	};
-	struct Particle // arrays A 0x22824A0 and B 0x2281B40, 100 x 0x18 each
+	struct Particle
 	{
-		int32_t id;      // 0 = free; A: 1 = smoke, else the dust's shot id; B: the sparks' shot id
-		int16_t frame;   // flipbook frame
-		int16_t angle;   // TransformCameraByShadowRotation angle (size)
+		int32_t id;
+		int16_t frame;
+		int16_t angle;
 		int16_t pos[4];
 		int16_t vel[3];
-		int16_t f16;     // B: sequence header +8
+		int16_t f16;
 	};
-	struct Shot // 0x2282E08, 48 x 0x10 (12 used)
+	struct Shot
 	{
 		int32_t active;
-		int32_t kind;    // target slot (hit) or -1 (miss)
+		int32_t kind;
 		int16_t pos[4];
 	};
 #pragma pack(pop)
@@ -153,12 +114,6 @@ namespace ff8fx
 {
 namespace cg190
 {
-	// ------------------------------------------------------------------
-	// Shot table (0x5BC4F0 and helpers)
-	// ------------------------------------------------------------------
-	// MAG_190_sub_5BC770: shots start..start+count-1 on the target in slot: odd shots hit, even
-	// ones miss (the target's position) half of the time; a hit is a random effect anchor of the
-	// target (anchor count = byte at **(entity +0x64)) at a random angle
 	static void FillShots(int32_t start, int32_t count, int32_t slot)
 	{
 		const int32_t end = start + count;
@@ -182,8 +137,6 @@ namespace cg190
 		}
 	}
 
-	// MAG_190_sub_5BC850: shots start..start+count-1 = misses evenly spaced from a to b (x / z,
-	// y 0), a and b excluded
 	static void LineShots(int32_t start, int32_t count, const int16_t *a, const int16_t *b)
 	{
 		const int16_t ax = a[0];
@@ -191,7 +144,6 @@ namespace cg190
 		const int16_t az = a[2];
 		const int16_t dz = (int16_t)(((int32_t)b[2] - az) / (count + 1));
 		const int32_t end = start + count;
-		// (the x86 multiplies by the dword under the 16-bit dx / dz: only the low half is stored)
 		for (int32_t k = 1; start + k - 1 < end; k++)
 		{
 			Shot *s = &Shots()[start + k - 1];
@@ -203,7 +155,6 @@ namespace cg190
 		}
 	}
 
-	// MAG_190_sub_5BC4F0: the 12 shots, sweeping across the targets (by slot order)
 	static void BuildShots()
 	{
 		for (Shot *s = Shots(); s < Shots() + 48; s++) s->active = 0;
@@ -231,7 +182,7 @@ namespace cg190
 				mid[0] = (int16_t)(((int32_t)EntPos(lo)[0] + EntPos(hi)[0]) / 2);
 				mid[1] = 0;
 				mid[2] = (int16_t)(((int32_t)EntPos(lo)[2] + EntPos(hi)[2]) / 2);
-				mid[3] = 0; // never written by the original (not read)
+				mid[3] = 0;
 				LineShots(0, 2, mid, EntPos(hi));
 				FillShots(2, 3, hi);
 				LineShots(5, 4, EntPos(hi), EntPos(lo));
@@ -246,8 +197,6 @@ namespace cg190
 				FillShots(9, 3, lo);
 				break;
 			}
-			// the original falls through to the three-target code (0x5BC6A3): it reads a third
-			// target record and rebuilds all 12 shots
 			break;
 		}
 		case 3:
@@ -266,10 +215,6 @@ namespace cg190
 		FillShots(9, 3, lo);
 	}
 
-	// ------------------------------------------------------------------
-	// Draws
-	// ------------------------------------------------------------------
-	// prim model header (0x58 bytes on the scratch stack): +0x0C fade, +0x1C flags
 	static void ModelDraw(uint32_t model, bool faded, int32_t fade, int times)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -285,14 +230,13 @@ namespace cg190
 		FieldFree(0x58);
 	}
 
-	// muzzle flash (drawn twice): yaw f18, roll f1A, uniform scale f1C
 	static void MuzzleDraw(const Node *n, bool faded, int32_t fade)
 	{
 		int16_t ang[4];
 		ang[0] = 0;
 		ang[1] = n->f18;
 		ang[2] = n->f1A;
-		ang[3] = 0; // never written by the original (not read)
+		ang[3] = 0;
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		m.t[0] = n->f10;
@@ -308,14 +252,13 @@ namespace cg190
 	}
 	static int32_t MuzzleFade(int32_t c) { return shl32(c, 11); }
 
-	// ground impact: yaw f18, uniform scale f1C
 	static void ImpactDraw(const Node *n, bool faded, int32_t fade)
 	{
 		int16_t ang[4];
 		ang[0] = 0;
 		ang[1] = n->f18;
 		ang[2] = 0;
-		ang[3] = 0; // never written by the original (not read)
+		ang[3] = 0;
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		m.t[0] = n->f10;
@@ -331,14 +274,13 @@ namespace cg190
 	}
 	static int32_t ImpactFade(int32_t c) { return shl32(c, 9); }
 
-	// spark on the target: (0x400, yaw f18, 0) times a roll f1A about y, uniform scale f1C
 	static void SparkDraw(const Node *n, bool faded, int32_t fade)
 	{
 		int16_t ang[4];
 		ang[0] = 0;
 		ang[1] = n->f1A;
 		ang[2] = 0;
-		ang[3] = 0; // never written by the original (not read)
+		ang[3] = 0;
 		Mat4x3 roll;
 		BuildRotationMatrixFromAngles(ang, &roll);
 		ang[0] = 0x400;
@@ -360,7 +302,6 @@ namespace cg190
 	}
 	static int32_t SparkFade(int32_t c) { return shl32(c, 10) - 0x400; }
 
-	// impact flash: flipbook frame `frame` at the node position, size f1C
 	static void FlashDraw(const Node *n, int16_t frame)
 	{
 		TransformCameraByShadowRotation(&n->f10, n->f1C, -((int32_t)n->f1C >> 3));
@@ -372,7 +313,6 @@ namespace cg190
 		FieldFree(0xB4);
 	}
 
-	// one particle: flipbook frame at pos (header allocated by the task, 0xB4 bytes)
 	static void ParticleDraw(uint8_t *h, int16_t frame, const int16_t *pos, int16_t angle)
 	{
 		*(int16_t *)(h + 4) = frame;
@@ -380,7 +320,6 @@ namespace cg190
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 	}
 
-	// the particle updates (flipbook still running)
 	static void SmokeMove(Particle *e)
 	{
 		e->angle = (int16_t)(e->angle + 0x18);
@@ -415,14 +354,9 @@ namespace cg190
 		return idx < 100 ? &a[idx] : nullptr;
 	}
 
-	// ------------------------------------------------------------------
-	// Tasks
-	// ------------------------------------------------------------------
-	// Muzzle flash (0x5BB5A0)
 	static uint32_t __cdecl MuzzleTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(held_begin(ORIG_MuzzleTask, n);)
 		MuzzleDraw(n, n->counter >= 0, MuzzleFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
@@ -430,11 +364,9 @@ namespace cg190
 		return n->counter >= 2 ? TASK_END : 0;
 	}
 
-	// Smoke (0x5BB6F0): array A, id bit 0
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(held_begin(ORIG_SmokeTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
@@ -443,7 +375,6 @@ namespace cg190
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
 			if (!(*(const uint8_t *)&e->id & 1)) continue;
-			// 30 fps layer: see mag190_chain_gun_held.inc
 			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
@@ -456,7 +387,6 @@ namespace cg190
 					alive++;
 				}
 			}
-			// 30 fps layer: see mag190_chain_gun_held.inc
 			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
@@ -493,7 +423,6 @@ namespace cg190
 		return TASK_END;
 	}
 
-	// Miss (0x5BB9B0): after f0E ticks, the ground impact, its flash and its dust
 	static uint32_t __cdecl MissTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -524,11 +453,9 @@ namespace cg190
 		return TASK_END;
 	}
 
-	// Ground impact model (0x5BBAA0)
 	static uint32_t __cdecl ImpactTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(held_begin(ORIG_ImpactTask, n);)
 		ImpactDraw(n, n->counter >= 0, ImpactFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
@@ -539,11 +466,9 @@ namespace cg190
 		return n->counter > 8 ? TASK_END : 0;
 	}
 
-	// Impact flash (0x5BBBE0)
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(held_begin(ORIG_FlashTask, n);)
 		FlashDraw(n, n->counter);
 		if (UpdateFlags() & 0x201) return 0;
@@ -551,11 +476,9 @@ namespace cg190
 		return n->counter >= 0x10 ? TASK_END : 0;
 	}
 
-	// Dust of a miss (0x5BBC70): array A, id = f0E
 	static uint32_t __cdecl DustTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(held_begin(ORIG_DustTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
@@ -565,7 +488,6 @@ namespace cg190
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
 			if (e->id != (int32_t)n->f0E) continue;
-			// 30 fps layer: see mag190_chain_gun_held.inc
 			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
@@ -578,7 +500,6 @@ namespace cg190
 					alive++;
 				}
 			}
-			// 30 fps layer: see mag190_chain_gun_held.inc
 			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
@@ -610,7 +531,6 @@ namespace cg190
 		return TASK_END;
 	}
 
-	// Hit (0x5BBEC0): after f0E ticks, a point near the target: the spark, its flash and sparks
 	static uint32_t __cdecl HitTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -650,11 +570,9 @@ namespace cg190
 		return TASK_END;
 	}
 
-	// Spark model (0x5BC080)
 	static uint32_t __cdecl SparkTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(held_begin(ORIG_SparkTask, n);)
 		SparkDraw(n, n->counter >= 1, SparkFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
@@ -665,11 +583,9 @@ namespace cg190
 		return n->counter >= 5 ? TASK_END : 0;
 	}
 
-	// Sparks of a hit (0x5BC1F0): array B, id = f0E
 	static uint32_t __cdecl SparksTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(held_begin(ORIG_SparksTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
@@ -678,7 +594,6 @@ namespace cg190
 		for (Particle *e = PartsB(); e < PartsB() + 100; e++)
 		{
 			if (e->id != (int32_t)n->f0E) continue;
-			// 30 fps layer: see mag190_chain_gun_held.inc
 			FX_HELD(held_note_part(e);)
 			*(int32_t *)(h + 8) = e->f16;
 			ParticleDraw(h, e->frame, e->pos, e->angle);
@@ -692,7 +607,6 @@ namespace cg190
 					alive++;
 				}
 			}
-			// 30 fps layer: see mag190_chain_gun_held.inc
 			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
@@ -782,11 +696,9 @@ namespace cg190
 		return n->counter > 0x24 ? TASK_END : 0;
 	}
 
-	// Root (0x5BC900, au_re_BdlinkTask_4)
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(held_note_root();)
 		Cursor() = ARENA_A;
 		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_B;
@@ -809,7 +721,6 @@ namespace cg190
 		register_port(cg190::ORIG_HitTask, (void *)cg190::HitTask, "C190 HitTask", 190);
 		register_port(cg190::ORIG_SparkTask, (void *)cg190::SparkTask, "C190 SparkTask", 190);
 		register_port(cg190::ORIG_SparksTask, (void *)cg190::SparksTask, "C190 SparksTask", 190);
-		// 30 fps layer: see mag190_chain_gun_held.inc
 		FX_HELD(register_mag190_held();)
 	}
 }

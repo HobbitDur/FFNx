@@ -28,8 +28,7 @@ namespace ff8fx
 	void (*g_queue_seen)(TaskQueue *q) = nullptr;
 	static bool g_installed = false;
 
-	// The task queue executor (0x508420), used instead of the game's while verifying so the
-	// verifier sees every queue that runs
+	// Replaces the game's task queue executor only while verifying, so the verifier sees every queue that runs
 	static int __cdecl execute_task_queue(TaskQueue *q)
 	{
 		if (g_queue_seen) g_queue_seen(q);

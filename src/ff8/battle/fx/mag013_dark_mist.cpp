@@ -14,36 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 13: Dark Mist / Poison Mist (enemy attacks 10 and 21 of kernel.bin, Anacondaur;
-// MAG_013_DARK_MIST_POISON_MIST).
-//
-// Structure (setup 0x8BE1F0, file loader 0x8BE1D0 = mag012.tim, module code 0x8BE1D0..0x8C0360).
-// Every node starts with the shared effect-library header (Effect_AddTaskAndInitFromCtx 0x8DC540,
-// see mag022_bio.cpp); every task runs its current phase function (node +0x29) from a small
-// table, and ends when it is flagged done (+0x26 bit0) and has no live children.
-//   Root (0x8BE2D0) - alternates the packet arena (magic buffer + 0 / + 0x4000), follows the
-//     caster's bones, spawns one emitter per action (the next one when the previous target's
-//     overlay is over), runs the four queues, ends when they are empty.
-//   Emitter (0x8BE3E0), one per action: the swirl at once, the mist controller at 25, damage at
-//     70. Sound at its first tick.
-//   Swirl (0x8BE4A0) - prim model 0x163257C at the caster's mouth (anchor 0xF0), drawn twice
-//     (scale 1 and 2 x 2 x 0.75) with two fades; its vertices are rebuilt every tick from the
-//     table 0x1630ED4 (wavy ring turning 0x80 per tick) and its texture v scrolls 4 per tick
-//     (both written into the model in exe data); spins about z.
-//   Mist controller (0x8BE960): cloud (0x8BEAD0) at 0, two mist puffs A (0x8BEC80) and two mist
-//     puffs B (0x8BEF30) per tick until 12, stream spawners (0x8BF640) at 16 and 23, the target
-//     spawners C (0x8BF260) at 16 and D (0x8BF440) at 30, the target overlay (0x8BF880) at 16.
-//   Cloud (0x8BEAD0) - prim model 0x1633C24 growing and fading in along the caster's anchor.
-//   Mist A / B - flipbooks thrown from the caster toward the target (1/12 of the distance per
-//     tick) with a sine bob; B fades out.
-//   Stream (0x8BF700) - flipbooks flying from the caster along 10 table vectors (0x1634B20).
-//   C (0x8BF300) / D (0x8BF4F0) - flipbooks at random places around the target.
-//   Overlay (0x8BF880) - hides the target model (entity flag 4) and draws it itself with a sine
-//     wobble (a copy of Bio's overlay, context 0x274EEF0); the target reappears when it is over.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x27428A8..0x274EFE4 (file pointer, packet cursor 0x27428AC, node pools,
-// queues, overlay vertex buffer 0x274C3E0, arena bases 0x274EAD0 / 0x274EAD4, overlay sprite
-// 0x274EEA8 and context 0x274EEF0); the swirl model lives in the exe's data (0x163257C).
+// Effect 13: Dark Mist / Poison Mist
 
 #include "mag_common.h"
 
@@ -54,131 +25,123 @@ namespace mist013
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	// shared effect-library node header (0x30 bytes, Effect_AddTaskAndInitFromCtx 0x8DC540)
 	struct FxNode
 	{
-		TaskNode hdr;          // +0x00
-		CastContext *ctx;      // +0x0C
-		FxNode *root;          // +0x10
-		FxNode *emitter;       // +0x14
-		FxNode *parent;        // +0x18
-		int16_t pos[4];        // +0x1C x, y, z
-		int16_t counter;       // +0x24
-		uint16_t flags;        // +0x26 bit0 done, bit2 hidden, bit3 overlay drawing
-		uint8_t children;      // +0x28
-		int8_t phase;          // +0x29
-		int8_t action;         // +0x2A
-		int8_t target;         // +0x2B
-		uint8_t attacker;      // +0x2C
-		uint8_t slot;          // +0x2D target entity slot
+		TaskNode hdr;
+		CastContext *ctx;
+		FxNode *root;
+		FxNode *emitter;
+		FxNode *parent;
+		int16_t pos[4];
+		int16_t counter;
+		uint16_t flags;
+		uint8_t children;
+		int8_t phase;
+		int8_t action;
+		int8_t target;
+		uint8_t attacker;
+		uint8_t slot;
 		uint8_t pad2E[2];
 	};
-	struct RootNode // pool of 2 nodes of 0x64 bytes
+	struct RootNode
 	{
 		FxNode h;
-		uint8_t bones[0x28];   // +0x30 caster bone anchor (Effect_UpdateTargetPosFromBones)
-		int16_t last_action;   // +0x58
-		int16_t target_count;  // +0x5A
-		int16_t tick;          // +0x5C arena parity
-		int16_t alive;         // +0x5E sum of the queue results
+		uint8_t bones[0x28];
+		int16_t last_action;
+		int16_t target_count;
+		int16_t tick;
+		int16_t alive;
 		uint8_t pad60[3];
-		uint8_t busy;          // +0x63 an action's overlay is running
+		uint8_t busy;
 	};
-	struct EmitterNode // pool of 4 nodes of 0x58 bytes
+	struct EmitterNode
 	{
 		FxNode h;
-		uint8_t anchor[0x18];  // +0x30 target bone anchor (MAG_001_CURE_Emitter_UpdatePos)
-		int16_t bmin[4];       // +0x48 model bounds (MAG_001_CURE_Emitter_ComputeModelBounds)
-		int16_t bmax[4];       // +0x50
+		uint8_t anchor[0x18];
+		int16_t bmin[4];
+		int16_t bmax[4];
 	};
-	struct ModelNode // pool of 40 nodes of 0x60 bytes (swirl and cloud)
+	struct ModelNode
 	{
 		FxNode h;
-		int32_t scale[3];      // +0x30
+		int32_t scale[3];
 		int32_t pad3C;
-		uint8_t rgb[4];        // +0x40 prim header +8 (fade colour)
-		int16_t rot[3];        // +0x44 x, y, z
+		uint8_t rgb[4];
+		int16_t rot[3];
 		int16_t pad4A;
-		uint32_t model;        // +0x4C prim model
-		int16_t fade;          // +0x50 prim header +0xC
+		uint32_t model;
+		int16_t fade;
 		int16_t pad52;
-		int16_t fade_a;        // +0x54 swirl: fade of the small draw
-		int16_t fade_b;        // +0x56 swirl: fade of the big draw
-		int16_t angle;         // +0x58 swirl: ring turn
-		int16_t length;        // +0x5A cloud: anchor length (GetEffectSpawnPosition)
-		int16_t grow;          // +0x5C cloud: scale step
-		int16_t fade_step;     // +0x5E cloud
+		int16_t fade_a;
+		int16_t fade_b;
+		int16_t angle;
+		int16_t length;
+		int16_t grow;
+		int16_t fade_step;
 	};
-	struct Particle // pool of 150 nodes of 0x68 bytes
+	struct Particle
 	{
 		FxNode h;
 		uint8_t pad30[0x18];
-		uint8_t rgb[4];        // +0x48 mist B colour (sprite header +0x1C)
-		uint32_t seq;          // +0x4C sprite sequence
-		int16_t frame;         // +0x50
-		int16_t last;          // +0x52
-		int16_t shade;         // +0x54 TransformCameraByShadowRotation offset
+		uint8_t rgb[4];
+		uint32_t seq;
+		int16_t frame;
+		int16_t last;
+		int16_t shade;
 		int16_t pad56;
-		int16_t vel[3];        // +0x58
+		int16_t vel[3];
 		int16_t pad5E;
-		int16_t life;          // +0x60 stream
-		int16_t variant;       // +0x62 spawn index
-		int16_t base_y;        // +0x64 mist: y without the bob
-		int16_t bob;           // +0x66 mist: bob angle
+		int16_t life;
+		int16_t variant;
+		int16_t base_y;
+		int16_t bob;
 	};
-	// overlay context 0x274EEF0 (0xF4 bytes, set up by 0x8C00E0; same layout as Bio's)
 	struct OverlayCtx
 	{
-		uint32_t a00;           // +0x00 0x27437C0 (not read by the draw)
-		uint8_t *sprite;        // +0x04 0x274EEA8: +0x04 = vertex buffer 0x274C3E0
-		uint8_t *entity;        // +0x08 target entity
-		uint32_t *frame_cursor; // +0x0C &battle_texture_data_ptr (0x1D8E054)
-		uint32_t *packets;      // +0x10 &module packet cursor
-		Mat4x3 world;           // +0x14 entity matrix
-		Mat4x3 view;            // +0x34 camera * world
-		Mat4x3 world2;          // +0x54 entity matrix moved by `offset`
-		Mat4x3 light;           // +0x74
+		uint32_t a00;
+		uint8_t *sprite;
+		uint8_t *entity;
+		uint32_t *frame_cursor;
+		uint32_t *packets;
+		Mat4x3 world;
+		Mat4x3 view;
+		Mat4x3 world2;
+		Mat4x3 light;
 		uint8_t pad94[0x10];
-		int16_t a4[3];          // +0xA4
+		int16_t a4[3];
 		int16_t padAA;
-		int16_t ac[3];          // +0xAC
+		int16_t ac[3];
 		int16_t padB2;
-		int16_t offset[3];      // +0xB4
+		int16_t offset[3];
 		int16_t padBA;
-		int16_t bc[3];          // +0xBC
+		int16_t bc[3];
 		int16_t padC2;
-		uint8_t rgb[3];         // +0xC4
+		uint8_t rgb[3];
 		uint8_t padC7;
-		int32_t light_dist;     // +0xC8
-		int16_t wobble_phase;   // +0xCC advances 0xA0 per tick
-		int16_t wobble_amp;     // +0xCE
+		int32_t light_dist;
+		int16_t wobble_phase;
+		int16_t wobble_amp;
 		int16_t padD0;
-		int16_t mode;           // +0xD2 0: offset in model space, 1: in world space
+		int16_t mode;
 		uint8_t padD4[4];
-		int16_t anim;           // +0xD8
-		int16_t slot;           // +0xDA 0xFF: the overlay advances the animation itself
-		int16_t light_pos[3];   // +0xDC
+		int16_t anim;
+		int16_t slot;
+		int16_t light_pos[3];
 		uint8_t padE2[0x10];
-		int16_t glow;           // +0xF2
+		int16_t glow;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(FxNode) == 0x30 && sizeof(RootNode) == 0x64 && sizeof(EmitterNode) == 0x58, "Dark Mist nodes");
 	static_assert(sizeof(ModelNode) == 0x60 && sizeof(Particle) == 0x68 && sizeof(OverlayCtx) == 0xF4, "Dark Mist nodes");
 
-	// ------------------------------------------------------------------
-	// Module globals
-	// ------------------------------------------------------------------
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x27428AC); }
-	inline uint32_t &ArenaA() { return var<uint32_t>(0x274EAD4); } // magic buffer (Magic_TextureOFF)
-	inline uint32_t &ArenaB() { return var<uint32_t>(0x274EAD0); } // magic buffer + 0x4000
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x274E960; }  // 4 x 0x58
-	inline TaskQueue *QControl() { return (TaskQueue *)0x274EAD8; }   // 20 x 0x30
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x274C3C0; } // 150 x 0x68
-	inline TaskQueue *QModels() { return (TaskQueue *)0x27437B0; }    // 40 x 0x60
+	inline uint32_t &ArenaA() { return var<uint32_t>(0x274EAD4); }
+	inline uint32_t &ArenaB() { return var<uint32_t>(0x274EAD0); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)0x274E960; }
+	inline TaskQueue *QControl() { return (TaskQueue *)0x274EAD8; }
+	inline TaskQueue *QParticles() { return (TaskQueue *)0x274C3C0; }
+	inline TaskQueue *QModels() { return (TaskQueue *)0x27437B0; }
 	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x274EEF0); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
@@ -199,23 +162,17 @@ namespace mist013
 
 	static const void *const SOUND_Mist = (const void *)0x16309F8;
 	static const uint32_t MODEL_Swirl = 0x163257C, MODEL_Cloud = 0x1633C24;
-	static const uint32_t RING_Table = 0x1630ED4;         // swirl ring: count at +4, (x, y, angle, -) from +8
-	static const uint32_t STREAM_Vectors = 0x1634B20;     // 10 x (x, y, z, -)
+	static const uint32_t RING_Table = 0x1630ED4;
+	static const uint32_t STREAM_Vectors = 0x1634B20;
 	static const uint32_t SEQ_Mist = 0x16309FC, SEQ_MistB = 0x1630E94, SEQ_PuffC = 0x1630C78, SEQ_PuffD = 0x1630D84;
 	static const uint32_t OVERLAY_A00 = 0x27437C0, OVERLAY_SPRITE = 0x274EEA8, OVERLAY_VERTS = 0x274C3E0;
 
-	// ------------------------------------------------------------------
-	// Engine / effect-library functions (original addresses)
-	// ------------------------------------------------------------------
 	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
 	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }        // MAG_001_CURE_Emitter_UpdatePos
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
 	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }      // MAG_001_CURE_Emitter_ComputeModelBounds
-	// Effect_CopyAnchorXZFromSource (0x8DC6E0): 8 bytes of the emitter's +0x30 anchor to out
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }
 	inline void CopyAnchor(void *n, void *out) { fn<void (__cdecl *)(void *, void *)>(0x8DC6E0)(n, out); }
-	// GetEffectSpawnPosition (0x502170): position of an entity's anchor `bone`, the bone length
-	// scaled by `length` (4.12)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t length, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, length, out); }
 	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(0x8DD770)(m); }
 	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD7E0)(m, a); }
@@ -234,26 +191,23 @@ namespace mist013
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }       // GTE_ReadOTZ (dword)
-	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E2E0)(p); }       // p +8, +0x10, +0x18
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E2E0)(p); }
 	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E320)(p); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
 	inline void GteSetBackground(int32_t x, int32_t y, int32_t z) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DCF0)(x, y, z); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }                    // IR = L * V0 + BK
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
 	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
 	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
 	inline void PreBattleReadAnimation(void *hdr, void *cmd, int32_t anim) { fn<void (__cdecl *)(void *, void *, int32_t)>(0x509440)(hdr, cmd, anim); }
-	// sub_5088A0: an entity's ground shadow (returns the packet cursor)
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 
 	static uint8_t *CasterEntity(const FxNode *n) { return Entity(n->ctx->attacker); }
 
-	// x / 2^18, rounded toward zero (cdq; and 0x3FFFF; add; sar 18)
 	static int32_t Div2p18(int32_t x) { return (x + ((x >> 31) & 0x3FFFF)) >> 18; }
 
-	// end of every task: counter + 1; done and no live children -> released
 	static uint32_t Finish(FxNode *n)
 	{
 		n->counter++;
@@ -265,7 +219,6 @@ namespace mist013
 		return 0;
 	}
 
-	// sub_8BEEF0: next flipbook frame; past the last one the node is hidden (frame stays last)
 	static int AdvanceFrame(Particle *p)
 	{
 		p->frame++;
@@ -278,18 +231,12 @@ namespace mist013
 		return 0;
 	}
 
-	// sub_8BF230: next flipbook frame, looping
 	static void LoopFrame(Particle *p)
 	{
 		p->frame++;
 		if (p->frame > p->last) p->frame = 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim models (swirl, cloud)
-	// ------------------------------------------------------------------
-	// sub_8BE6B0: every polygon's texture v (bytes 1 of its three uv words) - 4, wrapped in its
-	// 0x40-high band when any of them goes below 0 (the band is 0..0x7F)
 	static void ScrollV(uint32_t model)
 	{
 		const uint8_t *m = (const uint8_t *)model;
@@ -318,7 +265,6 @@ namespace mist013
 		}
 	}
 
-	// sub_8BE7C0: the model's vertices x / y = ring x / y + |x| cos / |y| sin (ring angle + angle)
 	static void WarpRing(uint32_t ring, uint32_t model, int32_t angle)
 	{
 		int32_t count = *(const int32_t *)(ring + 4);
@@ -340,7 +286,6 @@ namespace mist013
 		}
 	}
 
-	// sub_8BE5C0: the prim model at pos, rotated (y, x, z) and scaled, fade +0x50
 	static void DrawModel(ModelNode *n)
 	{
 		if (n->h.flags & 4) return;
@@ -365,10 +310,6 @@ namespace mist013
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Sprites
-	// ------------------------------------------------------------------
-	// sub_8BECE0: camera-facing flipbook `seq` frame `frame` at pos
 	static void DrawSprite(Particle *p)
 	{
 		if (p->h.flags & 4) return;
@@ -381,7 +322,6 @@ namespace mist013
 		FieldFree(0xB4);
 	}
 
-	// sub_8BEF90: the same with the node's colour (header +0x1C, mode 4)
 	static void DrawSpriteColoured(Particle *p)
 	{
 		if (p->h.flags & 4) return;
@@ -405,11 +345,6 @@ namespace ff8fx
 {
 namespace mist013
 {
-	// ------------------------------------------------------------------
-	// Mist A (0x8BEC80)
-	// ------------------------------------------------------------------
-	// sub_8BED50: aimed at the emitter's anchor, 1/12 of the way per tick; odd spawns start half
-	// a step ahead
 	static void MistAInit(Particle *p)
 	{
 		p->seq = SEQ_Mist;
@@ -439,7 +374,6 @@ namespace mist013
 		p->h.phase++;
 	}
 
-	// sub_8BEE80
 	static void MistAMove(Particle *p)
 	{
 		p->h.pos[0] = (int16_t)(p->h.pos[0] + p->vel[0]);
@@ -464,18 +398,13 @@ namespace mist013
 		{
 		case 0: MistAInit(p); break;
 		case 1: MistAMove(p); break;
-		default: break; // nullsub_1810
+		default: break;
 		}
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_draw(ORIG_MistA, p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Mist B (0x8BEF30)
-	// ------------------------------------------------------------------
-	// sub_8BF000: aimed at a random point around the emitter's anchor
 	static void MistBInit(Particle *p)
 	{
 		p->seq = SEQ_MistB;
@@ -514,7 +443,6 @@ namespace mist013
 		p->h.phase++;
 	}
 
-	// sub_8BF180: like mist A (looping flipbook), fading out from tick 4
 	static void MistBMove(Particle *p)
 	{
 		p->h.pos[0] = (int16_t)(p->h.pos[0] + p->vel[0]);
@@ -552,18 +480,13 @@ namespace mist013
 		{
 		case 0: MistBInit(p); break;
 		case 1: MistBMove(p); break;
-		default: break; // nullsub_1811
+		default: break;
 		}
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_draw(ORIG_MistB, p);)
 		DrawSpriteColoured(p);
 		return Finish(&p->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Puffs C (0x8BF300) / D (0x8BF4F0) around the target, and their spawners
-	// ------------------------------------------------------------------
-	// sub_8BF360
 	static void PuffCInit(Particle *p)
 	{
 		p->seq = SEQ_PuffC;
@@ -576,7 +499,6 @@ namespace mist013
 		p->h.phase++;
 	}
 
-	// sub_8BF550
 	static void PuffDInit(Particle *p)
 	{
 		p->seq = SEQ_PuffD;
@@ -589,7 +511,6 @@ namespace mist013
 		p->h.phase++;
 	}
 
-	// sub_8BF3E0 / sub_8BF5E0: the flipbook once
 	static void PuffPlay(Particle *p)
 	{
 		if (AdvanceFrame(p))
@@ -606,9 +527,8 @@ namespace mist013
 		{
 		case 0: PuffCInit(p); break;
 		case 1: PuffPlay(p); break;
-		default: break; // nullsub_1812
+		default: break;
 		}
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_draw(ORIG_PuffC, p);)
 		DrawSprite(p);
 		return Finish(&p->h);
@@ -621,15 +541,13 @@ namespace mist013
 		{
 		case 0: PuffDInit(p); break;
 		case 1: PuffPlay(p); break;
-		default: break; // nullsub_1814
+		default: break;
 		}
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_draw(ORIG_PuffD, p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
 
-	// spawner C (0x8BF260): one puff per tick up to tick 16 (sub_8BF2C0), done after 16 (sub_8BF410)
 	static uint32_t __cdecl SpawnerCTask(TaskNode *n)
 	{
 		FxNode *s = (FxNode *)n;
@@ -650,12 +568,11 @@ namespace mist013
 				s->phase++;
 			}
 			break;
-		default: break; // nullsub_1813
+		default: break;
 		}
 		return Finish(s);
 	}
 
-	// spawner D (0x8BF440): two puffs per tick up to tick 8 (sub_8BF4A0), done after 16 (sub_8BF610)
 	static uint32_t __cdecl SpawnerDTask(TaskNode *n)
 	{
 		FxNode *s = (FxNode *)n;
@@ -677,15 +594,11 @@ namespace mist013
 				s->phase++;
 			}
 			break;
-		default: break; // nullsub_1815
+		default: break;
 		}
 		return Finish(s);
 	}
 
-	// ------------------------------------------------------------------
-	// Stream (0x8BF700) and its spawner (0x8BF640)
-	// ------------------------------------------------------------------
-	// sub_8BF760: spawn k flies vector k / (20 - k) per tick for 20 - k ticks, flipbook from 3 + k
 	static void StreamInit(Particle *p)
 	{
 		const int16_t life = (int16_t)(0x14 - p->variant);
@@ -703,7 +616,6 @@ namespace mist013
 		p->h.phase++;
 	}
 
-	// sub_8BF7E0
 	static void StreamMove(Particle *p)
 	{
 		p->h.pos[0] = (int16_t)(p->h.pos[0] + p->vel[0]);
@@ -724,15 +636,13 @@ namespace mist013
 		{
 		case 0: StreamInit(p); break;
 		case 1: StreamMove(p); break;
-		default: break; // nullsub_1816
+		default: break;
 		}
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_draw(ORIG_Stream, p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
 
-	// spawner E: at the caster's anchor, one stream particle per tick up to tick 9 (sub_8BF6C0)
 	static uint32_t __cdecl SpawnerETask(TaskNode *n)
 	{
 		FxNode *s = (FxNode *)n;
@@ -751,15 +661,11 @@ namespace mist013
 				s->phase++;
 			}
 			break;
-		default: break; // nullsub_1817
+		default: break;
 		}
 		return Finish(s);
 	}
 
-	// ------------------------------------------------------------------
-	// Cloud (0x8BEAD0)
-	// ------------------------------------------------------------------
-	// sub_8BEBA0
 	static void CloudInit(ModelNode *c)
 	{
 		uint8_t *entity = CasterEntity(&c->h);
@@ -780,7 +686,6 @@ namespace mist013
 		c->h.phase++;
 	}
 
-	// sub_8BEC30: fades in (step - 0x40 per tick, at least 0x40), done at full
 	static void CloudFade(ModelNode *c)
 	{
 		const int16_t step = c->fade_step;
@@ -796,7 +701,6 @@ namespace mist013
 		if (s < 0x40) c->fade_step = 0x40;
 	}
 
-	// the tick's growth and anchor after the phase function
 	static void CloudUpdate(ModelNode *c, uint8_t *entity)
 	{
 		const int16_t g = c->grow;
@@ -818,23 +722,19 @@ namespace mist013
 		{
 		case 0: CloudInit(c); break;
 		case 1: CloudFade(c); break;
-		default: break; // nullsub_1809
+		default: break;
 		}
 		CloudUpdate(c, entity);
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_draw(ORIG_Cloud, c);)
 		DrawModel(c);
 		return Finish(&c->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Swirl (0x8BE4A0)
-	// ------------------------------------------------------------------
 	static void SwirlPhase(ModelNode *w)
 	{
 		switch (w->h.phase)
 		{
-		case 0: // sub_8BE860
+		case 0:
 			w->fade_a = 0x1000;
 			w->fade_b = 0x1000;
 			w->scale[0] = 0x1000;
@@ -846,7 +746,7 @@ namespace mist013
 			w->model = MODEL_Swirl;
 			w->h.phase++;
 			break;
-		case 1: // sub_8BE8A0: fades in
+		case 1:
 			w->fade_a = (int16_t)(w->fade_a - 0x400);
 			w->fade_b = (int16_t)(w->fade_b - 0x200);
 			if (w->fade_a <= 0)
@@ -856,10 +756,10 @@ namespace mist013
 				w->h.phase++;
 			}
 			break;
-		case 2: // sub_8BE8D0: until tick 12
+		case 2:
 			if (w->h.counter >= 0xC) w->h.phase++;
 			break;
-		case 3: // sub_8BE8E0: fades out
+		case 3:
 			w->fade_a = (int16_t)(w->fade_a + 0x200);
 			w->fade_b = (int16_t)(w->fade_b + 0x100);
 			if (w->fade_a >= 0x1000)
@@ -870,7 +770,7 @@ namespace mist013
 				w->h.phase++;
 			}
 			break;
-		default: break; // nullsub_1808
+		default: break;
 		}
 	}
 
@@ -890,23 +790,17 @@ namespace mist013
 		w->scale[0] = 0x1000;
 		w->scale[1] = 0x1000;
 		w->scale[2] = 0x1000;
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_draw(ORIG_Swirl, w);)
 		DrawModel(w);
 		w->fade = w->fade_b;
 		w->scale[0] = 0x2000;
 		w->scale[1] = 0x2000;
 		w->scale[2] = 0xC00;
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_draw(ORIG_Swirl, w);)
 		DrawModel(w);
 		return Finish(&w->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Target overlay (0x8BF880): a copy of Bio's
-	// ------------------------------------------------------------------
-	// sub_8C00E0
 	static void InitOverlay(OverlayCtx *mc, uint32_t a00, uint8_t *sprite, uint32_t verts, uint8_t *entity, int32_t slot)
 	{
 		mc->entity = entity;
@@ -946,7 +840,6 @@ namespace mist013
 		*(uint16_t *)(sprite + 0x24) = 0;
 	}
 
-	// sub_8BFA00: the entity's matrix, and a copy moved by `offset`
 	static void CopyWorld(OverlayCtx *mc, const uint8_t *entity)
 	{
 		ff8fx::copy<(0x20)>(&mc->world, entity + 0x40);
@@ -968,7 +861,6 @@ namespace mist013
 		}
 	}
 
-	// sub_8BFAC0: `light` = the entity's rotation seen from light_pos (at light_dist)
 	static void BuildLightMatrix(OverlayCtx *mc)
 	{
 		uint8_t *s = (uint8_t *)FieldAlloc(0x70);
@@ -1015,10 +907,6 @@ namespace mist013
 		FieldFree(0x70);
 	}
 
-	// sub_8BFC30: one model object (bone groups of vertices, then textured triangles and quads)
-	// with every vertex moved by amp * (sin, cos)(phase + 12 * y) / 2^18 in x / z; flat colours
-	// from the entity's colour (+0x28). Vertices go to the sprite's buffer, packets to the frame
-	// arena (battle_texture_data_ptr).
 	static void DrawOverlayObject(const uint8_t *obj, uint32_t ot, int32_t mode, OverlayCtx *mc)
 	{
 		(void)mode;
@@ -1042,7 +930,6 @@ namespace mist013
 		{
 			const uint8_t *p = table + offs[i];
 			if (!((*(const uint32_t *)(s + 0x70) >> (i & 31)) & 1)) continue;
-			// vertices, grouped by bone
 			uint8_t *v = verts;
 			int32_t groups = *(const int16_t *)p;
 			p += 2;
@@ -1074,7 +961,6 @@ namespace mist013
 					v += 0x10;
 				}
 			}
-			// polygons: 12-byte header (triangle count, quad count), 16-byte triangles, 20-byte quads
 			p = (const uint8_t *)(((uintptr_t)p + 3) & ~(uintptr_t)3);
 			int32_t tris = *(const int16_t *)p;
 			int32_t quads = *(const int16_t *)(p + 2);
@@ -1152,7 +1038,6 @@ namespace mist013
 		FieldFree(0x74);
 	}
 
-	// sub_8BF910: shadow, body (+0x64) and weapon (+0x78) of the target with the wobble
 	static void DrawOverlay(OverlayCtx *mc)
 	{
 		uint8_t *entity = mc->entity;
@@ -1174,7 +1059,7 @@ namespace mist013
 		OverlayCtx &mc = Overlay();
 		switch (o->phase)
 		{
-		case 0: // sub_8C0080: hide the target, the overlay draws it
+		case 0:
 		{
 			uint8_t slot = o->slot;
 			uint8_t *entity = Entity(slot);
@@ -1184,7 +1069,7 @@ namespace mist013
 			o->phase++;
 			break;
 		}
-		case 1: // sub_8C01D0: amplitude + 0x200 per tick up to 0x1000
+		case 1:
 			mc.wobble_amp = (int16_t)(mc.wobble_amp + 0x200);
 			if (mc.wobble_amp >= 0x1000)
 			{
@@ -1192,10 +1077,10 @@ namespace mist013
 				o->phase++;
 			}
 			break;
-		case 2: // sub_8C0200: until tick 28
+		case 2:
 			if (o->counter >= 0x1C) o->phase++;
 			break;
-		case 3: // sub_8C0210: amplitude - 0x100 per tick; at 0 the target is shown again
+		case 3:
 		{
 			int16_t a = (int16_t)(mc.wobble_amp - 0x100);
 			mc.wobble_amp = a;
@@ -1208,43 +1093,39 @@ namespace mist013
 			}
 			break;
 		}
-		default: break; // nullsub_1818
+		default: break;
 		}
 		mc.wobble_phase = (int16_t)((uint16_t)(mc.wobble_phase + 0xA0) & 0xFFF);
 		if (o->flags & 8)
 		{
-			// 30 fps layer: see mag013_dark_mist_held.inc
 			FX_HELD(held_note_draw(ORIG_Overlay, o);)
 			DrawOverlay(&mc);
 		}
 		return Finish(o);
 	}
 
-	// ------------------------------------------------------------------
-	// Mist controller (0x8BE960)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ControlTask(TaskNode *n)
 	{
 		FxNode *c = (FxNode *)n;
 		GetEffectSpawnPosition(CasterEntity(c), 0xF0, 0x400, c->pos);
 		switch (c->phase)
 		{
-		case 0: c->phase++; break; // sub_8BF840
-		case 1: // sub_8BF850: the overlay at 16
+		case 0: c->phase++; break;
+		case 1:
 			if (c->counter >= 0x10)
 			{
 				AddEffectTask(QControl(), ORIG_Overlay, 0x30, c);
 				c->phase++;
 			}
 			break;
-		case 2: // sub_8C0280: done after 30
+		case 2:
 			if (c->counter > 0x1E)
 			{
 				c->flags |= 1;
 				c->phase++;
 			}
 			break;
-		default: break; // nullsub_1819
+		default: break;
 		}
 		if (c->counter == 0) AddEffectTask(QModels(), ORIG_Cloud, 0x60, c);
 		if (c->counter <= 0xC)
@@ -1264,9 +1145,6 @@ namespace mist013
 		return Finish(c);
 	}
 
-	// ------------------------------------------------------------------
-	// Emitter (0x8BE3E0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl EmitterTask(TaskNode *n)
 	{
 		EmitterNode *e = (EmitterNode *)n;
@@ -1274,18 +1152,18 @@ namespace mist013
 		ComputeModelBounds(e);
 		switch (e->h.phase)
 		{
-		case 0: // sub_8BE470: the swirl
+		case 0:
 			AddEffectTask(QModels(), ORIG_Swirl, 0x60, e);
 			e->h.phase++;
 			break;
-		case 1: // MAG_013_sub_8BE930: the mist controller at 25
+		case 1:
 			if (e->h.counter >= 0x19)
 			{
 				AddEffectTask(QControl(), ORIG_Control, 0x30, e);
 				e->h.phase++;
 			}
 			break;
-		case 2: // MAG_013_sub_8C02B0: damage at 70
+		case 2:
 			if (e->h.counter >= 0x46)
 			{
 				ApplyActionResultToTarget(e->h.ctx->actions[e->h.action].targets);
@@ -1293,26 +1171,23 @@ namespace mist013
 				e->h.phase++;
 			}
 			break;
-		default: break; // nullsub_1820
+		default: break;
 		}
 		if (e->h.counter == 0) BdPlaySE(SOUND_Mist, 0, 0x80);
 		return Finish(&e->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x8BE2D0)
-	// ------------------------------------------------------------------
 	static void RootPhase(RootNode *r)
 	{
 		switch (r->h.phase)
 		{
-		case 0: r->h.phase++; break; // MAG_013_sub_8BE3A0
-		case 1: // MAG_013_sub_8BE3B0: emitter of the current action
+		case 0: r->h.phase++; break;
+		case 1:
 			r->busy = 1;
 			AddEffectTask(QEmitters(), ORIG_Emitter, 0x58, r);
 			r->h.phase++;
 			break;
-		case 2: // MAG_013_sub_8C0300: when its overlay is over, the next action (back to phase 1)
+		case 2:
 			if (r->busy == 0)
 			{
 				int8_t a = r->h.action;
@@ -1324,21 +1199,20 @@ namespace mist013
 				else r->h.phase++;
 			}
 			break;
-		case 3: // MAG_013_sub_8C0330: until every queue is empty
+		case 3:
 			if (r->alive == 0)
 			{
 				r->h.flags |= 1;
 				r->h.phase++;
 			}
 			break;
-		default: break; // nullsub_1821
+		default: break;
 		}
 	}
 
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(held_note_root();)
 		if (r->tick & 1) PacketCursor() = ArenaA();
 		else PacketCursor() = ArenaB();
@@ -1375,7 +1249,6 @@ namespace mist013
 		register_port(mist013::ORIG_SpawnerE, (void *)mist013::SpawnerETask, "M013 SpawnerETask", 13);
 		register_port(mist013::ORIG_Stream, (void *)mist013::StreamTask, "M013 StreamTask", 13);
 		register_port(mist013::ORIG_Overlay, (void *)mist013::OverlayTask, "M013 OverlayTask", 13);
-		// 30 fps layer: see mag013_dark_mist_held.inc
 		FX_HELD(register_mag013_held();)
 	}
 }

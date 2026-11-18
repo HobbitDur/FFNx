@@ -14,43 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 169: Gastric Juice (enemy attack 112 of kernel.bin, used by the Grat; MAG_169_*).
-//
-// Structure (setup MAG_169_GASTRIC_JUICE_Init 0x5DEE60, file loader MAG_169_GASTRIC_JUICE_FL 0x5DEE40
-// = the texture file named at 0xD6BC64 (mag168.tim, shared with Sleeping Gas); the setup keeps the
-// cast context, the first target's and the attacker's slots, queues the root (one 0x10-byte node,
-// pool 0x23B1378) and the director in the effect queue 0x23B1CF8 (0x64 nodes of 0x24 bytes, pool
-// 0x23B1D08), frees the 100 droplet entries, plays camera animation 0xD6A3F8 and queues the TIM):
-//   Root (0x5E16E0) - packet arena = magic buffer / + 0x8000 on its counter's parity, runs the
-//     effect queue; ends when it is empty.
-//   Director (0x5DEF20), nothing in the draw-only mode, 51 ticks: 1 sound, 6 five juice streams
-//     (random start delay 0..3) and the splash, 0x1E the tinted target, 0x23 damage.
-//   Stream (0x5DFD40), draws nothing: on its first tick the stream's Bezier curve (0x110 bytes per
-//     stream at 0x23B2B20: the caster's effect anchor 0xF0, the target's position moved at random
-//     on the ground, 4 control points, 28 samples), then its delay; at 1 the blob, 0x15 the
-//     puddle, 0x16 the landing mesh and the drip emitter; 40 ticks.
-//   Blob (0x5E00B0) - flipbook 0xD6A544 (frame = tick & 7) on the curve sample it has reached,
-//     speed 4 slowing to 1 before sample 0xE; black on its first tick; ends past sample 26.
-//   Landing mesh (0x5E01A0), 32 ticks: prim model 0xD6A8C4 whose 73 vertices blend towards those
-//     of the second shape (0xD6B2EC) by sin(tick * 32) into the stream's vertex buffer (0x248 bytes
-//     per stream at 0x23B3078), y-rotated at random; ticks 0..7 plain, 8..15 fading, 16..31 through
-//     the module's prim renderer (0x5E0450) with the texture page moved 0x20 (fade in / out).
-//   Puddle (0x5E1200), 16 ticks: prim model 0xD6B534 growing, fading from tick 8.
-//   Drips (0x5E1330 / 0x5E0FE0 share the 100 entries of 0x18 bytes at 0x23B1398, owner bit mask):
-//     drip emitter (0x5E0FE0, mask = 1 << stream) - ticks 0..11 throw droplets (count table
-//     0xD6BC24) around the landing point, flipbook 0xD6A718 falling and decelerating (1/16);
-//     splash (0x5E1330, mask 0x100) - ticks 1..2 twelve droplets thrown around stream 0's second
-//     curve sample, flipbook 0xD6A620 through the light matrix of the curve's direction,
-//     decelerating (1/4); both end when their droplets are gone.
-//   Tinted target (0x5DF030 -> 0x5DF170 -> 0x5DF280 -> 0x5DF540), 23 ticks: the first target is
-//     hidden (entity flags |= 4) and its model redrawn: flat textured faces plus a Gouraud overlay
-//     of every face with a corner within 1200 of the target's position (colour 0x98C028 depth-cued
-//     to black by the fade, x (1 - distance / 1200) per corner); fade in over 8 ticks, out from 13.
-// Every task draws first; in the draw-only mode (battle_to_update_flags & 0x201) it returns after
-// drawing (the director and the streams do nothing).
-// Module globals: 0x23B1370..0x23B3C10 (target slot, queues and pools, droplets, context, streams,
-// attacker slot, mesh vertex buffers, texture file, magic buffer base, packet cursor 0x23B3BE8,
-// splash matrix 0x23B3BF0 whose translation the splash rewrites per droplet).
+// Effect 169: Gastric Juice
 
 #include "mag_common.h"
 
@@ -61,7 +25,6 @@ namespace gastric169
 	using namespace eng;
 	using namespace magc;
 
-	// raw memory access (the renderers follow the listing offset by offset)
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline int16_t &S16(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 	inline uint16_t &U16(uint32_t p, int32_t o) { return AT<uint16_t>(p, o); }
@@ -70,7 +33,6 @@ namespace gastric169
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	// --- module globals ---
 	inline int32_t &TargetSlot() { return var<int32_t>(0x23B1370); }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23B1CF8; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x23B2B18); }
@@ -78,10 +40,10 @@ namespace gastric169
 	inline uint32_t &TexBase() { return var<uint32_t>(0x23B3BE4); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23B3BE8); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	static const uint32_t DROPS = 0x23B1398, DROPS_END = 0x23B1CF8;   // 100 x 0x18 bytes
-	static const uint32_t STREAMS = 0x23B2B20;                        // 5 x 0x110 bytes
-	static const uint32_t MESH_VERTS = 0x23B3078;                     // 5 x 73 x 8 bytes
-	static const uint32_t SPLASH_MATRIX = 0x23B3BF0;                  // Mat4x3
+	static const uint32_t DROPS = 0x23B1398, DROPS_END = 0x23B1CF8;
+	static const uint32_t STREAMS = 0x23B2B20;
+	static const uint32_t MESH_VERTS = 0x23B3078;
+	static const uint32_t SPLASH_MATRIX = 0x23B3BF0;
 	static const uint32_t MDATA_LO = 0x23B1370, MDATA_HI = 0x23B3C10;
 
 	static const uint32_t ORIG_Root = 0x5E16E0;
@@ -95,20 +57,17 @@ namespace gastric169
 	static const uint32_t ORIG_Splash = 0x5E1330;
 	static const uint32_t SEQ_Blob = 0xD6A544, SEQ_Splash = 0xD6A620, SEQ_Drip = 0xD6A718;
 	static const uint32_t MODEL_Mesh = 0xD6A8C4, MODEL_Puddle = 0xD6B534;
-	static const uint32_t MESH_A = 0xD6A8CC, MESH_B = 0xD6B2EC;       // 73 vertices of 8 bytes each
-	static const int32_t *const DRIP_COUNTS = (const int32_t *)0xD6BC24; // droplets per tick 0..11
+	static const uint32_t MESH_A = 0xD6A8CC, MESH_B = 0xD6B2EC;
+	static const int32_t *const DRIP_COUNTS = (const int32_t *)0xD6BC24;
 	static const void *const SOUND_Juice = (const void *)0xD6BC1C;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, mode, out); }
 	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(model, hdr, ot, mode, cursor); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	// sub_571620 / sub_571690: Bezier curve of n control points (int16 x 4): set-up into a work
-	// block, then the point at t (4.12)
 	inline void BezierInit(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
 	inline void BezierPoint(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
 
@@ -125,54 +84,51 @@ namespace gastric169
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }     // someCameraWork_45DD60
-	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DDA0)(r, g, b); }    // pre_someCameraWork_45DD60
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }        // set_unk_1CA8A28
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DDA0)(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }       // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
 	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
 	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
-	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x64DF80)(p); }  // sub_64DF80: IR0 = *(int16 *)p
+	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x64DF80)(p); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }                    // MAC = L * V0 + BK
-	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // MAG_148_sub_64DDA0: BK = matrix translation
-	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }     // MAG_148_sub_64DDD0: R11 / R22 / R33 = s
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
+	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
+	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
 
-	// ------------------------------------------------------------------
-	// Node layouts (effect queue: pool of 0x64 nodes of 0x24 bytes)
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct RootNode { TaskNode hdr; uint16_t counter; uint16_t pad; };
-	struct Node // every effect-queue task
+	struct Node
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t idx;       // +0x0E stream index (director: next stream; drip emitter: owner mask)
-		int16_t pos[4];    // +0x10 target / landing position
-		int16_t a18;       // +0x18 stream: set-up done; blob: curve sample; mesh / puddle: y angle
-		int16_t a1a;       // +0x1A stream: start delay; blob: speed; mesh: unused random
-		int16_t a1c;       // +0x1C blob / mesh / puddle: scale
-		int16_t a1e;       // +0x1E puddle: scale step
+		int16_t counter;
+		int16_t idx;
+		int16_t pos[4];
+		int16_t a18;
+		int16_t a1a;
+		int16_t a1c;
+		int16_t a1e;
 		uint32_t pad20;
 	};
-	struct Stream // 0x110 bytes per stream
+	struct Stream
 	{
-		int16_t src[4];      // +0x00 caster's effect anchor 0xF0
-		int16_t dst[4];      // +0x08 target position, moved at random on the ground
-		int16_t cp[4][4];    // +0x10 Bezier control points
-		int16_t curve[28][4]; // +0x30 curve samples
+		int16_t src[4];
+		int16_t dst[4];
+		int16_t cp[4][4];
+		int16_t curve[28][4];
 	};
-	struct Drop // droplet entry (0x18 bytes)
+	struct Drop
 	{
-		uint32_t flags;    // owner mask (1 << stream: drip emitter, 0x100: splash), 0 = free
-		int16_t frame;     // +0x04 flipbook frame
-		int16_t scale;     // +0x06
-		int16_t pos[3];    // +0x08
+		uint32_t flags;
+		int16_t frame;
+		int16_t scale;
+		int16_t pos[3];
 		int16_t pad0;
-		int16_t vel[3];    // +0x10
+		int16_t vel[3];
 		int16_t pad1;
 	};
 #pragma pack(pop)
@@ -193,16 +149,7 @@ namespace ff8fx
 {
 namespace gastric169
 {
-	// ==================================================================
-	// Tinted target model
-	// Header (0xDC bytes on the scratch): +0x00 primitive list, +0x04 vertex buffer, +0x08..+0x0E
-	// primitive counts, +0x10 / +0x14..+0x1A as RenderGeometry's, +0x1C code bits (entity +0x28),
-	// +0x20 visible objects, +0x28..+0x2A depth cue, +0x48 NCLIP, +0x50 OTZ, +0x58 / +0x60 / +0x68 /
-	// +0x70 corner copies (+6 of each: its overlay fade), +0xA8 centre (3 dwords), +0xB4 radius,
-	// +0xB8 colour, +0xBC camera x entity matrix
-	// ==================================================================
 
-	// the corner at hdr + off made relative to the centre; below the radius: fade word at off + 6
 	static bool CornerNear(uint32_t hdr, int32_t off)
 	{
 		S16(hdr, off + 2) = (int16_t)(S16(hdr, off + 2) - U16(hdr, 0xAC));
@@ -219,10 +166,6 @@ namespace gastric169
 		return true;
 	}
 
-	// 0x5DF540: the object's flat textured triangles (0x10-byte records) and quads (0x14-byte
-	// records); a visible face with a corner within the radius gets a Gouraud overlay (G3 / G4) one
-	// bucket closer: corner colour = the far colour depth-cued by 1 - distance / radius (corners out
-	// of range keep the vertex buffer's pad word as their fade)
 	static uint32_t GlowPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
@@ -342,9 +285,6 @@ namespace gastric169
 		return pk;
 	}
 
-	// 0x5DF280: the far colour = the header's colour; every visible object: its vertices through
-	// their bone matrices (world space) into the vertex buffer (+4), then its faces through the
-	// camera (GlowPrims)
 	static uint32_t ModelObjects(uint32_t model, uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t bones = U32(model, 0) + 0x10;
@@ -402,12 +342,9 @@ namespace gastric169
 		return cursor;
 	}
 
-	// 0x5DF170: the entity's shadow, its model (ModelObjects), its weapon (+0x78) through
-	// RenderGeometry; the bone matrices are rebuilt from the pose afterwards
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
-		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, FrameCursor());
@@ -437,7 +374,6 @@ namespace gastric169
 		}
 	}
 
-	// fade of the tinted target: in over ticks 0..8, none 8..13, out from 13
 	static int32_t TintFade(int32_t c)
 	{
 		if (c < 8) return shl32(8 - c, 9);
@@ -445,7 +381,6 @@ namespace gastric169
 		return 0;
 	}
 
-	// the target hidden and redrawn tinted around its position
 	static void TintDraw(const Node *n, int32_t fade)
 	{
 		uint8_t *entity = Entity(TargetSlot());
@@ -467,15 +402,11 @@ namespace gastric169
 		FieldFree(0xDC);
 	}
 
-	// ------------------------------------------------------------------
-	// Tinted target (0x5DF030)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TintTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
 		if (n->counter < 0x16)
 		{
-			// 30 fps layer: see mag169_gastric_juice_held.inc
 			FX_HELD(held_note_draw(ORIG_Tint, n);)
 			TintDraw(n, TintFade(n->counter));
 		}
@@ -486,18 +417,9 @@ namespace gastric169
 		return TASK_END;
 	}
 
-	// ==================================================================
-	// Module prim renderer (0x5E0450; header 0x5C bytes on the scratch: +0x00 model, +0x04 vertices,
-	// +0x08..+0x0A far colour, +0x0C fade, +0x10 / +0x14 texture page / clut words, +0x18 texture
-	// offset, +0x1C flags, +0x20 section cursor, +0x24 NCLIP, +0x2C OTZ, +0x30 GTE FLAG, +0x58 draw
-	// mode word)
-	// ==================================================================
-
-	// clip bits of one corner: x outside 0..0xA00 -> xbit, y outside 0..0x6C0 -> ybit
 	static uint32_t ClipX(uint32_t xy, uint32_t bit) { const int16_t x = S16(xy, 0); return (x < 0 || x > 0xA00) ? bit : 0; }
 	static uint32_t ClipY(uint32_t xy, uint32_t bit) { const int16_t y = S16(xy, 2); return (y < 0 || y > 0x6C0) ? bit : 0; }
 
-	// the texture page / clut words of a packet (flags 0x100 / 0x400, 0x200 / 0x800)
 	static void PageWords(uint32_t h, uint32_t pk, int32_t page_off)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -507,7 +429,6 @@ namespace gastric169
 		else if (f & 0x200) U16(pk, 0xE) = U16(h, 0x14);
 	}
 
-	// the face's semi-transparency bit (flags bit 0 / 1 sets it, bit 2 / 3 clears it)
 	static void SemiTrans(uint32_t h, uint32_t pk, uint32_t set, uint32_t clear)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -515,7 +436,6 @@ namespace gastric169
 		if (f & clear) U32(pk, 4) &= 0xFDFFFFFF;
 	}
 
-	// 0x5E0540: flat textured triangles (0x14-byte records -> 0x24-byte packets)
 	static uint32_t PrimFT3(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -562,7 +482,6 @@ namespace gastric169
 		return pk;
 	}
 
-	// 0x5E07A0: flat textured quads (0x18-byte records -> 0x2C-byte packets)
 	static uint32_t PrimFT4(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -615,7 +534,6 @@ namespace gastric169
 		return pk;
 	}
 
-	// 0x5E0A70: Gouraud textured triangles (0x1C-byte records -> 0x2C-byte packets)
 	static uint32_t PrimGT3(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -667,7 +585,6 @@ namespace gastric169
 		return pk;
 	}
 
-	// 0x5E0CD0: Gouraud textured quads (0x24-byte records -> 0x38-byte packets)
 	static uint32_t PrimGT4(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -729,9 +646,6 @@ namespace gastric169
 		return pk;
 	}
 
-	// 0x5E0450: the model's sections (two skipped words, FT3, FT4, two skipped words, GT3, GT4; an
-	// empty section is one zero word); vertices = model + 8 unless flag 0x2000, texture offset 0
-	// unless flag 0x1000
 	static uint32_t PrimRender(uint32_t h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -753,13 +667,8 @@ namespace gastric169
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Landing mesh (0x5E01A0)
-	// ------------------------------------------------------------------
-	// blend weight of the second shape: sin(tick * 1024 / 32)
 	static int32_t MeshBlend(int32_t c) { return ComputeSin(shl32(c, 10) / 32); }
 
-	// fade of the mesh by tick (0 where the draw leaves the header's fade word as it is)
 	static int32_t MeshFade(int32_t c)
 	{
 		if (c < 8) return 0;
@@ -768,7 +677,6 @@ namespace gastric169
 		return shl32(c - 0x18, 9);
 	}
 
-	// the mesh at the landing point (vertices blended by s into verts); nothing from tick 32
 	static void MeshDraw(const Node *n, uint32_t verts, int32_t s, int32_t fade)
 	{
 		int16_t ang[3] = { 0, n->a18, 0 };
@@ -815,7 +723,6 @@ namespace gastric169
 	static uint32_t __cdecl MeshTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_draw(ORIG_Mesh, n);)
 		MeshDraw(n, MESH_VERTS + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
 		if (DrawOnly()) return 0;
@@ -823,9 +730,6 @@ namespace gastric169
 		return n->counter >= 0x20 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Puddle (0x5E1200)
-	// ------------------------------------------------------------------
 	static int32_t PuddleFade(int32_t c) { return c < 8 ? 0x800 : shl32(c, 8); }
 
 	static void PuddleDraw(const Node *n, int32_t fade)
@@ -853,7 +757,6 @@ namespace gastric169
 	static uint32_t __cdecl PuddleTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_draw(ORIG_Puddle, n);)
 		PuddleDraw(n, PuddleFade(n->counter));
 		if (DrawOnly()) return 0;
@@ -862,9 +765,6 @@ namespace gastric169
 		return n->counter >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Blob (0x5E00B0)
-	// ------------------------------------------------------------------
 	static void BlobDraw(const Node *n, const int16_t *pos, uint32_t seq)
 	{
 		TransformCameraByShadowRotation(pos, n->a1c, -(n->a1c >> 3));
@@ -886,7 +786,6 @@ namespace gastric169
 	static uint32_t __cdecl BlobTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_draw(ORIG_Blob, n);)
 		BlobDraw(n, StreamOf(n->idx)->curve[0] + n->a18 * 4, SEQ_Blob);
 		if (DrawOnly()) return 0;
@@ -897,9 +796,6 @@ namespace gastric169
 		return n->a18 >= 0x1B ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Drip emitter (0x5E0FE0)
-	// ------------------------------------------------------------------
 	static void DripDraw(uint32_t h, const Drop *e)
 	{
 		U16(h, 4) = (uint16_t)e->frame;
@@ -910,7 +806,6 @@ namespace gastric169
 	static uint32_t __cdecl DripTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_draw(ORIG_Drips, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
@@ -956,11 +851,6 @@ namespace gastric169
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Splash (0x5E1330)
-	// ------------------------------------------------------------------
-	// the light matrix: from the camera x (rotation taking the down axis onto the direction of
-	// curve samples 0 -> 2, at sample 1); the splash matrix's rotation goes to the GTE
 	static void SplashSetup(const Stream *s)
 	{
 		int32_t down[3] = { 0, -0x1000, 0 };
@@ -982,8 +872,6 @@ namespace gastric169
 		GteSetBKFromMatrix(&m);
 	}
 
-	// one droplet: its camera-space position (light matrix + BK) pulled towards the camera by
-	// scale / 16 into the splash matrix's translation, the scale on the rotation diagonal
 	static void SplashDraw(uint32_t h, const Drop *e)
 	{
 		Mat4x3 &g = *(Mat4x3 *)SPLASH_MATRIX;
@@ -1005,7 +893,6 @@ namespace gastric169
 	static uint32_t __cdecl SplashTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_draw(ORIG_Splash, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
@@ -1054,9 +941,6 @@ namespace gastric169
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Stream (0x5DFD40): the curve, then the blob, puddle, mesh and drip emitter
-	// ------------------------------------------------------------------
 	static void StreamSetup(Stream *s)
 	{
 		GetEffectSpawnPosition(Entity(AttackerSlot()), 0xF0, 0, s->src);
@@ -1137,9 +1021,6 @@ namespace gastric169
 		return n->counter >= 0x28 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5DEF20)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
@@ -1173,13 +1054,9 @@ namespace gastric169
 		return n->counter > 0x32 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x5E16E0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		RootNode *r = (RootNode *)tn;
-		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
@@ -1200,7 +1077,6 @@ namespace gastric169
 		register_port(gastric169::ORIG_Drips, (void *)gastric169::DripTask, "G169 DripTask", 169);
 		register_port(gastric169::ORIG_Puddle, (void *)gastric169::PuddleTask, "G169 PuddleTask", 169);
 		register_port(gastric169::ORIG_Splash, (void *)gastric169::SplashTask, "G169 SplashTask", 169);
-		// 30 fps layer: see mag169_gastric_juice_held.inc
 		FX_HELD(register_mag169_held();)
 	}
 }

@@ -13,44 +13,8 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// Effect 280: Full-cure (kernel.bin magic Full-cure +4 = 280: Selphie's Slot; MAG_280_*). Module 0x67E730..0x67EFD0.
-//
-// Structure (setup 0x67E730 -> 0x67E760, file loader 0x67E740 = the texture file named at 0x10AB128; the setup queues the
-// TIM, takes the magic buffer (0x2508048), draws one rand() into 0x2508040 (never read again), keeps the cast context
-// (0x2507FDC) and the caster's entity (0x2507FE0, never read again), starts the root task in its 1-node pool 0x2508028 and
-// the camera animation 0x10AAFEC (always: the context flag bit 0 is not tested)):
-//   RootTask (0x67E7F0) - alternates the packet arena (magic buffer + 0x1DF0 / + 0x11DF0 by tick parity, cursor
-//     0x250803C); zeroes the flash level (0x2508044); on counter 1 (once) sets up the pools (control: magic buffer + 0x1BD4,
-//     1 x 0x1C; target: + 0x140, 3 x 0x8DC; sparkle: + 0, 16 x 0x14) and starts the control task with the entities of
-//     the targets of action 0; then runs the control, target and sparkle queues (the target queue's result is not used);
-//     sets the screen flash to the level (Effect_SetScreenFlash, mode 0: every entity draw entry); ends when the control
-//     and sparkle queues are both empty.
-//   ControlTask (0x67E980) - 0x41 ticks: the flash level ramps up (c * 0x100 for c < 8), holds 0x800, ramps down
-//     ((0x41 - c) * 0x100 for c > 0x39); every 20 ticks (c = 0, 20, 40, 60 while targets are left) a TargetTask on the
-//     next target: anchor = the target's effect point 0xF1 (GetEffectSpawnPosition, taken once), layout 0x10A7A64
-//     (0x8C4 bytes), sound 0x10AB124.
-//   TargetTask (0x67EA80) - 0x1E ticks: the layout at the anchor (prim player, callback 0x67EB50, play block: anchor,
-//     the counter word, depth -0x80, morph buffer magic buffer + 0x1BF0); from counter 0x13 on even counters a
-//     SparkleTask at the target's effect point (counter % the model's first byte) taken once; at the end the action
-//     result of this target (0x67EEE0).
-//   SparkleTask (0x67EF50) - 8 ticks: sequence 0x10A7974 frame = its counter at its point through the camera
-//     (TransformCameraByShadowRotation 0x800 / -0x200, header 0xB4 on the Field_Alloc scratch).
-//   PrimCallback (0x67EB50) - one object of the layout (X-ATM092's 0x686120 shape with its flags 0x40000 / 0x1000 and
-//     without the block scale): vertex frame (or blend into the morph buffer), rotation (flag 0x40000: 0x7015B0, else
-//     0x701310); flag 0x1000: the anchor through the camera + the offset through the module matrix 0x2508050 (never written:
-//     zero), the rotation through it too; flag 0x200: the anchor through the camera + the offset; else the offset + the
-//     anchor through the camera, composed with it; + the camera translation; scale (flag 0x100: 3x3 product, else
-//     scale3DMatrix); fade; 0x7043B0.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// ENTITY / CAMERA: the module writes no entity field directly and no camera word; it reads the targets' effect points
-// (GetEffectSpawnPosition: their current pose) at a task's start and the camera matrix 0x1D97778; engine writes: the
-// screen flash level into every entity draw entry (0x1D98990 + k * 0x2C: +2 level, +0x28 mode) every tick, the action
-// results (ApplyActionResultToTarget), the camera animation 0x10AAFEC (Battle_PlayCameraAnimation, at the setup).
-// Module globals: 0x2507FD8..0x2508070 (texture file 0x2507FD8, context 0x2507FDC, caster entity 0x2507FE0, sparkle queue
-// 0x2507FE8, target queue 0x2507FF8, control queue 0x2508008, root queue 0x2508018, root pool 0x2508028 (1 x 0x14),
-// packet cursor 0x250803C, rand word 0x2508040, flash level 0x2508044, magic buffer base 0x2508048, matrix 0x2508050).
-// NEVER-WRITTEN STACK WORDS: none read (the play block is fully written; the callback's offset word +6 and matrix pad
-// only reach the GTE VZ0 / R33 high halves).
+
+// Effect 280: Full-cure
 
 #include "mag_common.h"
 
@@ -61,92 +25,80 @@ namespace fullcure280
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2507FDC); }
-	inline TaskQueue *QSparkle() { return (TaskQueue *)0x2507FE8; }      // pool: magic buffer + 0, 16 x 0x14
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2507FF8; }       // pool: magic buffer + 0x140, 3 x 0x8DC
-	inline TaskQueue *QControl() { return (TaskQueue *)0x2508008; }      // pool: magic buffer + 0x1BD4, 1 x 0x1C
+	inline TaskQueue *QSparkle() { return (TaskQueue *)0x2507FE8; }
+	inline TaskQueue *QTarget() { return (TaskQueue *)0x2507FF8; }
+	inline TaskQueue *QControl() { return (TaskQueue *)0x2508008; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250803C); }
 	inline int32_t &FlashLevel() { return var<int32_t>(0x2508044); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508048); }      // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(0x2508050); }     // never written (zero)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2508048); }
+	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(0x2508050); }
 
 	static const uint32_t ORIG_RootTask = 0x67E7F0;
 	static const uint32_t ORIG_ControlTask = 0x67E980;
 	static const uint32_t ORIG_TargetTask = 0x67EA80;
 	static const uint32_t ORIG_SparkleTask = 0x67EF50;
-	static const uint32_t LAYOUT = 0x10A7A64;     // prim-model layout data (0x8C4 bytes decoded)
-	static const uint32_t SEQUENCE = 0x10A7974;   // sparkle sequence
+	static const uint32_t LAYOUT = 0x10A7A64;
+	static const uint32_t SEQUENCE = 0x10A7974;
 	static const void *const SOUND = (const void *)0x10AB124;
-	static const uint32_t ARENA_A = 0x1DF0;        // magic buffer: packet arenas
+	static const uint32_t ARENA_A = 0x1DF0;
 	static const uint32_t ARENA_B = 0x11DF0;
-	static const uint32_t MORPH = 0x1BF0;          // magic buffer: blended vertex frames
+	static const uint32_t MORPH = 0x1BF0;
 	static const int32_t CONTROL_TICKS = 0x41, TARGET_TICKS = 0x1E, SPARKLE_FIRST = 0x13, SPARKLE_FRAMES = 8;
-	static const int32_t EFFECT_POINT = 0xF1;      // GetEffectSpawnPosition: the target's effect point
+	static const int32_t EFFECT_POINT = 0xF1;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// MAG_070_RenderPrimModel: prim model draw (header +0 model, +4 vertices, +8 fade colour, +0xC fade,
-	// +0x18 depth offset, +0x1C mode)
 	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }    // MatrixMultiply3x3
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2508028)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F the pools are set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct ControlNode // pool of 1 node of 0x1C bytes (magic buffer + 0x1BD4)
+	struct ControlNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t count;     // +0x0E targets of action 0
-		uint8_t *ent[3];   // +0x10 their entities (the original indexes past the node with more than 3 targets: Ent())
+		int16_t counter;
+		int16_t count;
+		uint8_t *ent[3];
 		uint8_t *&Ent(uint32_t i) { return ((uint8_t **)((uint8_t *)this + 0x10))[i]; }
 	};
-	struct TargetNode // pool of 3 nodes of 0x8DC bytes (magic buffer + 0x140)
+	struct TargetNode
 	{
 		TaskNode hdr;
-		uint8_t *entity;   // +0x0C
-		int16_t anchor[3]; // +0x10 effect point 0xF1 at the start
-		int16_t counter;   // +0x16
-		uint8_t layout[0x8C4]; // +0x18
+		uint8_t *entity;
+		int16_t anchor[3];
+		int16_t counter;
+		uint8_t layout[0x8C4];
 	};
-	struct SparkleNode // pool of 16 nodes of 0x14 bytes (magic buffer + 0)
+	struct SparkleNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t frame;     // +0x12
+		int16_t pos[3];
+		int16_t frame;
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		int16_t pos[3];    // +0x00 anchor
-		int16_t counter;   // +0x06 the node's counter word (GTE VZ0 high half only)
-		int32_t depth;     // +0x08 -0x80
-		uint32_t morph;    // +0x0C blended vertex frames
+		int16_t pos[3];
+		int16_t counter;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(ControlNode) == 0x1C && sizeof(TargetNode) == 0x8DC && sizeof(SparkleNode) == 0x14, "Full-cure nodes");
 	static_assert(sizeof(PrimArg) == 0x10, "Full-cure block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x67EB50): one object of the layout
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -182,14 +134,13 @@ namespace fullcure280
 				*(uint32_t *)(h + 4) = arg->morph;
 			}
 		}
-		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 word only)
+		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
 		const uint32_t flags = r->flags;
-		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 }; // (4th word never written in the original: GTE VZ0 high half only)
+		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (flags & 0x1000)
 		{
-			// the anchor through the camera + the offset through the module matrix; the rotation through it too
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -206,7 +157,6 @@ namespace fullcure280
 		}
 		else if (flags & 0x200)
 		{
-			// the anchor through the camera + the offset
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -217,7 +167,6 @@ namespace fullcure280
 		}
 		else
 		{
-			// the offset + the anchor through the camera, composed with it
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -260,7 +209,6 @@ namespace fullcure280
 		FieldFree(0x58);
 	}
 
-	// the flash level of control counter c
 	static int32_t ControlFlash(int16_t c)
 	{
 		if (c < 8) return (int32_t)c * 0x800 >> 3;
@@ -278,9 +226,6 @@ namespace ff8fx
 {
 namespace fullcure280
 {
-	// ------------------------------------------------------------------
-	// Action result of a target (0x67EEE0): every target record of action 0 whose slot is this entity's
-	// ------------------------------------------------------------------
 	static void ApplyResult(uint8_t *e)
 	{
 		const int32_t slot = (int32_t)((uint32_t)e - 0x1D972C0) / 0x9C;
@@ -291,13 +236,9 @@ namespace fullcure280
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Sparkle (0x67EF50): sequence frame = counter at the point through the camera, 8 frames
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		// 30 fps layer: see mag280_full_cure_held.inc
 		FX_HELD(held_note_sparkle(s);)
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -310,13 +251,9 @@ namespace fullcure280
 		return s->frame < SPARKLE_FRAMES ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Target (0x67EA80): the layout at the anchor, sparkles, the action result at the end
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
-		// 30 fps layer: see mag280_full_cure_held.inc
 		FX_HELD(held_note_target(t);)
 		PrimArg arg;
 		ff8fx::copy<(6)>(arg.pos, t->anchor);
@@ -330,7 +267,6 @@ namespace fullcure280
 			if (s)
 			{
 				uint8_t *e = t->entity;
-				// the bone count: first byte of the skeleton (entity +0x64 -> model record -> skeleton)
 				const int32_t bones = **(const uint8_t *const *)*(const uint32_t *)(e + 0x64);
 				GetEffectSpawnPosition(e, (int32_t)t->counter % bones, 0, s->pos);
 				s->frame = 0;
@@ -345,9 +281,6 @@ namespace fullcure280
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Control (0x67E980): the flash ramp, a target task every 20 ticks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ControlTask(TaskNode *n)
 	{
 		ControlNode *c = (ControlNode *)n;
@@ -375,13 +308,9 @@ namespace fullcure280
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x67E7F0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag280_full_cure_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -426,7 +355,6 @@ namespace fullcure280
 		register_port(fullcure280::ORIG_ControlTask, (void *)fullcure280::ControlTask, "280 ControlTask", 280);
 		register_port(fullcure280::ORIG_TargetTask, (void *)fullcure280::TargetTask, "280 TargetTask", 280);
 		register_port(fullcure280::ORIG_SparkleTask, (void *)fullcure280::SparkleTask, "280 SparkleTask", 280);
-		// 30 fps layer: see mag280_full_cure_held.inc
 		FX_HELD(register_mag280_held();)
 	}
 }

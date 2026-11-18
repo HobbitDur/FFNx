@@ -14,37 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 191: Doomtrain - Runaway Train (timeline-B GF family, MAG_191_*), plus the shared
-// camera-script interpreter MAG_066_sub_63E9C0 that lives in the same code file.
-//
-// Structure (gf_study/gf_inventory_timeline.md section 3.2; code 0x63E730-0x6472E0):
-//   setup MAG_191_DOOMTRAIN_SUMMON_RUNAWAY_TRAIN (0x63E730, not ported: runs once) - model
-//     buffer mb (dword 0x24FD3A0); record pools (0x18-byte records): A 0xE3C8C0 = mb+0x2E000
-//     (170), B 0xE3C8C4 = mb+0x2F000 (170), C 0xE3C8C8 = mb+0x30000 (150), D 0xE3C8CC =
-//     mb+0x31000 (120), E 0xE3C8D0 = mb+0x32000 (130), F 0xE3C8D4 = mb+0x33000 (590);
-//     0xE3C8D8 = mb+0x37000 = vertex scratch (morph targets, model draw). Root queue 0x24FBF80
-//     (pool 0x24FBF60) with the master, sub-queue 0x24FC330 (pool 0x24FC340, 100 x 0x24) with
-//     the timeline; every other task goes into the sub-queue. Root matrix 0x24FBE88.
-//   SequenceTick (master, 0x6472C0) - runs the sub-queue, ++counter, ends when it is empty.
-//   TimelineTask (0x63F2D0) - 424 ticks: camera script, streams/loads, sounds, spawns, the
-//     action result at 420; rebuilds Frame 0x24FBF90 = Camera o Root every tick.
-//   CreatureTask (0x641EA0, spawned at 124) - 279 ticks, the train (state 0x24FC290), drawn
-//     with a PRIVATE copy of the engine anim reader (0x642490 / 0x642520 / 0x642830, called
-//     through their original addresses); writes the chimney bone matrix 0x24FBE58 each tick.
-//   Every other task: see the ORIG_* list. Pause: the timeline tests 0x201 (with the load
-//   state), every other Doomtrain task tests only bit 0 of battle_to_update_flags_dword_1D96A9C
-//   (kept exactly), the master and the end task test nothing.
-// Module-private renderers / readers called through their original addresses (pure functions
-// of a scratch header or of the model state): the sky renderer 0x640830 (+ its primitive
-// renderers 0x640910/0x640B70/0x640E20/0x641140), the private anim reader 0x642490 (SetAnim),
-// 0x642520 (ReadAnimation), 0x642830 (BuildBoneMatricesFromPose), 0x642D80 (bones o model o frame).
-//
-// Camera-script interpreter (MAG_066): CameraScriptStart 0x63E960 queues task 0x63E9C0 into the
-// caller's queue (Doomtrain 191, Cactuar 199, Shiva 185, Gilgamesh 327, Odin 187/326, MAG_218,
-// MAG_200, MAG_164/165/076/066). Its state is global (tracks 0x24FBFB0 look-at / 0x24FD3A8 eye,
-// roll sign 0x24FBE78, track pointers 0x24FD2D8 / 0x24FBDA4), so one instance runs at a time.
-// The port is registered once (register_port keys on the original address only, so it serves
-// every ported module that queues it).
+// Effect 191: Doomtrain - Runaway Train
 
 #include "fx_port.h"
 
@@ -54,90 +24,85 @@ namespace d191
 {
 	using namespace eng;
 
-	// --- engine functions used by this module (original addresses) ---
 	namespace x
 	{
 		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
 		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x56CE30)(angles, out); }
-		inline void RotMatrixXYZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x56CF50)(angles, out); }   // sub_56CF50: X, Y, Z rotations
+		inline void RotMatrixXYZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x56CF50)(angles, out); }
 		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
-		inline void UnpackRotationMatrix(const Mat4x3 *src, Mat4x3 *dst) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C040)(src, dst); } // dst.rot = transpose(src.rot)
-		inline uint32_t MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { return fn<uint32_t (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector (rotation only)
+		inline void UnpackRotationMatrix(const Mat4x3 *src, Mat4x3 *dst) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C040)(src, dst); }
+		inline uint32_t MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { return fn<uint32_t (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
 		inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-		inline int32_t NormalizeQ12(const int32_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int16_t *)>(0x56BD20)(in, out); } // Math_NormalizeVec3_Q12
-		inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); } // NormalizeVectorToFixedPoint
+		inline int32_t NormalizeQ12(const int32_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int16_t *)>(0x56BD20)(in, out); }
+		inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
 		inline int32_t GetRotationBetweenVectors(const void *ref, const int32_t *v, int32_t *axis) { return fn<int32_t (__cdecl *)(const void *, const int32_t *, int32_t *)>(0x571480)(ref, v, axis); }
 		inline void BuildAxisAngleRotationMatrix(int32_t angle, Mat4x3 *out, const int32_t *axis) { fn<void (__cdecl *)(int32_t, Mat4x3 *, const int32_t *)>(0x5714F0)(angle, out, axis); }
-		inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); } // b.rot = a.rot * b.rot
-		inline void CurveCoeffs(int32_t n, const void *pts, void *buf) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, pts, buf); }        // sub_571620: curve weights of n 8-byte points
-		inline void CurveEval(int32_t n, void *buf, void *dst, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, buf, dst, t); } // sub_571690: point at t (0..0x1000), s16 x3
+		inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+		inline void CurveCoeffs(int32_t n, const void *pts, void *buf) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, pts, buf); }
+		inline void CurveEval(int32_t n, void *buf, void *dst, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, buf, dst, t); }
 		inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
 		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
 		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(geom, hdr, ot, shift, cursor); }
-		inline void ProjectionH(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); } // Call_Bs_parseCamera2
-		// sound / streams / files / battle
+		inline void ProjectionH(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }
 		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x501330)(se, a, b); }
 		inline void BdPlaySummonStream(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x5018C0)(a, b, c); }
 		inline void BdTransSummonStream(uint32_t src, uint32_t state) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x501860)(src, state); }
 		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(slot); }
 		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline void CameraShake(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); } // au_re_BdLinkTask_6
+		inline void CameraShake(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x5712C0)(a, b, c, d); }
 		inline void ApplyActionResultToTargets(uint32_t list, uint32_t count) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x506BA0)(list, count); }
-		inline void WaitAnimSeq(void *buffer, void *flag) { fn<void (__cdecl *)(void *, void *)>(0x508630)(buffer, flag); } // sub_508630
-		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(0x508500)(); }                                       // sub_508500: < 0 = file load busy
-		inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); } // BattleFile_CharacterLoad
-		inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }                       // Battle_QueueTIMUpload_GetEOF
-		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(0x571B70)(); }                                   // sub_571B70
-		// software GTE
+		inline void WaitAnimSeq(void *buffer, void *flag) { fn<void (__cdecl *)(void *, void *)>(0x508630)(buffer, flag); }
+		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
+		inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }
+		inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
+		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(0x571B70)(); }
 		inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // MAG_148_sub_64DDA0
+		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
 		inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }        // MAG_163_sub_64DE00: R = s * I
-		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }                        // MAG_164_sub_64DE40: TR = MAC123
-		inline void GteTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }                         // MAG_148_sub_64DE90: TR = IR123 (data regs 9-11)
-		inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); } // MAG_163_sub_64DD70: TR = v
-		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
-		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); } // set_unk_1CA8A28
-		inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }                               // sub_45F270: depth cue towards the far colour by IR0
-		inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }             // set_param_with_dword_1CA8A68
+		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
+		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
+		inline void GteTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }
+		inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
+		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
+		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
+		inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
+		inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 		inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 		inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 		inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 		inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-		inline void GteReadSZ3(void *dst) { fn<void (__cdecl *)(void *)>(0x45E220)(dst); }          // sub_45E220: dword 0x1CA8A5C
-		// module-private functions called through their original addresses
-		inline void ReaderSetAnim(void *hdr, void *cmd, int32_t id) { fn<void (__cdecl *)(void *, void *, int32_t)>(0x642490)(hdr, cmd, id); } // GF_191Doomtrain_SetAnim_PrivateReader
-		inline int32_t ReaderRead(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x642520)(hdr, cmd); }              // private Battle_ReadAnimation (1 = finished)
-		inline void ReaderBuildBones(void *hdr) { fn<void (__cdecl *)(void *)>(0x642830)(hdr); }                                              // private BuildBoneMatricesFromPose
-		inline uint32_t ComposeBones(void *hdr, const Mat4x3 *frame, const Mat4x3 *model) { return fn<uint32_t (__cdecl *)(void *, const Mat4x3 *, const Mat4x3 *)>(0x642D80)(hdr, frame, model); } // bone = frame o (model o bone), z clamp mask
+		inline void GteReadSZ3(void *dst) { fn<void (__cdecl *)(void *)>(0x45E220)(dst); }
+		inline void ReaderSetAnim(void *hdr, void *cmd, int32_t id) { fn<void (__cdecl *)(void *, void *, int32_t)>(0x642490)(hdr, cmd, id); }
+		inline int32_t ReaderRead(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x642520)(hdr, cmd); }
+		inline void ReaderBuildBones(void *hdr) { fn<void (__cdecl *)(void *)>(0x642830)(hdr); }
+		inline uint32_t ComposeBones(void *hdr, const Mat4x3 *frame, const Mat4x3 *model) { return fn<uint32_t (__cdecl *)(void *, const Mat4x3 *, const Mat4x3 *)>(0x642D80)(hdr, frame, model); }
 		inline uint32_t SkyRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x640830)(h, ot, mode, cursor); }
 	}
 	using namespace x;
 
-	// --- module globals ---
-	inline uint32_t Flags() { return var<uint32_t>(0x1D96A9C); }                 // battle_to_update_flags_dword_1D96A9C
-	inline bool P1() { return (var<uint8_t>(0x1D96A9C) & 1) != 0; }            // the bit every Doomtrain task tests
-	inline Mat4x3 &Root() { return var<Mat4x3>(0x24FBE88); }                    // effect frame (setup)
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x24FBF90); }                   // Camera o Root, rebuilt by the timeline every tick
-	inline Mat4x3 &BoneWorld() { return var<Mat4x3>(0x24FBE58); }               // creature model o bone 1 (chimney), written by the creature every tick
+	inline uint32_t Flags() { return var<uint32_t>(0x1D96A9C); }
+	inline bool P1() { return (var<uint8_t>(0x1D96A9C) & 1) != 0; }
+	inline Mat4x3 &Root() { return var<Mat4x3>(0x24FBE88); }
+	inline Mat4x3 &Frame() { return var<Mat4x3>(0x24FBF90); }
+	inline Mat4x3 &BoneWorld() { return var<Mat4x3>(0x24FBE58); }
 	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x24FC330); }
 	inline uint8_t *CastCtx() { return var<uint8_t *>(0x24FD258); }
-	inline uint32_t MB() { return var<uint32_t>(0x24FD3A0); }                  // model buffer
-	inline uint8_t *Creature() { return (uint8_t *)0x24FC290; }                 // +0x40 model matrix 0x24FC2D0, +0x60 BattleAnimHeader, +0x6C BattleAnimCmd
+	inline uint32_t MB() { return var<uint32_t>(0x24FD3A0); }
+	inline uint8_t *Creature() { return (uint8_t *)0x24FC290; }
 	inline Mat4x3 &CreatureMat() { return var<Mat4x3>(0x24FC2D0); }
-	inline int32_t &CreatureZ() { return var<int32_t>(0x24FC2EC); }            // CreatureMat.t[2]
-	inline uint32_t &StateFlags() { return var<uint32_t>(0x24FBE80); }         // bit0 creature done, bit1 wheels left (debris end); bit0 also = rain OT shift 0xE
+	inline int32_t &CreatureZ() { return var<int32_t>(0x24FC2EC); }
+	inline uint32_t &StateFlags() { return var<uint32_t>(0x24FBE80); }
 	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x24FC28C); }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }            // battle_texture_data_ptr_1D8E054
+	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint8_t *Pool(uint32_t cell) { return var<uint8_t *>(cell); }
 	static const uint32_t POOL_A = 0xE3C8C0, POOL_B = 0xE3C8C4, POOL_C = 0xE3C8C8, POOL_D = 0xE3C8CC, POOL_E = 0xE3C8D0, POOL_F = 0xE3C8D4;
 	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(0x1D972C0 + 156 * slot); }
-	inline int32_t *TargetList() { return (int32_t *)0x24FD298; }            // battle slots of the targets (+ linked parts)
+	inline int32_t *TargetList() { return (int32_t *)0x24FD298; }
 	inline int32_t &TargetCount() { return var<int32_t>(0x24FD350); }
-	inline Mat4x3 *RigW(int16_t e) { return (Mat4x3 *)(e ? 0x24FD418 : 0x24FD380); } // rig frame (Frame o local), per side
-	inline Mat4x3 *RigM(int16_t e) { return (Mat4x3 *)(e ? 0x24FD360 : 0x24FD2B8); } // rig local matrix
+	inline Mat4x3 *RigW(int16_t e) { return (Mat4x3 *)(e ? 0x24FD418 : 0x24FD380); }
+	inline Mat4x3 *RigM(int16_t e) { return (Mat4x3 *)(e ? 0x24FD360 : 0x24FD2B8); }
 
 	static const uint32_t ORIG_SequenceTick = 0x6472C0;
 	static const uint32_t ORIG_TimelineTask = 0x63F2D0;
@@ -175,28 +140,25 @@ namespace d191
 	static const uint32_t ORIG_LandDustTask = 0x646F70;
 
 #pragma pack(push, 1)
-	// every sub-queue node is 0x24 bytes (pool 0x24FC340); field use differs per task
 	struct Node24
 	{
 		TaskNode hdr;
-		int16_t c;                  // +0x0C tick counter
-		int16_t e;                  // +0x0E length / side / pool mask / battle slot / delay
-		int16_t f10, f12, f14, f16; // +0x10 position (f16: pad, copied with the dwords)
-		int16_t f18, f1A;           // +0x18
-		int16_t f1C, f1E;           // +0x1C
-		int16_t f20, f22;           // +0x20
+		int16_t c;
+		int16_t e;
+		int16_t f10, f12, f14, f16;
+		int16_t f18, f1A;
+		int16_t f1C, f1E;
+		int16_t f20, f22;
 	};
-	// pool record (pools A..F)
 	struct Rec
 	{
-		uint32_t mask;   // +0x00 owner bits (0 = free)
-		int16_t age;     // +0x04 flipbook frame
-		int16_t size;    // +0x06
-		int16_t pos[4];  // +0x08 x, y, z, (pad, copied with the dwords)
-		int16_t vel[3];  // +0x10
-		int16_t w16;     // +0x16
+		uint32_t mask;
+		int16_t age;
+		int16_t size;
+		int16_t pos[4];
+		int16_t vel[3];
+		int16_t w16;
 	};
-	// two-point history of the steam sources (0x24FC020 / 0x24FBEA8, 0x14 stride)
 	struct Hist { uint32_t valid; uint32_t a0, a1, b0, b1; };
 #pragma pack(pop)
 	static_assert(sizeof(Node24) == 0x24, "sub-queue node is 0x24 bytes");
@@ -208,7 +170,6 @@ namespace d191
 	inline Hist *HistB(int k) { return (Hist *)(0x24FBEA8 + 0x14 * k); }
 	inline int16_t W16(uint32_t a) { return var<int16_t>(a); }
 
-	// first free record (dword 0) of a pool, -1 when none
 	static int FreeRec(uint32_t cell, int count)
 	{
 		uint8_t *p = Pool(cell);
@@ -217,32 +178,29 @@ namespace d191
 		return -1;
 	}
 
-	// ======================================================================
-	// Camera-script interpreter (MAG_066): CameraScriptStart 0x63E960, task 0x63E9C0
-	// ======================================================================
 #pragma pack(push, 1)
-	struct CamTrack // 0x24FBFB0 (look-at) / 0x24FD3A8 (eye)
+	struct CamTrack
 	{
-		int16_t op;        // +0x00 current opcode (with the high byte of the script word)
-		int16_t dur;       // +0x02 ticks left
-		int32_t acc;       // +0x04 progress / distance / value range
-		int32_t step;      // +0x08
+		int16_t op;
+		int16_t dur;
+		int32_t acc;
+		int32_t step;
 		int32_t pad0C;
-		int16_t pos[4];    // +0x10 current point (effect frame)
-		int16_t start[4];  // +0x18
-		int16_t delta[4];  // +0x20
-		int16_t ease;      // +0x28 easing / start value
-		int16_t npts;      // +0x2A curve points after the start point
-		int16_t pts[16][4];// +0x2C curve points (pts[0] = start)
+		int16_t pos[4];
+		int16_t start[4];
+		int16_t delta[4];
+		int16_t ease;
+		int16_t npts;
+		int16_t pts[16][4];
 	};
-	struct CamNode // node of the caller's queue (0x24 bytes in every user)
+	struct CamNode
 	{
 		TaskNode hdr;
-		int16_t c, e;              // +0x0C counter, +0x0E (0)
+		int16_t c, e;
 		uint32_t f10;
-		const int16_t *script;     // +0x14
-		const Mat4x3 *frame;       // +0x18 effect root matrix
-		void *entity;              // +0x1C
+		const int16_t *script;
+		const Mat4x3 *frame;
+		void *entity;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(CamTrack) == 0xAC, "camera track is 0xAC bytes");
@@ -263,11 +221,10 @@ namespace d191
 	inline CamTrack *TrackEye() { return (CamTrack *)0x24FD3A8; }
 	inline CamTrack *&TrackCur() { return var<CamTrack *>(0x24FD2D8); }
 	inline CamTrack *&TrackOther() { return var<CamTrack *>(0x24FBDA4); }
-	inline int16_t &CamH() { return var<int16_t>(0x1D8E038); }      // projection distance (restored by the sky)
-	inline int16_t &CamRoll() { return var<int16_t>(0x1D977A2); }   // g_BattleCam_Roll
-	static const uint32_t CAM_EYE = 0xB8B7F0, CAM_AT = 0xB8B7F8;    // x, y, z, pad (s16)
+	inline int16_t &CamH() { return var<int16_t>(0x1D8E038); }
+	inline int16_t &CamRoll() { return var<int16_t>(0x1D977A2); }
+	static const uint32_t CAM_EYE = 0xB8B7F0, CAM_AT = 0xB8B7F8;
 
-	// MAG_066_sub_63F1E0: script argument, negative = variable -v-1 of the table 0x24FBF48
 	static int32_t CsArg(const int16_t **pp)
 	{
 		const int16_t *p = *pp;
@@ -277,7 +234,6 @@ namespace d191
 		return v;
 	}
 
-	// MAG_066_sub_63F210: script point, x mirrored by the roll sign
 	static void CsVec(const int16_t **pp, int16_t *out)
 	{
 		const int16_t *p = *pp;
@@ -287,8 +243,6 @@ namespace d191
 		*pp = p + 3;
 	}
 
-	// MAG_066_sub_63F240: easing of t (0..0x1000); p > 0 ease-in (p >> 8 sine passes), p < 0
-	// ease-out, blended with the linear t by (|p| & 0xFF) + 1 / 256
 	static int32_t CsEase(int32_t t, int32_t p)
 	{
 		int32_t ecx = t, w = p;
@@ -308,8 +262,6 @@ namespace d191
 		return (mul32(0x100 - w, t) + mul32(w, ecx)) >> 8;
 	}
 
-	// MAG_066_sub_63E960 (native: the Doomtrain timeline calls it; the Cactuar / Shiva ports call
-	// the original, both do the same)
 	static void CameraScriptStart(uint32_t script, const Mat4x3 *frame, void *entity, TaskQueue *q, int32_t n)
 	{
 		CamNode *m = (CamNode *)AddTaskToQueue(q, ORIG_CamScriptTask);
@@ -326,7 +278,6 @@ namespace d191
 		else var<int32_t>(0x24FBE78) = 1;
 	}
 
-	// one tick of task 0x63E9C0; cut (may be null): set when a track jumps (opcodes 1 and 10)
 	static uint32_t CsRun(CamNode *n, bool *cut)
 	{
 		uint8_t *S = (uint8_t *)FieldAlloc(0x1B0);
@@ -339,7 +290,6 @@ namespace d191
 				T0->dur = 0;
 				T1->dur = 0;
 			}
-			// parse opcodes until both tracks have a duration
 			while (T1->dur == 0 || T0->dur == 0)
 			{
 				const int16_t *p = n->script;
@@ -359,19 +309,19 @@ namespace d191
 				}
 				switch (op)
 				{
-				case 0: // wait
+				case 0:
 					cur->dur = (int16_t)CsArg(&n->script);
 					break;
-				case 1: // set point
+				case 1:
 					CsVec(&n->script, cur->pos);
 					if (cut) *cut = true;
 					break;
-				case 2: // linear move
+				case 2:
 					cur->dur = (int16_t)CsArg(&n->script);
 					CsVec(&n->script, s16);
 					for (int i = 0; i < 3; i++) cur->delta[i] = (int16_t)(((int32_t)s16[i] - cur->pos[i]) / (int32_t)cur->dur);
 					break;
-				case 3: // eased move
+				case 3:
 				{
 					cur->dur = (int16_t)CsArg(&n->script);
 					const int16_t *q = n->script;
@@ -384,7 +334,7 @@ namespace d191
 					for (int i = 0; i < 3; i++) cur->delta[i] = (int16_t)(s16[i] - cur->pos[i]);
 					break;
 				}
-				case 4: // eased curve through npts points
+				case 4:
 				{
 					cur->dur = (int16_t)CsArg(&n->script);
 					const int16_t *q = n->script;
@@ -398,7 +348,7 @@ namespace d191
 					for (int i = 1; i <= cur->npts; i++) CsVec(&n->script, cur->pts[i]);
 					break;
 				}
-				case 5: // move keeping a changing distance from the other track
+				case 5:
 				{
 					for (int i = 0; i < 3; i++) s16[i] = (int16_t)(oth->pos[i] - cur->pos[i]);
 					uint32_t d2 = (uint32_t)mul32(s16[0], s16[0]) + (uint32_t)mul32(s16[1], s16[1]) + (uint32_t)mul32(s16[2], s16[2]);
@@ -410,16 +360,16 @@ namespace d191
 					CamTrack *o = TrackOther();
 					switch (o->op - 2)
 					{
-					case 0: // the other's end point: linear
+					case 0:
 					{
 						int16_t k = cur->dur;
 						for (int i = 0; i < 3; i++) s16[4 + i] = (int16_t)((int16_t)(o->delta[i] * k) + o->pos[i]);
 						break;
 					}
-					case 1: // eased
+					case 1:
 						for (int i = 0; i < 3; i++) s16[4 + i] = (int16_t)(o->delta[i] + o->start[i]);
 						break;
-					case 2: // curve: vanilla reads THIS track's point count and points (0x63ECE4)
+					case 2:
 						ff8fx::copy<(8)>(S + 8, cur->pts[cur->npts]);
 						break;
 					default:
@@ -432,14 +382,14 @@ namespace d191
 					cur->step = (len - cur->acc) / (int32_t)cur->dur;
 					break;
 				}
-				case 6: // projection distance
+				case 6:
 				{
 					const int16_t *q = n->script;
 					CamH() = q[0];
 					n->script = q + 1;
 					break;
 				}
-				case 7: // projection distance ramp
+				case 7:
 				{
 					cur->dur = (int16_t)CsArg(&n->script);
 					int16_t h = CamH();
@@ -450,14 +400,14 @@ namespace d191
 					cur->ease = h;
 					break;
 				}
-				case 8: // roll
+				case 8:
 				{
 					const int16_t *q = n->script;
 					CamRoll() = (int16_t)(var<int16_t>(0x24FBE78) * q[0]);
 					n->script = q + 1;
 					break;
 				}
-				case 9: // roll ramp
+				case 9:
 				{
 					cur->dur = (int16_t)CsArg(&n->script);
 					const int16_t *q = n->script;
@@ -468,7 +418,7 @@ namespace d191
 					cur->ease = r;
 					break;
 				}
-				case 10: // take the current battle camera point back into the effect frame
+				case 10:
 				{
 					ff8fx::copy<(8)>(cur->pos, (const void *)(eye ? CAM_EYE : CAM_AT));
 					Mat4x3 inv;
@@ -484,7 +434,6 @@ namespace d191
 				}
 				}
 			}
-			// run both tracks one step: eye first, then look-at
 			TrackCur() = T1;
 			TrackOther() = T0;
 			for (int it = 2; it; it--)
@@ -535,8 +484,6 @@ namespace d191
 				TrackOther() = T1;
 			}
 		}
-		// the battle camera: saved (read by Cactuar, Odin-reverse, MAG_218), then the two track
-		// points in world space
 		var<uint32_t>(0x24FD35C) = var<uint32_t>(0xB8B7F4);
 		var<uint32_t>(0x24FD250) = var<uint32_t>(0xB8B7F8);
 		var<uint32_t>(0x24FD358) = var<uint32_t>(0xB8B7F0);
@@ -558,28 +505,19 @@ namespace d191
 	{
 		CamNode *n = (CamNode *)tn;
 		uint32_t r = CsRun(n, nullptr);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(held_note_camscript(n, r);)
 		return r;
 	}
 
-	// ======================================================================
-	// Master (0x6472C0): node from pool 0x24FBF60, +0x0C counter
-	// ======================================================================
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		n->c++;
 		return left ? 0 : TASK_END;
 	}
 
-	// ======================================================================
-	// Small helpers (target list, battle-state flags, task links)
-	// ======================================================================
-	// au_re_BdLinkTask_78 0x63F760 (no null check, as the original)
 	static Node24 *LinkTask(uint32_t task_fn)
 	{
 		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), task_fn);
@@ -589,12 +527,9 @@ namespace d191
 	}
 	static Node24 *AddTask(uint32_t task_fn) { return (Node24 *)AddTaskToQueue(&SubQueue(), task_fn); }
 
-	// MAG_191_sub_63F780 / _63F830: stru_1D9898C[0..3].currentBsId |= 2 / &= ~2
 	static void BsFlagSet() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2; }
 	static void BsFlagClear() { for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) &= 0xFD; }
 
-	// MAG_191_sub_63F9D0: target battle slots (castCtx list, no duplicates) + every linked part of a
-	// target (entity ring at +0x8C, parts flagged 2), count at 0x24FD350
 	static void BuildTargetList()
 	{
 		int32_t *list = TargetList();
@@ -644,7 +579,6 @@ namespace d191
 		TargetCount() = cnt;
 	}
 
-	// MAG_191_sub_63F970: save the targets' positions (+0x1C) and scales (+0x94)
 	static void SaveTargets()
 	{
 		for (int32_t i = 0; i < TargetCount(); i++)
@@ -654,7 +588,6 @@ namespace d191
 			ff8fx::copy<(8)>((void *)(0x24FC0C8 + 8 * slot), Entity(slot) + 0x94);
 		}
 	}
-	// MAG_191_sub_642E40: put them back
 	static void RestoreTargets()
 	{
 		for (int32_t i = 0; i < TargetCount(); i++)
@@ -664,8 +597,6 @@ namespace d191
 			ff8fx::copy<(8)>(Entity(slot) + 0x94, (const void *)(0x24FC0C8 + 8 * slot));
 		}
 	}
-	// MAG_191_sub_642EA0: save the positions again and push the targets out of the train's way
-	// (+0x20 low word += 0xA240)
 	static void SaveTargetsAndMove()
 	{
 		for (int32_t i = 0; i < TargetCount(); i++)
@@ -678,13 +609,9 @@ namespace d191
 			*(uint32_t *)(0x24FD264 + 8 * slot) = z;
 		}
 	}
-	// MAG_191_sub_63F930 / _63F8F0: entity flag 4 (hidden) set / cleared
 	static void HideTargets() { for (int32_t i = 0; i < TargetCount(); i++) *(uint8_t *)Entity(TargetList()[i]) |= 4; }
 	static void ShowTargets() { for (int32_t i = 0; i < TargetCount(); i++) *(uint16_t *)Entity(TargetList()[i]) &= 0xFFFB; }
 
-	// ======================================================================
-	// Timeline (0x63F2D0), 424 ticks. Load waits (sub_508500 < 0) repeat the tick.
-	// ======================================================================
 	static void SpawnRigs();
 	static void SpawnSky();
 	static void LinkFlash(uint32_t task_fn);
@@ -782,11 +709,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Screen flash in (0x63F7D0) / out (0x63F880): au_re_BdLinkTask_79 / _80, level 0x1000
-	// over 16 ticks; +0x1A: also toggle the battle-state flag 2 (in: clear at the end, out: set
-	// on its first tick)
-	// ======================================================================
 	static void LinkFlash(uint32_t task_fn)
 	{
 		Node24 *n = AddTask(task_fn);
@@ -820,9 +742,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// End (0x641E60): waits for the anim-seq task queued at tick 1 to clear +0x0E
-	// ======================================================================
 	static uint32_t __cdecl EndTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -832,13 +751,6 @@ namespace d191
 		return done ? TASK_END : 0;
 	}
 
-	// ======================================================================
-	// Rails / rig (timeline tick 1): two RigTask nodes (e = side 0 / 1), each builds its local
-	// matrix M (0x24FD2B8 / 0x24FD360) on its first tick, spawns four prim tasks that draw in its
-	// frame W = Frame o M (0x24FD380 / 0x24FD418, rebuilt every tick), and on side 0 a flash
-	// every 7 ticks. Children: +0x0E side, +0x10 position, +0x16 length, +0x1C (+0x20) scale.
-	// ======================================================================
-	// MAG_191_sub_63FAA0
 	static void SpawnRigs()
 	{
 		Node24 *a = AddTask(ORIG_RigTask);
@@ -912,7 +824,6 @@ namespace d191
 		return n->c > n->f16 ? TASK_END : 0;
 	}
 
-	// local matrix of a rig child: rotation, position, scale, in W; GTE rotation + translation
 	static void RigMatrix(const Mat4x3 *W, const int16_t *ang, const Node24 *n, int32_t sx, int32_t sy, int32_t sz)
 	{
 		Mat4x3 m;
@@ -927,7 +838,6 @@ namespace d191
 		GteSetTransVector(&m);
 	}
 
-	// Effect_RenderPrimModel with the 0x58 header (fields as vanilla writes them)
 	static void PrimModel(uint32_t model, int32_t mode, uint32_t h1C)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -938,7 +848,6 @@ namespace d191
 		FieldFree(0x58);
 	}
 
-	// 0x63FDB0: prim 0xE375BC (mode 2, 0x30), c < length
 	static void RigPrimADraw(const Mat4x3 *W, const Node24 *n)
 	{
 		int16_t ang[3] = { 0, 0, 0 };
@@ -949,14 +858,12 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigPrimADraw(RigW(n->e), n);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= n->f16 ? TASK_END : 0;
 	}
 
-	// 0x63FEC0: prim 0xE38E78 (mode 3, 0)
 	static void RigPrimBDraw(const Mat4x3 *W, const Node24 *n)
 	{
 		int16_t ang[3] = { 0, 0, 0 };
@@ -967,15 +874,12 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigPrimBDraw(RigW(n->e), n);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= n->f16 ? TASK_END : 0;
 	}
 
-	// 0x63FFD0: prim 0xE396B0 rolled by +0x18 (tilts by -+0x1A over 25..44, then rocks back with
-	// a damped sine 45..50, then level)
 	static void RigRockDraw(const Mat4x3 *W, const Node24 *n, int16_t roll)
 	{
 		int16_t ang[3] = { 0, 0, roll };
@@ -986,7 +890,6 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigRockDraw(RigW(n->e), n, n->f18);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		int16_t c = n->c;
@@ -1008,7 +911,6 @@ namespace d191
 		return n->c >= n->f16 ? TASK_END : 0;
 	}
 
-	// 0x640140: flash prim 0xE3B83C (mode 4), faded out from tick 2 (682 per tick), 8 ticks
 	static int32_t RigFlashFade(int32_t c) { return mul32(c - 2, 682); }
 	static void RigFlashDraw(const Mat4x3 *W, const Node24 *n, int16_t c, bool fade_override, int32_t fade)
 	{
@@ -1035,14 +937,12 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigFlashDraw(RigW(n->e), n, n->c, false, 0);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= 8 ? TASK_END : 0;
 	}
 
-	// 0x640280: flipbook 0xE346B0 (mode 3), frame = counter & 7
 	static void RigSpriteDraw(const Mat4x3 *W, const Node24 *n, int16_t c)
 	{
 		int16_t ang[3] = { 0, 0, 0 };
@@ -1058,20 +958,12 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigSpriteDraw(RigW(n->e), n, n->c);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= n->f16 ? TASK_END : 0;
 	}
 
-	// ======================================================================
-	// Sky (timeline tick 20, MAG_191_sub_640390 spawns two): a morphing camera-space dome
-	// (vertices 0xE34974 -> 0xE3702C blended by the phase +0x20 into mb+0x37000), rotation
-	// +0x18/+0x10/+0x14 (x and z spin by +0x12/+0x16), colour table 0xE3C8DC[+0x1E & 31]
-	// depth-cued by the phase, fade in 0..31 / out from 372, drawn by the private renderer
-	// 0x640830 into the OT at +0x4078 with projection 0x120; 388 ticks.
-	// ======================================================================
 	static int16_t RandMod(int32_t m) { return (int16_t)(CrtRand() % m); }
 
 	static void SpawnSky()
@@ -1159,7 +1051,6 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		SkyDraw(n->f18, n->f10, n->f14, n->f1A, n->f1C, n->f1E, n->f20, SkyFade(n->c));
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->f10 = (int16_t)(n->f10 + n->f12);
@@ -1170,14 +1061,6 @@ namespace d191
 		return n->c >= 0x184 ? TASK_END : 0;
 	}
 
-	// ======================================================================
-	// Lit sprites of the record pools. Two draw forms:
-	//   lit:    V0 = record, IR = LightMatrix * V0 + BK (the effect frame), R = size * I,
-	//           TR = MAC (or IR), flipbook header at +4 = frame
-	//   offset: the same, then TR = MAC pushed towards the eye by size >> shift along the
-	//           normalised MAC (so big puffs do not cut into the geometry)
-	// ======================================================================
-	// light matrix = frame o (zero rotation, translation t) in scratch s + 8 (0x48 bytes)
 	static void LitFrame(uint8_t *s, const Mat4x3 *pre, const Mat4x3 *frame, int32_t tx, int32_t ty, int32_t tz)
 	{
 		*(int16_t *)s = 0;
@@ -1220,13 +1103,6 @@ namespace d191
 		Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
 	}
 
-	// ======================================================================
-	// Steam puffs (timeline 85, au_re_BdLinkTask_81) and pairs (timeline 103, _82): flipbook
-	// 0xE33E40 puffs of pool A tagged with the node's +0x0E (1 / 2), looping flipbooks.
-	// Puffs: one pair per tick left and right of a point that drifts along a sine (+0x18), 18
-	// ticks, radius +0x1C growing by +0x20 (-1 per tick). Pairs: two pairs per tick 900 either
-	// side, +0x14 advancing 1500, 21 spawn ticks, 90 ticks. Both clear their records at the end.
-	// ======================================================================
 	static void LinkSteamPuff()
 	{
 		Node24 *n = AddTask(ORIG_SteamPuffTask);
@@ -1251,7 +1127,6 @@ namespace d191
 		n->f1E = 0x800;
 	}
 
-	// draw loop of the puff tasks: records with (mask & node +0x0E), looping flipbook
 	static void PuffLoop(const Node24 *n, bool ir)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -1264,7 +1139,6 @@ namespace d191
 			Rec *r = R(POOL_A, i);
 			if (!(r->mask & (uint32_t)(int32_t)n->e)) continue;
 			LitSprite(h, r->pos, r->size, r->age, ir);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -1306,7 +1180,7 @@ namespace d191
 				a->pos[0] = (int16_t)(a->pos[0] + (mul32(sa, n->f1C) >> 12));
 				int32_t ca = ComputeCos(t1);
 				a->pos[2] = (int16_t)(a->pos[2] + (mul32(ca, n->f1C) >> 12));
-				Rec *b = R(POOL_A, i + 1); // the next record, used or not (vanilla)
+				Rec *b = R(POOL_A, i + 1);
 				b->mask = e;
 				b->age = 0;
 				b->size = n->f1E;
@@ -1373,12 +1247,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Rain / cinders (timeline 20, until 308 and the last one is gone): pool F, 28 new per tick
-	// in a 40000 x 20000 x 40000 box, drifting by a random velocity for 64 ticks; one textured
-	// quad each (packet 9 words, colour table 0xE3C988[frame]) through the camera matrix;
-	// OT shift 0xE once the creature is done (0x24FBE80 bit 0), else 4.
-	// ======================================================================
 	static void RainTemplate(uint8_t *T)
 	{
 		T[0x3C] = 0xA0;
@@ -1403,7 +1271,6 @@ namespace d191
 		*(int16_t *)(T + 0x14) = 0;
 	}
 
-	// one quad; true when inserted
 	static bool RainQuad(uint8_t *T, uint32_t &cursor, uint32_t color, int16_t size)
 	{
 		uint32_t *pk = (uint32_t *)cursor;
@@ -1451,7 +1318,6 @@ namespace d191
 			int32_t fr = r->age;
 			GteLoadV0(r->pos);
 			GteMVMVA_LightV0Bk();
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_f(i, n, r);)
 			uint32_t color = RAIN_COLOR[fr];
 			if (!P1())
@@ -1497,17 +1363,6 @@ namespace d191
 		return 0;
 	}
 
-	// ======================================================================
-	// Creature (0x641EA0, timeline 124), 279 ticks. State E = 0x24FC290 (model data 0x24FBD70,
-	// model id 15 from the model buffer): +0x40 model matrix 0x24FC2D0 (pure scale diagonal
-	// 0x24FC2D0/D8/E0, z translation 0x24FC2EC = distance of the train), +0x60 header, +0x6C
-	// reader command. Skeleton word +2 (pointer 0x24FC0C0, original value kept in +0x1C) = model
-	// scale: /4, /10 in 69..168 (0x642028: imul 0x66666667, sar 2). Phases: 0..34 far (z 25000), 35..68 approach, 69..168 anim 1 at
-	// z 0 (the wheel trail), 169..188 anim 0 rushing past (targets moved away), 189..210, 211..241
-	// (targets restored), 242..281 (explosions, knock-back, camera shake), 282..285 still drawn.
-	// After every tick: 0x24FBE58 = model matrix o bone 1 (chimney) for the smoke / light tasks.
-	// ======================================================================
-	// MAG_191_sub_642E10: rotation part = identity (translation kept)
 	static void ResetRotation(void *m)
 	{
 		uint32_t *d = (uint32_t *)m;
@@ -1520,7 +1375,6 @@ namespace d191
 		*(uint16_t *)((uint8_t *)m + 0) = 0x1000;
 	}
 
-	// MAG_191_sub_642400: bind the model data (model buffer offsets table) to the state
 	static void ModelInit(uint8_t *E, uint8_t *data, uint8_t *buf, int32_t id)
 	{
 		*(uint16_t *)(E + 0) = 2;
@@ -1540,17 +1394,14 @@ namespace d191
 		*(uint8_t **)(data + 0x30) = buf + *(uint32_t *)(buf + 0x10);
 	}
 
-	// MAG_191_sub_642470
 	static void SetAnim(uint8_t *E, int32_t id) { ReaderSetAnim(E + 0x60, E + 0x6C, id); }
 
-	// MAG_191_sub_642CA0: next frame, restart a looping animation that finished
 	static void AdvanceLoop(uint8_t *E)
 	{
 		if (ReaderRead(E + 0x60, E + 0x6C) == 1 && !(E[0] & 1))
 			ReaderSetAnim(E + 0x60, E + 0x6C, (int32_t)E[0x6C]);
 	}
 
-	// MAG_191_sub_642CE0
 	static void DrawModel(uint8_t *E, const Mat4x3 *frame)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x4C);
@@ -1572,7 +1423,7 @@ namespace d191
 
 	static uint8_t *Skeleton()
 	{
-		uint8_t *com = *(uint8_t **)(Creature() + 0x64); // BattleAnimHeader.comFileData
+		uint8_t *com = *(uint8_t **)(Creature() + 0x64);
 		return com ? *(uint8_t **)com : nullptr;
 	}
 
@@ -1620,7 +1471,7 @@ namespace d191
 			goto draw;
 		}
 		k -= 0x23;
-		if (k < 9) // 35..43
+		if (k < 9)
 		{
 			if (P1()) goto after_advance;
 			if (k == 1) LinkGlow(0x21, (int16_t)0xFB82, 0xF00, 0xF00);
@@ -1633,7 +1484,7 @@ namespace d191
 			goto store;
 		}
 		k -= 9;
-		if (k < 0x19) // 44..68
+		if (k < 0x19)
 		{
 			if (P1()) goto draw;
 			CreatureZ() -= 0x258;
@@ -1641,7 +1492,7 @@ namespace d191
 			goto draw;
 		}
 		k -= 0x19;
-		if (k < 0x64) // 69..168
+		if (k < 0x64)
 		{
 			CreatureZ() = 0;
 			SetDiag(0x1000);
@@ -1664,7 +1515,7 @@ namespace d191
 			goto after_advance;
 		}
 		k -= 0x64;
-		if (k < 0x14) // 169..188
+		if (k < 0x14)
 		{
 			*sp = (int16_t)(n->f1C / 4);
 			SetDiag(0x2000);
@@ -1690,17 +1541,15 @@ namespace d191
 			}
 			if (k == 0) goto compose;
 			DrawModel(E, &Frame());
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(CreatureMemoTake();)
 			{
-				// vanilla halves the battle camera matrix here (it is rebuilt every frame)
 				int32_t v[3] = { 0x800, 0x800, 0x800 };
 				Scale3DMatrix(&Camera(), v);
 			}
 			goto compose;
 		}
 		k -= 0x14;
-		if (k < 0x16) // 189..210
+		if (k < 0x16)
 		{
 			*sp = (int16_t)(n->f1C / 4);
 			SetDiag(0x4000);
@@ -1719,7 +1568,7 @@ namespace d191
 			goto store;
 		}
 		k -= 0x16;
-		if (k < 0x1F) // 211..241
+		if (k < 0x1F)
 		{
 			*sp = (int16_t)(n->f1C / 4);
 			SetDiag(0x4000);
@@ -1736,7 +1585,7 @@ namespace d191
 			goto advance;
 		}
 		k -= 0x1F;
-		if (k < 0x28) // 242..281
+		if (k < 0x28)
 		{
 			*sp = (int16_t)(n->f1C / 4);
 			SetDiag(0x4000);
@@ -1756,7 +1605,7 @@ namespace d191
 			goto store;
 		}
 		k -= 0x28;
-		if (k < 4) goto draw; // 282..285
+		if (k < 4) goto draw;
 		goto compose;
 	store:
 		CreatureZ() = z;
@@ -1766,7 +1615,6 @@ namespace d191
 		if (k == 0) goto compose;
 	draw:
 		DrawModel(E, &Frame());
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(CreatureMemoTake();)
 	compose:
 		ComposeAffineTransform(&CreatureMat(), (const Mat4x3 *)(*(uint8_t **)*(uint8_t **)(E + 0x64) + 0x50), &BoneWorld());
@@ -1777,12 +1625,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Wheel trail (creature 69, au_re_BdLinkTask_78): on its first tick it steps anim 1 through
-	// up to 119 frames, dropping a record pair (pools A and B, same index) at the two wheel
-	// points of bone 1 for each; then draws every pair (offset form, 0xE33E40) with a looping
-	// flipbook; 100 ticks, then clears both pools' bit-0 records.
-	// ======================================================================
 	static void WheelTrailPair(uint8_t *h, int32_t *mac, int32_t *nv, const Rec *a, const Rec *b, int16_t fa, int16_t fb)
 	{
 		OffsetSprite(h, mac, nv, a->pos, a->size, fa, 4);
@@ -1810,7 +1652,6 @@ namespace d191
 		{
 			Rec *a = R(POOL_A, i), *b = R(POOL_B, i);
 			if (!(*(uint8_t *)a & 1)) continue;
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_a(i, n, a); held_note_rec_b(i, n, b);)
 			WheelTrailPair(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), a, b, a->age, b->age);
 			if (P1()) continue;
@@ -1849,7 +1690,7 @@ namespace d191
 				a->mask = 1;
 				a->age = 0;
 				a->size = 0x180;
-				ff8fx::copy<(8)>(a->pos, v); // v[3] = s + 0xE: scratch word, copied as vanilla does
+				ff8fx::copy<(8)>(a->pos, v);
 				v[0] = 0x4B0;
 				v[1] = 0x2BC;
 				v[2] = 0;
@@ -1878,12 +1719,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Puff line (creature 170 = 0x6432F0 / 189 = au_re_BdLinkTask_84): on its first tick +0x16
-	// record pairs (pool A bit 0) either side (+-0x1C) of a point marching by +0x22 along z;
-	// draws every bit-0 record of pool A (lit, 0xE33E40), looping flipbook, drifting by +0x1E
-	// in z; +0x0E ticks, then clears pool A's bit-0 records.
-	// ======================================================================
 	static void SpawnPuffLine(bool second)
 	{
 		Node24 *n = AddTask(ORIG_PuffLineTask);
@@ -1927,7 +1762,6 @@ namespace d191
 			Rec *r = R(POOL_A, i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			LitSprite(h, r->pos, r->size, r->age, false);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -1967,12 +1801,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Puff wall (creature 231): on its first tick 20 record pairs (pool A bit 0, size 0x1400)
-	// 2000 either side of a point marching -3000 along z from (0, -400, 30000); draws every
-	// bit-0 record (lit, 0xE33E40, header +0x24 0x208 before tick 11), fading out from 41
-	// (grey level (49 - c) << 4); 49 ticks, then clears pool A's bit-0 records.
-	// ======================================================================
 	static uint32_t WallGrey(int32_t c)
 	{
 		uint32_t v = (uint32_t)shl32(0x31 - c, 4);
@@ -2007,14 +1835,12 @@ namespace d191
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
 		PuffWallSetup(h, s, &Frame(), n->c, false, 0);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		for (int i = 0; i < 170; i++)
 		{
 			Rec *r = R(POOL_A, i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			LitSprite(h, r->pos, r->size, r->age, false);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -2056,11 +1882,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Headlight flare (creature 14, MAG_191_sub_6437F0): prim 0xE3A744 at the lamp (bone point
-	// (0, -1150, -9750) in 0x24FBE58, taken once), x/y scale +0x1C * sin(1760 c / 19) over 19
-	// ticks, 22 ticks. The spawner also seeds the glow flicker 0x24FC284 (rand) / 0x24FC288.
-	// ======================================================================
 	static void SpawnFlare()
 	{
 		Node24 *n = AddTask(ORIG_FlareTask);
@@ -2104,19 +1925,12 @@ namespace d191
 			GteSetTransVector(&m);
 			PrimModel(0xE3A744, 2, 0x33);
 		}
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= 0x16 ? TASK_END : 0;
 	}
 
-	// ======================================================================
-	// Headlight glow (au_re_BdLinkTask_85..89, creature 36/70/170/190/242): at the bone point
-	// (0, +0x12, -9700) of 0x24FBE58: prim 0xE3A744 scaled +0x1C with a flickering fade
-	// (0x24FC284 phase, 0x24FC288 speed + rand 0..63 per tick; phase % 13 == 1 = flash), then
-	// prim 0xE3AD34 scaled +0x1E; +0x0E ticks.
-	// ======================================================================
 	static void LinkGlow(int16_t e, int16_t y, int16_t s1c, int16_t s1e)
 	{
 		Node24 *n = AddTask(ORIG_GlowTask);
@@ -2141,7 +1955,6 @@ namespace d191
 		return f;
 	}
 
-	// fade_override < 0: the flicker fade is computed, else that value is drawn; returns the fade drawn
 	static int32_t GlowDraw(const Mat4x3 *frame, const Mat4x3 *bone, const Node24 *n, int32_t fade_override)
 	{
 		int16_t ang[3] = { 0, 0, 0 };
@@ -2180,7 +1993,6 @@ namespace d191
 	static uint32_t __cdecl GlowTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(int32_t fade =) GlowDraw(&Frame(), &BoneWorld(), n, -1);
 		FX_HELD(held_note_glow(n, fade);)
 		if (P1()) return 0;
@@ -2191,11 +2003,6 @@ namespace d191
 		return n->c >= n->e ? TASK_END : 0;
 	}
 
-	// ======================================================================
-	// Chimney smoke (creature 1): pool A bit 2, 7 puffs per tick for 12 ticks at the chimney
-	// (bone 1 point (-0xB4, -0x456, -0x2454)), rising with a speed damped by 1/11, growing by
-	// 1/8 (lit 0xE342A4); ends on the first tick after 12 with no puff left.
-	// ======================================================================
 	static void ChimneyFrame(uint8_t *s, const Mat4x3 *bone, const Mat4x3 *frame)
 	{
 		LitFrame(s, bone, frame, -0xB4, -0x456, -0x2454);
@@ -2215,7 +2022,6 @@ namespace d191
 			Rec *r = R(POOL_A, i);
 			if (!(*(uint8_t *)r & 4)) continue;
 			LitSprite(h, r->pos, r->size, r->age, false);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -2259,16 +2065,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Steam from the chimney (pool C bit 0, offset form 0xE342A4 tinted 0x586880): each tick the
-	// chimney point (0, -1780, -9300) of 0x24FBE58 goes into a two-entry history (0x24FC020);
-	// the newest two points make a curve, sampled into 0x24FC100.. and seeded with puffs.
-	//   SteamTrail (0x644030, au_re_BdLinkTask_90/_91): draw, then spawn 1 (7 from +0x12) per
-	//     tick while c < +0x0E; puffs rise (damped 1/2) and grow by 1/32; +0x0E ticks.
-	//   SteamStill (0x644530, _92): spawn 4 static puffs per tick, then draw; +0x0E ticks.
-	//   SteamBurst (0x644940, _93): big puffs (5, 2 in 22..41), rising, pushed along z (+500 for
-	//     42 ticks, growing by 1/4), point clamped to z >= -25000; until 59 and no puff left.
-	// ======================================================================
 	static void LinkSteam(uint32_t task_fn, int16_t e, int16_t f12, int16_t f1C, int16_t f1E, int16_t f20, int16_t f22, bool set_e, bool set_f12, bool hist_b)
 	{
 		Node24 *n = AddTask(task_fn);
@@ -2282,8 +2078,6 @@ namespace d191
 		for (int k = 0; k < 2; k++) (hist_b ? HistB(k) : HistA(k))->valid = 0;
 	}
 
-	// chimney point into history A (s = scratch 0x50: point at s + 8, its pad word s + 0xE is
-	// scratch, copied as vanilla does); clamp: z >= -25000
 	static void SteamHistory(uint8_t *s, int32_t c, bool clamp)
 	{
 		int16_t *v = (int16_t *)(s + 8);
@@ -2301,7 +2095,6 @@ namespace d191
 		h->a1 = *(uint32_t *)(s + 0xC);
 	}
 
-	// the valid history points, newest first, into 0x24FBDC8 (and B points into 0x24FBE10)
 	static int32_t SteamCollect(int32_t c, bool two)
 	{
 		int32_t k = c % 2, n = 0;
@@ -2322,15 +2115,12 @@ namespace d191
 		return n;
 	}
 
-	// curve points: count samples at i * 0x1000 / div into dst
 	static void SteamCurve(int32_t n, uint32_t pts, uint32_t dst, int32_t count, int32_t div, uint8_t *buf, bool coeffs)
 	{
 		if (coeffs) CurveCoeffs(n, (const void *)pts, buf);
 		for (int32_t i = 0, t = 0; i < count; i++, t += 0x1000) CurveEval(n, buf, (void *)(dst + 8 * i), t / div);
 	}
 
-	// draw scratch: header (0xB4) + light scratch (0x50: frame at +0x10, MAC at +0x40, normal
-	// at +0x30), the effect frame as the light matrix
 	static void SteamSetup(uint8_t *h, uint8_t *s, uint32_t seq, bool tint, int16_t w24)
 	{
 		*(uint32_t *)h = seq;
@@ -2341,7 +2131,6 @@ namespace d191
 		GteSetBackColorFromTrans(s + 0x10);
 	}
 
-	// one spawned steam puff at a curve point
 	static Rec *SteamPuff(uint32_t cell, int i, const Node24 *n, uint32_t pt, bool y_signed)
 	{
 		Rec *r = R(cell, i);
@@ -2374,7 +2163,6 @@ namespace d191
 			Rec *r = R(POOL_C, i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), r->pos, r->size, r->age, 4);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_c(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -2440,7 +2228,6 @@ namespace d191
 			Rec *r = R(POOL_C, i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), r->pos, r->size, r->age, 2);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_c(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -2489,7 +2276,6 @@ namespace d191
 			Rec *r = R(POOL_C, i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), r->pos, r->size, r->age, 4);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_c(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -2517,19 +2303,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Steam from the wheels (pool D bit 0, offset form 0xE342A4, flipbook frame = 2 x age):
-	// the two wheel points (+-1200, 530, -8500) of 0x24FBE58 go into history B (0x24FBEA8), two
-	// curves (0x24FC100.. / 0x24FC1C0..) are seeded in pairs (left puffs drift right, right
-	// puffs left).
-	//   WheelSteam (0x644E70, _94/_95): draw, then 2 (7 from +0x12) pairs per tick while
-	//     c < +0x0E; puffs slide (damped 1/2); +0x0E ticks.
-	//   WheelStill (0x645540 inside au_re_BdLinkTask_96, _96): 4 static pairs per tick (no pause
-	//     test before the spawn, vanilla), then draw; +0x0E ticks.
-	//   WheelBurst (0x645AE0, _97): 5 (2 in 22..41) fast pairs per tick, z push +500 for 42
-	//     ticks; points clamped to z >= -25000; until 59 and no puff left.
-	// ======================================================================
-	// both wheel points into history B (s + 0: world point, s + 8: local point)
 	static void WheelHistory(uint8_t *s, int32_t c, bool clamp)
 	{
 		int16_t *w = (int16_t *)s, *v = (int16_t *)(s + 8);
@@ -2562,7 +2335,6 @@ namespace d191
 			Rec *r = R(POOL_D, i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), r->pos, r->size, (int16_t)(r->age << 1), shift);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_d(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -2702,13 +2474,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Debris (creature 193, spawner 0x646180): every third tick of 12, 1-2 pieces (0x6462D0)
-	// after a 0..3+i tick delay: prim 0xE3BD64 morphing (0xE3C37C -> 0xE3C57C by c / 12 into
-	// mb+0x37000) at +0x10 in the chimney frame 0x24FBE58, xz scale +0x1C shrinking by +0x1E,
-	// y scale +0x20 growing by +0x22 (damped 1/8, max 0x7000), fading its last 8 ticks; +0x16
-	// ticks, or until the wheels leave (0x24FBE80 bit 1).
-	// ======================================================================
 	static uint32_t __cdecl DebrisSpawnTask(TaskNode *tn)
 	{
 		if (P1()) return 0;
@@ -2788,7 +2553,6 @@ namespace d191
 		}
 		int32_t c = n->c, d = n->f16 - 8;
 		DebrisDraw(&Frame(), &BoneWorld(), n, n->f1C, n->f20, c >= d, shl32(c - d, 9), shl32(c, 12) / 12);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->f1C = (int16_t)(n->f1C - n->f1E);
@@ -2801,12 +2565,6 @@ namespace d191
 		return 0;
 	}
 
-	// ======================================================================
-	// Explosions (creature 244, au_re__rand_0 0x646570): 5..8 bursts (0x646640), +0x0E = pool E
-	// tag 1 << (i+1), after a +0x16 tick delay: a flash flipbook 0xE3460C at +0x10 for 5 ticks,
-	// and 6 shards per tick for 5 ticks (0xE34548, oriented along their velocity, speed damped
-	// 1/2); ends on the first tick after 4 with no shard left.
-	// ======================================================================
 	static void SpawnExplosions()
 	{
 		int32_t cnt = CrtRand() % 4 + 5;
@@ -2823,8 +2581,6 @@ namespace d191
 		}
 	}
 
-	// one shard record (scratch s 0x98: frame at +8, model matrix +0x28, rotation +0x48, scale
-	// +0x68, direction +0x78, axis +0x88)
 	static void ShardDraw(uint8_t *h, uint8_t *s, const int16_t *pos, int16_t size, const int16_t *vel, int16_t age)
 	{
 		Mat4x3 *mm = (Mat4x3 *)(s + 0x28);
@@ -2877,12 +2633,9 @@ namespace d191
 		*(uint32_t *)h = 0xE3460C;
 		*(uint16_t *)(h + 0x24) = 0x208;
 		int32_t count = 0;
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(MemoNode(n);)
 		if (n->c < 5)
 		{
-			// vanilla passes eax with only ax loaded (high word = high word of the 0x98 scratch
-			// pointer); the callee reads the low word only
 			int16_t sz = n->f1C;
 			TransformCameraByShadowRotation(&n->f10, (int32_t)(((uint32_t)s & 0xFFFF0000u) | (uint16_t)sz), -((int32_t)sz >> 3));
 			*(int16_t *)(h + 4) = n->c;
@@ -2897,7 +2650,6 @@ namespace d191
 			Rec *r = R(POOL_E, i);
 			if (r->mask != (uint32_t)(int32_t)n->e) continue;
 			ShardDraw(h, s, r->pos, r->size, r->vel, r->age);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_e(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -2951,15 +2703,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Knock-back of the targets (creature 245, MAG_191_sub_646AA0): per target a 0x646D30 task
-	// (+0x0E battle slot, +0x10 spawn point = bone 0xF1 of the target, +0x18 spin 0x1000 or
-	// 0x2000, +0x1A tag 1 << (i+1)); per-slot table 0x24FD150 (0x24 each: +0 flags & 0x1020,
-	// +4 rotation, +0xC position saved, +0x14 offset, +0x1C its speed = (random point 15000
-	// away from the targets' centre - spawn) / 16). The task tumbles and throws the entity for
-	// 16 ticks, then drops it (+0x20 from -9000, +0x22 from 42), restores it at 50 and queues
-	// the landing dust. Draws nothing itself (the engine draws the entity).
-	// ======================================================================
 	inline uint8_t *KnockSlot(int32_t slot) { return (uint8_t *)(0x24FD150 + 36 * slot); }
 
 	static void KnockTargets()
@@ -3068,12 +2811,6 @@ namespace d191
 		return TASK_END;
 	}
 
-	// ======================================================================
-	// Landing dust (0x646F70, queued by the knock-back): pool A tagged with the node's +0x0E,
-	// 8 puffs per tick for 2 ticks on a ring (radius from +0x1C) around +0x10, sliding outwards
-	// (damped 1/4); lit through the battle camera (not the effect frame), 0xE34404 tinted;
-	// ends on the first tick with no puff left.
-	// ======================================================================
 	static uint32_t __cdecl LandDustTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -3114,7 +2851,6 @@ namespace d191
 			Rec *r = R(POOL_A, i);
 			if (!(r->mask & (uint32_t)(int32_t)n->e)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x38), (int32_t *)(s + 0x28), r->pos, r->size, r->age, 3);
-			// 30 fps layer: see mag191_doomtrain_held.inc
 			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
@@ -3141,8 +2877,6 @@ namespace d191
 	void register_mag191_doomtrain()
 	{
 		using namespace d191;
-		// the shared camera-script interpreter: registered once (lookup keys on the address, so
-		// it also serves Cactuar 199, Shiva 185 and any other ported module that queues it)
 		register_port(ORIG_CamScriptTask, (void *)CamScriptTask, "D191 CameraScriptTask (MAG_066, shared)", 191);
 		register_port(ORIG_SequenceTick, (void *)SequenceTick, "D191 SequenceTick", 191);
 		register_port(ORIG_TimelineTask, (void *)TimelineTask, "D191 TimelineTask", 191);
@@ -3177,7 +2911,6 @@ namespace d191
 		register_port(ORIG_ExplosionTask, (void *)ExplosionTask, "D191 ExplosionTask", 191);
 		register_port(ORIG_KnockTask, (void *)KnockTask, "D191 KnockTask", 191);
 		register_port(ORIG_LandDustTask, (void *)LandDustTask, "D191 LandDustTask", 191);
-		// 30 fps layer: see mag191_doomtrain_held.inc
 		FX_HELD(register_mag191_held();)
 	}
 }

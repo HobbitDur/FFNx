@@ -14,36 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 113: Bad Breath (enemy attack 17, Geezard c0m004; MAG_113_*). No other kernel.bin entry
-// uses effect 113 (Malboro's Bad Breath is effect 131, its own module).
-//
-// Structure (setup MAG_113_BAD_BREATH 0x6CAC20 -> _Init 0x6CAC50, file loader 0x6CAC30 = the
-// texture file named at 0x12C360C; the setup starts camera animation 0x12C1590 and queues the TIM):
-//   RootTask (0x6CACD0) - alternates the packet arena (magic buffer + 0x14C8 / + 0x114C8); on
-//     counter 1 sets up the pools and starts the main task (it keeps the low byte of the target
-//     mask); runs the main, particle and target queues, ends when all three are empty.
-//   Main (0x6CAE10) - node 0x104, the breath from the caster's mouth (effect bone 9): at 0 the
-//     party targets' average anchor (+ 0x7D0 in z) and the sound; over 0..44 one puff per tick
-//     towards a swinging point (sin of a phase, x) / the average anchor (y, z), decelerating, plus
-//     two spray puffs per tick on a cone around the caster's facing (0x6CBB40); at 10 / 16 / 26
-//     the target task of party slot 0 / 1 / 2 if that mask bit is set; over 44..59 a puff falling
-//     around the mouth; ends at 59.
-//   Particle (0x6CB260) - node 0x2C: a sprite sequence (frame = its counter) at its position
-//     (camera-facing, scale, roll), then velocity += acceleration, position += velocity.
-//   Target (0x6CB340) - node 0xFC, one per target: over 0..10 a rising cloud puff around the
-//     target's anchor per tick; over 10..37 the target redrawn swayed (0x6CB560, its own model
-//     hidden: entity +0x00 bit 2) and the prim-model layout 0x12C0244 with the callback
-//     PartCallback (0x6CB910) at its effect bone 0xF1 (at the target's height); the damage at 27;
-//     ends after 38.
-// Direct calls into other modules: sub_6BCB50 (Flare's flat polygons, ported here).
-// The tasks write no entity position and no camera words (the camera animation is the engine's).
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2521870..0x25218E0 (caster entity, texture file, magic buffer base, context,
-// root pool, packet cursor 0x2521894, target / particle / main / root queues, a zero vector at
-// 0x25218D8 never written). The target pool (3 x 0xFC), the particle pool (0x50 x 0x2C, + 0x2F4),
-// the main pool (+ 0x10B4), the morph vertex buffer (+ 0x11B8) and the packet arenas are in the
-// magic buffer. The overlay draws into the frame arena (battle_texture_data_ptr 0x1D8E054) with
-// the battle's bone workspace as its vertex buffer.
+// Effect 113: Bad Breath
 
 #include "mag_common.h"
 
@@ -54,42 +25,37 @@ namespace badbreath113
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2521870); }         // the caster's entity
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521878); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2521870); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2521878); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x252187C); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521894); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521898; }         // pool: magic buffer, 3 x 0xFC
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25218A8; }       // pool: + 0x2F4, 0x50 x 0x2C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25218B8; }            // pool: + 0x10B4, 1 x 0x104
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // overlay vertex buffer
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521898; }
+	inline TaskQueue *QParticles() { return (TaskQueue *)0x25218A8; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x25218B8; }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6CACD0;
 	static const uint32_t ORIG_MainTask = 0x6CAE10;
 	static const uint32_t ORIG_ParticleTask = 0x6CB260;
 	static const uint32_t ORIG_TargetTask = 0x6CB340;
-	static const uint32_t MODEL_Cloud = 0x12C0244;       // prim-model layout data (0xEC-byte layout)
-	static const uint32_t PART_Flags = 0x12C3604;        // per-object flags of the layout
-	static const uint32_t SEQ_Stream = 0x12C118C;        // the breath puffs (20 frames)
-	static const uint32_t SEQ_Spray = 0x12C1418;         // spray / falling puffs (14 frames)
-	static const uint32_t SEQ_Rise = 0x12C1014;          // the target's cloud puffs (14 frames)
-	static const uint32_t ZERO_Vector = 0x25218D8;       // module global, never written (0, 0, 0)
-	static const uint32_t WAVE_Table = 0x12C1604;        // s16 [4096]
+	static const uint32_t MODEL_Cloud = 0x12C0244;
+	static const uint32_t PART_Flags = 0x12C3604;
+	static const uint32_t SEQ_Stream = 0x12C118C;
+	static const uint32_t SEQ_Spray = 0x12C1418;
+	static const uint32_t SEQ_Rise = 0x12C1014;
+	static const uint32_t ZERO_Vector = 0x25218D8;
+	static const uint32_t WAVE_Table = 0x12C1604;
 	static const void *const SOUND_BadBreath = (const void *)0x12C1600;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// sub_5088A0: the entity's ground shadow
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	// software GTE
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0: V0 = 3 x u16
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
@@ -97,56 +63,52 @@ namespace badbreath113
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }    // GTE_ReadOTZ (dword)
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C the main task starts at 1
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x104 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..59
-		uint8_t mask;      // +0x0E target mask (party slots 0..2), shifted at each target step
-		uint8_t slot;      // +0x0F party slot of the next target step
-		int16_t pos[3];    // +0x10 the targets' average anchor (+ 0x7D0 in z)
-		int16_t phase;     // +0x16 swing phase (0xF000, + 0x174 per puff)
+		int16_t counter;
+		uint8_t mask;
+		uint8_t slot;
+		int16_t pos[3];
+		int16_t phase;
 		uint8_t pad18[0xEC];
 	};
-	struct ParticleNode // pool of 0x50 nodes of 0x2C bytes
+	struct ParticleNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C sequence frame
-		int16_t end;       // +0x0E frames
-		uint32_t seq;      // +0x10 sprite sequence data
-		int16_t pos[3];    // +0x14
-		int16_t scale;     // +0x1A
-		int16_t vel[3];    // +0x1C
-		int16_t rot;       // +0x22 roll (draw: -rot >> 2)
-		int16_t acc[3];    // +0x24
+		int16_t counter;
+		int16_t end;
+		uint32_t seq;
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
+		int16_t rot;
+		int16_t acc[3];
 		int16_t pad2A;
 	};
-	struct TargetNode // pool of 3 nodes of 0xFC bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..38
-		int16_t slot;      // +0x0E party slot of the target
-		uint8_t cloud[0xEC]; // +0x10 prim-model layout (prim::Layout: data, frame, state)
+		int16_t counter;
+		int16_t slot;
+		uint8_t cloud[0xEC];
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 effect bone 0xF1 x, (entity height), z; +0x06 never written (not read)
-		uint32_t flags;    // +0x08 per-object flags table
-		uint32_t morph;    // +0x0C blended vertex frames
+		int16_t pos[4];
+		uint32_t flags;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MainNode) == 0x104 && sizeof(ParticleNode) == 0x2C && sizeof(TargetNode) == 0xFC, "Bad Breath nodes");
@@ -154,9 +116,6 @@ namespace badbreath113
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6CB910, a copy of Berserk's 0x6D03D0): one object of the cloud layout
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -192,7 +151,6 @@ namespace badbreath113
 				*(uint32_t *)(h + 4) = arg->morph;
 			}
 		}
-		// the matrix's translation is the record offset + the block position (int32)
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
 		m.t[0] = (int32_t)r->pos[0] + arg->pos[0];
@@ -201,7 +159,6 @@ namespace badbreath113
 		const uint32_t *flags = (const uint32_t *)arg->flags;
 		if (flags[(int16_t)r->index] & 0x10000000)
 		{
-			// camera-aligned: only the position goes through the camera
 			TransformVectorBy3x3Matrix(&Camera(), m.t, m.t);
 			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)Camera().t[1]);
 			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)Camera().t[0]);
@@ -227,17 +184,6 @@ namespace badbreath113
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// The overlay: the target model redrawn swayed, flat in its tint (as Zombie's 0x6CA560, without
-	// the lift and the colour blend, with the entity's shadow and Flare's flat polygons).
-	// Work block (Field_Alloc 0x8C): +0x00 camera x entity matrix, then S = +0x20:
-	//   S+0x00 polygon cursor, +0x04 vertex buffer, +0x08 / +0x0A triangle / quad counts,
-	//   +0x14 clip rectangle (x0, y0, x1, y1 / 8), +0x1C colour, +0x20 object mask,
-	//   +0x24..+0x43 four vertices (sx, sy, otz, clip flags), +0x44 NCLIP, +0x4C OTZ,
-	//   +0x5C entity origin on screen, +0x64 wave phase, +0x66 sway amplitude; +0x68 origin OTZ.
-	// ------------------------------------------------------------------
-	// sub_6CB7D0 (a copy of Zombie's 0x6CAAE0, own wave table): one bone group of vertices,
-	// projected, swayed, clip-flagged
 	static void SwayVertices(uint8_t **objp, uint8_t **outp, uint8_t *s)
 	{
 		uint8_t *p = *objp;
@@ -283,7 +229,6 @@ namespace badbreath113
 		*outp = out;
 	}
 
-
 	static inline void CopyVertex(uint8_t *s, uint32_t off, const uint8_t *verts, uint16_t index)
 	{
 		const uint8_t *v = verts + (uint32_t)(index & 0xFFF) * 8;
@@ -291,8 +236,6 @@ namespace badbreath113
 		F<uint32_t>(s, off + 4) = *(const uint32_t *)(v + 4);
 	}
 
-	// sub_6BCB50 (in the Flare module, shared): the object's textured triangles and quads, flat in
-	// the colour
 	static uint32_t FlatPolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -381,8 +324,6 @@ namespace badbreath113
 		return (uint32_t)pk;
 	}
 
-	// sub_6CB6B0 (a copy of Zombie's 0x6CA6E0, polygons through Flare's 0x6BCB50): every object of
-	// a model the mask shows (bone groups of vertices, then polygons)
 	static uint32_t SwayModel(const uint8_t *model, uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint8_t *table = *(const uint8_t *const *)(model + 4);
@@ -418,8 +359,6 @@ namespace badbreath113
 		return cursor;
 	}
 
-	// sub_6CB560: the overlay (shadow, body +0x64, then the second model +0x78 if any), sway
-	// amplitude = sin >> 2, wave phase = step << 8
 	static void DrawOverlay(uint8_t *entity, int32_t sinv, int32_t phase)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x8C);
@@ -458,7 +397,6 @@ namespace badbreath113
 		FieldFree(0x8C);
 	}
 
-	// the overlay's sway amplitude at step e (0..27): sin(e * 2048 / 28)
 	static int32_t OverlaySin(int32_t e)
 	{
 		const uint32_t x = (uint32_t)e << 11;
@@ -466,7 +404,6 @@ namespace badbreath113
 		return ComputeSin((int32_t)((((x - hi) >> 1) + hi) >> 4));
 	}
 
-	// sub_6CBB40: unit direction (4.12) of the angles a[0] (pitch), a[1] (yaw), a[2]
 	static void AngleDir(const int16_t *a, int16_t *out)
 	{
 		const int32_t c0 = ComputeCos(a[0]);
@@ -483,7 +420,6 @@ namespace badbreath113
 		out[2] = (int16_t)(z >> 12);
 	}
 
-	// sub_6CB4F0 (as Junk's 0x6E87A0): the damage of every target record of action 0 that is this entity
 	static void DamageEntity(uint8_t *entity)
 	{
 		const int32_t slot = (int32_t)((uint32_t)entity - 0x1D972C0u) / 0x9C;
@@ -494,8 +430,6 @@ namespace badbreath113
 		}
 	}
 
-	// the particle's draw (0x6CB260 up to its counter step): the breath puff faces the camera
-	// unrolled over its first 4 frames
 	static void ParticleDraw(const ParticleNode *p)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -508,7 +442,6 @@ namespace badbreath113
 		FieldFree(0xB4);
 	}
 
-	// the particle's step after its draw: velocity += acceleration, position += velocity
 	static void ParticleStep(ParticleNode *p)
 	{
 		p->vel[1] = (int16_t)(p->vel[1] + p->acc[1]);
@@ -536,13 +469,9 @@ namespace ff8fx
 {
 namespace badbreath113
 {
-	// ------------------------------------------------------------------
-	// Particle (0x6CB260)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		// 30 fps layer: see mag113_bad_breath_held.inc
 		FX_HELD(held_note_particle(p);)
 		ParticleDraw(p);
 		p->counter++;
@@ -551,9 +480,6 @@ namespace badbreath113
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Target (0x6CB340)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -571,7 +497,6 @@ namespace badbreath113
 				p->vel[1] = (int16_t)(-0x20 - (r & 0x1F));
 				const int32_t r2 = CrtRand();
 				p->seq = SEQ_Rise;
-				// y = rand * y, signed division by the magic 0x57619F1 (>> 41)
 				const int32_t prod = mul32(r2, p->pos[1]);
 				int32_t q = (int32_t)(((int64_t)prod * 0x57619F1) >> 32) >> 9;
 				q += (int32_t)((uint32_t)q >> 31);
@@ -590,7 +515,6 @@ namespace badbreath113
 		if ((uint32_t)e < 0x1C)
 		{
 			const int32_t sinv = OverlaySin(e);
-			// 30 fps layer: see mag113_bad_breath_held.inc
 			FX_HELD(held_note_overlay(entity, e);)
 			DrawOverlay(entity, sinv, e << 8);
 			*entity |= 4;
@@ -599,7 +523,6 @@ namespace badbreath113
 			arg.pos[1] = *(const int16_t *)(entity + 0x24);
 			arg.flags = PART_Flags;
 			arg.morph = TexBase() + 0x11B8;
-			// 30 fps layer: see mag113_bad_breath_held.inc
 			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->cloud, PartCallback, (int)&arg, 0);
 		}
@@ -609,14 +532,9 @@ namespace badbreath113
 		return t->counter <= 0x26 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x6CAE10)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
-		// the caster's mouth (effect bone 9); the block's 4th word is never written (the particle
-		// nodes' +0x1A it would reach is set below)
 		int16_t sp[3];
 		GetEffectSpawnPosition(Caster(), 9, 0, sp);
 		const int32_t c = m->counter;
@@ -662,7 +580,6 @@ namespace badbreath113
 				m->mask = (uint8_t)(m->mask >> 1);
 				m->slot++;
 			}
-			// the breath puff
 			ParticleNode *p = NewParticle();
 			if (p)
 			{
@@ -684,7 +601,6 @@ namespace badbreath113
 				p->acc[2] = (int16_t)(-(int32_t)(int16_t)vz >> 5);
 				p->scale = (int16_t)((CrtRand() >> 4) + 0xC00);
 			}
-			// two spray puffs on a cone around the caster's facing
 			int16_t a[3];
 			a[0] = (int16_t)((CrtRand() & 0x7F) + 0x258);
 			a[1] = *(const int16_t *)(Caster() + 0xE);
@@ -711,7 +627,6 @@ namespace badbreath113
 		}
 		if ((uint32_t)(c - 0x2C) <= 0xF)
 		{
-			// a puff falling around the mouth
 			ParticleNode *p = NewParticle();
 			if (p)
 			{
@@ -742,13 +657,9 @@ namespace badbreath113
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6CACD0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag113_bad_breath_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -793,7 +704,6 @@ namespace badbreath113
 		register_port(badbreath113::ORIG_MainTask, (void *)badbreath113::MainTask, "113 MainTask", 113);
 		register_port(badbreath113::ORIG_ParticleTask, (void *)badbreath113::ParticleTask, "113 ParticleTask", 113);
 		register_port(badbreath113::ORIG_TargetTask, (void *)badbreath113::TargetTask, "113 TargetTask", 113);
-		// 30 fps layer: see mag113_bad_breath_held.inc
 		FX_HELD(register_mag113_held();)
 	}
 }

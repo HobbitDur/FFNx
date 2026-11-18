@@ -14,46 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 210: Bloodfest (enemy attack 315 of kernel.bin; Seifer c0m128; MAG_210_*). Demon Slice (251) is its twin: the
-// flames, sparks, embers, the blade trail and the layout task are 251's code on this module's globals.
-//
-// Structure (setup MAG_210_BLOODFEST 0x6F6800 -> _Init 0x6F6810; the table's file loader 0x5755D0; the init queues the
-// module's own TIM 0x1470DC4 (exe data), keeps the context and the CASTER's entity, starts the master and camera
-// animation 0x145D2BC):
-//   MasterTask (0x6F6890) - alternates the packet arena (magic buffer + 0xB1B8 / + 0x1B1B8) and the stage-capture
-//     cursor (+ 0x1B1B8 / + 0x2B1B8); the screen flash level is 0 unless the main task sets it. On counter 1 (once): the
-//     stream state (+ 0xA708), the main pool (1 x 0x3C0 at + 0xA750) and the flame pool (0x96 x 0x24 at + 0), the main
-//     task (cleared): action 0's targets (up to 3) as records (entity, position, the zero angles 0x2556520), the box of
-//     their effect positions (its centre into the node and 0x2556538), a flame spawner on each, the caster's position
-//     (0x2556530). Then (running): the view orthonormalised into 0x2556560, the main, flame, sparkle, rock, trail and
-//     layout-task queues, the screen flash; ends when the main and the layout-task queues are empty (flash off).
-//   MainTask (0x6F7310) - counters 0..0xF3 (then 0x133 while the preload waits; the counter steps last). Flash rising
-//     0..0xB, 0x8FC, falling 0xE7..0xF2. 0x37..0x3D / 0x48..0x63: afterimages (212's / 274's code) of the entity after the
-//     caster's slot, recorded up to 0x3B / 0x61; 0x37: the trail. 0x40..0x4E: layout 0x146D8A4 at the caster's effect
-//     point. 0x41..0x48: prim model 0x145D6AC at the caster's bone 0x25, turning, fading in. 0x55: the stage captured into
-//     VRAM over the burning layout's box; 0x55..0x72: the three-part draw at the centre (and a second from 0x60).
-//     0x73..0xC2: the targets measured (0x73), lifted on a sine / cubic curve, spun, drawn by the module (0x6F9960, their
-//     flags 0x0C set); the burning layout 0x1462010 (kind table 0x14913E4); 8 sparkles + 8 rocks a tick 0x73..0x76.
-//     0xC3..0xEA: the targets dropped, the caster and the next entity hidden, layout 0x146A668, 2 rocks a tick. 0xEB:
-//     targets / flags put back, the stage groups' bit 1 set (0x6F8BD0), the rocks dropped. 0xEC..0xF3: the targets raised
-//     0x200 a tick; 0xF1 sound, 0xF3 a layout task (0x146ED2C) per target and action 0's result (0x506BA0). White tile
-//     series 0xE3..0xF2 (0x700150). 0x21: the flames dropped; 0x23: stream load 0x2C0; 0x36: waits while the stream is
-//     busy; 0xEB: loads 0x168..0x16A; the pump every tick. Sounds at 0 / 0x37 / 0x73. From 0xF3: ends once the preload
-//     (0x534300) is done.
-//   FlameSpawner (0x6F6C00), Flame (0x6F6DA0), Spark (0x6F7130), Ember (0x6F7230) - 251's (Fire's parts).
-//   TrailTask (0x6F82D0) - 251's trail, 0x3B ticks, shorter from 0x35.
-//   LayoutTask (0x6F9AA0) - its layout at its point (depth -0x80).
-//   RockTask (0x6F9B60) - prim model 0x1461D98, turning (x / y bytes x 16), falling; SparkleTask (0x6F9C60) - sequence
-//     0x145D4EC, rising; 16 frames.
-//   PrimCallback (0x6F8850) draws every layout object (0x701DD0): kinds 0x31 / 0x32 / 0x33 texture windows, 0x39 depth.
-// The tasks test the module's pause word 0x2556478 (never written: 0).
-// ENTITY WRITES: the targets +0x1E (0x73..0xF3) and their matrix translation y +0x58 (0x73..0xEA), flags 0x0C (set 0x73,
-// cleared 0xEB), +0x1C..+0x23 put back at 0xEB; the caster's and the next entity's flag 4 (0xC3..0xEA). The camera is the
-// engine's camera animation.
-// Module globals: 0x2556478..0x2556580 (pause 0x2556478, packet cursor 0x255647C, capture cursor 0x2556480, context
-// 0x2556484, caster 0x2556488, queues 0x2556490 layout tasks / 0x25564A0 trail / 0x25564B0 rocks / 0x25564C0 sparkles /
-// 0x25564D0 main / 0x25564E0 master, master pool 0x25564F0, zero angles 0x2556520, caster position 0x2556530, centre
-// 0x2556538, flash level 0x2556540, flame queue 0x2556548, magic buffer 0x2556558, orthonormal view 0x2556560).
+// Effect 210: Bloodfest
 
 #include "mag_common.h"
 
@@ -64,65 +25,54 @@ namespace blood210
 	using namespace eng;
 	using namespace magc;
 
-	// ---- Fire's parts (0x629C10 flame, 0x62A0A0 ember, 0x629F90 spark): the module's own copy of the parts library
-	// (fx_flames.h on the struct / True30FPS branches), as vanilla's mag002_fire.cpp has its own: a flame flipbook facing
-	// the camera with a ground glow, embers rising faster and shrinking, sparks drifting, slowing and shrinking ----
 #pragma pack(push, 1)
-	// a flame (node +0x10, after its frame and delay words)
 	struct Flame
 	{
-		int16_t pos[3];    // +0x00 x, y, z
-		int16_t ground;    // +0x06 the target's height (the glow's plane)
+		int16_t pos[3];
+		int16_t ground;
 		uint8_t pad08[4];
-		int16_t scale;     // +0x0C
+		int16_t scale;
 		uint8_t pad0E[6];
 	};
-	// an ember (node +0x10, after its frame and delay words)
 	struct Ember
 	{
-		int16_t pos[3];    // +0x00
-		int16_t vel_y;     // +0x06
+		int16_t pos[3];
+		int16_t vel_y;
 		uint8_t pad08[4];
-		int16_t scale;     // +0x0C
+		int16_t scale;
 		uint8_t pad0E[6];
 	};
-	// a spark (node +0x10, after its life and delay words)
 	struct FireSpark
 	{
-		int16_t pos[3];    // +0x00
+		int16_t pos[3];
 		int16_t pad06;
-		int16_t vel[3];    // +0x08
+		int16_t vel[3];
 		int16_t pad0E;
-		int16_t scale;     // +0x10
+		int16_t scale;
 		int16_t pad12;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(Flame) == 0x14 && sizeof(Ember) == 0x14 && sizeof(FireSpark) == 0x14, "fire pieces");
 
-	// a rolled value: base + sign x (rand % mod)
 	struct Roll
 	{
 		int32_t base, mod, sign;
 		int32_t of(int32_t random) const { return base + sign * (random % mod); }
 	};
 
-	// how the flames start around a target
 	struct FlameRolls
 	{
-		int32_t delay_mod, delay_step;   // delay = rand % mod + step x its number
-		int32_t spread_num, spread_max;  // spread = the target's size x num / 4096, at most max
-		int32_t low;                     // a flame lower than the target's height - low...
-		Roll lift;                       // ...is lifted by this
+		int32_t delay_mod, delay_step;
+		int32_t spread_num, spread_max;
+		int32_t low;
+		Roll lift;
 		Roll scale;
 	};
-	// a target's flame spread
 	inline int32_t FlameSpread(int16_t size, const FlameRolls &r)
 	{
 		const int32_t s = (size * r.spread_num) >> 12;
 		return s > r.spread_max ? r.spread_max : s;
 	}
-	// flame number k around `pos` (the target's default effect position, 4 words: its 4th the
-	// ground word, then the target's height)
 	inline void FlameStart(Flame *f, int16_t *delay, const int16_t *pos, int16_t height, int32_t spread, int32_t k, const FlameRolls &r)
 	{
 		const int32_t half = spread >> 1;
@@ -136,13 +86,10 @@ namespace blood210
 		f->scale = (int16_t)r.scale.of(CrtRand());
 	}
 
-	// how a flame looks: its flipbook, then its ground glow (a second sequence, flat on the
-	// ground: turned by `tilt` about x, scaled by the flame's size; its grey = the flame's height
-	// over `high` (y clamped there) x span / 4096 + base)
 	struct FlameLook
 	{
 		uint32_t seq, glow_seq;
-		int32_t shade_shift;             // the camera's offset: -(scale >> this)
+		int32_t shade_shift;
 		int32_t tilt, glow_mode, high, span, base;
 	};
 	inline void FlameDraw(const Flame *p, int16_t frame, const FlameLook &l, uint32_t &cursor)
@@ -166,7 +113,7 @@ namespace blood210
 		GteSetTransVector(&m);
 		int32_t y = p->pos[1];
 		if (y < l.high) y = l.high;
-		const int32_t q = shl32(y, 12) / -l.high;          // (the original: / 2000 by a multiply)
+		const int32_t q = shl32(y, 12) / -l.high;
 		const uint8_t level = (uint8_t)((q * l.span) / 4096 + l.base);
 		*(uint32_t *)h = l.glow_seq;
 		*(uint16_t *)(h + 0x24) = (uint16_t)l.glow_mode;
@@ -178,7 +125,6 @@ namespace blood210
 		FieldFree(0xB4);
 	}
 
-	// how the embers start from a flame: number k
 	struct EmberRolls
 	{
 		int32_t delay_mod, delay_step;
@@ -194,7 +140,6 @@ namespace blood210
 		e->vel_y = (int16_t)r.rise.of(CrtRand());
 		e->scale = (int16_t)r.scale.of(CrtRand());
 	}
-	// a sequence sprite at `pos`, the camera offset -(scale >> shift)
 	inline void EmberDraw(const Ember *p, int16_t frame, uint32_t seq, int32_t shade_shift, uint32_t &cursor)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> shade_shift));
@@ -205,7 +150,6 @@ namespace blood210
 		cursor = InitEffectSequenceFromData(h, RenderOT(), 2, cursor);
 		FieldFree(0xB4);
 	}
-	// rise: y += its speed, the speed grows by itself >> accel; it shrinks by itself >> shrink
 	inline void EmberRise(Ember *p, int32_t accel, int32_t shrink)
 	{
 		const int16_t v = p->vel_y;
@@ -215,7 +159,6 @@ namespace blood210
 		p->scale = (int16_t)(s - (int16_t)(s >> shrink));
 	}
 
-	// how the sparks start from a flame: number k
 	struct SparkRolls
 	{
 		Roll life;
@@ -235,7 +178,6 @@ namespace blood210
 		s->vel[2] = (int16_t)r.vz.of(CrtRand());
 		s->scale = (int16_t)r.scale.of(CrtRand());
 	}
-	// the shared effect sprite `sprite`, frame = last - life; header byte +0x20 and word +0x24
 	struct SparkLook
 	{
 		int32_t sprite, last, flag20, mode, shade_shift;
@@ -251,8 +193,6 @@ namespace blood210
 		cursor = InitEffectSequenceFromData(h, RenderOT(), 2, cursor);
 		FieldFree(0xB4);
 	}
-	// drift: x and z slow by themselves >> drag, y (upwards) speeds up by itself >> drag; it
-	// shrinks by `shrink`; its life goes down
 	inline void FireSparkMove(FireSpark *p, int16_t *life, int32_t drag, int32_t shrink)
 	{
 		int16_t v = p->vel[0];
@@ -268,24 +208,22 @@ namespace blood210
 		(*life)--;
 	}
 
-
-	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x2556478); }           // never written by the game (0)
+	inline uint32_t &Pause() { return var<uint32_t>(0x2556478); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x255647C); }
 	inline uint32_t &CaptureCursor() { return var<uint32_t>(0x2556480); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2556484); }
 	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556488); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2556490; }          // + 0, 3 x 0x714
-	inline TaskQueue *QTrail() { return (TaskQueue *)0x25564A0; }            // + 0x1BBC, 1 x 0x34C
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x25564B0; }            // + 0x183C, 0x20 x 0x1C
-	inline TaskQueue *QSparkles() { return (TaskQueue *)0x25564C0; }         // + 0x153C, 0x20 x 0x18
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25564D0; }             // + 0xA750, 1 x 0x3C0
-	inline TaskQueue *QFlames() { return (TaskQueue *)0x2556548; }           // + 0, 0x96 x 0x24 (up to 0x21)
-	inline uint32_t *ZeroAngles() { return (uint32_t *)0x2556520; }          // never written
+	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2556490; }
+	inline TaskQueue *QTrail() { return (TaskQueue *)0x25564A0; }
+	inline TaskQueue *QRocks() { return (TaskQueue *)0x25564B0; }
+	inline TaskQueue *QSparkles() { return (TaskQueue *)0x25564C0; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x25564D0; }
+	inline TaskQueue *QFlames() { return (TaskQueue *)0x2556548; }
+	inline uint32_t *ZeroAngles() { return (uint32_t *)0x2556520; }
 	inline uint32_t *CasterPos() { return (uint32_t *)0x2556530; }
 	inline int16_t *Centre() { return (int16_t *)0x2556538; }
 	inline int32_t &FlashLevel() { return var<int32_t>(0x2556540); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556558); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2556558); }
 	inline Mat4x3 *OrthoView() { return (Mat4x3 *)0x2556560; }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
@@ -301,28 +239,28 @@ namespace blood210
 	static const uint32_t ORIG_RockTask = 0x6F9B60;
 	static const uint32_t ORIG_SparkleTask = 0x6F9C60;
 
-	static const uint32_t STREAM_STATE = 0xA708;       // magic buffer offsets
+	static const uint32_t STREAM_STATE = 0xA708;
 	static const uint32_t POOL_Main = 0xA750;
 	static const uint32_t POOL_Sparkles = 0x153C;
 	static const uint32_t POOL_Rocks = 0x183C;
 	static const uint32_t POOL_Trail = 0x1BBC;
-	static const uint32_t STREAM_B = 0x1F08;           // the end loads 0x168..0x16A
+	static const uint32_t STREAM_B = 0x1F08;
 	static const uint32_t MORPH = 0xAB10;
-	static const uint32_t ARENA_A = 0xB1B8;            // packet arenas (the stream load 0x2C0 lands in A)
+	static const uint32_t ARENA_A = 0xB1B8;
 	static const uint32_t ARENA_B = 0x1B1B8;
-	static const uint32_t ARENA_C = 0x2B1B8;           // capture cursor on parity-0 ticks
-	static const uint32_t LAYOUT_Rise = 0x146D8A4;     // prim-model layouts
+	static const uint32_t ARENA_C = 0x2B1B8;
+	static const uint32_t LAYOUT_Rise = 0x146D8A4;
 	static const uint32_t LAYOUT_Burn = 0x1462010;
 	static const uint32_t LAYOUT_Drop = 0x146A668;
 	static const uint32_t LAYOUT_End = 0x146ED2C;
-	static const uint32_t KIND_Plain = 0x14708AC;      // per-object kind tables
+	static const uint32_t KIND_Plain = 0x14708AC;
 	static const uint32_t KIND_Burn = 0x14913E4;
-	static const uint32_t MODEL_Bone = 0x145D6AC;      // prim models
+	static const uint32_t MODEL_Bone = 0x145D6AC;
 	static const uint32_t MODEL_Rock = 0x1461D98;
-	static const uint32_t MODEL_Part = 0x145E1C4;      // three-part draw: prim set, ring, quads (+ its vertices 0x145E1CC)
+	static const uint32_t MODEL_Part = 0x145E1C4;
 	static const uint32_t MODEL_Ring = 0x14603F4;
 	static const uint32_t MODEL_PartVerts = 0x145E1CC;
-	static const uint32_t SEQ_Flame = 0x14708C0;       // sprite sequences
+	static const uint32_t SEQ_Flame = 0x14708C0;
 	static const uint32_t SEQ_FlameGlow = 0x1470A6C;
 	static const uint32_t SEQ_Ember = 0x1470C18;
 	static const uint32_t SEQ_Sparkle = 0x145D4EC;
@@ -330,41 +268,40 @@ namespace blood210
 	static const void *const SOUND_Ghost = (const void *)0x145D4E0;
 	static const void *const SOUND_Lift = (const void *)0x145D4E4;
 	static const void *const SOUND_Fall = (const void *)0x145D4E8;
-	static uint8_t *const TRAIL_ENTITY = (uint8_t *)0x1D97530;         // slot 4, hard-wired
+	static uint8_t *const TRAIL_ENTITY = (uint8_t *)0x1D97530;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(a, out); }   // Effect_RotationYMatrix
-	inline void RotationX(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(a, out); }   // MAG_063_RotationXMatrix
-	inline void RotationZ(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(a, out); }   // MAG_065_RotationZMatrix
-	inline void ScaledRotY(int32_t a, int32_t s, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, int32_t, Mat4x3 *)>(0x6ED1E0)(a, s, out); } // GF_338Moomba_ScaledRotY
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply: b = a x b
+	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(a, out); }
+	inline void RotationX(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(a, out); }
+	inline void RotationZ(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(a, out); }
+	inline void ScaledRotY(int32_t a, int32_t s, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, int32_t, Mat4x3 *)>(0x6ED1E0)(a, s, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
 	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); }
 	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }      // IR = R * IR
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteLoadIRFromColumn(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E180)(p); }
 	inline void GteStoreIRToColumn(void *p) { fn<void (__cdecl *)(void *)>(0x45E470)(p); }
 	inline void GteLoadV0FromDwords(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E060)(p); }
 	inline void GteLoadIR123FromBytes(const void *p) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(p); }
 	inline void GteStoreIR123LowBytes(void *p) { fn<void (__cdecl *)(void *)>(0x45E410)(p); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); } // MAG_063_RenderPrimSet
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
 	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, ctx, ot, a, cursor); }
-	inline uint32_t SetDrawEnv(void *prim, uint32_t env) { return fn<uint32_t (__cdecl *)(void *, uint32_t)>(0x45C0F0)(prim, env); } // SSIGPU_SetDrawEnv
+	inline uint32_t SetDrawEnv(void *prim, uint32_t env) { return fn<uint32_t (__cdecl *)(void *, uint32_t)>(0x45C0F0)(prim, env); }
 	inline void SetDrawAreaPrim(void *prim, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(0x45C940)(prim, rect); }
 	inline void SetDrawOffsetPrim(void *prim, const int16_t *xy) { fn<void (__cdecl *)(void *, const int16_t *)>(0x45C9B0)(prim, xy); }
 	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }  // Call_Bs_ParseCamera
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
 	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
 	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
-	inline uint32_t FadeTileInHoldOut(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x700150)(t, r, g, b, in, hold, out, cursor); } // Effect_FadeTileInHoldOut
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }       // Effect_SplineSetup
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); } // Effect_SplineEval
+	inline uint32_t FadeTileInHoldOut(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x700150)(t, r, g, b, in, hold, out, cursor); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
 	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
@@ -374,50 +311,46 @@ namespace blood210
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(0x45E3D0)(p); }   // GTE_ReadOTZ (a dword)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // GTE_LoadV0_u16
-	inline void GteReadIR2(void *dst) { fn<void (__cdecl *)(void *)>(0x703F90)(dst); }        // GTE_ReadIR2Word
+	inline void GteReadOTZ32(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(0x45E3D0)(p); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
+	inline void GteReadIR2(void *dst) { fn<void (__cdecl *)(void *)>(0x703F90)(dst); }
 	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
 	inline int32_t StreamBusy() { return fn<int32_t (__cdecl *)()>(0x534270)(); }
-	inline int32_t StreamPreloadPending(int32_t n) { return fn<int32_t (__cdecl *)(int32_t)>(0x534300)(n); } // au_re_BattleFile_preLoad_1
-	// other modules' code this module calls
-	inline void GhostInit(uint8_t *g, int32_t n, int32_t bone) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t)>(0x6A1230)(g, n, bone); } // Burning Rave's afterimage init
-	inline void GhostVertices(uint8_t **cur, uint8_t **out, void *ctx) { fn<void (__cdecl *)(uint8_t **, uint8_t **, void *)>(0x6A2A90)(cur, out, ctx); } // Burning Rave's
-	inline uint32_t GhostPolys(void *ctx, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x68AAE0)(ctx, ot, shift, cursor); } // Duel's
+	inline int32_t StreamPreloadPending(int32_t n) { return fn<int32_t (__cdecl *)(int32_t)>(0x534300)(n); }
+	inline void GhostInit(uint8_t *g, int32_t n, int32_t bone) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t)>(0x6A1230)(g, n, bone); }
+	inline void GhostVertices(uint8_t **cur, uint8_t **out, void *ctx) { fn<void (__cdecl *)(uint8_t **, uint8_t **, void *)>(0x6A2A90)(cur, out, ctx); }
+	inline uint32_t GhostPolys(void *ctx, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x68AAE0)(ctx, ot, shift, cursor); }
 	inline void ModelBox(uint32_t model, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x69A700)(model, out); }
-	inline void RingPoint(int32_t angle, int32_t radius, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x67BB70)(angle, radius, out); } // x = sin r, z = -cos r
-	inline void StageGroupsBit1Off() { fn<void (__cdecl *)()>(0x6E2BB0)(); } // MAG_065_GreatAttractor_ModelsFlag2Off
+	inline void RingPoint(int32_t angle, int32_t radius, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x67BB70)(angle, radius, out); }
+	inline void StageGroupsBit1Off() { fn<void (__cdecl *)()>(0x6E2BB0)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode { TaskNode hdr; int16_t counter; uint8_t running, parity; };                    // 0x10
-	struct SpawnerNode { TaskNode hdr; int16_t counter, w0E; uint8_t pad10[0x10]; int16_t slot, w22; }; // 0x24
-	struct FlameNode { TaskNode hdr; int16_t frame, delay; Flame f; };      // 0x24
-	struct SparkNode { TaskNode hdr; int16_t life, delay; FireSpark s; };   // 0x24
-	struct EmberNode { TaskNode hdr; int16_t frame, delay; Ember e; };      // 0x24
-	struct TargetRec // 0x18
+	struct MasterNode { TaskNode hdr; int16_t counter; uint8_t running, parity; };
+	struct SpawnerNode { TaskNode hdr; int16_t counter, w0E; uint8_t pad10[0x10]; int16_t slot, w22; };
+	struct FlameNode { TaskNode hdr; int16_t frame, delay; Flame f; };
+	struct SparkNode { TaskNode hdr; int16_t life, delay; FireSpark s; };
+	struct EmberNode { TaskNode hdr; int16_t frame, delay; Ember e; };
+	struct TargetRec
 	{
-		uint8_t *e;          // +0x00
-		uint32_t pos01;      // +0x04 its +0x1C / +0x1E at the start
-		uint32_t pos23;      // +0x08 +0x20 / +0x22
-		int16_t ang[4];      // +0x0C its spin (from the zero angles 0x2556520)
-		int16_t height[2];   // +0x14 its model's extent (0x6F9800 at 0x73): max, min
+		uint8_t *e;
+		uint32_t pos01;
+		uint32_t pos23;
+		int16_t ang[4];
+		int16_t height[2];
 	};
-	struct MainNode // pool of 1 node of 0x3C0 bytes (magic buffer + 0xA750), cleared at the start
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C
-		int16_t ntargets;    // +0x0E
-		TargetRec recs[3];   // +0x10
-		int16_t centre[4];   // +0x58 the box centre x, y, z
-		uint8_t ghosts[0x108]; // +0x60 the afterimage block (Burning Rave's, 1 bone, 0x40-byte slots)
-		uint8_t layout[0x258]; // +0x168
+		int16_t counter;
+		int16_t ntargets;
+		TargetRec recs[3];
+		int16_t centre[4];
+		uint8_t ghosts[0x108];
+		uint8_t layout[0x258];
 	};
-	struct RingEntry { uint32_t alive; int16_t base[4]; int16_t tip[4]; }; // 0x14
-	struct TrailNode // 0x34C
+	struct RingEntry { uint32_t alive; int16_t base[4]; int16_t tip[4]; };
+	struct TrailNode
 	{
 		TaskNode hdr;
 		int16_t counter, pad0E;
@@ -428,46 +361,45 @@ namespace blood210
 		int32_t dir_b[4], dir_ab[4];
 	};
 	struct TrailWork { uint8_t pad00[8]; int32_t otz; uint32_t flag, col0, col1; uint8_t pad18[4]; uint32_t base_col; int16_t base[4], tip[4]; int32_t dir[4]; };
-	struct LayoutNode { TaskNode hdr; int16_t pos[4]; uint8_t layout[0x700]; };   // 0x714
-	struct RockNode // 0x1C
+	struct LayoutNode { TaskNode hdr; int16_t pos[4]; uint8_t layout[0x700]; };
+	struct RockNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];      // +0x0C
-		int16_t vy;          // +0x12
-		int16_t life;        // +0x14 (0 = until the pool is dropped)
-		int8_t ax, ay;       // +0x16 angles (x 16)
-		int8_t dax, day;     // +0x18
-		int16_t scale;       // +0x1A
+		int16_t pos[3];
+		int16_t vy;
+		int16_t life;
+		int8_t ax, ay;
+		int8_t dax, day;
+		int16_t scale;
 	};
-	struct SparkleNode { TaskNode hdr; int16_t pos[3]; int16_t frame; int16_t vy; int16_t pad16; }; // 0x18
-	struct PlayArg // the prim-player callback's block (0x30)
+	struct SparkleNode { TaskNode hdr; int16_t pos[3]; int16_t frame; int16_t vy; int16_t pad16; };
+	struct PlayArg
 	{
-		Mat4x3 m;            // +0x00
-		uint32_t kind;       // +0x20
-		int16_t depth;       // +0x24
-		uint16_t scroll;     // +0x26 (low byte & 0x7F: kinds 0x31 / 0x32)
-		uint16_t w28;        // +0x28 (low byte & 0x7F: kind 0x33)
+		Mat4x3 m;
+		uint32_t kind;
+		int16_t depth;
+		uint16_t scroll;
+		uint16_t w28;
 		uint16_t pad2A;
-		uint32_t morph;      // +0x2C
+		uint32_t morph;
 	};
-	// the three-part draw's quad renderer header (0x98, 0x6F8F20)
 	struct QuadHeader
 	{
-		uint32_t data;       // +0x00
-		uint32_t verts;      // +0x04
+		uint32_t data;
+		uint32_t verts;
 		uint8_t pad08[0xA];
-		uint16_t vscroll;    // +0x12
-		uint16_t win_a[4];   // +0x14 texture window A (offset x / y, size x / y)
-		uint16_t win_b[4];   // +0x1C texture window B
-		uint32_t list;       // +0x24 the quad list cursor
+		uint16_t vscroll;
+		uint16_t win_a[4];
+		uint16_t win_b[4];
+		uint32_t list;
 		uint8_t pad28[8];
-		int32_t otz;         // +0x30
-		uint32_t flag;       // +0x34
-		int32_t depth;       // +0x38
-		uint32_t v[4][2];    // +0x3C the quad's vertices
-		uint32_t col[4];     // +0x5C
-		uint32_t uv01[2];    // +0x6C
-		uint16_t uv2, uv3;   // +0x74
+		int32_t otz;
+		uint32_t flag;
+		int32_t depth;
+		uint32_t v[4][2];
+		uint32_t col[4];
+		uint32_t uv01[2];
+		uint16_t uv2, uv3;
 		uint8_t pad78[0x20];
 	};
 #pragma pack(pop)
@@ -495,7 +427,6 @@ namespace blood210
 
 	inline int32_t SlotOf(uint8_t *e) { return (int32_t)((e - (uint8_t *)0x1D972C0) / 0x9C); }
 
-	// 0x6F6BB0: the flame spawner on an entity (251's 0x6F4840)
 	static void StartFlameSpawner(uint8_t *e)
 	{
 		SpawnerNode *s = (SpawnerNode *)AddTaskToQueue(QFlames(), ORIG_FlameSpawner);
@@ -506,9 +437,6 @@ namespace blood210
 		s->slot = (int16_t)SlotOf(e);
 	}
 
-	// ------------------------------------------------------------------
-	// MasterTask (0x6F6890)
-	// ------------------------------------------------------------------
 	static void MasterSetup()
 	{
 		StreamStateInit((void *)(TexBase() + STREAM_STATE));
@@ -568,7 +496,6 @@ namespace blood210
 		int main_alive = 1, tasks_alive = 1;
 		if (ms->running)
 		{
-			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_master();)
 			EffectCameraMatrix(&Camera(), OrthoView());
 			main_alive = ExecuteTaskQueue(QMain());
@@ -589,9 +516,6 @@ namespace blood210
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// FlameSpawner (0x6F6C00), Flame (0x6F6DA0), Spark (0x6F7130), Ember (0x6F7230): 251's (Fire's parts)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FlameSpawner(TaskNode *n)
 	{
 		if (Pause() != 0) return 0;
@@ -627,7 +551,6 @@ namespace blood210
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_FlameTask, p);)
 		FlameDraw(&p->f, p->frame, FLAME_LOOK, PacketCursor());
 		if (Pause() != 0) return 0;
@@ -660,7 +583,6 @@ namespace blood210
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkTask, p);)
 		FireSparkDraw(&p->s, p->life, SPARK_LOOK, PacketCursor());
 		if (Pause() != 0) return 0;
@@ -677,7 +599,6 @@ namespace blood210
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_EmberTask, p);)
 		EmberDraw(&p->e, p->frame, SEQ_Ember, 3, PacketCursor());
 		if (Pause() != 0) return 0;
@@ -686,10 +607,6 @@ namespace blood210
 		return p->frame >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6F8850): one object of a layout (0x701DD0)
-	// ------------------------------------------------------------------
-	// the record's offset is loaded into the GTE V0 with its 4th word never written (the stack's residue: the port loads 0)
 	static int16_t g_off_pad = 0;
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
@@ -821,7 +738,6 @@ namespace blood210
 		FieldFree(0x6C);
 	}
 
-	// one layout of the main task through the prim player (0x701970), the callback 0x6F8850: a yaw-0 frame at x, 0, z
 	static void Play(MainNode *mn, int site, uint8_t *layout, PlayArg *arg, int32_t x, int32_t z)
 	{
 		RotationY(0, &arg->m);
@@ -830,15 +746,10 @@ namespace blood210
 		arg->m.t[2] = z;
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		arg->morph = TexBase() + MORPH;
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_layout(mn, site, layout, arg, x, z);)
 		prim::play((prim::Layout *)layout, PrimCallback, (int)arg, (int)Pause());
 	}
 
-	// ------------------------------------------------------------------
-	// Afterimages (Burning Rave's / Duel's code with 0x40-byte slots: 1 bone)
-	// ------------------------------------------------------------------
-	// 0x6F8200: the recorded bones' matrices of the entity's model into the next ghost slot (274's 0x68ADF0)
 	static void GhostRecord(uint8_t *entity, uint8_t *g)
 	{
 		g[0] = 1;
@@ -857,28 +768,26 @@ namespace blood210
 		}
 	}
 
-	// the afterimage draw context (the Field_Alloc block of 0x74 bytes from +0x20; Burning Rave's GhostCtx)
 #pragma pack(push, 1)
 	struct GhostCtx
 	{
-		uint32_t polys;      // +0x00
-		uint32_t verts;      // +0x04
-		int16_t ntri, nquad; // +0x08
-		int16_t clip[4];     // +0x0C
-		uint32_t colour;     // +0x14
-		uint32_t visible;    // +0x18
-		uint32_t v[8];       // +0x1C
-		int32_t mac0;        // +0x3C
+		uint32_t polys;
+		uint32_t verts;
+		int16_t ntri, nquad;
+		int16_t clip[4];
+		uint32_t colour;
+		uint32_t visible;
+		uint32_t v[8];
+		int32_t mac0;
 		uint32_t pad40;
-		int32_t otz;         // +0x44
+		int32_t otz;
 		uint8_t pad48[4];
-		uint8_t *ghosts;     // +0x4C
-		uint32_t slot;       // +0x50
+		uint8_t *ghosts;
+		uint32_t slot;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(GhostCtx) == 0x54, "afterimage context");
 
-	// 0x6F80B0: the model's visible objects with the ghost's bone matrices (slot + (k + 1) x 0x20), into the packet cursor
 	static void GhostModel(uint8_t *model, GhostCtx *c, uint32_t ot, int32_t shift)
 	{
 		const uint8_t *geom = *(uint8_t **)(model + 4);
@@ -924,11 +833,8 @@ namespace blood210
 		}
 	}
 
-	// 0x6F7EE0: the recorded ghosts (up to 2, the newer one first, brighter) of the entity's model; the count drops by one
-	// on an unpaused tick without a recording
 	static void GhostDraw(uint8_t *entity, uint8_t *g)
 	{
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_ghosts(entity, g);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x74);
 		GhostCtx *c = (GhostCtx *)(h + 0x20);
@@ -976,9 +882,6 @@ namespace blood210
 		g[0] = 0;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x6F9800: a model's vertical extent in its bone space -> out[0] = max, out[1] = min (251's 0x6F6690)
-	// ------------------------------------------------------------------
 	static void MeasureHeight(uint8_t *e, int16_t *out)
 	{
 		ComputeBonesWorldMatrices(e + 0x60, e + 0x40);
@@ -1027,14 +930,8 @@ namespace blood210
 		BuildBoneMatricesFromPose(e + 0x60);
 	}
 
-	// ------------------------------------------------------------------
-	// 0x6F9960: an entity drawn by the module (Burning Rave's 0x6A2F60 without the shadow): its bones' world matrices from
-	// its world matrix x (rotation `angles`, translation `off` minus the rotated `off`) under the view, RenderGeometry into
-	// the frame arena, its pose matrices rebuilt; the same for its weapon (+0x78)
-	// ------------------------------------------------------------------
 	static void DrawEntity(uint8_t *e, const int16_t *angles, const int16_t *off)
 	{
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_entity(e, angles, off);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
 		Mat4x3 *m = (Mat4x3 *)h;
@@ -1071,14 +968,8 @@ namespace blood210
 		FieldFree(0x5C);
 	}
 
-	// ------------------------------------------------------------------
-	// 0x6F9440: the stage captured into VRAM (0x2C0, 0x100, 0xC0 x 0x100) over the box `b` (Burning Rave's 0x6A12B0 with
-	// a 0xC0-wide rectangle, a yaw-0 view and the flash at 0x8FC): the stage geometry 0x1D989C0 seen from above, scaled into
-	// the rectangle; then the drawing area / offset packets of the rectangle
-	// ------------------------------------------------------------------
 	static void CaptureStage(const int16_t *a, const int16_t *b)
 	{
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_capture(a, b);)
 		const int32_t b0 = -(int32_t)b[0];
 		const int32_t b3 = b[3];
@@ -1088,7 +979,6 @@ namespace blood210
 		const int32_t dz = b5 + nb2;
 		SetScreenFlash(0x8FC, 0);
 		int16_t rect[4] = { 0x2C0, 0x100, 0xC0, 0x100 };
-		// (the round-up tests the quotient's remainder, not the extent's)
 		int32_t sx = w / 0xC0;
 		int32_t sz = dz / 0x100;
 		if (sx % 0xC0 != 0) sx++;
@@ -1164,11 +1054,6 @@ namespace blood210
 		InsertPrimAutoDepth(OTBase() + 0x44, offp);
 	}
 
-	// ------------------------------------------------------------------
-	// 0x6F8EF0 / 0x6F8F20: textured gouraud quads of a model (its list after the vertex block): vertex colours faded by
-	// depth (+0x38 + z, x 16 against 4096), v coordinates scrolled (+0x12, wrapped by +0x20's low byte), screen-clipped
-	// (all 4 vertices off one side: dropped), each quad between texture windows A and B
-	// ------------------------------------------------------------------
 	static uint32_t TexWindow(const uint16_t *w)
 	{
 		uint32_t e = ((uint32_t)(uint8_t)w[1] & 0xF8) | 0xFFFE2000u;
@@ -1292,14 +1177,8 @@ namespace blood210
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x6F8BF0: the three-part draw at the centre: with a fade (> 0) a prim set 0x145E1C4 (yaw a2, scaled 0x2000) only;
-	// else a ring 0x14603F4 (below 0x1000: its yaw a2, pushed (0x800 - a4) x 2 out, rolled a3) and the quads of 0x145E1C4
-	// (depth a4 - 0x800, v scroll a5)
-	// ------------------------------------------------------------------
 	static void ThreePart(const int16_t *c, int32_t a2, int32_t a3, int32_t a4, int32_t a5, int32_t a6)
 	{
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_three(c, a2, a3, a4, a5, a6);)
 		Mat4x3 m;
 		if (a6 > 0)
@@ -1394,10 +1273,6 @@ namespace blood210
 		FieldFree(0x98);
 	}
 
-	// ------------------------------------------------------------------
-	// MainTask (0x6F7310)
-	// ------------------------------------------------------------------
-	// 8 sparkles and 8 rocks on a ring around the centre (0x73..0x76)
 	static void SpawnBurst(const MainNode *mn)
 	{
 		int32_t count = 8;
@@ -1435,7 +1310,6 @@ namespace blood210
 		}
 	}
 
-	// the flash level at counter c (rising 0..0xB, 0x8FC, falling 0xE7..0xF2)
 	static int32_t FlashOf(int32_t c)
 	{
 		if (c < 0xC) return c * 2300 / 12;
@@ -1443,7 +1317,6 @@ namespace blood210
 		return 0x8FC;
 	}
 
-	// a target's height while lifted (0x73..0xC2): its start height minus a sine / cubic ramp of u
 	static int16_t LiftHeight(int32_t u, int16_t y0)
 	{
 		if (u < 0x800) return (int16_t)(y0 - (int16_t)(ComputeSin(u >> 1) << 1));
@@ -1456,10 +1329,8 @@ namespace blood210
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *mn = (MainNode *)n;
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_main(mn);)
 		FlashLevel() = FlashOf(mn->counter);
-		// 0x37..0x3D: afterimages of the next entity (the block and the trail at 0x37), recorded up to 0x3B
 		uint32_t i = (uint32_t)(mn->counter - 0x37);
 		if (i < 7)
 		{
@@ -1478,7 +1349,6 @@ namespace blood210
 			if (i < 5 && Pause() == 0) GhostRecord(Caster() + 0x9C, mn->ghosts);
 		}
 		PlayArg arg = {};
-		// 0x40..0x4E: layout 0x146D8A4 at the caster's effect point
 		i = (uint32_t)(mn->counter - 0x40);
 		if (i < 0xF)
 		{
@@ -1489,16 +1359,13 @@ namespace blood210
 			arg.kind = KIND_Plain;
 			Play(mn, 0, mn->layout, &arg, p[0], p[2]);
 		}
-		// 0x41..0x48: prim model 0x145D6AC at the caster's bone 0x25 (its y axis scaled by minus the bone's height), turning
 		i = (uint32_t)(mn->counter - 0x41);
 		if (i < 8)
 		{
-			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_bone((int32_t)i);)
 			uint8_t *h = (uint8_t *)FieldAlloc(0x80);
 			int16_t *sp = (int16_t *)(h + 0x78);
 			GetEffectSpawnPosition(Caster(), 0x25, 0, sp);
-			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_bone_point(sp);)
 			Mat4x3 *m = (Mat4x3 *)(h + 0x58);
 			RotationY((int32_t)(i << 8), m);
@@ -1516,7 +1383,6 @@ namespace blood210
 			PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 			FieldFree(0x80);
 		}
-		// 0x48..0x63: afterimages again, recorded up to 0x61
 		i = (uint32_t)(mn->counter - 0x48);
 		if (i < 0x1C)
 		{
@@ -1524,7 +1390,6 @@ namespace blood210
 			GhostDraw(Caster() + 0x9C, mn->ghosts);
 			if (i < 0x1A && Pause() == 0) GhostRecord(Caster() + 0x9C, mn->ghosts);
 		}
-		// 0x55..0x72: the stage capture (0x55) and the three-part draws at the centre
 		i = (uint32_t)(mn->counter - 0x55);
 		if (i < 0x1E)
 		{
@@ -1541,7 +1406,6 @@ namespace blood210
 			ThreePart(mn->centre, 0x800, 0, (int32_t)((i << 12) >> 3), (int32_t)(i << 5), fade);
 			if (i >= 0xB) ThreePart(mn->centre, -0x400, 0x200, (int32_t)(((i - 0xB) << 12) >> 3), (int32_t)(i << 5), fade);
 		}
-		// 0x73..0xC2: the targets lifted, spun and drawn by the module; the burning layout; 8 + 8 sparkles / rocks 0x73..0x76
 		int16_t off[4];
 		i = (uint32_t)(mn->counter - 0x73);
 		if (i < 0x50)
@@ -1580,7 +1444,6 @@ namespace blood210
 			arg.w28 = d < 0x64 ? (uint16_t)((d * d) >> 4) : 0;
 			Play(mn, 1, mn->layout, &arg, mn->centre[0], mn->centre[2]);
 		}
-		// 0xC3..0xEA: the targets dropped and drawn, the caster and the next entity hidden; layout 0x146A668; 2 rocks a tick
 		i = (uint32_t)(mn->counter - 0xC3);
 		if (i < 0x28)
 		{
@@ -1634,7 +1497,6 @@ namespace blood210
 		}
 		else if (i == 0x28)
 		{
-			// 0xEB: the targets put back (flags 0x0C off, position, 0x1000 lower), the caster / next entity shown
 			for (int32_t k = 0; k < mn->ntargets; k++)
 			{
 				TargetRec *r = &mn->recs[k];
@@ -1645,14 +1507,12 @@ namespace blood210
 			}
 			*(uint16_t *)Caster() &= 0xFFFB;
 			*(uint16_t *)(Caster() + 0x9C) &= 0xFFFB;
-			// 0x6F8BD0: the stage groups' bit 1 back on
 			for (uint8_t *gp = (uint8_t *)0x1D98991; gp < (uint8_t *)0x1D98A41; gp += 0x2C) *gp |= 2;
 			QRocks()->tail = nullptr;
 			QRocks()->head = nullptr;
 		}
 		else if (i <= 0x30 && Pause() == 0)
 		{
-			// 0xEC..0xF3: the targets raised; 0xF3: a layout task on each and the result; 0xF1: the sound
 			for (int32_t k = 0; k < mn->ntargets; k++)
 			{
 				uint8_t *e = mn->recs[k].e;
@@ -1668,15 +1528,12 @@ namespace blood210
 			if (i == 0x2E) BdPlaySE(SOUND_Fall, 0, 0x80);
 			else if (i == 0x30) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
 		}
-		// white tile series 0xE3..0xF2
 		i = (uint32_t)(mn->counter - 0xE3);
 		if (i < 0x10)
 		{
-			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_tile((int32_t)i);)
 			PacketCursor() = FadeTileInHoldOut((int32_t)i, 0xF0, 0xF0, 0xF0, 6, 4, 6, PacketCursor());
 		}
-		// counters: the flames dropped, the stream loads, the wait, the pump
 		if (mn->counter == 0x21)
 		{
 			QFlames()->tail = nullptr;
@@ -1704,9 +1561,6 @@ namespace blood210
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// TrailTask (0x6F82D0): 251's blade trail of slot 4's bone 1 (0x6F8770 / 0x6F87D0), 0x3B ticks, shorter from 0x35
-	// ------------------------------------------------------------------
 	static void BoneFrame(uint8_t *anim, int32_t bone, int32_t *dir, int16_t *point)
 	{
 		const uint8_t *skel = **(uint8_t ***)(anim + 4);
@@ -1820,7 +1674,6 @@ namespace blood210
 			t->dir_ab[1] = (int32_t)t->first_b[1] - t->first_a[1];
 			t->dir_ab[2] = (int32_t)t->first_b[2] - t->first_a[2];
 			NormalizeVector(t->dir_ab, t->dir_ab);
-			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_trail(t);)
 			TrailDraw(t->spl_a, t->spl_b, w);
 		}
@@ -1830,9 +1683,6 @@ namespace blood210
 		return t->counter >= 0x3B ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// LayoutTask (0x6F9AA0): its layout at its point through the view (depth -0x80)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *t = (LayoutNode *)n;
@@ -1847,15 +1697,11 @@ namespace blood210
 		arg.depth = -0x80;
 		arg.kind = KIND_Plain;
 		arg.morph = TexBase() + MORPH;
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_task_layout(t, &arg);)
 		const int left = prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, (int)Pause());
 		return left ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// RockTask (0x6F9B60): prim model 0x1461D98 turned by its x / y bytes (x 16), scaled; falls and spins
-	// ------------------------------------------------------------------
 	static void RockDrawAngles(const RockNode *k, int16_t ax, int16_t ay)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x98);
@@ -1878,7 +1724,6 @@ namespace blood210
 	static uint32_t __cdecl RockTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_RockTask, k);)
 		RockDraw(k);
 		if (Pause() != 0) return 0;
@@ -1891,9 +1736,6 @@ namespace blood210
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// SparkleTask (0x6F9C60): sequence 0x145D4EC at its point, rising by its speed; 16 frames
-	// ------------------------------------------------------------------
 	static void SparkleDraw(const int16_t *pos, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
@@ -1907,7 +1749,6 @@ namespace blood210
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkleTask, s);)
 		SparkleDraw(s->pos, s->frame);
 		if (Pause() != 0) return 0;
@@ -1929,7 +1770,6 @@ namespace blood210
 		register_port(blood210::ORIG_LayoutTask, (void *)blood210::LayoutTask, "210 LayoutTask", 210);
 		register_port(blood210::ORIG_RockTask, (void *)blood210::RockTask, "210 RockTask", 210);
 		register_port(blood210::ORIG_SparkleTask, (void *)blood210::SparkleTask, "210 SparkleTask", 210);
-		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(register_mag210_held();)
 	}
 }

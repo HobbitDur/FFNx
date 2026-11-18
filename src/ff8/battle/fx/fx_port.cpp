@@ -14,6 +14,8 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
+// Native battle effects: registry
+
 #include "fx_port.h"
 #ifdef FF8_FX_HELD
 #include "fx_held.h"
@@ -23,16 +25,16 @@ namespace ff8fx
 {
 	struct Port { uint32_t orig; void *port; const char *name; int effect_id; uint8_t saved[5]; };
 
-	static const int PORTS_MAX = 16384; // (8192 overflowed: registrations past it were dropped silently)
+	static const int PORTS_MAX = 16384;
 	static Port g_ports[PORTS_MAX];
 	static int g_nports = 0;
-	static const int INDEX_SIZE = 32768; // power of two, > 2 x PORTS_MAX
+	static const int INDEX_SIZE = 32768;
 	static int16_t g_index[INDEX_SIZE];
 	static bool g_index_ready = false;
 
 	bool g_active = false;
 
-	static inline uint32_t slot_of(uint32_t orig) { return (orig * 2654435761u) >> 17; } // (15 bits: INDEX_SIZE)
+	static inline uint32_t slot_of(uint32_t orig) { return (orig * 2654435761u) >> 17; }
 
 	void register_port(uint32_t orig, void *port, const char *name, int effect_id)
 	{
@@ -60,7 +62,7 @@ namespace ff8fx
 		}
 	}
 
-	// Every ported task function jumps to its port: the game's own executor and callers run the ports.
+	// Ported task functions jump to their port, so the game's own executor runs them
 	void set_ports(bool on)
 	{
 		if (on == g_active) return;
@@ -86,8 +88,6 @@ namespace ff8fx
 		return p ? p->name : nullptr;
 	}
 
-	// effect ids served by one module's ports (Gilgamesh: 327 Zantetsuken, 328 Masamune,
-	// 329 Excalibur, 330 Excalipoor share one module)
 	static int canonical_effect(int effect_id)
 	{
 		if (effect_id >= 328 && effect_id <= 330) return 327;
@@ -104,7 +104,7 @@ namespace ff8fx
 
 	void register_all()
 	{
-		static bool done = false; // install() and a host may both ask
+		static bool done = false;
 		if (done) return;
 		done = true;
 		register_mag069_griever();
@@ -447,7 +447,6 @@ namespace ff8fx
 		register_gfc_eden();
 		register_mag191_doomtrain();
 		register_mag327_gilgamesh();
-		// 30 fps layer: see fx_held.cpp
 		FX_HELD(register_all_held();)
 	}
 }

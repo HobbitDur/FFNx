@@ -14,42 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 126: Electric Discharge (enemy attack 28 of kernel.bin, Cockatrice; MAG_126_*).
-//
-// Structure (setup MAG_126_ELECTRIC_DISCHARGE 0x6B9A10 -> _Init 0x6B9A40, file loader 0x6B9A20 =
-// the texture file named at 0x10E298C (mag125.tim); the setup keeps the CASTER's entity and the
-// tint words (+0x28) of the three party entities, starts camera animation 0x12421E8, queues the TIM):
-//   RootTask (0x6B9AF0) - alternates the packet arena (magic buffer + 0xC454 / + 0x1C454); clears
-//     the screen-flash level and the flag 0x800 of the three party entities; on counter 1 sets up
-//     the pools (main 1 x 0x14, arcs 0x40 x 0x3C, crawlers 0x40 x 0x28, sparks 0x20 x 0x18, glow
-//     layouts 8 x 0xD4, and two point pools of 0x200 x 0x28 in the magic buffer) and starts the
-//     main task; runs the main and arc queues, the caster's bone world matrices (0x5095B0), the
-//     crawler queue, the caster's pose matrices (0x508C90), the spark and layout queues; screen
-//     flash; ends when all five queues are empty.
-//   Main (0x6B9D60) - flash level ramp (0..0x800, counters 0..3 up, 49..52 down); counters 0..7:
-//     three crawlers per tick from the crawler script table 0x124228C, counters 8..52: one random
-//     crawler per tick; counters 8..19: an arc from the caster's centre in a random direction;
-//     even counters 14..42: an arc from a random effect bone of the caster (0x1242284) to a random
-//     bone of the next living party member; every 4th tick a glow layout (0x12417D8). Sound at 0,
-//     damage (action 0) and end at 52.
-//   Arc (0x6BA680) - a lightning arc: 8 steps per tick, each moves its source point by a random
-//     walk, blends it toward the end point by the progress t, appends a point (0x6BA610) and may
-//     fork a branch arc (0x6BA4F0); when t reaches 0x1000 a spark (0x6BAB30) and sometimes a
-//     screen fade. Then the point fades, the projection and the textured ribbon (0x6BAC20 /
-//     0x6BAD90), the points drift by their velocity and faded tail points are freed. UPDATE THEN DRAW.
-//   Crawler (0x6BB150) - a ribbon crawling over the caster's model: script words (bone, vertex,
-//     forks) append points on model vertices through the caster's bone matrices (0x6BB070);
-//     offsets drift, fade; ribbon draw 0x6BB320 / 0x6BB520; faded tail points are freed. UPDATE
-//     THEN DRAW.
-//   Spark (0x6BAB30) - 8-frame sprite sequence (0x12415A8 / 0x12416FC) at a fixed place; the
-//     spark of an arc that hit a party member tints that entity (0x56CC00) for 5 frames. DRAW THEN
-//     UPDATE.
-//   GlowLayout (0x6BA1F0) - prim-model layout 0x12417D8 played by the shared player at the caster
-//     (200 below its effect anchor), callback PartCallback (0x6BA250). DRAW THEN UPDATE.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x25212C0..0x2521368 (flash level, caster entity, texture file, magic buffer
-// base, context, root pool, party tints, packet cursor 0x25212F8, queues 0x2521300..0x2521350, an
-// never-written zero vector 0x2521360). Exe data written: the screen-fade chance 0x124227C.
+// Effect 126: Electric Discharge
 
 #include "mag_common.h"
 #include <intrin.h>
@@ -61,24 +26,21 @@ namespace disch126
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &FlashLevel() { return var<uint32_t>(0x25212C0); }       // screen flash level
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25212C4); }          // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25212CC); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &FlashLevel() { return var<uint32_t>(0x25212C0); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x25212C4); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25212CC); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25212D0); }
-	inline uint32_t *SavedTints() { return (uint32_t *)0x25212EC; }          // party entities +0x28 (setup)
+	inline uint32_t *SavedTints() { return (uint32_t *)0x25212EC; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25212F8); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2521300; }          // pool: magic buffer, 8 x 0xD4
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521310; }           // + 0x6A0, 0x20 x 0x18
-	inline TaskQueue *QCrawlers() { return (TaskQueue *)0x2521320; }         // + 0x9A0, 0x40 x 0x28
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x2521330; }             // + 0x13A0, 0x40 x 0x3C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2521340; }             // + 0x22A0, 1 x 0x14
-	static const uint32_t ZERO_VEC = 0x2521360;                             // 8 bytes, never written
-	inline int32_t &FadeChance() { return var<int32_t>(0x124227C); }         // exe data: screen fade threshold
+	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2521300; }
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521310; }
+	inline TaskQueue *QCrawlers() { return (TaskQueue *)0x2521320; }
+	inline TaskQueue *QArcs() { return (TaskQueue *)0x2521330; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2521340; }
+	static const uint32_t ZERO_VEC = 0x2521360;
+	inline int32_t &FadeChance() { return var<int32_t>(0x124227C); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
-	// magic buffer: arc points + 0x22B4 and crawler points + 0x72B4 (0x200 x 0x28 each), one freed
-	// point kept per pool (+ 0xC2B4 / + 0xC2B8), blended vertex frames + 0xC2BC
 	static const uint32_t ARC_POINTS = 0x22B4, CRAWL_POINTS = 0x72B4, ARC_FREE = 0xC2B4, CRAWL_FREE = 0xC2B8, MORPH = 0xC2BC;
 
 	static const uint32_t ORIG_RootTask = 0x6B9AF0;
@@ -87,118 +49,110 @@ namespace disch126
 	static const uint32_t ORIG_ArcTask = 0x6BA680;
 	static const uint32_t ORIG_SparkTask = 0x6BAB30;
 	static const uint32_t ORIG_CrawlerTask = 0x6BB150;
-	static const uint32_t SEQ_Spark = 0x12415A8;      // sprite sequence of the arc end sparks
-	static const uint32_t SEQ_SparkB = 0x12416FC;     // ... of the free arcs' ground sparks
-	static const uint32_t MODEL_Glow = 0x12417D8;     // prim-model layout data (0xC8-byte layout)
+	static const uint32_t SEQ_Spark = 0x12415A8;
+	static const uint32_t SEQ_SparkB = 0x12416FC;
+	static const uint32_t MODEL_Glow = 0x12417D8;
 	static const void *const SOUND_Discharge = (const void *)0x1242278;
 	static const void *const TINT_Colour = (const void *)0x1242280;
-	static const uint8_t *const BONES_Caster = (const uint8_t *)0x1242284;   // 5 effect bones
-	static const int16_t *const CRAWL_Scripts = (const int16_t *)0x124228C;  // [0] = count, [1 + i] = script offset (words)
-	static const uint8_t *const LEN_Table = (const uint8_t *)0x1242A0C;      // 128 x 128 |(dx, dy)|
-	static const int16_t *const BLEND_Table = (const int16_t *)0x1246A0C;    // point velocity blend by t / 2
+	static const uint8_t *const BONES_Caster = (const uint8_t *)0x1242284;
+	static const int16_t *const CRAWL_Scripts = (const int16_t *)0x124228C;
+	static const uint8_t *const LEN_Table = (const uint8_t *)0x1242A0C;
+	static const int16_t *const BLEND_Table = (const int16_t *)0x1246A0C;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }  // MAG_106_sub_7059E0: (125 s + 14) & 0x7FFF
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone` (x, y, z)
+	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	// sub_56CC00: out colour = a * wa + b * wb (4.12 weights)
 	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_sub_7015B0
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0: V0 = 3 x u16
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0e;
-		uint8_t started;   // +0x0F pools set up (counter 1)
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x14 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..52
+		int16_t counter;
 		int16_t pad0e;
-		int16_t party;     // +0x10 next party slot tried (0..2)
+		int16_t party;
 		int16_t pad12;
 	};
-	struct Point // both point pools (0x28 bytes); the ribbon code shares +0x10..+0x27
+	struct Point
 	{
-		int16_t a[3];      // +0x00 arc: position; crawler: [0] model vertex, [1] width, [2] offset x
-		int16_t b;         // +0x06 arc: width (-1 = free slot); crawler: offset y
-		int16_t c[3];      // +0x08 arc: velocity; crawler: [0] offset z, [1..2] drift (3 x s8) + bone (s8)
-		int16_t d;         // +0x0E arc: fade hold ticks
-		int16_t sxy[2];    // +0x10 projected position, then the ribbon's first edge vertex
-		int16_t otz;       // +0x14 (read as a dword by the GTE)
+		int16_t a[3];
+		int16_t b;
+		int16_t c[3];
+		int16_t d;
+		int16_t sxy[2];
+		int16_t otz;
 		int16_t pad16;
-		int16_t edge[2];   // +0x18 the ribbon's second edge vertex
+		int16_t edge[2];
 		int16_t pad1c[2];
-		int16_t fade;      // +0x20
-		int16_t step;      // +0x22
-		Point *next;       // +0x24
+		int16_t fade;
+		int16_t step;
+		Point *next;
 	};
-	struct ArcNode // pool of 0x40 nodes of 0x3C bytes
+	struct ArcNode
 	{
 		TaskNode hdr;
-		int16_t pad0c;     // +0x0C cleared, unused
-		int16_t count;     // +0x0E points
-		Point *tail;       // +0x10 oldest point
-		Point *head;       // +0x14 newest point
-		int16_t pos[3];    // +0x18 random-walking source
-		int16_t t;         // +0x1E progress (0x1000 = reached)
-		int16_t end[3];    // +0x20
-		int16_t speed;     // +0x26 progress per step
-		int16_t vel[3];    // +0x28 source velocity
-		int16_t forks;     // +0x2E fork chances left
-		int16_t dir[3];    // +0x30 point velocity at t = 0
-		int16_t slot;      // +0x36 party slot hit (-1 = none)
-		int16_t width;     // +0x38
-		int16_t style;     // +0x3A texture row (0 / 1)
+		int16_t pad0c;
+		int16_t count;
+		Point *tail;
+		Point *head;
+		int16_t pos[3];
+		int16_t t;
+		int16_t end[3];
+		int16_t speed;
+		int16_t vel[3];
+		int16_t forks;
+		int16_t dir[3];
+		int16_t slot;
+		int16_t width;
+		int16_t style;
 	};
-	struct SparkNode // pool of 0x20 nodes of 0x18 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t frame;     // +0x0C 0..7
-		uint8_t kind;      // +0x0E 0 = arc end, 1 = ground
-		int8_t slot;       // +0x0F party slot tinted (-1 = none)
-		int16_t pos[3];    // +0x10
-		int16_t scale;     // +0x16
+		int16_t frame;
+		uint8_t kind;
+		int8_t slot;
+		int16_t pos[3];
+		int16_t scale;
 	};
-	struct CrawlerNode // pool of 0x40 nodes of 0x28 bytes
+	struct CrawlerNode
 	{
 		TaskNode hdr;
-		int16_t steps;     // +0x0C script steps per tick
-		int16_t count;     // +0x0E points
-		int16_t width;     // +0x10
-		int16_t fade;      // +0x12 new points' fade
-		int16_t step;      // +0x14 new points' fade step
+		int16_t steps;
+		int16_t count;
+		int16_t width;
+		int16_t fade;
+		int16_t step;
 		int16_t pad16;
-		const int16_t *script; // +0x18 (null = finished)
-		Point *tail;       // +0x1C
-		Point *head;       // +0x20
-		uint8_t *model;    // +0x24 caster entity +0x64
+		const int16_t *script;
+		Point *tail;
+		Point *head;
+		uint8_t *model;
 	};
-	struct LayoutNode // pool of 8 nodes of 0xD4 bytes
+	struct LayoutNode
 	{
 		TaskNode hdr;
-		uint8_t layout[0xC8]; // +0x0C prim-model layout (prim::Layout)
+		uint8_t layout[0xC8];
 	};
-	// the prim-player callback's parameter block (a stack block of the layout task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 anchor x, y, z, height
-		uint32_t morph;    // +0x08 blended vertex frames
+		int16_t pos[4];
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MainNode) == 0x14, "Electric Discharge nodes");
@@ -208,11 +162,6 @@ namespace disch126
 	inline int8_t CrawlDrift(const Point *p, int i) { return ((const int8_t *)p)[0xC + i]; }
 	inline int8_t CrawlBone(const Point *p) { return ((const int8_t *)p)[0xF]; }
 
-	// ------------------------------------------------------------------
-	// Ribbon (0x6BAD90 arcs / 0x6BB520 crawlers): the two edge vertices of point p from the
-	// screen direction towards `next` (averaged with the previous one), half width = next's
-	// width * 32 / (p's depth + bias); a point without next has no width
-	// ------------------------------------------------------------------
 	static void RibbonEdge(Point *p, const Point *next, const int16_t *prev, int16_t *out, int32_t width, int32_t bias)
 	{
 		if (p->otz < 0) return;
@@ -283,7 +232,6 @@ namespace disch126
 		p->sxy[1] = (int16_t)(y - oy);
 	}
 
-	// one textured quad (0x3E) per pair of visible points, gouraud by the points' fades
 	static void RibbonQuads(Point *tail, int32_t count, uint32_t uv0, uint32_t uv1, uint16_t uv2, uint16_t uv3)
 	{
 		Point *a = tail;
@@ -318,10 +266,6 @@ namespace disch126
 		}
 	}
 
-	// the edges of every point (first, middle, last) then the quads. The direction local starts
-	// with what its stack slot held (dir0, see ArcRibbon / CrawlerTask): the first point leaves it
-	// unwritten when it projects onto the second one (it is hidden), the second point then reads it.
-	// Returns what the local holds at the end.
 	static uint32_t Ribbon(Point *tail, int32_t count, int32_t width_word, int32_t bias, uint32_t uv0, uint32_t uv1, uint16_t uv2, uint16_t uv3, uint32_t dir0)
 	{
 		int16_t dir[2] = { (int16_t)dir0, (int16_t)(dir0 >> 16) };
@@ -338,9 +282,6 @@ namespace disch126
 		return (uint16_t)dir[0] | (uint32_t)(uint16_t)dir[1] << 16;
 	}
 
-	// Arc ribbon (0x6BAC20): texture row by style. UNINIT 0x6BAC32 / 0x6BAC53: its direction local
-	// [esp] is the slot where the last projection's GTE_RTPS (0x45FAA0) kept its depth divisor
-	// ([esp+0x10] of its frame: SZ3 when above H / 2, else H / 2)
 	static void ArcRibbon(Point *tail, int32_t count, int32_t style)
 	{
 		const int32_t sz = (int32_t)var<uint32_t>(0x1CA8A5C);
@@ -349,7 +290,6 @@ namespace disch126
 		Ribbon(tail, count, 3, 0x200, v | 0x3D140008, v | 0xB70038, (uint16_t)(v | 8), (uint16_t)(v | 0x38), (uint32_t)(sz > h2 ? sz : h2));
 	}
 
-	// projection of every point of a chain (arc task)
 	static void ArcProject(Point *p)
 	{
 		do
@@ -362,8 +302,6 @@ namespace disch126
 		} while (p);
 	}
 
-	// crawler point on the caster's model (0x6BB320 loop): vertex through its bone's matrix, plus
-	// the point's offset, projected with the camera
 	static void CrawlerPointWorld(const uint8_t *model, const Point *p, int16_t w[4])
 	{
 		const Mat4x3 *m = (const Mat4x3 *)(*(uint8_t *const *)model + 0x20 + CrawlBone(p) * 0x30);
@@ -400,18 +338,13 @@ namespace ff8fx
 {
 namespace disch126
 {
-	// ------------------------------------------------------------------
-	// Crawler draw (0x6BB320)
-	// ------------------------------------------------------------------
 	static uint32_t CrawlerDraw(uint8_t *model, Point *tail, int32_t count, uint32_t dir0, uint16_t pad)
 	{
 		Point *p = tail;
 		do
 		{
-			// the 4th word is never written: the stack word under it (pad, see CrawlerTask) goes into the GTE V0 pad
 			int16_t w[4] = { 0, 0, 0, (int16_t)pad };
 			CrawlerPointWorld(model, p, w);
-			// 30 fps layer: see mag126_electric_discharge_held.inc
 			FX_HELD(held_note_crawler_point(w);)
 			CrawlerPointProject(p, w);
 			p = p->next;
@@ -419,9 +352,6 @@ namespace disch126
 		return CrawlerRibbon(tail, count, dir0);
 	}
 
-	// ------------------------------------------------------------------
-	// Point pools (0x6BA610 arcs, 0x6BB070 crawlers)
-	// ------------------------------------------------------------------
 	static Point *AllocArcPoint(const int16_t *pos, int16_t width)
 	{
 		const uint32_t base = TexBase();
@@ -490,11 +420,6 @@ namespace disch126
 		return p;
 	}
 
-	// ------------------------------------------------------------------
-	// Spawns
-	// ------------------------------------------------------------------
-	// 0x6BA4F0: an arc from `from` (first point) toward `to`, source velocity `vel`, point
-	// velocity dir (or random), progress t0 advancing by speed; returns the first point
 	static Point *SpawnArc(const int16_t *vel, const int16_t *from, const int16_t *to, const int16_t *dir, int32_t slot, int32_t t0, int32_t speed, int32_t width, int32_t style, int32_t forks)
 	{
 		Point *pt = AllocArcPoint(from, (int16_t)width);
@@ -529,7 +454,6 @@ namespace disch126
 		return pt;
 	}
 
-	// 0x6BAFA0: a crawler running `script` (words after the bone word), `steps` script steps per tick
 	static void SpawnCrawlerScript(uint8_t *model, const int16_t *script, int32_t steps, int32_t width)
 	{
 		const int32_t r0 = Rand() & 0x3FF;
@@ -559,7 +483,6 @@ namespace disch126
 		c->count = 1;
 	}
 
-	// 0x6BAF20: crawler script `index` of the table, random width scaled by scale (4.12)
 	static void SpawnCrawler(uint8_t *model, const int16_t *table, int32_t index, int32_t steps, int32_t scale)
 	{
 		const int16_t *script = table + table[index + 1];
@@ -569,7 +492,6 @@ namespace disch126
 		SpawnCrawlerScript(model, script, steps, w);
 	}
 
-	// 0x6BA190: unit direction of the angles (pitch, yaw)
 	static void AnglesToDir(const int16_t *ang, int16_t *out)
 	{
 		const int32_t c0 = ComputeCos(ang[0]);
@@ -578,9 +500,6 @@ namespace disch126
 		out[2] = (int16_t)(mul32(ComputeCos(ang[1]), c0) >> 12);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6BA250): one object of the glow layout
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -619,11 +538,9 @@ namespace disch126
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x200)
 		{
-			// the anchor through the camera, the offset added in screen axes
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -634,7 +551,6 @@ namespace disch126
 		}
 		else
 		{
-			// anchor + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -665,9 +581,6 @@ namespace disch126
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Glow layout (0x6BA1F0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *g = (LayoutNode *)n;
@@ -675,14 +588,10 @@ namespace disch126
 		GetDefaultEffectPosition(Caster(), arg.pos);
 		arg.pos[1] = (int16_t)(arg.pos[1] + 0xC8);
 		arg.morph = TexBase() + MORPH;
-		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_play((prim::Layout *)g->layout, &arg);)
 		return prim::play((prim::Layout *)g->layout, PartCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x6BAB30)
-	// ------------------------------------------------------------------
 	static void SparkDraw(SparkNode *s)
 	{
 		TransformCameraByShadowRotation(s->pos, s->scale, -(s->scale >> 2));
@@ -704,16 +613,12 @@ namespace disch126
 			const int32_t sn = ComputeSin(shl32(s->frame, 8));
 			BlendColour(&SavedTints()[s->slot], TINT_Colour, 0x1000 - sn, sn, e + 0x28);
 		}
-		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->frame++;
 		return s->frame < 8 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Arc (0x6BA680)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ArcTask(TaskNode *n)
 	{
 		ArcNode *a = (ArcNode *)n;
@@ -733,7 +638,6 @@ namespace disch126
 				a->pos[1] = (int16_t)(a->pos[1] + ((Rand() & 0x1FF) - 0x100));
 				a->pos[2] = (int16_t)(a->pos[2] + ((Rand() & 0x1FF) - 0x100));
 			}
-			// the new point: source and end blended by t
 			int16_t p[4] = { 0, 0, 0, 0 };
 			GteSetIR0(0x1000 - a->t);
 			GteLoadIR123(a->pos);
@@ -785,7 +689,6 @@ namespace disch126
 			a->count++;
 			const int32_t blend = BLEND_Table[((uint16_t)a->t >> 1) & 0xFFF];
 			a->head = pt;
-			// the point's velocity: dir blended toward the zero vector (the hold word kept)
 			const int16_t hold = pt->d;
 			GteSetIR0(blend);
 			GteLoadIR123(a->dir);
@@ -797,7 +700,6 @@ namespace disch126
 			pt->d = hold;
 			if (a->t >= 0xC00) continue;
 			if (Rand() >= shl32(a->forks, 13)) continue;
-			// a fork from the new point
 			int16_t to[4] = { 0, 0, 0, 0 }, vel[4] = { 0, 0, 0, 0 };
 			int32_t d;
 			if (Rand() > 0x4000) d = -0x200 - (Rand() & 0x1FF);
@@ -814,7 +716,6 @@ namespace disch126
 			if (f) ff8fx::copy<(8)>(f->c, pt->c);
 			a->forks--;
 		}
-		// fades
 		Point *q = a->tail;
 		do
 		{
@@ -827,7 +728,6 @@ namespace disch126
 			}
 			q = q->next;
 		} while (q);
-		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_arc(a);)
 		ArcProject(a->tail);
 		if (a->count >= 2) ArcRibbon(a->tail, a->count, a->style);
@@ -839,7 +739,6 @@ namespace disch126
 			q->a[2] = (int16_t)(q->a[2] + q->c[2]);
 			q = q->next;
 		} while (q);
-		// free the faded tail
 		q = a->tail;
 		while (q->fade == 0 && q->next->fade == 0)
 		{
@@ -854,33 +753,12 @@ namespace disch126
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Crawler (0x6BB150)
-	// UNINIT 0x6BB3A1 (GTE_LoadV0 of the point vector, 4th word never written): the V0 pad word = the
-	// high half of the task's stack dword [entry esp - 0x30], last written by the task's last call on this
-	// tick: 0x6BB070 (its return address 0x006BB220: 0x006B), a fork 0x6BAFA0 (its saved ebp = the
-	// executor's queue address: 0x0252), else carried from the previous crawler like the word below
-	// (g_crawl_pad).
-	// UNINIT 0x6BB3D5 / 0x6BB405: the draw's direction local (0x6BB320 [esp+0x18]) is the task's
-	// stack slot [entry esp - 0x2C], never written by the draw itself. It holds the first argument
-	// of the task's last 0x6BB070 call (edi: the bone word, high half = edi's), else the ebx (2) a
-	// fork call (0x6BAFA0) saved there, else what the stack held when the task started (slot).
-	// edi starts as the executor's (the queue node before this one, 0 for the first) and takes the
-	// script pointer's high half at a fork.
-	// The crawler tasks run one after the other at the same stack depth (0x508420 on QCrawlers), so a
-	// crawler's task-start value is what the PREVIOUS crawler left in that slot: its draw's final
-	// direction (0x6BB520 out-dir), or its own last slot value when it did not draw (checked with the
-	// game's executor: every entry word of 0x6BB150 [esp-0x2C] equals the previous crawler's word at
-	// 0x6BB510 [esp+0x18]). The port carries it (g_crawl_slot); only the first crawler the queue
-	// run calls reads the stack word that code outside the queue left there (g_crawl_first: NOT the queue
-	// head, see CrawlerTask).
-	// ------------------------------------------------------------------
 	static uint32_t g_crawl_slot;
 	static uint16_t g_crawl_pad;
-	static const uint16_t ALLOC_RET_HI = 0x006B; // high half of 0x006BB220, the original's return address after its 0x6BB070 call
+	static const uint16_t ALLOC_RET_HI = 0x006B;
 	static __declspec(noinline) uint32_t CrawlerTaskBody(CrawlerNode *c, uint32_t slot, uint16_t pad)
 	{
-		uint16_t vpad = pad; // the draw's V0 pad word (the task's stack dword [entry - 0x30] high half, see CrawlerTask)
+		uint16_t vpad = pad;
 		const uint32_t slot0 = slot;
 		uint32_t edi = 0;
 		for (TaskNode *q = QCrawlers()->head; q && q != &c->hdr; q = q->next) edi = (uint32_t)q;
@@ -892,10 +770,9 @@ namespace disch126
 			int32_t drift = 1;
 			while (bone < 0)
 			{
-				// a fork: a new crawler runs the words that follow, this one skips them
 				SpawnCrawlerScript(c->model, c->script, c->steps, c->width);
 				slot = 2;
-				vpad = (uint16_t)((uint32_t)QCrawlers() >> 16); // (the fork call's saved ebp: the executor's, the queue address)
+				vpad = (uint16_t)((uint32_t)QCrawlers() >> 16);
 				c->script += -1 - bone;
 				edi = (uint32_t)c->script;
 				bone = *c->script++;
@@ -940,7 +817,6 @@ namespace disch126
 				q = q->next;
 			} while (q);
 		}
-		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_crawler(c, slot, slot0);)
 		g_crawl_slot = slot;
 		g_crawl_pad = vpad;
@@ -972,13 +848,9 @@ namespace disch126
 		}
 		return TASK_END;
 	}
-	static bool g_crawl_first; // the root's crawler queue run starts (set right before ExecuteTaskQueue(QCrawlers()))
+	static bool g_crawl_first;
 	static uint32_t __cdecl CrawlerTask(TaskNode *n)
 	{
-		// the original's stack slot: the first crawler the queue run calls reads the stack word (read before
-		// this function writes below its frame), every later one what the previous crawler left there
-		// (g_crawl_slot), also when the crawlers before it ended on this tick (the executor unlinks an ended
-		// node: the next one is then the queue head, yet its slot holds the carry)
 		const uint32_t stack_word = *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2C);
 		const uint16_t stack_pad = *(const uint16_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2E);
 		const bool first = g_crawl_first;
@@ -986,9 +858,6 @@ namespace disch126
 		return CrawlerTaskBody((CrawlerNode *)n, first ? stack_word : g_crawl_slot, first ? stack_pad : g_crawl_pad);
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x6B9D60)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
@@ -1020,7 +889,6 @@ namespace disch126
 		}
 		if ((uint32_t)c8 < 0xC)
 		{
-			// a free arc from the caster's centre in a random direction
 			int16_t from[4], dir[4] = { 0, 0, 0, 0 }, vel[4] = { 0, 0, 0, 0 };
 			GetDefaultEffectPosition(Caster(), from);
 			int16_t ang[2];
@@ -1043,7 +911,6 @@ namespace disch126
 		{
 			if (!(c14 & 1))
 			{
-				// an arc from a caster bone to a bone of the next living party member
 				int16_t from[4] = { 0, 0, 0, 0 }, centre[4], to[4] = { 0, 0, 0, 0 };
 				const int32_t r = Rand();
 				GetEffectSpawnPosition(Caster(), BONES_Caster[(uint32_t)(r * 5) >> 15], 0, from);
@@ -1084,13 +951,9 @@ namespace disch126
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6B9AF0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -1152,7 +1015,6 @@ namespace disch126
 		register_port(disch126::ORIG_CrawlerTask, (void *)disch126::CrawlerTask, "D126 CrawlerTask", 126);
 		register_port(disch126::ORIG_SparkTask, (void *)disch126::SparkTask, "D126 SparkTask", 126);
 		register_port(disch126::ORIG_LayoutTask, (void *)disch126::LayoutTask, "D126 LayoutTask", 126);
-		// 30 fps layer: see mag126_electric_discharge_held.inc
 		FX_HELD(register_mag126_held();)
 	}
 }

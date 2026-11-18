@@ -14,26 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 278: Carbuncle - Ruby Light (timeline-A GF family, MAG_278_*).
-//
-// Structure (see gf_study/gf_inventory_timeline.md 3.1):
-//   SequenceTask (master, 0x680DF0) - flips the two packet cursors, spawns the creature at
-//     tick 2 (seven pools carved out of the model buffer), runs the queues in the order
-//     creature 0x2508188, sparkles 0x2508178, shards 0x2508168, rubies 0x2508158, orbits
-//     0x2508138, rings 0x2508148, then the beam list 0x2508128 through its own executor
-//     (0x6811E0 / 0x681270, shared flipbook header), sets the screen flash, and at the end
-//     puts the lifted entities back down.
-//   CreatureTask (0x681630) - 283-tick timeline: Carbuncle model (36..145, 215..235), the
-//     ruby dome prim models (1..263 minus 145..230) with the floor mirror pass, two keyframed
-//     prim-model stages (110..145, 145..176), sparkles, one ruby per target, shards, camera
-//     orbit (every tick), party hide/lift, sounds, streams.
-//   RubyTask (0x6822F0) - per target: prim model, orbit stones, rings, the reflect wall
-//     model, damage at its tick 50.
-//   SparkleTask 0x683E80, ShardTask 0x683DC0 (flipbooks), OrbitTask 0x683760, RingTask
-//     0x6831D0 (prim models), BeamTask 0x683330 (flipbook; see the note at SpawnBeam: in
-//     vanilla it never runs).
-//   Prim-model callback 0x681FD0 is used through its original address (pure draw).
-// Module globals: 0x2508110..0x25081FC (gf_study/gf_global_ranges.md).
+// Effect 278: Carbuncle - Ruby Light
 
 #include "fx_port.h"
 
@@ -43,27 +24,25 @@ namespace c278
 {
 	using namespace eng;
 
-	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x2508114); }           // debug pause, never set by the game
-	inline uint8_t *&BeamHeader() { return var<uint8_t *>(0x2508118); }     // flipbook header of the beam list (per tick)
+	inline uint32_t &Pause() { return var<uint32_t>(0x2508114); }
+	inline uint8_t *&BeamHeader() { return var<uint8_t *>(0x2508118); }
 	inline uint8_t *&CastCtx() { return var<uint8_t *>(0x2508120); }
-	inline TaskQueue &QueueBeams() { return var<TaskQueue>(0x2508128); }    // single list, custom executor
-	inline TaskQueuePair &QueueOrbits() { return var<TaskQueuePair>(0x2508138); }   // .first orbits, .second rings
-	inline TaskQueuePair &QueueRubies() { return var<TaskQueuePair>(0x2508158); }   // .first rubies, .second shards
-	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(0x2508178); } // .first sparkles, .second creature
-	inline TaskQueue &QueueRoot() { return var<TaskQueue>(0x2508198); }     // master (pool 0x25081A8)
+	inline TaskQueue &QueueBeams() { return var<TaskQueue>(0x2508128); }
+	inline TaskQueuePair &QueueOrbits() { return var<TaskQueuePair>(0x2508138); }
+	inline TaskQueuePair &QueueRubies() { return var<TaskQueuePair>(0x2508158); }
+	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(0x2508178); }
+	inline TaskQueue &QueueRoot() { return var<TaskQueue>(0x2508198); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25081BC); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x25081C0); }   // the other arena: scratch of the mirror pass
-	inline int32_t &Centroid() { return var<int32_t>(0x25081C4); }          // mean "+0x20" (height) of the targets
-	inline int32_t &Base() { return var<int32_t>(0x25081CC); }              // centroid - 0x7D0 (floor reference)
-	inline int32_t &Lift() { return var<int32_t>(0x25081D0); }              // added to the enemies' height at tick 2
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(0x25081C0); }
+	inline int32_t &Centroid() { return var<int32_t>(0x25081C4); }
+	inline int32_t &Base() { return var<int32_t>(0x25081CC); }
+	inline int32_t &Lift() { return var<int32_t>(0x25081D0); }
 	inline uint32_t &Flash() { return var<uint32_t>(0x25081D4); }
 	inline uint8_t &DoneFlag() { return var<uint8_t>(0x25081D8); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x25081F8); }    // = Magic_TextureOFF_ToEAX1()
-	static const uint32_t BBOX = 0x25081E0;   // s16 min x, y, z, max x, y, z (MAG_278_sub_6D6070)
-	static const uint32_t MIRROR = 0x25081F0; // s16 0, 0, base - 200: floor plane of the mirror pass
-	// engine
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }     // battle_texture_data_ptr_1D8E054
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x25081F8); }
+	static const uint32_t BBOX = 0x25081E0;
+	static const uint32_t MIRROR = 0x25081F0;
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	inline int16_t &CamWorld(int k) { return var<int16_t>(0xB8B7F0 + 2 * k); }
 	inline int16_t &CamLookAt(int k) { return var<int16_t>(0xB8B7F8 + 2 * k); }
 
@@ -75,17 +54,16 @@ namespace c278
 	static const uint32_t ORIG_OrbitTask = 0x683760;
 	static const uint32_t ORIG_ShardTask = 0x683DC0;
 	static const uint32_t ORIG_SparkleTask = 0x683E80;
-	static const uint32_t CB_PrimObject = 0x681FD0; // prim-model callback (pure draw)
+	static const uint32_t CB_PrimObject = 0x681FD0;
 
-	// --- engine / module helpers called through their original addresses ---
 	namespace cw
 	{
-		inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }  // MAG_106_sub_7059E0: (125 s + 14) & 0x7FFF
+		inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
 		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-		inline void RotX(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(a, m); }   // MAG_063_sub_701220 (3x3 + pad)
-		inline void RotY(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(a, m); }   // MAG_063_sub_701270
-		inline void RotZ(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x7012C0)(a, m); }   // MAG_065_sub_7012C0
-		inline void RotYScaled(int32_t a, void *m, int32_t s) { fn<void (__cdecl *)(int32_t, void *, int32_t)>(0x6DBCC0)(a, m, s); } // MAG_103_sub_6DBCC0
+		inline void RotX(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(a, m); }
+		inline void RotY(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(a, m); }
+		inline void RotZ(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x7012C0)(a, m); }
+		inline void RotYScaled(int32_t a, void *m, int32_t s) { fn<void (__cdecl *)(int32_t, void *, int32_t)>(0x6DBCC0)(a, m, s); }
 		inline void MatMul56C220(void *a, const void *b) { fn<void (__cdecl *)(void *, const void *)>(0x56C220)(a, b); }
 		inline void GteMatrixMultiply(const void *a, void *b) { fn<void (__cdecl *)(const void *, void *)>(0x56C270)(a, b); }
 		inline void Decode(uint32_t src, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(src, layout, size); }
@@ -93,15 +71,15 @@ namespace c278
 		inline void ReadAnimationStart(void *e, int32_t id) { fn<void (__cdecl *)(void *, int32_t)>(0x6574D0)(e, id); }
 		inline void AdvanceModelAnim(void *e) { fn<void (__cdecl *)(void *)>(0x6FBDB0)(e); }
 		inline uint32_t DrawModel(void *e, void *buf, uint32_t cursor, uint32_t mode) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(0x6A79B0)(e, buf, cursor, mode); }
-		inline void ModelBBox(uint32_t model, uint32_t bbox) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x6D6070)(model, bbox); }       // MAG_278_sub_6D6070
-		inline void MirrorPass(uint32_t plane, uint32_t bbox) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x6812E0)(plane, bbox); }      // MAG_278_sub_6812E0
-		inline void VertexPos(void *e, int32_t a, int32_t b, void *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, void *)>(0x682270)(e, a, b, out); } // MAG_278_sub_682270
+		inline void ModelBBox(uint32_t model, uint32_t bbox) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x6D6070)(model, bbox); }
+		inline void MirrorPass(uint32_t plane, uint32_t bbox) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x6812E0)(plane, bbox); }
+		inline void VertexPos(void *e, int32_t a, int32_t b, void *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, void *)>(0x682270)(e, a, b, out); }
 		inline uint32_t DrawWall(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x682760)(h, ot, mode, cursor); }
 		inline uint32_t DrawBeamSprites(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x683490)(h, ot, mode, cursor); }
 		inline void Rot2D(const void *src, void *dst, int32_t a) { fn<void (__cdecl *)(const void *, void *, int32_t)>(0x6836F0)(src, dst, a); }
-		inline void DamageTarget(void *slot) { fn<void (__cdecl *)(void *)>(0x683920)(slot); }                                        // MAG_278_sub_683920
+		inline void DamageTarget(void *slot) { fn<void (__cdecl *)(void *)>(0x683920)(slot); }
 		inline uint32_t DrawDome(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x6839B0)(h, ot, mode, cursor); }
-		inline void MorphDome(int32_t t) { fn<void (__cdecl *)(int32_t)>(0x683CA0)(t); }                                                  // MAG_278_sub_683CA0
+		inline void MorphDome(int32_t t) { fn<void (__cdecl *)(int32_t)>(0x683CA0)(t); }
 		inline void SpawnPosition(void *slot, int32_t bone, int32_t a, void *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, void *)>(0x502170)(slot, bone, a, out); }
 		inline void DefaultPosition(void *slot, void *out) { fn<void (__cdecl *)(void *, void *)>(0x571400)(slot, out); }
 		inline void StreamLoad(int32_t id, uint32_t dst, int32_t n) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, n); }
@@ -110,108 +88,104 @@ namespace c278
 		inline void StreamWaitDone(uint32_t buf, uint8_t *flag) { fn<void (__cdecl *)(uint32_t, uint8_t *)>(0x508630)(buf, flag); }
 		inline void PlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x501330)(se, a, b); }
 		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }                                                                  // BS_Camera_ArmReturnAfterEffect
+		inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
 	}
 	using namespace cw;
 
 #pragma pack(push, 1)
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
-	struct MasterNode // root pool 0x25081A8, 0x14 bytes
+	struct MasterNode
 	{
 		TaskNode hdr;
-		uint16_t counter; // +0x0C
+		uint16_t counter;
 		uint8_t pad0E;
-		uint8_t spawned;  // +0x0F
-		uint32_t parity;  // +0x10 packet arenas
+		uint8_t spawned;
+		uint32_t parity;
 	};
 
-	struct CreatureNode // the single node of queue 0x2508188 = ModelBuffer + 0x28A4, 0x5E0 bytes
+	struct CreatureNode
 	{
 		TaskNode hdr;
-		int16_t counter;         // +0x0C timeline tick
-		int16_t ntargets;        // +0x0E
-		uint32_t voice;          // +0x10 BdSound_ClaimVoiceSlot
-		uint8_t *targets[3];     // +0x14 BattleEntitySlotData of each target (written without bound)
-		uint8_t model[0x9C];     // +0x20 E: standard effect model block (E+0x40 root Mat4x3 = +0x60,
-		                         //   E+0x60 BattleAnimHeader = +0x80, E+0x64 comFileData = +0x84, E+0x6C BattleAnimCmd = +0x8C)
-		uint8_t sections[0x10];  // +0xBC model section pointers
-		uint8_t prim[0x514];     // +0xCC prim-model player layout (stages 110 / 145)
+		int16_t counter;
+		int16_t ntargets;
+		uint32_t voice;
+		uint8_t *targets[3];
+		uint8_t model[0x9C];
+		uint8_t sections[0x10];
+		uint8_t prim[0x514];
 	};
 
-	struct PrimCtx // callback context of 0x681FD0 (arg of the prim player)
+	struct PrimCtx
 	{
-		Mat4x3 m;       // +0x00 object frame
-		int32_t shade;  // +0x20 -> render header +0x18
-		uint8_t *morph; // +0x24 morph output buffer (ModelBuffer + 0x2E84)
+		Mat4x3 m;
+		int32_t shade;
+		uint8_t *morph;
 	};
 
-	struct RubyNode // queue 0x2508158 (3 x 0x10C)
+	struct RubyNode
 	{
 		TaskNode hdr;
-		int16_t counter;    // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint8_t *target;    // +0x10 BattleEntitySlotData
-		Mat4x3 model;       // +0x14 Y rotation x target scale; translation = the target's default effect position
-		Mat4x3 view;        // +0x34 camera x model
-		int16_t center[3];  // +0x54 centre of the orbit stones (x = 0, y/z along the path table 0x10BD490)
+		uint8_t *target;
+		Mat4x3 model;
+		Mat4x3 view;
+		int16_t center[3];
 		int16_t pad5A;
-		int16_t pos[3];     // +0x5C default effect position (y cleared)
+		int16_t pos[3];
 		int16_t pad62;
-		uint8_t prim[0xA8]; // +0x64 prim-model player layout (0x10C1CD8)
+		uint8_t prim[0xA8];
 	};
 
-	struct OrbitNode // queue 0x2508138 (24 x 0x1C): stone circling the ruby
+	struct OrbitNode
 	{
 		TaskNode hdr;
-		int16_t counter; // +0x0C
-		int16_t tilt;    // +0x0E X rotation (negated)
-		int16_t angle;   // +0x10 position angle around the centre + Z rotation
-		int16_t dangle;  // +0x12
-		int16_t dtilt;   // +0x14
+		int16_t counter;
+		int16_t tilt;
+		int16_t angle;
+		int16_t dangle;
+		int16_t dtilt;
 		int16_t pad16;
-		RubyNode *parent; // +0x18
+		RubyNode *parent;
 	};
 
-	struct RingNode // queue 0x2508148 (9 x 0x1C): expanding ring
+	struct RingNode
 	{
 		TaskNode hdr;
-		int16_t counter; // +0x0C
-		int16_t height;  // +0x0E
-		int16_t scale;   // +0x10
-		int16_t speed;   // +0x12
-		int16_t accel;   // +0x14
+		int16_t counter;
+		int16_t height;
+		int16_t scale;
+		int16_t speed;
+		int16_t accel;
 		int16_t pad16;
-		RubyNode *parent; // +0x18
+		RubyNode *parent;
 	};
 
-	struct BeamNode // list 0x2508128 (256 x 0x1C)
+	struct BeamNode
 	{
 		TaskNode hdr;
-		int16_t counter; // +0x0C flipbook frame
-		int16_t angle;   // +0x0E
-		int16_t scale;   // +0x10
-		int16_t y;       // +0x12
-		int16_t vy;      // +0x14
-		int16_t pad16;   // (never written)
-		RubyNode *parent; // +0x18
+		int16_t counter;
+		int16_t angle;
+		int16_t scale;
+		int16_t y;
+		int16_t vy;
+		int16_t pad16;
+		RubyNode *parent;
 	};
 
-	struct SparkleNode // queue 0x2508178 (64 x 0x14)
+	struct SparkleNode
 	{
 		TaskNode hdr;
-		int16_t pos[3]; // +0x0C
-		int16_t frame;  // +0x12
+		int16_t pos[3];
+		int16_t frame;
 	};
 
-	struct ShardNode // queue 0x2508168 (8 x 0x1C)
+	struct ShardNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];  // +0x0C
-		int16_t frame;   // +0x12
-		int16_t vel[3];  // +0x14
-		int16_t variant; // +0x1A flipbook 0x10BD2FC (1) / 0x10BD170 (0)
+		int16_t pos[3];
+		int16_t frame;
+		int16_t vel[3];
+		int16_t variant;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14, "master node is 0x14 bytes");
@@ -226,9 +200,8 @@ namespace c278
 
 	inline uint8_t *E(CreatureNode *c) { return c->model; }
 	inline Mat4x3 &Root(CreatureNode *c) { return *(Mat4x3 *)(c->model + 0x40); }
-	inline uint8_t *Scratch() { return ModelBuffer() + 0x2E84; } // model draw / morph / dome vertex scratch
+	inline uint8_t *Scratch() { return ModelBuffer() + 0x2E84; }
 
-	// nbones of a battle slot / effect model: **(comFileData) (the skeleton's first byte)
 	inline uint8_t BoneCount(const uint8_t *slot) { return ***(uint8_t ***)(slot + 0x64); }
 }
 }
@@ -242,7 +215,6 @@ namespace ff8fx
 namespace c278
 {
 
-	// MAG_278_sub_683990 / MAG_278_sub_6812C0: hide / show the three party models (flag bit 2)
 	static void PartyHide()
 	{
 		var<uint16_t>(0x1D972C0) |= 4;
@@ -256,11 +228,6 @@ namespace c278
 		var<uint16_t>(0x1D973F8) &= 0xFFFB;
 	}
 
-	// ------------------------------------------------------------------
-	// Camera: MAG_278_sub_683D10 - eye rotated about the look-at in the ground plane (x/z) by
-	// `angle` and its offset scaled by `scale` (4.12), height offset scaled only. Works on
-	// any eye / look-at word triple.
-	// ------------------------------------------------------------------
 	static void CamRotate(int16_t *w, const int16_t *l, int32_t angle, int32_t scale)
 	{
 		int16_t l1 = l[1];
@@ -277,20 +244,15 @@ namespace c278
 	inline int16_t *CamW() { return (int16_t *)0xB8B7F0; }
 	inline int16_t *CamL() { return (int16_t *)0xB8B7F8; }
 
-	// ------------------------------------------------------------------
-	// Draw helpers
-	// ------------------------------------------------------------------
-	static int32_t FlashAt(int32_t c) // creature tick c
+	static int32_t FlashAt(int32_t c)
 	{
 		if (c < 8) return shl32(c, 11) >> 3;
 		if (c > 0x113) return shl32(0x11B - c, 11) >> 3;
 		return 0x800;
 	}
 
-	// ruby dome drawn at creature tick c (1..263 minus 145..230)
 	static bool DomeDrawn(int32_t c) { return (uint32_t)(c - 1) < 0x107 && (c < 0x91 || c >= 0xE7); }
 
-	// dome morph (0 = shell 0x10C0D10, 0x1000 = shell 0x10C1940)
 	static int32_t DomeMorph(int32_t c)
 	{
 		int32_t v = c - 1;
@@ -301,9 +263,6 @@ namespace c278
 		return s < 0 ? 0 : s;
 	}
 
-	// 0x681700..0x681946: the dome (and the inner shell model 0x10BFB08 once it opens), with
-	// the floor mirror pass when party slot 0's model is 44..46. flash = the tick's screen
-	// flash (dome brightness), s = morph (stages 16..35 and 247..263)
 	static void DomeDraw(int32_t c, int32_t flash, int32_t s)
 	{
 		int32_t v = c - 1;
@@ -343,7 +302,6 @@ namespace c278
 			MorphDome(s);
 			*(uint32_t *)(h + 4) = (uint32_t)Scratch();
 			FrameCursor() = DrawDome(h, RenderOT(), 2, FrameCursor());
-			// same stack matrix (its pad keeps what ComposeAffineTransform left there)
 			M.m[2][2] = (int16_t)s;
 			M.m[1][1] = (int16_t)s;
 			M.m[0][0] = (int16_t)s;
@@ -362,7 +320,6 @@ namespace c278
 		FieldFree(0x58);
 	}
 
-	// prim stage 1 (creature 110..145): relative to vertex 0xB0 of the model, tilted 0xA00
 	static void CtxStage110(PrimCtx &ctx, CreatureNode *cn)
 	{
 		RotX(0xA00, &ctx.m);
@@ -375,7 +332,6 @@ namespace c278
 		ctx.morph = Scratch();
 		ctx.shade = -256;
 	}
-	// prim stage 2 (creature 145..176): absolute frame at depth 0x1000
 	static void CtxStage145(PrimCtx &ctx)
 	{
 		RotX(0, &ctx.m);
@@ -385,7 +341,6 @@ namespace c278
 		ctx.m.t[2] = 0x1000;
 		ctx.shade = -512;
 	}
-	// ruby prim (ruby ticks 0..20): at the target, camera-relative
 	static void CtxRuby(PrimCtx &ctx, const RubyNode *r)
 	{
 		RotY(0, &ctx.m);
@@ -397,18 +352,14 @@ namespace c278
 		ctx.shade = 0;
 	}
 
-	// ruby model / view matrices (0x6823B1..0x6823EB): the target's Y rotation (+0x0E) scaled
-	// by min(target+0x26 << 2, 0x1000). model: the node's matrix (or a copy)
 	static void RubyMatrices(const RubyNode *r, Mat4x3 *model, Mat4x3 *view)
 	{
 		int32_t s = (int32_t)*(int16_t *)(r->target + 0x26) << 2;
 		if (s > 0x1000) s = 0x1000;
-		// the angle goes in AX over the scale (the callee reads the low word)
 		RotYScaled((int32_t)(((uint32_t)s & 0xFFFF0000u) | *(uint16_t *)(r->target + 0xE)), model, s);
 		ComposeAffineTransform(&Camera(), model, view);
 	}
 
-	// orbit centre for ruby tick c (15..34): path table 0x10BD490 (8 bytes a key, y +2, z +4)
 	static void RubyCenter(int32_t c, int16_t out[3])
 	{
 		uint32_t k = (uint32_t)(c - 0xF);
@@ -422,7 +373,6 @@ namespace c278
 		out[2] = (int16_t)((int16_t)(mul32((int32_t)var<int16_t>(0x10BD49C + 8 * idx) - a, f) >> 12) + a);
 	}
 
-	// reflect wall parameters for ruby tick c (20..54): height (+0x5E) and fade (+0x08)
 	static int32_t WallHeight(int32_t e)
 	{
 		const uint8_t *mb = ModelBuffer();
@@ -436,7 +386,6 @@ namespace c278
 		return (int32_t)((uint32_t)shl32(e + 0xFFFEC, 12) / 15u);
 	}
 
-	// 0x6825B5..0x68268D: the reflect wall (model 0x10BD488 through MAG_278_sub_682760)
 	static uint8_t *WallDraw(int32_t c, int32_t height, int32_t fade, const Mat4x3 *view)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x60);
@@ -460,14 +409,13 @@ namespace c278
 		GteSetRotMatrix(view);
 		GteSetTransVector(view);
 		PacketCursor() = DrawWall(h, RenderOT(), 2, PacketCursor());
-		return h; // freed by the caller (the ring spawn reads +0x5E)
+		return h;
 	}
 
-	// 0x683760: stone at `angle` around the centre, tilted, squashed in x as it fades
 	static void OrbitDraw(const int16_t *center, int16_t angle, int16_t tilt, int32_t fade, int16_t sx, const Mat4x3 *view)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		int16_t p[4] = { 0, 0, 0, 0 }; // 4th word: vanilla stack garbage (GTE VZ0 high half only)
+		int16_t p[4] = { 0, 0, 0, 0 };
 		Rot2D(center, p, angle);
 		GteSetRotMatrix(view);
 		GteSetTransVector(view);
@@ -485,7 +433,6 @@ namespace c278
 		RotZ((int32_t)(uint16_t)angle, &R);
 		MatMul56C220(&R, S);
 		GteMatrixMultiply(view, &R);
-		// VANILLA: the angle goes in AX over a stack address (0x683880); the callee reads the low word
 		RotX((int32_t)(uint16_t)(int16_t)-tilt, &Q);
 		GteMatrixMultiply(&R, &Q);
 		GteSetRotMatrix(&Q);
@@ -494,7 +441,6 @@ namespace c278
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
-	// fade parameters of an orbit stone at its tick c (0x6837CC..0x683825)
 	static void OrbitFade(int32_t c, int32_t &fade, int32_t &sx)
 	{
 		if (c > 0xA)
@@ -512,11 +458,10 @@ namespace c278
 
 	static int32_t RingFade(int32_t c) { return ComputeSin(shl32(c, 10) / 20); }
 
-	// 0x6831D0: ring at height above the ruby, scaled, fade sin(c * 1024 / 20)
 	static void RingDraw(int16_t height, int16_t scale, int32_t c, const Mat4x3 *view)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		int16_t V[4] = { 0, 0, height, 0 }; // 4th word: vanilla stack garbage
+		int16_t V[4] = { 0, 0, height, 0 };
 		GteSetRotMatrix(view);
 		GteSetTransVector(view);
 		GteLoadV0(V);
@@ -540,7 +485,6 @@ namespace c278
 		FieldFree(0x58);
 	}
 
-	// 0x6833D4..0x683454: beam sprites at p (world, relative to the ruby) through the shared header
 	static void BeamDraw(uint8_t *h, const int16_t *p, int16_t scale, int32_t frame, const Mat4x3 *view)
 	{
 		GteSetRotMatrixCtrl(view);
@@ -559,7 +503,6 @@ namespace c278
 		PacketCursor() = DrawBeamSprites(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// flipbooks
 	static void SparkleDraw(const int16_t *pos4)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -581,27 +524,19 @@ namespace c278
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Sparkle (0x683E80): 11-frame flipbook 0x10BD044 at a fixed point
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *p = (SparkleNode *)n;
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(held_note_sparkle(p);)
-		SparkleDraw(p->pos); // (reads 8 bytes: x, y, z, frame)
+		SparkleDraw(p->pos);
 		if (Pause()) return 0;
 		p->frame++;
 		return p->frame < 0xB ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Shard (0x683DC0): 14-frame flipbook drifting by its velocity
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ShardTask(TaskNode *n)
 	{
 		ShardNode *p = (ShardNode *)n;
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(held_note_shard(p);)
 		ShardDraw(p->pos, p->variant);
 		if (Pause()) return 0;
@@ -612,13 +547,9 @@ namespace c278
 		return p->frame < 0xE ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Orbit stone (0x683760): 17 ticks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl OrbitTask(TaskNode *n)
 	{
 		OrbitNode *o = (OrbitNode *)n;
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(held_note_orbit(o);)
 		int32_t fade, sx;
 		OrbitFade(o->counter, fade, sx);
@@ -631,13 +562,9 @@ namespace c278
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ring (0x6831D0): 21 ticks, the growth speed brakes to 0x10
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *r = (RingNode *)n;
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(held_note_ring(r);)
 		RingDraw(r->height, r->scale, r->counter, &r->parent->view);
 		if (Pause()) return 0;
@@ -649,16 +576,12 @@ namespace c278
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Beam (0x683330): 16-frame sprite sequence 0x10BCE98 rising from the orbit centre.
-	// y/vy integrate even when paused (no pause test there), the frame index only when not.
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl BeamTask(TaskNode *n)
 	{
 		BeamNode *b = (BeamNode *)n;
 		uint8_t *h = BeamHeader();
 		RubyNode *parent = b->parent;
-		int16_t out[4] = { 0, 0, 0, 0 }; // 4th word: vanilla stack garbage
+		int16_t out[4] = { 0, 0, 0, 0 };
 		if (parent->counter >= 0x23)
 		{
 			if (b->vy == 0) b->vy = (int16_t)((SharedRand() & 0x3F) + 0x80);
@@ -677,7 +600,6 @@ namespace c278
 			Rot2D(parent->center, out, b->angle);
 			b->y = parent->center[2];
 		}
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(held_note_beam(b, out);)
 		BeamDraw(h, out, b->scale, b->counter, &parent->view);
 		if (Pause()) return 0;
@@ -686,13 +608,6 @@ namespace c278
 		return 0;
 	}
 
-	// MAG_106_sub_705A00: "append" a node to a queue passed BY VALUE. It links the new node
-	// only behind the copy's tail and never writes the real header back.
-	// VANILLA DEAD CODE: the beam list 0x2508128 is only ever filled through this function,
-	// its head stays 0 (only InitTaskQueuePool and the executor 0x681270 write it) and its
-	// tail is the executor's last survivor (0 on an empty list), so every beam node is
-	// allocated but never linked: BeamTask never runs, and the 256-node pool fills up
-	// (after which no more are made). Reproduced as is.
 	static TaskNode *AppendByValue(TaskQueue q, uint32_t task_fn)
 	{
 		uint8_t *p = (uint8_t *)q.pool;
@@ -710,14 +625,9 @@ namespace c278
 		return nullptr;
 	}
 
-	// ------------------------------------------------------------------
-	// Ruby (0x6822F0), one per target, 56 ticks: prim model (0..20), orbit stones (15),
-	// beams (15..34), the reflect wall (20..54) with rings (20, 26, 32), damage at 50
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RubyTask(TaskNode *n)
 	{
 		RubyNode *r = (RubyNode *)n;
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(held_note_ruby(r);)
 		if (r->counter < 0x15)
 		{
@@ -799,62 +709,48 @@ namespace c278
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Creature timeline (0x681630)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl CreatureTask(TaskNode *n)
 	{
 		CreatureNode *cn = (CreatureNode *)n;
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(held_note_creature(cn);)
 		uint8_t *MB = ModelBuffer();
 
-		// screen flash: up over 0..7, down over 276..282
 		Flash() = (uint32_t)FlashAt(cn->counter);
 
-		// the model (36..145, 215..235)
 		int32_t c = cn->counter;
 		if ((uint32_t)(c - 0x24) < 0xC8 && (c <= 0x91 || c >= 0xD7))
 		{
 			if (!Pause()) AdvanceModelAnim(E(cn));
-			// 30 fps layer: see mag278_carbuncle_held.inc
 			FX_HELD(held_note_model(cn);)
 			FrameCursor() = DrawModel(E(cn), Scratch(), FrameCursor(), var<uint32_t>(0x1D969A8));
 		}
 
-		// the ruby dome (1..263 minus 145..230)
 		c = cn->counter;
 		if (DomeDrawn(c))
 		{
-			// 30 fps layer: see mag278_carbuncle_held.inc
 			FX_HELD(held_note_dome();)
 			DomeDraw(c, (int32_t)Flash(), DomeMorph(c));
 		}
 
-		// prim stage 1 (110..145)
 		int32_t e = cn->counter - 0x6E;
 		if ((uint32_t)e < 0x24)
 		{
 			if (e == 0) Decode(0x10C2608, cn->prim, 0x514);
 			PrimCtx ctx;
 			CtxStage110(ctx, cn);
-			// 30 fps layer: see mag278_carbuncle_held.inc
 			FX_HELD(held_note_prim_stage(1);)
 			prim::play((prim::Layout *)cn->prim, (prim::Callback)CB_PrimObject, (int)&ctx, (int)Pause());
 		}
-		// prim stage 2 (145..176)
 		e = cn->counter - 0x91;
 		if ((uint32_t)e < 0x20)
 		{
 			if (e == 0) Decode(0x10C5C8C, cn->prim, 0x3D8);
 			PrimCtx ctx;
 			CtxStage145(ctx);
-			// 30 fps layer: see mag278_carbuncle_held.inc
 			FX_HELD(held_note_prim_stage(2);)
 			prim::play((prim::Layout *)cn->prim, (prim::Callback)CB_PrimObject, (int)&ctx, (int)Pause());
 		}
 
-		// streams (the timeline waits while a load is busy)
 		if (cn->counter == 0x96)
 		{
 			if (StreamBusy()) return 0;
@@ -871,7 +767,6 @@ namespace c278
 		default: break;
 		}
 
-		// sparkles on the model's bones (86..109, 219..230), 4 a tick
 		c = cn->counter;
 		if ((uint32_t)(c - 0x56) < 0x18 || (c >= 0xDB && c <= 0xE6))
 		{
@@ -885,7 +780,6 @@ namespace c278
 			}
 		}
 
-		// one ruby per target, from the last (145, 149, 153)
 		e = cn->counter - 0x91;
 		if ((uint32_t)e < 0xC && (e & 3) == 0)
 		{
@@ -908,7 +802,6 @@ namespace c278
 			}
 		}
 
-		// shards (231..234; waits for the stream at 231)
 		e = cn->counter - 0xE7;
 		if ((uint32_t)e < 4)
 		{
@@ -931,7 +824,6 @@ namespace c278
 			}
 		}
 
-		// animations
 		e = cn->counter - 0x24;
 		if ((uint32_t)e < 0xC8)
 		{
@@ -940,7 +832,6 @@ namespace c278
 		}
 		if (cn->counter == 0x107) StreamWaitDone((uint32_t)(ModelBuffer() + 0x3ECC), &DoneFlag());
 
-		// camera 1..36: cut, then the eye swings in (the enemies are lifted at 2)
 		int32_t v = cn->counter - 1;
 		if ((uint32_t)v < 0x24)
 		{
@@ -948,7 +839,7 @@ namespace c278
 			if (v == 0)
 			{
 				CameraArmReturn();
-				var<int16_t>(0x1D977A2) = 0; // g_BattleCam_Roll
+				var<int16_t>(0x1D977A2) = 0;
 				CamLookAt(2) = (int16_t)Base();
 				var<int16_t>(0x1D8E038) = 0x120;
 				CamLookAt(0) = 0;
@@ -960,14 +851,13 @@ namespace c278
 			else if (v == 1)
 			{
 				int16_t lift = (int16_t)Lift();
-				for (uint32_t a = 0x1D974B4; a < 0x1D97724; a += 0x9C) // slots 3..6 (+0x20 height)
+				for (uint32_t a = 0x1D974B4; a < 0x1D97724; a += 0x9C)
 					if (var<uint8_t>(a - 0x20) & 2) var<int16_t>(a) += lift;
 				PartyHide();
 			}
 			CamRotate(CamW(), CamL(), ComputeCos((int32_t)s) >> 6, 0xFAA);
 			CamWorld(1) += 0x32;
 		}
-		// 86..109: look at the model's vertex 0xB0 (86..91), swing
 		e = cn->counter - 0x56;
 		if ((uint32_t)e < 0x18)
 		{
@@ -975,7 +865,6 @@ namespace c278
 			CamRotate(CamW(), CamL(), -0x20, 0xFA0);
 			CamWorld(1) += -30;
 		}
-		// 122..145: widen, height kept
 		e = cn->counter - 0x6E;
 		if ((uint32_t)e < 0x24 && (uint32_t)e > 0xB)
 		{
@@ -994,7 +883,6 @@ namespace c278
 			CamWorld(1) = (int16_t)0xF67B;
 			CamWorld(2) = (int16_t)(Centroid() - 0xB6C);
 		}
-		// 215..230: back on the model (root lowered to the floor at 215)
 		e = cn->counter - 0xD7;
 		if ((uint32_t)e < 0x10)
 		{
@@ -1018,7 +906,6 @@ namespace c278
 			CamWorld(1) = (int16_t)0xFDA8;
 			CamWorld(2) = (int16_t)(Base() + 0x7D0);
 		}
-		// 247..282: rising pull-out
 		e = cn->counter - 0xF7;
 		if ((uint32_t)e < 0x11B)
 		{
@@ -1036,11 +923,6 @@ namespace c278
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Beam list executor (MAG_278_sub_6811E0 + MAG_278_sub_681270): a per-tick flipbook
-	// header on the scratch stack (published in 0x2508118), then every node of the list;
-	// finished nodes are freed and unlinked, the tail becomes the last survivor
-	// ------------------------------------------------------------------
 	static uint8_t *BeamHeaderInit()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -1090,13 +972,9 @@ namespace c278
 		return alive;
 	}
 
-	// ------------------------------------------------------------------
-	// Master task (0x680DF0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(held_note_master();)
 		uint8_t *MB = ModelBuffer();
 		if (node->parity)
@@ -1158,7 +1036,6 @@ namespace c278
 			bbox[2] = 0x7FFF; bbox[1] = 0x7FFF; bbox[0] = 0x7FFF;
 			bbox[5] = (int16_t)0x8001; bbox[4] = (int16_t)0x8001; bbox[3] = (int16_t)0x8001;
 			ModelBBox(0x10BD488, BBOX);
-			// reflect wall: bottom and height (+1/16) of its bounding box
 			int16_t *mbw = (int16_t *)ModelBuffer();
 			mbw[0] = bbox[2];
 			mbw[1] = (int16_t)(bbox[5] - bbox[2]);
@@ -1166,7 +1043,7 @@ namespace c278
 			StreamStateInit(ModelBuffer() + 0x3E84);
 		}
 
-		uint32_t creature_left = (uint32_t)n; // the original keeps the node pointer: non-zero
+		uint32_t creature_left = (uint32_t)n;
 		if (node->spawned)
 		{
 			creature_left = (uint32_t)ExecuteTaskQueue(&QueueCreature().second);
@@ -1184,7 +1061,7 @@ namespace c278
 		{
 			PartyShow();
 			int16_t lift = (int16_t)Lift();
-			for (uint32_t a = 0x1D974B4; a < 0x1D97724; a += 0x9C) // the enemies back down
+			for (uint32_t a = 0x1D974B4; a < 0x1D97724; a += 0x9C)
 				if (var<uint8_t>(a - 0x20) & 2) var<int16_t>(a) -= lift;
 			return TASK_END;
 		}
@@ -1202,7 +1079,6 @@ namespace c278
 		register_port(c278::ORIG_OrbitTask, (void *)c278::OrbitTask, "C278 OrbitTask", 278);
 		register_port(c278::ORIG_RingTask, (void *)c278::RingTask, "C278 RingTask", 278);
 		register_port(c278::ORIG_BeamTask, (void *)c278::BeamTask, "C278 BeamTask", 278);
-		// 30 fps layer: see mag278_carbuncle_held.inc
 		FX_HELD(register_mag278_held();)
 	}
 }

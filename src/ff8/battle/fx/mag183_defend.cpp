@@ -14,35 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 183: Defend (command ability Defend: kernel.bin command ability data entry 11 +0 = 183;
-// MAG_183_*). No other kernel.bin entry uses effect 183. Two shields appear in front of the
-// caster: a large one shrinking onto it, then a smaller one flickering through a colour table.
-//
-// Structure (setup MAG_183_DEFEND 0x5C9A50, file loader 0x5C9A30 = the texture file named at
-// 0xD39364 (mag182.tim, kept in 0x22F4218); the setup keeps the cast context 0x22F4210, the
-// first target's slot 0x22F33C8 and the caster's slot 0x22F4214, sets up the root queue 0x22F33E0
-// (1 node) and the effect queue 0x22F33F0 (0x64 nodes of 0x24 bytes) with the director and
-// queues the TIM; no camera animation):
-//   RootTask (0x5C9F80) - alternates the module packet arena (0x22FC21C on odd counters,
-//     0x22F421C on even ones, 0x8000 each; cursor 0x230421C), runs the effect queue, ends when it
-//     is empty.
-//   Director (0x5C9AE0) - one node, counter 0..0x23 (nothing in the draw-only mode): 0 = the
-//     caster's effect point (GetEffectSpawnPosition, bone selector 0xF1) into its node +0x10;
-//     1 = ShieldA (scale 0x2000, step 0x200) + sound 0xD39304 at the caster's default effect
-//     position; 6 = ShieldB (scale 0x700); 0x1E = the action result (action 0's targets).
-//     Both shields face the caster's direction (entity +0x0E).
-//   ShieldA (0x5C9C40) - counters 0..0xF: model 0xD348C4 600 units in front of the point,
-//     drawn through MAG_066's scroll renderer 0x650720 (header 0x90 bytes: v scroll -10 *
-//     counter, colour 0x808080, fade (4 - counter) << 10 below 4), scale - 0x200 per tick.
-//   ShieldB (0x5C9DD0) - counters 0..0x13: model 0xD34CE4 200 units in front, v scroll
-//     -6 * counter, colour = table 0xD3933C[counter % 10], fade in (4 - counter) << 10 below 4
-//     and out (counter - 0x10) << 10 from 0x10.
-// The shields draw THEN update (in the draw-only mode they only draw). The module writes no
-// entity and no camera word.
-// Module globals: 0x22F33C8..0x2304220 (target slot, root pool / queue, effect queue / pool,
-// context 0x22F4210, caster slot 0x22F4214, texture file 0x22F4218, the two packet arenas,
-// packet cursor 0x230421C).
-
 #include "mag_common.h"
 
 namespace ff8fx
@@ -52,7 +23,6 @@ namespace defend183
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x22F4210); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x22F4214); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x230421C); }
@@ -64,37 +34,30 @@ namespace defend183
 	static const uint32_t ORIG_ShieldA = 0x5C9C40;
 	static const uint32_t ORIG_ShieldB = 0x5C9DD0;
 	static const uint32_t MODEL_ShieldA = 0xD348C4, MODEL_ShieldB = 0xD34CE4;
-	static const uint32_t SHIELD_COLOURS = 0xD3933C;                          // 10 colour words (ShieldB)
+	static const uint32_t SHIELD_COLOURS = 0xD3933C;
 	static const void *const SOUND_Defend = (const void *)0xD39304;
 
-	// ---- engine functions (original addresses)
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect bone
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	// matrixMultiplyVector (0x56C4F0): SVECTOR out = rotation of m * SVECTOR in (in may be out)
 	inline void MatrixMultiplySVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	// MAG_066_RenderScrollPrimModel (0x650720): prim model with a v texture scroll (header 0x90 bytes)
 	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C
+		int16_t counter;
 		int16_t pad;
 	};
-	struct EffectNode // pool of 0x64 nodes of 0x24 bytes
+	struct EffectNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];      // +0x10 the caster's effect point (director: as GetEffectSpawnPosition wrote it)
-		int16_t angle;       // +0x18 shields: the caster's facing (entity +0x0E)
+		int16_t pos[4];
+		int16_t angle;
 		int16_t pad1A;
-		int16_t scale;       // +0x1C shields
-		int16_t step;        // +0x1E ShieldA: scale decrease per tick
+		int16_t scale;
+		int16_t step;
 		uint8_t pad20[4];
 	};
 #pragma pack(pop)
@@ -102,31 +65,27 @@ namespace defend183
 
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 
-	// ------------------------------------------------------------------
-	// Shield draw (both shields): the model `front` units ahead of the node's point along the
-	// facing, scaled, composed with the camera, drawn through the scroll renderer
-	// ------------------------------------------------------------------
 	struct ShieldDraw
 	{
 		uint32_t model;
-		int16_t front;       // offset along the facing (rotated z)
+		int16_t front;
 		int32_t scale;
-		int32_t scroll;      // header +0x14
-		bool fade_on;        // header +0x20 = 0xF3 (else 0x33)
-		int32_t fade;        // header +0x0C (only when fade_on)
-		uint32_t colour;     // header +0x24
-		bool b;              // ShieldB's header (+0x18 = 0x40), else ShieldA's (+0x1C = 0x40)
+		int32_t scroll;
+		bool fade_on;
+		int32_t fade;
+		uint32_t colour;
+		bool b;
 	};
 
 	static void DrawShield(const EffectNode *t, const ShieldDraw &d)
 	{
-		int16_t ang[4]; // (4th word never written)
+		int16_t ang[4];
 		ang[0] = 0;
 		ang[1] = t->angle;
 		ang[2] = 0;
-		Mat4x3 m; // (pad +0x12 never written in the original: GTE R33 high half only)
+		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
-		int16_t v[4]; // (4th word never written; the rotation reads / writes 3)
+		int16_t v[4];
 		v[0] = 0;
 		v[1] = 0;
 		v[2] = d.front;
@@ -182,7 +141,6 @@ namespace defend183
 		FieldFree(0x90);
 	}
 
-	// ShieldA's draw at a counter: fade (4 - counter) << 10 below 4, v scroll -10 * counter
 	static ShieldDraw ShieldAState(int16_t counter, int16_t scale)
 	{
 		ShieldDraw d;
@@ -197,8 +155,6 @@ namespace defend183
 		return d;
 	}
 
-	// ShieldB's draw at a counter: fade in below 4 / out from 0x10 ((4 - c) / (c - 0x10) << 10),
-	// v scroll -6 * counter, colour table entry counter % 10
 	static ShieldDraw ShieldBState(int16_t counter, int16_t scale)
 	{
 		ShieldDraw d;
@@ -223,13 +179,9 @@ namespace ff8fx
 {
 namespace defend183
 {
-	// ------------------------------------------------------------------
-	// ShieldA (0x5C9C40): counters 0..0xF, shrinking
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ShieldATask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		// 30 fps layer: see mag183_defend_held.inc
 		FX_HELD(held_note_shield(ORIG_ShieldA, t);)
 		DrawShield(t, ShieldAState(t->counter, t->scale));
 		if (DrawOnly()) return 0;
@@ -238,13 +190,9 @@ namespace defend183
 		return t->counter >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// ShieldB (0x5C9DD0): counters 0..0x13, colour cycling
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ShieldBTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		// 30 fps layer: see mag183_defend_held.inc
 		FX_HELD(held_note_shield(ORIG_ShieldB, t);)
 		DrawShield(t, ShieldBState(t->counter, t->scale));
 		if (DrawOnly()) return 0;
@@ -252,9 +200,6 @@ namespace defend183
 		return t->counter >= 0x14 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5C9AE0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		if (DrawOnly()) return 0;
@@ -290,15 +235,11 @@ namespace defend183
 		return t->counter > 0x23 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x5C9F80)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
 		PacketCursor() = ARENA1;
 		if (!(r->counter & 1)) PacketCursor() = ARENA0;
-		// 30 fps layer: see mag183_defend_held.inc
 		FX_HELD(held_note_root();)
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
@@ -312,7 +253,6 @@ namespace defend183
 		register_port(defend183::ORIG_Director, (void *)defend183::DirectorTask, "D183 Director", 183);
 		register_port(defend183::ORIG_ShieldA, (void *)defend183::ShieldATask, "D183 ShieldA", 183);
 		register_port(defend183::ORIG_ShieldB, (void *)defend183::ShieldBTask, "D183 ShieldB", 183);
-		// 30 fps layer: see mag183_defend_held.inc
 		FX_HELD(register_mag183_held();)
 	}
 }

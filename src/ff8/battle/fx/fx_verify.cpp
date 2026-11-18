@@ -14,29 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Differential verifier of the native effect code (FFNx.toml: ff8_battle_fx_verify).
-//
-// The battle effect tick (BdLink @0x50093A: ExecuteTaskQueue(C3_28_GF_data_pointer)) is
-// hooked. While the running effect has a module entry (fx_modules.cpp) and at least one
-// ported function, every real tick runs twice from one memory snapshot:
-//   A = the original code (ports off), every external engine call (fx_modules ext_sites:
-//       sound, loads, damage, engine task spawns, off-screen renders...) RECORDED: its
-//       arguments, return value, the x87 control word it left and the bytes it wrote
-//       inside the tracked memory;
-//   B = the same tick with the ports dispatched, the external calls REPLAYED from A (not
-//       executed again: sounds, loads and damage happen exactly once).
-// Tracked memory = the engine regions (magic buffer with the effect packet arenas, camera,
-// GTE registers, entity arrays...), the module's globals, extra cell and stream buffers,
-// the ordering-table span, the SSIGPU execution arena (OT nodes), the free part of the
-// frame packet arena, the Field_Alloc scratch, the CRT rand seed, and the header + node
-// pool of every task queue the tick runs, spawns into or initialises (a queue first seen
-// mid-tick is saved before it runs / before the task is added).
-// After B everything is compared: queue return value, external call sequence (sites and
-// verified arguments), then every tracked byte. Identical: B's result stays. Any difference:
-// the post-A state is put back, so the game always continues exactly as vanilla, and the
-// first difference is logged (at most MISMATCH_LOG_MAX lines per summon). B runs under SEH;
-// after FAULTS_MAX faults in one summon only the original code runs for the rest of it.
-// The hit-effect queue (0x500923) is not verified (no ports there).
+// Verifier of the native battle effects
 
 #include "fx_port.h"
 #include "fx_modules.h"
@@ -57,43 +35,35 @@ namespace
 	const uint32_t MISMATCH_LOG_MAX = 60;
 	const uint32_t FAULTS_MAX = 3;
 
-	int (__cdecl *g_tick_orig)(TaskQueue *) = nullptr; // the original tick call target
+	int (__cdecl *g_tick_orig)(TaskQueue *) = nullptr;
 	bool g_installed = false;
 
-	// ------------------------------------------------------------------ tracked memory
-	// Every range a tick may modify, snapshotted once (g_snap), saved after the original run
-	// (g_post) and copied before each recorded external call (g_scan, for its write log).
-	// All three buffers use the same offsets.
 	enum Kind : uint8_t { K_REGION, K_OT, K_ARENA, K_QHEADER, K_QPOOL };
-	enum Phase : uint8_t { PH_PRE, PH_A, PH_B }; // when the range became tracked
+	enum Phase : uint8_t { PH_PRE, PH_A, PH_B };
 	struct Entry
 	{
 		uint32_t addr, size, off;
 		Kind kind;
 		Phase phase;
 		const char *name;
-		TaskQueue *q;       // K_QHEADER / K_QPOOL
-		uint32_t node_size; // K_QPOOL
+		TaskQueue *q;
+		uint32_t node_size;
 	};
 	const int ENTRIES_MAX = 160;
-	// engine regions ~0x381400 (magic buffer 0x380000 once FFNx moved it) + module globals 0x20000 +
-	// streams 0x80000 + OT span 0x44CC + SSIGPU arena 0x60000 + frame packet window 0x40000 +
-	// scratch 0x1000 + pools 0x80000
 	const uint32_t BUF_SIZE = 0x580000;
-	const uint32_t POOL_MAX = 0x20000;          // one task queue's node storage
-	const uint32_t POOLS_TOTAL_MAX = 0x80000;   // all of them
-	const uint32_t FRAME_WINDOW_MAX = 0x40000;  // free part of the frame packet arena (0x1C000 / 0x24000)
+	const uint32_t POOL_MAX = 0x20000;
+	const uint32_t POOLS_TOTAL_MAX = 0x80000;
+	const uint32_t FRAME_WINDOW_MAX = 0x40000;
 	Entry g_ent[ENTRIES_MAX];
 	int g_nent = 0;
 	uint32_t g_used = 0, g_pools_used = 0;
 	uint8_t g_snap[BUF_SIZE], g_post[BUF_SIZE], g_scan[BUF_SIZE];
-	bool g_incomplete = false;       // the tick touched something that could not be tracked
+	bool g_incomplete = false;
 	char g_incomplete_msg[192];
 
 	Phase g_phase = PH_PRE;
-	bool g_tracking = false;         // A or B running: queues seen / spawned into get tracked
+	bool g_tracking = false;
 
-	// queues run by the current summon: tracked from the start of every later tick
 	TaskQueue *g_known[32];
 	int g_nknown = 0;
 
@@ -128,15 +98,13 @@ namespace
 
 	void note_known(TaskQueue *q)
 	{
-		if (g_phase == PH_B) return; // only what the original code runs
+		if (g_phase == PH_B) return;
 		for (int i = 0; i < g_nknown; i++) if (g_known[i] == q) return;
 		if (g_nknown < 32) g_known[g_nknown++] = q;
 	}
 
 	inline uint32_t pool_size(const TaskQueue *q) { return (uint32_t)(uint16_t)q->node_size * (uint16_t)q->capacity; }
 
-	// header + node storage of a task queue, before the tick changes them. pool == nullptr:
-	// the pool the header names (InitTaskQueuePool passes the new one, the header is not set yet)
 	void track_queue(TaskQueue *q, void *pool = nullptr, uint32_t size = 0, uint32_t node_size = 0)
 	{
 		if (!q) return;
@@ -158,13 +126,10 @@ namespace
 
 	uint32_t *crt_seed() { return (uint32_t *)(((uint8_t *(__cdecl *)())mod::CRT_TLS_FN)() + 0x14); }
 
-	// the magic buffer where the game has it now: FFNx moves it into its extended memory and
-	// patches these two getters (ff8_opengl.cpp, "Relocate effect buffer")
 	const uint32_t MAGIC_BUFFER_STATIC = 0x20DFAB8;
 	uint32_t magic_buffer() { return (uint32_t)((uint8_t *(__cdecl *)())0x571B50)(); }
 	uint32_t magic_buffer_size() { return ((uint32_t(__cdecl *)())0x571B60)(); }
 
-	// the ranges known before the tick runs
 	bool build_entries(const mod::Module &m)
 	{
 		g_nent = 0; g_used = 0; g_pools_used = 0;
@@ -179,16 +144,12 @@ namespace
 		add_entry(m.data_lo, m.data_hi - m.data_lo, K_REGION, "module globals");
 		if (m.extra) add_entry(m.extra, m.extra_size, K_REGION, "module extra cell");
 		for (int i = 0; i < m.nstreams; i++) add_entry(m.streams[i].addr, m.streams[i].size, K_REGION, "module stream/cell");
-		// ordering table span (render list header buckets + OT) and the OT nodes
 		uint32_t ot = *(uint32_t *)mod::RENDER_LIST_BASE_PTR;
 		if (ot) add_entry(ot, mod::OT_SPAN_WORDS * 4, K_OT, "ordering table");
 		add_entry(mod::SSIGPU_ARENA, mod::SSIGPU_ARENA_SIZE, K_ARENA, "SSIGPU execution arena");
-		// packets some effects allocate in the frame packet arena (cursor .. its limit)
 		uint32_t fcur = *(uint32_t *)mod::FRAME_PACKET_CUR_PTR, fend = *(uint32_t *)mod::FRAME_PACKET_END_PTR;
 		if (fcur && fend > fcur && fend - fcur <= FRAME_WINDOW_MAX && !IsBadReadPtr((void *)fcur, fend - fcur))
 			add_entry(fcur, fend - fcur, K_REGION, "frame packet arena");
-		// Field_Alloc scratch: effects allocate draw headers there and some engine calls read
-		// fields they never set, so the memory above the pointer is part of what a tick sees
 		uint32_t scratch = *(uint32_t *)mod::FIELD_ALLOC_PTR;
 		if (scratch && !IsBadReadPtr((void *)scratch, mod::FIELD_ALLOC_SCRATCH))
 			add_entry(scratch, mod::FIELD_ALLOC_SCRATCH, K_REGION, "Field_Alloc scratch");
@@ -197,8 +158,6 @@ namespace
 		return !g_incomplete;
 	}
 
-	// memory back to the snapshot (latest entries first: a range tracked mid-run inside an
-	// earlier one gets the earlier, pre-tick content)
 	void restore_snapshot()
 	{
 		for (int i = g_nent - 1; i >= 0; i--) memcpy_code(uint32_t((void *)g_ent[i].addr), g_snap + g_ent[i].off, g_ent[i].size);
@@ -209,8 +168,6 @@ namespace
 		for (int i = 0; i < g_nent; i++) memcpy_code(uint32_t(g_post + g_ent[i].off), (const void *)g_ent[i].addr, g_ent[i].size);
 	}
 
-	// what an entry must hold after B: its post-A content, or for a range only B touched,
-	// its pre-B content
 	inline const uint8_t *reference(const Entry &e) { return (e.phase == PH_B ? g_snap : g_post) + e.off; }
 
 	void put_back_A()
@@ -219,8 +176,6 @@ namespace
 		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase != PH_B) memcpy_code(uint32_t((void *)g_ent[i].addr), g_post + g_ent[i].off, g_ent[i].size);
 	}
 
-	// ------------------------------------------------------------------ x87 / stack
-	// x87 control word (precision, rounding, exception masks) through the CRT, x87 only (no SSE)
 	inline unsigned int x87_cw()
 	{
 		unsigned int cw = 0;
@@ -236,21 +191,17 @@ namespace
 		_fpreset();
 	}
 
-	// Original code reads some locals it never initialised (padding of vectors, unused 4th
-	// words...). Both runs must see the same stack bytes, or those reads make them diverge
-	// without any port being wrong: the stack below the harness is zeroed before each run.
 	__declspec(noinline) void scrub_stack()
 	{
 		volatile uint8_t buf[0x10000];
 		SecureZeroMemory((void *)buf, sizeof(buf));
 	}
 
-	// ------------------------------------------------------------------ external call sites
 	enum { EXT_OFF = 0, EXT_RECORD, EXT_REPLAY };
 	enum { OBS_NONE = 0, OBS_ADD_TASK, OBS_INIT_POOL };
 	struct Site { uint32_t addr; int arity; const char *name; int observe; void *stub; uint8_t saved[5]; bool patched; };
 	struct Call { int site; uint32_t args[6]; uint32_t ret; uint32_t w_off, w_len; unsigned int cw_after; };
-	const int SITES_MAX = 128; // (70 ext sites registered)
+	const int SITES_MAX = 128;
 	const int CALLS_MAX = 256;
 	const uint32_t WLOG_SIZE = 0x100000;
 	Site g_sites[SITES_MAX];
@@ -312,7 +263,6 @@ namespace
 		for (int i = 0; i < g_nent; i++) memcpy_code(uint32_t(g_scan + g_ent[i].off), (const void *)g_ent[i].addr, g_ent[i].size);
 	}
 
-	// tracked bytes that differ from the pre-call copy -> write log (addr, len, bytes)
 	uint32_t diff_to_wlog()
 	{
 		uint32_t start = g_wlog_used;
@@ -344,8 +294,6 @@ namespace
 		const Site &s = g_sites[site];
 		if (s.observe)
 		{
-			// task queue bookkeeping: track the queue before it changes (not inside a recorded
-			// external call: what that call does is its own, replayed as a whole)
 			if (g_tracking && !(g_mode == EXT_RECORD && g_depth > 0))
 			{
 				TaskQueue *q = (TaskQueue *)args[0];
@@ -356,7 +304,7 @@ namespace
 		}
 		if (g_mode == EXT_RECORD)
 		{
-			if (g_depth > 0) return call_through(site, args); // nested inside a recorded call: part of it
+			if (g_depth > 0) return call_through(site, args);
 			if (g_ncalls >= CALLS_MAX) { g_calls_overflow = true; return call_through(site, args); }
 			g_depth++;
 			scan_copy();
@@ -386,7 +334,7 @@ namespace
 			if (!same && !g_call_msg[0])
 				_snprintf_s(g_call_msg, sizeof(g_call_msg), _TRUNCATE, "call #%d: original %s(%08X, %08X, %08X), port %s(%08X, %08X, %08X)",
 					g_replay_i - 1, g_sites[c.site].name, c.args[0], c.args[1], c.args[2], s.name, args[0], args[1], args[2]);
-			x87_set_cw(c.cw_after); // the FPU mode the real call left
+			x87_set_cw(c.cw_after);
 			for (uint32_t o = c.w_off; o < c.w_off + c.w_len;)
 			{
 				uint32_t addr = *(uint32_t *)(g_wlog + o), len = *(uint32_t *)(g_wlog + o + 4);
@@ -398,15 +346,12 @@ namespace
 		return call_through(site, args);
 	}
 
-	// ------------------------------------------------------------------ queue callback
 	void on_queue_seen(TaskQueue *q)
 	{
 		if (!g_tracking || (g_mode == EXT_RECORD && g_depth > 0)) return;
 		track_queue(q);
 	}
 
-	// ------------------------------------------------------------------ comparison
-	// first differing byte of the tracked memory (port run vs reference); 0 if none
 	int describe_memory_diff(char *msg, size_t n)
 	{
 		int first = -1, ndiff_entries = 0;
@@ -441,7 +386,6 @@ namespace
 				*(const uint32_t *)ref, *(const uint32_t *)(ref + 4), *(const uint32_t *)cur, *(const uint32_t *)(cur + 4));
 		if (k < 0) return (int)strlen(msg);
 		o += k;
-		// inside a task pool (often part of the magic buffer): name the node and its task
 		for (int r = 0; r < g_nent; r++)
 		{
 			const Entry &p = g_ent[r];
@@ -456,15 +400,11 @@ namespace
 		return o;
 	}
 
-	// Words the original fills with stack garbage and nothing ever reads: the port cannot know
-	// them, so the port run takes the original's value before the comparison.
-	// GTE control register 4 high half (R33 pad): ComposeAffineTransform (0x56C2F0) leaves the
-	// pad word of its result matrix uninitialised and GteSetRotMatrix copies it here.
 	void adopt_unread_garbage()
 	{
-		static const uint32_t words[] = { 0x1CA928E, // GTE control register pad (R33)
-			0x1CA8A16, 0x1CA8A1E, 0x1CA8A26,    // GTE data VZ0..VZ2 upper halves (never read)
-			0xB8B7F6, 0xB8B7FE };               // battle camera eye / look-at pad words (never read)
+		static const uint32_t words[] = { 0x1CA928E,
+			0x1CA8A16, 0x1CA8A1E, 0x1CA8A26,
+			0xB8B7F6, 0xB8B7FE };
 		for (uint32_t a : words)
 			for (int i = 0; i < g_nent; i++)
 			{
@@ -493,7 +433,6 @@ namespace
 		return describe_memory_diff(msg, sizeof(msg)) > 0 ? msg : nullptr;
 	}
 
-	// ------------------------------------------------------------------ guarded port run
 	uint32_t g_fault_code = 0, g_fault_addr = 0;
 	int fault_filter(EXCEPTION_POINTERS *ep)
 	{
@@ -508,10 +447,6 @@ namespace
 		return true;
 	}
 
-	// ------------------------------------------------------------------ summon statistics
-	// ------------------------------------------------------------------ mismatch diagnostics
-	// Every differing tracked range (not only the first): name, address, first offset, bytes
-	// differing, and 16 bytes of original vs port at the first difference.
 	void log_all_diffs(const char *mname, uint32_t tick)
 	{
 		int shown = 0;
@@ -539,9 +474,6 @@ namespace
 	const int FULL_DUMPS_MAX = 3;
 	int g_full_dumps = 0;
 
-	// ffnx_fx_dumps\<module>_e<id>_t<tick>.bin: "FXD1", entry count, then per entry
-	// {addr, size, phase, kind, name[32]}, then per entry: before-tick bytes, after-original
-	// bytes, after-port bytes. Called with the port's result in memory.
 	void write_state_dump(const mod::Module &m, int effect_id, uint32_t tick, TaskQueue *q)
 	{
 		CreateDirectoryA("ffnx_fx_dumps", nullptr);
@@ -571,7 +503,6 @@ namespace
 		}
 		if (g_full_dumps >= FULL_DUMPS_MAX) return;
 		g_full_dumps++;
-		// full process memory with the tracked ranges put back to their state BEFORE the tick
 		restore_snapshot();
 		_snprintf_s(path, sizeof(path), _TRUNCATE, "%s.dmp", base);
 		HANDLE h = CreateFileA(path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -625,7 +556,6 @@ namespace
 		return r;
 	}
 
-	// ------------------------------------------------------------------ one verified tick
 	int verified_tick(TaskQueue *q, const mod::Module &m)
 	{
 		g_s.verified++;
@@ -637,7 +567,6 @@ namespace
 			return run_original_only(q);
 		}
 
-		// --- A: original code, external calls recorded ---
 		g_ncalls = 0; g_calls_overflow = false;
 		g_wlog_used = 0; g_wlog_overflow = false;
 		g_phase = PH_A;
@@ -660,7 +589,6 @@ namespace
 		save_post();
 		if (g_wlog_overflow || g_calls_overflow || g_incomplete)
 		{
-			// this tick cannot be replayed/compared faithfully: A stays as it is
 			g_s.skipped++;
 			if (g_s.logged < MISMATCH_LOG_MAX)
 			{
@@ -672,7 +600,6 @@ namespace
 			return ra;
 		}
 
-		// --- B: ports, external calls replayed ---
 		restore_snapshot();
 		g_phase = PH_B;
 		g_replay_i = 0;
@@ -683,14 +610,12 @@ namespace
 		set_ports(true);
 		patch_all(true);
 		scrub_stack();
-		// the FPU control word is part of the state: the GTE emulation rounds with x87 maths,
-		// and the original run's real engine calls (sound, loader) can change it mid-tick
 		x87_set_cw(cw_a0);
 		int rb = 0;
 		bool ok = run_guarded(q, &rb);
-		if (!ok) x87_reset(); // a fault can leave values on the x87 stack
+		if (!ok) x87_reset();
 		unsigned int cw_b1 = x87_cw();
-		x87_set_cw(cw_a1); // leave the FPU as the original run left it
+		x87_set_cw(cw_a1);
 		patch_all(false);
 		g_mode = EXT_OFF;
 		g_queue_seen = nullptr;
@@ -729,7 +654,6 @@ namespace
 		return ra;
 	}
 
-	// ------------------------------------------------------------------ the effect tick hook
 	int __cdecl effect_tick(TaskQueue *q)
 	{
 		int id = *(int *)mod::EFFECT_ID_PTR + 1;
@@ -737,7 +661,7 @@ namespace
 		if (!m || !module_ported(id))
 		{
 			if (g_s.m) summon_end();
-			return g_tick_orig(q); // plain dispatch
+			return g_tick_orig(q);
 		}
 		if (g_s.m != m || g_s.q != q) { summon_end(); summon_begin(m, q, id); }
 		int r;
@@ -748,7 +672,7 @@ namespace
 		}
 		else r = verified_tick(q, *m);
 		g_s.ticks++;
-		if (r == 0) summon_end(); // queue empty: the effect is over
+		if (r == 0) summon_end();
 		return r;
 	}
 }
@@ -760,7 +684,6 @@ namespace
 		void *stubs[SITES_MAX];
 		fill_stubs(stubs, std::make_integer_sequence<int, SITES_MAX>{});
 		g_nsites = 0;
-		// task queue bookkeeping (a queue is tracked before a task is added / its pool initialised)
 		g_sites[g_nsites++] = { 0x508360, 0, "AddTaskToQueue", OBS_ADD_TASK };
 		g_sites[g_nsites++] = { 0x508300, 0, "InitTaskQueuePool", OBS_INIT_POOL };
 		for (int i = 0; i < mod::ext_site_count && g_nsites < SITES_MAX; i++)

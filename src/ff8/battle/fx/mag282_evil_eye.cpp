@@ -14,39 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 282: Evil-Eye (enemy attack 152 of kernel.bin; Gargantua c0m094; MAG_282_*).
-//
-// Structure (setup 0x67D400 -> _Init 0x67D430, file loader 0x67D410 = mag282.tim (name at 0x109EAAC) into 0x2507E90; _Init
-// queues the TIM, draws one CRT rand into 0x2507EF8 (never read), keeps the context and the CASTER's entity (0x2507E98), sets
-// up the master queue 0x2507ED0 (pool 0x2507EE0, 1 x 0x14) and starts camera animation 0x10A2F54):
-//   MasterTask (0x67D4C0) - alternates the packet arena (magic buffer + 0x162C / + 0x1162C), clears the screen-flash level
-//     (0x2507EFC); on counter 1 (once) sets up the pools (main 1 x 0x564 at + 0xEC8, hits 3 x 0x198 at + 0xA00, sparks 0x80 x
-//     0x14 at + 0) and starts the main task (action 0's targets, eye layout 0x10A0558). Then: the effect camera (0x67AAE0:
-//     the battle camera orthonormalised into 0x2507F08), the main, hit and spark queues; the screen flash at the level (0x5713E0,
-//     every tick); ends when the three queues are empty.
-//   MainTask (0x67D680) - counters 2..27: the eye layout at the caster's bone 3 point (0, -0x5DC... at 0x10A3018, through the
-//     caster's world matrix x its bone matrix, 0x67DAC0) in RotY(-caster facing), composed with the camera (depth -0x80); from
-//     counter 42 the flash level 275 x (49 - counter), before that 0x898; counter 5: 0x5712C0 (0, 1, 0, 0x60); sound 0x10A2F50
-//     at counter 2; counter 10: a hit task per target (its effect spawn point 0xF1, layout 0x109EC64); after counter 48 the
-//     action result of every target (0x506BA0) and the flash level 0.
-//   HitTask (0x67DB20) - its layout at its point (RotY(0), camera composed, depth -0x80); ends with the layout; while the
-//     layout's play returns < 0x1C and a multiple of 4: a spark at a random bone of its target (CRT rand: bone x the bone count
-//     >> 15, retried while the bone's word +0 is negative; Shotgun's 0x67E550).
-//   SparkTask (0x67DC60) - sequence 0x109EAB8 through the shadow-rotation camera (0x800, -0x200), frame = its counter; rises by
-//     10 a tick; 16 frames.
-//   PrimCallback (0x67D820) - one layout object (flag 0x40000: rotation 0x7015B0; flag 0x1000: the offset through the effect
-//     camera, composed with it; else Shotgun's), drawn by 0x7043B0.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update).
-// ENTITY WRITES: the targets' action results (engine). No entity word is written (caster +0x0E / +0x40 / bones and the targets'
-// bones only read).
-// CAMERA: the setup's camera animation 0x10A2F54 (engine); no camera word is written by the tasks (0x2507F08 is the module's).
-// Module globals: 0x2507E90..0x2507F28 (texture file 0x2507E90, context 0x2507E94, caster 0x2507E98, the queues 0x2507EA0
-// sparks / 0x2507EB0 hits / 0x2507EC0 main / 0x2507ED0 master, master pool 0x2507EE0, packet cursor 0x2507EF4, setup rand
-// 0x2507EF8, flash level 0x2507EFC, magic buffer base 0x2507F00, effect camera 0x2507F08).
-// STACK WORDS: none read: the 4th words of the vectors loaded into GTE V0 (the callback's record offset, the bone point's
-// offset table entry = its bone) reach the GTE's VZ0 high half (0x1CA8A16) only. The hit task reuses its argument slot as
-// its spark loop counter (the executor never reads that slot again).
+// Effect 282: Evil-Eye
 
 #include "mag_common.h"
 
@@ -57,90 +25,83 @@ namespace evileye282
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2507E94); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507E98); }        // caster entity (setup)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507EA0; }         // pool: magic buffer, 0x80 x 0x14
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2507EB0; }           // pool: + 0xA00, 3 x 0x198
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507EC0; }           // pool: + 0xEC8, 1 x 0x564
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507E98); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507EA0; }
+	inline TaskQueue *QHits() { return (TaskQueue *)0x2507EB0; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2507EC0; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507EF4); }
 	inline uint32_t &FlashLevel() { return var<uint32_t>(0x2507EFC); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507F00); }        // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x2507F08); }             // the battle camera orthonormalised (0x67AAE0)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2507F00); }
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x2507F08); }
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
 	static const uint32_t ORIG_MasterTask = 0x67D4C0;
 	static const uint32_t ORIG_MainTask = 0x67D680;
 	static const uint32_t ORIG_HitTask = 0x67DB20;
 	static const uint32_t ORIG_SparkTask = 0x67DC60;
-	static const uint32_t ORIG_PrimCallback = 0x67D820;   // not a task: the layouts' callback
+	static const uint32_t ORIG_PrimCallback = 0x67D820;
 	static const uint32_t POOL_Hits = 0xA00, POOL_Main = 0xEC8;
-	static const uint32_t MORPH = 0x142C;                // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x162C, ARENA_B = 0x1162C; // magic buffer: packet arenas
-	static const uint32_t MODEL_Eye = 0x10A0558;         // prim-model layouts
+	static const uint32_t MORPH = 0x142C;
+	static const uint32_t ARENA_A = 0x162C, ARENA_B = 0x1162C;
+	static const uint32_t MODEL_Eye = 0x10A0558;
 	static const uint32_t MODEL_Hit = 0x109EC64;
-	static const uint32_t SEQ_Spark = 0x109EAB8;         // sprite sequence
-	static const int16_t *const EYE = (const int16_t *)0x10A3018; // the eye point (offset, bone)
+	static const uint32_t SEQ_Spark = 0x109EAB8;
+	static const int16_t *const EYE = (const int16_t *)0x10A3018;
 	static const void *const SOUND_Eye = (const void *)0x10A2F50;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply: b.rot = a.rot x b.rot
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }                // Effect_RotationYMatrix
-	inline void OrthonormalizeCamera(const Mat4x3 *in, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x67AAE0)(in, out); } // MAG_069_OrthonormalizeCameraMatrix
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void OrthonormalizeCamera(const Mat4x3 *in, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x67AAE0)(in, out); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2507EE0)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x564 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t ntargets;  // +0x0E action 0's target count
-		uint8_t *ent[3];   // +0x10 the targets' entities
-		uint8_t eye[0x548]; // +0x1C eye layout
+		int16_t counter;
+		int16_t ntargets;
+		uint8_t *ent[3];
+		uint8_t eye[0x548];
 	};
-	struct HitNode // pool of 3 nodes of 0x198 bytes
+	struct HitNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C the target's effect spawn point
-		int16_t pad12;     // +0x12 0
-		uint8_t *ent;      // +0x14 the target's entity
-		uint8_t layout[0x180]; // +0x18
+		int16_t pos[3];
+		int16_t pad12;
+		uint8_t *ent;
+		uint8_t layout[0x180];
 	};
-	struct SparkNode // pool of 0x80 nodes of 0x14 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t counter;   // +0x12 flipbook frame
+		int16_t pos[3];
+		int16_t counter;
 	};
-	// the prim-player callback's parameter block (a stack block of the drawing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 object frame (camera composed in)
-		int32_t depth;     // +0x20 the prim header's +0x18
-		uint32_t morph;    // +0x24 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0x564 && sizeof(HitNode) == 0x198 && sizeof(SparkNode) == 0x14, "Evil-Eye nodes");
 	static_assert(sizeof(PrimArg) == 0x28, "Evil-Eye prim block");
 
-	// 0x67DAC0: the offset v (word +3 = bone) through the caster's world matrix x its bone matrix -> out (3 int32)
 	static void BonePoint(const int16_t *v, int32_t *out)
 	{
 		uint8_t *c = Caster();
@@ -153,8 +114,6 @@ namespace evileye282
 		GteReadMAC123(out);
 	}
 
-	// 0x67E550 (Shotgun 281's MAG_281_Shotgun_RandomBonePoint, called across modules): bone idx of the entity in world space (out:
-	// 3 words); 1 = the bone's word +0 is negative (no point, out untouched)
 	static int RandomBonePoint(uint8_t *ent, int32_t idx, int16_t *out)
 	{
 		int32_t *blk = (int32_t *)FieldAlloc(0x14);
@@ -174,7 +133,6 @@ namespace evileye282
 		return 0;
 	}
 
-	// the eye layout's parameter block: RotY(-caster facing) at the eye point, composed with the camera
 	static void EyeArg(PrimArg *arg)
 	{
 		RotY(-*(const int16_t *)(Caster() + 0xE), &arg->m);
@@ -184,7 +142,6 @@ namespace evileye282
 		arg->depth = -0x80;
 	}
 
-	// the hit layout's parameter block: RotY(0) at the hit's point, composed with the camera
 	static void HitArg(const HitNode *h, PrimArg *arg)
 	{
 		RotY(0, &arg->m);
@@ -217,12 +174,6 @@ namespace ff8fx
 {
 namespace evileye282
 {
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x67D820): one object of a layout. Vertex frame (or blend into the parameter block's morph buffer),
-	// rotation from the record's angles (flag 0x40000: 0x7015B0), the record's offset: flag 0x1000 through the effect camera
-	// (composed with it unless flag 0x8000), flag 0x200 as is, else through the parameter matrix (composed with it unless flag
-	// 0x8000); + the parameter matrix's translation, scale (scale3DMatrix), fade, drawn by 0x7043B0
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -261,7 +212,6 @@ namespace evileye282
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesYXZ(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x1000)
 		{
@@ -311,13 +261,9 @@ namespace evileye282
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x67DC60)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		// 30 fps layer: see mag282_evil_eye_held.inc
 		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->pos[1] = (int16_t)(s->pos[1] - 0xA);
@@ -325,15 +271,11 @@ namespace evileye282
 		return s->counter < 0x10 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Hit (0x67DB20)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl HitTask(TaskNode *n)
 	{
 		HitNode *h = (HitNode *)n;
 		PrimArg arg;
 		HitArg(h, &arg);
-		// 30 fps layer: see mag282_evil_eye_held.inc
 		FX_HELD(held_note_hit(h);)
 		const int left = prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0);
 		if (!left) return TASK_END;
@@ -353,9 +295,6 @@ namespace evileye282
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x67D680)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
@@ -366,7 +305,6 @@ namespace evileye282
 		{
 			PrimArg arg;
 			EyeArg(&arg);
-			// 30 fps layer: see mag282_evil_eye_held.inc
 			FX_HELD(held_note_eye(m);)
 			prim::play((prim::Layout *)m->eye, PrimCallback, (int)&arg, 0);
 		}
@@ -395,13 +333,9 @@ namespace evileye282
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x67D4C0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *mn = (MasterNode *)n;
-		// 30 fps layer: see mag282_evil_eye_held.inc
 		FX_HELD(held_note_master();)
 		if (mn->arena)
 		{
@@ -448,7 +382,6 @@ namespace evileye282
 		register_port(evileye282::ORIG_MainTask, (void *)evileye282::MainTask, "282 MainTask", 282);
 		register_port(evileye282::ORIG_HitTask, (void *)evileye282::HitTask, "282 HitTask", 282);
 		register_port(evileye282::ORIG_SparkTask, (void *)evileye282::SparkTask, "282 SparkTask", 282);
-		// 30 fps layer: see mag282_evil_eye_held.inc
 		FX_HELD(register_mag282_held();)
 	}
 }

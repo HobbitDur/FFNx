@@ -13,24 +13,11 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// GF cinematic engine (Ifrit 201, Leviathan 006, Bahamut 202, Cerberus 203, Alexander 204,
-// Brothers 205, Eden 206): native port, bit-exact against the Ifrit clone (see gfc_engine.h).
-// Parts, in order: core (tick, context, channel schedulers, integrator + bone handlers, draw
-// dispatcher, InitBones, clone tables), VM opcodes
-// (vm_a .. vm_d), mesh draw handlers + DrawMeshObject (draw_mesh), primitive renderers
-// (draw_prim), sprites + particle system (draw_sprite). Every port names its original Ifrit
-// address; listings: gf_study/tools/ff8dis.py.
+
+// Engine of the cinematic GFs
 
 #include "gfc_engine.h"
 #include <intrin.h>
-
-// ============================================================================================
-// part core
-// ============================================================================================
-// ============================================================================================
-// core: context binding, the task tick, the VM channel schedulers, the integrator and its bone
-// handlers, the draw dispatcher, InitBones.
-// ============================================================================================
 
 namespace ff8fx
 {
@@ -45,10 +32,6 @@ namespace gfc
 
 namespace part_core
 {
-	// ----------------------------------------------------------------------------------------
-	// 0xB26010 (Ifrit GF_201Ifrit_DebugPadRootControl): developer free camera, only with
-	// ctx->flags & 0x8000; ctx+0x4C = debug mode bits, ctx+0x40 = pad bits.
-	// ----------------------------------------------------------------------------------------
 	static int32_t DebugPadRootControl()
 	{
 		uint8_t *ctx = CTX();
@@ -79,11 +62,6 @@ namespace part_core
 		return 0;
 	}
 
-	// ----------------------------------------------------------------------------------------
-	// Bone handlers (BoneHandlerTable[bone+0x18], called by the integrator after the
-	// accumulators were integrated): they produce outPos (+0x94/96/98).
-	// ----------------------------------------------------------------------------------------
-	// 0xB262E0 (bone 0, 1): outPos = HIWORD(accumPos)
 	static void __cdecl bh_00_AccumPos()
 	{
 		S16(CUR(), 0x94) = (int16_t)(S32(CUR(), 0x5C) >> 16);
@@ -91,7 +69,6 @@ namespace part_core
 		S16(CUR(), 0x98) = (int16_t)(S32(CUR(), 0x64) >> 16);
 	}
 
-	// 0xB26320 (bone 5): outPos = outPos of the bone referenced by *(s16 *)(bone+0xA0)
 	static void __cdecl bh_05_CopyBone()
 	{
 		uint8_t *o = blob::GetBone(S16(PTR(CUR(), 0xA0), 0));
@@ -100,8 +77,6 @@ namespace part_core
 		S16(CUR(), 0x98) = S16(o, 0x98);
 	}
 
-	// 0xB26380 (bone 7): outPos = referenced bone's outPos + HIWORD(accumPos) (no-op without
-	// a reference pointer)
 	static void __cdecl bh_07_BonePlusAccum()
 	{
 		uint8_t *ref = PTR(CUR(), 0xA0);
@@ -112,8 +87,6 @@ namespace part_core
 		S16(CUR(), 0x98) = (int16_t)((S32(CUR(), 0x64) >> 16) + S16(o, 0x98));
 	}
 
-	// 0xB263F0 (bone 3): polar around the bone S16(bone+0xB0): radius = accumPosX >> 8,
-	// angle = HIWORD(accumPosZ), height = HIWORD(accumPosY)
 	static void __cdecl bh_03_Polar()
 	{
 		uint8_t *o = blob::GetBone(S16(CUR(), 0xB0));
@@ -125,8 +98,6 @@ namespace part_core
 		S16(CUR(), 0x96) = (int16_t)((S32(CUR(), 0x60) >> 16) + S16(o, 0x96));
 	}
 
-	// 0xB264B0 (bone 6): outPos = lerp(boneA.outPos, boneB.outPos, HIWORD(accumRot)/256) +
-	// HIWORD(accumPos); A/B = *(s16 *)(bone+0xA0) [0] / [1]
 	static void __cdecl bh_06_LerpBones()
 	{
 		const uint8_t *refs = PTR(CUR(), 0xA0);
@@ -141,17 +112,10 @@ namespace part_core
 		}
 	}
 
-	// 0xB265B0 (bone 9): follows a joint of a battle entity: entity = SceneHeader+0x60 +
-	// 4 * bone[0x1B]; per axis (mask bits 0x1000/0x800/0x400 of *(s16 *)bone+0xA0) outPos =
-	// HIWORD(accumPos) + joint[axis] * scale / 256 (joint words at +8/+A/+C, scale at +2 of
-	// the first record of entity+0x64), else HIWORD(accumPos)
-	// 30 fps: while the held layer predicts the next tick, the joint words are those of the entity's
-	// NEXT animation frame (held_entity_next_root)
 	static void __cdecl bh_09_EntityJoint()
 	{
 		uint8_t *bone = CUR();
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * U8(bone, 0x1B));
-		// 30 fps layer: see gfc_engine_held.inc (held_entity_next_root)
 		FX_HELD(if (held_predicting()) held_entity_next_root(ent);)
 		int32_t px = S32(bone, 0x5C) >> 16;
 		uint8_t *rec = PTR(PTR(ent, 0x64), 0);
@@ -167,13 +131,6 @@ namespace part_core
 		else S16(bone, 0x98) = (int16_t)pz;
 	}
 
-	// ----------------------------------------------------------------------------------------
-	// VM channel scheduler (0xB2FCF0 Neg / 0xB30110 Pos): for every bone of the order list
-	// (frozen bones skipped while rt->boneSkipFlag, unless marked 0x80), for each of its three
-	// channels whose stream pointer is < 0 (Neg) / > 0 (Pos): count its wait down by the bone's
-	// wait speed, or run opcodes until one requests a wait (rt->vmWaitRequest), which is added
-	// to the channel wait minus the speed; the stream pointer is stored back.
-	// ----------------------------------------------------------------------------------------
 	template<bool NEG>
 	static void AnimChannels()
 	{
@@ -233,11 +190,6 @@ namespace part_core
 		}
 	}
 
-	// ----------------------------------------------------------------------------------------
-	// 0xB26110 AnimIntegrator: per bone (freeze rules as above): vel += accel << 12 (rotation
-	// if flags & 1, position if flags & 8), accum += vel, outAngle = HIWORD(accumRot), then
-	// BoneHandlerTable[bone+0x18] builds outPos.
-	// ----------------------------------------------------------------------------------------
 	static void Integrator()
 	{
 		U8(RT(), 0x44) = 0;
@@ -281,13 +233,6 @@ namespace part_core
 		}
 	}
 
-	// ----------------------------------------------------------------------------------------
-	// 0xB2ABE0 BuildMatricesAndDraw (Ifrit/Leviathan "lit" variant; the other five clones are the
-	// same without the light block): for every bone of the draw list: render-list cursor from
-	// bone+0x48, light set g_GfCinematic_BoneMatrixTable[bone+0xE1 & 0xF] into the GTE (colour
-	// matrix, back colour, light matrix [x parent node if bit 7] scaled by the bone colour
-	// bytes x 32), alternate packet pool when bone+0x4C & 1, then DrawHandlerTable[bone+0x1C].
-	// ----------------------------------------------------------------------------------------
 	static void Dispatch()
 	{
 		U32(WS(), 0) = 0;
@@ -350,12 +295,6 @@ namespace part_core
 	}
 }
 
-	// ============================================================================================
-	// exported engine functions
-	// ============================================================================================
-
-	// 0xB25830 (au_re_bs_modulo_53): Workspace (0x100) + RuntimeSlot (0x80) on the battle scratch
-	// stack, pointers reloaded from the module's static pointer block
 	void BindContext()
 	{
 		uint8_t *a = (uint8_t *)x::FieldAlloc(0x180);
@@ -377,7 +316,6 @@ namespace part_core
 		SEQ() = (uint8_t *)pb[4];
 	}
 
-	// 0xB258C0 (GetSequenceStatus)
 	void ReleaseContext() { x::FieldFree(0x180); }
 
 	void AnimChannelsNeg() { part_core::AnimChannels<true>(); }
@@ -385,8 +323,6 @@ namespace part_core
 	void AnimIntegrator() { part_core::Integrator(); }
 	void BuildMatricesAndDraw() { part_core::Dispatch(); }
 
-	// 0xB2F8F0 GF_Ifrit_InitBones: bone array from the .01 file, order/draw lists cleared,
-	// scene defaults, root program on bone 0, battle entity tables copied from 0x1D972C0..
 	int32_t h_B2F8F0()
 	{
 		U32(SEQ(), 8) = 0x80000000;
@@ -447,9 +383,6 @@ namespace part_core
 		return 0;
 	}
 
-	// 0xB2FC20: cast context -> scene: caster (SceneHeader+0x44), target list (SceneHeader+0x48..,
-	// bit set dedup, SceneHeader+0xCC[target] = slot), entity words 0x1D972C0 step 0x9C ->
-	// SceneHeader+0x4E.., bone+0x1B = first target, SceneHeader+0x41 = target count
 	int32_t h_B2FC20()
 	{
 		uint8_t *ctx = CTX();
@@ -486,14 +419,9 @@ namespace part_core
 		return 0;
 	}
 
-	// ----------------------------------------------------------------------------------------
-	// 0xB25DF0 GF_<x>_SequenceTick (Ifrit "GF_Ifrit_seqBDlink"): the only task of the effect
-	// queue. Returns 2 (end) once SequenceState+0xA bit 15 is clear.
-	// ----------------------------------------------------------------------------------------
 	uint32_t SequenceTick(Clone &c)
 	{
 		g_clone = &c;
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(held_note_tick();)
 		BindContext();
 		S16(CTX(), 0x32) = (int16_t)(S16(CTX(), 0x32) + 1);
@@ -531,15 +459,11 @@ namespace part_core
 		BuildMatricesAndDraw();
 		x::ParseCamera2(PROJH());
 		PKTCUR() = U32(CTX(), 0x7C);
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(held_note_scratch();)
 		ReleaseContext();
 		return (~(uint32_t)U16(SEQ(), 0xA) >> 14) & 2;
 	}
 
-	// ============================================================================================
-	// port tables
-	// ============================================================================================
 	static void __cdecl noop() {}
 
 	void fill_core(Generic &g)
@@ -569,9 +493,6 @@ namespace part_core
 		fill_draw_sprite(g_generic);
 	}
 
-	// port of one original table entry: stub (C3) -> no-op, clone-specific (exception) or not
-	// ported -> original address, else the generic port; non-code values stay raw (vanilla
-	// would call them)
 	static VoidFn port_of(uint32_t orig, VoidFn gen, int tid, int index, const Exception *ex, int nex)
 	{
 		if (orig == 0) return nullptr;
@@ -596,11 +517,8 @@ namespace part_core
 	{
 		fill_generic();
 		if (!find_clone(c.effect_id) && g_nclones < 16) g_clones[g_nclones++] = &c;
-		// opcodes past the table's 0x147 entries read whatever follows it, as vanilla does
 		for (int i = 0; i < 0x200; i++)
 			c.vm[i] = port_of(*(const uint32_t *)(c.vm_table + 4 * i), i < 0x147 ? g_generic.vm[i] : nullptr, 0, i, ex, nex);
-		// the handler block bone_table .. : bone handlers, prim renderers, (prim sizes), sprite
-		// orientations, particle types, particle opcodes, then the draw table
 		struct Sub { uint32_t base; int count; int tid; VoidFn const *gen; } subs[] = {
 			{ c.bone_table, c.bone_count, 1, g_generic.bone },
 			{ c.prim_table, 60, 2, g_generic.prim },
@@ -634,54 +552,29 @@ namespace part_core
 }
 }
 
-// ============================================================================================
-// part vm_a
-// ============================================================================================
-// part vm_a: flow control, sound/stream/music, file loads, embedded model, particle pool,
-// battle camera / battle entity opcodes of the GF cinematic VM (Ifrit 201 reference addresses).
-
-
 namespace ff8fx
 {
 namespace gfc
 {
 namespace part_vm_a
 {
-	// ------------------------------------------------------------------------------------
-	// globals used by this part
-	// ------------------------------------------------------------------------------------
-	// engine block
-	inline uint8_t &LoadBusy() { return MEM<uint8_t>(0x2798219); }   // file load in flight (0xFF), cleared by the load callback
-	inline uint8_t &LoadDone() { return MEM<uint8_t>(0x2798218); }   // a8def.tim loader idle / load-completed flag
-	// battle globals (outside the engine state block; 30 fps layer: every write is preceded by
-	// FX_HELD(guard(...)), see gfc_engine_held.h)
+	inline uint8_t &LoadBusy() { return MEM<uint8_t>(0x2798219); }
+	inline uint8_t &LoadDone() { return MEM<uint8_t>(0x2798218); }
 	inline uint8_t &Byte1D96DC4() { return MEM<uint8_t>(0x1D96DC4); }
-	inline uint32_t &Ptr1D99A88() { return MEM<uint32_t>(0x1D99A88); } // MAGIC_TEXTURE_BUFFER_PTR (read only here)
-	inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(0xB8B7F0 + 4 * i); } // battle camera block 0xB8B7F0..0xB8B80F as dwords
+	inline uint32_t &Ptr1D99A88() { return MEM<uint32_t>(0x1D99A88); }
+	inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(0xB8B7F0 + 4 * i); }
 	inline uint16_t &Word1D977A0() { return MEM<uint16_t>(0x1D977A0); }
 	inline uint16_t &Word1D977A2() { return MEM<uint16_t>(0x1D977A2); }
 	inline uint16_t &Word1D9771C() { return MEM<uint16_t>(0x1D9771C); }
-	inline uint16_t *CamShake() { return (uint16_t *)0x1D97710; }      // BATTLE_CAMERA_SHAKE_OFFSET_X/Y/Z
-	inline uint8_t *Entity(int32_t i) { return (uint8_t *)(0x1D972C0 + i * 0x9C); } // battle entity records (0x9C bytes)
-	inline uint8_t *SlotData(uint32_t slot) { return (uint8_t *)(0x1D27B1C + slot * 0xD0); } // BATTLE_SLOT_DATA[slot] status dword
+	inline uint16_t *CamShake() { return (uint16_t *)0x1D97710; }
+	inline uint8_t *Entity(int32_t i) { return (uint8_t *)(0x1D972C0 + i * 0x9C); }
+	inline uint8_t *SlotData(uint32_t slot) { return (uint8_t *)(0x1D27B1C + slot * 0xD0); }
 
-	// Module-relative: load-completion callback handed to pre_LoadBattleFile by op 0x006 = C().load_cb.
-	// The loader stores it and calls it later from outside the VM, so the ORIGINAL address is passed
-	// (every clone has its own copy).
-
-	// ------------------------------------------------------------------------------------
-	// helpers
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2BB40 (load callback of op 0x006): LoadBusy = 0. Never called by the port itself
-	// (the loader calls the original address), kept for completeness.
 	[[maybe_unused]] static void __cdecl cb_B2BB40_LoadDone()
 	{
 		LoadBusy() = 0;
 	}
 
-	// 0xB25DB0: stream source for op 0x031. slot -> ctx+0xB0 byte table: 0xFF = ctx+0xB8 buffer,
-	// else resource file f = RESFILE[b]: f + U32(f,0x18) = offset table, entry [slot].
 	static uint8_t *StreamSource_B25DB0(int32_t slot)
 	{
 		uint8_t *ctx = CTX();
@@ -692,8 +585,6 @@ namespace part_vm_a
 		return tab + U32(tab, slot * 4);
 	}
 
-	// 0xB269B0: parent xform (scaled), then one StepEmbeddedModelAnim with block bit1 cleared
-	// (bit1 = "skip anim step" flag), bit1 set again afterwards. Returns 0.
 	static int32_t StepModelFromVm_B269B0(uint8_t *blk)
 	{
 		h_B269E0();
@@ -703,8 +594,6 @@ namespace part_vm_a
 		return 0;
 	}
 
-	// 0xB2B700: restore battle entities [start, start+count): clear bit 2 (hidden) of the
-	// entity word +0 unless SceneHeader+0x4E+2*i has bit 2 (entity hidden before the summon).
 	static void EntityRestore_B2B700(int32_t start, int32_t count)
 	{
 		uint8_t *keep = SCENE() + start * 2 + 0x4E;
@@ -722,7 +611,6 @@ namespace part_vm_a
 		} while (--count);
 	}
 
-	// OR 4 (hide) into the entity word +0 of [start, start+count) (the inlined loops of 0xB2B5D0)
 	static void EntityHide(int32_t start, int32_t count)
 	{
 		uint8_t *ent = Entity(start);
@@ -735,19 +623,12 @@ namespace part_vm_a
 		} while (--count);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// flow control
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2AE30 (VM 0x002 Jump): cursor += s16 w0
 	static void __cdecl op_002_Jump()
 	{
 		uint8_t *s = STREAM();
 		STREAM() = s + S16(s, 2);
 	}
 
-	// 0xB2AE50 (VM 0x003 Call): per-channel return stack bone+0x24 [chan*2 + depth] = opcode+4,
-	// depth byte bone+0x44+chan ++, cursor += s16 w0. chan = rt+0x43.
 	static void __cdecl op_003_Call()
 	{
 		uint32_t ch = U8(RT(), 0x43);
@@ -764,7 +645,6 @@ namespace part_vm_a
 		STREAM() = STREAM() + off;
 	}
 
-	// 0xB2AEB0 (VM 0x004 Return): --depth byte bone+0x44+chan; cursor = bone+0x24 [chan*2 + depth]
 	static void __cdecl op_004_Return()
 	{
 		uint32_t ch = U8(RT(), 0x43);
@@ -776,7 +656,6 @@ namespace part_vm_a
 		STREAM() = PTR(bone, (depth + (int32_t)ch * 2) * 4 + 0x24);
 	}
 
-	// 0xB2AF00 (VM 0x01E SetLoopCounter): bone byte +0x20 + (op>>14) = low byte of w0
 	static void __cdecl op_01E_SetLoopCounter()
 	{
 		uint8_t v = U8(STREAM(), 2);
@@ -785,7 +664,6 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// 0xB2AF80 (VM 0x01F LoopDecJump): --bone byte +0x20+(op>>14); nonzero -> cursor += w0, else +4
 	static void __cdecl op_01F_LoopDecJump()
 	{
 		uint32_t k = (uint32_t)U16(RT(), 0x4A) >> 14;
@@ -799,7 +677,6 @@ namespace part_vm_a
 			STREAM() = s + S16(s, 2);
 	}
 
-	// 0xB2AF50 (VM 0x0A7 SetCounter): SceneHeader byte [0x14 + w0] = low byte of w1
 	static void __cdecl op_0A7_SetCounter()
 	{
 		uint8_t *s = STREAM();
@@ -809,7 +686,6 @@ namespace part_vm_a
 		STREAM() += 6;
 	}
 
-	// 0xB2AFD0 (VM 0x0A8 DecCounterJumpNZ): --SceneHeader byte [0x14 + w0]; nonzero -> cursor += w1, else +6
 	static void __cdecl op_0A8_DecCounterJumpNZ()
 	{
 		int32_t i = S16(STREAM(), 2);
@@ -823,11 +699,10 @@ namespace part_vm_a
 			STREAM() = s + S16(s, 4);
 	}
 
-	// 0xB2B080 (VM 0x0A1 RandomJump): r = |Rand73(0x100)|; r <= s16 w0 -> cursor += w1, else +6
 	static void __cdecl op_0A1_RandomJump()
 	{
 		int32_t r = blob::Rand73(0x100);
-		if (r < 0) r = (int32_t)(0u - (uint32_t)r); // not; inc
+		if (r < 0) r = (int32_t)(0u - (uint32_t)r);
 		uint8_t *s = STREAM();
 		if (r <= (int32_t)S16(s, 2))
 			STREAM() = s + S16(s, 4);
@@ -835,10 +710,6 @@ namespace part_vm_a
 			STREAM() = s + 6;
 	}
 
-	// 0xB2B290 (VM 0x046 JumpIfTargetResult): target record = entry of the action target list
-	// (ctx+0xCC: +8 records of 0x18 bytes, +0x10 u8 count) whose byte 0 == bone+0x1B slot (one past
-	// the list when absent, read anyway - vanilla). op>>9: 1 rec[3]&4, 2 rec[2]&8, 3 rec[3]&2,
-	// 4 BATTLE_SLOT_DATA[slot] dword & 0x2000, other !(rec[3]&4). Condition -> cursor += w0, else +4.
 	static void __cdecl op_046_JumpIfTargetResult()
 	{
 		uint8_t *act = PTR(CTX(), 0xCC);
@@ -854,13 +725,13 @@ namespace part_vm_a
 		uint32_t sel = U16(RT(), 0x4A);
 		uint8_t b3 = U8(rec, 3);
 		bool jump;
-		switch ((sel >> 9) - 1) // jump table 0xB2B370
+		switch ((sel >> 9) - 1)
 		{
-		case 0: jump = (b3 & 4) != 0; break;                              // 0xB2B335
-		case 1: jump = (U8(rec, 2) & 8) != 0; break;                      // 0xB2B320
-		case 2: jump = (b3 & 2) != 0; break;                              // 0xB2B30D
-		case 3: jump = (U32(SlotData(slot), 0) & 0x2000) != 0; break;      // 0xB2B2EA
-		default: jump = (b3 & 4) == 0; break;                             // 0xB2B348
+		case 0: jump = (b3 & 4) != 0; break;
+		case 1: jump = (U8(rec, 2) & 8) != 0; break;
+		case 2: jump = (b3 & 2) != 0; break;
+		case 3: jump = (U32(SlotData(slot), 0) & 0x2000) != 0; break;
+		default: jump = (b3 & 4) == 0; break;
 		}
 		uint8_t *s = STREAM();
 		if (jump)
@@ -869,9 +740,6 @@ namespace part_vm_a
 			STREAM() = s + 4;
 	}
 
-	// 0xB2B380 (VM 0x055 JumpIfSummonState): rec = *(ctx+0xC0). op>>9: 1 ctx+0xD0 != ctx+0xD1,
-	// 2 (rec[1]&3) && !(rec[1]&2), 3 (rec[1]&3) && (rec[1]&2), other ctx+0xD0 >= 1.
-	// Condition -> cursor += w0, else +4.
 	static void __cdecl op_055_JumpIfSummonState()
 	{
 		uint8_t *ctx = CTX();
@@ -899,20 +767,11 @@ namespace part_vm_a
 			STREAM() = s + 4;
 	}
 
-	// 0xB2AE20 (VM 0x057 Nop2): cursor += 2
 	static void __cdecl op_057_Nop2() { STREAM() += 2; }
-	// 0xB2AF30 (VM 0x0A5 Nop4): cursor += 4
 	static void __cdecl op_0A5_Nop4() { STREAM() += 4; }
-	// 0xB2AF40 (VM 0x0A6 Nop4): cursor += 4
 	static void __cdecl op_0A6_Nop4() { STREAM() += 4; }
-	// 0xB26BF0 (VM 0x0B8 Nop8): cursor += 8
 	static void __cdecl op_0B8_Nop8() { STREAM() += 8; }
 
-	// ------------------------------------------------------------------------------------
-	// sound / stream / music (external)
-	// ------------------------------------------------------------------------------------
-
-	// 0xB25BB0 (VM 0x02B PlaySE): BdPlaySE(ctx+0xC4 table [op>>9], s16 w0, 0x80)
 	static void __cdecl op_02B_PlaySE()
 	{
 		uint8_t *s = STREAM();
@@ -923,8 +782,6 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// 0xB25C00 (VM 0x031 TransSummonStream): load busy -> wait (rt+0x3E = bone+0xC8, retry);
-	// else BdTransSummonStream(B25DB0((op>>9)&15), ctx+0xA3 ready flag); bit15 -> byte 0x1D96DC4 = 0
 	static void __cdecl op_031_TransSummonStream()
 	{
 		if (LoadBusy() != 0)
@@ -943,7 +800,6 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// 0xB25C70 (VM 0x034 WaitStreamReady): ctx+0xA3 == 0 -> wait (rt+0x3E = bone+0xC8), else +2
 	static void __cdecl op_034_WaitStreamReady()
 	{
 		if (U8(CTX(), 0xA3) == 0)
@@ -954,7 +810,6 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// 0xB25CA0 (VM 0x030 PlaySummonStream): BdPlaySummonStream(0x80, 1, op>>9)
 	static void __cdecl op_030_PlaySummonStream()
 	{
 		uint32_t a = (uint32_t)U16(RT(), 0x4A) >> 9;
@@ -962,7 +817,6 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// 0xB25CD0 (VM 0x02C StopSoundChannels): sub_46B450(0, (op>>9)&15)
 	static void __cdecl op_02C_StopSoundChannels()
 	{
 		uint32_t m = ((uint32_t)U16(RT(), 0x4A) >> 9) & 0xF;
@@ -970,7 +824,6 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// 0xB25D10 (VM 0x053 MusicVolume): bit15 -> Music_SetVolumeTrans(0, s16 w0, 0), else sub_47E3C0(s16 w0)
 	static void __cdecl op_053_MusicVolume()
 	{
 		uint8_t *rt = RT();
@@ -982,7 +835,6 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// 0xB25D60 (VM 0x0C3 PauseResumeSounds): bit15 -> sub_46B3E0(2), (3); else sub_46B3A0(2), (3)
 	static void __cdecl op_0C3_PauseResumeSounds()
 	{
 		if (U8(RT(), 0x4B) & 0x80)
@@ -998,15 +850,6 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// file loads
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2BA10 (VM 0x006 LoadFile): load busy -> wait (rt+0x3E = bone+0xC8, retry). Else busy = 0xFF,
-	// destination/slot from the op word and w0 (bit15 clear) or ctx+0xB8 (bit15 set),
-	// RESFILE[slot + ctx+0xA2] = dst (skipped for bit15 + slot bit5: file 0x16B + (slot&31)),
-	// ctx+0xB4 = dst, pre_LoadBattleFile((slot + ctx+0xA2 + s16 ctx+0xA0) & 0xFFFF, dst, 0, 0xB2BB40).
-	// cursor += 4, or += 2 when the s16 op word <= 0.
 	static void __cdecl op_006_LoadFile()
 	{
 		if (LoadBusy() != 0)
@@ -1021,14 +864,14 @@ namespace part_vm_a
 		uint32_t dst;
 		uint32_t id;
 		bool store = true;
-		if (w & 0x8000) // 0xB2BAFA
+		if (w & 0x8000)
 		{
 			dst = U32(ctx, 0xB8);
 			id = (w >> 9) & 0x3F;
 			if (id & 0x20)
 			{
 				id = (id & 0x1F) + 0x16B;
-				store = false; // jumps to 0xB2BA85
+				store = false;
 			}
 		}
 		else
@@ -1039,28 +882,27 @@ namespace part_vm_a
 			id = w >> 9;
 			if (lo == 0xFF)
 				dst = U32(ctx, 0xB8);
-			else if (lo & 0x80) // 0xB2BABD
+			else if (lo & 0x80)
 				dst = (uint32_t)RESFILE()[lo & 0x7F] + (hi << 12);
-			else // 0xB2BAD3
+			else
 			{
 				dst = (uint32_t)RESFILE()[lo];
 				if ((hi & 0xFF) != 0xFF)
 				{
-					uint32_t d = C().desc;                 // Ifrit 0x1874894
-					uint32_t t = d + U32((void *)d, 0x1C);  // dword_18748B0 + 0x1874894
+					uint32_t d = C().desc;
+					uint32_t t = d + U32((void *)d, 0x1C);
 					t += U32((void *)t, lo * 4);
 					dst += U32((void *)t, hi * 4);
 				}
 			}
 		}
-		if (store) // 0xB2BA6B
+		if (store)
 		{
 			id += U8(ctx, 0xA2);
 			FX_HELD(guard_ext(&RESFILE()[id], 4);)
 			RESFILE()[id] = (uint8_t *)dst;
 			id += (uint32_t)(int32_t)S16(ctx, 0xA0);
 		}
-		// 0xB2BA85
 		U32(ctx, 0xB4) = dst;
 		x::PreLoadBattleFile((int32_t)(id & 0xFFFF), (void *)dst, 0, C().load_cb);
 		if (S16(RT(), 0x4A) <= 0)
@@ -1069,7 +911,6 @@ namespace part_vm_a
 			STREAM() += 4;
 	}
 
-	// 0xB2BBD0 (VM 0x008 WaitLoadDone): !busy && done -> +2, else wait (rt+0x3E = bone+0xC8)
 	static void __cdecl op_008_WaitLoadDone()
 	{
 		if (LoadBusy() == 0 && LoadDone() != 0)
@@ -1080,8 +921,6 @@ namespace part_vm_a
 		U16(RT(), 0x3E) = U16(CUR(), 0xC8);
 	}
 
-	// 0xB2BB80 (VM 0x07B WaitThenReloadA8defTim): done flag set -> sub_508630(ctx+0xB8, &flag), +2;
-	// else wait (rt+0x3E = bone+0xC8)
 	static void __cdecl op_07B_WaitThenReloadA8defTim()
 	{
 		if (LoadDone() != 0)
@@ -1093,17 +932,12 @@ namespace part_vm_a
 		U16(RT(), 0x3E) = U16(CUR(), 0xC8);
 	}
 
-	// 0xB2BB50 (VM 0x0B2 SetCtxByteA2): ctx+0xA2 = low byte of w0 (RESFILE slot base of op 0x006)
 	static void __cdecl op_0B2_SetCtxByteA2()
 	{
 		U8(CTX(), 0xA2) = U8(STREAM(), 2);
 		STREAM() += 4;
 	}
 
-	// 0xB2B450 (VM 0x021 SetDataPointer): off = u32 (w0 | w1 << 16); base = bit15 ? .01 file +
-	// U32(.01, 0x1C) : MAGIC_TEXTURE_BUFFER_PTR (0x1D99A88). (op>>12)&7: 1 ctx+0xB8 = base+off;
-	// 2 ctx+0xD4 = base+off, ctx+0xDC = (s16 w2 << 8) / 2, ctx+0xD8 = ctx+0xD4 + s8 rt+0x41 * ctx+0xDC;
-	// other: ctx+0x74 = ctx+0x70 = base+off (arena). cursor += 8.
 	static void __cdecl op_021_SetDataPointer()
 	{
 		uint8_t *s = STREAM();
@@ -1119,14 +953,14 @@ namespace part_vm_a
 			base = Ptr1D99A88();
 		switch (((int32_t)w >> 12) & 7)
 		{
-		case 1: // 0xB2B513
+		case 1:
 			U32(CTX(), 0xB8) = base + off;
 			break;
-		case 2: // 0xB2B4BC
+		case 2:
 		{
 			U32(CTX(), 0xD4) = base + off;
 			int32_t t = shl32(S16(STREAM(), 6), 8);
-			int32_t half = t / 2; // cdq; sub; sar 1
+			int32_t half = t / 2;
 			S32(CTX(), 0xDC) = half;
 			int32_t ping = S8(RT(), 0x41);
 			S32(CTX(), 0xD8) = add32(mul32(ping, half), S32(CTX(), 0xD4));
@@ -1140,7 +974,6 @@ namespace part_vm_a
 		STREAM() += 8;
 	}
 
-	// 0xB2B420 (VM 0x120 SetArenaTop): ctx+0x74 = ctx+0x70 + (s16 w0 << 16)
 	static void __cdecl op_120_SetArenaTop()
 	{
 		int32_t v = S16(STREAM(), 2);
@@ -1149,18 +982,12 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// bone setup
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2B020 (VM 0x033 SetBoneId): bone+0x12 = w0
 	static void __cdecl op_033_SetBoneId()
 	{
 		U16(CUR(), 0x12) = U16(STREAM(), 2);
 		STREAM() += 4;
 	}
 
-	// 0xB2B050 (VM 0x0CE SetBoneIdFromSlot): bone+0x12 = bone+0x1B + w0 (16-bit)
 	static void __cdecl op_0CE_SetBoneIdFromSlot()
 	{
 		uint8_t *b = CUR();
@@ -1168,8 +995,6 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// 0xB2B0E0 (VM 0x064 SetBoneSlot): bone+0x1B = bit15 ? *(ctx+0xC0)[0] : bit12 ? low byte w0 (+4)
-	// : SceneHeader+0x48; cursor += 2 (bit12 path += 4)
 	static void __cdecl op_064_SetBoneSlot()
 	{
 		uint32_t w = U16(RT(), 0x4A);
@@ -1188,22 +1013,18 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// 0xB2B150 (VM 0x0B1 SetSeqStateByte6): SequenceState+6 = low byte of w0
 	static void __cdecl op_0B1_SetSeqStateByte6()
 	{
 		U8(SEQ(), 6) = U8(STREAM(), 2);
 		STREAM() += 4;
 	}
 
-	// 0xB2B170 (VM 0x0CD SetRenderListOffset): bone+0x48 = w0
 	static void __cdecl op_0CD_SetRenderListOffset()
 	{
 		U16(CUR(), 0x48) = U16(STREAM(), 2);
 		STREAM() += 4;
 	}
 
-	// 0xB2B1B0 (VM 0x044 SetDrawHandlerInlineDataReset): SetDrawHandler(w0), bone+0xB8 = &inline
-	// block (w1 words at +6), bone+0xBC = +0xC0 = +0xC4 = 0, cursor skips the block
 	static void __cdecl op_044_SetDrawHandlerInlineDataReset()
 	{
 		blob::SetDrawHandler(S16(STREAM(), 2));
@@ -1216,8 +1037,6 @@ namespace part_vm_a
 		STREAM() = STREAM() + shl32(n, 1) + 6;
 	}
 
-	// 0xB2B220 (VM 0x043 SetDrawHandlerInlineData): SetDrawHandler(w0), bone+0xB8 = &inline block,
-	// bone+0xBC = 0, cursor skips the block
 	static void __cdecl op_043_SetDrawHandlerInlineData()
 	{
 		blob::SetDrawHandler(S16(STREAM(), 2));
@@ -1228,7 +1047,6 @@ namespace part_vm_a
 		STREAM() = STREAM() + shl32(n, 1) + 6;
 	}
 
-	// 0xB2B950 (VM 0x04E SetDescriptorInlineData): bone+0xB8 [w0] = &inline block (w1 words), skip it
 	static void __cdecl op_04E_SetDescriptorInlineData()
 	{
 		uint8_t *s = STREAM();
@@ -1238,7 +1056,6 @@ namespace part_vm_a
 		STREAM() = s + S16(s, 4) * 2 + 6;
 	}
 
-	// 0xB2B980 (VM 0x03B SequenceFlags): w0 bit15 ? SequenceState+8 &= ~(w0 & 0x7FFF) : |= w0 & 0x7FFF
 	static void __cdecl op_03B_SequenceFlags()
 	{
 		uint8_t *seq = SEQ();
@@ -1250,8 +1067,6 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// 0xB2BC10 (VM 0x007 SetFreezeOthers): bit15 -> rt+0x45 boneSkipFlag = 0xFF, bit14 -> = 0;
-	// order list entry of the current bone (rt+0x44) |= 0x80 (keeps running while frozen)
 	static void __cdecl op_007_SetFreezeOthers()
 	{
 		uint8_t *rt = RT();
@@ -1271,7 +1086,6 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// 0xB26DF0 (VM 0x04D SetupScreenTint): bone handler +0x18 = 0, +0x48 = 0, SetDrawHandler(4)
 	static void __cdecl op_04D_SetupScreenTint()
 	{
 		U8(CUR(), 0x18) = 0;
@@ -1280,11 +1094,6 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// embedded battle model (draw handler 3)
-	// ------------------------------------------------------------------------------------
-
-	// 0xB26820 (VM 0x03F CreateEmbeddedModel): bone+0xBC = B26860(s16 w0), SetDrawHandler(3)
 	static void __cdecl op_03F_CreateEmbeddedModel()
 	{
 		uint8_t *blk = h_B26860(S16(STREAM(), 2));
@@ -1293,8 +1102,6 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// 0xB26900 (VM 0x041 EmbeddedModelFlags): block = bone+0xBC, sub = op>>12: 0 block+2 &= ~w0 (+4);
-	// 1 block byte+2 |= 4, block+0x7C = &w0 (+6); 8 block+2 |= w0 (+4); other: nothing (no advance)
 	static void __cdecl op_041_EmbeddedModelFlags()
 	{
 		uint8_t *s = STREAM();
@@ -1305,37 +1112,30 @@ namespace part_vm_a
 		int32_t v = S16(arg, 0);
 		switch (sub)
 		{
-		case 0: // 0xB26960
+		case 0:
 			U16(blk, 2) &= (uint16_t)~v;
 			STREAM() += 4;
 			break;
-		case 1: // 0xB26949
+		case 1:
 			U8(blk, 2) |= 4;
 			PTR(blk, 0x7C) = arg;
 			STREAM() += 6;
 			break;
-		case 8: // 0xB26935
+		case 8:
 			U16(blk, 2) |= (uint16_t)v;
 			STREAM() += 4;
 			break;
 		default:
-			break; // vanilla: cursor not advanced
+			break;
 		}
 	}
 
-	// 0xB26980 (VM 0x089 StepEmbeddedModelAnim): B269B0(bone+0xBC)
 	static void __cdecl op_089_StepEmbeddedModelAnim()
 	{
 		StepModelFromVm_B269B0(PTR(CUR(), 0xBC));
 		STREAM() += 2;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// particle pool (draw handler 6)
-	// ------------------------------------------------------------------------------------
-
-	// 0xB29D70 (VM 0x058 CreateParticlePool): pool = arena(0x50*n + 0x10), bone+0xB8 = pool,
-	// header {u16 n, 0, 0, 0}, per particle +0 u16, +8, +0x30, +4 = 0; SetDrawHandler(6)
 	static void __cdecl op_058_CreateParticlePool()
 	{
 		int32_t n = S16(STREAM(), 2);
@@ -1358,9 +1158,6 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// 0xB29DE0 (VM 0x059 EmitParticle): bit12 -> pool of bone ref w0 (the root bone: skip, +4; else
-	// +2 first), else own pool. Slot = pool+2 counter++ % count; particle: state 1, script ip =
-	// cursor + w, pos = CURRENT bone outPos << 8, tpage/clut/colour from the pool bone; ws+0x38/0x3C = 0.
 	static void __cdecl op_059_EmitParticle()
 	{
 		uint8_t *bone;
@@ -1369,7 +1166,7 @@ namespace part_vm_a
 			bone = blob::GetBone(S16(STREAM(), 2));
 			if (bone == PTR(CTX(), 0x90))
 			{
-				STREAM() += 4; // 0xB29F0B
+				STREAM() += 4;
 				return;
 			}
 			STREAM() += 2;
@@ -1380,7 +1177,7 @@ namespace part_vm_a
 		uint32_t idx = U16(pool, 2);
 		int32_t cnt = U16(pool, 0);
 		U16(pool, 2) = (uint16_t)(idx + 1);
-		int32_t slot = (int32_t)idx % cnt; // idiv 0xB29E47 (count 0 = divide fault, as vanilla)
+		int32_t slot = (int32_t)idx % cnt;
 		U16(pool, 8) = U8(bone, 0x18);
 		uint8_t *p = pool + slot * 0x50 + 0x10;
 		U16(p, 0) = 1;
@@ -1405,12 +1202,6 @@ namespace part_vm_a
 		STREAM() += 4;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// battle: damage, entities, camera
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2B530 (VM 0x022 ApplyActionResult): (op & 0xF000) == 0x8000 -> ApplyActionResultToTargets(
-	// list, s8 count); else ApplyActionResultToTarget(entry whose slot == bone+0x1B) if present. +2
 	static void __cdecl op_022_ApplyActionResult()
 	{
 		uint32_t w = U16(RT(), 0x4A);
@@ -1441,10 +1232,6 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// 0xB2B5D0 (VM 0x13D BattleEntityVisibility): side = root bone slot (ctx+0x90 bone +0x1B) < 3
-	// ? -1 : 0. w0 (jump table 0xB2B6EC): 1 hide caster side, 2 restore opposite side, 3 hide
-	// opposite side, 4 restore all 7, 5 hide all 7, other restore caster side
-	// (hide = entity word |= 4; restore = 0xB2B700). cursor += 4.
 	static void __cdecl op_13D_BattleEntityVisibility()
 	{
 		int32_t side = 0;
@@ -1452,29 +1239,28 @@ namespace part_vm_a
 		int32_t mode = (int32_t)S16(STREAM(), 2) - 1;
 		switch ((uint32_t)mode)
 		{
-		case 0: // 0xB2B680
+		case 0:
 			if (side != 0) EntityHide(0, 3); else EntityHide(3, 4);
 			break;
-		case 1: // 0xB2B675
+		case 1:
 			if (side != 0) EntityRestore_B2B700(3, 4); else EntityRestore_B2B700(0, 3);
 			break;
-		case 2: // 0xB2B633
+		case 2:
 			if (side == 0) EntityHide(0, 3); else EntityHide(3, 4);
 			break;
-		case 3: // 0xB2B62A
+		case 3:
 			EntityRestore_B2B700(0, 7);
 			break;
-		case 4: // 0xB2B607
+		case 4:
 			EntityHide(0, 7);
 			break;
-		default: // 0xB2B6C0
+		default:
 			if (side == 0) EntityRestore_B2B700(3, 4); else EntityRestore_B2B700(0, 3);
 			break;
 		}
 		STREAM() += 4;
 	}
 
-	// 0xB2B9D0 (VM 0x047 CameraShakeFromOutPos): battle camera shake offsets 0x1D97710/12/14 = bone outPos
 	static void __cdecl op_047_CameraShakeFromOutPos()
 	{
 		uint8_t *b = CUR();
@@ -1487,25 +1273,18 @@ namespace part_vm_a
 		STREAM() += 2;
 	}
 
-	// 0xB2B750 (VM 0x039 CameraAndSound): sub = op>>12 (jump table 0xB2B930):
-	// 1 Battle_PlayCameraAnimation(.00 + U32(.00,0x20)); 2 SceneHeader+0x168[lo w0] =
-	// ClaimVoiceSlot(.00 + U32(.00,0x24), hi w0 + 1, 0x80); 3 sub_4A2940 on the 3 voice slots;
-	// 4 save camera (0xB8B7F0..FF -> 0xB8B800..0F, H 0x1D8E038 -> 0x1D977A0, 0x1D977A2 -> 0x1D9771C);
-	// 5, 6 sub_504270(1); 7 sub_504270(0); 8 BS_Camera_ArmReturnAfterEffect; other (0, 9..15):
-	// unless SequenceState+9 & 0x20, eye = bone outPos, H = bone+0x8C, 0x1D977A2 = bone+0x8E,
-	// look-at = outPos of bone ref w0. cursor += 4.
 	static void __cdecl op_039_CameraAndSound()
 	{
 		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 12;
 		switch (sub - 1)
 		{
-		case 0: // 0xB2B785
+		case 0:
 		{
 			uint8_t *f = RESFILE()[0];
 			x::PlayCameraAnimation(f + U32(f, 0x20));
 			break;
 		}
-		case 1: // 0xB2B7A7
+		case 1:
 		{
 			uint8_t *f = RESFILE()[0];
 			uint8_t *s = STREAM();
@@ -1516,26 +1295,26 @@ namespace part_vm_a
 			U32(SCENE(), slot * 4 + 0x168) = v;
 			break;
 		}
-		case 2: // 0xB2B7F1
+		case 2:
 			for (int32_t off = 0x168; off < 0x174; off += 4)
 			{
 				uint32_t v = U32(SCENE(), off);
 				if (v) x::Snd_4A2940((int32_t)v);
 			}
 			break;
-		case 3: // 0xB2B826
+		case 3:
 		{
 			uint32_t e0 = CamWord32(0), e1 = CamWord32(1), a0 = CamWord32(2);
 			FX_HELD(guard(&CamWord32(4), 4);)
-			CamWord32(4) = e0;             // 0xB8B800
+			CamWord32(4) = e0;
 			uint32_t a1 = CamWord32(3);
 			FX_HELD(guard(&CamWord32(5), 4);)
-			CamWord32(5) = e1;             // 0xB8B804
+			CamWord32(5) = e1;
 			uint16_t h = (uint16_t)PROJH();
 			FX_HELD(guard(&CamWord32(7), 4);)
-			CamWord32(7) = a1;             // 0xB8B80C
+			CamWord32(7) = a1;
 			FX_HELD(guard(&CamWord32(6), 4);)
-			CamWord32(6) = a0;             // 0xB8B808
+			CamWord32(6) = a0;
 			uint16_t w = Word1D977A2();
 			FX_HELD(guard(&Word1D977A0(), 2);)
 			Word1D977A0() = h;
@@ -1543,33 +1322,33 @@ namespace part_vm_a
 			Word1D9771C() = w;
 			break;
 		}
-		case 4: // 0xB2B87D
+		case 4:
 		case 5:
 			x::Camera_504270(1);
 			break;
-		case 6: // 0xB2B896
+		case 6:
 			x::Camera_504270(0);
 			break;
-		case 7: // 0xB2B771
+		case 7:
 			x::CameraArmReturn();
 			break;
-		default: // 0xB2B8AF
+		default:
 			if (!(U8(SEQ(), 9) & 0x20))
 			{
 				uint8_t *b = CUR();
 				FX_HELD(guard(&CamWord32(0), 4);)
-				CamWord32(0) = U32(b, 0x94);   // eye x, y
+				CamWord32(0) = U32(b, 0x94);
 				FX_HELD(guard(CAMEYE() + 2, 2);)
-				CAMEYE()[2] = S16(b, 0x98);    // eye z
+				CAMEYE()[2] = S16(b, 0x98);
 				FX_HELD(guard(&PROJH(), 2);)
 				PROJH() = S16(b, 0x8C);
 				FX_HELD(guard(&Word1D977A2(), 2);)
 				Word1D977A2() = U16(b, 0x8E);
 				uint8_t *t = blob::GetBone(S16(STREAM(), 2));
 				FX_HELD(guard(&CamWord32(2), 4);)
-				CamWord32(2) = U32(t, 0x94);   // look-at x, y
+				CamWord32(2) = U32(t, 0x94);
 				FX_HELD(guard(CAMAT() + 2, 2);)
-				CAMAT()[2] = S16(t, 0x98);     // look-at z
+				CAMAT()[2] = S16(t, 0x98);
 			}
 			break;
 		}
@@ -1577,10 +1356,6 @@ namespace part_vm_a
 	}
 }
 
-	// 0xB26860: create the embedded battle-model block (0x80 B, arena) for object id & 0xFF:
-	// +8 u16 id (+9 = animation = id >> 8), +0x10 BattleAnimHeader (+0x14 -> +0x30), +0x20
-	// BattleAnimCmd, +0x30/34/38 = object sections 1..3 (skeleton, anim, geometry), defaults,
-	// then pre_Battle_ReadAnimation(+0x10, +0x20, anim). Returns the block.
 	uint8_t *h_B26860(int32_t id)
 	{
 		uint8_t *obj = blob::ObjectPtr(id & 0xFF);
@@ -1604,9 +1379,6 @@ namespace part_vm_a
 		U16(b, 2) = 0;
 		U8(cmd, 1) = 0;
 		U32(b, 0x78) = 0x808080;
-		// pre_Battle_ReadAnimation (+ Battle_ReadAnimation) write the skeleton pose, which lives in
-		// the .00 file data: header byte +1, root +8..+0xC, bone i (0x30 B at +0x10) words +4..+0xE.
-		// 30 fps layer: see gfc_engine_held.h
 		FX_HELD(guard(PTR(sec, 0), 0x10 + U8(PTR(sec, 0), 0) * 0x30);)
 		x::PreReadAnimation(hdr, cmd, U8(b, 9));
 		return b;
@@ -1665,46 +1437,23 @@ namespace part_vm_a
 }
 }
 
-// ============================================================================================
-// part vm_b
-// ============================================================================================
-// GF cinematic engine, part vm_b: VM opcodes 0xB2BC60..0xB2D2B0 of the Ifrit (201) copy
-// (flag ops, waits, conditional jumps, the generic accumulator/velocity write opcode 0x0A..0x17,
-// bone integrator setters, battle-entity links) + helpers h_B2C440 / h_B2D460.
-
-
 namespace ff8fx
 {
 namespace gfc
 {
 namespace part_vm_b
 {
-	// ------------------------------------------------------------------------------------
-	// local helpers
-	// ------------------------------------------------------------------------------------
-	// x86 `shl r, cl` / `sar r, cl`: the count is masked to 5 bits
 	static inline int32_t shl_cl(int32_t v, int32_t c) { return (int32_t)((uint32_t)v << (c & 31)); }
 	static inline int32_t sar_cl(int32_t v, int32_t c) { return v >> (c & 31); }
-	// 16-bit wrapping add (`add word ptr [..], r16`)
 	static inline int16_t add16(int16_t a, int32_t b) { return (int16_t)(uint16_t)((uint16_t)a + (uint16_t)b); }
-	// two's-complement negation (`not; inc`)
 	static inline int32_t neg32(int32_t v) { return (int32_t)(0u - (uint32_t)v); }
 
-	// battle-model instance of the current bone's slot: *(SceneHeader + 0x60 + 4 * bone+0x1B)
-	// (FF8BattleEntitySlotData; outside the engine state block. 30 fps layer: every write outside
-	// the block is preceded by FX_HELD(guard(...)), see gfc_engine_held.h)
 	static inline uint8_t *Entity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
-	// bone handler of the current bone: call [BoneHandlerTable + 4 * bone+0x18]
-	// (index is a raw u8: indices >= 18 read past the table into the prim table, exactly as the
-	// Clone struct lays out bone[18] followed by prim[60])
 	static inline void CallBoneHandler() { (&C().bone[0])[U8(CUR(), 0x18)](); }
 
-	// VM yield: rt->vmWaitRequest (rt+0x3E) = bone+0xC8 (channel wait speed), cursor unchanged
 	static inline void Yield() { U16(RT(), 0x3E) = U16(CUR(), 0xC8); }
 
-	// ------------------------------------------------------------------------------------
-	// 0xB2BC60 (VM 0x02D SetCameraFlag): byte 0x1D97705 |= 0x80. No operand.
 	static void __cdecl op_02D_SetCameraFlag()
 	{
 		uint8_t *s = STREAM();
@@ -1713,8 +1462,6 @@ namespace part_vm_b
 		STREAM() = s + 2;
 	}
 
-	// 0xB2BC80 (VM 0x045 EntityFlagBits): u16 flags word at +0 of the slot entity.
-	// op>>12: 0 set w0; 1 clear w0 if (SceneHeader+0x4E[slot] & w0) == 0; 8 clear w0; else nothing.
 	static void __cdecl op_045_EntityFlagBits()
 	{
 		int32_t slot = U8(CUR(), 0x1B);
@@ -1744,8 +1491,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2BD10 (VM 0x049 JumpIfEntitySize): s16 w0 value, rel16 w1 target. e = slot entity.
-	// op & 0xFE00: e+0x26 < w0 -> jump else +6; otherwise e+0x26 <= w0 -> +6 else jump.
 	static void __cdecl op_049_JumpIfEntitySize()
 	{
 		uint8_t *e = Entity();
@@ -1760,8 +1505,6 @@ namespace part_vm_b
 		else STREAM() = s + 6;
 	}
 
-	// 0xB2BD70 (VM 0x06D PartyRecordFlag): 4 records of 0x2C B at 0x1D9898C, byte +5:
-	// bit15 of op -> &= ~2, else |= 2.
 	static void __cdecl op_06D_PartyRecordFlag()
 	{
 		bool clr = (U8(RT(), 0x4B) & 0x80) != 0;
@@ -1775,7 +1518,6 @@ namespace part_vm_b
 		STREAM() += 2;
 	}
 
-	// 0xB2BDC0 (VM 0x01C PokeBoneField): *(bone + s16 w0) = w1; (op>>9) == 1 -> word, else byte.
 	static void __cdecl op_01C_PokeBoneField()
 	{
 		uint8_t *s = STREAM();
@@ -1795,14 +1537,10 @@ namespace part_vm_b
 		STREAM() += 6;
 	}
 
-	// 0xB2BE10 (VM 0x01B Nop4): skip one operand word.
 	static void __cdecl op_01B_Nop4() { STREAM() += 4; }
 
-	// 0xB2BE20 (VM 0x077 Nop6): skip two operand words.
 	static void __cdecl op_077_Nop6() { STREAM() += 6; }
 
-	// 0xB2BE30 (VM 0x079 CompareFieldJump): s16 w0 value, rel16 w1 target. f = (op>>12)&7,
-	// v = hi16 of dword bone+0x50+4f. bit15: v <= w0 -> jump else +6; else v < w0 -> +6 else jump.
 	static void __cdecl op_079_CompareFieldJump()
 	{
 		uint32_t op = U16(RT(), 0x4A);
@@ -1817,8 +1555,6 @@ namespace part_vm_b
 		else STREAM() = s + 6;
 	}
 
-	// 0xB2BE90 (VM 0x07D SetBoneCount): s16 w0 count. Grow only: clears dword +0 of bones
-	// [SceneHeader+0x38 .. count) and sets SceneHeader+0x38 = count.
 	static void __cdecl op_07D_SetBoneCount()
 	{
 		int32_t n = S16(STREAM(), 2);
@@ -1837,8 +1573,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2BEF0 (VM 0x08A BattleScreenFx): op>>12: 1 sub_501F30(w0) +4; 2 sub_501E40(w0) +4;
-	// 3 sub_4A8480(0) +2; else ctx+0xC0 struct: +0xB = w0+1, +9 = w1 (bytes), +6.
 	static void __cdecl op_08A_BattleScreenFx()
 	{
 		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 12;
@@ -1868,8 +1602,6 @@ namespace part_vm_b
 		}
 	}
 
-	// 0xB2BFA0 (VM 0x08D ModelFlagsSetClear): s16 w0 (sign-extended) on dword +0x7C of the slot
-	// entity: bit15 of op -> &= ~w0, else |= w0.
 	static void __cdecl op_08D_ModelFlagsSetClear()
 	{
 		uint8_t *e = Entity();
@@ -1880,9 +1612,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2C030 (VM 0x005 FlagOp): shared flag word *(rt+0x10 = SceneHeader)+2, mask s16 w0.
-	// op>>12: 0/6+ set; 1 clear; 2 jump w1 if (f&m)!=0; 3 jump w1 if ==0; 4 wait while !=0;
-	// 5 wait while ==0.
 	static void __cdecl op_005_FlagOp()
 	{
 		uint8_t *s = STREAM();
@@ -1936,9 +1665,6 @@ namespace part_vm_b
 		}
 	}
 
-	// 0xB2C100 (VM 0x10C BoneFlagOps): same as 0x05 on the current bone's flag word +0x4A
-	// (jump table 0xB2C1B0: sub 1 clear, 2 jump if !=0, 3 jump if ==0, 4 wait while !=0,
-	// 5 wait while ==0; 0 / 6+ set). Waits do not touch the cursor.
 	static void __cdecl op_10C_BoneFlagOps()
 	{
 		uint8_t *rt = RT();
@@ -1949,35 +1675,33 @@ namespace part_vm_b
 		uint32_t sub = (uint32_t)U16(rt, 0x4A) >> 12;
 		switch (sub)
 		{
-		case 1: // 0xB2C190
+		case 1:
 			U16(bone, 0x4A) = (uint16_t)(~(uint32_t)m & fl);
 			STREAM() += 4;
 			return;
-		case 2: // 0xB2C16F
+		case 2:
 			if ((fl & (uint32_t)m) == 0) STREAM() = s + 6;
 			else STREAM() = s + S16(s, 4);
 			return;
-		case 3: // 0xB2C15B
+		case 3:
 			if ((fl & (uint32_t)m) != 0) STREAM() = s + 6;
 			else STREAM() = s + S16(s, 4);
 			return;
-		case 4: // 0xB2C148
+		case 4:
 			if ((fl & (uint32_t)m) == 0) { STREAM() += 4; return; }
 			U16(rt, 0x3E) = U16(bone, 0xC8);
 			return;
-		case 5: // 0xB2C135
+		case 5:
 			if ((fl & (uint32_t)m) != 0) { STREAM() += 4; return; }
 			U16(rt, 0x3E) = U16(bone, 0xC8);
 			return;
-		default: // 0xB2C196
+		default:
 			U16(bone, 0x4A) = (uint16_t)((uint32_t)m | fl);
 			STREAM() += 4;
 			return;
 		}
 	}
 
-	// 0xB2C1D0 (VM 0x10D WaitOtherBoneFlags): bone ref w0, mask w1: m = w1 & other+0x4A & 0x3FFF.
-	// op bit12: wait while m != 0; else wait while m == 0; satisfied -> +6.
 	static void __cdecl op_10D_WaitOtherBoneFlags()
 	{
 		uint8_t *o = blob::GetBone(S16(STREAM(), 2));
@@ -1991,11 +1715,8 @@ namespace part_vm_b
 		else STREAM() += 6;
 	}
 
-	// 0xB2C240 (VM 0x0D7 Nop2): skip one operand word.
 	static void __cdecl op_0D7_Nop4() { STREAM() += 4; }
 
-	// 0xB2C250 (VM 0x0E7 WaitUntilFieldGreater): s16 w0 offset from bone+0x8C, s16 w1 value:
-	// field > value -> +6, else yield.
 	static void __cdecl op_0E7_WaitUntilFieldGreater()
 	{
 		uint8_t *s = STREAM();
@@ -2005,7 +1726,6 @@ namespace part_vm_b
 		else U16(RT(), 0x3E) = U16(bone, 0xC8);
 	}
 
-	// 0xB2C290 (VM 0x0FB WaitUntilFieldLess): field < value -> +6, else yield.
 	static void __cdecl op_0FB_WaitUntilFieldLess()
 	{
 		uint8_t *s = STREAM();
@@ -2015,8 +1735,6 @@ namespace part_vm_b
 		else U16(RT(), 0x3E) = U16(bone, 0xC8);
 	}
 
-	// 0xB2C2D0 (VM 0x106 WaitUntilFieldLessThanBone): s16 w0 offset, bone ref w1:
-	// cur.field < other.field (s16) -> +6, else yield.
 	static void __cdecl op_106_WaitUntilFieldLessThanBone()
 	{
 		int32_t off = S16(STREAM(), 2);
@@ -2026,8 +1744,6 @@ namespace part_vm_b
 		else U16(RT(), 0x3E) = U16(bone, 0xC8);
 	}
 
-	// 0xB2C320 (VM 0x0FD JumpIfFieldInRange): w0 offset, w1 min, w2 max, rel16 w3:
-	// min <= field <= max -> jump, else +10.
 	static void __cdecl op_0FD_JumpIfFieldInRange()
 	{
 		uint8_t *s = STREAM();
@@ -2036,9 +1752,6 @@ namespace part_vm_b
 		else STREAM() = s + S16(s, 8);
 	}
 
-	// 0xB2C360 (VM 0x074 DrawFlagBits): bone+0x4C |= w0; bit15 of op: flags &= ~w0 then
-	// flags |= ~w0 (vanilla bug 0xB2C37B: the 'clear' falls through into the OR with the
-	// inverted mask -> flags = ~w0 | ...).
 	static void __cdecl op_074_DrawFlagBits()
 	{
 		bool clr = (U8(RT(), 0x4B) & 0x80) != 0;
@@ -2052,10 +1765,8 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2C3B0 (VM 0x0C1 Nop): skip the opcode word.
 	static void __cdecl op_0C1_Nop() { STREAM() += 2; }
 
-	// 0xB2C3D0 (VM 0x04C SetBoneHandler): bone+0x18 = (u8)w0; runs BoneHandlerTable[w0].
 	static void __cdecl op_04C_SetBoneHandler()
 	{
 		U8(CUR(), 0x18) = U8(STREAM(), 2);
@@ -2063,8 +1774,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2C400 (VM 0x037 ResetAccum): zero accumRot/accumPos (+0x50..+0x67), bone handler,
-	// outAngle = hi16(accumRot).
 	static void __cdecl op_037_ResetAccum()
 	{
 		uint8_t *bone = CUR();
@@ -2074,15 +1783,9 @@ namespace part_vm_b
 		STREAM() += 2;
 	}
 
-	// 0xB2C480 (VM 0x00A..0x017 generic write): attribute byte a = attr_16A[op & 0x1FF]
-	// (ws+0xE4); field descriptor d = attr_184[4*(a & 15)] = {u8 bone offset, s8 shift, u8 width,
-	// u8 post-action (ws+0xE0: 1 = bone handler + outAngle, 2 = integrator flags)}.
-	// Mode a>>4: 0/6+ set per component (0x7654 = skip), 1 set one value, 2 add per component
-	// (0x7654 = skip), 3 add rand73(w) per component (0 = skip), 4 add one rand73(w),
-	// 5 add (+/-base + rand73(range)) per component. Component mask = op bits 15..10.
 	static void __cdecl op_00A_GenericWrite()
 	{
-		uint32_t mask = U16(RT(), 0x4A); // [ebp-4]: bit 15 tested, shifted left per component
+		uint32_t mask = U16(RT(), 0x4A);
 		uint32_t a = U8((const void *)C().attr_16A, (int32_t)(mask & 0x1FF));
 		U32(WS(), 0xE4) = a;
 		int32_t idx = (int32_t)(a & 0xF);
@@ -2168,8 +1871,6 @@ namespace part_vm_b
 				if ((int16_t)mask < 0)
 				{
 					int32_t base = S16(arg, 0);
-					// vanilla quirk (0xB2C68F/0xB2C69A): rand73(base) is drawn and its result
-					// discarded (eax is reloaded with the range word right after the call)
 					blob::Rand73(base);
 					int32_t range = S16(arg, 2);
 					if (range < 0) base = neg32(base);
@@ -2182,7 +1883,7 @@ namespace part_vm_b
 				mask <<= 1;
 			}
 		}
-		else // 0xB2C6E7: mode 0 and 6..15
+		else
 		{
 			for (int32_t o = 0; o < count; o += width)
 			{
@@ -2212,8 +1913,6 @@ namespace part_vm_b
 		}
 	}
 
-	// 0xB2C780 (VM 0x05F PosFromEntityOffset): accumPos = (entity+0x1C xyz + w0..w2) << 16
-	// (component skipped when w == 0x7654); boneHandlerId = 1, runs BoneHandler[1].
 	static void __cdecl op_05F_PosFromEntityOffset()
 	{
 		uint8_t *bone = CUR();
@@ -2241,7 +1940,6 @@ namespace part_vm_b
 		STREAM() += 8;
 	}
 
-	// 0xB2C820 (VM 0x072 RotFromEntity): accumRot = entity+0x0C xyz << 16; outAngle refresh.
 	static void __cdecl op_072_RotFromEntity()
 	{
 		uint8_t *bone = CUR();
@@ -2253,8 +1951,6 @@ namespace part_vm_b
 		STREAM() += 2;
 	}
 
-	// 0xB2C870 (VM 0x05E PosFromSlotHome): accumPos = s16 xyz at SceneHeader+0x84+8*slot << 16;
-	// bone handler, outAngle refresh.
 	static void __cdecl op_05E_PosFromSlotHome()
 	{
 		uint8_t *bone = CUR();
@@ -2267,7 +1963,6 @@ namespace part_vm_b
 		STREAM() += 2;
 	}
 
-	// 0xB2C8D0 (VM 0x02F StopMotion): zero velRot/velPos/accel (+0x68..+0x8B), integrator flags.
 	static void __cdecl op_02F_StopMotion()
 	{
 		uint8_t *bone = CUR();
@@ -2276,8 +1971,6 @@ namespace part_vm_b
 		STREAM() += 2;
 	}
 
-	// 0xB2C900 (VM 0x082 VelocityTowardBone): bone ref w0, s16 w1 frames:
-	// velPos = (other.accumPos - cur.accumPos) / frames.
 	static void __cdecl op_082_VelocityTowardBone()
 	{
 		uint8_t *o = blob::GetBone(S16(STREAM(), 2));
@@ -2292,8 +1985,6 @@ namespace part_vm_b
 		STREAM() += 6;
 	}
 
-	// 0xB2C970 (VM 0x0C0 VelPosTowardSpawner): target = bone ref (u16 bone+0x14), s16 w0 frames:
-	// velPos = (target.accumPos - cur.accumPos) / frames.
 	static void __cdecl op_0C0_VelPosTowardSpawner()
 	{
 		uint8_t *o = blob::GetBone((int32_t)U16(CUR(), 0x14));
@@ -2308,8 +1999,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2C9E0 (VM 0x048 OverrideEntityTransform): entity+1 |= 0x10; (op>>9)&15: 0 entity
-	// +0x1C..+0x20 = outPos (+0x24 = outPosY if op bit15); 1 entity +0x0C..+0x10 = outAngle.
 	static void __cdecl op_048_OverrideEntityTransform()
 	{
 		uint8_t *e = Entity();
@@ -2338,8 +2027,6 @@ namespace part_vm_b
 		STREAM() += 2;
 	}
 
-	// 0xB2CA80 (VM 0x0B9 NegateField): s16 w0 i; if i > 0: dword bone+0x50+4i = -itself;
-	// i < 3 -> outAngle refresh, 3..5 -> bone handler, >= 6 nothing more.
 	static void __cdecl op_0B9_NegateField()
 	{
 		int32_t i = S16(STREAM(), 2);
@@ -2362,8 +2049,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2CAD0 (VM 0x0BA NegateFieldNeg): same as 0xB9 but only for i < 0 (so always the
-	// outAngle refresh path; writes BEFORE bone+0x50, vanilla sibling bug).
 	static void __cdecl op_0BA_NegateFieldNeg()
 	{
 		int32_t i = S16(STREAM(), 2);
@@ -2386,8 +2071,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2CB20 (VM 0x0D2 NegateMotionComponent): s16 w0 i: dword bone+0x50+4i = -itself;
-	// bone handler; outAngle refresh.
 	static void __cdecl op_0D2_NegateMotionComponent()
 	{
 		int32_t i = S16(STREAM(), 2);
@@ -2399,7 +2082,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2CB70 (VM 0x0CC SetBoneHandler7): bone+0xB0 = w0; bone+0x18 = 7; runs BoneHandler[7].
 	static void __cdecl op_0CC_SetBoneHandler7()
 	{
 		U16(CUR(), 0xB0) = U16(STREAM(), 2);
@@ -2408,7 +2090,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2CBD0 (VM 0x0F2 BakeOutPosToAccum): accumPos = outPos << 16; bone+0x18 = 0.
 	static void __cdecl op_0F2_BakeOutPosToAccum()
 	{
 		uint8_t *b = CUR();
@@ -2421,8 +2102,6 @@ namespace part_vm_b
 		STREAM() += 2;
 	}
 
-	// 0xB2CC20 (VM 0x110 PlaceAtMidpoint): bone refs w0 = A, w1 = B: cur+0x18 = A+0x18;
-	// cur.accumPos = A.accumPos + (B.accumPos - A.accumPos) / 2; cursor += 6, then bone handler.
 	static void __cdecl op_110_PlaceAtMidpoint()
 	{
 		uint8_t *a = blob::GetBone(S16(STREAM(), 2));
@@ -2441,9 +2120,6 @@ namespace part_vm_b
 		CallBoneHandler();
 	}
 
-	// 0xB2CCC0 (VM 0x061 CopyAccumFromBone / 0x062 CopyVelFromBone): u16 mask w0 (bits 0..5),
-	// bone ref w1; op word == 0x0061 exactly -> accum (+0x50), else vel (+0x68). Then outAngle
-	// refresh, bone handler.
 	static void __cdecl op_061_CopyAccumOrVelFromBone()
 	{
 		uint8_t *src = blob::GetBone(S16(STREAM(), 4));
@@ -2472,9 +2148,6 @@ namespace part_vm_b
 		STREAM() += 6;
 	}
 
-	// 0xB2CD50 (VM 0x091 AccumFromBoneOutputs): s16 mask w0 (bits 0..5), bone ref w1:
-	// cur.accum[i] = src.out[i] << 16 (outAngle +0x8C/8E/90, outPos +0x94/96/98); outAngle
-	// refresh, bone handler.
 	static void __cdecl op_091_AccumFromBoneOutputs()
 	{
 		uint8_t *src = blob::GetBone(S16(STREAM(), 4)) + 0x8C;
@@ -2497,17 +2170,10 @@ namespace part_vm_b
 		STREAM() += 6;
 	}
 
-	// 0xB2CE00 (VM 0x060 PosFromEntityJoint): u16 w0 joint of the slot entity -> world position
-	// (blob B66B80 -> ws+0xF0/F4/F8). op bit15: orbit, s16 w1 radius mul, s16 w2 angle/16:
-	// Z = F8 + ((cos(16*w2)*e26 >> 4) * w1) / 65536, X = F0 + (sin...), Y = F4; cursor 8.
-	// Else accumPos = F0/F4/F8 << 16, cursor 4. Then bone handler.
-	// 30 fps: while the held layer predicts the next tick, the joint comes from the entity's NEXT
-	// pose (held_entity_next_pose; the same in 0x06E / 0x075 / 0x05B).
 	static void __cdecl op_060_PosFromEntityJoint()
 	{
 		uint8_t *e = Entity();
 		int32_t joint = S16(STREAM(), 2);
-		// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
 		FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 		blob::Blob_B66B80(e + 0x60, joint, 0x1000, e + 0x40);
 		if (U8(RT(), 0x4B) & 0x80)
@@ -2536,10 +2202,6 @@ namespace part_vm_b
 		CallBoneHandler();
 	}
 
-	// 0xB2CF70 (VM 0x06E PosFromTargetsJointAvg): s16 w0 joint; sums the joint world position
-	// over the s8 SceneHeader+0x41 targets (entity index s8 SceneHeader+0x48+i); op bits 12/13/14
-	// -> accumPos X/Y/Z = (sum / count) << 16 (division by zero when no target, vanilla).
-	// Bone handler, cursor 4.
 	static void __cdecl op_06E_PosFromTargetsJointAvg()
 	{
 		int32_t joint = S16(STREAM(), 2);
@@ -2551,7 +2213,6 @@ namespace part_vm_b
 			do
 			{
 				uint8_t *e = PTR(scene, 0x60 + 4 * (int32_t)S8(scene, 0x48 + i));
-				// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
 				FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 				blob::Blob_B66B80(e + 0x60, joint, 0x1000, e + 0x40);
 				uint8_t *ws = WS();
@@ -2572,8 +2233,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2D070 (VM 0x01A SetBoneHandlerParams): w0 = handler<<8 | N: bone+0x18 = (u8)(w0 >> 8),
-	// bone+0xA0 = pointer to the N inline parameter words; cursor 4 + 2N.
 	static void __cdecl op_01A_SetBoneHandlerParams()
 	{
 		int32_t w = S16(STREAM(), 2);
@@ -2583,9 +2242,6 @@ namespace part_vm_b
 		STREAM() = STREAM() + n * 2 + 4;
 	}
 
-	// 0xB2D0B0 (VM 0x075 AccumFromEntitySize): s16 w0 mul. size = s16 entity+0x26; op bit9:
-	// size = max(size, max(F4 - e36, e3C - F4)) with F4 = joint 0 height (blob B66B80).
-	// Masked (op bits 15..10) accum dwords = (w0 * size) << 8; bone handler; outAngle refresh.
 	static void __cdecl op_075_AccumFromEntitySize()
 	{
 		int32_t ops = S16(RT(), 0x4A);
@@ -2593,7 +2249,6 @@ namespace part_vm_b
 		int32_t size = S16(e, 0x26);
 		if (ops & 0x200)
 		{
-			// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
 			FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 			blob::Blob_B66B80(e + 0x60, 0, 0x1000, e + 0x40);
 			int32_t f4 = S32(WS(), 0xF4);
@@ -2615,9 +2270,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2D170 (VM 0x076 AccumAddRandom): bone ref w0 = range bone. For each component i (op
-	// bits 15..10): accum(attr_194[i]) += rand73(s16 range.out(attr_19C[i])) << 16. Bone
-	// handler, outAngle refresh.
 	static void __cdecl op_076_AccumAddRandom()
 	{
 		uint32_t m = (uint32_t)(int32_t)S16(RT(), 0x4A);
@@ -2639,8 +2291,6 @@ namespace part_vm_b
 		STREAM() += 4;
 	}
 
-	// 0xB2D210 (VM 0x07C RandomOffsetXZ): a = rand73(4096);
-	// accumPosZ += (cos(a) * (w0 + rand73(w1))) << 4; accumPosX += (sin(a) * (w2 + rand73(w3))) << 4.
 	static void __cdecl op_07C_RandomOffsetXZ()
 	{
 		int32_t a = blob::Rand73(0x1000);
@@ -2657,8 +2307,6 @@ namespace part_vm_b
 		STREAM() += 10;
 	}
 
-	// 0xB2D2B0 (VM 0x087 VelocityScaleAccum): s16 w0 scale256, s16 w1 frames. For each
-	// component (op bits 15..10): vel = (((accum >> 16) * (w0 - 256)) << 8) / w1.
 	static void __cdecl op_087_VelocityScaleAccum()
 	{
 		uint32_t m = (uint32_t)U16(RT(), 0x4A) << 16;
@@ -2680,7 +2328,6 @@ namespace part_vm_b
 	}
 }
 
-	// 0xB2C440 (helper): outAngle (bone+0x8C/8E/90) = hi16 of accumRot (bone+0x50/54/58).
 	void h_B2C440()
 	{
 		S16(CUR(), 0x8C) = (int16_t)(S32(CUR(), 0x50) >> 16);
@@ -2688,8 +2335,6 @@ namespace part_vm_b
 		S16(CUR(), 0x90) = (int16_t)(S32(CUR(), 0x58) >> 16);
 	}
 
-	// 0xB2D460 (helper): integrator flags bone+0x1A = (any velRot/accelRot word +0x80/82/84
-	// != 0 ? 1 : 0) | (any +0x86/88/8A != 0 ? 8 : 0). Returns 0.
 	int32_t h_B2D460()
 	{
 		uint8_t *b = CUR();
@@ -2707,64 +2352,57 @@ namespace part_vm_b
 	void fill_vm_b(Generic &g)
 	{
 		using namespace part_vm_b;
-		g.vm[0x02D] = op_02D_SetCameraFlag;             // 0xB2BC60
-		g.vm[0x045] = op_045_EntityFlagBits;            // 0xB2BC80
-		g.vm[0x049] = op_049_JumpIfEntitySize;          // 0xB2BD10
-		g.vm[0x06D] = op_06D_PartyRecordFlag;           // 0xB2BD70
-		g.vm[0x01C] = op_01C_PokeBoneField;             // 0xB2BDC0
-		g.vm[0x01B] = op_01B_Nop4;                      // 0xB2BE10
-		g.vm[0x077] = op_077_Nop6;                      // 0xB2BE20
-		g.vm[0x079] = op_079_CompareFieldJump;          // 0xB2BE30
-		g.vm[0x07D] = op_07D_SetBoneCount;              // 0xB2BE90
-		g.vm[0x08A] = op_08A_BattleScreenFx;            // 0xB2BEF0
-		g.vm[0x08D] = op_08D_ModelFlagsSetClear;        // 0xB2BFA0
-		g.vm[0x005] = op_005_FlagOp;                    // 0xB2C030
-		g.vm[0x10C] = op_10C_BoneFlagOps;               // 0xB2C100
-		g.vm[0x10D] = op_10D_WaitOtherBoneFlags;        // 0xB2C1D0
-		g.vm[0x0D7] = op_0D7_Nop4;                      // 0xB2C240
-		g.vm[0x0E7] = op_0E7_WaitUntilFieldGreater;     // 0xB2C250
-		g.vm[0x0FB] = op_0FB_WaitUntilFieldLess;        // 0xB2C290
-		g.vm[0x106] = op_106_WaitUntilFieldLessThanBone;// 0xB2C2D0
-		g.vm[0x0FD] = op_0FD_JumpIfFieldInRange;        // 0xB2C320
-		g.vm[0x074] = op_074_DrawFlagBits;              // 0xB2C360
-		g.vm[0x0C1] = op_0C1_Nop;                       // 0xB2C3B0
-		g.vm[0x04C] = op_04C_SetBoneHandler;            // 0xB2C3D0
-		g.vm[0x037] = op_037_ResetAccum;                // 0xB2C400
+		g.vm[0x02D] = op_02D_SetCameraFlag;
+		g.vm[0x045] = op_045_EntityFlagBits;
+		g.vm[0x049] = op_049_JumpIfEntitySize;
+		g.vm[0x06D] = op_06D_PartyRecordFlag;
+		g.vm[0x01C] = op_01C_PokeBoneField;
+		g.vm[0x01B] = op_01B_Nop4;
+		g.vm[0x077] = op_077_Nop6;
+		g.vm[0x079] = op_079_CompareFieldJump;
+		g.vm[0x07D] = op_07D_SetBoneCount;
+		g.vm[0x08A] = op_08A_BattleScreenFx;
+		g.vm[0x08D] = op_08D_ModelFlagsSetClear;
+		g.vm[0x005] = op_005_FlagOp;
+		g.vm[0x10C] = op_10C_BoneFlagOps;
+		g.vm[0x10D] = op_10D_WaitOtherBoneFlags;
+		g.vm[0x0D7] = op_0D7_Nop4;
+		g.vm[0x0E7] = op_0E7_WaitUntilFieldGreater;
+		g.vm[0x0FB] = op_0FB_WaitUntilFieldLess;
+		g.vm[0x106] = op_106_WaitUntilFieldLessThanBone;
+		g.vm[0x0FD] = op_0FD_JumpIfFieldInRange;
+		g.vm[0x074] = op_074_DrawFlagBits;
+		g.vm[0x0C1] = op_0C1_Nop;
+		g.vm[0x04C] = op_04C_SetBoneHandler;
+		g.vm[0x037] = op_037_ResetAccum;
 		for (int i = 0x0A; i <= 0x17; i++)
-			g.vm[i] = op_00A_GenericWrite;              // 0xB2C480
-		g.vm[0x05F] = op_05F_PosFromEntityOffset;       // 0xB2C780
-		g.vm[0x072] = op_072_RotFromEntity;             // 0xB2C820
-		g.vm[0x05E] = op_05E_PosFromSlotHome;           // 0xB2C870
-		g.vm[0x02F] = op_02F_StopMotion;                // 0xB2C8D0
-		g.vm[0x082] = op_082_VelocityTowardBone;        // 0xB2C900
-		g.vm[0x0C0] = op_0C0_VelPosTowardSpawner;       // 0xB2C970
-		g.vm[0x048] = op_048_OverrideEntityTransform;   // 0xB2C9E0
-		g.vm[0x0B9] = op_0B9_NegateField;               // 0xB2CA80
-		g.vm[0x0BA] = op_0BA_NegateFieldNeg;            // 0xB2CAD0
-		g.vm[0x0D2] = op_0D2_NegateMotionComponent;     // 0xB2CB20
-		g.vm[0x0CC] = op_0CC_SetBoneHandler7;           // 0xB2CB70
-		g.vm[0x0F2] = op_0F2_BakeOutPosToAccum;         // 0xB2CBD0
-		g.vm[0x110] = op_110_PlaceAtMidpoint;           // 0xB2CC20
-		g.vm[0x061] = op_061_CopyAccumOrVelFromBone;    // 0xB2CCC0
-		g.vm[0x062] = op_061_CopyAccumOrVelFromBone;    // 0xB2CCC0
-		g.vm[0x091] = op_091_AccumFromBoneOutputs;      // 0xB2CD50
-		g.vm[0x060] = op_060_PosFromEntityJoint;        // 0xB2CE00
-		g.vm[0x06E] = op_06E_PosFromTargetsJointAvg;    // 0xB2CF70
-		g.vm[0x01A] = op_01A_SetBoneHandlerParams;      // 0xB2D070
-		g.vm[0x075] = op_075_AccumFromEntitySize;       // 0xB2D0B0
-		g.vm[0x076] = op_076_AccumAddRandom;            // 0xB2D170
-		g.vm[0x07C] = op_07C_RandomOffsetXZ;            // 0xB2D210
-		g.vm[0x087] = op_087_VelocityScaleAccum;        // 0xB2D2B0
+			g.vm[i] = op_00A_GenericWrite;
+		g.vm[0x05F] = op_05F_PosFromEntityOffset;
+		g.vm[0x072] = op_072_RotFromEntity;
+		g.vm[0x05E] = op_05E_PosFromSlotHome;
+		g.vm[0x02F] = op_02F_StopMotion;
+		g.vm[0x082] = op_082_VelocityTowardBone;
+		g.vm[0x0C0] = op_0C0_VelPosTowardSpawner;
+		g.vm[0x048] = op_048_OverrideEntityTransform;
+		g.vm[0x0B9] = op_0B9_NegateField;
+		g.vm[0x0BA] = op_0BA_NegateFieldNeg;
+		g.vm[0x0D2] = op_0D2_NegateMotionComponent;
+		g.vm[0x0CC] = op_0CC_SetBoneHandler7;
+		g.vm[0x0F2] = op_0F2_BakeOutPosToAccum;
+		g.vm[0x110] = op_110_PlaceAtMidpoint;
+		g.vm[0x061] = op_061_CopyAccumOrVelFromBone;
+		g.vm[0x062] = op_061_CopyAccumOrVelFromBone;
+		g.vm[0x091] = op_091_AccumFromBoneOutputs;
+		g.vm[0x060] = op_060_PosFromEntityJoint;
+		g.vm[0x06E] = op_06E_PosFromTargetsJointAvg;
+		g.vm[0x01A] = op_01A_SetBoneHandlerParams;
+		g.vm[0x075] = op_075_AccumFromEntitySize;
+		g.vm[0x076] = op_076_AccumAddRandom;
+		g.vm[0x07C] = op_07C_RandomOffsetXZ;
+		g.vm[0x087] = op_087_VelocityScaleAccum;
 	}
 }
 }
-
-// ============================================================================================
-// part vm_c
-// ============================================================================================
-// GF cinematic engine, part vm_c: VM opcodes of Ifrit 0xB2D340..0xB2E7CE (channel control,
-// bone spawning, bone handler setup, sprite setup, draw options, colours, textures, VRAM uploads).
-
 
 namespace ff8fx
 {
@@ -2772,27 +2410,17 @@ namespace gfc
 {
 namespace part_vm_c
 {
-	// --- engine-block globals used here (shared by all clones, inside STATE_LO..STATE_HI) ---
-	inline uint8_t &LOADBUSY() { return MEM<uint8_t>(0x2798219); }   // byte_2798219: file load busy (set 0xFF by 0xB2BA10)
-	static const uint32_t CLUTBUF = 0x279822C;                         // engine CLUT/palette buffer (u16 entries)
-	// --- battle globals (outside the engine state block) ---
-	inline uint32_t &MODELPALETTE() { return MEM<uint32_t>(0xB8B7D8); } // CURRENT_BS_MODEL_PALETTE base colour (read only)
-	static const uint32_t FADELAYERS = 0x1D9898C;                      // stru_1D9898C: 4 colour/fade layers of 0x2C bytes
+	inline uint8_t &LOADBUSY() { return MEM<uint8_t>(0x2798219); }
+	static const uint32_t CLUTBUF = 0x279822C;
+	inline uint32_t &MODELPALETTE() { return MEM<uint32_t>(0xB8B7D8); }
+	static const uint32_t FADELAYERS = 0x1D9898C;
 
-	// sub_5088A0 renders a battle entity model into the render list: OT insertion + packets
 	static uint32_t xl_Render_5088A0(void *a, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
-		// 30 fps layer: see gfc_engine_held.h
 		FX_HELD(if (held_predicting()) return cursor;)
 		return x::Render_5088A0(a, ot, mode, cursor);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// helpers
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2D8A0 (helper): reset channel ws+0xF0 of the current bone: wait counter (+0xC + 2ch) = 0,
-	// return-stack depth (+0x44 + ch) = 0. Returns 0.
 	static int32_t ResetChannel_B2D8A0()
 	{
 		int32_t ch = S32(WS(), 0xF0);
@@ -2801,23 +2429,15 @@ namespace part_vm_c
 		return 0;
 	}
 
-	// 0xB2D610 (VM 0x032 SpawnBone, also called by 0x135/0x05D/0x09C): if the bone order list has
-	// room (ORDER[scene+0x38 - 1] == 0xFF), take the first free bone (chan0 == 0), append it to the
-	// order list, chan0 = opcode + w0, ++scene+0x18, InitBone, copy accumPos/accumRot/handler/...
-	// from the current bone, bone id = scene+0 (post-incremented), run its bone handler and
-	// B2C440 with it as the current bone; ws+0xFC = new bone. STREAM += 4.
-	// caller_ecx: vanilla quirk (0xB2D613 `push ecx` / 0xB2D79A): when the order list is full,
-	// ws+0xFC = the never-written local [ebp-4] = the caller's ecx at entry.
 	static void SpawnBone_B2D610(uint32_t caller_ecx)
 	{
 		uint32_t n = U16(SCENE(), 0x38);
-		if (MEM<uint8_t>(0x2797453 + n) != 0xFF) // ORDER()[n - 1]
+		if (MEM<uint8_t>(0x2797453 + n) != 0xFF)
 		{
 			U32(WS(), 0xFC) = caller_ecx;
 			STREAM() += 4;
 			return;
 		}
-		// end of the order list
 		uint32_t pos = 0;
 		if (ORDER()[0] != 0xFF)
 		{
@@ -2828,7 +2448,6 @@ namespace part_vm_c
 				pos++;
 			} while (v != 0xFF);
 		}
-		// first free bone
 		uint8_t *bone = PTR(CTX(), 0x90);
 		int32_t id = 0;
 		if (U32(bone, 0) != 0)
@@ -2841,7 +2460,7 @@ namespace part_vm_c
 				id++;
 			} while (next != 0);
 		}
-		ORDER()[pos] = (uint8_t)id; // overwrites the terminator (no new 0xFF is written)
+		ORDER()[pos] = (uint8_t)id;
 		uint8_t *st = STREAM();
 		PTR(bone, 0) = st + S16(st, 2);
 		U16(SCENE(), 0x18) = (uint16_t)(U16(SCENE(), 0x18) + 1);
@@ -2879,9 +2498,6 @@ namespace part_vm_c
 		STREAM() += 4;
 	}
 
-	// 0xB2E700 (helper, isGF_Ifrit_AltTextureLoader; also the tail of VM 0x029): read alternative
-	// texture w0 (ws+0xF0 rect / ws+0xFC data) and upload it (budgeted). Success: STREAM += 4,
-	// returns 0. Over budget: rt+0x3E = bone+0xC8 (wait), returns the non-zero result.
 	static int32_t AltTextureLoader_B2E700()
 	{
 		blob::ReadAltTexture(S16(STREAM(), 2));
@@ -2895,11 +2511,6 @@ namespace part_vm_c
 		return r;
 	}
 
-	// 0xB2E750 (helper, body of VM 0x028 UploadImage): if a load is busy -> wait (rt+0x3E =
-	// bone+0xC8); else resolve image w0 (B66560: ws+0xF0 rect, ws+0xFC data) and upload it
-	// (budgeted): success STREAM += 4 and 0, over budget -> wait and the non-zero result.
-	// caller_ecx: vanilla quirk (0xB2E753 `push ecx` / 0xB2E7C8): the busy path returns the
-	// never-written local [ebp-4] = the caller's ecx at entry.
 	static int32_t UploadImage_B2E750(uint32_t caller_ecx)
 	{
 		if (LOADBUSY() == 0)
@@ -2918,8 +2529,6 @@ namespace part_vm_c
 		return (int32_t)caller_ecx;
 	}
 
-	// 0xB2DA00 (VM 0x036 SetSprite, helper of 0x0C7/0x073/0x081/0x025): sprite setup w0 (B66270),
-	// orientation bone+0x1E = 1. STREAM += 4.
 	static void __cdecl op_036_SetSprite()
 	{
 		blob::SetSpriteAnim(S16(STREAM(), 2));
@@ -2927,14 +2536,6 @@ namespace part_vm_c
 		STREAM() += 4;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// VM opcodes
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2D340 (VM 0x0AC AccelerateToTarget): frames n = w0; for each of the 6 components selected by
-	// op bits 15..10 (rotX,rotY,rotZ,posX,posY,posZ order of bone+0x50..): acceleration bone+0x80+2i =
-	// (target - pos - vel*n) / (n(n+1)) (fixed-point). Bit 9: targets are immediate words (<<16)
-	// after w0, else the targets are the accum values (+0x50+4i) of bone ref w1. Then B2D460.
 	static void __cdecl op_0AC_AccelerateToTarget()
 	{
 		uint8_t *st = STREAM();
@@ -2954,7 +2555,7 @@ namespace part_vm_c
 		uint8_t *cur = CUR();
 		uint8_t *acc = cur + 0x80;
 		uint8_t *vel = cur + 0x68;
-		if (imm == 0) tgt += 0x50; // imm: vanilla keeps the (never dereferenced) value 0x250 here
+		if (imm == 0) tgt += 0x50;
 		uint32_t mask = U16(RT(), 0x4A);
 		for (int k = 6; k != 0; k--)
 		{
@@ -2975,7 +2576,7 @@ namespace part_vm_c
 					int32_t a = S32(tgt, 0) >> 4;
 					e = mul32(e, n);
 					a = sub32(a, e);
-					e = S32(vel, -0x18) >> 4; // accum (+0x50+4i)
+					e = S32(vel, -0x18) >> 4;
 					a = sub32(a, e);
 					a = a / div;
 					v = a >> 3;
@@ -2991,9 +2592,6 @@ namespace part_vm_c
 		h_B2D460();
 	}
 
-	// 0xB2D4C0 (VM 0x026 StartChannel): channel = w0, or if 0 the first free of chan[1..3]
-	// (none free -> STREAM += 6, nothing); chan[ch] = opcode + w1 (negative ptr phase),
-	// B2D8A0 reset. STREAM += 6. No bound check on w0 (vanilla).
 	static void __cdecl op_026_StartChannel()
 	{
 		uint8_t *st = STREAM();
@@ -3020,7 +2618,6 @@ namespace part_vm_c
 		STREAM() += 6;
 	}
 
-	// 0xB2D520 (VM 0x08B StartChannelPos): as 0x026 but chan[ch] = (opcode + w1) & 0x7FFFFFFF.
 	static void __cdecl op_08B_StartChannelPos()
 	{
 		uint8_t *st = STREAM();
@@ -3047,8 +2644,6 @@ namespace part_vm_c
 		STREAM() += 6;
 	}
 
-	// 0xB2D590 (VM 0x02A StopChannels): op >> 14 = channel (1..3): chan[ch] = 0; 0: chan[2] =
-	// chan[1] = 0. STREAM += 2.
 	static void __cdecl op_02A_StopChannels()
 	{
 		uint32_t ch = (uint32_t)U16(RT(), 0x4A) >> 14;
@@ -3063,34 +2658,25 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2D5E0 (VM 0x02E SetBoneIdShort): bone id +0x12 = w0; STREAM += 2 only (vanilla: w0 is then
-	// executed as the next opcode).
 	static void __cdecl op_02E_SetBoneIdShort()
 	{
 		U16(CUR(), 0x12) = U16(STREAM(), 2);
 		STREAM() += 2;
 	}
 
-	// 0xB2D610 (VM 0x032 SpawnBone): see SpawnBone_B2D610. The VM dispatchers (0xB2FDAC/0xB2FDD0,
-	// 0xB301BF/0xB301E3) call it with ecx = RT.
 	static void __cdecl op_032_SpawnBone()
 	{
 		SpawnBone_B2D610((uint32_t)RT());
 	}
 
-	// 0xB2D7C0 (VM 0x135 SpawnBoneWithId): SpawnBone, then new bone id (+0x12) = w1.
-	// STREAM += 4 + 2.
 	static void __cdecl op_135_SpawnBoneWithId()
 	{
-		SpawnBone_B2D610((uint32_t)RT()); // ecx at entry = dispatcher's RT
+		SpawnBone_B2D610((uint32_t)RT());
 		uint8_t *st = STREAM();
 		U16(PTR(WS(), 0xFC), 0x12) = U16(st, 0);
 		STREAM() += 2;
 	}
 
-	// 0xB2D7F0 (VM 0x05D SpawnPerTarget): for each target i < scene+0x41 (s8): SpawnBone (same
-	// program word, STREAM rewound by 4 after each), clone slot id +0x1B = scene+0x48+i.
-	// STREAM += 4.
 	static void __cdecl op_05D_SpawnPerTarget()
 	{
 		int32_t i = 0;
@@ -3100,8 +2686,6 @@ namespace part_vm_c
 			STREAM() += 4;
 			return;
 		}
-		// vanilla ecx at each SpawnBone entry: RT (dispatcher) the first time, then
-		// (WS & 0xFFFFFF00) | slot byte of the previous iteration (0xB2D80C/0xB2D81D)
 		uint32_t ecx = (uint32_t)RT();
 		uint8_t *st;
 		do
@@ -3120,18 +2704,14 @@ namespace part_vm_c
 		STREAM() = st + 4;
 	}
 
-	// 0xB2D860 (VM 0x09C SpawnBoneChained): SpawnBone, then new+0x14 = (new-0x100)+0x12,
-	// new+0x16 = (new-0x100)+0x14 (the previous bone SLOT's id / parent id).
 	static void __cdecl op_09C_SpawnBoneChained()
 	{
-		SpawnBone_B2D610((uint32_t)RT()); // ecx at entry = dispatcher's RT
+		SpawnBone_B2D610((uint32_t)RT());
 		uint8_t *b = PTR(WS(), 0xFC);
 		U16(b, 0x14) = U16(b, -0xEE);
 		U16(b, 0x16) = U16(b, -0xEC);
 	}
 
-	// 0xB2D8D0 (VM 0x05A SetBoneHandlerParam): handler +0x18 = (u8)w0, +0xB0 = w1, run the bone
-	// handler. STREAM += 6.
 	static void __cdecl op_05A_SetBoneHandlerParam()
 	{
 		U8(CUR(), 0x18) = U8(STREAM(), 2);
@@ -3140,9 +2720,6 @@ namespace part_vm_c
 		STREAM() += 6;
 	}
 
-	// 0xB2D920 (VM 0x0A4 SetBoneHandler): handler +0x18 = (u8)w0, +0xB0 = ref bone w1; handler 3:
-	// polar around the ref bone: +0x64 = angle(B66B30) << 16, +0x5C = XZ distance << 16,
-	// +0x60 = (cur.outY - ref.outY) << 16. Runs the bone handler. STREAM += 6.
 	static void __cdecl op_0A4_SetBoneHandler()
 	{
 		int32_t h = S16(STREAM(), 2);
@@ -3163,15 +2740,12 @@ namespace part_vm_c
 		STREAM() += 6;
 	}
 
-	// 0xB2DA30 (VM 0x0C7 InitSpriteAnimH22): SetSprite, then draw handler +0x1C = 0x16.
 	static void __cdecl op_0C7_InitSpriteAnimH22()
 	{
 		op_036_SetSprite();
 		U8(CUR(), 0x1C) = 0x16;
 	}
 
-	// 0xB2DA40 (VM 0x073 SetSpriteOrient2): SetSprite, orientation +0x1E = 2, +0xB8 = (s32)w1.
-	// STREAM += 4 + 2.
 	static void __cdecl op_073_SetSpriteOrient2()
 	{
 		op_036_SetSprite();
@@ -3180,21 +2754,18 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2DA80 (VM 0x081 SetSpriteAnimOriented): SetSprite, orientation +0x1E = op >> 12.
 	static void __cdecl op_081_SetSpriteAnimOriented()
 	{
 		op_036_SetSprite();
 		U8(CUR(), 0x1E) = (uint8_t)(U16(RT(), 0x4A) >> 12);
 	}
 
-	// 0xB2DAA0 (VM 0x025 SetSpriteOriented): SetSprite, orientation +0x1E = 9.
 	static void __cdecl op_025_SetSpriteOriented()
 	{
 		op_036_SetSprite();
 		U8(CUR(), 0x1E) = 9;
 	}
 
-	// 0xB2DAB0 (VM 0x09B ClearOptionBits): +0xDE &= ~((op >> 9) & 0x7F). STREAM += 2.
 	static void __cdecl op_09B_ClearOptionBits()
 	{
 		uint32_t w = U16(RT(), 0x4A);
@@ -3204,7 +2775,6 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2DAF0 (VM 0x024 SetOptionBits): v = op >> 9; (v & 3) ? +0xDE = v : +0xDE |= v. STREAM += 2.
 	static void __cdecl op_024_SetOptionBits()
 	{
 		uint32_t v = (uint32_t)U16(RT(), 0x4A) >> 9;
@@ -3219,7 +2789,6 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2DB40 (VM 0x051 SetOptionBitsAndC0): +0xDE |= op >> 9; +0xC0 = w0. STREAM += 4.
 	static void __cdecl op_051_SetOptionBitsAndC0()
 	{
 		uint16_t w = U16(RT(), 0x4A);
@@ -3229,51 +2798,42 @@ namespace part_vm_c
 		STREAM() += 4;
 	}
 
-	// 0xB2DB90 (VM 0x06B SetFlagCA): +0xCA |= 0x8000. STREAM += 2.
 	static void __cdecl op_06B_SetFlagCA()
 	{
 		U16(CUR(), 0xCA) |= 0x8000;
 		STREAM() += 2;
 	}
 
-	// 0xB2DBB0 (VM 0x06C ClearFlagCA): +0xCA &= 0x7FFF. STREAM += 2.
 	static void __cdecl op_06C_ClearFlagCA()
 	{
 		U16(CUR(), 0xCA) &= 0x7FFF;
 		STREAM() += 2;
 	}
 
-	// 0xB2DBD0 (VM 0x08E RemoveFromDrawList): DrawListRemove(rt+0x42 = current bone). STREAM += 2.
 	static void __cdecl op_08E_RemoveFromDrawList()
 	{
 		blob::DrawListRemove(U8(RT(), 0x42));
 		STREAM() += 2;
 	}
 
-	// 0xB2DC00 (VM 0x0D0 RemoveFromDrawList, byte clone of 0x08E).
 	static void __cdecl op_0D0_RemoveFromDrawList()
 	{
 		blob::DrawListRemove(U8(RT(), 0x42));
 		STREAM() += 2;
 	}
 
-	// 0xB2DC30 (VM 0x0EB AddToDrawList): DrawListAddId(rt+0x42). STREAM += 2.
 	static void __cdecl op_0EB_AddToDrawList()
 	{
 		blob::DrawListAddId(U8(RT(), 0x42));
 		STREAM() += 2;
 	}
 
-	// 0xB2DC60 (VM 0x0BC SetSpriteFrameSpeed): +0xCA = w0. STREAM += 4.
 	static void __cdecl op_0BC_SetSpriteFrameSpeed()
 	{
 		U16(CUR(), 0xCA) = U16(STREAM(), 2);
 		STREAM() += 4;
 	}
 
-	// 0xB2DCC0 (VM 0x071 DrawEntityInCinematic): entity model block e = scene+0x60[bone+0x1B];
-	// op bit 15: e flags &= ~0x20; else e flags |= 0x20 and draw it (sub_5088A0(e, rt+0x4C, 4,
-	// ctx+0x7C) -> ctx+0x7C). STREAM += 2.
 	static void __cdecl op_071_DrawEntityInCinematic()
 	{
 		uint8_t *cur = CUR();
@@ -3295,8 +2855,6 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2DD30 (VM 0x040 ColourFromBoneOutPos): colour +0xCC low 24 bits = clamp(src.outPos X/Y/Z,
-	// 0..255) of bone ref w0; top byte kept. STREAM += 4.
 	static void __cdecl op_040_ColourFromBoneOutPos()
 	{
 		uint8_t *b = blob::GetBone(S16(STREAM(), 2));
@@ -3312,9 +2870,6 @@ namespace part_vm_c
 		STREAM() += 4;
 	}
 
-	// 0xB2DDD0 (VM 0x0D4 SetColor): op bit 15: grey w0 (4 bytes) else w0,w1,w2 (8 bytes);
-	// +0xCC = (+0xCC & 0xFF000000) | (r | g << 8 | b << 16) with the words sign-extended (vanilla:
-	// negative / >255 words spill into the higher bytes).
 	static void __cdecl op_0D4_SetColor()
 	{
 		bool grey = (U8(RT(), 0x4B) & 0x80) != 0;
@@ -3340,8 +2895,6 @@ namespace part_vm_c
 		U32(cur, 0xCC) = (U32(cur, 0xCC) & 0xFF000000) | r;
 	}
 
-	// 0xB2DE30 (VM 0x0D3 ColorFromBoneOutPos): colour RGB = clamp(src.outPos XYZ * src.outAngleX
-	// / 256, 0..255) of bone ref w0; top byte kept. STREAM += 4.
 	static void __cdecl op_0D3_ColorFromBoneOutPos()
 	{
 		uint8_t *s = blob::GetBone(S16(STREAM(), 2));
@@ -3358,8 +2911,6 @@ namespace part_vm_c
 		STREAM() += 4;
 	}
 
-	// 0xB2DF10 (VM 0x083 ColorFromOutAngle): colour RGB = clamp(outAngle X/Y/Z, 0..255); top byte
-	// kept. STREAM += 2.
 	static void __cdecl op_083_ColorFromOutAngle()
 	{
 		uint8_t *cur = CUR();
@@ -3374,9 +2925,6 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2DFA0 (VM 0x023 SetBlendMode): v = op >> 9; v <= 3: +0xCC |= 0x02000000, +0x92 =
-	// (+0x92 & 0x19F) | v << 5; else +0xCC &= ~0x02000000, +0x92 = (+0x92 & ~0x40) | 0x20.
-	// STREAM += 2.
 	static void __cdecl op_023_SetBlendMode()
 	{
 		int32_t v = (int32_t)((uint32_t)U16(RT(), 0x4A) >> 9);
@@ -3394,8 +2942,6 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2E040 (VM 0x078 SetTexPage): +0x9A = scene+0x1C + ((w0 & 0x1F0) << 2) + (w0 & 0xF).
-	// STREAM += 4.
 	static void __cdecl op_078_SetTexPage()
 	{
 		int32_t w = S16(STREAM(), 2);
@@ -3405,11 +2951,6 @@ namespace part_vm_c
 		STREAM() += 4;
 	}
 
-	// 0xB2E080 (VM 0x04B TintPaletteUpload): w0 lo = CLUT res (B66560 -> ws+0xFC src), hi = dest
-	// bank: ws+0xF0 = src, ws+0xF8 = CLUTBUF + (w0 >> 8) * 0x200; ws+0xFC = first colour w1:
-	// ws+0xF0/0xF8 += (w1 & 0xFF) * 2. op >> 12: 0 = 256 colours tinted by own outAngle (6 bytes),
-	// 2 = w2 colours by own outAngle (8 bytes), 1 = w2 colours by outAngle of bone ref w3 (10 bytes).
-	// B666F0 tints + uploads.
 	static void __cdecl op_04B_TintPaletteUpload()
 	{
 		int32_t w0 = S16(STREAM(), 2);
@@ -3445,9 +2986,6 @@ namespace part_vm_c
 		STREAM() += 6;
 	}
 
-	// 0xB2E230 (VM 0x038 SetTargetModelColor): src = (op & 0xFE00) ? outAngle (+0x8C) : outPos
-	// (+0x94); ws+0xF0/F4/F8 = palette byte 0/1/2 (0xB8B7D8) + src XYZ - 0x80; B66A90 clamps and
-	// packs -> ws+0xFC; entity model block (scene+0x60[bone+0x1B]) +0x28 = ws+0xFC. STREAM += 2.
 	static void __cdecl op_038_SetTargetModelColor()
 	{
 		uint32_t pal = MODELPALETTE();
@@ -3468,9 +3006,6 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2E2F0 (VM 0x020 SetFadeLayers): ws+0xF0/F4/F8 = outPos XYZ, B66A90 -> packed colour
-	// ws+0xFC; intensity = clamp(outAngleX << 4, 0..0x1000); the 4 fade layers (0x1D9898C, 0x2C
-	// each): word +6 = intensity, dword +0x2C = colour. STREAM += 2.
 	static void __cdecl op_020_SetFadeLayers()
 	{
 		S32(WS(), 0xF0) = S16(CUR(), 0x94);
@@ -3481,7 +3016,7 @@ namespace part_vm_c
 		uint32_t c = U32(WS(), 0xFC);
 		if (k < 0) k = 0;
 		else if (k > 0x1000) k = 0x1000;
-		uint32_t p = FADELAYERS + 0x2C; // 0x1D989B8
+		uint32_t p = FADELAYERS + 0x2C;
 		for (int i = 4; i != 0; i--)
 		{
 			FX_HELD(guard((void *)(p - 0x26), 2);)
@@ -3493,8 +3028,6 @@ namespace part_vm_c
 		STREAM() += 2;
 	}
 
-	// 0xB2E3A0 (VM 0x0DF SetupDrawHandler29): +0xB8 = 2*w0, +0xBC = 2*w1, +0xC0 = CLUTBUF + 2*w2,
-	// +0xC4 = w3; draw handler 0x1D (+ draw list). STREAM += 10.
 	static void __cdecl op_0DF_SetupDrawHandler29()
 	{
 		S32(CUR(), 0xB8) = shl32(S16(STREAM(), 2), 1);
@@ -3506,16 +3039,11 @@ namespace part_vm_c
 		STREAM() += 0xA;
 	}
 
-	// 0xB2E430 (VM 0x127 Nop6): STREAM += 6.
 	static void __cdecl op_127_Nop6()
 	{
 		STREAM() += 6;
 	}
 
-	// 0xB2E440 (VM 0x029 VramUpload): load busy (0x2798219) -> wait (rt+0x3E = bone+0xC8).
-	// op bit 15: rect ctx+0x98[w0], data ctx+0xB4 (4 bytes); bit 14: rect ctx+0x98[w0], data =
-	// resfile[w1 & 0x7F] + w2 * 0x1000 (8 bytes); bit 13: inline rect w0..w3, data ctx+0xB4
-	// (10 bytes); else tail-jumps to the alternative texture loader B2E700.
 	static void __cdecl op_029_VramUpload()
 	{
 		if (LOADBUSY() != 0)
@@ -3555,15 +3083,11 @@ namespace part_vm_c
 		AltTextureLoader_B2E700();
 	}
 
-	// 0xB2E530 (VM 0x028 UploadImage): jmp 0xB2E750 (dispatcher ecx = RT; result discarded).
 	static void __cdecl op_028_UploadImage()
 	{
 		UploadImage_B2E750((uint32_t)RT());
 	}
 
-	// 0xB2E540 (VM 0x027 UploadAltTexAndImage): load busy -> wait; else B2E700 (alt texture w0,
-	// STREAM += 4 on success), rewind STREAM by 4, B2E750 (image w0); any failure -> wait
-	// (rt+0x3E = bone+0xC8).
 	static void __cdecl op_027_UploadAltTexAndImage()
 	{
 		if (LOADBUSY() == 0)
@@ -3571,34 +3095,27 @@ namespace part_vm_c
 			if (AltTextureLoader_B2E700() == 0)
 			{
 				STREAM() -= 4;
-				// the busy flag is 0 here, so B2E750's busy path (which returns the caller's ecx,
-				// here whatever B2E700's callee left in ecx) is unreachable
 				if (UploadImage_B2E750(0) == 0) return;
 			}
 		}
 		U16(RT(), 0x3E) = U16(CUR(), 0xC8);
 	}
 
-	// 0xB2E580 (VM 0x04F Nop8): STREAM += 8.
 	static void __cdecl op_04F_Nop8()
 	{
 		STREAM() += 8;
 	}
 
-	// 0xB2E590 (VM 0x06F Nop6): STREAM += 6.
 	static void __cdecl op_06F_Nop6()
 	{
 		STREAM() += 6;
 	}
 
-	// 0xB2E5A0 (VM 0x090 Nop10): STREAM += 10.
 	static void __cdecl op_090_Nop10()
 	{
 		STREAM() += 0xA;
 	}
 
-	// 0xB2E5C0 (VM 0x052 SetTexture): w0 == -1: tpage +0x92 = uv +0x9A = clut +0x9E = 0; else
-	// B665C0(w0) -> +0x92 = ws+0xFC, +0x9E = ws+0xF8, +0x9A = B66640(w0). STREAM += 4.
 	static void __cdecl op_052_SetTexture()
 	{
 		int32_t t = S16(STREAM(), 2);
@@ -3618,7 +3135,6 @@ namespace part_vm_c
 		STREAM() += 4;
 	}
 
-	// 0xB2E670 (VM 0x092 SetField92And9A): +0x92 = w0, +0x9A = w1. STREAM += 6.
 	static void __cdecl op_092_SetField92And9A()
 	{
 		U16(CUR(), 0x92) = U16(STREAM(), 2);
@@ -3629,62 +3145,54 @@ namespace part_vm_c
 
 	void fill_vm_c(Generic &g)
 	{
-		g.vm[0x0AC] = part_vm_c::op_0AC_AccelerateToTarget;   // 0xB2D340
-		g.vm[0x026] = part_vm_c::op_026_StartChannel;         // 0xB2D4C0
-		g.vm[0x08B] = part_vm_c::op_08B_StartChannelPos;      // 0xB2D520
-		g.vm[0x02A] = part_vm_c::op_02A_StopChannels;         // 0xB2D590
-		g.vm[0x02E] = part_vm_c::op_02E_SetBoneIdShort;       // 0xB2D5E0
-		g.vm[0x032] = part_vm_c::op_032_SpawnBone;            // 0xB2D610
-		g.vm[0x135] = part_vm_c::op_135_SpawnBoneWithId;      // 0xB2D7C0
-		g.vm[0x05D] = part_vm_c::op_05D_SpawnPerTarget;       // 0xB2D7F0
-		g.vm[0x09C] = part_vm_c::op_09C_SpawnBoneChained;     // 0xB2D860
-		g.vm[0x05A] = part_vm_c::op_05A_SetBoneHandlerParam;  // 0xB2D8D0
-		g.vm[0x0A4] = part_vm_c::op_0A4_SetBoneHandler;       // 0xB2D920
-		g.vm[0x036] = part_vm_c::op_036_SetSprite;            // 0xB2DA00
-		g.vm[0x0C7] = part_vm_c::op_0C7_InitSpriteAnimH22;    // 0xB2DA30
-		g.vm[0x073] = part_vm_c::op_073_SetSpriteOrient2;     // 0xB2DA40
-		g.vm[0x081] = part_vm_c::op_081_SetSpriteAnimOriented;// 0xB2DA80
-		g.vm[0x025] = part_vm_c::op_025_SetSpriteOriented;    // 0xB2DAA0
-		g.vm[0x09B] = part_vm_c::op_09B_ClearOptionBits;      // 0xB2DAB0
-		g.vm[0x024] = part_vm_c::op_024_SetOptionBits;        // 0xB2DAF0
-		g.vm[0x051] = part_vm_c::op_051_SetOptionBitsAndC0;   // 0xB2DB40
-		g.vm[0x06B] = part_vm_c::op_06B_SetFlagCA;            // 0xB2DB90
-		g.vm[0x06C] = part_vm_c::op_06C_ClearFlagCA;          // 0xB2DBB0
-		g.vm[0x08E] = part_vm_c::op_08E_RemoveFromDrawList;   // 0xB2DBD0
-		g.vm[0x0D0] = part_vm_c::op_0D0_RemoveFromDrawList;   // 0xB2DC00
-		g.vm[0x0EB] = part_vm_c::op_0EB_AddToDrawList;        // 0xB2DC30
-		g.vm[0x0BC] = part_vm_c::op_0BC_SetSpriteFrameSpeed;  // 0xB2DC60
-		g.vm[0x071] = part_vm_c::op_071_DrawEntityInCinematic;// 0xB2DCC0
-		g.vm[0x040] = part_vm_c::op_040_ColourFromBoneOutPos; // 0xB2DD30
-		g.vm[0x0D4] = part_vm_c::op_0D4_SetColor;             // 0xB2DDD0
-		g.vm[0x0D3] = part_vm_c::op_0D3_ColorFromBoneOutPos;  // 0xB2DE30
-		g.vm[0x083] = part_vm_c::op_083_ColorFromOutAngle;    // 0xB2DF10
-		g.vm[0x023] = part_vm_c::op_023_SetBlendMode;         // 0xB2DFA0
-		g.vm[0x078] = part_vm_c::op_078_SetTexPage;           // 0xB2E040
-		g.vm[0x04B] = part_vm_c::op_04B_TintPaletteUpload;    // 0xB2E080
-		g.vm[0x038] = part_vm_c::op_038_SetTargetModelColor;  // 0xB2E230
-		g.vm[0x020] = part_vm_c::op_020_SetFadeLayers;        // 0xB2E2F0
-		g.vm[0x0DF] = part_vm_c::op_0DF_SetupDrawHandler29;   // 0xB2E3A0
-		g.vm[0x127] = part_vm_c::op_127_Nop6;                 // 0xB2E430
-		g.vm[0x029] = part_vm_c::op_029_VramUpload;           // 0xB2E440
-		g.vm[0x028] = part_vm_c::op_028_UploadImage;          // 0xB2E530
-		g.vm[0x027] = part_vm_c::op_027_UploadAltTexAndImage; // 0xB2E540
-		g.vm[0x04F] = part_vm_c::op_04F_Nop8;                 // 0xB2E580
-		g.vm[0x06F] = part_vm_c::op_06F_Nop6;                 // 0xB2E590
-		g.vm[0x090] = part_vm_c::op_090_Nop10;                // 0xB2E5A0
-		g.vm[0x052] = part_vm_c::op_052_SetTexture;           // 0xB2E5C0
-		g.vm[0x092] = part_vm_c::op_092_SetField92And9A;      // 0xB2E670
+		g.vm[0x0AC] = part_vm_c::op_0AC_AccelerateToTarget;
+		g.vm[0x026] = part_vm_c::op_026_StartChannel;
+		g.vm[0x08B] = part_vm_c::op_08B_StartChannelPos;
+		g.vm[0x02A] = part_vm_c::op_02A_StopChannels;
+		g.vm[0x02E] = part_vm_c::op_02E_SetBoneIdShort;
+		g.vm[0x032] = part_vm_c::op_032_SpawnBone;
+		g.vm[0x135] = part_vm_c::op_135_SpawnBoneWithId;
+		g.vm[0x05D] = part_vm_c::op_05D_SpawnPerTarget;
+		g.vm[0x09C] = part_vm_c::op_09C_SpawnBoneChained;
+		g.vm[0x05A] = part_vm_c::op_05A_SetBoneHandlerParam;
+		g.vm[0x0A4] = part_vm_c::op_0A4_SetBoneHandler;
+		g.vm[0x036] = part_vm_c::op_036_SetSprite;
+		g.vm[0x0C7] = part_vm_c::op_0C7_InitSpriteAnimH22;
+		g.vm[0x073] = part_vm_c::op_073_SetSpriteOrient2;
+		g.vm[0x081] = part_vm_c::op_081_SetSpriteAnimOriented;
+		g.vm[0x025] = part_vm_c::op_025_SetSpriteOriented;
+		g.vm[0x09B] = part_vm_c::op_09B_ClearOptionBits;
+		g.vm[0x024] = part_vm_c::op_024_SetOptionBits;
+		g.vm[0x051] = part_vm_c::op_051_SetOptionBitsAndC0;
+		g.vm[0x06B] = part_vm_c::op_06B_SetFlagCA;
+		g.vm[0x06C] = part_vm_c::op_06C_ClearFlagCA;
+		g.vm[0x08E] = part_vm_c::op_08E_RemoveFromDrawList;
+		g.vm[0x0D0] = part_vm_c::op_0D0_RemoveFromDrawList;
+		g.vm[0x0EB] = part_vm_c::op_0EB_AddToDrawList;
+		g.vm[0x0BC] = part_vm_c::op_0BC_SetSpriteFrameSpeed;
+		g.vm[0x071] = part_vm_c::op_071_DrawEntityInCinematic;
+		g.vm[0x040] = part_vm_c::op_040_ColourFromBoneOutPos;
+		g.vm[0x0D4] = part_vm_c::op_0D4_SetColor;
+		g.vm[0x0D3] = part_vm_c::op_0D3_ColorFromBoneOutPos;
+		g.vm[0x083] = part_vm_c::op_083_ColorFromOutAngle;
+		g.vm[0x023] = part_vm_c::op_023_SetBlendMode;
+		g.vm[0x078] = part_vm_c::op_078_SetTexPage;
+		g.vm[0x04B] = part_vm_c::op_04B_TintPaletteUpload;
+		g.vm[0x038] = part_vm_c::op_038_SetTargetModelColor;
+		g.vm[0x020] = part_vm_c::op_020_SetFadeLayers;
+		g.vm[0x0DF] = part_vm_c::op_0DF_SetupDrawHandler29;
+		g.vm[0x127] = part_vm_c::op_127_Nop6;
+		g.vm[0x029] = part_vm_c::op_029_VramUpload;
+		g.vm[0x028] = part_vm_c::op_028_UploadImage;
+		g.vm[0x027] = part_vm_c::op_027_UploadAltTexAndImage;
+		g.vm[0x04F] = part_vm_c::op_04F_Nop8;
+		g.vm[0x06F] = part_vm_c::op_06F_Nop6;
+		g.vm[0x090] = part_vm_c::op_090_Nop10;
+		g.vm[0x052] = part_vm_c::op_052_SetTexture;
+		g.vm[0x092] = part_vm_c::op_092_SetField92And9A;
 	}
 }
 }
-
-// ============================================================================================
-// part vm_d
-// ============================================================================================
-// GF cinematic engine, part vm_d: node/matrix builders (camera nodes, aux billboard slots,
-// light sets, model-joint attachment), mesh setters, flow/wait opcodes and the channel end /
-// sequence loop opcodes. Ported from the Ifrit (201) copy, 0xB2E7D0..0xB30103.
-
 
 namespace ff8fx
 {
@@ -3692,40 +3200,16 @@ namespace gfc
 {
 namespace part_vm_d
 {
-	// --------------------------------------------------------------------------------------
-	// shared engine block globals used only here (identical addresses in all clones)
-	// --------------------------------------------------------------------------------------
-	// g_GfCinematic_RootAngleXYZ: s16[3] at 0x2797780 (op 0x117)
 	inline int16_t *ROOTANG() { return (int16_t *)0x2797780; }
-	// aux / billboard-slot matrix table (32-byte FF8_PSX_Matrix4x3 each) at 0x2798B68 (ops 0x104/0x105)
 	inline uint8_t *AUXMAT(int32_t slot) { return (uint8_t *)(0x2798B68u + (uint32_t)shl32(slot, 5)); }
 
-	// --------------------------------------------------------------------------------------
-	// local wrappers
-	// --------------------------------------------------------------------------------------
-	// 0xB66B80 (blob): matrix of joint `joint` of the model whose BattleAnimHeader is `hdr`,
-	// composed with m (ws+0xD0 = m o joint), joint length * scale >> 12 -> ws+0xC4, and the
-	// joint origin transformed -> ws+0xF0..0xF8 (flag ws+0xFC). Returns ws+0xD0.
-	// (blob::Blob_B66B80 discards the return value the caller needs.) Writes only ws + GTE.
 	inline uint8_t *xl_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
 		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
 	}
-	// 30 fps layer: writes outside the engine state block (light / aux slot indices from data,
-	// fog state) are preceded by FX_HELD(guard_...), see gfc_engine_held.h
 
 	static void __cdecl op_000_EndChannel();
 
-	// ======================================================================================
-	// node builders (matrix node slot = blob::NodeForCurBone(), keyed by bone+0x12)
-	// ======================================================================================
-
-	// 0xB2E7D0 (VM 0x065 NodeCamRotFromPos): node.rot = Cam.rot * Rot(outPos read as angles),
-	// node.trans = Cam.trans. Operands: w0 unused. Length 4.
-	// VANILLA QUIRK 0xB2E80E: the "projection word = 0" store goes to node+0x48 (= m[1][1] of the
-	// node two slots further, or engine block bytes after slot 63), not to node+0x12: node+0x12
-	// keeps the pad word copied by 0x56C270 (x::MulMatrixGte) from the uninitialised stack temp of
-	// Matrix3x3_MultiplyPSX (0x56C090 never writes temp+0x12) - not reproducible bit-exact.
 	static void __cdecl op_065_NodeCamRotFromPos()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
@@ -3734,13 +3218,11 @@ namespace part_vm_d
 		S32(node, 0x18) = MEM<int32_t>(0x2797A00);
 		S32(node, 0x1C) = MEM<int32_t>(0x2797A04);
 		x::MulMatrixGte(NODEMAT(), node);
-		pad_after_rot_mul(node, CUR() + 0x94); // node H (+0x12): vanilla stack word = outPosY < 0 ? -1 : 0
+		pad_after_rot_mul(node, CUR() + 0x94);
 		U16(node, 0x48) = 0;
 		STREAM() += 4;
 	}
 
-	// 0xB2E830 (VM 0x066 NodeCamTranslate): node.rot = Cam.rot (+pad), node.trans = Cam * outPos,
-	// node.H = ctx+0x02. Operands: w0 unused. Length 4.
 	static void __cdecl op_066_NodeCamTranslate()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
@@ -3757,8 +3239,6 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2E8C0 (VM 0x06A NodeCamRotLocalPos): node.rot = Cam.rot * RotOrder(outAngle, op>>12),
-	// node.trans = raw outPos, node.H = ctx+0x02. Length 4.
 	static void __cdecl op_06A_NodeCamRotLocalPos()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
@@ -3771,10 +3251,6 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2E950 (VM 0x067 NodeCamRotTranslate): node.trans = Cam * outPos, node.rot = Cam.rot *
-	// RotOrder(outAngle, op>>12), node.H = 0. Length 4.
-	// The original keeps every cdecl argument on the stack (one add esp, 0x28 at the end): it calls
-	// RotMatrixOrder.
 	static void __cdecl op_067_NodeCamRotTranslate()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
@@ -3787,8 +3263,6 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2E9E0 (VM 0x069 NodeChildOfParent): node.rot = (Rot(outAngle) * Cam.rot) * parent.rot
-	// with parent = GetParentMatrix(w1) (also sets GTE H), node.trans = raw outPos, H = 0. Length 6.
 	static void __cdecl op_069_NodeChildOfParent()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
@@ -3803,8 +3277,6 @@ namespace part_vm_d
 		STREAM() += 6;
 	}
 
-	// 0xB2EA70 (VM 0x0C4 NodeLocalNoCamera): node.rot(+pad) = RotOrder(outAngle, op>>12),
-	// node.trans = raw outPos, node.H = ctx+0x02. Length 4.
 	static void __cdecl op_0C4_NodeLocalNoCamera()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
@@ -3821,8 +3293,6 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2EB10 (VM 0x116 NodeCamPosLocalRot): node.trans = Cam * outPos, node.rot = Rot(outAngle)
-	// (not multiplied by the camera), node.H = 0. Length 4.
 	static void __cdecl op_116_NodeCamPosLocalRot()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
@@ -3834,15 +3304,11 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2EB80 (VM 0x095 Nop4)
 	static void __cdecl op_095_Nop4()
 	{
 		STREAM() += 4;
 	}
 
-	// 0xB2EB90 (VM 0x07A NodeFromParentAndMatrix): node = ComposeAffine(parent, M) with
-	// parent = node slot of bone w0 (find-or-ALLOCATE; w0 == 0 -> Cam node 0), M = own node
-	// (w1 == 0) or the 32 bytes at curBone + w1. node.H = (op bit 15) ? ctx+0x02 : 0. Length 6.
 	static void __cdecl op_07A_NodeFromParentAndMatrix()
 	{
 		int32_t ref = S16(STREAM(), 2);
@@ -3863,8 +3329,6 @@ namespace part_vm_d
 		STREAM() += 6;
 	}
 
-	// 0xB2EC40 (VM 0x084 CopyMatrix): 32 bytes from (bone w0's node slot if w1 == 0 [find-or-
-	// allocate], else bone w0 + w1) to (own node slot if w2 == 0, else curBone + w2). Length 8.
 	static void __cdecl op_084_CopyMatrix()
 	{
 		uint8_t *other = blob::GetBone(S16(STREAM(), 2));
@@ -3881,16 +3345,12 @@ namespace part_vm_d
 		STREAM() += 8;
 	}
 
-	// 0xB2ECB0 (VM 0x068 SetParentNode): bone+0x9C = w0. Length 4.
 	static void __cdecl op_068_SetParentNode()
 	{
 		U16(CUR(), 0x9C) = U16(STREAM(), 2);
 		STREAM() += 4;
 	}
 
-	// 0xB2ECE0 (VM 0x0CB NodeLookAt): eye = bone w0 (0 = self), target = bone w1 (0 = self);
-	// node.rot = look-at(eye.outPos -> target.outPos) (blob 0xB66E50), node.trans = outPos of
-	// target (op bit 12) or eye, then node = Cam o node (ComposeAffine), H = 0. Length 6.
 	static void __cdecl op_0CB_NodeLookAt()
 	{
 		int32_t a = S16(STREAM(), 2);
@@ -3908,8 +3368,6 @@ namespace part_vm_d
 		STREAM() += 6;
 	}
 
-	// 0xB2EDB0 (VM 0x104 BuildBillboardSlot): aux slot w0 (0x2798B68 + 32*w0): rot = CamAlt.rot *
-	// Rot(outAngle) (Rot built in ws+0x20), trans = CamAlt * outPos, H = 0. Length 4.
 	static void __cdecl op_104_BuildBillboardSlot()
 	{
 		uint8_t *aux = AUXMAT(S16(STREAM(), 2));
@@ -3924,8 +3382,6 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2EE40 (VM 0x105 NodeFromBillboardSlot): node.trans = aux[w0] * outPos, node.rot =
-	// aux[w0].rot * RotOrder(outAngle, op>>12), H = 0. Length 6.
 	static void __cdecl op_105_NodeFromBillboardSlot()
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
@@ -3939,8 +3395,6 @@ namespace part_vm_d
 		STREAM() += 6;
 	}
 
-	// 0xB2EF00 (VM 0x117 SetRotRelativeToRoot): accumRot(+0x50/54/58) = (w_i - rootAngle_i) << 16,
-	// then outAngle = HIWORD(accumRot) (0xB2C440). Length 8.
 	static void __cdecl op_117_SetRotRelativeToRoot()
 	{
 		uint8_t *s = STREAM();
@@ -3960,9 +3414,6 @@ namespace part_vm_d
 		STREAM() += 8;
 	}
 
-	// 0xB2EF70 (VM 0x063 PosFromBoneViaParent): src = bone w0, par = bone(src+0x9C);
-	// accumPos(+0x5C/60/64) = (RotOrder(par.outAngle, w1) * src.outPos + par.outPos) << 16
-	// (GTE MVMVA with TR = par.outPos), then the bone handler of the current bone. Length 6.
 	static void __cdecl op_063_PosFromBoneViaParent()
 	{
 		uint8_t *saved = CUR();
@@ -3977,7 +3428,7 @@ namespace part_vm_d
 		x::GteWriteCtrl(px, 5);
 		x::GteWriteCtrl(py, 6);
 		x::GteWriteCtrl(pz, 7);
-		x::TransformToCamera(CUR() + 0x94, WS() + 0xF0, WS() + 0xFC);   // CUR() = src here
+		x::TransformToCamera(CUR() + 0x94, WS() + 0xF0, WS() + 0xFC);
 		CUR() = saved;
 		S32(saved, 0x5C) = shl32(S32(WS(), 0xF0), 16);
 		S32(CUR(), 0x60) = shl32(S32(WS(), 0xF4), 16);
@@ -3986,28 +3437,16 @@ namespace part_vm_d
 		STREAM() += 6;
 	}
 
-	// 0xB2F090 (VM 0x05B AttachToModelJoint): attaches the current bone to a joint of a battle
-	// model. op bit 10: model = battle entity E = SceneHeader[0x60 + 4*bone+0x1B] (anim header
-	// E+0x60, base matrix E+0x40); else model = embedded model block *(bone w0 +0xBC) (header
-	// block+0x10; none -> skip the opcode) with base matrix ws+0x60 = BBMAT[0].rot (+pad),
-	// trans = own outPos, scaled by 16*outAngle of bone w0. op bit 11: joint = w1 & 0xFF,
-	// node offset = (w1 >> 8) & 0xFF, scale = 16*w2, length 8; else joint = own outAngleX,
-	// scale 0x1000, offset 0, length 4. Rebuilds the model's bone matrices, J = base o joint
-	// (ws+0xD0), joint origin -> ws+0xF0. op>>12: 1 = own node = Cam o (J.rot, ws+0xF0), H = 0;
-	// 2 = (own node or curBone+offset) = (J.rot, ws+0xF0); else accumPos = ws+0xF0 << 16 and
-	// the bone handler runs. (Reads - does not write - the billboard matrices 0x2797968.)
 	static void __cdecl op_05B_AttachToModelJoint()
 	{
-		uint8_t *hdr;              // [ebp-4]
-		uint8_t *base;             // esi
-		uint8_t *mbone = nullptr;  // eax (only read when base == 0)
-		int32_t nodeofs;           // [ebp-8]
-		int32_t joint, scale;      // edi, ebx
+		uint8_t *hdr;
+		uint8_t *base;
+		uint8_t *mbone = nullptr;
+		int32_t nodeofs;
+		int32_t joint, scale;
 		if (U8(RT(), 0x4B) & 4)
 		{
 			uint8_t *e = PTR(SCENE(), 0x60 + U8(CUR(), 0x1B) * 4);
-			// 0xB2F0B7 loads the uninitialised [ebp-8] into eax: dead value (eax is only read on
-			// the base == 0 path, which this branch never takes)
 			hdr = e + 0x60;
 			base = e + 0x40;
 		}
@@ -4062,9 +3501,7 @@ namespace part_vm_d
 			x::ScaleMatrix(w, w + 0x20);
 			base = w;
 		}
-		// writes the model skeleton
 		x::BuildBoneMatricesFromPose(hdr);
-		// 30 fps layer: see gfc_engine_held.inc (held_entity_next_pose)
 		FX_HELD(if (held_predicting() && (U8(RT(), 0x4B) & 4)) held_entity_next_pose(hdr - 0x60);)
 		uint8_t *jm = xl_B66B80(hdr, joint, scale, base);
 		switch ((uint32_t)U16(RT(), 0x4A) >> 12)
@@ -4084,8 +3521,6 @@ namespace part_vm_d
 		{
 			uint8_t *node = (nodeofs == 0) ? (uint8_t *)blob::NodeForCurBone() : CUR() + nodeofs;
 			blob::CopyMatrix(node, jm);
-			// node+0x12 = pad of B66B80's result: the uninitialised stack temporary of
-			// ComposeAffineTransform 0x56C2F0 (vanilla stack garbage, depends on the caller chain)
 			GFC_TAINT(node + 0x12, nullptr, 2);
 			S32(node, 0x14) = S32(WS(), 0xF0);
 			S32(node, 0x18) = S32(WS(), 0xF4);
@@ -4101,12 +3536,6 @@ namespace part_vm_d
 		}
 	}
 
-	// ======================================================================================
-	// mesh / draw-handler setters
-	// ======================================================================================
-
-	// 0xB2F380 (VM 0x054 SetMesh, also called by 0x03C / 0x056): colour(+0xCC) &= 0x2FFFFFF,
-	// +0xBC = 0, mesh ptr(+0xD8) = ObjectPtr(w0), SetDrawHandler(1). Length 4.
 	static void __cdecl op_054_SetMesh()
 	{
 		U32(CUR(), 0xCC) = U32(CUR(), 0xCC) & 0x2FFFFFF;
@@ -4117,24 +3546,20 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2F3E0 (VM 0x03C SetMeshScaled): SetMesh, then drawHandlerId(+0x1C) = 2. Length 4.
 	static void __cdecl op_03C_SetMeshScaled()
 	{
 		op_054_SetMesh();
 		U8(CUR(), 0x1C) = 2;
 	}
 
-	// 0xB2F3F0 (VM 0x056 SetClippedMesh): SetMesh, drawHandlerId = 9, +0xC2 = w1. Length 6.
 	static void __cdecl op_056_SetClippedMesh()
 	{
 		op_054_SetMesh();
 		U8(CUR(), 0x1C) = 9;
-		U16(CUR(), 0xC2) = U16(STREAM(), 0);   // STREAM already advanced by 4: this is w1
+		U16(CUR(), 0xC2) = U16(STREAM(), 0);
 		STREAM() += 2;
 	}
 
-	// 0xB2F430 (VM 0x03D SetMeshTexParam): colour = (colour & 0x2000000) | 0x808080, mesh ptr =
-	// ObjectPtr(w1), +0xB8 = 16*w2, +0xBC = 0, SetDrawHandler(w0). Length 8.
 	static void __cdecl op_03D_SetMeshTexParam()
 	{
 		U32(CUR(), 0xCC) = (U32(CUR(), 0xCC) & 0x2000000) | 0x808080;
@@ -4146,8 +3571,6 @@ namespace part_vm_d
 		STREAM() += 8;
 	}
 
-	// 0xB2F4C0 (VM 0x04A SetMeshDrawHandler): colour &= 0x2FFFFFF, +0xBC = 0, mesh ptr =
-	// ObjectPtr(w0), SetDrawHandler(op >> 9). Length 4.
 	static void __cdecl op_04A_SetMeshDrawHandler()
 	{
 		U32(CUR(), 0xCC) = U32(CUR(), 0xCC) & 0x2FFFFFF;
@@ -4158,23 +3581,12 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2F530 (VM 0x03E SetInlineDescriptor3): bone+0xBC = &w0 (3 inline words). Length 8.
 	static void __cdecl op_03E_SetInlineDescriptor3()
 	{
 		PTR(CUR(), 0xBC) = STREAM() + 2;
 		STREAM() += 8;
 	}
 
-	// ======================================================================================
-	// lights / fog
-	// ======================================================================================
-
-	// 0xB2F590 (VM 0x093 BuildLightMatrices, IDA GF_Ifrit_BuildPoseMatrices is a misnomer):
-	// light set L = 0x27977A4 + 0x50*w0. For i = 0..2 with bone B_i = w(i+1) (-1 = none):
-	// row i of M (ws+0x20) = 16*B_i.outPos (zero row if none); column i of the colour matrix
-	// L+0x20 (words +0x20+2i, +0x26+2i, +0x2C+2i) = 16*B_i.outAngle (left UNCHANGED if none).
-	// L+0x00 rot(+pad) = M * Rot(16 * low byte of curBone.outPos X/Y/Z) (angles in ws+0x50);
-	// L+0x40..0x48 (s32) = 16*curBone.outAngle (back colour). Length 10.
 	static void __cdecl op_093_BuildLightMatrices()
 	{
 		uint8_t *s = STREAM();
@@ -4239,14 +3651,13 @@ namespace part_vm_d
 		U16(m, 0x34) = (uint16_t)((uint32_t)U8(CUR(), 0x98) << 4);
 		x::RotMatrixFromAngles(ang, L);
 		x::MulMatrixGte(m, L);
-		pad_after_rot_mul(L, ang); // L+0x12: vanilla stack word (always 0 here)
+		pad_after_rot_mul(L, ang);
 		S32(L, 0x40) = shl32(S16(CUR(), 0x8C), 4);
 		S32(L, 0x44) = shl32(S16(CUR(), 0x8E), 4);
 		S32(L, 0x48) = shl32(S16(CUR(), 0x90), 4);
 		STREAM() += 10;
 	}
 
-	// 0xB2F7D0 (VM 0x0AA SetLightSlot): bone+0xE1 = (w0 == -1) ? 0 : (u8)w0. Length 4.
 	static void __cdecl op_0AA_SetLightSlot()
 	{
 		int32_t v = S16(STREAM(), 2);
@@ -4260,8 +3671,6 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2F820 (VM 0x0C6 SetFogColorAndNear): GTE far colour = 16*outAngle (0x45DDA0), fog near =
-	// outPosX, DQA/DQB recomputed with outPosY (0x56CCC0). Length 2.
 	static void __cdecl op_0C6_SetFogColorAndNear()
 	{
 		FX_HELD(guard_fog_state();)
@@ -4274,7 +3683,6 @@ namespace part_vm_d
 		STREAM() += 2;
 	}
 
-	// 0xB2F870 (VM 0x11B SetFogColorAndFar): as 0x0C6 but fog FAR = outPosX (0x56CCA0). Length 2.
 	static void __cdecl op_11B_SetFogColorAndFar()
 	{
 		FX_HELD(guard_fog_state();)
@@ -4287,20 +3695,11 @@ namespace part_vm_d
 		STREAM() += 2;
 	}
 
-	// 0xB2F8C0 (VM 0x0F1 Nop2)
 	static void __cdecl op_0F1_Nop2()
 	{
 		STREAM() += 4;
 	}
 
-	// ======================================================================================
-	// flow / sequence
-	// ======================================================================================
-
-	// 0xB2FB20 (VM 0x001 LoopSequenceOrFinish): if loop count ctx+0xD0 < ctx+0xD1: ++count,
-	// InitBones, cursor = opcode + w0, rt+0x44 (boneCursor) = 0, vmWait = 0. Else finish: order
-	// list[0..127] = 0xFF, SequenceState+8 = 0, channel pointers 0/4/8 = 0, vmWait = 0xFFFF,
-	// SceneHeader+0x18 = 0, cursor = 0, SceneHeader+0x1A = 4.
 	static void __cdecl op_001_LoopSequenceOrFinish()
 	{
 		uint8_t *ctx = CTX();
@@ -4329,8 +3728,6 @@ namespace part_vm_d
 		U16(RT(), 0x3E) = 0;
 	}
 
-	// 0xB2FBE0 (VM 0x0AE NextTargetOrJump): if ctx+0xD0 < ctx+0xD1: ++index, target setup
-	// (0xB2FC20), cursor += 4; else cursor += w0.
 	static void __cdecl op_0AE_NextTargetOrJump()
 	{
 		uint8_t *ctx = CTX();
@@ -4346,7 +3743,6 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB2FE80 (VM 0x009 Wait): vmWaitRequest(rt+0x3E) = (op >> 9) << 7. Length 2.
 	static void __cdecl op_009_Wait()
 	{
 		uint8_t *rt = RT();
@@ -4355,10 +3751,6 @@ namespace part_vm_d
 		STREAM() += 2;
 	}
 
-	// 0xB2FEB0 (VM 0x000 EndChannel): channel != 0 (rt+0x43): cursor = 0, vmWait = 0x8000.
-	// Channel 0: KILL the bone: channel pointers 0/4/8 and +0xC = 0, remove it from the order
-	// list (frees its node key) and the draw list, --SceneHeader+0x18, vmWait = bone+0xC8,
-	// cursor = 0, --rt+0x44, and clear the node key equal to bone+0x12 (again).
 	static void __cdecl op_000_EndChannel()
 	{
 		uint8_t *rt = RT();
@@ -4391,9 +3783,6 @@ namespace part_vm_d
 		}
 	}
 
-	// 0xB2FF70 (VM 0x01D WaitBoneGoneThenEnd): if bone w0 no longer exists (GetBone returns the
-	// bone array base ctx+0x90) -> EndChannel (tail jump); else wait one tick (vmWait = 0x80)
-	// and retry the same opcode (cursor not advanced).
 	static void __cdecl op_01D_WaitBoneGoneThenEnd()
 	{
 		uint8_t *b = blob::GetBone(S16(STREAM(), 2));
@@ -4405,7 +3794,6 @@ namespace part_vm_d
 		U16(RT(), 0x3E) = 0x80;
 	}
 
-	// 0xB2FFC0 (VM 0x09E JumpIfCtxFlag15Clear): (ctx+0x01 & 0x80) ? cursor += 4 : cursor += w0.
 	static void __cdecl op_09E_JumpIfCtxFlag15Clear()
 	{
 		uint8_t f = U8(CTX(), 1);
@@ -4416,7 +3804,6 @@ namespace part_vm_d
 			STREAM() = s + S16(s, 2);
 	}
 
-	// 0xB2FFF0 (VM 0x09F JumpIfCtxFlag15Set): (ctx+0x01 & 0x80) ? cursor += w0 : cursor += 4.
 	static void __cdecl op_09F_JumpIfCtxFlag15Set()
 	{
 		uint8_t f = U8(CTX(), 1);
@@ -4427,13 +3814,11 @@ namespace part_vm_d
 			STREAM() = s + 4;
 	}
 
-	// 0xB30020 (VM 0x0A2 Nop4)
 	static void __cdecl op_0A2_Nop4()
 	{
 		STREAM() += 4;
 	}
 
-	// 0xB30030 (VM 0x0A0 JumpIfCtxFlag13Clear): (ctx u16 +0 & 0x2000) ? cursor += 4 : cursor += w0.
 	static void __cdecl op_0A0_JumpIfCtxFlag13Clear()
 	{
 		uint16_t f = (uint16_t)(U16(CTX(), 0) & 0x2000);
@@ -4444,8 +3829,6 @@ namespace part_vm_d
 			STREAM() = s + S16(s, 2);
 	}
 
-	// 0xB30060 (VM 0x0B0 RandomWait): r = Rand74(w0) (1 CRT rand()), cursor += 4, v = r *
-	// bone+0xC8 (s16, imul 32); if v != 0: vmWait = (u16)v.
 	static void __cdecl op_0B0_RandomWait()
 	{
 		int32_t r = blob::Rand74(S16(STREAM(), 2));
@@ -4455,8 +3838,6 @@ namespace part_vm_d
 		if (v != 0) U16(RT(), 0x3E) = (uint16_t)v;
 	}
 
-	// 0xB300A0 (VM 0x140 WaitScaledBySlot): vmWait = (u16)((u8 SceneHeader[0xCC + bone+0x1B] *
-	// w0) << 7) (16-bit multiply). Length 4.
 	static void __cdecl op_140_WaitScaledBySlot()
 	{
 		uint32_t idx = U8(CUR(), 0x1B);
@@ -4466,8 +3847,6 @@ namespace part_vm_d
 		STREAM() += 4;
 	}
 
-	// 0xB300E0 (VM 0x050 FreeArenaBlock): ws+0xF0 = bone+0xC4 (size), arena top ctx+0x74 -= size
-	// (4-aligned, blob 0xB65710). Length 2.
 	static void __cdecl op_050_FreeArenaBlock()
 	{
 		U32(WS(), 0xF0) = U32(CUR(), 0xC4);
@@ -4478,56 +3857,49 @@ namespace part_vm_d
 
 	void fill_vm_d(Generic &g)
 	{
-		g.vm[0x065] = part_vm_d::op_065_NodeCamRotFromPos;       // 0xB2E7D0
-		g.vm[0x066] = part_vm_d::op_066_NodeCamTranslate;        // 0xB2E830
-		g.vm[0x06A] = part_vm_d::op_06A_NodeCamRotLocalPos;      // 0xB2E8C0
-		g.vm[0x067] = part_vm_d::op_067_NodeCamRotTranslate;     // 0xB2E950
-		g.vm[0x069] = part_vm_d::op_069_NodeChildOfParent;       // 0xB2E9E0
-		g.vm[0x0C4] = part_vm_d::op_0C4_NodeLocalNoCamera;       // 0xB2EA70
-		g.vm[0x116] = part_vm_d::op_116_NodeCamPosLocalRot;      // 0xB2EB10
-		g.vm[0x095] = part_vm_d::op_095_Nop4;                    // 0xB2EB80
-		g.vm[0x07A] = part_vm_d::op_07A_NodeFromParentAndMatrix; // 0xB2EB90
-		g.vm[0x084] = part_vm_d::op_084_CopyMatrix;              // 0xB2EC40
-		g.vm[0x068] = part_vm_d::op_068_SetParentNode;           // 0xB2ECB0
-		g.vm[0x0CB] = part_vm_d::op_0CB_NodeLookAt;              // 0xB2ECE0
-		g.vm[0x104] = part_vm_d::op_104_BuildBillboardSlot;      // 0xB2EDB0
-		g.vm[0x105] = part_vm_d::op_105_NodeFromBillboardSlot;   // 0xB2EE40
-		g.vm[0x117] = part_vm_d::op_117_SetRotRelativeToRoot;    // 0xB2EF00
-		g.vm[0x063] = part_vm_d::op_063_PosFromBoneViaParent;    // 0xB2EF70
-		g.vm[0x05B] = part_vm_d::op_05B_AttachToModelJoint;      // 0xB2F090
-		g.vm[0x054] = part_vm_d::op_054_SetMesh;                 // 0xB2F380
-		g.vm[0x03C] = part_vm_d::op_03C_SetMeshScaled;           // 0xB2F3E0
-		g.vm[0x056] = part_vm_d::op_056_SetClippedMesh;          // 0xB2F3F0
-		g.vm[0x03D] = part_vm_d::op_03D_SetMeshTexParam;         // 0xB2F430
-		g.vm[0x04A] = part_vm_d::op_04A_SetMeshDrawHandler;      // 0xB2F4C0
-		g.vm[0x03E] = part_vm_d::op_03E_SetInlineDescriptor3;    // 0xB2F530
-		g.vm[0x093] = part_vm_d::op_093_BuildLightMatrices;      // 0xB2F590
-		g.vm[0x0AA] = part_vm_d::op_0AA_SetLightSlot;            // 0xB2F7D0
-		g.vm[0x0C6] = part_vm_d::op_0C6_SetFogColorAndNear;      // 0xB2F820
-		g.vm[0x11B] = part_vm_d::op_11B_SetFogColorAndFar;       // 0xB2F870
-		g.vm[0x0F1] = part_vm_d::op_0F1_Nop2;                    // 0xB2F8C0
-		g.vm[0x001] = part_vm_d::op_001_LoopSequenceOrFinish;    // 0xB2FB20
-		g.vm[0x0AE] = part_vm_d::op_0AE_NextTargetOrJump;        // 0xB2FBE0
-		g.vm[0x009] = part_vm_d::op_009_Wait;                    // 0xB2FE80
-		g.vm[0x000] = part_vm_d::op_000_EndChannel;              // 0xB2FEB0
-		g.vm[0x01D] = part_vm_d::op_01D_WaitBoneGoneThenEnd;     // 0xB2FF70
-		g.vm[0x09E] = part_vm_d::op_09E_JumpIfCtxFlag15Clear;    // 0xB2FFC0
-		g.vm[0x09F] = part_vm_d::op_09F_JumpIfCtxFlag15Set;      // 0xB2FFF0
-		g.vm[0x0A2] = part_vm_d::op_0A2_Nop4;                    // 0xB30020
-		g.vm[0x0A0] = part_vm_d::op_0A0_JumpIfCtxFlag13Clear;    // 0xB30030
-		g.vm[0x0B0] = part_vm_d::op_0B0_RandomWait;              // 0xB30060
-		g.vm[0x140] = part_vm_d::op_140_WaitScaledBySlot;        // 0xB300A0
-		g.vm[0x050] = part_vm_d::op_050_FreeArenaBlock;          // 0xB300E0
+		g.vm[0x065] = part_vm_d::op_065_NodeCamRotFromPos;
+		g.vm[0x066] = part_vm_d::op_066_NodeCamTranslate;
+		g.vm[0x06A] = part_vm_d::op_06A_NodeCamRotLocalPos;
+		g.vm[0x067] = part_vm_d::op_067_NodeCamRotTranslate;
+		g.vm[0x069] = part_vm_d::op_069_NodeChildOfParent;
+		g.vm[0x0C4] = part_vm_d::op_0C4_NodeLocalNoCamera;
+		g.vm[0x116] = part_vm_d::op_116_NodeCamPosLocalRot;
+		g.vm[0x095] = part_vm_d::op_095_Nop4;
+		g.vm[0x07A] = part_vm_d::op_07A_NodeFromParentAndMatrix;
+		g.vm[0x084] = part_vm_d::op_084_CopyMatrix;
+		g.vm[0x068] = part_vm_d::op_068_SetParentNode;
+		g.vm[0x0CB] = part_vm_d::op_0CB_NodeLookAt;
+		g.vm[0x104] = part_vm_d::op_104_BuildBillboardSlot;
+		g.vm[0x105] = part_vm_d::op_105_NodeFromBillboardSlot;
+		g.vm[0x117] = part_vm_d::op_117_SetRotRelativeToRoot;
+		g.vm[0x063] = part_vm_d::op_063_PosFromBoneViaParent;
+		g.vm[0x05B] = part_vm_d::op_05B_AttachToModelJoint;
+		g.vm[0x054] = part_vm_d::op_054_SetMesh;
+		g.vm[0x03C] = part_vm_d::op_03C_SetMeshScaled;
+		g.vm[0x056] = part_vm_d::op_056_SetClippedMesh;
+		g.vm[0x03D] = part_vm_d::op_03D_SetMeshTexParam;
+		g.vm[0x04A] = part_vm_d::op_04A_SetMeshDrawHandler;
+		g.vm[0x03E] = part_vm_d::op_03E_SetInlineDescriptor3;
+		g.vm[0x093] = part_vm_d::op_093_BuildLightMatrices;
+		g.vm[0x0AA] = part_vm_d::op_0AA_SetLightSlot;
+		g.vm[0x0C6] = part_vm_d::op_0C6_SetFogColorAndNear;
+		g.vm[0x11B] = part_vm_d::op_11B_SetFogColorAndFar;
+		g.vm[0x0F1] = part_vm_d::op_0F1_Nop2;
+		g.vm[0x001] = part_vm_d::op_001_LoopSequenceOrFinish;
+		g.vm[0x0AE] = part_vm_d::op_0AE_NextTargetOrJump;
+		g.vm[0x009] = part_vm_d::op_009_Wait;
+		g.vm[0x000] = part_vm_d::op_000_EndChannel;
+		g.vm[0x01D] = part_vm_d::op_01D_WaitBoneGoneThenEnd;
+		g.vm[0x09E] = part_vm_d::op_09E_JumpIfCtxFlag15Clear;
+		g.vm[0x09F] = part_vm_d::op_09F_JumpIfCtxFlag15Set;
+		g.vm[0x0A2] = part_vm_d::op_0A2_Nop4;
+		g.vm[0x0A0] = part_vm_d::op_0A0_JumpIfCtxFlag13Clear;
+		g.vm[0x0B0] = part_vm_d::op_0B0_RandomWait;
+		g.vm[0x140] = part_vm_d::op_140_WaitScaledBySlot;
+		g.vm[0x050] = part_vm_d::op_050_FreeArenaBlock;
 	}
 }
 }
-
-// ============================================================================================
-// part draw_mesh
-// ============================================================================================
-// GF cinematic engine, part "draw_mesh": the mesh / embedded-model / screen-tint / texture-scroll
-// draw handlers and the generic mesh renderer DrawMeshObject (Ifrit 0xB266C0..0xB27E1C).
-
 
 namespace ff8fx
 {
@@ -4535,43 +3907,26 @@ namespace gfc
 {
 namespace part_draw_mesh
 {
-	// ------------------------------------------------------------------------------------
-	// local wrappers / constants
-	// ------------------------------------------------------------------------------------
-	// 0x56C270 GTE_MatrixMultiply: TWO arguments, b.rot = a.rot * b.rot (in place, translation of
-	// b untouched), returns b. (x::MulMatrixGte declares a third argument that is ignored.)
 	static inline void *xl_MatrixMultiplyGte(const void *a, void *b) { return x::f<void *(__cdecl *)(const void *, void *)>(0x56C270)(a, b); }
-	// 0x56C820 TransformCoordinateToCameraSpace: GTE_LoadV0(v); MVMVA(R*V0+TR); MAC1..3 -> mac[3];
-	// FLAG -> *flag. (Same address as x::TransformToCamera, argument roles made explicit.)
 	static inline void xl_TransformV0ToMac(const void *v, void *mac, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C820)(v, mac, flag); }
 
-	// engine block: 8 zero dwords at 0x27971E4 (cleared by SetupSectionPtrs 0xB258D0), used as a
-	// null V0 by SetupParentXformScaledAtOrigin
 	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
-	// software GTE control register 31 (FLAG) of the emulated GTE (ctrl file 0x1CA927C + 31*4)
 	static inline uint32_t &GTEFLAG() { return MEM<uint32_t>(0x1CA92F8); }
-	// the rdata float at Ifrit 0xB69540 is 4096.0f (the value is used directly, not its address)
 	static const double DEPTH_SCALE_NUM = 4096.0;
 
-	// ------------------------------------------------------------------------------------
-	// 0xB266C0 (Draw 21 ScrollTextureUpload): scrolls a texture vertically inside its VRAM
-	// rectangle: bone+0xB8 -> {s16 alt texture id, s16 vram x, s16 vram y}; bone+0x96 = scroll
-	// offset (masked by height-1). Two VRAM uploads (the wrapped halves). Draws no primitive.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_21_ScrollTextureUpload()
 	{
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(if (held_active()) return;)
-		uint8_t *arg = PTR(CUR(), 0xB8);                  // esi
-		blob::ReadAltTexture(S16(arg, 0));                // sets ws+0xF0..0xFC
-		U32(WS(), 0x64) = U32(WS(), 0xFC);                // texel data
+		uint8_t *arg = PTR(CUR(), 0xB8);
+		blob::ReadAltTexture(S16(arg, 0));
+		U32(WS(), 0x64) = U32(WS(), 0xFC);
 		uint8_t *w = WS();
-		int32_t vx = S16(arg, 2);                         // edi
+		int32_t vx = S16(arg, 2);
 		uint8_t *tex = PTR(w, 0xF0);
-		int32_t vy = S16(arg, 4);                         // esi
-		S32(w, 0x78) = S16(tex, 4);                       // width (in VRAM halfwords)
-		S32(WS(), 0x7C) = S16(tex, 6);                    // height
-		S32(WS(), 0x70) = S16(CUR(), 0x96);               // scroll
+		int32_t vy = S16(arg, 4);
+		S32(w, 0x78) = S16(tex, 4);
+		S32(WS(), 0x7C) = S16(tex, 6);
+		S32(WS(), 0x70) = S16(CUR(), 0x96);
 		w = WS();
 		S32(w, 0x70) = (int32_t)((uint32_t)S32(w, 0x70) & (uint32_t)sub32(S32(w, 0x7C), 1));
 		uint8_t *rect = blob::VramRectRing();
@@ -4594,10 +3949,6 @@ namespace part_draw_mesh
 		}
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB27000 SetupParentXform: GTE R/TR = parent matrix (bone+0x9C), TR = parent * bone
-	// position (bone+0x94). Returns 0 (unused).
-	// ------------------------------------------------------------------------------------
 	static void SetupParentXform()
 	{
 		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));
@@ -4608,11 +3959,6 @@ namespace part_draw_mesh
 		x::Gte_45E580();
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB27130 SetupParentXformScaledAtOrigin: like h_B269E0 but V0 = the zero vector
-	// 0x27971E4 (TR = parent translation); GTE R = parent rotation scaled by bone+0x8C.. << 4
-	// (ws+0xE0 = scaled copy, ws+0xD4 = scale). Returns 0 (unused).
-	// ------------------------------------------------------------------------------------
 	static void SetupParentXformScaledAtOrigin()
 	{
 		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));
@@ -4630,16 +3976,10 @@ namespace part_draw_mesh
 		x::GteSetRotMatrix(d);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB27360 SetupBillboardXform(pos, angles, scale, order): ws+0xE0 = rotation from angles
-	// (RotMatrixOrder), GTE R/TR = parent (bone+0x9C); ws+0xF4 = parent * pos (MAC, i.e. the
-	// translation of ws+0xE0), ws+0xC0 = FLAG; ws+0xE0.rot = parent.rot * ws+0xE0.rot; scaled by
-	// (scale, scale, scale) at ws+0xC0; GTE R/TR = ws+0xE0. Returns 0 (unused).
-	// ------------------------------------------------------------------------------------
 	static void SetupBillboardXform(const void *pos, const void *angles, int32_t scale, int32_t order)
 	{
 		blob::RotMatrixOrder(angles, order);
-		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));   // esi
+		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
 		uint8_t *w = WS();
@@ -4654,20 +3994,10 @@ namespace part_draw_mesh
 		x::SetTransVector(WS() + 0xE0);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB27440 DrawMeshObject(clip): the generic mesh renderer of the current bone.
-	//   bone+0xD8 = mesh {+8 prim stream, +0x14 vertices, +0x18 vertex count, +0x1C normals,
-	//   +0x20 normal count}; ws+0x4C = optional morph descriptor {s16 weight bone, s16 object A,
-	//   s16 object B}; ws+0x40/44/48 = optional per-axis scale (4.12); clip = optional
-	//   {s16 x, s16 y, s16 z, s16 flags}: flags&8 clamps vertex Y to <= y*8, else flags&4 to
-	//   >= y*8. Transforms the vertices (SXY/depth into the arena copy, IR0 into ws+0x88, SZ3
-	//   into 0x2798C18), optionally lights the normals (bone+0xE1), then runs the prim stream
-	//   through C().prim (type + 20 * (bone+0x4C & 2) + 40 * (bone+0x4C & 4)).
-	// ------------------------------------------------------------------------------------
 	static void DrawMeshObject(const int16_t *clipArg)
 	{
-		int16_t local[4];                  // [ebp-0x34]
-		const int16_t *clip = clipArg;     // [ebp-0x18]
+		int16_t local[4];
+		const int16_t *clip = clipArg;
 		if (clipArg != nullptr)
 		{
 			local[0] = (int16_t)(uint16_t)((uint32_t)(uint16_t)clipArg[0] << 3);
@@ -4677,50 +4007,48 @@ namespace part_draw_mesh
 			clip = local;
 		}
 		uint32_t pkt = U32(CTX(), 0x7C);
-		U32(WS(), 0x60) = pkt;                                                    // packet cursor
-		U32(WS(), 0x50) = (uint32_t)(int32_t)S16(CUR(), 0x92) | 0xE1000200u;      // draw mode word
+		U32(WS(), 0x60) = pkt;
+		U32(WS(), 0x50) = (uint32_t)(int32_t)S16(CUR(), 0x92) | 0xE1000200u;
 		S32(WS(), 0x54) = S16(CUR(), 0x9A);
-		U32(WS(), 0x84) = U32(CUR(), 0xCC) & 0x2FFFFFFu;                          // colour / code
-		U32(WS(), 0x8C) = U32(WS(), 0x84) & 0x2000000u;                           // semi-transparency bit
-		U32(WS(), 0x5C) = U32(RT(), 0x4C);                                        // OT
-		U32(WS(), 0x90) = U8(CUR(), 0xDE);                                        // depth mode (& 0x60)
-		S32(WS(), 0x94) = S16(CUR(), 0xC0);                                       // depth bias / fixed depth
+		U32(WS(), 0x84) = U32(CUR(), 0xCC) & 0x2FFFFFFu;
+		U32(WS(), 0x8C) = U32(WS(), 0x84) & 0x2000000u;
+		U32(WS(), 0x5C) = U32(RT(), 0x4C);
+		U32(WS(), 0x90) = U8(CUR(), 0xDE);
+		S32(WS(), 0x94) = S16(CUR(), 0xC0);
 		U32(WS(), 0x98) = U16(CUR(), 0x9E);
-		U32(WS(), 0x68) = U32(CUR(), 0xD8);                                       // mesh
+		U32(WS(), 0x68) = U32(CUR(), 0xD8);
 		{
-			uint8_t *mesh = PTR(WS(), 0x68);                                      // eax
+			uint8_t *mesh = PTR(WS(), 0x68);
 			uint8_t *w = WS();
-			U32(w, 0x6C) = U32(mesh, 0x08) + (uint32_t)mesh;                      // prim stream
-			U32(WS(), 0x74) = U32(mesh, 0x14) + (uint32_t)mesh;                   // vertices
-			U32(WS(), 0x78) = U32(mesh, 0x1C) + (uint32_t)mesh;                   // normals
-			U32(WS(), 0x7C) = U32(CTX(), 0x74);                                   // arena: transformed vertices
+			U32(w, 0x6C) = U32(mesh, 0x08) + (uint32_t)mesh;
+			U32(WS(), 0x74) = U32(mesh, 0x14) + (uint32_t)mesh;
+			U32(WS(), 0x78) = U32(mesh, 0x1C) + (uint32_t)mesh;
+			U32(WS(), 0x7C) = U32(CTX(), 0x74);
 			w = WS();
-			U32(w, 0x80) = U32(w, 0x7C) + U32(mesh, 0x18) * 8u;                  // lit colours
+			U32(w, 0x80) = U32(w, 0x7C) + U32(mesh, 0x18) * 8u;
 			w = WS();
-			U32(w, 0x88) = U32(w, 0x80) + U32(mesh, 0x20) * 8u;                  // IR0 per vertex
+			U32(w, 0x88) = U32(w, 0x80) + U32(mesh, 0x20) * 8u;
 		}
 
-		// --- morph (ws+0x4C) ---
-		uint8_t *w = WS();                                                        // ecx
+		uint8_t *w = WS();
 		uint8_t *morph = PTR(w, 0x4C);
 		if (morph != nullptr)
 		{
-			uint8_t *wbone = blob::GetBone(S16(morph, 0));                        // ebx
-			uint8_t *objA = blob::ObjectPtr(S16(morph, 2));                       // edi / [ebp-0x20]
-			uint8_t *objB = blob::ObjectPtr(S16(morph, 4));                       // eax / [ebp-0x2c]
-			S32(WS(), 0xE0) = S16(wbone, 0x94);                                   // weights (x/256)
+			uint8_t *wbone = blob::GetBone(S16(morph, 0));
+			uint8_t *objA = blob::ObjectPtr(S16(morph, 2));
+			uint8_t *objB = blob::ObjectPtr(S16(morph, 4));
+			S32(WS(), 0xE0) = S16(wbone, 0x94);
 			S32(WS(), 0xE4) = S16(wbone, 0x96);
 			S32(WS(), 0xE8) = S16(wbone, 0x98);
-			uint32_t fl = U32(objA, 0) & U32(objB, 0);                            // [ebp-0x28]
+			uint32_t fl = U32(objA, 0) & U32(objB, 0);
 			if (fl & 2)
 			{
-				// vertex morph into the arena (do-while: runs once even with count <= 0, 0xB276B7)
 				w = WS();
 				U32(w, 0x74) = U32(w, 0x7C);
 				U32(WS(), 0xF0) = U32(objA, 0x14) + (uint32_t)objA;
 				U32(WS(), 0xF4) = U32(objB, 0x14) + (uint32_t)objB;
 				S32(WS(), 0xF8) = S32(objA, 0x18);
-				w = WS();                                                         // ecx kept in the loop
+				w = WS();
 				int32_t n = S32(w, 0xF8);
 				uint8_t *a = PTR(w, 0xF0), *b = PTR(w, 0xF4), *d = PTR(w, 0x7C);
 				do
@@ -4747,7 +4075,6 @@ namespace part_draw_mesh
 			}
 			if (fl & 4)
 			{
-				// normal morph into ws+0x80 (x/256 as C division here: cdq/and 0xFF/add/sar 8)
 				w = WS();
 				U32(w, 0x78) = U32(w, 0x80);
 				uint8_t *a = objA + S32(objA, 0x1C);
@@ -4777,7 +4104,6 @@ namespace part_draw_mesh
 			w = WS();
 		}
 
-		// --- Y clip (0xB27872) ---
 		if (clip != nullptr)
 		{
 			int32_t cf = clip[3];
@@ -4821,24 +4147,21 @@ namespace part_draw_mesh
 			}
 		}
 
-		// --- vertex transform ---
 		if ((U32(w, 0x48) | U32(w, 0x44) | U32(w, 0x40)) != 0)
 		{
-			// scaled (0xB2791D). fild/fdivr [4096.0f]/fstp float: a correctly rounded single for
-			// any x87 precision control (double rounding is innocuous for a division 53 >= 2*24+2)
 			FX_HELD(guard(&FLT_1877DA8(), 4);)
 			FLT_1877DA8() = (float)(DEPTH_SCALE_NUM / (double)S32(w, 0xC0));
-			uint32_t *depth = DEPTHARR();                     // ebx
+			uint32_t *depth = DEPTHARR();
 			uint8_t *mesh = PTR(w, 0x68);
-			uint8_t *dst = PTR(w, 0x7C);                      // edi
-			uint8_t *v = PTR(w, 0x74);                        // esi
-			int32_t n = S32(mesh, 0x18);                      // [ebp-8]
-			int32_t sx = S32(w, 0x40);                        // [ebp-4] (reused as the FLAG local, see below)
-			int32_t sy = S32(w, 0x44);                        // [ebp-0x14]
-			int32_t sz = S32(w, 0x48);                        // [ebp-0x24]
-			uint8_t *ir0 = PTR(w, 0x88);                      // [ebp-0xc]
-			int32_t bias = S32(w, 0x94);                      // [ebp-0x18]
-			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);    // [ebp-0x20]
+			uint8_t *dst = PTR(w, 0x7C);
+			uint8_t *v = PTR(w, 0x74);
+			int32_t n = S32(mesh, 0x18);
+			int32_t sx = S32(w, 0x40);
+			int32_t sy = S32(w, 0x44);
+			int32_t sz = S32(w, 0x48);
+			uint8_t *ir0 = PTR(w, 0x88);
+			int32_t bias = S32(w, 0x94);
+			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);
 			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
@@ -4854,14 +4177,11 @@ namespace part_draw_mesh
 				x::GteRTPS();
 				n--;
 				v += 8;
-				x::GteReadData2(0xE, dst);                        // SXY2
+				x::GteReadData2(0xE, dst);
 				int32_t loc8;
-				x::GteReadData(&loc8, 0x13);                      // SZ3
+				x::GteReadData(&loc8, 0x13);
 				*depth++ = (uint32_t)loc8;
-				x::GteReadData2(8, ir0);                          // IR0
-				// vanilla quirk (0xB27A2D): FLAG is read into [ebp-4], the stack slot holding the
-				// X scale, and shifted there (0xB27A66): every vertex after the first is scaled in
-				// X by (previous vertex's FLAG << 4) instead of ws+0x40.
+				x::GteReadData2(8, ir0);
 				x::GteReadCtrl(&sx, 0x1F);
 				if (mode == 0) loc8 = loc8 >> 2;
 				else
@@ -4879,16 +4199,14 @@ namespace part_draw_mesh
 		}
 		else if (U8(CUR(), 0x4C) & 2)
 		{
-			// with screen clip codes (0xB27AA0); FLT_1877DA8 is NOT written on this path (the
-			// prim renderers read the value left by the previous mesh)
-			uint8_t *ir0 = PTR(w, 0x88);                      // [ebp-0xc]
+			uint8_t *ir0 = PTR(w, 0x88);
 			uint8_t *mesh = PTR(w, 0x68);
-			uint8_t *dst = PTR(w, 0x7C);                      // edi
-			uint8_t *v = PTR(w, 0x74);                        // ebx
-			int32_t n = S32(mesh, 0x18);                      // [ebp-8]
-			int32_t bias = S32(w, 0x94);                      // [ebp-0x18]
-			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);    // [ebp-0x20]
-			uint32_t *depth = DEPTHARR();                     // [ebp-0x1c]
+			uint8_t *dst = PTR(w, 0x7C);
+			uint8_t *v = PTR(w, 0x74);
+			int32_t n = S32(mesh, 0x18);
+			int32_t bias = S32(w, 0x94);
+			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);
+			uint32_t *depth = DEPTHARR();
 			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
@@ -4899,10 +4217,10 @@ namespace part_draw_mesh
 				x::GteRTPS();
 				n--;
 				v += 8;
-				x::GteReadData(&loc8, 0xE);                       // SXY2
-				x::GteReadData2(8, ir0);                          // IR0
+				x::GteReadData(&loc8, 0xE);
+				x::GteReadData2(8, ir0);
 				S32(dst, 0) = loc8;
-				uint32_t code = 0;                                // [ebp-4] (dead store in vanilla)
+				uint32_t code = 0;
 				if (GTEFLAG() & 0x20000) code = 0x10;
 				int32_t scx = (int16_t)loc8;
 				if (scx < 0) code |= 8;
@@ -4912,7 +4230,7 @@ namespace part_draw_mesh
 				if (scy < 0) code |= 4;
 				else if (scy >= 0x700) code |= 1;
 				U16(dst, 6) = (uint16_t)code;
-				x::GteReadData(&loc8, 0x13);                      // SZ3
+				x::GteReadData(&loc8, 0x13);
 				*depth++ = (uint32_t)loc8;
 				int32_t dz;
 				if (mode == 0) dz = loc8 >> 2;
@@ -4929,17 +4247,16 @@ namespace part_draw_mesh
 		}
 		else
 		{
-			// plain (0xB27BCD)
 			FX_HELD(guard(&FLT_1877DA8(), 4);)
-			U32(&FLT_1877DA8(), 0) = 0x3F800000u;            // 1.0f
-			uint8_t *ir0 = PTR(w, 0x88);                      // [ebp-0xc]
+			U32(&FLT_1877DA8(), 0) = 0x3F800000u;
+			uint8_t *ir0 = PTR(w, 0x88);
 			uint8_t *mesh = PTR(w, 0x68);
-			uint8_t *dst = PTR(w, 0x7C);                      // ebx
-			uint8_t *v = PTR(w, 0x74);                        // edi
-			int32_t n = S32(mesh, 0x18);                      // [ebp-8]
-			int32_t bias = S32(w, 0x94);                      // [ebp-0x18]
-			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);    // [ebp-0x20]
-			uint32_t *depth = DEPTHARR();                     // [ebp-0x1c]
+			uint8_t *dst = PTR(w, 0x7C);
+			uint8_t *v = PTR(w, 0x74);
+			int32_t n = S32(mesh, 0x18);
+			int32_t bias = S32(w, 0x94);
+			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);
+			uint32_t *depth = DEPTHARR();
 			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
@@ -4950,12 +4267,12 @@ namespace part_draw_mesh
 				x::GteRTPS();
 				n--;
 				v += 8;
-				x::GteReadData2(0xE, dst);                        // SXY2
-				x::GteReadData(&loc8, 0x13);                      // SZ3
+				x::GteReadData2(0xE, dst);
+				x::GteReadData(&loc8, 0x13);
 				*depth++ = (uint32_t)loc8;
-				x::GteReadData2(8, ir0);                          // IR0
-				int32_t flag;                                     // [ebp-4]
-				x::GteReadCtrl(&flag, 0x1F);                      // FLAG
+				x::GteReadData2(8, ir0);
+				int32_t flag;
+				x::GteReadCtrl(&flag, 0x1F);
 				if (mode == 0) loc8 = loc8 >> 2;
 				else
 				{
@@ -4971,31 +4288,28 @@ namespace part_draw_mesh
 			} while (n > 0);
 		}
 
-		// --- normal lighting (0xB27CC3) ---
 		if (U8(CUR(), 0xE1) != 0)
 		{
 			w = WS();
 			U32(w, 0xF0) = (U32(w, 0x84) & 0xFF808080u) | 0x808080u;
-			uint8_t *wb = WS();                                   // ebx
-			uint8_t *out = PTR(wb, 0x80);                         // edi
-			x::GteWriteData(S32(wb, 0xF0), 6);                    // RGBC
-			uint8_t *nrm = PTR(wb, 0x78);                         // esi
-			int32_t n = S32(PTR(wb, 0x68), 0x20);                 // ebx
-			// the first normal is lit unconditionally (count <= 0 still runs once, 0xB27D14)
+			uint8_t *wb = WS();
+			uint8_t *out = PTR(wb, 0x80);
+			x::GteWriteData(S32(wb, 0xF0), 6);
+			uint8_t *nrm = PTR(wb, 0x78);
+			int32_t n = S32(PTR(wb, 0x68), 0x20);
 			do
 			{
 				x::GteWriteData2(0, S32(nrm, 0));
 				x::GteWriteData2(1, S32(nrm, 4));
 				nrm += 8;
 				x::Gte_4601B0();
-				x::GteReadData2(0x16, out);                       // RGB2
+				x::GteReadData2(0x16, out);
 				n--;
 				out += 8;
 			} while (n > 0);
 		}
 
-		// --- prim stream (0xB27D75): {s16 type, s16 count} + count records of prim_size[type] ---
-		w = WS();                                                 // edx
+		w = WS();
 		uint8_t *hdr = PTR(w, 0x6C);
 		int32_t cnt = S16(hdr, 2);
 		while (cnt != -1)
@@ -5019,11 +4333,6 @@ namespace part_draw_mesh
 		U32(CTX(), 0x7C) = U32(w, 0x60);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB26B80 (Draw 3 SkinnedBattleModel): embedded battle model (block bone+0xBC, created by
-	// h_B26860): parent xform scaled (h_B269E0), step/pose the model (h_B26AD0), RenderGeometry
-	// (mode 4) into the packet cursor ctx+0x7C; block+0x44 = arena scratch (ctx+0x74).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_03_SkinnedBattleModel()
 	{
 		h_B269E0();
@@ -5035,15 +4344,9 @@ namespace part_draw_mesh
 		U32(CTX(), 0x7C) = x::RenderGeometry(blk + 0x30, blk + 0x40, ot, 4, cursor);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB26E20 (Draw 4 ScreenTintQuad): full-screen (320x256) flat quad of colour bone+0x94/96/98
-	// (|v| clamped to 255; any negative component -> subtractive tpage 0x40 instead of additive
-	// 0x20), OT slot bone+0xC0 when bone+0xDE & 0x60 else 0, then a draw-mode packet.
-	// Colour 0: only byte +3 of the packet is written, nothing is inserted.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_04_ScreenTintQuad()
 	{
-		int32_t slot;                                         // edi
+		int32_t slot;
 		if (U8(CUR(), 0xDE) & 0x60) slot = S32(CUR(), 0xC0);
 		else slot = 0;
 		U32(WS(), 0xF0) = 0x20;
@@ -5072,10 +4375,6 @@ namespace part_draw_mesh
 		U32(CTX(), 0x7C) = (uint32_t)(p + 0xC);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB26FB0 (Draw 1 MeshAtBonePos): mesh bone+0xD8 at the bone position, parent rotation,
-	// no scale, morph descriptor bone+0xBC.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_01_MeshAtBonePos()
 	{
 		S32(WS(), 0x48) = 0;
@@ -5086,9 +4385,6 @@ namespace part_draw_mesh
 		DrawMeshObject(nullptr);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB27050 (Draw 2 MeshScaled): mesh with the parent rotation scaled by bone+0x8C.. (h_B269E0).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_02_MeshScaled()
 	{
 		U32(WS(), 0x4C) = U32(CUR(), 0xBC);
@@ -5099,10 +4395,6 @@ namespace part_draw_mesh
 		DrawMeshObject(nullptr);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB270A0 (Draw 9 MeshYClipped): scaled mesh at the parent origin, vertices clamped in Y by
-	// the clip record ws+0x20 = {bone+0x94, +0x96, +0x98, flags bone+0xC2}.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_09_MeshYClipped()
 	{
 		U32(WS(), 0x4C) = U32(CUR(), 0xBC);
@@ -5118,11 +4410,6 @@ namespace part_draw_mesh
 		DrawMeshObject((const int16_t *)c);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB27220 (Draw 7 MeshCameraSpace): camera matrix (node 0) * bone angles (bone+0x8C) into
-	// ws+0x20, TR = camera * bone position; per-axis scale ws+0x40/44/48 = bone+0xB8 (scaled
-	// vertex path).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_07_MeshCameraSpace()
 	{
 		x::SetRotMatrix(NODEMAT());
@@ -5130,10 +4417,10 @@ namespace part_draw_mesh
 		x::GteLoadV0(CUR() + 0x94);
 		x::GteMVMVA_RotV0Tr();
 		x::Gte_45E580();
-		uint8_t *m = WS() + 0x20;                          // esi
+		uint8_t *m = WS() + 0x20;
 		x::RotMatrixFromAngles(CUR() + 0x8C, m);
 		xl_MatrixMultiplyGte(NODEMAT(), m);
-		pad_after_rot_mul(m, CUR() + 0x8C); // ws+0x32: vanilla stack word
+		pad_after_rot_mul(m, CUR() + 0x8C);
 		x::SetRotMatrix(m);
 		U32(WS(), 0x48) = U32(CUR(), 0xB8);
 		U32(WS(), 0x44) = U32(WS(), 0x48);
@@ -5142,10 +4429,6 @@ namespace part_draw_mesh
 		DrawMeshObject(nullptr);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB272D0 (Draw 27 MeshBillboardScaled): billboard xform, angles ws+0x90 = {bone+0x8C,
-	// bone+0x8E, 0}, uniform scale bone+0x90 << 4, order 0.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_27_MeshBillboardScaled()
 	{
 		uint8_t *ang = WS() + 0x90;
@@ -5164,14 +4447,9 @@ namespace part_draw_mesh
 	}
 }
 
-	// ------------------------------------------------------------------------------------
-	// 0xB269E0 SetupParentXformScaled: GTE R/TR = parent matrix (bone+0x9C), TR = parent * bone
-	// position (bone+0x94); ws+0xD4.. = scale bone+0x8C/8E/90 << 4; ws+0xE0 = parent scaled;
-	// GTE R = ws+0xE0. (Original returns 0, unused.)
-	// ------------------------------------------------------------------------------------
 	void h_B269E0()
 	{
-		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));   // esi
+		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));
 		x::GteSetRotMatrix(m);
 		x::GteSetTransVector(m);
 		x::GteLoadV0(CUR() + 0x94);
@@ -5180,24 +4458,16 @@ namespace part_draw_mesh
 		S32(WS(), 0xD4) = shl32(S16(CUR(), 0x8C), 4);
 		S32(WS(), 0xD8) = shl32(S16(CUR(), 0x8E), 4);
 		S32(WS(), 0xDC) = shl32(S16(CUR(), 0x90), 4);
-		uint8_t *d = WS() + 0xE0;                                 // edi
+		uint8_t *d = WS() + 0xE0;
 		for (int i = 0; i < 8; i++) U32(d, i * 4) = U32(m, i * 4);
 		x::ScaleMatrix(d, WS() + 0xD4);
 		x::GteSetRotMatrix(d);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB26AD0 StepEmbeddedModelAnim(blk): embedded battle model block {+0 u16 frame counter,
-	// +2 u16 flags (1 = frozen, 2 = hold pose), +9 u8 anim id, +0x10 BattleAnimHeader,
-	// +0x20 BattleAnimCmd}. Not frozen (rt+0x45 == 0 and !(flags & 1)): counter != 0 ->
-	// (flags & 2 ? rebuild pose : ReadAnimation, restart the anim when it returns 1, counter++);
-	// then the bones' world matrices from ws+0xE0. Frozen: rebuild the current pose + world
-	// matrices. Counter 0 -> 1 at the end. Returns 0.
-	// ------------------------------------------------------------------------------------
 	int32_t h_B26AD0(uint8_t *blk)
 	{
-		uint8_t *hdr = blk + 0x10;   // edi
-		uint8_t *cmd = blk + 0x20;   // ebx
+		uint8_t *hdr = blk + 0x10;
+		uint8_t *cmd = blk + 0x20;
 		bool frozen = true;
 		if (U8(RT(), 0x45) == 0)
 		{
@@ -5211,8 +4481,6 @@ namespace part_draw_mesh
 						x::BuildBoneMatricesFromPose(hdr);
 					else
 					{
-						// 0xB26B0C `movzx cx, byte [esi+9]`: the upper half of ecx is whatever
-						// ReadAnimation left; PreReadAnimation reads only the low word (0x509445).
 						if (x::ReadAnimation(hdr, cmd) == 1) x::PreReadAnimation(hdr, cmd, U8(blk, 9));
 						U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);
 					}
@@ -5222,7 +4490,6 @@ namespace part_draw_mesh
 		}
 		if (frozen)
 		{
-			// 30 fps layer: see gfc_engine_held.inc
 			FX_HELD(if (!held_model_pose(blk, hdr, cmd)))
 			x::BuildBoneMatricesFromPose(hdr);
 			x::ComputeBonesWorldMatrices(hdr, WS() + 0xE0);
@@ -5231,7 +4498,6 @@ namespace part_draw_mesh
 		return 0;
 	}
 
-	// exported for the clone-specific handlers (byte clones of these helpers exist in the clones)
 	void h_B27000() { part_draw_mesh::SetupParentXform(); }
 	void h_B27130() { part_draw_mesh::SetupParentXformScaledAtOrigin(); }
 	void h_B27360(const void *pos, const void *angles, int32_t scale, int32_t order) { part_draw_mesh::SetupBillboardXform(pos, angles, scale, order); }
@@ -5251,77 +4517,24 @@ namespace part_draw_mesh
 }
 }
 
-// ============================================================================================
-// part draw_prim
-// ============================================================================================
-// Part "draw_prim": the primitive renderers of the generic mesh renderer (DrawMeshObject,
-// Ifrit 0xB27440). DrawMeshObject walks the mesh's primitive blocks
-//   block = { s16 type, s16 count, record[count] }   (0xFFFF type ends the list)
-// and calls C().prim[type (+20 if bone+0x4C bit1) (+40 if bit2)] for each block with the
-// workspace (WS()) prepared as follows (set in DrawMeshObject 0xB27440):
-//   ws+0x50  u32  0xE1000200 | (s16)bone+0x92   draw-mode (tpage) word; its low 16 bits are ORed
-//                                                 into the tpage half-word of textured prims
-//   ws+0x54  s32  (s16)bone+0x9A                 CLUT offset added to the record CLUT word
-//   ws+0x58  ptr  end of the current block (record base + prim_size[type] * count); becomes the
-//                 next block cursor after the call (set at 0xB27DB7, read back at 0xB27DE0)
-//   ws+0x5C  u32  rt+0x4C                        OT base (byte address); OT slot = base + key
-//   ws+0x60  ptr  ctx+0x7C                       packet cursor (prims advance it; written back
-//                                                 to ctx+0x7C at the end of DrawMeshObject)
-//   ws+0x68  ptr  bone+0xD8                      mesh header
-//   ws+0x6C  ptr  first record of the current block
-//   ws+0x70  s32  (s16)block count
-//   ws+0x74  ptr  vertex positions (mesh +0x14)  ws+0x78 ptr  normals (mesh +0x1C), 8 B each
-//   ws+0x7C  ptr  ctx+0x74 (arena)               projected vertices, 8 B each (indexed by the
-//                                                 record's BYTE offset): +0 u32 SXY (GTE SXY2),
-//                                                 +4 u16 depth (SZ3/4 or bias), +6 u16 clip bits
-//                                                 (bits 0x46 of the high half = off-screen/behind)
-//   ws+0x80  ptr  ws+0x7C + nverts*8             per-normal lit colours (GTE RGB2, when bone+0xE1)
-//   ws+0x84  u32  bone+0xCC & 0x2FFFFFF          material colour (RGB) + bit 25 semi-transparency
-//   ws+0x88  ptr  ws+0x80 + nnormals*8           per-vertex GTE IR0 scratch
-//   ws+0x8C  u32  ws+0x84 & 0x2000000            semi-transparency bit ORed into the GP0 code
-//   ws+0x90  u32  (u8)bone+0xDE                  flags: 0x10 = no back-face culling (NCLIP skipped),
-//                                                 0x60 = depth bias mode (used by DrawMeshObject)
-//   ws+0x94  s32  (s16)bone+0xC0                 depth bias
-//   ws+0x98  u32  (u16)bone+0x9E                 UV offset added to the record UV words (FT3, FT4, GT4;
-//                                                 NOT GT3 - vanilla)
-//   ws+0xC0  s32  depth scale divisor: FLT_1877DA8 = const(0xB69540) / ws+0xC0 (or 1.0)
-//   DEPTHARR() u32[] GTE SZ3 of every projected vertex (index = vertex byte offset / 8)
-//   ws+0xE0..0xF3  scratch for the light/colour matrix and V0 of the colour setup 0xB29450.
-//
-// Every renderer: for each record, reads the 3/4 projected vertices, optional NCLIP back-face
-// test, rejects the prim if any vertex has clip bits 0x46, computes the OT key (triangles:
-// ((d0+d1+d2) & 0xFFFF) / 3 & 0x3FFC, quads: (d0+d1+d2+d3) >> 2 & 0x3FFC), lights the record
-// colours through the GTE (NCCS 0x4601B0, RGBC in data reg 6, result RGB2 reg 22) and inserts
-// the packet with SSIGPU_InsertPrimDepthKeys(ot + key, packet, z0, z1, z2, z3 or 0), where
-// zN = (int)(u16 SZ3 of vertex N * FLT_1877DA8).
-
-
 namespace ff8fx
 {
 namespace gfc
 {
 namespace part_draw_prim
 {
-	// fild qword [u16 zero-extended DEPTHARR[off >> 3]]; fmul dword [0x1877DA8]; call __ftol
-	// (u16 x float = at most 40 significant bits: exact in a double; __ftol truncates to int64
-	// and the callers keep the low dword)
 	static inline int32_t DepthKey(uint32_t off)
 	{
 		uint32_t v = DEPTHARR()[off >> 3] & 0xFFFF;
 		return (int32_t)(int64_t)((double)v * (double)FLT_1877DA8());
 	}
 
-	// mov [t], 0x55555556; imul dword [t] (edx:eax = v * 0x55555556); ...; sar v, 0x1F; sub edx, v
 	static inline int32_t Div3(int32_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * (int64_t)0x55555556) >> 32);
 		return sub32(hi, v >> 31);
 	}
 
-	// 0xB29450 (helper of the prim renderers): colour/light setup for the "tinted" prims.
-	// Light matrix = three lights along +X (rows (0x1000,0,0)), colour matrix = the material
-	// colour c (r, g, b) * 32 on light 1, back colour 0, V0 = (0x1000, 0x1000, 0x1000); so NCCS
-	// gives record colour * material colour. Uses ws+0xE0..0xF3 as the matrix scratch.
 	static void LightColourSetup(int32_t c)
 	{
 		U32(WS(), 0xE0) = 0x1000;
@@ -5332,7 +4545,7 @@ namespace part_draw_prim
 		x::SetLightMatrix(WS() + 0xE0);
 		U32(WS(), 0xE0) = (uint32_t)(c & 0xFF) << 5;
 		U32(WS(), 0xE4) = (uint32_t)(c & 0xFF00) << 13;
-		U32(WS(), 0xEC) = (uint32_t)((c >> 11) & 0x1FE0);     // sar eax, 0xB
+		U32(WS(), 0xEC) = (uint32_t)((c >> 11) & 0x1FE0);
 		x::SetColorMatrix(WS() + 0xE0);
 		x::SetBackColor(0, 0, 0);
 		U32(WS(), 0xE0) = 0x10001000;
@@ -5340,7 +4553,6 @@ namespace part_draw_prim
 		x::GteLoadV0(WS() + 0xE0);
 	}
 
-	// NCLIP of three screen vertices (GTE SXY0..2 = data regs 12..14), MAC0 (reg 24)
 	static inline int32_t Nclip(uint32_t s0, uint32_t s1, uint32_t s2)
 	{
 		int32_t mac0;
@@ -5352,10 +4564,6 @@ namespace part_draw_prim
 		return mac0;
 	}
 
-	// 0xB27E90 (Prim[8], C().prim[7]): Gouraud triangle with a draw-mode word, colours tinted by the
-	// material colour. Record 0x14: +0/+4/+8 u32 colour 0..2, +0xC/+0xE/+0x10 u16 vertex offsets.
-	// Packet 0x24 (len 8): +4 ws+0x50 draw mode, +8 0, +0xC/+0x14/+0x1C RGB (code 0x30 | ws+0x8C),
-	// +0x10/+0x18/+0x20 SXY.
 	static void __cdecl pr_07_TintedG3()
 	{
 		LightColourSetup((int32_t)U32(WS(), 0x84));
@@ -5412,10 +4620,6 @@ namespace part_draw_prim
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// 0xB28110 (Prim[9], C().prim[8]): flat textured triangle (FT3). Record 0x14: +0 u32 colour,
-	// +4/+6/+8 u16 UV 0..2, +0xA/+0xC/+0xE u16 vertex offsets, +0x10 u16 CLUT, +0x12 u16 tpage.
-	// Packet 0x20 (len 7): +4 RGB (code 0x24 | ws+0x8C), +8/+0x10/+0x18 SXY, +0xC/+0x14/+0x1C
-	// UV + ws+0x98, +0xE CLUT + ws+0x54, +0x16 tpage | ws+0x50.
 	static void __cdecl pr_08_TintedFT3()
 	{
 		LightColourSetup((int32_t)U32(WS(), 0x84));
@@ -5474,11 +4678,6 @@ namespace part_draw_prim
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// 0xB283B0 (Prim[10], C().prim[9]): Gouraud textured triangle (GT3). Record 0x1C: +0/+4/+8 u32
-	// colour 0..2, +0xC/+0xE/+0x10 u16 UV 0..2, +0x12/+0x14/+0x16 u16 vertex offsets, +0x18 u16
-	// CLUT, +0x1A u16 tpage. Packet 0x28 (len 9): +4/+0x10/+0x1C RGB (code 0x34 | ws+0x8C),
-	// +8/+0x14/+0x20 SXY, +0xC/+0x18/+0x24 UV (ws+0x98 NOT added - vanilla), +0xE CLUT + ws+0x54,
-	// +0x1A tpage | ws+0x50.
 	static void __cdecl pr_09_TintedGT3()
 	{
 		LightColourSetup((int32_t)U32(WS(), 0x84));
@@ -5539,13 +4738,6 @@ namespace part_draw_prim
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// 0xB28690 (Prim[13], C().prim[12]): semi-transparent Gouraud quad lit by one face normal with
-	// the current light setup (no 0xB29450), followed by a draw-mode packet in the same OT slot.
-	// Record 0x1C: +0/+4/+8/+0xC u32 colour 0..3, +0x10 u16 normal byte offset (into ws+0x78),
-	// +0x12 unused, +0x14/+0x16/+0x18/+0x1A u16 vertex offsets.
-	// Packets 0x30: G4 0x24 (len 8, code 0x3A, RGB at +4/+0xC/+0x14/+0x1C, SXY at +8/+0x10/+0x18/
-	// +0x20) then draw mode 0xC (tag 0x02000000, +4 ws+0x50, +8 0).
-	// Vanilla: overwrites ws+0x84 (material colour) with 0x3A000000 for the rest of the mesh draw.
 	static void __cdecl pr_12_NormalLitG4()
 	{
 		U32(WS(), 0x84) = 0x3A000000;
@@ -5555,11 +4747,11 @@ namespace part_draw_prim
 		uint32_t ot = U32(ws, 0x5C);
 		uint32_t nocull = U32(ws, 0x90) & 0x10;
 		uint8_t *rec = PTR(ws, 0x6C);
-		uint8_t *c0 = pkt + 4;      // [ebp-0x24]
-		uint8_t *c3 = pkt + 0x1C;   // [ebp-0x20]
-		uint8_t *c2 = pkt + 0x14;   // [ebp-0x1C]
+		uint8_t *c0 = pkt + 4;
+		uint8_t *c3 = pkt + 0x1C;
+		uint8_t *c2 = pkt + 0x14;
 		U32(ws, 0xF0) = 0;
-		uint8_t *c1 = pkt + 0xC;    // [ebp-0x18]
+		uint8_t *c1 = pkt + 0xC;
 		do
 		{
 			uint8_t *vb = PTR(ws, 0x7C);
@@ -5627,7 +4819,7 @@ namespace part_draw_prim
 				c2 += 0x24;
 				c0 += 0x24;
 				U32(pkt, 0) = 0x2000000;
-				U32(c0, 0) = mode;              // = pkt + 4
+				U32(c0, 0) = mode;
 				U32(pkt, 8) = 0;
 				x::InsertPrimDepthKeys(slot, pkt, z0, z1, z2, z3);
 				c1 += 0xC;
@@ -5642,10 +4834,6 @@ namespace part_draw_prim
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// 0xB28B00 (Prim[18], C().prim[17]): Gouraud quad with a draw-mode word, colours tinted by the
-	// material colour. Record 0x18: +0/+4/+8/+0xC u32 colour 0..3, +0x10/+0x12/+0x14/+0x16 u16
-	// vertex offsets. Packet 0x2C (len 0xA): +4 ws+0x50, +8 0, +0xC/+0x14/+0x1C/+0x24 RGB (code
-	// 0x38 | ws+0x8C), +0x10/+0x18/+0x20/+0x28 SXY.
 	static void __cdecl pr_17_TintedG4()
 	{
 		LightColourSetup((int32_t)U32(WS(), 0x84));
@@ -5709,10 +4897,6 @@ namespace part_draw_prim
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// 0xB28DD0 (Prim[19], C().prim[18]): flat textured quad (FT4). Record 0x18: +0 u32 colour,
-	// +4/+6/+8/+0xA u16 UV 0..3, +0xC/+0xE/+0x10/+0x12 u16 vertex offsets, +0x14 u16 CLUT,
-	// +0x16 u16 tpage. Packet 0x28 (len 9): +4 RGB (code 0x2C | ws+0x8C), +8/+0x10/+0x18/+0x20 SXY,
-	// +0xC/+0x14/+0x1C/+0x24 UV + ws+0x98, +0xE CLUT + ws+0x54, +0x16 tpage | ws+0x50.
 	static void __cdecl pr_18_TintedFT4()
 	{
 		LightColourSetup((int32_t)U32(WS(), 0x84));
@@ -5777,11 +4961,6 @@ namespace part_draw_prim
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// 0xB290B0 (Prim[20], C().prim[19]): Gouraud textured quad (GT4). Record 0x24: +0/+4/+8/+0xC
-	// u32 colour 0..3, +0x10/+0x12/+0x14/+0x16 u16 UV 0..3, +0x18/+0x1A/+0x1C/+0x1E u16 vertex
-	// offsets, +0x20 u16 CLUT, +0x22 u16 tpage. Packet 0x34 (len 0xC): +4/+0x10/+0x1C/+0x28 RGB
-	// (code 0x3C | ws+0x8C), +8/+0x14/+0x20/+0x2C SXY, +0xC/+0x18/+0x24/+0x30 UV + ws+0x98,
-	// +0xE CLUT + ws+0x54, +0x1A tpage | ws+0x50.
 	static void __cdecl pr_19_TintedGT4()
 	{
 		LightColourSetup((int32_t)U32(WS(), 0x84));
@@ -5860,38 +5039,16 @@ namespace part_draw_prim
 
 	void fill_draw_prim(Generic &g)
 	{
-		g.prim[7] = part_draw_prim::pr_07_TintedG3;     // 0xB27E90
-		g.prim[8] = part_draw_prim::pr_08_TintedFT3;    // 0xB28110
-		g.prim[9] = part_draw_prim::pr_09_TintedGT3;    // 0xB283B0
-		g.prim[12] = part_draw_prim::pr_12_NormalLitG4; // 0xB28690
-		g.prim[17] = part_draw_prim::pr_17_TintedG4;    // 0xB28B00
-		g.prim[18] = part_draw_prim::pr_18_TintedFT4;   // 0xB28DD0
-		g.prim[19] = part_draw_prim::pr_19_TintedGT4;   // 0xB290B0
+		g.prim[7] = part_draw_prim::pr_07_TintedG3;
+		g.prim[8] = part_draw_prim::pr_08_TintedFT3;
+		g.prim[9] = part_draw_prim::pr_09_TintedGT3;
+		g.prim[12] = part_draw_prim::pr_12_NormalLitG4;
+		g.prim[17] = part_draw_prim::pr_17_TintedG4;
+		g.prim[18] = part_draw_prim::pr_18_TintedFT4;
+		g.prim[19] = part_draw_prim::pr_19_TintedGT4;
 	}
 }
 }
-
-// ============================================================================================
-// part draw_sprite
-// ============================================================================================
-// GF cinematic engine, part "draw_sprite": animated sprites (draw handler 5), the particle
-// system (draw handler 6) with its particle VM, particle position types and the sprite
-// orientation handlers. Original addresses are the Ifrit (201) clone.
-//
-// Particle record (0x50 bytes, pool = bone+0xB8: u16 count @+0, u16 @+8 (ws+0x34, unused
-// here), records from +0x10):
-//   +0x00 u16  cleared by particle op 0          +0x02 u16  script wait timer
-//   +0x04 u8*  script cursor (0 = dead)          +0x08 u8*  frame list cursor (8-byte frames)
-//   +0x0C u8*  frame list start                  +0x10 s32  scale (matrix diag = >>4)
-//   +0x14 s32  X / radius                        +0x18 s32  Y / elevation angle
-//   +0x1C s32  Z / azimuth angle                 +0x20 s16[4] velocity (of +0x10..+0x1C)
-//   +0x28 s16[4] acceleration                    +0x30 u8*  current sprite quad list (0 = hidden)
-//   +0x34 s16  frame timer                       +0x37 s8   position type (C().ptype index)
-//   +0x38 u8[4] colour r,g,b,x (-> ws+0x98)      +0x3C s8[3] colour delta per tick
-//   +0x40 u16  tpage                             +0x42 s16[3] origin x,y,z
-//   +0x48 s16  clut word (-> ws+0x9C)            +0x4A u8   frame list kind (op 7 -> 0, op 8 -> 1)
-//   +0x4C u32  sprite data base (frame offsets are relative to it)
-
 
 namespace ff8fx
 {
@@ -5899,27 +5056,17 @@ namespace gfc
 {
 namespace part_draw_sprite
 {
-	// 0x56C270 GTE_MatrixMultiply: TWO arguments, b(rotation) = a * b (the header's
-	// x::MulMatrixGte declares a third, unused, argument)
 	inline void *xl_MatMulGte(const void *a, void *b) { return x::f<void *(__cdecl *)(const void *, void *)>(0x56C270)(a, b); }
 
-	// software GTE data registers SZ0..SZ3 (0x1CA8A10 data register file, regs 16..19)
 	inline int32_t GteSZ(int i) { return MEM<int32_t>(0x1CA8A50 + 4 * i); }
 
 	inline Mat4x3 *BillboardOfCurBone() { return BBMAT() + (U8(CUR(), 0xDE) & 3); }
 
-	// ------------------------------------------------------------------------------------
-	// sprite orientation handlers (C().spr, index = bone+0x1E); they leave the rotation of
-	// the sprite quads in the GTE rotation matrix
-	// ------------------------------------------------------------------------------------
-
-	// 0xB29630 (SprOri 1): rotation = billboard matrix BBMAT[bone+0xDE & 3]
 	static void __cdecl so_01_Billboard()
 	{
 		x::SetRotMatrix(BillboardOfCurBone());
 	}
 
-	// 0xB29650 (SprOri 2): billboard matrix scaled uniformly by bone+0xB8 << 4
 	static void __cdecl so_02_BillboardScaled()
 	{
 		uint8_t *bb = (uint8_t *)BillboardOfCurBone();
@@ -5933,8 +5080,6 @@ namespace part_draw_sprite
 		x::SetRotMatrix(m);
 	}
 
-	// 0xB296E0 (SprOri 7): parent matrix * rot(0x400, 0, bone+0x90), scaled by
-	// (bone+0x8C << 4, bone+0x8E << 4, 0x1000)
 	static void __cdecl so_07_ParentTiltedScaled()
 	{
 		uint8_t *a = WS() + 0xC0;
@@ -5949,13 +5094,11 @@ namespace part_draw_sprite
 		uint8_t *m = WS() + 0xE0;
 		x::RotMatrixFromAngles(a, m);
 		xl_MatMulGte(par, m);
-		pad_after_rot_mul(m, a); // ws+0xF2: vanilla stack word
+		pad_after_rot_mul(m, a);
 		x::ScaleMatrix(m, sc);
 		x::SetRotMatrix(m);
 	}
 
-	// 0xB29790 (SprOri 8): parent matrix * rot order 1 (0, bone+0x8E, bone+0x90), scaled by
-	// (bone+0x8C << 4, bone+0x8C << 4, 0x1000)
 	static void __cdecl so_08_ParentRotatedScaled()
 	{
 		uint8_t *a = WS() + 0x20;
@@ -5973,8 +5116,6 @@ namespace part_draw_sprite
 		x::SetRotMatrix(m);
 	}
 
-	// 0xB29830 (SprOri 9): billboard matrix * rot(0, 0, bone+0x90), scaled by
-	// (bone+0x8C << 4, bone+0x8E << 4, 0x1000)
 	static void __cdecl so_09_BillboardRolledScaled()
 	{
 		uint8_t *a = WS() + 0xC0;
@@ -5989,23 +5130,15 @@ namespace part_draw_sprite
 		uint8_t *m = WS() + 0xE0;
 		x::RotMatrixFromAngles(a, m);
 		xl_MatMulGte(bb, m);
-		pad_after_rot_mul(m, a); // ws+0xF2: vanilla stack word
+		pad_after_rot_mul(m, a);
 		x::ScaleMatrix(m, sc);
 		x::SetRotMatrix(m);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB29A40 EmitSpriteQuads: emits one POLY_FT4 (+ optional draw-mode word) per quad of the
-	// sprite quad list ws+0x90 ({u32 count, then 20-byte quads}); the GTE rotation/translation
-	// are already set. ws+0x94 = tpage override (bone+0xDE bit 2), ws+0x98 = flat colour.
-	// Packet cursor = ctx+0x7C. Quad: s16 x,y, s16 scaleW, scaleH (4.12), +8 unused, u16 uv,
-	// u8 w,h, u16 clut, u8 brightness (0x80 = use ws+0x98), +0x11 unused, u16 tpage.
-	// Returns 0.
-	// ------------------------------------------------------------------------------------
 	static int32_t EmitSpriteQuads()
 	{
 		uint8_t *pkt = PTR(CTX(), 0x7C);
-		uint8_t *v = WS() + 0xE0;                       // 4 SVECTORs (kept in esi)
+		uint8_t *v = WS() + 0xE0;
 		uint8_t *list = PTR(WS(), 0x90);
 		uint32_t count = U32(list, 0);
 		uint8_t *rec = list + 4;
@@ -6045,7 +5178,6 @@ namespace part_draw_sprite
 			U16(pkt, 0x14) = (uint16_t)(w + uv);
 			U16(pkt, 0x1C) = (uint16_t)(h + uv);
 			U16(pkt, 0x24) = (uint16_t)(h + w + uv);
-			// width
 			int32_t w16 = (int32_t)(w << 4);
 			int32_t W = mul32(S16(rec, 4), w16) / 4096;
 			int32_t x0 = sub32(w16 / 2, W / 2);
@@ -6055,7 +5187,6 @@ namespace part_draw_sprite
 			int32_t x1 = add32(x0, W);
 			S16(v, 0x18) = (int16_t)x1;
 			S16(v, 8) = (int16_t)x1;
-			// height
 			int32_t h16 = (int32_t)h >> 4;
 			h16 &= (int32_t)0xFFFFFFF0;
 			int32_t H = mul32(S16(rec, 6), h16) / 4096;
@@ -6074,11 +5205,11 @@ namespace part_draw_sprite
 			x::GteRTPT();
 			x::GteReadSXY012(pkt + 8, pkt + 0x10, pkt + 0x18);
 			x::GteAVSZ3();
-			x::GteReadOTZ(WS() + 0xE0);                 // OTZ -> ws+0xE0 (overwrites v0.xy)
+			x::GteReadOTZ(WS() + 0xE0);
 			x::GteLoadV0(v + 0x18);
 			x::GteRTPS();
 			x::GteReadSXY2(pkt + 0x20);
-			x::GteReadOTZdiv4(WS() + 0xE4);             // SZ3 >> 2 -> ws+0xE4 (overwrites v0.z/pad)
+			x::GteReadOTZdiv4(WS() + 0xE4);
 			int32_t sz3 = GteSZ(3), sz2 = GteSZ(2), sz1 = GteSZ(1), sz0 = GteSZ(0);
 			int32_t z = add32(S32(WS(), 0xE4), S32(WS(), 0xE0)) / 2;
 			uint32_t ot = U32(RT(), 0x4C) + ((uint32_t)(z >> 2) << 2);
@@ -6106,12 +5237,6 @@ namespace part_draw_sprite
 		return 0;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB298D0 (Draw 5) animated sprite: steps the frame list (bone+0xD0, 8-byte frames
-	// {u32 quad list offset from bone+0xE4, u16 duration, s8 ctl: 0 next, 1 end (remove from
-	// draw list, ws[0]--), 2 loop to bone+0xD4}) by bone+0xCA per tick unless frozen
-	// (rt+0x45), then draws the current quad list at bone+0x94 in the parent frame
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_05_AnimatedSprite()
 	{
 		uint8_t skip = U8(RT(), 0x45);
@@ -6162,12 +5287,6 @@ namespace part_draw_sprite
 		EmitSpriteQuads();
 	}
 
-	// ------------------------------------------------------------------------------------
-	// particle position types (C().ptype, index = particle+0x37): particle (ws+0x44) ->
-	// local position SVECTOR ws+0xA0 (ws+0x38 / ws+0x3C = x / z bias, always 0 here)
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2A2E0 (PartType 1) cartesian: (X >> 8 - bias x, Y >> 8, Z >> 8 - bias z)
 	static void __cdecl pt_1_Cartesian()
 	{
 		uint8_t *w = WS();
@@ -6178,8 +5297,6 @@ namespace part_draw_sprite
 		S16(w, 0xA4) = (int16_t)((S32(p, 0x1C) >> 8) - U16(w, 0x3C));
 	}
 
-	// 0xB2A330 (PartType 2) cylindrical around the origin +0x42: radius +0x14 >> 4, angle
-	// +0x1C >> 4, height +0x18 >> 8
 	static void __cdecl pt_2_Cylindrical()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6196,8 +5313,6 @@ namespace part_draw_sprite
 		S16(w, 0xA4) = (int16_t)((uint16_t)(U16(p, 0x46) - U16(w, 0x3C)) + c);
 	}
 
-	// 0xB2A3C0 (PartType 3) on the ellipsoid of bone (cur bone+0xB6): extents bone+0x94/96/98,
-	// elevation +0x18 >> 4, azimuth +0x1C >> 4, around the origin +0x42
 	static void __cdecl pt_3_Ellipsoid()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6209,14 +5324,14 @@ namespace part_draw_sprite
 		int32_t R = S16(bn, 0x98);
 		int32_t cr = x::Cos(a1);
 		cr = mul32(cr, R);
-		int32_t A = mul32(S16(bn, 0x94), cr) / R;   // idiv 0xB2A442 (R = 0 faults, as vanilla)
+		int32_t A = mul32(S16(bn, 0x94), cr) / R;
 		A >>= 4;
 		int32_t a2 = (S32(p, 0x1C) >> 4) & 0xFFF;
 		int32_t xx = x::Cos(a2);
 		xx = mul32(xx, A) >> 20;
 		uint8_t *w = WS();
 		S16(w, 0xA0) = (int16_t)((uint16_t)(U16(p, 0x42) - U16(w, 0x38)) + xx);
-		int32_t B = mul32(S16(bn, 0x96), cr) / S16(bn, 0x98);   // idiv 0xB2A48B
+		int32_t B = mul32(S16(bn, 0x96), cr) / S16(bn, 0x98);
 		B >>= 4;
 		int32_t yy = x::Sin(a2);
 		yy = mul32(yy, B) >> 20;
@@ -6224,12 +5339,6 @@ namespace part_draw_sprite
 		S16(w, 0xA2) = (int16_t)((uint16_t)(U16(p, 0x44) - U16(w, 0x3C)) + yy);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// particle VM (C().pop, index = op word & 0xFF; op word in rt+0x4A, its high byte = rt+0x4B;
-	// STREAM = particle script cursor; an op ends the particle's tick by setting rt+0x3E = wait)
-	// ------------------------------------------------------------------------------------
-
-	// 0xB2A4C0 (PartOp 0) End: kill the particle (+0 = 0, script = 0, sprite = 0, frames = 0)
 	static void __cdecl po_00_End()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6240,7 +5349,6 @@ namespace part_draw_sprite
 		U32(p, 8) = 0;
 	}
 
-	// 0xB2A4F0 (PartOp 1) Wait: rt+0x3E = hi << 7
 	static void __cdecl po_01_Wait()
 	{
 		uint8_t *rt = RT();
@@ -6248,14 +5356,12 @@ namespace part_draw_sprite
 		STREAM() += 2;
 	}
 
-	// 0xB2A510 (PartOp 2) Jump: STREAM += s16 [+2]
 	static void __cdecl po_02_Jump()
 	{
 		uint8_t *s = STREAM();
 		STREAM() = s + S16(s, 2);
 	}
 
-	// 0xB2A530 (PartOp 3) AddRandomWait: wait timer += Rand73(hi) << 7 (no yield)
 	static void __cdecl po_03_AddRandomWait()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6264,8 +5370,6 @@ namespace part_draw_sprite
 		STREAM() += 2;
 	}
 
-	// op bits 8-9 select the vector: 0 = position (4 x s32, value << 8), 0x100 = velocity,
-	// else acceleration (4 x s16); bits 15..12 = component mask (one s16 operand per set bit)
 	static inline void SelVector(uint32_t op, uint8_t *p, uint8_t *&dst, int &esz, int &sh)
 	{
 		uint32_t sel = op & 0x300;
@@ -6273,7 +5377,6 @@ namespace part_draw_sprite
 		else { dst = sel == 0x100 ? p + 0x20 : p + 0x28; esz = 2; sh = 0; }
 	}
 
-	// 0xB2A570 (PartOp 4) SetVector: masked components = operand (0x7654 = keep)
 	static void __cdecl po_04_SetVector()
 	{
 		uint32_t mask = U16(RT(), 0x4A);
@@ -6298,7 +5401,6 @@ namespace part_draw_sprite
 		STREAM() = s;
 	}
 
-	// 0xB2A630 (PartOp 5) AddRandomVector: masked components += Rand73(operand) (0 = none)
 	static void __cdecl po_05_AddRandomVector()
 	{
 		uint32_t mask = U16(RT(), 0x4A);
@@ -6324,7 +5426,6 @@ namespace part_draw_sprite
 		STREAM() = s;
 	}
 
-	// 0xB2A6F0 (PartOp 6) AddPosition: masked position components += operand << 8 (0x7654 = none)
 	static void __cdecl po_06_AddPosition()
 	{
 		uint8_t *d = PTR(WS(), 0x44) + 0x10;
@@ -6343,8 +5444,6 @@ namespace part_draw_sprite
 		STREAM() = s;
 	}
 
-	// 0xB2A820 (PartOp 7, 8) SetFrameList: frame list = object hi (ObjectPtrWs), kind = op - 7,
-	// sprite = first frame, frame timer = cur bone+0xCA
 	static void __cdecl po_07_SetFrameList()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6360,7 +5459,6 @@ namespace part_draw_sprite
 		STREAM() += 2;
 	}
 
-	// 0xB2A750 (PartOp 9) SetOriginHere: origin = current type position (+ bias)
 	static void __cdecl po_09_SetOriginHere()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6377,14 +5475,12 @@ namespace part_draw_sprite
 		STREAM() += 2;
 	}
 
-	// 0xB2A7C0 (PartOp 10) TypeCylindrical: type = 2
 	static void __cdecl po_10_TypeCylindrical()
 	{
 		U8(PTR(WS(), 0x44), 0x37) = 2;
 		STREAM() += 2;
 	}
 
-	// 0xB2A890 (PartOp 11) SetColor: r = hi, g = [+2] low, b = [+2] high
 	static void __cdecl po_11_SetColor()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6395,7 +5491,6 @@ namespace part_draw_sprite
 		STREAM() += 4;
 	}
 
-	// 0xB2A8D0 (PartOp 12) SetColorDelta: dr = hi, dg = [+2] low, db = [+2] high
 	static void __cdecl po_12_SetColorDelta()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6406,7 +5501,6 @@ namespace part_draw_sprite
 		STREAM() += 4;
 	}
 
-	// 0xB2A7E0 (PartOp 13) TypeEllipsoid: type = 3, cur bone+0xB6 = bone ref [+2]
 	static void __cdecl po_13_TypeEllipsoid()
 	{
 		U8(PTR(WS(), 0x44), 0x37) = 3;
@@ -6414,8 +5508,6 @@ namespace part_draw_sprite
 		STREAM() += 4;
 	}
 
-	// 0xB2A910 (PartOp 14) AimAtBone: azimuth (+0x1C) = angle from (X, Z) to bone [+2]
-	// (bone+0x94, bone+0x98) << 4
 	static void __cdecl po_14_AimAtBone()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6427,7 +5519,6 @@ namespace part_draw_sprite
 		STREAM() += 4;
 	}
 
-	// 0xB2A970 (PartOp 15) RandomBranch: |Rand73(0x100)| <= s16 [+2] ? STREAM += s16 [+4] : 6
 	static void __cdecl po_15_RandomBranch()
 	{
 		int32_t r = blob::Rand73(0x100);
@@ -6437,7 +5528,6 @@ namespace part_draw_sprite
 		else STREAM() = s + S16(s, 4);
 	}
 
-	// 0xB2A9B0 (PartOp 16) SetFrame: frame index = hi (bit 7: Rand74(hi & 0x7F))
 	static void __cdecl po_16_SetFrame()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6450,15 +5540,12 @@ namespace part_draw_sprite
 		STREAM() += 2;
 	}
 
-	// 0xB2AA00 (PartOp 17) HoldFrame: frame timer = 0x7F80
 	static void __cdecl po_17_HoldFrame()
 	{
 		U16(PTR(WS(), 0x44), 0x34) = 0x7F80;
 		STREAM() += 2;
 	}
 
-	// 0xB2AA20 (PartOp 18) RandomizeInBone: X/Y/Z (op bits 14..12) += Rand73(bone [+2]
-	// extent +0x94/+0x96/+0x98) << 8
 	static void __cdecl po_18_RandomizeInBone()
 	{
 		uint8_t *bn = blob::GetBone(S16(STREAM(), 2));
@@ -6483,7 +5570,6 @@ namespace part_draw_sprite
 		STREAM() += 4;
 	}
 
-	// 0xB2AAB0 (PartOp 19) SetTexture: tpage (+0x40) and clut (+0x48) of texture hi
 	static void __cdecl po_19_SetTexture()
 	{
 		uint32_t id = (uint32_t)U16(RT(), 0x4A) >> 8;
@@ -6494,8 +5580,6 @@ namespace part_draw_sprite
 		STREAM() += 2;
 	}
 
-	// 0xB2AB00 (PartOp 20) CopyFromBone: bit 15 set: scale/X/Y/Z (bits 15..12) = bone [+2]
-	// +0x8C.. << 8; else X/Y/Z/+0x20 (bits 14..11) = bone +0x94.. << 8
 	static void __cdecl po_20_CopyFromBone()
 	{
 		uint8_t *p = PTR(WS(), 0x44);
@@ -6506,7 +5590,6 @@ namespace part_draw_sprite
 		else { dst = p + 0x14; src = bn + 0x94; mask = (uint16_t)(mask << 1); }
 		for (int off = 0; off < 0x10; off += 4)
 		{
-			// else-branch bit 11 writes the dword +0x20 (velocity x AND y), as vanilla
 			if ((int16_t)mask < 0) S32(dst, off) = shl32(S16(src, 0), 8);
 			src += 2;
 			mask = (uint16_t)(mask << 1);
@@ -6514,8 +5597,6 @@ namespace part_draw_sprite
 		STREAM() += 4;
 	}
 
-	// 0xB2AB70 (PartOp 21) CopyVelFromBone: velocity +0x22/+0x24/+0x26 (bits 14..12) =
-	// bone [+2] +0x94/+0x96/+0x98
 	static void __cdecl po_21_CopyVelFromBone()
 	{
 		uint8_t *q = PTR(WS(), 0x44) + 0x22;
@@ -6532,12 +5613,6 @@ namespace part_draw_sprite
 		STREAM() += 4;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB29F20 (Draw 6) particle system: for every live particle (script != 0) of the pool
-	// bone+0xB8: run its script (unless waiting), integrate vel += acc, pos += (vel) << 4,
-	// position type, colour fade, frame list; then draw its sprite at the type position in
-	// the parent frame, scaled by +0x10 >> 4. Frozen (rt+0x45): position type + draw only.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_06_ParticleSystem()
 	{
 		U16(RT(), 0x3E) = 0;
@@ -6562,7 +5637,6 @@ namespace part_draw_sprite
 				STREAM() = scr;
 				if (U8(RT(), 0x45) == 0)
 				{
-					// --- script ---
 					uint32_t wait = U16(p, 2);
 					if ((int32_t)wait > 0)
 					{
@@ -6587,7 +5661,6 @@ namespace part_draw_sprite
 						U16(RT(), 0x3E) = 0;
 						PTR(p, 4) = STREAM();
 					}
-					// --- integration (the 32-bit sum, not the stored s16, is shifted) ---
 					for (int k = 0; k < 4; k++)
 					{
 						int32_t s = S16(p, 0x28 + 2 * k) + S16(p, 0x20 + 2 * k);
@@ -6595,7 +5668,6 @@ namespace part_draw_sprite
 						S32(p, 0x10 + 4 * k) = add32(S32(p, 0x10 + 4 * k), shl32(s, 4));
 					}
 					C().ptype[S8(p, 0x37)]();
-					// --- colour fade, clamped 0..255 ---
 					for (int k = 0; k < 3; k++)
 					{
 						int32_t c = S8(p, 0x3C + k) + U8(p, 0x38 + k);
@@ -6603,7 +5675,6 @@ namespace part_draw_sprite
 						else if (c <= 0) c = 0;
 						U8(p, 0x38 + k) = (uint8_t)c;
 					}
-					// --- frame list ---
 					if (U32(p, 8) != 0)
 					{
 						int32_t t = S16(p, 0x34);
@@ -6637,12 +5708,10 @@ namespace part_draw_sprite
 				else
 				{
 					if (U32(p, 0x30) == 0) goto next;
-					// 30 fps layer: see gfc_engine_held.inc
 					FX_HELD(if (held_active()) { held_particle_draw(p); goto next; })
 					C().ptype[S8(p, 0x37)]();
 				}
 				if (U32(p, 0x30) == 0) goto next;
-				// --- draw ---
 				{
 					uint8_t *m = PTR(WS(), 0x30);
 					x::SetRotMatrix(m);
@@ -6707,55 +5776,28 @@ namespace part_draw_sprite
 		g.pop[19] = part_draw_sprite::po_19_SetTexture;
 		g.pop[20] = part_draw_sprite::po_20_CopyFromBone;
 		g.pop[21] = part_draw_sprite::po_21_CopyVelFromBone;
-		// pop[22] = 0xB2ABD0 is a bare `ret` (init_clone -> no-op), pop[23] = 0 (never dispatched)
 	}
 }
 }
 
-// ==== BEGIN clone-shared handler parts (generated by integrate.py) ====
-// ============================================================================================
-// part shared_ribbon
-// ============================================================================================
 namespace ff8fx
 {
 namespace gfc
 {
 namespace part_shared_ribbon
 {
-	// ------------------------------------------------------------------------------------
-	// engine functions not wrapped by gfc_engine.h (pure GTE / math, no side effect outside
-	// the GTE register file and the given buffers)
-	// ------------------------------------------------------------------------------------
-	// 0x56BEC0 integer square root
 	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
-	// 0x56C850 RotTrans: LoadV0(v); MVMVA(R*V0+TR); IR1..3 -> out (3 x s16); FLAG -> *flag
 	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(0x56C850)(v, out, flag); }
-	// 0x56C880 TransformWorldCoordinateToProjectedSpace (RotTransPers): LoadV0(v); RTPS;
-	// SXY2 -> *sxy; *p = interpolation value; *flag = FLAG; returns OTZ (SZ3 / 4)
 	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	// 0x45E150 set_dword_1CA8A30: GTE IR0 = v
 	static inline void xl_GteSetIR0(int32_t v) { x::f<void (__cdecl *)(int32_t)>(0x45E150)(v); }
-	// 0x45E0E0: IR1..3 = 3 x u8 (zero-extended) from src
 	static inline void xl_GteLoadRGB(const void *src) { x::f<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
-	// 0x45E9D0 GPF: MAC/IR = IR0 * IR
 	static inline void xl_GteGPF() { x::f<void (__cdecl *)()>(0x45E9D0)(); }
-	// 0x45E410: IR1..3 low bytes -> 3 x u8 at dst
 	static inline void xl_GteStoreRGB(void *dst) { x::f<void (__cdecl *)(void *)>(0x45E410)(dst); }
-	// blob 0xB66E50 look-at matrix (a -> b) into out; RETURNS 0 or -1 (-1 when the second
-	// angle lies in (0x400, 0xC00), i.e. the direction points "backwards"); the header wrapper
-	// blob::LookAt_B66E50 drops the return value, which this handler uses.
 	static inline int32_t xl_LookAt_B66E50(const void *a, const void *b, void *out) { return x::f<int32_t (__cdecl *)(const void *, const void *, void *)>(0xB66E50)(a, b, out); }
 
-	// engine block: 8 zero dwords at 0x27971E4 (the origin passed to the look-at)
 	static inline uint8_t *ZEROVEC() { return (uint8_t *)0x27971E4; }
-	// software GTE data register 19 (SZ3) of the emulated GTE (data file 0x1CA8A10 + 19*4)
 	static inline uint16_t &GTE_SZ3_W() { return MEM<uint16_t>(0x1CA8A5C); }
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1AF60 TurnToward(cur, target, rate): 12-bit angle `cur` turned toward `target` by at
-	// most `rate` the short way round; returns the new angle & 0xFFF (snaps onto target when
-	// the step would overshoot).
-	// ------------------------------------------------------------------------------------
 	static int32_t Ribbon_B1AF60_TurnToward(int32_t a, int32_t t, int32_t rate)
 	{
 		int32_t eax = a & 0xFFF;
@@ -6779,33 +5821,27 @@ namespace part_shared_ribbon
 		return eax & 0xFFF;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1AE60 SteerToward(target, prev, new) (homing mode): new.yaw (+6) = prev.yaw turned
-	// toward the XZ angle prev->target by the node's turn rate (bone+0x8E), new.pitch (+0xE)
-	// likewise with the YZ angle; ws+0xE0 = direction (sin yaw, sin pitch, cos yaw) (s16),
-	// ws+0xF0 = prev + direction. Returns the last sign-extended sine (unused by the caller).
-	// ------------------------------------------------------------------------------------
 	static int32_t Ribbon_B1AE60_SteerToward(const uint8_t *target, const uint8_t *prev, uint8_t *nw)
 	{
-		int32_t py = S16(prev, 2);                        // [ebp+0xC]
-		int32_t pz = S16(prev, 4);                        // edi
-		int32_t ty = S16(target, 2);                      // [ebp+8]
-		int32_t tx = S16(target, 0);                      // edx
-		int32_t px = S16(prev, 0);                        // ecx, [ebp-4]
-		int32_t tz = S16(target, 4);                      // ebx
+		int32_t py = S16(prev, 2);
+		int32_t pz = S16(prev, 4);
+		int32_t ty = S16(target, 2);
+		int32_t tx = S16(target, 0);
+		int32_t px = S16(prev, 0);
+		int32_t tz = S16(target, 4);
 		int32_t yaw = blob::Blob_B66B30(px, pz, tx, tz);
 		U16(nw, 6) = (uint16_t)Ribbon_B1AF60_TurnToward(S16(prev, 6), yaw, S16(CUR(), 0x8E));
 		int32_t pitch = blob::Blob_B66B30(py, pz, ty, tz);
 		int32_t np = Ribbon_B1AF60_TurnToward(S16(prev, 0xE), pitch, S16(CUR(), 0x8E));
 		U16(nw, 0xE) = (uint16_t)np;
 		uint8_t *w = WS();
-		uint8_t *o = w + 0xF0;                            // esi
-		uint8_t *d = w + 0xE0;                            // ebx
-		int32_t s = x::Sin((int16_t)np);                  // movsx eax, ax
+		uint8_t *o = w + 0xF0;
+		uint8_t *d = w + 0xE0;
+		int32_t s = x::Sin((int16_t)np);
 		s = shl32(s, 12) >> 12;
 		U16(d, 2) = (uint16_t)s;
 		U16(o, 2) = (uint16_t)add32(py, s);
-		int32_t ny = S16(nw, 6);                          // [ebp+0x10]
+		int32_t ny = S16(nw, 6);
 		int32_t c = x::Cos(ny);
 		c = shl32(c, 12) >> 12;
 		pz = add32(pz, c);
@@ -6818,15 +5854,11 @@ namespace part_shared_ribbon
 		return s;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1AFE0 FollowDelta(pos, prev, new) (follow mode): ws+0xF0 = pos (3 x s16), ws+0xE0 =
-	// pos - prev (s16); returns isqrt(|pos - prev|^2). The third argument is not read.
-	// ------------------------------------------------------------------------------------
 	static int32_t Ribbon_B1AFE0_FollowDelta(const uint8_t *pos, const uint8_t *prev)
 	{
-		int32_t pz = S16(prev, 4);                        // [ebp-4]
-		int32_t py = S16(prev, 2);                        // [ebp+0xC]
-		int32_t px = S16(prev, 0);                        // ebx, [ebp-8]
+		int32_t pz = S16(prev, 4);
+		int32_t py = S16(prev, 2);
+		int32_t px = S16(prev, 0);
 		uint8_t *w = WS();
 		uint8_t *o = w + 0xF0;
 		uint8_t *d = w + 0xE0;
@@ -6842,21 +5874,15 @@ namespace part_shared_ribbon
 		return xl_ISqrt(sq);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1B080 BuildCrossSection(w, depth, pts, flip): the 9 points of a ring entry, each
-	// RotTrans'ed (current GTE R/TR) from a local offset held in ws+0xF0: (0,0,-d), (+-w1,0,-d),
-	// (+-3*w1/8,0,-d), (0,+-w1,-d), (0,+-3*w1/8,-d), with w1 = flip ? -w : w. The entry's pad
-	// words +6 / +0xE (yaw / pitch) are saved and put back. GTE FLAG -> ws+0xFC.
-	// ------------------------------------------------------------------------------------
 	static void Ribbon_B1B080_BuildCrossSection(int32_t w, int32_t dep, uint8_t *pts, int32_t flip)
 	{
-		uint8_t *v = WS() + 0xF0;                         // esi
+		uint8_t *v = WS() + 0xF0;
 		int32_t ebx = w;
-		uint16_t save6 = U16(pts, 6);                     // [ebp-4]
-		uint16_t saveE = U16(pts, 0xE);                   // [ebp-8]
-		if (flip != 0) ebx = sub32(0, ebx);               // not / inc
-		int32_t wfl = ebx;                                // [ebp+8]
-		int32_t nd = sub32(0, dep);                       // [ebp+0x10]
+		uint16_t save6 = U16(pts, 6);
+		uint16_t saveE = U16(pts, 0xE);
+		if (flip != 0) ebx = sub32(0, ebx);
+		int32_t wfl = ebx;
+		int32_t nd = sub32(0, dep);
 		U16(v, 0) = 0;
 		U16(v, 2) = 0;
 		U16(v, 4) = (uint16_t)nd;
@@ -6865,15 +5891,15 @@ namespace part_shared_ribbon
 		U16(v, 2) = 0;
 		U16(v, 4) = (uint16_t)nd;
 		xl_RotTrans(v, pts + 8, WS() + 0xFC);
-		int32_t nw = sub32(0, ebx);                       // [ebp+0x14]
+		int32_t nw = sub32(0, ebx);
 		U16(v, 0) = (uint16_t)nw;
 		xl_RotTrans(v, pts + 0x10, WS() + 0xFC);
 		int32_t t = shl32(mul32(ebx, 3), 9);
-		t = add32(t, (t >> 31) & 0xFFF);                  // cdq; and edx, 0xFFF; add
-		ebx = t >> 12;                                    // 3*w1/8 (toward zero)
+		t = add32(t, (t >> 31) & 0xFFF);
+		ebx = t >> 12;
 		U16(v, 0) = (uint16_t)ebx;
 		xl_RotTrans(v, pts + 0x18, WS() + 0xFC);
-		int32_t n38 = sub32(0, ebx);                      // [ebp+0xC]
+		int32_t n38 = sub32(0, ebx);
 		U16(v, 0) = (uint16_t)n38;
 		xl_RotTrans(v, pts + 0x20, WS() + 0xFC);
 		U16(v, 0) = 0;
@@ -6890,28 +5916,21 @@ namespace part_shared_ribbon
 		U16(pts, 0xE) = saveE;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1B220 BuildColourRamp(a, b, out, unused): per ribbon segment two colour words
-	// {inner, outer}: ws+0xE0 = (a & 0x2FFFFFF) | 0x38000000, ws+0xE4 = same of b;
-	// fade-in ws+0xF0 entries (GPF, IR0 = 0 .. step 0x1000/f0), full colour up to ws+0xF4,
-	// fade-out up to ws+0xF8 (IR0 0x1000 down), then ws+0xF8 entries of 0x3A000000 (black).
-	// Code byte 0x3A on every scaled word. GTE RGBC (data reg 6) = 0x3A000000.
-	// ------------------------------------------------------------------------------------
 	static void Ribbon_B1B220_BuildColourRamp(uint32_t a, uint32_t b, uint8_t *out, int32_t unused)
 	{
 		(void)unused;
 		x::GteWriteData((int32_t)0x3A000000, 6);
-		uint8_t *pa = WS() + 0xE0;                        // [ebp-4]
+		uint8_t *pa = WS() + 0xE0;
 		U32(pa, 0) = (a & 0x2FFFFFFu) | 0x38000000u;
-		uint8_t *pb = WS() + 0xE4;                        // [ebp-8]
+		uint8_t *pb = WS() + 0xE4;
 		U32(pb, 0) = (b & 0x2FFFFFFu) | 0x38000000u;
 		uint8_t *esi = out;
-		uint8_t *w = WS();                                // edi
+		uint8_t *w = WS();
 		int32_t n = S32(w, 0xF0);
 		if (n != 0)
 		{
-			int32_t step = 0x1000 / n;                    // [ebp+0x10]
-			int32_t ir0 = 0;                              // ebx
+			int32_t step = 0x1000 / n;
+			int32_t ir0 = 0;
 			if (n > 0)
 			{
 				uint8_t *edi = esi + 4;
@@ -6985,13 +6004,6 @@ namespace part_shared_ribbon
 		}
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1ADD0 SetupParentXformKeepV0: GTE R/TR = parent matrix (bone+0x9C); VZ0 = 0 (written
-	// twice), VXY0 is NOT written (vanilla quirk: it keeps whatever the last GTE user loaded;
-	// on an advancing tick the last cross-section point of B1B080 = (0, -3*w1/8)); TR =
-	// R * V0 + TR. Returns 0. (Not a byte clone of Ifrit's SetupParentXform 0xB27000, which
-	// loads V0 = bone outPos.)
-	// ------------------------------------------------------------------------------------
 	static int32_t Ribbon_B1ADD0_SetupParentXform()
 	{
 		Mat4x3 *m = blob::GetParentMatrix(U16(CUR(), 0x9C));
@@ -7004,10 +6016,6 @@ namespace part_shared_ribbon
 		return 0;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1AE20 InsertQuad(depthSum, prim): OT slot = (((sum / 4) >> 2) & ~3) + rt+0x4C
-	// (sum = four u16 depths), SSIGPU_InsertPrimDepthKeys(slot, prim, 0, 0, 0, 0).
-	// ------------------------------------------------------------------------------------
 	static void Ribbon_B1AE20_InsertQuad(int32_t sum, void *prim)
 	{
 		int32_t e = add32(sum, (sum >> 31) & 3) >> 2;
@@ -7017,9 +6025,6 @@ namespace part_shared_ribbon
 		x::InsertPrimDepthKeys((uint32_t)e, prim, 0, 0, 0, 0);
 	}
 
-	// one ribbon quad (0x2C-byte gouraud packet with a tpage word): outer band (form A: black
-	// inner edge, colour-table outer words) between point pairs (a, b) of the previous (pp)
-	// and current (cc) entry projections; listing order of the writes kept
 	static uint8_t *QuadOuter(uint8_t *pkt, const uint8_t *col, const uint8_t *pp, const uint8_t *cc, int a, int b)
 	{
 		U8(pkt, 3) = 0xA;
@@ -7037,7 +6042,6 @@ namespace part_shared_ribbon
 		Ribbon_B1AE20_InsertQuad(sum, pkt);
 		return pkt + 0x2C;
 	}
-	// inner band (form B): point a to the centre point 0, colour-table words on all four
 	static uint8_t *QuadInner(uint8_t *pkt, const uint8_t *col, const uint8_t *pp, const uint8_t *cc, int a)
 	{
 		U8(pkt, 3) = 0xA;
@@ -7056,35 +6060,18 @@ namespace part_shared_ribbon
 		return pkt + 0x2C;
 	}
 
-	// ring entry idx (signed: vanilla idiv, a negative index reads before the ring)
 	static inline uint8_t *RingEntry(uint8_t *ring, int32_t idx) { return ring + mul32(idx, 72) + 0x20; }
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1A130 (Draw 37 RibbonTrail) - Bahamut 0xB1A130 / Cerberus 0xB0D690 / Alexander
-	// 0xB01290 / Eden 0xAE8E20.
-	// First call (bone+0xBC == 0): allocate the ring (72*n + 32 bytes, arena) and seed entries
-	// 0 and 1 at the node position aimed at the target (not gated by boneSkipFlag).
-	// Later calls: bind target (ws+0x98) / colour (ws+0x9C) bones; unless frozen (rt+0x45):
-	//   outAngleX (bone+0x8C) < 0: tail retire (++T[7]; -2 = hold); returns without drawing once
-	//     the tail reaches the capacity;
-	//   else ++head, ++length (capped at n-1), new cross-section at the head: follow mode (flags
-	//     bit0) = section around the previous point moved to the node position; homing mode =
-	//     steered toward the target, the node's outPos (+0x94..) and accumPos (+0x5C..) are set
-	//     to it and bone+0x4A bit0 = (distance to target <= target bone+0x8E).
-	// Then (always) the draw: colour ramp, head projection, 8 gouraud quads per segment.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_37_RibbonTrail()
 	{
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(held_ribbon_entry();)
 		uint8_t *cur = CUR();
-		uint8_t *ring = PTR(cur, 0xBC);                   // esi
+		uint8_t *ring = PTR(cur, 0xBC);
 		uint8_t *edi;
 		if (ring == nullptr)
 		{
-			// ---- first draw: allocate + seed ----
-			uint8_t *prm = PTR(cur, 0xB8);                // ebx
-			uint32_t cap = U16(prm, 8);                   // si (esi was 0)
+			uint8_t *prm = PTR(cur, 0xB8);
+			uint32_t cap = U16(prm, 8);
 			uint8_t *blk = blob::ArenaAlloc((int32_t)(cap * 9 * 8 + 0x20));
 			PTR(CUR(), 0xBC) = blk;
 			edi = PTR(CUR(), 0xBC);
@@ -7099,15 +6086,15 @@ namespace part_shared_ribbon
 			uint16_t tref = U16(prm, 0);
 			U16(edi, 6) = tref;
 			PTR(WS(), 0x98) = blob::GetBone(tref);
-			uint8_t *e0 = edi + 0x20;                     // esi
+			uint8_t *e0 = edi + 0x20;
 			uint8_t *c = CUR();
-			int32_t x0 = S16(c, 0x94);                    // eax
-			int32_t y0 = S16(c, 0x96);                    // ecx, [ebp-8]
-			int32_t z0 = S16(c, 0x98);                    // edx, [ebp-4]
+			int32_t x0 = S16(c, 0x94);
+			int32_t y0 = S16(c, 0x96);
+			int32_t z0 = S16(c, 0x98);
 			U16(e0, 0) = (uint16_t)x0;
 			U16(e0, 2) = (uint16_t)y0;
 			U16(e0, 4) = (uint16_t)z0;
-			int32_t ty, tz;                               // eax / ecx at 0xB1A282
+			int32_t ty, tz;
 			if (U8(edi, 0x10) & 1)
 			{
 				uint8_t *b = CUR();
@@ -7134,13 +6121,13 @@ namespace part_shared_ribbon
 			U16(e0, 0xE) = (uint16_t)(pr & 0xFFF);
 			int32_t r = x::Sin(pr);
 			U16(WS(), 0xD2) = (uint16_t)(shl32(r, 12) >> 12);
-			int32_t yw = S16(e0, 6);                      // ebx
+			int32_t yw = S16(e0, 6);
 			r = x::Cos(yw);
 			U16(WS(), 0xD4) = (uint16_t)(shl32(r, 12) >> 12);
 			r = x::Sin(yw);
 			U16(WS(), 0xD0) = (uint16_t)(shl32(r, 12) >> 12);
 			uint8_t *w = WS();
-			int32_t flip = xl_LookAt_B66E50(ZEROVEC(), w + 0xD0, w + 0xA0);   // ebx
+			int32_t flip = xl_LookAt_B66E50(ZEROVEC(), w + 0xD0, w + 0xA0);
 			x::SetRotMatrix(WS() + 0xA0);
 			int32_t sx = S16(e0, 0), sy = S16(e0, 2), sz = S16(e0, 4);
 			x::GteWriteCtrl(sx, 5);
@@ -7148,7 +6135,7 @@ namespace part_shared_ribbon
 			x::GteWriteCtrl(sz, 7);
 			Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), 0, e0, flip);
 			int32_t dep = (U8(edi, 0x10) & 1) ? 0 : S16(CUR(), 0x8C);
-			uint8_t *e1 = e0 + 0x48;                      // [ebp-8]
+			uint8_t *e1 = e0 + 0x48;
 			Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), dep, e1, flip);
 			PTR(WS(), 0x68) = e0;
 			PTR(WS(), 0x6C) = e1;
@@ -7165,38 +6152,36 @@ namespace part_shared_ribbon
 				int16_t ax = S16(CUR(), 0x8C);
 				if (ax < 0)
 				{
-					// ---- tail retire (-2 = hold the tail) ----
 					if (ax != -2)
 					{
 						U16(ring, 0xE) = (uint16_t)(U16(ring, 0xE) + 1);
-						if (U16(ring, 0xE) >= U16(ring, 2)) return;   // 0xB1A450 -> 0xB1ADBC
+						if (U16(ring, 0xE) >= U16(ring, 2)) return;
 					}
 					int32_t rr = (int32_t)U16(ring, 0) % (int32_t)U16(ring, 2);
 					PTR(WS(), 0x6C) = RingEntry(PTR(CUR(), 0xBC), rr);
 				}
 				else
 				{
-					// ---- advance: new head cross-section ----
 					U16(ring, 0) = (uint16_t)(U16(ring, 0) + 1);
 					int32_t len = (int32_t)U16(ring, 4) + 1;
 					if (len < (int32_t)U16(ring, 2)) U16(ring, 4) = (uint16_t)len;
 					edi = PTR(CUR(), 0xBC);
-					int32_t head = U16(edi, 0);               // ecx
+					int32_t head = U16(edi, 0);
 					S32(WS(), 0x80) = head;
-					int32_t cap = U16(edi, 2);                // esi
+					int32_t cap = U16(edi, 2);
 					PTR(WS(), 0x6C) = RingEntry(edi, head % cap);
-					PTR(WS(), 0x68) = RingEntry(edi, sub32(head, 1) % cap);   // head 0 (u16 wrap) -> entry -1
+					PTR(WS(), 0x68) = RingEntry(edi, sub32(head, 1) % cap);
 					S32(WS(), 0x78) = U16(edi, 4);
 					uint8_t *w = WS();
-					uint8_t *tgt = PTR(w, 0x98);              // ebx
-					uint8_t *prev = PTR(w, 0x68);             // ecx, [ebp-4]
-					uint8_t *nw = PTR(w, 0x6C);               // esi
+					uint8_t *tgt = PTR(w, 0x98);
+					uint8_t *prev = PTR(w, 0x68);
+					uint8_t *nw = PTR(w, 0x6C);
 					if (U8(edi, 0x10) & 1)
 						S32(WS(), 0x94) = Ribbon_B1AFE0_FollowDelta(CUR() + 0x94, prev);
 					else
 						Ribbon_B1AE60_SteerToward(tgt + 0x94, prev, nw);
 					w = WS();
-					int32_t flip = xl_LookAt_B66E50(ZEROVEC(), w + 0xE0, w + 0xA0);   // [ebp-8]
+					int32_t flip = xl_LookAt_B66E50(ZEROVEC(), w + 0xE0, w + 0xA0);
 					x::SetRotMatrix(WS() + 0xA0);
 					int32_t py = S16(prev, 2), pz = S16(prev, 4), px = S16(prev, 0);
 					x::GteWriteCtrl(px, 5);
@@ -7204,7 +6189,6 @@ namespace part_shared_ribbon
 					x::GteWriteCtrl(pz, 7);
 					if (U8(edi, 0x10) & 1)
 					{
-						// follow mode: section around the previous point, moved to the node
 						Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), S32(WS(), 0x94), nw, flip);
 						uint8_t *b = CUR();
 						int32_t dx = sub32(S16(b, 0x94), S16(nw, 0));
@@ -7221,7 +6205,6 @@ namespace part_shared_ribbon
 					}
 					else
 					{
-						// homing mode: the node moves with the head; arrived flag
 						Ribbon_B1B080_BuildCrossSection(S16(CUR(), 0x90), S16(CUR(), 0x8C), nw, flip);
 						int32_t nx = S16(nw, 0);
 						U16(CUR(), 0x94) = (uint16_t)nx;
@@ -7245,16 +6228,15 @@ namespace part_shared_ribbon
 			}
 		}
 
-		// ---- 0xB1A6ED: draw (reads only the ring) ----
 		uint8_t *c = CUR();
-		edi = PTR(c, 0xBC);                                // [ebp-0x10]
+		edi = PTR(c, 0xBC);
 		uint8_t *const rng = edi;
 		int32_t v90;
 		if (U8(edi, 0x10) & 1) v90 = shl32(S16(c, 0x8E), 4);
 		else v90 = shl32(S16(PTR(WS(), 0x98), 0x8C), 4);
 		S32(WS(), 0x90) = v90;
 		uint8_t *w = WS();
-		int32_t arg4 = S32(w, 0x90);                      // [ebp-0xC]
+		int32_t arg4 = S32(w, 0x90);
 		uint8_t *cb = PTR(w, 0x9C);
 		uint32_t colA = (uint32_t)(int32_t)S16(cb, 0x98) | 0x200u;
 		colA = (colA << 8) | (uint32_t)(int32_t)S16(cb, 0x96);
@@ -7267,20 +6249,17 @@ namespace part_shared_ribbon
 		S32(WS(), 0xF4) = U16(edi, 0xC);
 		S32(WS(), 0xF8) = U16(edi, 2);
 
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(held_ribbon_save(edi);)
 		Ribbon_B1B220_BuildColourRamp(colA, colB, PTR(WS(), 0x84), arg4);
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(held_ribbon_v0();)
 		Ribbon_B1ADD0_SetupParentXform();
 
-		// head entry projection into the arena scratch at ctx+0x74 (sxy, OTZ dword)
-		uint8_t *pkt = PTR(CTX(), 0x7C);                  // esi
+		uint8_t *pkt = PTR(CTX(), 0x7C);
 		{
 			int32_t rr = (int32_t)U16(edi, 0) % (int32_t)U16(edi, 2);
 			PTR(WS(), 0x6C) = RingEntry(PTR(CUR(), 0xBC), rr);
-			uint8_t *pt = PTR(WS(), 0x6C);                // [ebp-4]
-			uint8_t *out = PTR(CTX(), 0x74);              // ebx
+			uint8_t *pt = PTR(WS(), 0x6C);
+			uint8_t *out = PTR(CTX(), 0x74);
 			for (int n = 9; n != 0; n--)
 			{
 				uint8_t *fl = WS() + 0xFC;
@@ -7293,7 +6272,7 @@ namespace part_shared_ribbon
 		S32(WS(), 0x60) = (int32_t)((U32(CUR(), 0xCC) & 0x2000000u) | 0x38000000u);
 		S32(WS(), 0x64) = (int32_t)((uint32_t)(int32_t)S16(CUR(), 0x92) | 0xE1000000u);
 		S32(WS(), 0x88) = U16(edi, 4);
-		uint8_t *col = PTR(WS(), 0x84);                   // [ebp-4]
+		uint8_t *col = PTR(WS(), 0x84);
 		{
 			uint32_t tail = U16(edi, 0xE);
 			if (tail >= 1)
@@ -7310,9 +6289,9 @@ namespace part_shared_ribbon
 			PTR(WS(), 0x68) = RingEntry(PTR(CUR(), 0xBC), rr);
 			uint8_t *ws = WS();
 			int32_t odd = S32(ws, 0x7C) & 1;
-			uint8_t *src = PTR(ws, 0x68);                 // ebx
+			uint8_t *src = PTR(ws, 0x68);
 			uint8_t *base = PTR(CTX(), 0x74);
-			uint8_t *dst = base + (odd << 7);             // edi
+			uint8_t *dst = base + (odd << 7);
 			if (odd == 0)
 			{
 				PTR(ws, 0x70) = base;
@@ -7338,8 +6317,8 @@ namespace part_shared_ribbon
 				src += 8;
 			}
 			ws = WS();
-			const uint8_t *cc = PTR(ws, 0x70);            // current entry (edi)
-			const uint8_t *pp = PTR(ws, 0x74);            // previous entry (ebx)
+			const uint8_t *cc = PTR(ws, 0x70);
+			const uint8_t *pp = PTR(ws, 0x74);
 			pkt = QuadOuter(pkt, col, pp, cc, 0x08, 0x18);
 			pkt = QuadOuter(pkt, col, pp, cc, 0x10, 0x20);
 			pkt = QuadInner(pkt, col, pp, cc, 0x18);
@@ -7352,11 +6331,9 @@ namespace part_shared_ribbon
 			S32(WS(), 0x7C) = add32(S32(WS(), 0x7C), 1);
 		}
 		PTR(CTX(), 0x7C) = pkt;
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(held_ribbon_restore();)
 	}
 }
-	// installs the ports into a clone's tables (called after init_clone)
 	void apply_shared_ribbon(Clone &c)
 	{
 		c.draw[37] = part_shared_ribbon::dh_37_RibbonTrail;
@@ -7364,57 +6341,33 @@ namespace part_shared_ribbon
 }
 }
 
-// ============================================================================================
-// part shared_misc
-// ============================================================================================
 namespace ff8fx
 {
 namespace gfc
 {
 namespace part_shared_misc
 {
-	// ------------------------------------------------------------------------------------
-	// local wrappers / constants
-	// ------------------------------------------------------------------------------------
-	// (packet / OT / battle side effects below: 30 fps layer, see gfc_engine_held.h)
-	// 0x45C7A0 SSIGPU_InsertPrimAutoDepth(ot, prim): links a packet (and bumps the depth-key
-	// cursor 0x1CA8828).
 	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	// 0x45C9F0 SetDrawStp(p, pbw): GP0 0xE6 mask-bit packet (1 word + tag).
 	static inline void xl_SetDrawStp(void *p, int32_t pbw) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, int32_t)>(0x45C9F0)(p, pbw); }
-	// 0x45C060 SetDrawMove(p, rect, x, y): GP0 0x80 VRAM-to-VRAM copy of rect to (x, y) (5 words +
-	// tag; an empty rect only clears the tag length).
 	static inline void xl_SetDrawMove(void *p, const void *rect, int32_t xx, int32_t yy) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, const void *, int32_t, int32_t)>(0x45C060)(p, rect, xx, yy); }
-	// 0x505C00 QueueChainTransformation(entity, id): spawns a battle anim-seq task on the entity
-	// chain (battle entity + task state).
 	static inline void xl_QueueChainTransformation(void *entity, int32_t id) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, int32_t)>(0x505C00)(entity, id); }
-	// 0x501FF0 compare_com_127: lowest-address entity of the circular chain entity+0x8C (pure read)
 	static inline uint8_t *xl_ChainMinEntity(void *entity) { return x::f<uint8_t *(__cdecl *)(void *)>(0x501FF0)(entity); }
-	// 0xB65D10 (shared blob) OffscreenStageRender(desc, pos, angles): renders the battle stage
-	// model into the desc's private OT/packet block and EXECUTES that OT immediately (GPU work,
-	// battle model pose rebuild 0x1D989D0).
 	static inline int32_t xl_OffscreenStageRender(void *desc, const void *pos, const void *angles)
 	{
 		FX_HELD(if (held_predicting()) return 0;)
 		return x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(0xB65D10)(desc, pos, angles);
 	}
 
-	// battle display globals (shared engine data): u8 display parity, display/draw env array
-	// (92 bytes per buffer)
 	static const uint32_t DISP_PARITY_1D96A80 = 0x1D96A80;
 	static const uint32_t DISP_ENV_1D969C8 = 0x1D969C8;
-	// battle entity array base (0x9C bytes per entity), used by VM 0x0CF to turn an entity
-	// pointer into a slot
 	static const uint32_t BATTLE_ENTITIES_1D972C0 = 0x1D972C0;
 
-	// fild qword [u16 zero-extended DEPTHARR[off >> 3]]; fmul dword [0x1877DA8]; call __ftol
 	static inline int32_t DepthKey(uint32_t off)
 	{
 		uint32_t v = DEPTHARR()[off >> 3] & 0xFFFF;
 		return (int32_t)(int64_t)((double)v * (double)FLT_1877DA8());
 	}
 
-	// NCLIP of three screen vertices (GTE SXY0..2 = data regs 12..14), MAC0 (reg 24)
 	static inline int32_t Nclip(uint32_t s0, uint32_t s1, uint32_t s2)
 	{
 		int32_t mac0;
@@ -7426,27 +6379,18 @@ namespace part_shared_misc
 		return mac0;
 	}
 
-	// cdq; and edx, 2^n - 1; add eax, edx; sar eax, n  (signed division rounding toward zero)
 	static inline int32_t SDivPow2(int32_t v, int n)
 	{
 		return add32(v, (int32_t)((uint32_t)(v >> 31) & ((1u << n) - 1))) >> n;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB58FA0 (Draw 16 ScrollTextureU, Leviathan; = Bahamut 0xB198C0): horizontal scroll of a
-	// texture inside its VRAM rectangle. bone+0xB8 -> {s16 alt texture id, s16 vram x, s16 vram
-	// y}; the row buffer (w*h*2 bytes) is allocated once in the arena (bone+0xBC); every row is
-	// rotated right by outPosX & (w-1) texels, then ONE upload of the whole rect (rect from the
-	// SceneHeader+0x43 ring). Draws no primitive.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_16_ScrollTextureU()
 	{
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(if (held_active()) return;)
-		uint8_t *arg = PTR(CUR(), 0xB8);                         // edi
-		blob::ReadAltTexture(S16(arg, 0));                       // sets ws+0xF0..0xFC
-		U32(WS(), 0x64) = U32(WS(), 0xFC);                       // texel data
-		uint8_t *tex = PTR(WS(), 0xF0);                          // esi
+		uint8_t *arg = PTR(CUR(), 0xB8);
+		blob::ReadAltTexture(S16(arg, 0));
+		U32(WS(), 0x64) = U32(WS(), 0xFC);
+		uint8_t *tex = PTR(WS(), 0xF0);
 		if (U32(CUR(), 0xBC) == 0)
 		{
 			int32_t n = shl32(mul32(S16(tex, 6), S16(tex, 4)), 1);
@@ -7456,31 +6400,31 @@ namespace part_shared_misc
 		U32(WS(), 0x60) = U32(CUR(), 0xBC);
 		{
 			uint8_t *w = WS();
-			U32(w, 0x80) = U32(w, 0x60);                         // upload source
+			U32(w, 0x80) = U32(w, 0x60);
 		}
 		PTR(WS(), 0x68) = blob::VramRectRing();
-		uint8_t *rect = PTR(WS(), 0x68);                         // eax
+		uint8_t *rect = PTR(WS(), 0x68);
 		U16(rect, 0) = U16(arg, 2);
 		U16(rect, 2) = U16(arg, 4);
 		uint16_t wv = U16(tex, 4);
 		U16(rect, 4) = wv;
-		S32(WS(), 0x78) = (int16_t)wv;                           // width
-		int32_t wd = S32(WS(), 0x78);                            // ecx
+		S32(WS(), 0x78) = (int16_t)wv;
+		int32_t wd = S32(WS(), 0x78);
 		uint16_t hv = U16(tex, 6);
 		U16(rect, 6) = hv;
-		S32(WS(), 0x7C) = (int16_t)hv;                           // rows left
-		int32_t mask = sub32(wd, 1);                             // eax
-		int32_t stride = add32(wd, wd);                          // ecx
+		S32(WS(), 0x7C) = (int16_t)hv;
+		int32_t mask = sub32(wd, 1);
+		int32_t stride = add32(wd, wd);
 		S32(WS(), 0x6C) = mask;
-		S32(WS(), 0x70) = (int32_t)S16(CUR(), 0x94) & mask;      // scroll
+		S32(WS(), 0x70) = (int32_t)S16(CUR(), 0x94) & mask;
 		S32(WS(), 0x84) = stride;
 		uint8_t *w = WS();
 		if (S32(w, 0x7C) > 0)
 		{
 			do
 			{
-				int32_t sc = S32(w, 0x70);                       // edi
-				uint8_t *src = PTR(w, 0x64);                     // ecx
+				int32_t sc = S32(w, 0x70);
+				uint8_t *src = PTR(w, 0x64);
 				uint8_t *dst = (uint8_t *)(U32(w, 0x60) + (uint32_t)sc * 2u);
 				int32_t k = sub32(S32(w, 0x78), sc);
 				if (k > 0)
@@ -7517,31 +6461,24 @@ namespace part_shared_misc
 		x::QueueVramUpload(PTR(w, 0x68), PTR(w, 0x80));
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB0EB60 (helper of Draw 26 and VM 0x096, Cerberus; = Eden): screen capture. Links into
-	// the OT bucket rt+0x4C+4: SetDrawStp(0), five DR_MOVE packets copying the displayed
-	// framebuffer (display env 0x1D969C8 + 92 * parity, rect {x, y, 0x40, 0xE0} at ws+0xF8,
-	// x += 0x40 per strip as a DWORD add) to VRAM (ws+0xF0 + 0x40 * i, ws+0xF4), SetDrawStp(1).
-	// Packets from ctx+0x7C. Returns 0.
-	// ------------------------------------------------------------------------------------
 	static int32_t CaptureScreenStrips()
 	{
 		uint32_t par = MEM<uint8_t>(DISP_PARITY_1D96A80);
-		uint8_t *pkt = PTR(CTX(), 0x7C);                                     // esi
+		uint8_t *pkt = PTR(CTX(), 0x7C);
 		uint32_t idx = par * 3u;
 		idx <<= 3;
-		idx -= par;                                                          // par * 23
-		uint8_t *env = (uint8_t *)(DISP_ENV_1D969C8 + idx * 4u);             // edi
+		idx -= par;
+		uint8_t *env = (uint8_t *)(DISP_ENV_1D969C8 + idx * 4u);
 		xl_SetDrawStp(pkt, 0);
 		xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + 4, pkt);
 		uint8_t *w = WS();
 		U16(w, 0xF8) = U16(env, 0);
 		pkt += 0xC;
 		U16(w, 0xFA) = U16(env, 2);
-		U32(WS(), 0xFC) = 0xE00040;                                          // w 0x40, h 0xE0
+		U32(WS(), 0xFC) = 0xE00040;
 		w = WS();
-		int32_t yy = S32(w, 0xF4);                                           // [ebp-4]
-		int32_t xx = S32(w, 0xF0);                                           // edi
+		int32_t yy = S32(w, 0xF4);
+		int32_t xx = S32(w, 0xF0);
 		for (int k = 5; k != 0; k--)
 		{
 			xl_SetDrawMove(pkt, WS() + 0xF8, xx, yy);
@@ -7549,7 +6486,7 @@ namespace part_shared_misc
 			w = WS();
 			xx = add32(xx, 0x40);
 			pkt += 0x18;
-			U32(w, 0xF8) = U32(w, 0xF8) + 0x40;                              // dword add (x, carry into y)
+			U32(w, 0xF8) = U32(w, 0xF8) + 0x40;
 		}
 		xl_SetDrawStp(pkt, 1);
 		xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + 4, pkt);
@@ -7558,22 +6495,12 @@ namespace part_shared_misc
 		return 0;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB0E930 (Draw 26 ScreenCaptureStrips, Cerberus; = Eden 0xAEA0C0): bone+0xB8 -> {s16 vram x,
-	// s16 vram y} -> ws+0x90/0x94. First call (bone+0xC4 == 0): bone+0xC4 = -1, ws+0xF0/F4 =
-	// vram x/y, CaptureScreenStrips (5 DR_MOVE framebuffer -> VRAM). Later calls, only when the
-	// colour bone+0xCC has R == G == B: five semi-transparent flat quads (POLY_F4, code 0x2A |
-	// colour) 64 x 224 at (outPosX + 64 * i, outPosY) into rt+0x4C+8 (alt viewport), then a
-	// draw-mode packet (tpage 0, window {0, 0, 256, 256}); ws+0xF0/F4 = vram x/y. The tpage word
-	// computed into ws+0x80 (0xB0EA0B) is a dead store: SetDrawMode gets tpage 0.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_26_ScreenCaptureStrips()
 	{
 		uint8_t *arg = PTR(CUR(), 0xB8);
 		S32(WS(), 0x90) = S16(arg, 0);
 		S32(WS(), 0x94) = S16(arg, 2);
-		uint8_t *b = CUR();                                                  // ecx
-		// 30 fps layer: see gfc_engine_held.inc
+		uint8_t *b = CUR();
 		FX_HELD(if (held_capture_skip(b)) return;)
 		if (U32(b, 0xC4) == 0)
 		{
@@ -7581,24 +6508,23 @@ namespace part_shared_misc
 			U32(WS(), 0xF0) = U32(WS(), 0x90);
 			U32(WS(), 0xF4) = U32(WS(), 0x94);
 			CaptureScreenStrips();
-			// 30 fps layer: see gfc_engine_held.inc
 			FX_HELD(held_note_capture(b);)
 			return;
 		}
-		uint32_t c = U32(b, 0xCC);                                           // esi
+		uint32_t c = U32(b, 0xCC);
 		uint32_t t = (uint32_t)((int32_t)c >> 8);
-		if (((t ^ c) & 0xFF) != 0) return;                                   // R != G
-		if (((t ^ c) & 0xFF00) != 0) return;                                 // G != B
-		int32_t tp = S16(b, 0x92);                                           // ecx
-		uint8_t *pkt = PTR(CTX(), 0x7C);                                     // esi
+		if (((t ^ c) & 0xFF) != 0) return;
+		if (((t ^ c) & 0xFF00) != 0) return;
+		int32_t tp = S16(b, 0x92);
+		uint8_t *pkt = PTR(CTX(), 0x7C);
 		uint8_t *w = WS();
 		int32_t di = 0;
 		int32_t v = (S32(w, 0x90) >> 2) & 0xF0;
 		v |= S32(w, 0x94) & 0x100;
 		v >>= 4;
 		v |= tp;
-		v |= 0x100;                                                          // or dh, 1
-		S32(w, 0x80) = v;                                                    // dead store
+		v |= 0x100;
+		S32(w, 0x80) = v;
 		U32(WS(), 0x84) = U32(CUR(), 0xCC) | 0x2A000000;
 		S32(WS(), 0x60) = S16(CUR(), 0x94);
 		S32(WS(), 0x64) = S16(CUR(), 0x96);
@@ -7623,10 +6549,10 @@ namespace part_shared_misc
 			pkt += 0x18;
 		}
 		int16_t rect[4];
-		rect[1] = 0;          // [ebp-6]
-		rect[0] = 0;          // [ebp-8]
-		rect[3] = 0x100;      // [ebp-2]
-		rect[2] = 0x100;      // [ebp-4]
+		rect[1] = 0;
+		rect[0] = 0;
+		rect[3] = 0x100;
+		rect[2] = 0x100;
 		x::SetDrawMode(pkt, 0, 0, 0, rect);
 		x::InsertPrimAltViewport(U32(RT(), 0x4C) + 8, pkt);
 		PTR(CTX(), 0x7C) = pkt + 0xC;
@@ -7634,39 +6560,26 @@ namespace part_shared_misc
 		U32(WS(), 0xF4) = U32(WS(), 0x94);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB1E3F0 (Draw 39 Starfield, Bahamut; = Eden 0xAECD20). bone+0xB8 -> {s16 n, s16 range x,
-	// y, z, s16 colour jitter, s16 twinkle probability (/256)}. First call (bone+0xBC == 0):
-	// arena block {u16 counter, u16 n, n x 16-byte stars {s16 x, y, z, u16 flags (bit0 = twinkles),
-	// u32 packet colour word (0x68 | colour + jitter), u8 on timer, u8 off timer, pad}}, seeded with
-	// CRT rand (blob rand wrappers, 8 or 9 draws per star). Every call (NOT gated by boneSkipFlag):
-	// ++counter, stars projected through SetupParentXform (screen xy + OTZ/4 into the free arena at
-	// ctx+0x74), then one TILE_1-style dot packet (len 2: colour, xy) per visible star into
-	// bone+0xC0 ? rt+0x4C + (bone+0xC0 & 0x3FFC) : rt+0x4C + (OTZ & ~3); twinkling stars count
-	// their on/off timers down and redraw a timer with rand(0..0x40) at expiry (a star whose off
-	// timer expires turns on but is not drawn that tick).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_39_Starfield()
 	{
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(if (held_active()) { dh_39_StarfieldHeld(); return; })
 		if (U32(CUR(), 0xBC) == 0)
 		{
-			uint8_t *prm = PTR(CUR(), 0xB8);                                 // edi
-			int32_t n = S16(prm, 0);                                         // ebx, [ebp-8]
+			uint8_t *prm = PTR(CUR(), 0xB8);
+			int32_t n = S16(prm, 0);
 			uint8_t *blk = blob::ArenaAlloc(add32(shl32(n, 4), 4));
 			PTR(CUR(), 0xBC) = blk;
-			uint8_t *s = PTR(CUR(), 0xBC);                                   // esi
+			uint8_t *s = PTR(CUR(), 0xBC);
 			U16(s, 2) = (uint16_t)n;
-			int32_t jit = S16(prm, 8);                                       // ebx
+			int32_t jit = S16(prm, 8);
 			uint32_t col = U32(CUR(), 0xCC);
 			s += 4;
-			int32_t c0 = (int32_t)(col & 0xFF);                              // [ebp-0x14]
-			int32_t c2 = (int32_t)((col >> 16) & 0xFF);                      // [ebp-0x1C]
-			int32_t c1 = (int32_t)((col >> 8) & 0xFF);                       // [ebp-0x18]
-			int32_t rx = S16(prm, 2);                                        // [ebp-4]
-			int32_t ry = S16(prm, 4);                                        // [ebp-0xC]
-			int32_t rz = S16(prm, 6);                                        // [ebp-0x10]
+			int32_t c0 = (int32_t)(col & 0xFF);
+			int32_t c2 = (int32_t)((col >> 16) & 0xFF);
+			int32_t c1 = (int32_t)((col >> 8) & 0xFF);
+			int32_t rx = S16(prm, 2);
+			int32_t ry = S16(prm, 4);
+			int32_t rz = S16(prm, 6);
 			S32(WS(), 0xF0) = S16(prm, 0xA);
 			if (n > 0)
 			{
@@ -7678,7 +6591,7 @@ namespace part_shared_misc
 					U16(s, 0) = (uint16_t)blob::Rand73(rx);
 					U16(s, 2) = (uint16_t)blob::Rand73(ry);
 					U16(s, 4) = (uint16_t)blob::Rand73(rz);
-					int32_t a = add32(blob::Rand73(jit), c0);                // edi
+					int32_t a = add32(blob::Rand73(jit), c0);
 					int32_t g = shl32(add32(blob::Rand73(jit), c1), 8);
 					a |= g;
 					int32_t bl = shl32(add32(blob::Rand73(jit), c2), 16);
@@ -7695,10 +6608,10 @@ namespace part_shared_misc
 				} while (--k != 0);
 			}
 		}
-		uint8_t *blk = PTR(CUR(), 0xBC);                                     // ebx, [ebp-0x1C]
-		uint8_t *stars = blk + 4;                                            // edi
+		uint8_t *blk = PTR(CUR(), 0xBC);
+		uint8_t *stars = blk + 4;
 		PTR(WS(), 0x60) = stars;
-		U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);                          // not gated by boneSkipFlag
+		U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);
 		uint32_t otw = U16(CUR(), 0xC0);
 		if (otw == 0)
 			U32(WS(), 0x64) = 0;
@@ -7706,7 +6619,7 @@ namespace part_shared_misc
 			U32(WS(), 0x64) = (otw & 0x3FFC) + U32(RT(), 0x4C);
 		h_B27000();
 		int32_t n = S16(blk, 2);
-		uint8_t *scr0 = PTR(CTX(), 0x74);                                    // esi
+		uint8_t *scr0 = PTR(CTX(), 0x74);
 		if (n > 0)
 		{
 			uint8_t *s = scr0;
@@ -7722,11 +6635,10 @@ namespace part_shared_misc
 				s += 8;
 			} while (--k != 0);
 		}
-		uint8_t *sc = PTR(CTX(), 0x74);                                      // [ebp-4]
-		uint8_t *pkt = PTR(CTX(), 0x7C);                                     // edi
-		uint8_t *e = PTR(WS(), 0x60);                                        // esi
+		uint8_t *sc = PTR(CTX(), 0x74);
+		uint8_t *pkt = PTR(CTX(), 0x7C);
+		uint8_t *e = PTR(WS(), 0x60);
 		n = S16(blk, 2);
-		// 30 fps layer: see gfc_engine_held.inc
 		FX_HELD(held_star_begin(blk);)
 		if (n > 0)
 		{
@@ -7773,7 +6685,6 @@ namespace part_shared_misc
 					if (ot == 0) ot = (uint32_t)((int32_t)S16(sc, 4) & ~3) + U32(RT(), 0x4C);
 					xl_InsertPrimAutoDepth(ot, pkt);
 					pkt += 0xC;
-					// 30 fps layer: see gfc_engine_held.inc
 					FX_HELD(held_star_drawn(i);)
 				}
 				sc += 8;
@@ -7783,22 +6694,15 @@ namespace part_shared_misc
 		PTR(CTX(), 0x7C) = pkt;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB105B0 (prim renderer 16, Cerberus; = Eden 0xAEC030): flat quad with a draw-mode word,
-	// colour tinted by the material colour (LightColourSetup(ws+0x84) + NCCS). Record 0xC: +0 u32
-	// colour, +4/+6/+8/+0xA u16 vertex offsets 0..3. Packet 0x20 (len 7): +4 ws+0x50 draw mode,
-	// +8 0, +0xC RGB (code 0x28 | ws+0x8C), +0x10/+0x14/+0x18/+0x1C SXY 0..3. Culled by NCLIP
-	// (v0, v1, v2) unless ws+0x90 & 0x10, skipped when any vertex has a clip bit (0x46 << 16).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl pr_16_TintedF4()
 	{
 		h_B29450((int32_t)U32(WS(), 0x84));
-		uint8_t *ws = WS();                                  // [ebp-0x14]
-		int32_t count = S32(ws, 0x70);                       // [ebp-0x1C]
-		uint8_t *rec = PTR(ws, 0x6C);                        // [ebp-0x10]
-		uint8_t *pkt = PTR(ws, 0x60);                        // esi
-		uint32_t ot = U32(ws, 0x5C);                         // [ebp-0x28]
-		uint32_t nocull = U32(ws, 0x90) & 0x10;              // [ebp-0x20]
+		uint8_t *ws = WS();
+		int32_t count = S32(ws, 0x70);
+		uint8_t *rec = PTR(ws, 0x6C);
+		uint8_t *pkt = PTR(ws, 0x60);
+		uint32_t ot = U32(ws, 0x5C);
+		uint32_t nocull = U32(ws, 0x90) & 0x10;
 		U32(ws, 0xF0) = 0;
 		do
 		{
@@ -7844,22 +6748,13 @@ namespace part_shared_misc
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB11340 (prim renderer 29, Cerberus; = Alexander 0xB053E0): Gouraud textured triangle
-	// with the record's raw colours (no GTE lighting). Record 0x1C: +0/+4/+8 u32 colour 0..2,
-	// +0xC/+0xE/+0x10 u16 UV 0..2, +0x12/+0x14/+0x16 u16 vertex offsets, +0x18 u16 CLUT, +0x1A u16
-	// tpage. Packet 0x28 (len 9): +4/+0x10/+0x1C colour (code 0x34 on colour 0), +8/+0x14/+0x20
-	// SXY, +0xC/+0x18/+0x24 UV (no ws+0x98 offset), +0xE CLUT + ws+0x54, +0x1A tpage | ws+0x50
-	// (+0x26 not written). Skipped when the three vertices share a clip bit (u16 +6 AND), culled
-	// by NCLIP always; OT slot = ot + ((z0 + z1 + z2) / 3 & 0x3FFC) from the vertex +4 words.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl pr_29_GT3()
 	{
-		uint8_t *ws = WS();                                  // [ebp-0x10]
-		int32_t count = S32(ws, 0x70);                       // [ebp-0x18]
-		uint8_t *pkt = PTR(ws, 0x60);                        // esi
-		uint32_t ot = U32(ws, 0x5C);                         // [ebp-0x30]
-		uint8_t *rec = PTR(ws, 0x6C);                        // edi
+		uint8_t *ws = WS();
+		int32_t count = S32(ws, 0x70);
+		uint8_t *pkt = PTR(ws, 0x60);
+		uint32_t ot = U32(ws, 0x5C);
+		uint8_t *rec = PTR(ws, 0x6C);
 		do
 		{
 			uint8_t *vb = PTR(ws, 0x7C);
@@ -7905,33 +6800,24 @@ namespace part_shared_misc
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xAFA6E0 (VM 0x022 ApplyActionResultList, Brothers; = Eden 0xAEF450). Action = ctx+0xCC
-	// {+8 result records (0x18 bytes, +0 u8 slot), +0x10 s8 count}. sub = op >> 12:
-	//   1: SceneHeader+0x17A s8 m != 0 -> for i = m..1: ApplyActionResultToTarget(first record
-	//      whose slot == SceneHeader+0x173+i) (m < 0: nothing); m == 0 -> as "other";
-	//   8: ApplyActionResultToTargets(records, count);
-	//   other: ApplyActionResultToTarget(first record whose slot == bone+0x1B), if any.
-	// cursor += 2. (Ifrit's 0x022 tests (op & 0xF000) == 0x8000 only.)
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_022_ApplyActionResultList()
 	{
-		uint8_t *act = PTR(CTX(), 0xCC);                     // ebx
+		uint8_t *act = PTR(CTX(), 0xCC);
 		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 12;
-		uint8_t *rec = PTR(act, 8);                          // ecx
-		int32_t n = S8(act, 0x10);                           // esi
+		uint8_t *rec = PTR(act, 8);
+		int32_t n = S8(act, 0x10);
 		if (sub == 1)
 		{
 			uint8_t *sc = SCENE();
-			int32_t m = S8(sc, 0x17A);                       // edi
+			int32_t m = S8(sc, 0x17A);
 			if (m != 0)
 			{
 				if (m > 0)
 				{
-					uint8_t *list = sc + 0x173;              // [ebp-4]
+					uint8_t *list = sc + 0x173;
 					do
 					{
-						uint32_t slot = U8(list, m);         // [ebp-8]
+						uint32_t slot = U8(list, m);
 						uint8_t *r = PTR(act, 8);
 						int32_t k = n;
 						if (k > 0)
@@ -7978,12 +6864,6 @@ namespace part_shared_misc
 		STREAM() += 2;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB24BB0 (VM 0x042 EntityChainAnim, Bahamut; = Brothers 0xAFEF60). Entity = SceneHeader+
-	// 0x60[bone+0x1B]. sub = op >> 9: 0 -> QueueChainTransformation(entity, s16 w1), cursor += 4;
-	// 2 -> entity+0x72 != entity+0x73 ? cursor += 4 : cursor += s16 w1 (relative jump); other ->
-	// nothing (cursor unchanged, vanilla).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_042_EntityChainAnim()
 	{
 		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 9;
@@ -8009,35 +6889,22 @@ namespace part_shared_misc
 		}
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB64090 (VM 0x05C AccumFromMeshVertex, Leviathan; = Brothers 0xAFEBF0 = Eden 0xAF3660):
-	// target bone b = bone ref w1 (CUR is switched to it, the caller's bone kept in ws+0x60).
-	//   op bit 15 set: M = RotMatrixOrder(p->outAngle, w3) (p = bone of b's parent id bone+0x9C)
-	//     scaled by b->outAngle << 4, translation = b->outPos through (M, p->outPos); v = vertex
-	//     w2 of b's mesh (bone+0xD8, vertices at +U32(+0x14), 8 bytes) through M -> ws+0xF0 (MAC),
-	//     ws+0xFC (FLAG); accum = ws+0xF0..0xF8 << 16; cursor += 8.
-	//   else: morph block bone+0xBC {s16 weight bone, s16 object A, s16 object B}: vertex w2 of A
-	//     and B, lerp by weight bone outPos / 256 per axis, scaled by b->outAngle (4.12, << 4),
-	//     plus parent(b)->outPos; accum = that << 16; cursor += 6.
-	// Then CUR = the caller's bone, its accumPos (+0x5C/60/64) = accum, and its bone handler
-	// (bone+0x18) runs.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_05C_AccumFromMeshVertex()
 	{
 		PTR(WS(), 0x60) = CUR();
 		uint8_t *b = blob::GetBone(S16(STREAM(), 2));
 		CUR() = b;
-		int32_t ax, ay, az;                                  // ecx, edx, eax
-		uint8_t *next;                                       // edi
+		int32_t ax, ay, az;
+		uint8_t *next;
 		if (U8(RT(), 0x4B) & 0x80)
 		{
-			uint8_t *p = blob::GetBone(U16(b, 0x9C));        // edi
-			uint8_t *m = (uint8_t *)blob::RotMatrixOrder(p + 0x8C, S16(STREAM(), 6));   // esi
+			uint8_t *p = blob::GetBone(U16(b, 0x9C));
+			uint8_t *m = (uint8_t *)blob::RotMatrixOrder(p + 0x8C, S16(STREAM(), 6));
 			S32(WS(), 0x80) = shl32(S16(CUR(), 0x8C), 4);
 			S32(WS(), 0x84) = shl32(S16(CUR(), 0x8E), 4);
 			S32(WS(), 0x88) = shl32(S16(CUR(), 0x90), 4);
 			x::ScaleMatrix(m, WS() + 0x80);
-			uint8_t *t = m + 0x14;                           // ebx
+			uint8_t *t = m + 0x14;
 			S32(t, 0) = S16(p, 0x94);
 			S32(m, 0x18) = S16(p, 0x96);
 			S32(m, 0x1C) = S16(p, 0x98);
@@ -8059,15 +6926,15 @@ namespace part_shared_misc
 		}
 		else
 		{
-			uint8_t *blk = PTR(b, 0xBC);                     // esi
-			uint8_t *wb = blob::GetBone(S16(blk, 0));        // edi
-			uint8_t *oa = blob::ObjectPtr(S16(blk, 2));      // ebx
-			uint8_t *ob = blob::ObjectPtr(S16(blk, 4));      // eax
-			uint8_t *vb = ob + U32(ob, 0x14);                // esi
-			int32_t off = shl32(S16(STREAM(), 4), 3);        // edx
-			uint8_t *va = oa + U32(oa, 0x14);                // ecx
+			uint8_t *blk = PTR(b, 0xBC);
+			uint8_t *wb = blob::GetBone(S16(blk, 0));
+			uint8_t *oa = blob::ObjectPtr(S16(blk, 2));
+			uint8_t *ob = blob::ObjectPtr(S16(blk, 4));
+			uint8_t *vb = ob + U32(ob, 0x14);
+			int32_t off = shl32(S16(STREAM(), 4), 3);
+			uint8_t *va = oa + U32(oa, 0x14);
 			vb += off;
-			int32_t a = S16(va + off, 0);                    // ebx
+			int32_t a = S16(va + off, 0);
 			int32_t bv = S16(vb, 0);
 			va += off;
 			S32(WS(), 0xE0) = add32(SDivPow2(mul32(bv - a, S16(wb, 0x94)), 8), a);
@@ -8109,14 +6976,6 @@ namespace part_shared_misc
 		C().bone[U8(CUR(), 0x18)]();
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB23AF0 (VM 0x090 OffscreenStageRender, Bahamut; = Brothers 0xAFDA00). Unless RenderCtx+0x30
-	// (u16) != 0: ws+0xD0..0xD6 = w1..w4 (off-screen rect), render descriptor at the arena top
-	// {+0 OT = top + 0xEC, +4 0, +8 packets = top + 0x10EC, +0xC size 0x5BEC, +0x14 arena top after
-	// the allocation}, bone+0xC4 = 0x5BEC, ArenaAlloc(0x5BEC), then blob 0xB65D10(desc, outPos,
-	// outAngle) renders the battle stage into it and executes that OT. cursor += 10.
-	// (Ifrit's 0x090 is `cursor += 10`.)
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_090_OffscreenStageRender()
 	{
 		if (U16(RCTX(), 0x30) != 0)
@@ -8128,7 +6987,7 @@ namespace part_shared_misc
 		U16(WS(), 0xD2) = U16(STREAM(), 4);
 		U16(WS(), 0xD4) = U16(STREAM(), 6);
 		U16(WS(), 0xD6) = U16(STREAM(), 8);
-		uint8_t *d = PTR(CTX(), 0x74);                       // esi
+		uint8_t *d = PTR(CTX(), 0x74);
 		FX_HELD(guard(d, 0x18);)
 		U32(d, 0) = 0;
 		U32(d, 4) = 0;
@@ -8145,10 +7004,6 @@ namespace part_shared_misc
 		STREAM() += 0xA;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xB16F60 (VM 0x096 CaptureScreenStrips, Cerberus; = Eden 0xAF2760): ws+0xF0/F4 = s16 w1/w2
-	// (VRAM destination), CaptureScreenStrips (0xB0EB60). cursor += 6.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_096_CaptureScreenStrips()
 	{
 		S32(WS(), 0xF0) = S16(STREAM(), 2);
@@ -8157,14 +7012,6 @@ namespace part_shared_misc
 		STREAM() += 6;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xAFCBE0 (VM 0x0CF TargetListFromChain, Brothers; = Eden 0xAF1830). Entity e =
-	// SceneHeader+0x60[bone+0x1B]; if e+0x8C (chain link) == 0: SceneHeader+0x17A = 0, cursor += 2.
-	// sub = op >> 12: 0 -> SceneHeader+0x174 = bone slot, +0x17A = 1; 1 -> +0x17A = +0x41 (s8
-	// count m), +0x173+i = +0x47+i for i = m..1; other -> nothing (cursor unchanged, vanilla).
-	// Then the bone's slot = SceneHeader+0x48 = (lowest entity of e's chain - 0x1D972C0) / 0x9C
-	// (magic 0xA41A41A5 sequence), SceneHeader+0x41 = 1, cursor += 2.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_0CF_TargetListFromChain()
 	{
 		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 12;
@@ -8172,8 +7019,8 @@ namespace part_shared_misc
 		if (sub == 0)
 		{
 			uint8_t slot = U8(CUR(), 0x1B);
-			uint8_t *sc = SCENE();                           // edx
-			e = PTR(sc, 0x60 + (int32_t)slot * 4);           // ecx
+			uint8_t *sc = SCENE();
+			e = PTR(sc, 0x60 + (int32_t)slot * 4);
 			if (U32(e, 0x8C) == 0)
 			{
 				U8(sc, 0x17A) = 0;
@@ -8186,8 +7033,8 @@ namespace part_shared_misc
 		else if (sub == 1)
 		{
 			uint32_t slot = U8(CUR(), 0x1B);
-			uint8_t *sc = SCENE();                           // eax
-			e = PTR(sc, 0x60 + (int32_t)slot * 4);           // esi
+			uint8_t *sc = SCENE();
+			e = PTR(sc, 0x60 + (int32_t)slot * 4);
 			if (U32(e, 0x8C) == 0)
 			{
 				U8(sc, 0x17A) = 0;
@@ -8211,8 +7058,8 @@ namespace part_shared_misc
 		else
 			return;
 		uint8_t *r = xl_ChainMinEntity(e);
-		uint32_t d = (uint32_t)r - BATTLE_ENTITIES_1D972C0;                 // ecx
-		uint32_t hi = (uint32_t)(((uint64_t)d * 0xA41A41A5ull) >> 32);      // edx
+		uint32_t d = (uint32_t)r - BATTLE_ENTITIES_1D972C0;
+		uint32_t hi = (uint32_t)(((uint64_t)d * 0xA41A41A5ull) >> 32);
 		uint32_t q = (((d - hi) >> 1) + hi) >> 7;
 		U8(CUR(), 0x1B) = (uint8_t)q;
 		U8(SCENE(), 0x48) = (uint8_t)q;
@@ -8221,9 +7068,6 @@ namespace part_shared_misc
 	}
 }
 
-	// installs the ports into a clone's tables (called after init_clone): only the slots whose
-	// original code is real (not a `ret` stub); VM 0x022 / 0x090 also exist in Ifrit's form in
-	// every clone, so they are replaced only in the clones that carry this variant
 	void apply_shared_misc(Clone &c)
 	{
 		auto live = [](uint32_t slot) -> bool
@@ -8231,23 +7075,22 @@ namespace part_shared_misc
 			uint32_t orig = *(const uint32_t *)slot;
 			return orig >= 0x401000 && orig < 0xC00000 && *(const uint8_t *)orig != 0xC3;
 		};
-		if (live(c.draw_table + 4 * 16)) c.draw[16] = part_shared_misc::dh_16_ScrollTextureU;         // Leviathan 0xB58FA0, Bahamut 0xB198C0
-		if (live(c.draw_table + 4 * 26)) c.draw[26] = part_shared_misc::dh_26_ScreenCaptureStrips;    // Cerberus 0xB0E930, Eden 0xAEA0C0
-		if (live(c.draw_table + 4 * 39)) c.draw[39] = part_shared_misc::dh_39_Starfield;              // Bahamut 0xB1E3F0, Eden 0xAECD20
-		if (live(c.prim_table + 4 * 16)) c.prim[16] = part_shared_misc::pr_16_TintedF4;               // Cerberus 0xB105B0, Eden 0xAEC030
-		if (live(c.prim_table + 4 * 29)) c.prim[29] = part_shared_misc::pr_29_GT3;                    // Cerberus 0xB11340, Alexander 0xB053E0
-		if (live(c.vm_table + 4 * 0x042)) c.vm[0x042] = part_shared_misc::op_042_EntityChainAnim;     // Bahamut 0xB24BB0, Brothers 0xAFEF60
-		if (live(c.vm_table + 4 * 0x05C)) c.vm[0x05C] = part_shared_misc::op_05C_AccumFromMeshVertex; // Leviathan 0xB64090, Brothers 0xAFEBF0, Eden 0xAF3660
-		if (live(c.vm_table + 4 * 0x096)) c.vm[0x096] = part_shared_misc::op_096_CaptureScreenStrips; // Cerberus 0xB16F60, Eden 0xAF2760
-		if (live(c.vm_table + 4 * 0x0CF)) c.vm[0x0CF] = part_shared_misc::op_0CF_TargetListFromChain; // Brothers 0xAFCBE0, Eden 0xAF1830
+		if (live(c.draw_table + 4 * 16)) c.draw[16] = part_shared_misc::dh_16_ScrollTextureU;
+		if (live(c.draw_table + 4 * 26)) c.draw[26] = part_shared_misc::dh_26_ScreenCaptureStrips;
+		if (live(c.draw_table + 4 * 39)) c.draw[39] = part_shared_misc::dh_39_Starfield;
+		if (live(c.prim_table + 4 * 16)) c.prim[16] = part_shared_misc::pr_16_TintedF4;
+		if (live(c.prim_table + 4 * 29)) c.prim[29] = part_shared_misc::pr_29_GT3;
+		if (live(c.vm_table + 4 * 0x042)) c.vm[0x042] = part_shared_misc::op_042_EntityChainAnim;
+		if (live(c.vm_table + 4 * 0x05C)) c.vm[0x05C] = part_shared_misc::op_05C_AccumFromMeshVertex;
+		if (live(c.vm_table + 4 * 0x096)) c.vm[0x096] = part_shared_misc::op_096_CaptureScreenStrips;
+		if (live(c.vm_table + 4 * 0x0CF)) c.vm[0x0CF] = part_shared_misc::op_0CF_TargetListFromChain;
 		if ((c.effect_id == 205 || c.effect_id == 206 || c.effect_id == 222) && live(c.vm_table + 4 * 0x022))
-			c.vm[0x022] = part_shared_misc::op_022_ApplyActionResultList;                           // Brothers 0xAFA6E0, Eden 0xAEF450
+			c.vm[0x022] = part_shared_misc::op_022_ApplyActionResultList;
 		if ((c.effect_id == 202 || c.effect_id == 205) && live(c.vm_table + 4 * 0x090))
-			c.vm[0x090] = part_shared_misc::op_090_OffscreenStageRender;                            // Bahamut 0xB23AF0, Brothers 0xAFDA00
+			c.vm[0x090] = part_shared_misc::op_090_OffscreenStageRender;
 	}
 }
 }
-// ==== END clone-shared handler parts ====
 
 #ifdef FF8_FX_HELD
 #include "gfc_engine_held.inc"

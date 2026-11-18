@@ -14,26 +14,8 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Squall's boss-specific Renzokuken modules: their common part, second half (the tasks every one of them has, byte for
-// byte the same code on the module's own addresses). Included INSIDE the module's namespace by the module file after
-// renzo_boss_defs.inc and the module's _held.h, with
-//   static void Events(Node24 *n);      the module's own choreography: called by the controller every tick after the
-//                                       hit-spark start, before the screen flash (forward declaration is enough)
-//   RENZO_ID / RENZO_IDS                the effect id (number / string, for the port names)
-//   RENZO_HITSPARK_NULLCHECK            (343) the hit spark tests AddTaskToQueue's result
-//   RENZO_CUSTOM_BIND                   the module has its own BindBoth (same arguments)
-//   RENZO_LENGTH_EXTRA                  (341 / 342) static int32_t LengthExtra(): added to the length on tick 2
-//   RENZO_LATE_EVENTS                   (341) static void LateEvents(Node24 *n): after the sound, before the counter step
-//   RENZO_CUSTOM_START                  (339 / 340) the module's static void Start(Node24 *n) replaces the controller's ticks 1 / 2
-//                                       (binds, chain starts, ComputeLength, StartTasks)
-// Tasks: Controller (the choreography frame: caster flag 0x800, both animation sets, length, trail / spark spawner / hit
-// scheduler, hit spark, Events, flash, tint, sound, the end), HitSpark / Sparkle (hit-effect queue, with a finisher), Trail,
-// SparkSpawn, Hit, Slash, Master and its ParticleDraws, AddSlotTask (the module's SLOTS records).
+// Renzokuken on bosses
 
-	// ------------------------------------------------------------------
-	// BindBoth: the animation container's two com-data blocks bound to the caster and to the boss, both sequences
-	// started (the caster's `seq`, the boss's 1)
-	// ------------------------------------------------------------------
 #ifndef RENZO_CUSTOM_BIND
 	static void BindBoth(uint8_t *caster, uint8_t *boss, uint32_t out, uint32_t sets, int32_t seq)
 	{
@@ -44,7 +26,6 @@
 	}
 #endif
 
-	// first free entry (life < 0) of a pool, or -1 (none in the scanned part / index >= 0x28)
 	static int32_t FreeSlot(uint32_t pool, uint32_t end, uint32_t stride)
 	{
 		int32_t i = 0;
@@ -56,7 +37,6 @@
 		return i >= 0x28 ? -1 : i;
 	}
 
-	// the first free SLOTS record (alive 0), or -1 (none / index >= 100)
 	static int32_t FreeRecord()
 	{
 		int32_t i = 0;
@@ -68,8 +48,6 @@
 		return i >= 100 ? -1 : i;
 	}
 
-	// AddSlotTask (the module's au_re_BdLinkTask_N): a task in the main queue with its own SLOTS record (marked -1, its
-	// index in the node +0xE, counter 0); nullptr when every record is taken (no task then)
 	static Node24 *AddSlotTask(uint32_t orig)
 	{
 		const int32_t i = FreeRecord();
@@ -81,7 +59,6 @@
 		return t;
 	}
 
-	// the length: the n + 1 stage durations of the sequence's opcode AB
 	static void ComputeLength()
 	{
 		const int32_t last = (int32_t)StageCount() + 1;
@@ -89,7 +66,6 @@
 		for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(0x1D98214 + i);
 	}
 
-	// the trail (its ring cleared), the spark spawner (frame phase rand % 24) and the hit scheduler
 	static void StartTasks()
 	{
 		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Trail);
@@ -102,9 +78,6 @@
 		t->c = 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Controller: the choreography frame (the module's own events: Events)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ControllerTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -122,12 +95,12 @@
 		{
 			ComputeLength();
 #ifdef RENZO_LENGTH_EXTRA
-			Length() = Length() + LengthExtra(); // (341 / 342: the length runs past the sequence's stages)
+			Length() = Length() + LengthExtra();
 #endif
 			StartTasks();
 		}
 #else
-		Start(n); // (339 / 340: their own binds / chain starts / length tick)
+		Start(n);
 #endif
 		if (Finisher() != 0 && (int32_t)n->c == Length())
 		{
@@ -136,12 +109,10 @@
 			t->w1A = (int16_t)CasterSlot();
 		}
 		Events(n);
-		// screen flash: up over ticks 0..0x10, down over the last 8 (not before a finisher)
 		if (n->c <= 0x10)
 			SetScreenFlash((uint32_t)shl32(n->c, 7), 0);
 		else if ((int32_t)n->c >= Length() - 8 && n->c > 4 && Finisher() == 0)
 			SetScreenFlash((uint32_t)shl32(Length() - n->c, 8), 0);
-		// the caster's model tint: toward the far colour over ticks 0..8, back over the last 8
 		bool tint = false;
 		int32_t k = 0;
 		if (n->c <= 8)
@@ -158,7 +129,7 @@
 		}
 		if (tint)
 		{
-			uint32_t colour = var<uint32_t>(0xB8B7D8); // (the original keeps it in a local)
+			uint32_t colour = var<uint32_t>(0xB8B7D8);
 			GteLoadRGBC(&colour);
 			GteSetIR0(shl32(k, 9));
 			GteDPCS();
@@ -166,7 +137,7 @@
 		}
 		if (n->c == 1) BdPlaySE(SOUND, 0x8000, 0x80);
 #ifdef RENZO_LATE_EVENTS
-		LateEvents(n); // (341: the caster's flag 8 around the finisher)
+		LateEvents(n);
 #endif
 		n->c++;
 		if ((int32_t)n->c <= Length()) return 0;
@@ -177,16 +148,12 @@
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Hit sparks (hit-effect queue): 6 sparkles per tick on ticks 4..8
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl HitSparkTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
 		Node24 *n = (Node24 *)tn;
 		if (n->c >= 4 && n->c <= 8)
 		{
-			// the entity's default effect position with its height and y swapped: x, height, z, y
 			int16_t p[4];
 			GetDefaultEffectPosition(Entity(n->w1A), p);
 			const int16_t h = p[3];
@@ -196,7 +163,7 @@
 			{
 				Node24 *s = (Node24 *)AddTaskToQueue(QHit(), ORIG_Sparkle);
 #ifdef RENZO_HITSPARK_NULLCHECK
-				if (!s) continue; // (343 tests the queue's answer)
+				if (!s) continue;
 #endif
 				s->c = 0;
 				s->e = (int16_t)(CrtRand() % 6 + i);
@@ -234,9 +201,6 @@
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sparkle (hit-effect queue): one model facing the camera, spinning, stretched toward its point
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkleTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -254,7 +218,7 @@
 		int32_t axis[3];
 		int32_t angle = RotationBetweenVectors(u, d, axis);
 		int16_t ang[3] = { 0, 0, 0 };
-		Mat4x3 m1; // (pad +0x12 never written in the original: GTE R33 high half only)
+		Mat4x3 m1;
 		BuildRotationMatrixFromAngles(ang, &m1);
 		Mat4x3 m2;
 		m1.t[0] = 0xF0;
@@ -262,12 +226,10 @@
 		m1.t[2] = 0;
 		BuildAxisAngleRotationMatrix(angle, &m2, axis);
 		MatrixMultiply(&m2, &m1);
-		// spin about the view direction, 0x40 per tick, its sense from the turn's axis
 		int32_t spin = -shl32(n->c, 6);
 		if (axis[1] < 0) spin = -spin;
 		BuildAxisAngleRotationMatrix(spin, &m2, d);
 		MatrixMultiply(&m2, &m1);
-		// stretched toward the sparkle's point: up (0, -0x1000, 0) turned onto it, length * 0x1000 / 2000
 		int32_t e[3] = { (int32_t)n->w10 - q[0], (int32_t)n->w12 - q[1], (int32_t)n->w14 - q[2] };
 		u[0] = 0;
 		u[1] = -0x1000;
@@ -302,10 +264,6 @@
 		return n->c >= 8 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Trail
-	// ------------------------------------------------------------------
-	// the weapon point and the tip 666 along the blade into the work block
 	static void TrailPoints(TrailWork *w)
 	{
 		WeaponBone(Caster(), 1, w->dir, w->base);
@@ -314,7 +272,6 @@
 		w->tip[2] = (int16_t)((int16_t)(mul32(w->dir[2], 666) >> 12) + w->base[2]);
 	}
 
-	// newest-first gather of at most `want` ring entries from slot idx into the two point lists; returns the count
 	static int32_t TrailGather(const uint8_t *ring, int32_t idx, int32_t want, uint8_t *pa, uint8_t *pb)
 	{
 		int32_t cnt = 0;
@@ -344,8 +301,6 @@
 		FieldFree(0x190);
 	}
 
-	// the previous tick's hit point / direction kept (PREV_HIT: 8 + 16 bytes), then the new hit point (the tip spline's
-	// 2nd point) and the unit direction from it to the 1st
 	static void TrailHitPoint(const uint8_t *sb, uint8_t *pos, int32_t *dir)
 	{
 		ff8fx::copy<(8)>((void *)PREV_HIT, pos);
@@ -358,8 +313,6 @@
 		Normalize(dir, dir);
 	}
 
-	// 30 quad pairs between the two splines: gouraud from the base colour 0x3A903030 fading toward the far colour
-	// (black) along the trail, and a copy whose leading edge is 0x3A000000
 	static void TrailDraw(const uint8_t *sa, const uint8_t *sb, TrailWork *w)
 	{
 		GteSetRotMatrix(&Camera());
@@ -425,7 +378,6 @@
 		{
 			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
 			TrailHitPoint((const uint8_t *)SPL_B, (uint8_t *)HIT_POS, (int32_t *)HIT_DIR);
-			// 30 fps layer: see renzo_boss_held.inc
 			FX_HELD(held_note_trail(n);)
 			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
 		}
@@ -435,9 +387,6 @@
 		return (int32_t)n->c >= Length() - 1 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark spawner: 3 sparks per tick at random bones of the caster
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkSpawnTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -464,10 +413,6 @@
 		return (int32_t)n->c >= Length() - 1 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Hits: per hit, a slash, 3 flashes and 12 debris at the trail's hit point + the hit's offset (HIT_OFFS: all zero)
-	// through the caster's matrix
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl HitTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -484,10 +429,6 @@
 			const int16_t sc = (int16_t)(CrtRand() % 0x280 + 0x400);
 			s->w1E = sc;
 			s->w1C = sc;
-			// the hit point: the offset through the caster's matrix + the trail's hit point (16-bit adds). Its 4th word is a
-			// stack word the original never writes (entry esp - 2, the high half of the dword the queue's previous task, the
-			// spark spawner, pushed first: the game executor 0x508420's ebx = the count of tasks kept so far in this pass, a
-			// small number): 0 (as effects 332 / 333).
 			int16_t hp[4];
 			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(HIT_OFFS + 8 * b), hp);
 			hp[0] = (int16_t)(hp[0] + var<int16_t>(HIT_POS));
@@ -506,7 +447,6 @@
 				r->off[k] = (int16_t)((mul32(wv, 1000) - 300) >> 12);
 				r->speed[k] = (int16_t)(CrtRand() % 200 + 0x78);
 			}
-			// 3 flashes at the hit point
 			for (int32_t j = 0; j < 3; j++)
 			{
 				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0xC);
@@ -519,7 +459,6 @@
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 			}
-			// 12 debris thrown along the direction (back the other way on hit 3)
 			for (int32_t j = 0; j < 0xC; j++)
 			{
 				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x14);
@@ -544,25 +483,21 @@
 				}
 			}
 #ifdef RENZO_HIT_EXTRA
-			HitExtra(b); // (342: its own task per hit)
+			HitExtra(b);
 #endif
 		}
 		n->c++;
 		return (int32_t)n->c >= Length() - 1 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Slash: the flash along the hit direction and its 16 streaks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		HitRec *r = (HitRec *)(HIT_REC + 0x9C * n->e);
-		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_slash(n, r);)
 		int32_t axis[3];
 		const int32_t angle = RotationBetweenVectors((const int32_t *)SLASH_REF, r->dir, axis);
-		Mat4x3 m; // the hit frame through the camera
+		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[0] = r->pos[0];
 		m.t[1] = r->pos[1];
@@ -600,7 +535,7 @@
 		{
 			ang[2] = r->angle[k];
 			BuildRotationMatrixFromAngles(ang, &m3);
-			int16_t v[4]; // (4th word never written in the original: GTE VZ0 high half only)
+			int16_t v[4];
 			v[3] = 0;
 			v[2] = 0;
 			v[0] = 0;
@@ -632,12 +567,8 @@
 		return n->c >= 8 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Particles: flashes (pool A), debris (pool C), sparks (pool B)
-	// ------------------------------------------------------------------
 	static void ParticleDraws()
 	{
-		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_FLASH;
@@ -700,15 +631,11 @@
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Master: packet arena parity, the main queue, the particles
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *tn)
 	{
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + PARITY;
 		else PacketCursor() = TexBase();
-		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_master();)
 		const int alive = ExecuteTaskQueue(QMain());
 		ParticleDraws();
@@ -716,22 +643,16 @@
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Emitters (335 / 339 / 340 / 343 ...): a task that spawns particles of one kind into SLOTS (the module's own spawn
-	// part) and draws them every tick (EmitterDraw: the same code in every module but the kind and the sequence)
-	// ------------------------------------------------------------------
-	struct EmitWork    // the emitter's Field_Alloc block (0x50 bytes)
+	struct EmitWork
 	{
-		int16_t pos[4];    // +0x00 the spawn point (record emitters)
-		int16_t pos2[4];   // +0x08 the spawn point (335's boss emitter)
-		Mat4x3 cam;        // +0x10 the camera matrix (light matrix / back colour)
-		int32_t dir[4];    // +0x30 the spawn direction / the draw's unit eye vector
-		int32_t v[4];      // +0x40 the view-space point
+		int16_t pos[4];
+		int16_t pos2[4];
+		Mat4x3 cam;
+		int32_t dir[4];
+		int32_t v[4];
 	};
 	static_assert(sizeof(EmitWork) == 0x50, "Renzokuken emitter block");
 
-	// one particle: its point into view space (light matrix = the camera, back colour = its translation), moved
-	// scale / 8 toward the eye, the sequence at its life drawn there at its scale
 	static void EmitDraw(EmitWork *w, uint8_t *h, const SlotRec *p)
 	{
 		GteLoadV0(p->pos);
@@ -748,11 +669,8 @@
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// the draw part of an emitter: every SLOTS record of its kind drawn, then (not draw-only) freed at its sequence's end
-	// or grown (scale >> 4), moved and slowed (>> 4) (342: + gravity on y); returns the number of its particles still alive
 	static int32_t EmitterDraw(const Node24 *n, EmitWork *w, int32_t kind, uint32_t seq, int16_t gravity = 0)
 	{
-		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_emitter(n, kind, seq);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(int16_t *)(h + 0x24) = 0;
@@ -780,7 +698,7 @@
 			p->w10 = (int16_t)(p->w10 - (int16_t)(p->w10 >> 4));
 			p->w12 = (int16_t)(p->w12 - (int16_t)(p->w12 >> 4));
 			p->w14 = (int16_t)(p->w14 - (int16_t)(p->w14 >> 4));
-			if (gravity) p->w12 = (int16_t)(p->w12 + gravity); // (342's hit emitters)
+			if (gravity) p->w12 = (int16_t)(p->w12 + gravity);
 			alive++;
 		}
 		FieldFree(0xB4);
@@ -788,10 +706,6 @@
 		return alive;
 	}
 
-	// a record emitter (339 / 343): its own record holds the point and a base direction (+0x18 / +0x1A / +0x1C); up to tick
-	// `last`, 3 particles of its kind (node +0x1A) per tick: scale 0x700..0xF7F, at the point, the direction (+- 0x300 /
-	// -0x100..-0x3FF / +0x80..+0x17F random, normalized, through the caster's rotation) times 0x23..0xB8 (x + 0..0x27 -
-	// 0x14); ends (its record freed) on the first tick with none left
 	static uint32_t RecordEmitter(TaskNode *tn, int16_t last, uint32_t seq)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -832,12 +746,6 @@
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Slot models (335 / 337 / 339 / 340 / 341 ...): a model task with its own SLOTS record (the point at +8, a direction at
-	// +0x18 / +0x1A / +0x1C): the model turned from the module's reference direction onto it, at the point, scaled
-	// uniformly by +0x1C (+= +0x1E) or (sep_y) x / z by +0x1C and y by +0x20 (+= +0x22), the rate - rate / 4 each tick,
-	// fading from tick fade_from (step fade_mul), `ticks` ticks, then its record freed
-	// ------------------------------------------------------------------
 	struct SlotModelDef { uint32_t orig, model, ref; int32_t mode, fade_from, fade_mul, ticks; bool sep_y; };
 
 	static void SlotModelDraw(const SlotModelDef &d, const Node24 *n, const SlotRec *r, int32_t sx, int32_t sy, int32_t fade)
@@ -845,7 +753,7 @@
 		int32_t v[3] = { r->w18, r->w1A, r->w1C };
 		int32_t axis[3];
 		const int32_t angle = RotationBetweenVectors((const int32_t *)d.ref, v, axis);
-		Mat4x3 m; // (pad +0x12 never written in the original: GTE R33 high half only)
+		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[1] = r->pos[1];
 		m.t[0] = r->pos[0];
@@ -876,7 +784,6 @@
 
 	static uint32_t SlotModelTask(const SlotModelDef &d, int kind, Node24 *n)
 	{
-		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_slotmodel(kind, n);)
 		(void)kind;
 		SlotModelDraw(d, n, Slot(n->e), SlotModelSX(d, n), SlotModelSY(d, n), SlotModelFade(d, n->c));
@@ -899,7 +806,6 @@
 		return TASK_END;
 	}
 
-	// a record emitter with its own record: the hit point, its kind (node +0x1A), its base direction
 	static void AddRecordEmitter(uint32_t orig, int16_t kind, int16_t dx, int16_t dy, int16_t dz)
 	{
 		Node24 *t = AddSlotTask(orig);
@@ -911,7 +817,6 @@
 		r->w1C = dz;
 	}
 
-	// a slot model at the hit point turned onto the hit direction (the low words of its three ints)
 	static void HitPointRecord(Node24 *t)
 	{
 		SlotRec *r = Slot(t->e);
@@ -921,29 +826,21 @@
 		r->w1C = var<int16_t>(HIT_DIR + 8);
 	}
 
-	// ------------------------------------------------------------------
-	// Dust (337 / 341 ...): kind-4 particles around a point on the ground (the node's +0x10; 341: the boss's default
-	// effect position, set on the task's tick 0), `count` per tick up to tick `last`: scale0 + rand % scale_n, angle
-	// rand % 0x1000, radius r0 + rand % r_n, y -(0..0x31), outward speed sp0 + rand % sp_n (x / z only); every tick the
-	// kind-4 particles drawn (the shared sprite sequence 3, frame offset 8) through the camera translated to the node's
-	// x / z, each moved scale / 8 toward the eye, moving / slowing (>> 3) on x / z; ends on the first tick with none left
-	// ------------------------------------------------------------------
-	inline int32_t ComputeCosine(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); } // computeCosine
+	inline int32_t ComputeCosine(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	struct DustDef { uint32_t orig; bool delayed; int16_t last; int32_t count, scale_n, scale0, r_n, r0, sp_n, sp0; };
 #pragma pack(push, 1)
-	struct DustWork    // its Field_Alloc block (0x48 bytes)
+	struct DustWork
 	{
-		int16_t ang[4];    // +0x00 the node's point (copied, unused) / the zero angles
-		Mat4x3 m;          // +0x08 the camera through the node's x / z (light matrix / back colour)
-		int32_t u[3];      // +0x28 sin / -, cos of the spawn angle / the draw's unit eye vector
+		int16_t ang[4];
+		Mat4x3 m;
+		int32_t u[3];
 		int32_t pad34;
-		int32_t v[3];      // +0x38 the view-space point
+		int32_t v[3];
 		int32_t pad44;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(DustWork) == 0x48, "Renzokuken 341 dust block");
 
-	// the draw part's matrix: the camera through the node's x / z (light matrix / back colour); the header's sequence
 	static void DustBegin(DustWork *w, uint8_t *h, const Node24 *n)
 	{
 		*(uint32_t *)h = (uint32_t)EffectSpriteSharedSequence(3);
@@ -960,7 +857,6 @@
 		GteSetBackColorFromTrans(&w->m);
 	}
 
-	// one dust particle (its point relative to the node, x / z)
 	static void DustDraw(DustWork *w, uint8_t *h, const SlotRec *p)
 	{
 		GteLoadV0(p->pos);
@@ -1010,7 +906,6 @@
 				p->w14 = (int16_t)(mul32(w->u[2], sp) >> 12);
 			}
 		}
-		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_dust(n);)
 		uint8_t *h = AllocHeader(0xB4);
 		int32_t alive = 0;
@@ -1040,10 +935,6 @@
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Shake (337 / 341 ...): the camera shake word 0x1D97712 (the view build zeroes it every frame) = sin((tick << 10) / div
-	// + 0x400) * amp >> 12, negated on even ticks (also on draw-only ticks), `ticks` ticks (341: after the node's delay)
-	// ------------------------------------------------------------------
 	struct ShakeDef { bool delayed; int32_t div, amp, ticks; };
 	static uint32_t ShakeRun(const ShakeDef &d, Node24 *n)
 	{
@@ -1061,14 +952,7 @@
 		return n->c >= d.ticks ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Bone emitters (334 / 337 / 340 ...): up to tick `last`, the boss's bone `bone` at fractions 0 and 0x1000 (the point
-	// and its direction); 3 particles of kind 2 per tick at the second point, scale scale0 + rand % scale_n, the direction
-	// times sp0 + rand % sp_n; the kind-2 particles drawn every tick (EmitterDraw); ends on the first tick with none left
-	// ------------------------------------------------------------------
-	// (336: two bones, bone2 != 0: the mean of both unit directions, normalized; the spawn point is bone2's at 0x1000)
 	struct BoneEmitDef { int16_t last; int32_t bone, bone2, scale_n, scale0, sp_n, sp0; uint32_t seq; };
-	// the unit direction of a bone (fraction 0 -> 0x1000); its second point stays in w->pos2
 	static void BoneDir(EmitWork *w, int32_t bone, int32_t *dir)
 	{
 		GetEffectSpawnPosition(Target(), bone, 0, w->pos);
@@ -1115,26 +999,19 @@
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Model tasks on the node's point (334 / 336 / 337 ...): turned by rot = NM_GROUND (none, at the node's x / z, y 0),
-	// NM_CASTER (the caster's matrix +0x40, read every draw), NM_CASTER_OFS (334: the same with a zero offset through it
-	// added to the point: matrixMultiplyVector of (0, 0, 0)), NM_YANGLE (334: the y angle +0x18); uniform scale +0x1C (+=
-	// +0x1E, the rate - rate / rate_div; sep_y (340): x / z by +0x1C, y by +0x20 (+= +0x22)), fading from tick fade_from
-	// (step fade_mul), `ticks` ticks (slot: then its own SLOTS record freed)
-	// ------------------------------------------------------------------
 	enum { NM_GROUND, NM_CASTER, NM_CASTER_OFS, NM_YANGLE };
 	struct NodeModelDef { uint32_t orig, model; int rot; int32_t fade_from, fade_mul, rate_div, ticks; bool slot, sep_y; };
 
 	static void NodeModelDraw(const NodeModelDef &d, const Node24 *n, int32_t scale, int32_t sy, int32_t fade)
 	{
-		Mat4x3 m; // (pad +0x12: the source's / never written: GTE R33 high half only)
+		Mat4x3 m;
 		int32_t sv[3];
 		if (d.rot == NM_CASTER || d.rot == NM_CASTER_OFS)
 		{
 			ff8fx::copy<(sizeof(Mat4x3))>(&m, Caster() + 0x40);
 			if (d.rot == NM_CASTER_OFS)
 			{
-				int16_t v[4]; // (4th word never written: matrixMultiplyVector reads / writes 3)
+				int16_t v[4];
 				v[2] = 0;
 				v[1] = 0;
 				v[0] = 0;
@@ -1181,7 +1058,6 @@
 
 	static uint32_t NodeModelTask(const NodeModelDef &d, int kind, Node24 *n)
 	{
-		// 30 fps layer: see renzo_boss_held.inc
 		FX_HELD(held_note_nodemodel(kind, n);)
 		(void)kind;
 		NodeModelDraw(d, n, n->w1C, d.sep_y ? n->w20 : n->w1C, NodeModelFade(d, n->c));
@@ -1204,7 +1080,6 @@
 		return TASK_END;
 	}
 
-	// the common ports (the module registers its own tasks after these)
 	static void RegisterCommon()
 	{
 		register_port(ORIG_Master, (void *)MasterTask, RENZO_IDS " Master", RENZO_ID);

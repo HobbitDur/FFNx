@@ -14,47 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 303: Remove mask (Sphinxaur c0m011 -> Sphinxara; MAG_303_*): the mask flies off in four pieces that burst into
-// spinning shards, the unmasked form shines in (an environment-mapped redraw), the masked caster leaves the battle.
-//
-// Structure (setup MAG_303 0x66A820 -> _Init 0x66A850 (not ported), file loader 0x66A830 = the texture file named at
-// 0x1034260 ("mag302.tim") -> [0x25075D0]; the setup queues the TIM, keeps the context (0x25075D4), the CASTER's entity
-// (0x25075D8) and action 0's first target's entity (the unmasked form, 0x25075DC: moved onto the caster's position,
-// QueueChainTransformation, animation 0xD), starts camera animation 0x10340AC and the root in its 1-node pool 0x2507630):
-//   RootTask (0x66A920) - alternates the packet arena (magic buffer + 0x5688 / + 0x15688); on counter 1 sets up the
-//     pools once (main 1 x 0x27C0 at + 0, layouts 4 x 0x138 at + 0x27C0, sparks 0x40 x 0x24 at + 0x2CA0, sprites
-//     8 x 0x14 at + 0x35A0), the main task (voice slot 0x103411C, layout 0x1033114) and the stream state (+ 0x3640).
-//     Then the main, layout, spark and sprite queues; once the main has ended it pumps the stream and, when that is
-//     done, removes the caster's slot... (setMonsterPresence of the unmasked form's slot), clears its flag 4 and ends.
-//   MainTask (0x66AAF0) - counters 0..0x28 (at 0x29 the stream load of file 0x168 into the packet cursor, end):
-//     counter 0: the unmasked form's flag 4 off, the caster's on; sound 0x10340A8; four mask pieces (layout tasks:
-//       velocities 0x1034230.., models 0x1031694.., scales 0x1388 / 0x1000 / 0x1000 / 0xBB8, at the caster);
-//     every tick: the shards drawn (0x66B120) and moved / spun / aged (0x66B3A0, after the draws);
-//     counters 0..0x15: the point P = the caster's point 0x1034250 (counter 0), layout 0x1033114 at P (depth -0x80);
-//       counters 0 / 1: 0x20 sparks at P (CRT rand velocity +-0x100, acceleration velocity / -12);
-//     counter 6: 8 sprites around the caster's point 0x1034258 (CRT rand);
-//     counters 0x18..0x27: the unmasked form redrawn environment-mapped (0x66B490: its uv from the GTE IR1 / IR2 of
-//       its vertices, scrolled by 2 c / 4 c, grey sin((c - 0x18) * 0x80) / 64, page (0x2C0, 0x100), clut 0x3DD4) with
-//       its flag 4 set; counters 0x28..0x40 flag 4 off; the voice slot released at 0x25.
-//   LayoutTask (0x66C220) - a mask piece: its prim model through the camera at its position (falling: velocity y + 10
-//     a tick) for `life` ticks; then the piece shatters (0x66C3F0: its vertices through the frame into the packet
-//     cursor area, 64 random spin matrices after them, one shard per polygon, module LCG 0x2507648) and its layout
-//     0x10325F4 plays at the last position, scaled (until it ends).
-//   SparkTask (0x66C100) - sprite sequence 0x1031440 (shadow-rotation camera 0xC00, -0x300), 10 frames, moving.
-//   SpriteTask (0x66C080) - sprite sequence 0x1031550, 12 frames, still.
-//   PrimCallback (0x66AE20) - one layout object (header 0x58, 0x7043B0): an optional scale of the block (offset and
-//     matrix), flag 0x200: the block's point through the camera plus the offset, else (point + offset) through the
-//     camera with the object composed with it.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update; the shards drawn first, moved last).
-// ENTITY WRITES: the caster's flag byte (+0, bit 2) at counter 0, the unmasked form's flag word (bit 2) at counters 0,
-// 0x18..0x27 (set), 0x28..0x40 and the end (cleared); the unmasked form's bone matrices are rebuilt from its pose by the
-// redraw (0x508C90, as the engine has them). setMonsterPresence (engine) at the end.
-// Module globals: 0x25075D0..0x2507660 (texture file 0x25075D0, context 0x25075D4, caster 0x25075D8, unmasked form
-// 0x25075DC, the queues 0x25075E0 root / 0x25075F0 main / 0x2507600 layouts / 0x2507610 sparks / 0x2507620 sprites, root
-// pool 0x2507630, packet cursor 0x2507644, LCG 0x2507648, magic buffer base 0x2507658).
-// NEVER-WRITTEN STACK WORDS: the 4th word of the vectors loaded into GTE V0 (the callback's offset) reaches VZ0's high
-// half only; the callback block's scale words are read only when its flag is set (layout tasks, which write them).
+// Effect 303: Remove mask: the mask flies off in four pieces that burst into
 
 #include "mag_common.h"
 #include <stddef.h>
@@ -66,19 +26,18 @@ namespace mask303
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25075D4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25075D8); }        // caster entity (setup)
-	inline uint8_t *&Unmasked() { return var<uint8_t *>(0x25075DC); }      // action 0's first target's entity (setup)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x25075D8); }
+	inline uint8_t *&Unmasked() { return var<uint8_t *>(0x25075DC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507644); }
 	inline uint32_t &Lcg() { return var<uint32_t>(0x2507648); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507658); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25075F0; }           // pool: magic buffer, 1 x 0x27C0
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2507600; }        // pool: + 0x27C0, 4 x 0x138
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507610; }         // pool: + 0x2CA0, 0x40 x 0x24
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2507620; }        // pool: + 0x35A0, 8 x 0x14
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }          // g_Battle_FrameRenderListBase
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // the engine's frame packet cursor
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2507658); }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x25075F0; }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2507600; }
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507610; }
+	inline TaskQueue *QSprites() { return (TaskQueue *)0x2507620; }
+	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 
 	static const uint32_t ORIG_RootTask = 0x66A920;
 	static const uint32_t ORIG_MainTask = 0x66AAF0;
@@ -87,38 +46,36 @@ namespace mask303
 	static const uint32_t ORIG_SpriteTask = 0x66C080;
 	static const uint32_t POOL_Layouts = 0x27C0, POOL_Sparks = 0x2CA0, POOL_Sprites = 0x35A0;
 	static const uint32_t STREAM_STATE = 0x3640;
-	static const uint32_t MORPH = 0x3688;                // magic buffer: blended vertex frames / the redraw's vertices
+	static const uint32_t MORPH = 0x3688;
 	static const uint32_t ARENA_A = 0x5688, ARENA_B = 0x15688;
-	static const uint32_t MODEL_Main = 0x1033114;        // prim-model layouts
+	static const uint32_t MODEL_Main = 0x1033114;
 	static const uint32_t MODEL_Piece = 0x10325F4;
 	static const uint32_t SEQ_Spark = 0x1031440, SEQ_Sprite = 0x1031550;
 	static const void *const SOUND_Voice = (const void *)0x103411C;
 	static const void *const SOUND_Start = (const void *)0x10340A8;
-	static const int16_t *const POINT_Main = (const int16_t *)0x1034250;    // caster points (x, y, z, bone)
+	static const int16_t *const POINT_Main = (const int16_t *)0x1034250;
 	static const int16_t *const POINT_Sprites = (const int16_t *)0x1034258;
 	static const struct { uint32_t vel, model; int16_t scale; } PIECES[4] = {
 		{ 0x1034230, 0x1031694, 0x1388 }, { 0x1034238, 0x1031E5C, 0x1000 }, { 0x1034240, 0x103218C, 0x1000 }, { 0x1034248, 0x10324BC, 0xBB8 } };
 	static const int32_t REDRAW_Clut = 0x3DD4;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }   // Effect_RotationYMatrix
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }  // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, shift, cursor); } // MAG_070_RenderPrimModel
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); } // Stream_QueueLoad
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, shift, cursor); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
 	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
 	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
 	inline void SetMonsterPresence(int32_t slot) { fn<void (__cdecl *)(int32_t)>(0x487670)(slot); }
-	inline uint32_t DrawShadow(uint8_t *ent, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(ent, ot, a, cursor); } // BattleEntity_DrawShadow
-	// software GTE
+	inline uint32_t DrawShadow(uint8_t *ent, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(ent, ot, a, cursor); }
 	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFA0)(v); }
 	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFC0)(v); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }   // GTE_LoadV0_u16 (zero-extended z)
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
@@ -131,117 +88,111 @@ namespace mask303
 	inline void GteSetSZ123(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x45E1D0)(a, b, c, d); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2507630)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct Shard // 0x80 in the main node, 0x4C bytes
+	struct Shard
 	{
-		int16_t pos[3];      // +0x00
-		int16_t kind;        // +0x06 0 free, 1 triangle, 2 quad
-		int16_t vel[3];      // +0x08 (y falls by 0x1E a tick, bounces at the floor)
-		int16_t life;        // +0x0E
-		uint32_t code;       // +0x10 colour + polygon code
-		uint8_t spin[0x12];  // +0x14 3x3 rotation applied to the corners every tick
+		int16_t pos[3];
+		int16_t kind;
+		int16_t vel[3];
+		int16_t life;
+		uint32_t code;
+		uint8_t spin[0x12];
 		uint8_t pad26[2];
-		int16_t corner[4][3]; // +0x28 corners around pos
-		uint32_t uv0;        // +0x40 uv 0 + clut
-		uint32_t uv1;        // +0x44 uv 1 + page
-		uint16_t uv2, uv3;   // +0x48
+		int16_t corner[4][3];
+		uint32_t uv0;
+		uint32_t uv1;
+		uint16_t uv2, uv3;
 	};
-	struct MainNode // pool of 1 node of 0x27C0 bytes (the magic buffer's start)
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint32_t voice;      // +0x10
-		int16_t pt[4];       // +0x14 P: the caster's point (counter 0), 4th word 0
-		Shard *cursor;       // +0x1C next shard to try
-		Shard shards[0x80];  // +0x20
-		uint8_t layout[0x1A0]; // +0x2620
+		uint32_t voice;
+		int16_t pt[4];
+		Shard *cursor;
+		Shard shards[0x80];
+		uint8_t layout[0x1A0];
 	};
-	struct LayoutNode // pool of 4 nodes of 0x138 bytes: a mask piece
+	struct LayoutNode
 	{
 		TaskNode hdr;
-		uint32_t model;      // +0x0C prim model (0x572200)
-		int16_t pos[3];      // +0x10
-		int16_t scale;       // +0x16 the layout's scale (all axes)
-		int16_t vel[3];      // +0x18
-		int16_t life;        // +0x1E ticks before it shatters
-		uint8_t layout[0x118]; // +0x20
+		uint32_t model;
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
+		int16_t life;
+		uint8_t layout[0x118];
 	};
-	struct SparkNode // pool of 0x40 nodes of 0x24 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];      // +0x0C
-		int16_t frame;       // +0x12
-		int16_t vel[3];      // +0x14
+		int16_t pos[3];
+		int16_t frame;
+		int16_t vel[3];
 		int16_t pad1A;
-		int16_t acc[3];      // +0x1C
+		int16_t acc[3];
 		int16_t pad22;
 	};
-	struct SpriteNode // pool of 8 nodes of 0x14 bytes
+	struct SpriteNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];      // +0x0C
-		int16_t frame;       // +0x12
+		int16_t pos[3];
+		int16_t frame;
 	};
-	// the prim-player callback's parameter block (a stack block of the drawing task)
 	struct PrimArg
 	{
-		int16_t pos[4];      // +0x00 the point (4th word: the GTE V0 pad)
-		int32_t scale[3];    // +0x08 read when `scaled`
-		int32_t scaled;      // +0x14
-		int32_t depth;       // +0x18 the prim header's +0x18
-		uint32_t morph;      // +0x1C blended vertex frames
+		int16_t pos[4];
+		int32_t scale[3];
+		int32_t scaled;
+		int32_t depth;
+		uint32_t morph;
 	};
-	// the shatter header (0x66C3F0, Field_Alloc 0x58)
 	struct ShatterHdr
 	{
-		uint32_t model;      // +0x00 prim model
-		MainNode *main;      // +0x04 the shard pool's owner
-		int32_t shift;       // +0x08 velocity = (centre - model centre) >> shift
-		uint8_t *verts;      // +0x0C transformed vertices (the packet cursor area), 8 bytes each
-		uint8_t *list;       // +0x10 polygon list cursor
-		int16_t v[4][4];     // +0x14 a polygon's vertices
-		int16_t centre[4];   // +0x34 the model's box centre
-		uint8_t *spins;      // +0x3C 64 spin matrices (0x20 each) after the vertices
-		int16_t angles[4];   // +0x40
-		int32_t scale[3];    // +0x48
+		uint32_t model;
+		MainNode *main;
+		int32_t shift;
+		uint8_t *verts;
+		uint8_t *list;
+		int16_t v[4][4];
+		int16_t centre[4];
+		uint8_t *spins;
+		int16_t angles[4];
+		int32_t scale[3];
 		uint8_t pad54[4];
 	};
-	// the redraw's header (0x66B740 / 0x66BEC0: Field_Alloc 0xBC + 0x20)
 	struct RedrawHdr
 	{
-		uint8_t *faces;      // +0x00
-		uint8_t *vb;         // +0x04 projected vertices, 0xC bytes each
-		uint16_t ntri, nquad; // +0x08
-		int16_t clip[4];     // +0x0C x0, y0, x1, y1 (pixels)
-		uint32_t colour;     // +0x14 the entity's colour word (+0x28)
-		uint32_t shown;      // +0x18 the entity's object mask (+0x7C)
-		uint8_t e[4][0xC];   // +0x1C vertex entries: sxy, otz (word), clip byte, u, v
-		int32_t mac0;        // +0x4C
+		uint8_t *faces;
+		uint8_t *vb;
+		uint16_t ntri, nquad;
+		int16_t clip[4];
+		uint32_t colour;
+		uint32_t shown;
+		uint8_t e[4][0xC];
+		int32_t mac0;
 		uint8_t pad50[4];
-		int32_t otz;         // +0x54
+		int32_t otz;
 		uint8_t pad58[4];
-		uint32_t rgb;        // +0x5C
-		uint16_t clut, page; // +0x60
-		int32_t voff, uoff;  // +0x64 / +0x68
-		int32_t uwrap, vwrap; // +0x6C / +0x70
-		uint32_t win_a[3];   // +0x74 draw-mode packet (texture window off)
-		uint32_t win_b[3];   // +0x80
-		uint8_t *list;       // +0x8C object data cursor
-		uint8_t *vcur;       // +0x90 vertex buffer cursor
-		uint32_t frame_cursor; // +0x94 the engine's frame packet cursor
-		uint32_t cursor;     // +0x98 the module packet cursor
+		uint32_t rgb;
+		uint16_t clut, page;
+		int32_t voff, uoff;
+		int32_t uwrap, vwrap;
+		uint32_t win_a[3];
+		uint32_t win_b[3];
+		uint8_t *list;
+		uint8_t *vcur;
+		uint32_t frame_cursor;
+		uint32_t cursor;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(Shard) == 0x4C && sizeof(MainNode) == 0x27C0, "Remove mask nodes");
@@ -249,14 +200,12 @@ namespace mask303
 	static_assert(sizeof(ShatterHdr) == 0x58 && sizeof(RedrawHdr) == 0x9C && offsetof(MainNode, layout) == 0x2620, "Remove mask headers");
 	static_assert(offsetof(RedrawHdr, mac0) == 0x4C && offsetof(RedrawHdr, rgb) == 0x5C && offsetof(RedrawHdr, win_a) == 0x74 && offsetof(RedrawHdr, cursor) == 0x98, "Remove mask redraw header");
 
-	// Module LCG (0x66C7B0): seed = (seed * 125 + 14) & 0x7FFF
 	static uint32_t Rand15()
 	{
 		Lcg() = (Lcg() * 125 + 0xE) & 0x7FFF;
 		return Lcg();
 	}
 
-	// the spark acceleration (0x66AC11..0x66AC63): v * 0xD5555555 >> 33 rounded toward zero (v / -12)
 	static int16_t AccelOf(int16_t v)
 	{
 		int32_t q = (int32_t)(((int64_t)v * (int32_t)0xD5555555) >> 32);
@@ -265,9 +214,6 @@ namespace mask303
 		return (int16_t)q;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x66AE20): one object of a layout
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -306,7 +252,6 @@ namespace mask303
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset, scaled by the block when it says so (4th word never written: the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (arg->scaled)
 		{
@@ -358,7 +303,6 @@ namespace mask303
 		FieldFree(0x58);
 	}
 
-	// 0x66C000: a point (x, y, z, bone) through the caster's bone (the bone matrices rebuilt from its pose first)
 	static void BonePoint(const int16_t *v, int16_t *out)
 	{
 		uint8_t *c = Caster();
@@ -373,13 +317,8 @@ namespace mask303
 		GteStoreIR123(out);
 	}
 
-	// ------------------------------------------------------------------
-	// Shards
-	// ------------------------------------------------------------------
 	static inline bool Off16(int16_t v, uint16_t lim) { return (uint16_t)v > lim; }
 
-	// 0x66B120: every live shard's corners around its position through the camera: a flat textured triangle (kind 1,
-	// 0x20 bytes) or quad (kind 2, 0x28 bytes) on the frame OT
 	static void ShardsDraw(Shard *shards)
 	{
 		GteSetRotMatrix(&Camera());
@@ -442,9 +381,6 @@ namespace mask303
 		FieldFree(8);
 	}
 
-	// one shard's update (0x66B3A0's loop body): age (dead at 0: free, the cursor to it); corners spun by its matrix
-	// (corners 1 / 3 loaded zero-extended, as the original); dead when corner 0 spun to nothing; moves, falls, bounces.
-	// Returns false when it died.
 	static bool ShardMove(Shard *s, Shard **cursor)
 	{
 		s->life--;
@@ -478,15 +414,12 @@ namespace mask303
 		return false;
 	}
 
-	// 0x66B3A0: every live shard's update
 	static void ShardsMove(MainNode *m)
 	{
 		for (int k = 0; k < 0x80; k++)
 			if (m->shards[k].kind != 0) ShardMove(&m->shards[k], &m->cursor);
 	}
 
-	// 0x66C7D0: a free shard (the cursor's, else the first free one, slot 0 first), the cursor to the next slot; its
-	// life 0xC + LCG & 7
 	static Shard *AllocShard(MainNode *m)
 	{
 		Shard *s = m->cursor;
@@ -507,7 +440,6 @@ namespace mask303
 		return s;
 	}
 
-	// a shard from the polygon's n vertices (0x66C5C0 / 0x66C830's loop body)
 	static void MakeShard(ShatterHdr *h, const uint8_t *f, int n)
 	{
 		Shard *s = AllocShard(h->main);
@@ -535,7 +467,6 @@ namespace mask303
 		ff8fx::copy<(0x12)>(s->spin, h->spins + (Rand15() & 0x3F) * 0x20);
 	}
 
-	// 0x66C5C0 (triangles, 0x14 bytes) / 0x66C830 (quads, 0x18 bytes): one shard per polygon of the list
 	static void ShardList(ShatterHdr *h, int n, uint32_t stride)
 	{
 		int32_t count = *(const int32_t *)h->list;
@@ -544,9 +475,6 @@ namespace mask303
 		h->list = f;
 	}
 
-	// 0x66C3F0: the model's vertices through the GTE frame (rotation + translation) into the packet cursor area, their box
-	// centre, 64 random spin matrices after them (CRT rand: angles +-0x100, scale 0xF81 - 0..0xFF), its triangles and quads
-	// as shards
 	static void Shatter(ShatterHdr *h)
 	{
 		uint8_t *out = (uint8_t *)PacketCursor();
@@ -593,12 +521,6 @@ namespace mask303
 		if (*(const uint32_t *)h->list != 0) ShardList(h, 4, 0x18);
 	}
 
-	// ------------------------------------------------------------------
-	// The environment-mapped redraw of the unmasked form (0x66B490 -> 0x66B630 -> 0x66BEC0 / 0x66B740)
-	// ------------------------------------------------------------------
-	// 0x66BEC0: one bone group's vertices projected (zero-extended z) into 0xC-byte entries: sxy, OTZ (32 bits), screen
-	// clip bits, u = IR1 / 8, v = IR2 / 8 (the rest of the entry: the header's bytes); a vertex at OTZ <= 0 only gets clip
-	// byte 0x10 (the rest of its entry stays as the buffer held it)
 	static void ProjectGroup(RedrawHdr *hh)
 	{
 		uint8_t *p = hh->list;
@@ -612,7 +534,7 @@ namespace mask303
 			p += 6;
 			uint8_t *e = hh->e[0];
 			GteReadSXY2(e);
-			GteReadOTZ(e + 4); // GTE_ReadOTZ_SZ3div4 (32 bits)
+			GteReadOTZ(e + 4);
 			if (*(const int16_t *)(e + 4) <= 0)
 			{
 				vb[6] = 0x10;
@@ -637,8 +559,6 @@ namespace mask303
 		hh->vcur = vb;
 	}
 
-	// u or v of n entries (byte o of each): pulled down by 0x80 when they span more than 0x80, moved by off, less the wrap
-	// byte when any passes 0xFF; written to the packet bytes q + 8 i
 	static void EnvUV(const RedrawHdr *hh, int n, int o, int32_t off, uint8_t wrap, uint8_t *q)
 	{
 		int32_t c[4];
@@ -655,10 +575,6 @@ namespace mask303
 		for (int i = 0; i < n; i++) q[8 * i] = any > 0xFF ? (uint8_t)((uint8_t)c[i] - wrap) : (uint8_t)c[i];
 	}
 
-	// 0x66B740: the object's triangles (0x10 bytes) and quads (0x14 bytes): a polygon whose vertices are all in front and
-	// not all outside one screen side, facing the camera: [texture window off] the environment-mapped copy (frame packet
-	// cursor; semi-transparent, the header's grey, page and clut) [window back] the polygon with its own texture and the
-	// entity's colour (module cursor)
 	static void EnvPolys(RedrawHdr *hh, uint32_t ot, int32_t shift)
 	{
 		uint8_t *Q = (uint8_t *)hh->frame_cursor;
@@ -757,7 +673,6 @@ namespace mask303
 		hh->frame_cursor = (uint32_t)Q;
 	}
 
-	// 0x66B630: every shown object of the model: its bone groups projected, then its polygons
 	static void EnvModel(const uint32_t *skel, RedrawHdr *hh, uint32_t ot, int32_t shift)
 	{
 		const uint8_t *bones = (const uint8_t *)skel[0] + 0x10;
@@ -793,9 +708,6 @@ namespace mask303
 		}
 	}
 
-	// 0x66B490: the entity redrawn environment-mapped: its shadow, its bones from its matrix through the camera, the
-	// header (clip rect 320 x 216, the entity's colour and object mask, page from `rect`'s x / y, clut, u / v offsets
-	// (low 7 bits), wraps 0x80, the grey), the model, the bone matrices rebuilt from the pose
 	static void Redraw(uint8_t *ent, const int16_t *rect, int32_t clut, int32_t uoff, int32_t voff, const uint8_t *rgb, uint32_t vb)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
@@ -834,7 +746,6 @@ namespace mask303
 		FieldFree(0xBC);
 	}
 
-	// the main's redraw of counter c (0x66AC7F..0x66ACE3): rect (0x2C0, 0x100, 0x80, 0x80), grey sin((c - 0x18) * 0x80) / 64
 	static void MainRedraw(int32_t c, uint32_t vb)
 	{
 		const int16_t rect[4] = { 0x2C0, 0x100, 0x80, 0x80 };
@@ -843,7 +754,6 @@ namespace mask303
 		Redraw(Unmasked(), rect, REDRAW_Clut, c * 2, c * 4, rgb, vb);
 	}
 
-	// the sprite tasks' draw (0x66C080 / 0x66C100)
 	static void SpriteDraw(const int16_t *pos, int16_t frame, uint32_t seq)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -855,7 +765,6 @@ namespace mask303
 		FieldFree(0xB4);
 	}
 
-	// a mask piece's frame: no rotation but the caster's turn (-its +0x0E), at pos
 	static void PieceFrame(const int16_t *pos, Mat4x3 *m)
 	{
 		RotY(-*(const int16_t *)(Caster() + 0xE), m);
@@ -864,7 +773,6 @@ namespace mask303
 		m->t[2] = pos[2];
 	}
 
-	// a mask piece's prim model (0x66C234..0x66C2C0): its frame composed with the camera
 	static void PieceDraw(uint32_t model, const int16_t *pos)
 	{
 		uint8_t *h = AllocHeader(0x58);
@@ -879,7 +787,6 @@ namespace mask303
 		FieldFree(0x58);
 	}
 
-	// a mask piece's layout parameter block (0x66C37F..0x66C3C3): at its position, scaled
 	static void PieceArg(const LayoutNode *L, PrimArg *a)
 	{
 		ff8fx::copy<(8)>(a->pos, L->pos);
@@ -899,13 +806,9 @@ namespace ff8fx
 {
 namespace mask303
 {
-	// ------------------------------------------------------------------
-	// Sprite (0x66C080) / spark (0x66C100)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		// 30 fps layer: see mag303_remove_mask_held.inc
 		FX_HELD(held_note(SPRITE, n);)
 		SpriteDraw(s->pos, s->frame, SEQ_Sprite);
 		s->frame++;
@@ -928,9 +831,6 @@ namespace mask303
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Mask piece (0x66C220)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *L = (LayoutNode *)n;
@@ -964,7 +864,6 @@ namespace mask303
 		return prim::play((prim::Layout *)L->layout, PrimCallback, (int)&a, 0) != 0 ? 0 : TASK_END;
 	}
 
-	// 0x66C1C0: a mask piece at the caster's position: velocity, life (+6 word of vel), model, scale
 	static void SpawnPiece(const int16_t *vel, uint32_t model, int16_t scale)
 	{
 		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
@@ -975,9 +874,6 @@ namespace mask303
 		ff8fx::copy<(8)>(L->vel, vel);
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x66AAF0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
@@ -991,7 +887,6 @@ namespace mask303
 			*(uint16_t *)Unmasked() &= 0xFFFB;
 			*Caster() |= 4;
 		}
-		// 30 fps layer: see mag303_remove_mask_held.inc
 		FX_HELD(held_note(SHARDS, n);)
 		ShardsDraw(m->shards);
 		const int32_t c = m->counter;
@@ -1015,7 +910,7 @@ namespace mask303
 				{
 					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 					if (!s) continue;
-					ff8fx::copy<(8)>(s->pos, m->pt); // pos + frame (the point's 4th word, 0)
+					ff8fx::copy<(8)>(s->pos, m->pt);
 					s->vel[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
 					s->vel[1] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
 					s->vel[2] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
@@ -1057,9 +952,6 @@ namespace mask303
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x66A920)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1073,7 +965,6 @@ namespace mask303
 			PacketCursor() = TexBase() + ARENA_B;
 			r->arena = 1;
 		}
-		// 30 fps layer: see mag303_remove_mask_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter == 1 && !r->started)
 		{
@@ -1116,7 +1007,6 @@ namespace mask303
 		register_port(mask303::ORIG_LayoutTask, (void *)mask303::LayoutTask, "303 LayoutTask", 303);
 		register_port(mask303::ORIG_SparkTask, (void *)mask303::SparkTask, "303 SparkTask", 303);
 		register_port(mask303::ORIG_SpriteTask, (void *)mask303::SpriteTask, "303 SpriteTask", 303);
-		// 30 fps layer: see mag303_remove_mask_held.inc
 		FX_HELD(register_mag303_held();)
 	}
 }

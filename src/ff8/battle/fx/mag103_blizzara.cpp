@@ -14,25 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 103: Blizzara (spell, MAG_103_*).
-//
-// Structure (setup MAG_103_BLIZZARA 0x6DA300 -> Init 0x6DA310, file loader 0x6DA2E0 = mag102.tim):
-//   Director (0x6DA3A0) - the root task: alternates the packet arena (magic buffer + 0x196D4 /
-//     + 0x296D4); at its counter 1 (a 20-tick cycle) builds five task pools in the magic buffer
-//     and starts the next action's ice block on its first target (at most 3 at a time, one per
-//     target, a target keeps one block until its counter passes 60); runs the five queues and
-//     ends when they are all empty.
-//   IceBlock (0x6DAA30, 0x53CC-byte node) - a copy of the ice block model (0x131ABB0, second
-//     UV model 0x131C86C) with private vertices per triangle: 0..12 four ice pillars (every 4
-//     ticks), 6 sound, 20 burst, 20..30 the block grows out of the ground (y scale 0..1 over 3
-//     ticks) with falling chunks, 20..40 mist, 30..70 the block breaks from the top: every
-//     triangle whose vertices are above a rising plane becomes a shard (random spin, velocity
-//     away from the centre, gravity) fading out; 60 damage; ends after 70.
-//   Pillar (0x6DBB20) and Burst (0x6DBD20) - prim models; Chunk (0x6DBEA0) and Mist (0x6DBFF0) -
-//     sprite sequences.
-// Module globals: 0x2543E90..0x2543F18 (file, texture pointer, context, packet cursor
-// 0x2543EB4, the six queues); every node pool and the model copies live in the magic buffer.
-// None of these tasks tests the battle's draw-only flag.
+// Effect 103: Blizzara
 
 #include "mag_ice_common.h"
 
@@ -44,11 +26,10 @@ namespace blizzara103
 	using namespace magc;
 	using namespace icec;
 
-	// --- module globals ---
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543E94); }       // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543E94); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2543E98); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543EB4); }
-	inline TaskQueue *Queue(int i) { return (TaskQueue *)(0x2543EC8 + 0x10 * i); } // 0 blocks, 1 pillars, 2 bursts, 3 chunks, 4 mist
+	inline TaskQueue *Queue(int i) { return (TaskQueue *)(0x2543EC8 + 0x10 * i); }
 
 	static const uint32_t ORIG_Director = 0x6DA3A0;
 	static const uint32_t ORIG_IceBlockTask = 0x6DAA30;
@@ -56,110 +37,106 @@ namespace blizzara103
 	static const uint32_t ORIG_BurstTask = 0x6DBD20;
 	static const uint32_t ORIG_ChunkTask = 0x6DBEA0;
 	static const uint32_t ORIG_MistTask = 0x6DBFF0;
-	static const uint8_t *const MODEL_Block = (const uint8_t *)0x131ABB0;   // 0x72F dwords
-	static const uint8_t *const MODEL_BlockUV = (const uint8_t *)0x131C86C; // 0x465 dwords
+	static const uint8_t *const MODEL_Block = (const uint8_t *)0x131ABB0;
+	static const uint8_t *const MODEL_BlockUV = (const uint8_t *)0x131C86C;
 	static const void *const MODEL_Pillar = (const void *)0x1319990;
 	static const void *const MODEL_Burst = (const void *)0x131A678;
 	static const void *const SEQ_Ice = (const void *)0x13197E4;
 	static const void *const SOUND_Blizzara = (const void *)0x131E750;
-	static const uint32_t MODEL_OFFSET[3] = { 0x10BE4, 0x13A34, 0x16884 };   // per action, in the magic buffer
+	static const uint32_t MODEL_OFFSET[3] = { 0x10BE4, 0x13A34, 0x16884 };
 	static const uint32_t MODEL_UV_OFFSET[3] = { 0x128A0, 0x156F0, 0x18540 };
 	static const int SHARDS = 0xDF;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline int16_t EntityHeight2(const uint8_t *entity) { return *(const int16_t *)(entity + 0x24); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C cycles 0..19
-		uint8_t action;    // +0x0E next action
-		uint8_t pools;     // +0x0F pools built
-		uint32_t arena;    // +0x10 packet arena toggle
+		int16_t counter;
+		uint8_t action;
+		uint8_t pools;
+		uint32_t arena;
 	};
-	// one triangle of the block turned into a shard (0x48 bytes)
 	struct Shard
 	{
-		int16_t pos[3];    // +0x00 centre
-		int16_t active;    // +0x06
-		int16_t vel[3];    // +0x08
+		int16_t pos[3];
+		int16_t active;
+		int16_t vel[3];
 		int16_t pad0E;
-		int16_t angle[3];  // +0x10
+		int16_t angle[3];
 		int16_t pad16;
-		int16_t spin[3];   // +0x18
+		int16_t spin[3];
 		int16_t pad1E;
-		int16_t v[3][4];   // +0x20 vertices around the centre
-		uint8_t fade[4][4];// +0x38 colour steps: triangle colours 0..2, second UV model colour
+		int16_t v[3][4];
+		uint8_t fade[4][4];
 	};
 	struct IceBlockNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E
-		uint8_t *entity;   // +0x10 target
-		uint8_t *model;    // +0x14 model copy
-		uint8_t *model2;   // +0x18 second UV model copy
-		int16_t pos[3];    // +0x1C x, ground height, z
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		uint8_t *model;
+		uint8_t *model2;
+		int16_t pos[3];
 		uint8_t pad22[4];
-		int16_t clip_y;    // +0x26 pillars stop rising below it (block top)
-		uint8_t used[4];   // +0x28 pillar slots taken
-		Shard shards[SHARDS]; // +0x2C
-		int16_t verts[SHARDS * 3][4]; // +0x3EE4 private vertices of the model copy
+		int16_t clip_y;
+		uint8_t used[4];
+		Shard shards[SHARDS];
+		int16_t verts[SHARDS * 3][4];
 	};
 	struct PillarNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		IceBlockNode *block; // +0x10
-		int16_t pos[3];    // +0x14
-		int16_t rise;      // +0x1A
-		int16_t yaw;       // +0x1C
-		int16_t yaw_vel;   // +0x1E
+		IceBlockNode *block;
+		int16_t pos[3];
+		int16_t rise;
+		int16_t yaw;
+		int16_t yaw_vel;
 		int16_t pad20;
-		int16_t scale;     // +0x22
-		int16_t rise_acc;  // +0x24
-		uint8_t stopped;   // +0x26
+		int16_t scale;
+		int16_t rise_acc;
+		uint8_t stopped;
 		uint8_t pad27;
 	};
 	struct BurstNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
+		int16_t pos[3];
 		uint8_t pad16[4];
-		int16_t scale;     // +0x1A
-		int16_t vel;       // +0x1C
-		int16_t acc;       // +0x1E
+		int16_t scale;
+		int16_t vel;
+		int16_t acc;
 	};
 	struct ChunkNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint8_t *entity;   // +0x10
-		int16_t pos[3];    // +0x14
-		int16_t scale;     // +0x1A
-		int16_t vel[3];    // +0x1C (y = fall speed)
-		int16_t bounce;    // +0x22 (-1 = not bounced yet)
+		uint8_t *entity;
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
+		int16_t bounce;
 	};
 	struct MistNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
-		int16_t scale;     // +0x16
-		int16_t vel[3];    // +0x18
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t acc_x;     // +0x20
+		int16_t acc_x;
 		int16_t pad22;
-		int16_t acc_z;     // +0x24
+		int16_t acc_z;
 		int16_t pad26;
 	};
 #pragma pack(pop)
@@ -176,13 +153,9 @@ namespace ff8fx
 {
 namespace blizzara103
 {
-	// ------------------------------------------------------------------
-	// Director (0x6DA3A0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		// 30 fps layer: see mag103_blizzara_held.inc
 		FX_HELD(held_note_root();)
 		if (d->arena)
 		{
@@ -272,11 +245,9 @@ namespace blizzara103
 		return 0;
 	}
 
-	// block renderer (0x6DB470 -> list 6 by 0x6DB5D0, see mag_ice_common.h)
 	static uint32_t RenderPolys103(uint8_t *h, uint32_t ot, int shift, uint32_t cursor) { return RenderPolys(h, ot, shift, cursor, true); }
 	static uint32_t RenderBlock(uint8_t *h, uint32_t ot, int shift, uint32_t cursor) { return RenderModel(h, ot, shift, cursor, RenderPolys103); }
 
-	// MAG_103_sub_6DC240: colour c (3 bytes) down by step d, clamped at 0; true when all 3 are 0
 	static bool FadeColor(uint8_t *c, const uint8_t *d)
 	{
 		bool gone = true;
@@ -293,7 +264,6 @@ namespace blizzara103
 		return gone;
 	}
 
-	// the shard's three vertices in the vertex buffer: rotated by its angles, at its centre
 	static void PoseShard(const Shard *s, int16_t (*vbuf)[4], const uint8_t *prim)
 	{
 		Mat4x3 m = {};
@@ -312,10 +282,6 @@ namespace blizzara103
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Shard update (0x6DC0A0): every active shard fades (ends when its three colours are black),
-	// falls (gravity 5), moves and spins; its three vertices are rewritten in the vertex buffer
-	// ------------------------------------------------------------------
 	static void UpdateShards(Shard *s, int16_t (*vbuf)[4], uint8_t *prim, uint8_t *ext)
 	{
 		for (int i = 0; i < SHARDS; i++, s++, prim += 0x1C, ext += 0x14)
@@ -340,7 +306,6 @@ namespace blizzara103
 		}
 	}
 
-	// the block's model matrix: x / z mirrored, y scaled, at the target's ground
 	static void BlockMatrix(const IceBlockNode *b, int16_t scale_y)
 	{
 		Mat4x3 m = {};
@@ -373,16 +338,12 @@ namespace blizzara103
 		*(uint32_t *)(h + 0x18) = flags;
 	}
 
-	// x / 3 (0x55555556)
 	static int32_t Div3(int32_t x)
 	{
 		int32_t hi = (int32_t)(((int64_t)x * 0x55555556) >> 32);
 		return hi + (int32_t)((uint32_t)hi >> 31);
 	}
 
-	// ------------------------------------------------------------------
-	// Ice block (0x6DAA30)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl IceBlockTask(TaskNode *n)
 	{
 		IceBlockNode *b = (IceBlockNode *)n;
@@ -430,7 +391,6 @@ namespace blizzara103
 		if (b->counter >= 0x14 && b->counter <= 0x1E)
 		{
 			int32_t t = b->counter - 0x14;
-			// 30 fps layer: see mag103_blizzara_held.inc
 			FX_HELD(held_note_block(b, false);)
 			uint8_t *h = (uint8_t *)FieldAlloc(0x64);
 			int16_t sy;
@@ -463,7 +423,7 @@ namespace blizzara103
 			{
 				int32_t x = t * 3400;
 				int32_t q = (int32_t)(((int64_t)x * 0x66666667) >> 32) >> 3;
-				int32_t level = q + (int32_t)((uint32_t)q >> 31) - 3400; // the plane rises from 3400 above the ground
+				int32_t level = q + (int32_t)((uint32_t)q >> 31) - 3400;
 				Shard *s = b->shards;
 				uint8_t *prim = prims, *uv = uvs;
 				for (int i = 0; i < SHARDS; i++, s++, prim += 0x1C, uv += 0x14)
@@ -516,7 +476,6 @@ namespace blizzara103
 				}
 			}
 			UpdateShards(b->shards, b->verts, prims, uvs);
-			// 30 fps layer: see mag103_blizzara_held.inc
 			FX_HELD(held_note_block(b, true);)
 			uint8_t *h = (uint8_t *)FieldAlloc(0x64);
 			BlockMatrix(b, 0x1000);
@@ -576,13 +535,12 @@ namespace blizzara103
 				m->pos[1] = b->pos[1];
 				int32_t x = m->vel[0];
 				int32_t q = (int32_t)(((int64_t)x * 0x2AAAAAAB) >> 32) >> 2;
-				int16_t vx = (int16_t)(q + (int32_t)((uint32_t)q >> 31));   // / 24
+				int16_t vx = (int16_t)(q + (int32_t)((uint32_t)q >> 31));
 				m->vel[0] = vx;
 				x = m->vel[2];
 				q = (int32_t)(((int64_t)x * 0x2AAAAAAB) >> 32) >> 2;
 				int16_t vz = (int16_t)(q + (int32_t)((uint32_t)q >> 31));
 				m->vel[2] = vz;
-				// - v / 14 (0x6DB6DB6D)
 				x = vx;
 				q = ((int32_t)(((int64_t)x * 0x6DB6DB6D) >> 32) - x) >> 3;
 				m->acc_x = (int16_t)(q + (int32_t)((uint32_t)q >> 31));
@@ -597,17 +555,12 @@ namespace blizzara103
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Pillar (0x6DBB20): spinning ice column rising out of the ground (prim model 0x1319990),
-	// fading in over 0..5 and out from 18; stops rising (braking) once it passes the block top
-	// ------------------------------------------------------------------
 	static int32_t Div6(int32_t x)
 	{
 		int32_t hi = (int32_t)(((int64_t)x * 0x2AAAAAAB) >> 32);
 		return hi + (int32_t)((uint32_t)hi >> 31);
 	}
 
-	// MAG_103_sub_6DBCC0: yaw rotation scaled by s
 	static void YawScaleMatrix(int16_t yaw, Mat4x3 *m, int16_t s)
 	{
 		int32_t sn = mul32(ComputeSin(yaw), s) >> 12;
@@ -629,7 +582,7 @@ namespace blizzara103
 		if (c >= 0x12)
 		{
 			int32_t q = (int32_t)(((int64_t)((c - 0x12) << 10) * 0x2AAAAAAB) >> 32) >> 1;
-			return ComputeSin(q + (int32_t)((uint32_t)q >> 31)); // / 12
+			return ComputeSin(q + (int32_t)((uint32_t)q >> 31));
 		}
 		return 0;
 	}
@@ -670,7 +623,6 @@ namespace blizzara103
 	static uint32_t __cdecl PillarTask(TaskNode *n)
 	{
 		PillarNode *p = (PillarNode *)n;
-		// 30 fps layer: see mag103_blizzara_held.inc
 		FX_HELD(held_note_draw(ORIG_PillarTask, p);)
 		uint8_t *h = AllocHeader(0x58);
 		*(int32_t *)(h + 0xC) = 0;
@@ -684,9 +636,6 @@ namespace blizzara103
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Burst (0x6DBD20): prim model 0x131A678 growing (decelerating), fading in 0..5, out from 14
-	// ------------------------------------------------------------------
 	static int32_t BurstFade(int16_t c)
 	{
 		if (c < 6) return 0x1000 - ComputeSin(Div6(c << 10));
@@ -724,7 +673,6 @@ namespace blizzara103
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		BurstNode *u = (BurstNode *)n;
-		// 30 fps layer: see mag103_blizzara_held.inc
 		FX_HELD(held_note_draw(ORIG_BurstTask, u);)
 		uint8_t *h = AllocHeader(0x58);
 		*(int32_t *)(h + 0xC) = 0;
@@ -737,10 +685,6 @@ namespace blizzara103
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Chunk (0x6DBEA0): ice sequence 0x13197E4 frame counter & 15, falling until the ground
-	// (speed grows by 4), then sliding outwards (a sixth of the fall speed, along its direction)
-	// ------------------------------------------------------------------
 	static void ChunkDraw(const ChunkNode *c)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -773,7 +717,6 @@ namespace blizzara103
 	static uint32_t __cdecl ChunkTask(TaskNode *n)
 	{
 		ChunkNode *c = (ChunkNode *)n;
-		// 30 fps layer: see mag103_blizzara_held.inc
 		FX_HELD(held_note_draw(ORIG_ChunkTask, c);)
 		ChunkDraw(c);
 		c->counter++;
@@ -782,9 +725,6 @@ namespace blizzara103
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Mist (0x6DBFF0): ice sequence frame counter & 15, drifting outwards, decelerating
-	// ------------------------------------------------------------------
 	static void MistDraw(const MistNode *m)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -807,7 +747,6 @@ namespace blizzara103
 	static uint32_t __cdecl MistTask(TaskNode *n)
 	{
 		MistNode *m = (MistNode *)n;
-		// 30 fps layer: see mag103_blizzara_held.inc
 		FX_HELD(held_note_draw(ORIG_MistTask, m);)
 		MistDraw(m);
 		m->counter++;
@@ -825,7 +764,6 @@ namespace blizzara103
 		register_port(blizzara103::ORIG_BurstTask, (void *)blizzara103::BurstTask, "B103 BurstTask", 103);
 		register_port(blizzara103::ORIG_ChunkTask, (void *)blizzara103::ChunkTask, "B103 ChunkTask", 103);
 		register_port(blizzara103::ORIG_MistTask, (void *)blizzara103::MistTask, "B103 MistTask", 103);
-		// 30 fps layer: see mag103_blizzara_held.inc
 		FX_HELD(register_mag103_held();)
 	}
 }

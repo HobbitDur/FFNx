@@ -14,30 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 104: Blizzaga (spell, MAG_104_*).
-//
-// Structure (setup MAG_104_BLIZZAGA 0x6D6310 -> Init 0x6D6320, file loader 0x6D62F0 = mag103.tim):
-//   Director (0x6D6400) - the root task: alternates the packet arena (magic buffer + 0x18928 /
-//     + 0x28928), resets the screen flash level, at its counter 1 (a 50-tick cycle) builds six
-//     task pools in the magic buffer and starts the next action's freeze on its first target
-//     (at most 2 at a time, one per target); runs the six queues, sets the screen flash and ends
-//     when they are all empty.
-//   Freeze (0x6D67E0, 0x6428-byte node, one per target): the target model is drawn frozen from
-//     the bottom up (8..68: its triangles within a rising band get the ice texture, the target's
-//     own draw is hidden), ribbons (0..2) and spiral ribbons (0..1) swirl around it, an ice block
-//     model (copy of 0x1312918) grows around it (28..30 vertex morph, 31 shape), 33..97 the block
-//     breaks from the bottom into 320 falling, spinning, fading shards; a ring (46..70) and a
-//     flash model (31..40), mist (28..43) and flakes (38..68); sound at 0, damage at 68, ends
-//     after 98. The screen flash rises to 0x400 over 0..3 and falls over 95..98.
-//   Ribbon (0x6D97A0) and Spiral (0x6DA0D0) - trails of 30 positions drawn as Gouraud quads
-//     (0x6D9A40); a ribbon throws sparkles (0x6D9DD0). Mist (0x6D95E0), Flake (0x6D96A0) -
-//     sprite sequences.
-// Module globals: 0x2543DF0..0x2543E90 (screen flash level 0x2543DF0, caster entity, file,
-// texture pointer, context, the freeze band range 0x2543E04 / 0x2543E06, packet cursor
-// 0x2543E1C, the seven queues); node pools and model copies live in the magic buffer. The
-// sparkles write the translation of the static matrix 0x13197B0; the block's shape step writes
-// the vertex indices of the static UV model 0x1315760. None of these tasks tests the battle's
-// draw-only flag.
+// Effect 104: Blizzaga
 
 #include "mag_ice_common.h"
 
@@ -49,16 +26,15 @@ namespace blizzaga104
 	using namespace magc;
 	using namespace icec;
 
-	// --- module globals ---
 	inline int32_t &FlashLevel() { return var<int32_t>(0x2543DF0); }
 	inline uint8_t *&Caster() { return var<uint8_t *>(0x2543DF4); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543DFC); }       // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543DFC); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2543E00); }
 	inline int16_t &BandBase() { return var<int16_t>(0x2543E04); }
 	inline int16_t &BandRange() { return var<int16_t>(0x2543E06); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543E1C); }
-	inline TaskQueue *Queue(int i) { return (TaskQueue *)(0x2543E30 + 0x10 * i); } // 0 freezes, 1 ribbons, 2 spirals, 3 sparkles, 4 mist, 5 flakes
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }   // frame packet cursor (battle models)
+	inline TaskQueue *Queue(int i) { return (TaskQueue *)(0x2543E30 + 0x10 * i); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 
 	static const uint32_t ORIG_Director = 0x6D6400;
 	static const uint32_t ORIG_FreezeTask = 0x6D67E0;
@@ -67,162 +43,156 @@ namespace blizzaga104
 	static const uint32_t ORIG_RibbonTask = 0x6D97A0;
 	static const uint32_t ORIG_SparkleTask = 0x6D9DD0;
 	static const uint32_t ORIG_SpiralTask = 0x6DA0D0;
-	static const uint8_t *const MODEL_Block = (const uint8_t *)0x1312918;   // 0x8CA dwords
-	static uint8_t *const MODEL_BlockUV = (uint8_t *)0x1315760;            // static, list 2 indices rewritten
-	static const uint8_t *const BLOCK_VERTS = (const uint8_t *)0x13151D0;  // shape vertices (+8)
-	static const uint32_t *const MORPH_TABLE = (const uint32_t *)0x13197D0; // growth vertex sets
+	static const uint8_t *const MODEL_Block = (const uint8_t *)0x1312918;
+	static uint8_t *const MODEL_BlockUV = (uint8_t *)0x1315760;
+	static const uint8_t *const BLOCK_VERTS = (const uint8_t *)0x13151D0;
+	static const uint32_t *const MORPH_TABLE = (const uint32_t *)0x13197D0;
 	static const void *const MODEL_Ring = (const void *)0x1317088;
 	static const void *const MODEL_Flash = (const void *)0x1318490;
 	static const void *const SEQ_Mist = (const void *)0x1312690;
 	static const void *const SEQ_Flake = (const void *)0x13127A0;
 	static const uint32_t SPARKLE_MATRIX = 0x13197B0;
 	static const void *const SOUND_Blizzaga = (const void *)0x13197A8;
-	static const uint32_t MODEL_OFFSET[3] = { 0x11FB0, 0x142D8, 0x16600 };   // per action, in the magic buffer
+	static const uint32_t MODEL_OFFSET[3] = { 0x11FB0, 0x142D8, 0x16600 };
 	static const int SHARDS = 0x140;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline int16_t EntityHeight2(const uint8_t *entity) { return *(const int16_t *)(entity + 0x24); }
 
-	// engine functions used by this module only
 	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(dx, dz); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
 	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(uint32_t, void *, int32_t, int32_t, int32_t, int32_t)>(0x45C870)(ot, prim, a, b, c, d); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void GteReadMAC123(void *dst) { fn<void (__cdecl *)(void *)>(0x45E450)(dst); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
-	inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); } // sub_5088A0
+	inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); }
 	inline void ComputeBonesWorldMatrices(void *anim, void *m) { fn<void (__cdecl *)(void *, void *)>(0x5095B0)(anim, m); }
 	inline void BuildBoneMatricesFromPose(void *anim) { fn<void (__cdecl *)(void *)>(0x508C90)(anim); }
 	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C cycles 0..49
-		uint8_t action;    // +0x0E next action
-		uint8_t pools;     // +0x0F pools built
-		uint32_t arena;    // +0x10 packet arena toggle
+		int16_t counter;
+		uint8_t action;
+		uint8_t pools;
+		uint32_t arena;
 	};
-	// one triangle of the ice block turned into a shard (0x38 bytes)
 	struct Shard
 	{
-		int16_t pos[3];    // +0x00 centre
-		int16_t active;    // +0x06
-		int16_t vel[3];    // +0x08
-		int16_t live;      // +0x0E cleared when faded out
-		int16_t angle[3];  // +0x10
+		int16_t pos[3];
+		int16_t active;
+		int16_t vel[3];
+		int16_t live;
+		int16_t angle[3];
 		int16_t pad16;
-		int16_t spin[3];   // +0x18
+		int16_t spin[3];
 		int16_t pad1E;
-		int16_t v[3][4];   // +0x20 vertices around the centre (v[2][3] = fade step)
+		int16_t v[3][4];
 	};
 	struct FreezeNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E
-		int16_t angle;     // +0x10 towards the caster
-		int16_t band_lo;   // +0x12 frozen model: camera-space y range
-		int16_t band_hi;   // +0x14
+		int16_t counter;
+		int16_t action;
+		int16_t angle;
+		int16_t band_lo;
+		int16_t band_hi;
 		int16_t pad16;
-		uint8_t *entity;   // +0x18 target
-		uint8_t *model;    // +0x1C ice block copy
-		int16_t pos[3];    // +0x20 x, ground height, z
+		uint8_t *entity;
+		uint8_t *model;
+		int16_t pos[3];
 		int16_t pad26;
-		Shard shards[SHARDS];          // +0x28
-		int16_t verts[SHARDS * 3][4];  // +0x4628
+		Shard shards[SHARDS];
+		int16_t verts[SHARDS * 3][4];
 	};
-	// a trail position (0x24 bytes): two points, their projections, fade
 	struct TrailEntry
 	{
-		int16_t v0[4];     // +0x00
-		int16_t v1[4];     // +0x08
-		uint32_t sxy0;     // +0x10
-		int16_t otz0, pad16; // +0x14
-		uint32_t sxy1;     // +0x18
-		int16_t otz1, pad1E; // +0x1C
-		uint8_t fade;      // +0x20
-		int8_t fade_vel;   // +0x21
-		uint8_t u;         // +0x22
+		int16_t v0[4];
+		int16_t v1[4];
+		uint32_t sxy0;
+		int16_t otz0, pad16;
+		uint32_t sxy1;
+		int16_t otz1, pad1E;
+		uint8_t fade;
+		int8_t fade_vel;
+		uint8_t u;
 		uint8_t pad23;
 	};
 	struct RibbonNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t angle;     // +0x10
-		int16_t angle_vel; // +0x12
-		int16_t angle_acc; // +0x14
-		int16_t wave;      // +0x16
-		int32_t count;     // +0x18
-		uint8_t *entity;   // +0x1C
-		Mat4x3 m;          // +0x20 (translation = camera-space position)
-		TrailEntry trail[30]; // +0x40
+		int16_t angle;
+		int16_t angle_vel;
+		int16_t angle_acc;
+		int16_t wave;
+		int32_t count;
+		uint8_t *entity;
+		Mat4x3 m;
+		TrailEntry trail[30];
 	};
 	struct SpiralNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t angle;     // +0x10
-		int16_t angle_vel; // +0x12
-		int16_t yaw;       // +0x14
-		int16_t yaw_vel;   // +0x16
-		int16_t scale;     // +0x18
-		int16_t scale_vel; // +0x1A
-		int16_t scale_acc; // +0x1C
+		int16_t angle;
+		int16_t angle_vel;
+		int16_t yaw;
+		int16_t yaw_vel;
+		int16_t scale;
+		int16_t scale_vel;
+		int16_t scale_acc;
 		int16_t pad1E;
-		int32_t count;     // +0x20
-		FreezeNode *freeze;// +0x24
-		uint8_t *entity;   // +0x28
-		TrailEntry trail[30]; // +0x2C
+		int32_t count;
+		FreezeNode *freeze;
+		uint8_t *entity;
+		TrailEntry trail[30];
 	};
 	struct SparkleNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t vel[3];    // +0x18
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t acc[3];    // +0x20
+		int16_t acc[3];
 		int16_t pad26;
-		Mat4x3 *m;         // +0x28 the ribbon's matrix
+		Mat4x3 *m;
 	};
 	struct MistNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
-		int16_t scale;     // +0x16
-		int16_t vel[3];    // +0x18
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t acc[3];    // +0x20
+		int16_t acc[3];
 		int16_t pad26;
 	};
 	struct FlakeNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		FreezeNode *freeze;// +0x10
-		int16_t pos[3];    // +0x14
-		int16_t scale;     // +0x1A
-		int16_t vel[3];    // +0x1C
+		FreezeNode *freeze;
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
 		int16_t pad22;
-		int16_t acc[3];    // +0x24
-		int16_t blown;     // +0x2A
+		int16_t acc[3];
+		int16_t blown;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(DirectorNode) == 0x14 && sizeof(Shard) == 0x38 && sizeof(FreezeNode) == 0x6428 && sizeof(TrailEntry) == 0x24
@@ -239,13 +209,9 @@ namespace ff8fx
 {
 namespace blizzaga104
 {
-	// ------------------------------------------------------------------
-	// Director (0x6D6400)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(held_note_root();)
 		bool may_end = true;
 		if (d->arena)
@@ -339,15 +305,6 @@ namespace blizzaga104
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Frozen target model (0x6D8C20 -> 0x6D8D80 -> 0x6D8EE0 / 0x6D9390): the target's battle
-	// model (and its second model) drawn by the effect with depth keys; triangles with a vertex
-	// whose camera-space y is inside [lo, hi] get the ice texture (clut +0x66, tpage +0x64, U
-	// wrapped by +0x60). Draw header (0x88 bytes): +0x00 camera * entity matrix, +0x20.. the
-	// object walker q: +0 primitive cursor, +4 projected vertex buffer (8 bytes each: SXY,
-	// OTZ, flags), +8.. list counts, +0x14..+0x1A screen box / 8, +0x1C colour, +0x20 object
-	// mask, +0x24.. current vertices, +0x54 lo, +0x56 hi, +0x58 / +0x5A y range seen.
-	// ------------------------------------------------------------------
 	static void ProjectVertices(uint8_t **cursor, uint8_t **work, uint8_t *q)
 	{
 		uint8_t *v = *cursor;
@@ -385,7 +342,6 @@ namespace blizzaga104
 		*work = w;
 	}
 
-	// ice texture on the packet's U bytes (in the band)
 	static void IceUV(uint8_t *p, const uint8_t *q, const int *us, int nu)
 	{
 		*(uint16_t *)(p + 0xE) = *(uint16_t *)(q + 0x66);
@@ -510,7 +466,6 @@ namespace blizzaga104
 		return cursor;
 	}
 
-	// 0x6D8C20
 	static void DrawFrozenEntity(uint8_t *entity, int16_t lo, int16_t hi, int16_t *range_lo, int16_t *range_hi, const int16_t *uv)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x88);
@@ -523,10 +478,8 @@ namespace blizzaga104
 		*(uint16_t *)(h + 0x78) = 0x7FFF;
 		*(uint16_t *)(h + 0x7A) = 0x8001;
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)h);
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(if (!held_drawing()))
 		FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4040, 0x10, FrameCursor());
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(held_note_frame(FrameCursor());)
 		uint8_t *anim = entity + 0x60;
 		ComputeBonesWorldMatrices(anim, h);
@@ -552,7 +505,6 @@ namespace blizzaga104
 		*range_hi = *(int16_t *)(h + 0x7A);
 	}
 
-	// the target and the entities linked to it (+0x8C ring): flags
 	static void TargetFlags(uint8_t *entity, uint16_t set, uint16_t clear_all, uint16_t set_all)
 	{
 		*(uint16_t *)entity |= set;
@@ -564,7 +516,6 @@ namespace blizzaga104
 		} while (e && e != entity);
 	}
 
-	// 0x6D9510 / 0x6D94B0: yaw rotation (0x6D94B0: scaled by s, y scale sy)
 	static void YawMatrix(int16_t yaw, Mat4x3 *m)
 	{
 		int32_t sn = ComputeSin(yaw);
@@ -595,7 +546,6 @@ namespace blizzaga104
 		m->m[2][2] = (int16_t)cs;
 	}
 
-	// 0x6D9560: vertices of the model copy = a + (b - a) * frac (GTE interpolation)
 	static void MorphVertices(uint8_t *h, const uint8_t *a, const uint8_t *b, int32_t frac)
 	{
 		int16_t *out = *(int16_t **)(h + 8);
@@ -634,11 +584,6 @@ namespace blizzaga104
 		*(uint16_t *)(h + 0x2E) = 0x80;
 	}
 
-	// ------------------------------------------------------------------
-	// Shard update (0x6D9EC0): every live shard fades (its 9 colour bytes down by its step; dead
-	// when all are 0), falls (z velocity += 8 in the block's frame), moves, spins; its three
-	// vertices are rewritten in the vertex buffer
-	// ------------------------------------------------------------------
 	static void PoseShard(const Shard *s, int16_t (*vbuf)[4], const uint8_t *prim)
 	{
 		Mat4x3 m = {};
@@ -690,12 +635,6 @@ namespace blizzaga104
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Ring (0x6D7CB0 -> 0x6D7D00 / 0x6D81F0 / 0x6D8680): model 0x1317088's textured quads,
-	// Gouraud triangles and Gouraud quads, depth cued towards the colour +4 by +8, UVs scrolled by
-	// +0x0C / +0x0E (wrapping by +0x1C / +0x1E), each between two texture windows (+0x10, +0x18).
-	// Header (0x5C): +0x20 vertices, +0x24 list cursor, +0x30 OTZ, +0x34 FLAG, +0x38.. vertices.
-	// ------------------------------------------------------------------
 	static void ScrollBytes(uint8_t *p, const int *off, int n, uint16_t add, uint8_t wrap)
 	{
 		uint32_t v[4], o = 0;
@@ -947,7 +886,7 @@ namespace blizzaga104
 	static int16_t RingScale(int16_t c)
 	{
 		uint32_t t = (uint32_t)(c - 0x2E);
-		uint32_t a = (uint32_t)(((uint64_t)(t << 10) * 0x51EB851Fu) >> 32) >> 3; // / 25
+		uint32_t a = (uint32_t)(((uint64_t)(t << 10) * 0x51EB851Fu) >> 32) >> 3;
 		return (int16_t)((ComputeSin((int32_t)a) >> 2) + 0xC00);
 	}
 
@@ -964,11 +903,10 @@ namespace blizzaga104
 		PacketCursor() = RenderRing(h, RenderOT44(), 2, PacketCursor());
 	}
 
-	// flash model 0x1318490 (31..40): x / z scale 1 + sin, fading out from 38
 	static int16_t FlashScale(int16_t c)
 	{
 		uint32_t t = (uint32_t)(c - 0x1F);
-		uint32_t a = (uint32_t)(((uint64_t)(t << 10) * 0xCCCCCCCDu) >> 32) >> 3; // / 10
+		uint32_t a = (uint32_t)(((uint64_t)(t << 10) * 0xCCCCCCCDu) >> 32) >> 3;
 		return (int16_t)(ComputeSin((int32_t)a) * 4 + 0x1000);
 	}
 
@@ -999,14 +937,12 @@ namespace blizzaga104
 		return t > 6 ? (int32_t)(0x1000 - (((0xA - t) << 10) & 0x3FFFFC00)) : 0;
 	}
 
-	// y / 18 and y / 9 (0x38E38E39)
 	static int32_t DivMagic9(int32_t x, int sh)
 	{
 		int32_t hi = (int32_t)(((int64_t)x * 0x38E38E39) >> 32) >> sh;
 		return hi + (int32_t)((uint32_t)hi >> 31);
 	}
 
-	// the freeze band: from the model's y range, rising 8..25, falling back 60..68
 	static int16_t FreezeLevel(const FreezeNode *f, int32_t t)
 	{
 		if ((uint32_t)t < 0x12) return (int16_t)(DivMagic9((f->band_lo - f->band_hi) * t, 2) + f->band_hi);
@@ -1014,19 +950,14 @@ namespace blizzaga104
 		return f->band_lo;
 	}
 
-	// x / 3 (0x55555556)
 	static int32_t Div3(int32_t x)
 	{
 		int32_t hi = (int32_t)(((int64_t)x * 0x55555556) >> 32);
 		return hi + (int32_t)((uint32_t)hi >> 31);
 	}
 
-	// growth morph step of the block (28..30): table index and fraction
 	static uint32_t MorphStep(uint32_t t) { return (uint32_t)(((uint64_t)(t << 12) * 0xAAAAAAABu) >> 33) + 0x2AA; }
 
-	// ------------------------------------------------------------------
-	// Freeze (0x6D67E0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FreezeTask(TaskNode *n)
 	{
 		FreezeNode *f = (FreezeNode *)n;
@@ -1053,7 +984,6 @@ namespace blizzaga104
 			bool blink = (uint32_t)t8 < 0x12 || (uint32_t)t8 >= 0x34;
 			if (!blink || !(t8 & 1)) TargetFlags(f->entity, 0, 0, 8);
 			int16_t uv[4] = { 0, 0, 0x40, 0x100 };
-			// 30 fps layer: see mag104_blizzaga_held.inc
 			FX_HELD(held_note_frozen(f, FreezeLevel(f, t8));)
 			DrawFrozenEntity(f->entity, FreezeLevel(f, t8), f->band_hi, &f->band_lo, &f->band_hi, uv);
 		}
@@ -1110,7 +1040,6 @@ namespace blizzaga104
 				MorphVertices(h, (const uint8_t *)MORPH_TABLE[idx], (const uint8_t *)MORPH_TABLE[idx + 1], v & 0xFFF);
 			}
 			else if (t == 3) CopyDwords(f->verts, BLOCK_VERTS + 8, *(uint32_t *)(Cursor(h, 0) + 4) * 2);
-			// 30 fps layer: see mag104_blizzaga_held.inc
 			FX_HELD(held_note_block(f, t < 3 ? 1 : 0, &m);)
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
@@ -1184,7 +1113,6 @@ namespace blizzaga104
 			UpdateShards(f->shards, f->verts, prims);
 			uint8_t *h = (uint8_t *)FieldAlloc(0x64);
 			BlockHeader(h, f, c);
-			// 30 fps layer: see mag104_blizzaga_held.inc
 			FX_HELD(held_note_block(f, 2, &m);)
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
@@ -1193,7 +1121,6 @@ namespace blizzaga104
 		}
 		if ((uint32_t)(c - 0x2E) < 0x19)
 		{
-			// 30 fps layer: see mag104_blizzaga_held.inc
 			FX_HELD(held_note_part(ORIG_FreezeTask + 1, f);)
 			uint8_t *h = AllocHeader(0x5C);
 			RingHeader(h, c);
@@ -1202,7 +1129,6 @@ namespace blizzaga104
 		}
 		if ((uint32_t)(c - 0x1F) < 0xA)
 		{
-			// 30 fps layer: see mag104_blizzaga_held.inc
 			FX_HELD(held_note_part(ORIG_FreezeTask + 2, f);)
 			uint8_t *h = AllocHeader(0x58);
 			FlashDraw(f, h, FlashScale(c), FlashFade(c));
@@ -1230,12 +1156,12 @@ namespace blizzaga104
 				fl->pos[2] = (int16_t)(fl->pos[2] + f->pos[2]);
 				fl->pos[1] = f->pos[1];
 				int32_t q = (int32_t)(((int64_t)fl->vel[0] * 0x2AAAAAAB) >> 32) >> 3;
-				int16_t vx = (int16_t)(q + (int32_t)((uint32_t)q >> 31)); // / 48
+				int16_t vx = (int16_t)(q + (int32_t)((uint32_t)q >> 31));
 				q = (int32_t)(((int64_t)fl->vel[2] * 0x2AAAAAAB) >> 32) >> 3;
 				int16_t vz = (int16_t)(q + (int32_t)((uint32_t)q >> 31));
 				fl->vel[0] = vx;
 				fl->vel[2] = vz;
-				q = ((int32_t)(((int64_t)vx * 0x6DB6DB6D) >> 32) - vx) >> 3; // - v / 14
+				q = ((int32_t)(((int64_t)vx * 0x6DB6DB6D) >> 32) - vx) >> 3;
 				fl->acc[0] = (int16_t)(q + (int32_t)((uint32_t)q >> 31));
 				q = ((int32_t)(((int64_t)vz * 0x6DB6DB6D) >> 32) - vz) >> 3;
 				fl->acc[2] = (int16_t)(q + (int32_t)((uint32_t)q >> 31));
@@ -1282,10 +1208,6 @@ namespace blizzaga104
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Trails (0x6D99D0 push, 0x6D9A40 draw)
-	// ------------------------------------------------------------------
-	// a new position in front (the others move back, at most `max`)
 	static int32_t TrailPush(int32_t max, int32_t n, TrailEntry *t, const int16_t *a, const int16_t *b, uint8_t fade, uint8_t fade_vel, uint8_t u)
 	{
 		if (n < max)
@@ -1302,8 +1224,6 @@ namespace blizzaga104
 		return n;
 	}
 
-	// every position fades by fade_vel (accelerated by d each tick); the strip between two
-	// positions is a semi-transparent Gouraud quad (colour = fade) with depth keys
 	static uint32_t TrailDraw(int32_t *pn, TrailEntry *t, int8_t d, uint32_t ot, int32_t zbias, int32_t shift, uint32_t cursor)
 	{
 		int32_t n = *pn;
@@ -1386,7 +1306,6 @@ namespace blizzaga104
 		return cursor;
 	}
 
-	// 0x6D9CF0
 	static void RibbonPoint(int16_t *out, int16_t angle, int32_t z, int32_t r)
 	{
 		out[0] = (int16_t)(mul32(ComputeCos(angle), r) >> 14);
@@ -1394,7 +1313,6 @@ namespace blizzaga104
 		out[2] = (int16_t)((z >> 2) - z);
 	}
 
-	// 0x6D9D40
 	static void SpawnSparkle(const int16_t *v, Mat4x3 *m)
 	{
 		SparkleNode *s = (SparkleNode *)AddTaskToQueue(Queue(3), ORIG_SparkleTask);
@@ -1412,10 +1330,6 @@ namespace blizzaga104
 		s->m = m;
 	}
 
-	// ------------------------------------------------------------------
-	// Ribbon (0x6D97A0): a trail of two points waving around the target (swinging angle,
-	// width shrinking until 20), facing the camera; throws two sparkles per tick
-	// ------------------------------------------------------------------
 	static void RibbonDraw(RibbonNode *r)
 	{
 		int32_t v[3] = { -r->m.t[0], -r->m.t[1], r->m.t[2] };
@@ -1444,7 +1358,7 @@ namespace blizzaga104
 			int32_t z = mul32(r->m.t[2], w) >> 12;
 			w += mul32(ComputeSin(w >> 1), r->wave) >> 12;
 			int16_t a[4], b[4];
-			a[3] = 0; // never written by the original (stack garbage in the trail's 4th words)
+			a[3] = 0;
 			b[3] = 0;
 			RibbonPoint(a, r->angle, z, w);
 			RibbonPoint(b, r->angle, z, w * 4);
@@ -1465,7 +1379,6 @@ namespace blizzaga104
 				SpawnSparkle(s, &r->m);
 			}
 		}
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(held_note_trail(ORIG_RibbonTask, r);)
 		RibbonDraw(r);
 		r->counter++;
@@ -1473,10 +1386,6 @@ namespace blizzaga104
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Spiral (0x6DA0D0): a trail of two points circling the target, lowering; its model matrix
-	// spins (yaw) and, once the block is out (freeze counter 28), grows
-	// ------------------------------------------------------------------
 	static void SpiralDraw(SpiralNode *s)
 	{
 		Mat4x3 m = {};
@@ -1513,11 +1422,10 @@ namespace blizzaga104
 			if (c < 8) b[1] = (int16_t)(a[1] - ((c * 300) >> 3) - 0x12);
 			else if (c <= 0xC) b[1] = (int16_t)(a[1] - 300);
 			else b[1] = (int16_t)(a[1] - (((0x14 - c) * 300) >> 3) - 0x12);
-			a[3] = 0; // never written by the original (stack garbage in the trail's 4th words)
+			a[3] = 0;
 			b[3] = 0;
 			s->count = TrailPush(0x1E, s->count, s->trail, b, a, 0x10, 0x58, (uint8_t)((3 - (c & 3)) << 5));
 		}
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(held_note_trail(ORIG_SpiralTask, s);)
 		SpiralDraw(s);
 		s->yaw = (int16_t)(s->yaw + s->yaw_vel);
@@ -1541,9 +1449,6 @@ namespace blizzaga104
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sparkle (0x6D9DD0): sequence 0x1312690 frame counter, moving in its ribbon's frame
-	// ------------------------------------------------------------------
 	static void SparkleDraw(const SparkleNode *s)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -1571,16 +1476,12 @@ namespace blizzaga104
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkleTask, s);)
 		SparkleDraw(s);
 		SparkleUpdate(s);
 		return s->counter < 0xA ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Mist (0x6D95E0) and Flake (0x6D96A0): sequences 0x1312690 / 0x13127A0 frame counter
-	// ------------------------------------------------------------------
 	static void MistDraw(const MistNode *m)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -1603,7 +1504,6 @@ namespace blizzaga104
 	static uint32_t __cdecl MistTask(TaskNode *n)
 	{
 		MistNode *m = (MistNode *)n;
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(held_note_draw(ORIG_MistTask, m);)
 		MistDraw(m);
 		m->counter++;
@@ -1623,7 +1523,6 @@ namespace blizzaga104
 		FieldFree(0xB4);
 	}
 
-	// blown away from the caster once the block breaks (freeze counter 38)
 	static void FlakeUpdate(FlakeNode *fl)
 	{
 		if (!fl->blown && fl->freeze->counter >= 0x26)
@@ -1642,7 +1541,6 @@ namespace blizzaga104
 	static uint32_t __cdecl FlakeTask(TaskNode *n)
 	{
 		FlakeNode *fl = (FlakeNode *)n;
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(held_note_draw(ORIG_FlakeTask, fl);)
 		FlakeDraw(fl);
 		fl->counter++;
@@ -1661,7 +1559,6 @@ namespace blizzaga104
 		register_port(blizzaga104::ORIG_RibbonTask, (void *)blizzaga104::RibbonTask, "B104 RibbonTask", 104);
 		register_port(blizzaga104::ORIG_SparkleTask, (void *)blizzaga104::SparkleTask, "B104 SparkleTask", 104);
 		register_port(blizzaga104::ORIG_SpiralTask, (void *)blizzaga104::SpiralTask, "B104 SpiralTask", 104);
-		// 30 fps layer: see mag104_blizzaga_held.inc
 		FX_HELD(register_mag104_held();)
 	}
 }

@@ -14,62 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 315: the Fake President's death (enemy attack 151 of kernel.bin, no name; Fake President
-// c0m075 only, its AI death section, Timber presidential train car): the Fake President melts into a
-// puddle and Gerogero (c0m034, the next entity slot) rises out of it (MAG_315_*).
-//
-// Structure (setup MAG_315_UNKNOWN 0x598DB0, file loader 0x598D90 = texture 0xCD59A0; the setup keeps
-// the cast context 0x223B648, the first target's slot 0x2239530, the CASTER slot 0x223B64C and the
-// texture base 0x223B654, queues the root (queue 0x2239558, 2 x 0x10) and the master (queue 0x223A828,
-// pool 0x223A838, 0x64 x 0x24), clears the particle pool, plays camera animation 0xCD2B08 and
-// uploads the texture):
-//   Root (0x59B000) - packet cursor 0x223B658 = texture base (+0xC000 on odd ticks), runs the master
-//     queue; when it is empty queues the texture restore (0x59B070) and ends.
-//   Master (0x598E70), 0xA1 ticks (nothing in the draw-only mode):
-//       0     anchor = caster bone 0xF1 (0x502170 -> node +0x10), caster +8 |= 0x8000, the caster
-//             shown (flags &= ~4), the NEXT slot hidden (flags |= 4), the caster's model byte +2
-//             saved (node +0xE) and set to its byte +0, the next slot's +0x14 / +0x18 = the anchor's
-//             x / z (written through caster +0xB0 / +0xB4), voice slot 0xCD57A0
-//       1     caster tint task (0x59ADB0), sound 0xCD58BC
-//       0xD   three falling-drops tasks (0x599470, bones 0..2, masks 1 / 2 / 4, random delay 0..9)
-//       0x1C  bubbles (0x599860); 0x5F more bubbles (0x599A90)
-//       0x20  the caster melts (0x599CC0)
-//       0x1E  a puddle ring (0x59A670) and orbiting sparks (0x59A7F0)
-//       0x1E..0x52, every 4th tick (c % 4 == 1): splash rings (0x59A500)
-//       0x52  Gerogero's tint task (0x59AEF0) and Gerogero rising (0x59A3E0)
-//       0x70  damage (target record of action 0), sound 0xCD58C0
-//       0x70..0xB6, every 3rd tick (c % 3 == 1): splash columns (0x59AAF0)
-//       0x7E  two spinning rings (0x59AC70); 0x9D voice released
-//       0xA1  caster +8 &= ~0x8000, its model byte +2 restored, setMonsterPresence(next slot), ends.
-//   Drops (0x599470): pool owner = its mask; counters 0..0x14 two drops at its bone (exe table
-//     0xCD58C8 through the caster's matrix) flung along the bone's direction (0xCD58E0), falling,
-//     slowing (1/8 a tick), growing (1/16 a tick); sprite 0xCD2C44 (+0x24 = 0xA blend).
-//   Bubbles (0x599860 / 0x599A90): pool owner 0x10 / 0x40, two / three a tick, rising; sprite 0xCD2DF0.
-//   Sparks (0x59A7F0): pool owner 0x20, four a tick for 0x3D ticks, orbiting the anchor (angle,
-//     radius and height steps); sprite 0xCD2F68.
-//   Melting model (0x599CC0 caster 0x41 ticks, 0x59A3E0 next slot 0x6E ticks): the entity hidden
-//     (flags |= 4) and drawn by the module: its shadow, every visible object through its bone
-//     matrices into the vertex buffer 0x1D98B3C, vertices below the floor plane (node +0x12) flattened
-//     to y = 0 and pushed out from the anchor (within the radius: by (start - y) / step x strength;
-//     beyond: onto the radius), the others lowered by the floor; faces with a flattened corner drawn
-//     semi-transparent. The caster's floor rises (strength up to 1), the next slot's floor sinks from
-//     -2000 to 0 (strength down to 0), then it is shown again.
-//   Prim models: splash ring 0x59A500 (0xCD3F08, 16 ticks, spinning, widening, fading), puddle ring
-//     0x59A670 (0xCD47B0 through 0x64E080, 0x50 ticks, u scroll, flattening), splash column 0x59AAF0
-//     (0xCD3A48 through 0x64F0A0, random delay, 20 ticks, rising), spinning ring 0x59AC70 (0xCD3198,
-//     0x58 ticks).
-//   Tints (0x59ADB0 caster, 0x59AEF0 next slot): entity +0x28 = a colour table entry (0xCD5910 /
-//     0xCD5940) cycling every tick, faded in / out by depth cue toward the stage colour or black;
-//     entity flags 0x800 while they run.
-// Every task but Root / Master / tints draws first; in the draw-only mode (battle_to_update_flags &
-// 0x201) it returns after drawing.
-// The effect WRITES: caster +0x00 (flags 4), +0x08 (0x8000), +0x28 (tint), its model byte +2; next
-// slot +0x00 (flags 4, 0x800), +0x14 / +0x18 (master tick 0), +0x1C / +0x20 (x / z, rising task,
-// every tick), +0x28 (tint); no camera word (the setup's camera animation drives the camera).
-// Module globals: 0x2239530..0x223B660 (first target, root queue + pool, particle pool 0x2239568
-// (200 x 0x18), master queue + pool, context, caster slot, texture file / base, packet cursor
-// 0x223B658, voice slot 0x223B65C).
-
 #include "mag_common.h"
 
 namespace ff8fx
@@ -86,9 +30,8 @@ namespace fp315
 	static inline uint32_t &U32(uint32_t p, int32_t o) { return F<uint32_t>(p, o); }
 	static inline uint8_t &U8(uint32_t p, int32_t o) { return F<uint8_t>(p, o); }
 
-	// --- module globals ---
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x2239558; }     // pool 0x2239538, 2 x 0x10
-	inline TaskQueue *FxQueue() { return (TaskQueue *)0x223A828; }       // pool 0x223A838, 0x64 x 0x24
+	inline TaskQueue *RootQueue() { return (TaskQueue *)0x2239558; }
+	inline TaskQueue *FxQueue() { return (TaskQueue *)0x223A828; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x223B648); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x223B64C); }
 	inline uint32_t &TexBase() { return var<uint32_t>(0x223B654); }
@@ -99,7 +42,7 @@ namespace fp315
 	inline uint32_t OT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint32_t Ent(int32_t slot) { return 0x1D972C0 + (uint32_t)(slot * 0x9C); }
 
-	static const uint32_t POOL = 0x2239568, POOL_END = 0x223A828;      // 200 x 0x18, owner dword +0
+	static const uint32_t POOL = 0x2239568, POOL_END = 0x223A828;
 
 	static const uint32_t ORIG_Master = 0x598E70;
 	static const uint32_t ORIG_Drops = 0x599470;
@@ -119,27 +62,25 @@ namespace fp315
 
 	static const uint32_t SEQ_Drop = 0xCD2C44, SEQ_Bubble = 0xCD2DF0, SEQ_Spark = 0xCD2F68;
 	static const uint32_t MODEL_Splash = 0xCD3F08, MODEL_Puddle = 0xCD47B0, MODEL_Column = 0xCD3A48, MODEL_Ring = 0xCD3198;
-	static const uint32_t DROP_OFFSETS = 0xCD58C8;   // 3 x 8 bytes (x, y, z, pad) in the caster's frame
-	static const uint32_t DROP_DIRS = 0xCD58E0;      // 3 x 16 bytes (x, y, z, pad dwords)
-	static const uint32_t TINT_Caster = 0xCD5910;    // 12 colours
-	static const uint32_t TINT_Next = 0xCD5940;      // 24 colours
+	static const uint32_t DROP_OFFSETS = 0xCD58C8;
+	static const uint32_t DROP_DIRS = 0xCD58E0;
+	static const uint32_t TINT_Caster = 0xCD5910;
+	static const uint32_t TINT_Next = 0xCD5940;
 	static const void *const SOUND_Voice = (const void *)0xCD57A0;
 	static const void *const SOUND_Start = (const void *)0xCD58BC;
 	static const void *const SOUND_Hit = (const void *)0xCD58C0;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint32_t entity, int32_t bone, int32_t flag, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(0x502170)(entity, bone, flag, out); }
-	inline uint32_t VoiceBusy(uint32_t v) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x4A2900)(v); }                 // sub_4A2900
-	inline void VoiceRelease(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(v); }                             // sub_4A2940
+	inline uint32_t VoiceBusy(uint32_t v) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x4A2900)(v); }
+	inline void VoiceRelease(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(v); }
 	inline void SetMonsterPresence(int32_t slot) { fn<void (__cdecl *)(int32_t)>(0x487670)(slot); }
-	inline void MatrixMulVector(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline int32_t NormalizeSVector(uint32_t in, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); }     // sub_56BDE0
+	inline void MatrixMulVector(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C4F0)(m, in, out); }
+	inline int32_t NormalizeSVector(uint32_t in, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	inline uint32_t PuddleRender(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x64E080)(h, ot, mode, cursor); } // MAG_151_sub_64E080
-	inline uint32_t ColumnRender(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x64F0A0)(h, ot, mode, cursor); } // MAG_166_sub_64F0A0
-	// software GTE
+	inline uint32_t PuddleRender(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x64E080)(h, ot, mode, cursor); }
+	inline uint32_t ColumnRender(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x64F0A0)(h, ot, mode, cursor); }
 	inline void GteSetLightMatrix(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x45DE50)(m); }
 	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
@@ -151,23 +92,20 @@ namespace fp315
 	inline void GteReadSXY012Split(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }   // GTE_ReadOTZ
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }        // set_unk_1CA8A28
+	inline void GteStoreOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }       // set_param_with_dword_1CA8A68
-	// GTE helpers of the neighbouring modules
-	inline void GteSetBkFromTranslation(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x64DDA0)(m); } // MAG_148_sub_64DDA0: BK = matrix translation
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }           // MAG_163_sub_64DE00: R = s * I
-	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }                           // MAG_164_sub_64DE40: TR = MAC123
-	inline void GteSetTransFromVec32(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DD70)(v); }   // MAG_163_sub_64DD70: TR = v
-	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }         // MAG_146_sub_64DEE0: V0 = 3 words
-	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); }   // MAG_146_sub_64DF10: IR1..3 -> 4 words
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
+	inline void GteSetBkFromTranslation(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x64DDA0)(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
+	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
+	inline void GteSetTransFromVec32(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DD70)(v); }
+	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }
+	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); }
 
-	// a depth cue of a prim-model header: flags 0xF3 + level, or 0x33 (no cue: the level is not written)
 	struct Cue { uint32_t flags; int32_t fade; };
 
-	// first free pool entry (owner dword 0), or 0 when the pool is full
 	static uint32_t PoolFree()
 	{
 		uint32_t e = POOL;
@@ -191,11 +129,6 @@ namespace ff8fx
 {
 namespace fp315
 {
-	// ------------------------------------------------------------------
-	// Pool sprites (0x571C80 sequences): the camera as light matrix / back colour, each entry
-	// transformed to view space, scaled (R = size * I)
-	// ------------------------------------------------------------------
-	// a drop (0x599470): entry +4 frame, +6 size, +8 position; pushed toward the camera by size / 16
 	static void DropDraw(uint32_t w, uint32_t h, uint32_t e)
 	{
 		GteLoadV0((const void *)(e + 8));
@@ -212,8 +145,6 @@ namespace fp315
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
 	}
 
-	// a drop's motion (after its draw): frame + 1, size + 1/16, position += velocity (+ fall on y),
-	// velocity - 1/8
 	static void DropMove(uint32_t e)
 	{
 		S16(e, 4) = (int16_t)(S16(e, 4) + 1);
@@ -229,7 +160,6 @@ namespace fp315
 		}
 	}
 
-	// a bubble (0x599860 / 0x599A90): entry +4 frame, +6 size, +8 position, drawn at its place
 	static void BubbleDraw(uint32_t h, uint32_t e)
 	{
 		GteLoadV0((const void *)(e + 8));
@@ -240,8 +170,6 @@ namespace fp315
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
 	}
 
-	// a spark (0x59A7F0): entry +4 frame, +6 size, +8 angle, +0xA height, +0xC radius around the
-	// anchor (w + 8 / w + 0xC); pushed toward the camera by size / 8
 	static void SparkDraw(uint32_t w, uint32_t h, uint32_t e)
 	{
 		const int32_t angle = S16(e, 8);
@@ -265,9 +193,6 @@ namespace fp315
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
 	}
 
-	// ------------------------------------------------------------------
-	// Drops (0x599470): node +0xC counter, +0xE delay, +0x10 anchor, +0x18 bone (0..2), +0x1A mask
-	// ------------------------------------------------------------------
 	static void DropSpawn(uint32_t n, uint32_t w)
 	{
 		const int32_t bone = S16(n, 0x18);
@@ -321,7 +246,6 @@ namespace fp315
 		GteSetBkFromTranslation(w + 8);
 		int32_t count = 0;
 		const int32_t mask = S16(n, 0x1A);
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_parts(ORIG_Drops, n, w, h, mask);)
 		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
 		{
@@ -343,10 +267,6 @@ namespace fp315
 		return count ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Bubbles (0x599860, owner 0x10, 2 a tick for 0x29 ticks; 0x599A90, owner 0x40, 3 a tick for
-	// 0x60 ticks): node +0xC counter, +0x10 anchor
-	// ------------------------------------------------------------------
 	static void BubbleSpawn(uint32_t n)
 	{
 		for (int k = 0; k < 2; k++)
@@ -380,7 +300,6 @@ namespace fp315
 		}
 	}
 
-	// the bubbles of `owner`: drawn, then frame + 1 and rising (or freed when their sequence ended)
 	static uint32_t BubbleTask(uint32_t fn, uint32_t n, int32_t owner, int32_t last, void (*spawn)(uint32_t))
 	{
 		const uint32_t w = (uint32_t)FieldAlloc(0x48);
@@ -392,7 +311,6 @@ namespace fp315
 		GteSetLightMatrix(w + 8);
 		GteSetBkFromTranslation(w + 8);
 		int32_t count = 0;
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_parts(fn, n, w, h, owner);)
 		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
 		{
@@ -418,9 +336,6 @@ namespace fp315
 	static uint32_t __cdecl BubblesTask(TaskNode *nd) { return BubbleTask(ORIG_Bubbles, (uint32_t)nd, 0x10, 0x28, BubbleSpawn); }
 	static uint32_t __cdecl Bubbles2Task(TaskNode *nd) { return BubbleTask(ORIG_Bubbles2, (uint32_t)nd, 0x40, 0x5F, Bubble2Spawn); }
 
-	// ------------------------------------------------------------------
-	// Sparks (0x59A7F0): node +0xC counter, +0x10 anchor; owner 0x20, 4 a tick for 0x3D ticks
-	// ------------------------------------------------------------------
 	static void SparkSpawn()
 	{
 		for (int k = 0; k < 4; k++)
@@ -453,7 +368,6 @@ namespace fp315
 		U32(w, 8) = U32(n, 0x10);
 		U32(w, 0xC) = U32(n, 0x14);
 		int32_t count = 0;
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_parts(ORIG_Sparks, n, w, h, 0x20);)
 		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
 		{
@@ -478,18 +392,6 @@ namespace fp315
 		return count ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Melting model. Header (0x9C bytes on the scratch): +0x00 primitive list, +0x04 vertex buffer,
-	// +0x08..+0x0E primitive counts, +0x10 / +0x14..+0x1A as RenderGeometry's, +0x1C code bits
-	// (entity +0x28), +0x20 visible objects, +0x28..+0x2A depth cue (entity +7), +0x2C strength,
-	// +0x30 start, +0x34 radius, +0x38 factor, +0x3C step, +0x44 MAC0, +0x4C OTZ, +0x50 GTE flag,
-	// +0x54..+0x73 work vector / face corner copies, +0x74 anchor (x, floor y, z), +0x7C camera x
-	// entity matrix
-	// ------------------------------------------------------------------
-
-	// 0x59A0F0: the melted vertices of one object as flat textured triangles (0x10-byte records) and
-	// quads (0x14-byte records); a face with a corner on the ground (y = 0) is semi-transparent
-	// (code bit 0x2000000, texture page blend mode + 1)
 	static uint32_t MeltPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pkt = cursor;
@@ -580,9 +482,6 @@ namespace fp315
 		return pkt;
 	}
 
-	// 0x599ED0: every visible object of the model: its vertices through their bone matrices (world
-	// space) into the header's vertex buffer, melted (see the module comment), then drawn through
-	// the camera (MeltPrims)
 	static uint32_t MeltModel(uint32_t model, uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t bones = U32(model, 0) + 0x10;
@@ -658,7 +557,6 @@ namespace fp315
 		return cursor;
 	}
 
-	// 0x599DC0: the entity's shadow, its model melted, its second model (+0x78) melted too
 	static void MeltEntity(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
@@ -690,8 +588,6 @@ namespace fp315
 		}
 	}
 
-	// the melting entity's draw (0x599CC0 / 0x59A3E0): node +0xE slot, +0x10 anchor (x, floor y, z),
-	// +0x20 start, +0x22 step; strength, radius and factor per task
 	static void MeltDraw(uint32_t n, int32_t strength, int32_t radius, int32_t factor)
 	{
 		const uint32_t entity = Ent(S16(n, 0xE));
@@ -708,18 +604,14 @@ namespace fp315
 		FieldFree(0x9C);
 	}
 
-	// the caster's melt strength on counter c (0..0x40): c / 70
 	static int32_t CasterStrength(int32_t c) { return c < 0x46 ? shl32(c, 12) / 70 : 0x1000; }
 
-	// the caster melts (0x599CC0): node +0xC counter (draws 0..0x40), +0xE caster slot, +0x10 anchor
-	// (+0x12 floor from 0, + step a tick), +0x20 = caster +0x36 - 300, +0x22 = that / 70
 	static uint32_t __cdecl MeltTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
 		const int32_t slot = S16(n, 0xE);
 		if (S16(n, 0xC) < 0x41)
 		{
-			// 30 fps layer: see mag315_fake_president_death_held.inc
 			FX_HELD(held_note_draw(ORIG_Melt, n);)
 			MeltDraw(n, CasterStrength(S16(n, 0xC)), 0x2BC, 0xA);
 		}
@@ -732,12 +624,8 @@ namespace fp315
 		return TASK_END;
 	}
 
-	// Gerogero's strength on counter c (0..0x6D): 1 until 0x1E, then down by 1/80 a tick
 	static int32_t RiseStrength(int32_t c) { return c < 0x1E ? 0x1000 : shl32(0x1E - c, 12) / 80 + 0x1000; }
 
-	// the next slot rises (0x59A3E0): node +0xC counter (draws 0..0x6D), +0xE slot, +0x10 anchor
-	// (+0x12 floor from -2000, + 25 a tick from 0x1E), +0x20 start -2000, +0x22 step 25; the
-	// entity's x / z (+0x1C / +0x20) = the anchor's while it draws; shown again at the end
 	static uint32_t __cdecl RiseTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
@@ -747,7 +635,6 @@ namespace fp315
 			const uint32_t entity = Ent(slot);
 			S16(entity, 0x1C) = S16(n, 0x10);
 			S16(entity, 0x20) = S16(n, 0x14);
-			// 30 fps layer: see mag315_fake_president_death_held.inc
 			FX_HELD(held_note_draw(ORIG_Rise, n);)
 			MeltDraw(n, RiseStrength(S16(n, 0xC)), 0x384, 0xB);
 		}
@@ -760,10 +647,6 @@ namespace fp315
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim models: node +0xC counter, +0x10 position, +0x18 y angle, +0x1C scale (x, z), +0x20
-	// scale y; matrix = camera x (rotation y, scaled), translation = position
-	// ------------------------------------------------------------------
 	static void PrimMatrix(uint32_t n, int32_t sx, int32_t sy, int32_t sz)
 	{
 		int16_t angles[4];
@@ -791,7 +674,6 @@ namespace fp315
 		if (cue.flags == 0xF3) S32(h, 0xC) = cue.fade;
 	}
 
-	// splash ring (0x59A500), 16 ticks: no cue on 1..3, 0x800 on 0, (c - 4) * 341 from 4
 	static Cue SplashCue(int32_t c)
 	{
 		if (c == 0) return { 0xF3u, 0x800 };
@@ -813,7 +695,6 @@ namespace fp315
 	static uint32_t __cdecl SplashTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_draw(ORIG_Splash, n);)
 		SplashDraw(n, SplashCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
@@ -825,7 +706,6 @@ namespace fp315
 		return S16(n, 0xC) >= 0x10 ? TASK_END : 0;
 	}
 
-	// puddle ring (0x59A670), 0x50 ticks: fading in over 16 ticks, out from 0x44; u scroll 4 a tick
 	static Cue PuddleCue(int32_t c)
 	{
 		if (c < 0x10) return { 0xF3u, shl32(0x10 - c, 8) };
@@ -855,7 +735,6 @@ namespace fp315
 	{
 		const uint32_t n = (uint32_t)nd;
 		const int32_t c = S16(n, 0xC);
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_draw(ORIG_Puddle, n);)
 		PuddleDraw(n, shl32(c, 2), PuddleCue(c));
 		if (DrawOnly()) return 0;
@@ -865,8 +744,6 @@ namespace fp315
 		return S16(n, 0xC) >= 0x50 ? TASK_END : 0;
 	}
 
-	// splash column (0x59AAF0): node +0xE delay; 20 ticks, fading out from 8, rising (y scale +=
-	// step, the step - 1/6 a tick)
 	static Cue ColumnCue(int32_t c)
 	{
 		if (c < 8) return { 0x33u, 0 };
@@ -896,7 +773,6 @@ namespace fp315
 			S16(n, 0xE) = (int16_t)(delay - 1);
 			return 0;
 		}
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_draw(ORIG_Column, n);)
 		ColumnDraw(n, ColumnCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
@@ -907,8 +783,6 @@ namespace fp315
 		return S16(n, 0xC) >= 0x14 ? TASK_END : 0;
 	}
 
-	// spinning ring (0x59AC70), 0x58 ticks: depth cue (0x20 - c) / 32 until 0x10, 1/2, then
-	// (c - 0x38) / 32 from 0x48
 	static int32_t RingFade(int32_t c)
 	{
 		if (c < 0x10) return shl32(0x20 - c, 7);
@@ -931,7 +805,6 @@ namespace fp315
 	static uint32_t __cdecl RingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_draw(ORIG_Ring, n);)
 		RingDraw(n, RingFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
@@ -940,9 +813,6 @@ namespace fp315
 		return S16(n, 0xC) >= 0x58 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Tints (0x59ADB0 caster, 0x59AEF0 next slot): node +0xC counter, +0xE slot, +0x1C colour index
-	// ------------------------------------------------------------------
 	static void TintCue(uint32_t entity, uint32_t r, uint32_t g, uint32_t b, uint32_t colour, int32_t level)
 	{
 		GteSetFarColour(r, g, b);
@@ -998,9 +868,6 @@ namespace fp315
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x598E70): node +0xC counter, +0xE the caster's saved model byte +2, +0x10 anchor
-	// ------------------------------------------------------------------
 	static uint32_t Spawn(uint32_t task)
 	{
 		const uint32_t t = (uint32_t)AddTaskToQueue(FxQueue(), task);
@@ -1169,13 +1036,9 @@ namespace fp315
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x59B000) and texture restore wait (0x59B070)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(held_note_root();)
 		if (U8(n, 0xC) & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
@@ -1217,7 +1080,6 @@ namespace fp315
 		register_port(fp315::ORIG_Ring, (void *)fp315::RingTask, "315 Ring", 315);
 		register_port(fp315::ORIG_CasterTint, (void *)fp315::CasterTintTask, "315 CasterTint", 315);
 		register_port(fp315::ORIG_NextTint, (void *)fp315::NextTintTask, "315 NextTint", 315);
-		// 30 fps layer: see mag315_fake_president_death_held.inc
 		FX_HELD(register_mag315_held();)
 	}
 }

@@ -13,49 +13,8 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// Effect 272: LV Down (command ability LV Down: kernel.bin command ability data entry 6 +0 = 272; MAG_272_*). No
-// other kernel.bin entry uses effect 272. LV Up (effect 271, mag271_lv_up.cpp) is a sibling module built from the
-// same source (its own globals, layout and renderer copies); both share the target bounding-box walker 0x68DF50,
-// ported here (lv27x::ModelBounds).
-//
-// Structure (setup MAG_272 0x68DC70 -> 0x68DCA0, not ported; file loader 0x68DC80 = the texture file named at
-// 0x11162F8 -> [0x2508544]; the setup keeps the cast context (0x250854C) and the caster's entity (0x2508540, never
-// read again), queues the TIM, starts the root task in its 1-node pool 0x2508550 and plays the camera animation
-// 0x1115968 (Battle_PlayCameraAnimation 0x5099A0: the engine's camera script, no module task writes the camera)):
-//   RootTask (0x68DD20) - alternates the packet arena (magic buffer + 0x504 / + 0x10504 by tick parity, cursor
-//     0x2508564); on counter 1 sets up the play pool (1 x 0x4FC bytes at the start of the magic buffer, once) and
-//     starts the play task on the first target of action [root +0x0E] (then +0x0E counts up: one play task in all):
-//     the target's bounding box (0x68DEE0: bone world matrices 0x5095B0, every vertex of its model through its
-//     bone, 0x68DF50; bone matrices rebuilt from the pose 0x508C90 afterwards), its default effect position
-//     (0x571400) with y = the box's middle height, the block scale = the box's extents (x = z = the largest of
-//     the three, y = the height), the layout 0x111122C (0x4D0 bytes), sound 0x1115964. Every tick: the
-//     orthonormalised camera rotation 0x2508568 (0x67AAE0), then the play queue; ends when it is empty.
-//   PlayTask (0x68E090) - plays the layout (prim player 0x701970, callback 0x68E140) with a stack block: the anchor,
-//     the extents as scale, word +0x14 = 1 (offsets and matrices scaled), depth -(target +0x26) >> 4, the texture
-//     scroll counter -counter (word +0x1C, only its low byte is read), the morph buffer (magic buffer + 0x4FC: 8
-//     bytes below packet arena A); when the layout has finished: the action result of action 0's first target
-//     (ApplyActionResultToTarget 0x506690) and the task ends.
-//   PrimCallback (0x68E140) - one object of the layout: vertex frame / blend (0x701390), rotation (record flag
-//     0x400: 0x701430, else 0x701310), offset and matrix scaled by the block's scale; record flag 0x1000: the
-//     anchor through the camera + the offset through the orthonormalised camera 0x2508568, the rotation composed
-//     with that camera; 0x200: the anchor through the camera + the offset; else the offset + the anchor through
-//     the camera, composed with it; + the camera translation; record scale (scale3DMatrix); fade; then by the
-//     record's object index: 0 / 1 the scrolled-mesh renderer 0x68EB80 (texture windows +0x24 / +0x2C, V scroll
-//     (scroll byte << (object + 3)) & 0x7F wrapping by 0x80), 2 / 4 the plain renderer 0x68E570 (object 2 at twice
-//     the depth), 3 (4 x depth) and the others 0x7043B0; the depth (header +0x18) is added to every OTZ (clamped
-//     at 0) by the module renderers.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// ENTITY / CAMERA WRITES: the root's bounding box (tick 1 only) rebuilds the target's bone matrices (0x5095B0 world
-// matrices, then 0x508C90 from its pose: entity +0x60 animation header's bone buffer); no task writes an entity's
-// position or the camera words (the camera matrix 0x1D97778 is only read); the level change is the engine's
-// ApplyActionResultToTarget.
-// Module globals: 0x2508540..0x25085A8 (caster entity 0x2508540, texture file 0x2508544, magic buffer base 0x2508548,
-// context 0x250854C, root pool 0x2508550 (1 x 0x14), packet cursor 0x2508564, orthonormalised camera 0x2508568,
-// play queue 0x2508588, root queue 0x2508598). The play pool, the morph buffer and the packet arenas are in the
-// magic buffer.
-// NEVER-WRITTEN WORDS: the play block's word +0x1E (only the low byte of +0x1C is read); the callback's matrix pad
-// +0x12 (GTE R33 high half only) and offset word +6 (GTE VZ0 high half only); the anchor's 4th word (the 4th word
-// of 0x571400, GTE VZ0 high half only).
+
+// Effect 272: LV Down
 
 #include "mag_common.h"
 
@@ -63,8 +22,6 @@ namespace ff8fx
 {
 namespace lv27x
 {
-	// MAG_272_sub_68DF50 (shared with LV Up 271): the box (block +0x14 min x y z, +0x1A max x y z) of every vertex of
-	// a battle model through its bone's world matrix
 	void ModelBounds(uint8_t *block, uint8_t *anim_header);
 }
 namespace lv272
@@ -72,38 +29,35 @@ namespace lv272
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x250854C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508548); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2508548); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508564); }
-	inline Mat4x3 &CameraN() { return var<Mat4x3>(0x2508568); }               // orthonormalised camera rotation
-	inline TaskQueue *QPlay() { return (TaskQueue *)0x2508588; }              // pool: magic buffer, 1 x 0x4FC
+	inline Mat4x3 &CameraN() { return var<Mat4x3>(0x2508568); }
+	inline TaskQueue *QPlay() { return (TaskQueue *)0x2508588; }
 
 	static const uint32_t ORIG_RootTask = 0x68DD20;
 	static const uint32_t ORIG_PlayTask = 0x68E090;
-	static const uint32_t MODEL_LAYOUT = 0x111122C;   // prim-model layout data
+	static const uint32_t MODEL_LAYOUT = 0x111122C;
 	static const uint32_t LAYOUT_BYTES = 0x4D0;
-	static const uint32_t NODE_BYTES = 0x4FC;         // play node
-	static const uint32_t MORPH = 0x4FC;              // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x504;            // magic buffer: packet arenas
+	static const uint32_t NODE_BYTES = 0x4FC;
+	static const uint32_t MORPH = 0x4FC;
+	static const uint32_t ARENA_A = 0x504;
 	static const uint32_t ARENA_B = 0x10504;
 	static const void *const SOUND = (const void *)0x1115964;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }     // MAG_017_sub_701310
-	inline void RotationFromAnglesZYX(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); }  // MAG_117_RotationFromAnglesZYX
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesZYX(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }   // GTE_ReadOTZ
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
@@ -112,63 +66,53 @@ namespace lv272
 	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2508550)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		uint8_t action;    // +0x0E action whose first target the next play task takes
-		uint8_t started;   // +0x0F play pool set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct PlayNode // pool of 1 node of 0x4FC bytes (magic buffer)
+	struct PlayNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E (written, never read)
-		uint8_t *entity;   // +0x10 the target's battle entity
-		int16_t anchor[4]; // +0x14 x, y (the box's middle height), z, the 4th word of 0x571400
-		int32_t scale[3];  // +0x1C the box's extents: x = z = the largest, y = the height
-		int32_t pad28;     // +0x28 (cleared, never written)
-		uint8_t layout[LAYOUT_BYTES]; // +0x2C
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		int16_t anchor[4];
+		int32_t scale[3];
+		int32_t pad28;
+		uint8_t layout[LAYOUT_BYTES];
 	};
-	// the prim-player callback's parameter block (a stack block of the play task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 anchor (4th word: GTE VZ0 high half only)
-		int32_t scale[3];  // +0x08
-		int32_t scaled;    // +0x14 1: offsets and matrices scaled by the block's scale
-		int32_t depth;     // +0x18 -(target +0x26) >> 4
-		int16_t scroll;    // +0x1C texture scroll counter (low byte read)
-		int16_t pad1E;     // +0x1E never written, never read
-		uint32_t morph;    // +0x20 blended vertex frames
+		int16_t pos[4];
+		int32_t scale[3];
+		int32_t scaled;
+		int32_t depth;
+		int16_t scroll;
+		int16_t pad1E;
+		uint32_t morph;
 	};
-	struct BoundsBlock // 0x68DEE0's Field_Alloc block (0x20 bytes)
+	struct BoundsBlock
 	{
 		uint32_t pad00;
-		uint8_t *cursor;   // +0x04 model data cursor
-		uint8_t *matrix;   // +0x08 bone world matrix
-		int16_t v[3];      // +0x0C vertex through it
+		uint8_t *cursor;
+		uint8_t *matrix;
+		int16_t v[3];
 		int16_t pad12;
-		int16_t box[6];    // +0x14 min x y z, max x y z
+		int16_t box[6];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(PlayNode) == NODE_BYTES, "LV Down nodes");
 	static_assert(sizeof(PrimArg) == 0x24 && sizeof(BoundsBlock) == 0x20, "LV Down blocks");
 
-	// ------------------------------------------------------------------
-	// Module renderers (header 0x58 bytes, the callback's: +0x00 model, +0x04 vertices, +0x08 fade colour, +0x0C fade,
-	// +0x18 depth added to every OTZ, +0x1C mode, +0x22 V scroll, +0x24 / +0x2C texture windows (+0x32 low byte: the
-	// scroll wrap), +0x34 list cursor, +0x40 OTZ, +0x44 FLAG)
-	// ------------------------------------------------------------------
 	static inline bool OutX(const uint8_t *xy) { const int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
 	static inline bool OutY(const uint8_t *xy) { const int16_t v = *(const int16_t *)xy; return v < 0 || v > 0x6C0; }
 	static uint8_t *&ListCursor(uint8_t *h) { return *(uint8_t **)(h + 0x34); }
 
-	// the OTZ plus the header's depth, clamped at 0
 	static int32_t DepthOTZ(uint8_t *h)
 	{
 		int32_t &z = *(int32_t *)(h + 0x40);
@@ -177,7 +121,6 @@ namespace lv272
 		return z;
 	}
 
-	// GP0(E2) texture window word of the 4 halves at tw (+0 / +2 bytes, +4 / +6 words)
 	static uint32_t TexWindow(const uint8_t *tw)
 	{
 		uint32_t e = (uint32_t)(tw[2] & 0xF8) | 0xFFFE2000u;
@@ -190,7 +133,6 @@ namespace lv272
 		return e;
 	}
 
-	// the texture window prims around a scrolled quad: window +0x24 inserted first, then the quad, then window +0x2C
 	static uint8_t *QuadWindows(const uint8_t *h, uint32_t bucket, uint8_t *pk, uint8_t *p2)
 	{
 		*(uint32_t *)p2 = 0x2000000;
@@ -206,7 +148,6 @@ namespace lv272
 		return p3 + 0xC;
 	}
 
-	// the V coordinates at o[0..3] scrolled by the header's +0x22, wrapping by its byte +0x32 when one passes 0xFF
 	static void ScrollV(const uint8_t *h, uint8_t *pk, const int *o)
 	{
 		const uint32_t scroll = *(const uint16_t *)(h + 0x22);
@@ -229,8 +170,6 @@ namespace lv272
 		pk[o[3]] = (uint8_t)w3;
 	}
 
-	// the screen clip flags of a quad (x 0..0xA00, y 0..0x6C0) read after RTPS of its 4th vertex: false = all four
-	// vertices off one side
 	static bool QuadOnScreen(uint8_t *x0, uint8_t *x1, uint8_t *x2, uint8_t *x3)
 	{
 		uint32_t clip = 0;
@@ -247,8 +186,6 @@ namespace lv272
 		return (clip & 0xF) != 0xF && (clip & 0xF0) != 0xF0;
 	}
 
-	// sub_68EBC0: textured quads (0x18-byte records), fade toward the far colour, V scrolled, between the texture
-	// windows (0x28-byte packets + 2 x 0xC)
 	static uint32_t ScrollFT4(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = ListCursor(h);
@@ -293,8 +230,6 @@ namespace lv272
 		return (uint32_t)pk;
 	}
 
-	// sub_68F030: Gouraud textured quads (0x24-byte records, colours at +0x18..+0x20), fade toward the far colour, V
-	// scrolled, between the texture windows (0x34-byte packets + 2 x 0xC)
 	static uint32_t ScrollGT4(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = ListCursor(h);
@@ -348,7 +283,6 @@ namespace lv272
 		return (uint32_t)pk;
 	}
 
-	// MAG_272_sub_68EB80: the model's textured quads, then (three list counts on) its Gouraud quads
 	static uint32_t ScrolledMesh(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *model = *(uint8_t **)h;
@@ -358,8 +292,6 @@ namespace lv272
 		return ScrollGT4(h, ot, shift, cursor);
 	}
 
-	// sub_68E5D0: textured quads (0x18-byte records), fade toward the far colour, behind a draw mode 0xE1000220
-	// (0x28-byte packets + 8)
 	static uint32_t FlatFT4(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = ListCursor(h);
@@ -407,7 +339,6 @@ namespace lv272
 		return (uint32_t)pk;
 	}
 
-	// sub_68E8C0: Gouraud quads (0x18-byte records, 0x24-byte packets) between the draw modes 0xE1000220 / 0xE1000240
 	static uint32_t GouraudG4(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = ListCursor(h);
@@ -449,7 +380,6 @@ namespace lv272
 		return (uint32_t)pk;
 	}
 
-	// MAG_272_sub_68E570: list 1 (textured quads), list 2 skipped, list 3 (Gouraud quads)
 	static uint32_t PlainMesh(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *m = *(uint8_t **)h;
@@ -462,9 +392,6 @@ namespace lv272
 		return r;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x68E140): one object of the layout
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -500,11 +427,11 @@ namespace lv272
 				*(uint32_t *)(h + 4) = arg->morph;
 			}
 		}
-		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 word only)
+		Mat4x3 m = {};
 		const uint32_t flags = r->flags;
 		if (flags & 0x400) RotationFromAnglesZYX(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		int16_t off[4] = {}; // (4th word never written in the original: GTE VZ0 high half only)
+		int16_t off[4] = {};
 		const int32_t scaled = arg->scaled;
 		if (scaled)
 		{
@@ -521,7 +448,6 @@ namespace lv272
 		if (scaled) Scale3DMatrix(&m, arg->scale);
 		if (flags & 0x1000)
 		{
-			// the anchor through the camera + the offset through the orthonormalised camera, composed with it
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -538,7 +464,6 @@ namespace lv272
 		}
 		else if (flags & 0x200)
 		{
-			// the anchor through the camera + the offset
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -549,7 +474,6 @@ namespace lv272
 		}
 		else
 		{
-			// the offset + the anchor through the camera, composed with it
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -590,7 +514,6 @@ namespace lv272
 			*(int16_t *)(h + 0x2C) = 0;
 			*(int16_t *)(h + 0x30) = 0x100;
 			*(int16_t *)(h + 0x32) = 0x80;
-			// the scroll byte shifted as one byte (shl dl, cl)
 			*(uint16_t *)(h + 0x22) = (uint16_t)((uint8_t)((uint32_t)(uint8_t)arg->scroll << ((obj + 3) & 0x1F)) & 0x7F);
 			cur = ScrolledMesh(h, RenderOT(), 2, PacketCursor());
 		}
@@ -648,7 +571,7 @@ namespace lv27x
 				b->cursor += 2;
 				for (int32_t v = nverts; v; v--)
 				{
-					fn<void (__cdecl *)(const void *)>(0x703FB0)(b->cursor); // GTE_LoadV0_u16
+					fn<void (__cdecl *)(const void *)>(0x703FB0)(b->cursor);
 					GteMVMVA_RotV0Tr();
 					b->cursor += 6;
 					GteStoreIR123(b->v);
@@ -666,7 +589,6 @@ namespace lv27x
 
 namespace lv272
 {
-	// MAG_272_sub_68DEE0: the box (min x y z, max x y z) of the target's model at its current pose
 	static void TargetBounds(uint8_t *entity, int16_t out[6])
 	{
 		BoundsBlock *b = (BoundsBlock *)FieldAlloc(0x20);
@@ -684,9 +606,6 @@ namespace lv272
 		BuildBoneMatricesFromPose(anim);
 	}
 
-	// ------------------------------------------------------------------
-	// Play (0x68E090)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl PlayTask(TaskNode *n)
 	{
 		PlayNode *p = (PlayNode *)n;
@@ -699,8 +618,7 @@ namespace lv272
 		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, p->anchor);
 		arg.scaled = 1;
 		arg.scroll = (int16_t)-p->counter;
-		arg.pad1E = 0; // (never written in the original, never read)
-		// 30 fps layer: see mag272_lv_down_held.inc
+		arg.pad1E = 0;
 		FX_HELD(held_note_play(p);)
 		if (prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) == 0)
 		{
@@ -711,13 +629,9 @@ namespace lv272
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x68DD20)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag272_lv_down_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -774,7 +688,6 @@ namespace lv272
 	{
 		register_port(lv272::ORIG_RootTask, (void *)lv272::RootTask, "272 RootTask", 272);
 		register_port(lv272::ORIG_PlayTask, (void *)lv272::PlayTask, "272 PlayTask", 272);
-		// 30 fps layer: see mag272_lv_down_held.inc
 		FX_HELD(register_mag272_held();)
 	}
 }

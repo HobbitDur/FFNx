@@ -14,39 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 44: Junk (enemy attack 226 of kernel.bin, used by Tonberry King c0m083; MAG_044_*): junk
-// falls from the sky onto the party, bounces and breaks into debris.
-//
-// Structure (setup MAG_044_JUNK 0x6E7AE0 -> _Init 0x6E7B10, not ported; file loader 0x6E7AF0 = the
-// texture file named at 0x13627D8; the setup queues the TIM, keeps the cast context 0x2545104 and
-// the CASTER's entity 0x2545108, starts camera animation 0x1354A30 and the root task):
-//   RootTask (0x6E7B90) - alternates the packet arena (magic buffer + 0x12D4 / + 0x112D4); at
-//     counter 1 sets up four pools in the magic buffer (debris 32 x 0x58 at + 0, items 16 x 0x34 at
-//     + 0xB00, smoke 32 x 0x20 at + 0xE40, one controller of 0x4C at + 0x1240) and the controller
-//     (targets of action 0, their saved positions and their average default effect position, a
-//     random word, the stream state + 0x128C); runs the controller / smoke / item / debris queues
-//     until counter 0x72; at 0x73 loads the battle files 0x168 / 0x169 to + 0x12D4, pumps the
-//     loader every tick and ends when it is done.
-//   ControlTask (0x6E7E00) - sound 0x1354B7C at 0; smoke bursts at the caster's anchors 0x17 / 0x15
-//     on counters 1, 8, 15, 22, 29 (word 0x1D97712 = 150 each time); counters 3..37: the targets
-//     bounce (entity +0x1E = saved y - amplitude * sin, a 7-tick cycle with a new random amplitude,
-//     at its end a smoke burst at the target and chain transformation 4); counters 15..46 every 3
-//     ticks: an item of kind (random + n / 4) % 6 around the targets' average position; counter 62:
-//     the big item (kind 6) above every target; ends at 100 (target positions restored).
-//   SmokeTask (0x6E82C0) - a smoke sprite (sequence 0x1354B80, frame = 13 - life) through
-//     TransformCameraByShadowRotation, draws THEN drifts by its velocity; 13 ticks.
-//   ItemTask (0x6E84D0) - a junk model (kind table 0x1362730, 24 bytes: models, model count,
-//     smoke count / spread / base) drawn by Effect_RenderPrimModel 0x572200 (fading out over its
-//     last 3 ticks), THEN falls (gravity 0x32); at the floor it bounces (speed -1/3): on its target
-//     (the big item) debris (8 x 0x6E8810), the damage of that target, then a slow drift; on the
-//     floor a smoke burst.
-//   DebrisTask (0x6E8810) - after a delay, the prim-model layout 0x1354CE0 played (0x701970) at a
-//     fixed position with a turning Y rotation (local copy 0x6E8A70 of 0x701270); PartCallback
-//     (0x6E88B0) draws one object (0x701310 rotation, vertex frames blended into magic buffer +
-//     0x212D4, scale, colour fade) through 0x572200.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2545100..0x2545184 (texture file, context, caster entity, the five queues, root
-// pool 0x2545160, packet cursor 0x2545174, magic buffer base 0x2545180).
+// Effect 44: Junk: junk
 
 #include "mag_common.h"
 
@@ -57,16 +25,15 @@ namespace junk044
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2545104); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2545108); }          // caster entity (setup)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2545108); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2545174); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2545180); }           // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2545180); }
 	inline TaskQueue *QDebris() { return (TaskQueue *)0x2545110; }
 	inline TaskQueue *QItems() { return (TaskQueue *)0x2545120; }
 	inline TaskQueue *QSmoke() { return (TaskQueue *)0x2545130; }
 	inline TaskQueue *QControl() { return (TaskQueue *)0x2545140; }
-	inline int16_t &BattleWord1D97712() { return var<int16_t>(0x1D97712); }   // set to 150 with every smoke wave
+	inline int16_t &BattleWord1D97712() { return var<int16_t>(0x1D97712); }
 
 	static const uint32_t ORIG_RootTask = 0x6E7B90;
 	static const uint32_t ORIG_ControlTask = 0x6E7E00;
@@ -74,102 +41,90 @@ namespace junk044
 	static const uint32_t ORIG_ItemTask = 0x6E84D0;
 	static const uint32_t ORIG_DebrisTask = 0x6E8810;
 	static const void *const SOUND_Junk = (const void *)0x1354B7C;
-	static const uint32_t SEQ_Smoke = 0x1354B80;      // smoke sprite sequence (+8: frame count word)
-	static const uint32_t MODEL_Debris = 0x1354CE0;   // prim-model layout data (0x40-byte layout)
-	static const uint32_t ITEM_KINDS = 0x1362730;     // 7 x 24 bytes
+	static const uint32_t SEQ_Smoke = 0x1354B80;
+	static const uint32_t MODEL_Debris = 0x1354CE0;
+	static const uint32_t ITEM_KINDS = 0x1362730;
 
-	// engine functions not in fx_port.h / mag_common.h
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone` (x, y, z)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// battle file streaming (0x5341D0 load a file, 0x534210 pump, 0x5342C0 still busy)
 	inline void StreamLoad(int32_t id, uint32_t dst, int32_t n) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, n); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
 	inline int32_t StreamBusy(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct ControlTarget // 16 bytes
+	struct ControlTarget
 	{
-		uint8_t *entity;   // +0x00
-		uint32_t save1c;   // +0x04 entity +0x1C (x, y) at the start
-		uint32_t save20;   // +0x08 entity +0x20 (z, +0x22)
-		int16_t amp;       // +0x0C bounce amplitude
+		uint8_t *entity;
+		uint32_t save1c;
+		uint32_t save20;
+		int16_t amp;
 		int16_t pad;
 	};
-	struct ControlNode // pool of 1 node of 0x4C bytes
+	struct ControlNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t rnd;       // +0x10 random word (item kinds)
+		int16_t rnd;
 		int16_t pad12;
-		ControlTarget tg[3]; // +0x14
-		int16_t avg[3];    // +0x44 average default effect position of the targets
+		ControlTarget tg[3];
+		int16_t avg[3];
 		int16_t pad4A;
 	};
-	struct SmokeNode // pool of 32 nodes of 0x20 bytes
+	struct SmokeNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t life;      // +0x12 13..1
-		int16_t vel[3];    // +0x14
+		int16_t pos[3];
+		int16_t life;
+		int16_t vel[3];
 		int16_t pad1A;
-		int16_t rot;       // +0x1C
+		int16_t rot;
 		int16_t pad1E;
 	};
-	struct ItemNode // pool of 16 nodes of 0x34 bytes
+	struct ItemNode
 	{
 		TaskNode hdr;
-		int16_t x, y, z;   // +0x0C
-		int16_t life;      // +0x12
-		int16_t vx, vy, vz; // +0x14
+		int16_t x, y, z;
+		int16_t life;
+		int16_t vx, vy, vz;
 		int16_t pad1A;
-		int16_t rot[3];    // +0x1C
+		int16_t rot[3];
 		int16_t pad22;
-		int16_t drot[2];   // +0x24 rotation x / y per tick
+		int16_t drot[2];
 		uint8_t pad28[4];
-		const uint8_t *kind; // +0x2C kind (ITEM_KINDS entry)
-		uint8_t *entity;   // +0x30 target hit on the first bounce (0 after it)
+		const uint8_t *kind;
+		uint8_t *entity;
 	};
-	struct DebrisNode // pool of 32 nodes of 0x58 bytes
+	struct DebrisNode
 	{
 		TaskNode hdr;
-		int16_t x, y, z;   // +0x0C
-		int16_t delay;     // +0x12 ticks before the first draw
-		int16_t angle;     // +0x14 Y rotation
-		int16_t speed;     // +0x16 per tick
-		uint8_t layout[0x40]; // +0x18 prim-model layout (prim::Layout: data, frame, state)
+		int16_t x, y, z;
+		int16_t delay;
+		int16_t angle;
+		int16_t speed;
+		uint8_t layout[0x40];
 	};
-	// the prim-player callback's parameter block (a stack block of the debris task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 camera * Y rotation at the debris position
-		uint32_t morph;    // +0x20 blended vertex frames (magic buffer + 0x212D4)
+		Mat4x3 m;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(ControlNode) == 0x4C && sizeof(SmokeNode) == 0x20, "Junk nodes");
 	static_assert(sizeof(ItemNode) == 0x34 && sizeof(DebrisNode) == 0x58 && sizeof(PrimArg) == 0x24, "Junk nodes");
 
-	// ------------------------------------------------------------------
-	// Module helpers
-	// ------------------------------------------------------------------
-	// 0x6E8A70 (copy of MAG_063_sub_701270): rotation about Y by -angle (3x3 and pad; translation not written)
 	static void RotationY(int16_t angle, Mat4x3 *out)
 	{
 		const int32_t a = -(int32_t)angle;
@@ -185,7 +140,6 @@ namespace junk044
 		m[8] = (int16_t)c;
 	}
 
-	// 0x6E87A0: the damage of every target record of action 0 that is this entity
 	static void DamageEntity(uint8_t *entity)
 	{
 		const int32_t slot = (int32_t)((uint32_t)entity - 0x1D972C0u) / 0x9C;
@@ -196,7 +150,6 @@ namespace junk044
 		}
 	}
 
-	// smoke burst: count smoke tasks on a circle of `radius` around (x, z), rising, life 13
 	static void SmokeOne(SmokeNode *s, int16_t x, int16_t z, int32_t radius, int32_t spread, int32_t base)
 	{
 		const int32_t a = CrtRand();
@@ -213,7 +166,6 @@ namespace junk044
 		s->rot = (int16_t)(CrtRand() * spread / 32768 + base);
 	}
 
-	// 0x6E81A0: smoke burst at the caster's effect anchor `bone`
 	static void SmokeAtCaster(int32_t count, int32_t bone, int32_t radius, int32_t spread, int32_t base)
 	{
 		int16_t pos[4];
@@ -226,7 +178,6 @@ namespace junk044
 		}
 	}
 
-	// 0x6E8360: smoke burst around pos (x = pos[0], z = pos[2])
 	static void SmokeAt(int32_t count, const int16_t *pos, int32_t radius, int32_t spread, int32_t base)
 	{
 		while (count-- != 0)
@@ -237,7 +188,6 @@ namespace junk044
 		}
 	}
 
-	// 0x6E8470: a falling item of `kind` at (x, -4096, z), life 20
 	static ItemNode *NewItem(int32_t x, int32_t z, uint8_t *entity, int32_t kind)
 	{
 		ItemNode *it = (ItemNode *)AddTaskToQueue(QItems(), ORIG_ItemTask);
@@ -254,10 +204,6 @@ namespace junk044
 		return it;
 	}
 
-	// ------------------------------------------------------------------
-	// Draws
-	// ------------------------------------------------------------------
-	// smoke sprite (0x6E82C0 draw part)
 	static void DrawSmoke(const SmokeNode *s)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -269,7 +215,6 @@ namespace junk044
 		FieldFree(0xB4);
 	}
 
-	// item model (0x6E84D0 draw part): matrix 0x78 header (+0x20 = prim-model header)
 	static void DrawItem(const ItemNode *it)
 	{
 		const uint8_t *kind = it->kind;
@@ -296,9 +241,6 @@ namespace junk044
 		FieldFree(0x78);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6E88B0): one debris object
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -354,12 +296,10 @@ namespace junk044
 			*(uint32_t *)(h + 0x1C) = 0x20C0;
 			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
 		}
-		// +0x18 (depth offset) is not written: the scratch word under the header
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
 
-	// debris arg block (0x6E8810): Y rotation by angle at (x, y, z), through the camera
 	static void DebrisMatrix(const DebrisNode *d, int16_t angle, PrimArg *arg)
 	{
 		RotationY(angle, &arg->m);
@@ -379,9 +319,6 @@ namespace ff8fx
 {
 namespace junk044
 {
-	// ------------------------------------------------------------------
-	// Debris (0x6E8810)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *d = (DebrisNode *)n;
@@ -390,7 +327,6 @@ namespace junk044
 			PrimArg arg;
 			DebrisMatrix(d, d->angle, &arg);
 			arg.morph = TexBase() + 0x212D4;
-			// 30 fps layer: see mag044_junk_held.inc
 			FX_HELD(held_note_debris(d, &arg);)
 			if (prim::play((prim::Layout *)d->layout, PartCallback, (int)&arg, 0) == 0) return TASK_END;
 		}
@@ -399,13 +335,9 @@ namespace junk044
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Item (0x6E84D0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ItemTask(TaskNode *n)
 	{
 		ItemNode *it = (ItemNode *)n;
-		// 30 fps layer: see mag044_junk_held.inc
 		FX_HELD(held_note_item(it);)
 		DrawItem(it);
 		it->life--;
@@ -419,7 +351,6 @@ namespace junk044
 		if ((int32_t)it->y >= floor)
 		{
 			it->y = (int16_t)(it->y - vy);
-			// vy * -1/3 (0x55555555 magic, truncated toward zero)
 			int32_t q = (int32_t)(((int64_t)0x55555555 * (int32_t)vy) >> 32);
 			q -= (int32_t)vy;
 			q >>= 1;
@@ -466,13 +397,9 @@ namespace junk044
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Smoke (0x6E82C0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SmokeTask(TaskNode *n)
 	{
 		SmokeNode *s = (SmokeNode *)n;
-		// 30 fps layer: see mag044_junk_held.inc
 		FX_HELD(held_note_smoke(s);)
 		DrawSmoke(s);
 		s->life--;
@@ -483,9 +410,6 @@ namespace junk044
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Controller (0x6E7E00)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ControlTask(TaskNode *n)
 	{
 		ControlNode *c = (ControlNode *)n;
@@ -508,7 +432,6 @@ namespace junk044
 		default:
 			break;
 		}
-		// the targets bounce: counters 3..37, a cycle of 7 ticks
 		const uint32_t b = (uint32_t)((int32_t)c->counter - 3);
 		if (b < 0x23)
 		{
@@ -530,7 +453,6 @@ namespace junk044
 				}
 			}
 		}
-		// items: counters 15..46, every 3 ticks
 		const uint32_t f = (uint32_t)((int32_t)c->counter - 0xF);
 		if (f < 0x20 && f % 3 == 0)
 		{
@@ -549,7 +471,6 @@ namespace junk044
 				it->drot[1] = (int16_t)((CrtRand() & 0xFF) - 0x80);
 			}
 		}
-		// the big item above every target
 		if (c->counter == 0x3E)
 		{
 			for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
@@ -583,13 +504,9 @@ namespace junk044
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6E7B90)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag044_junk_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -658,7 +575,6 @@ namespace junk044
 		register_port(junk044::ORIG_SmokeTask, (void *)junk044::SmokeTask, "J044 SmokeTask", 44);
 		register_port(junk044::ORIG_ItemTask, (void *)junk044::ItemTask, "J044 ItemTask", 44);
 		register_port(junk044::ORIG_DebrisTask, (void *)junk044::DebrisTask, "J044 DebrisTask", 44);
-		// 30 fps layer: see mag044_junk_held.inc
 		FX_HELD(register_mag044_held();)
 	}
 }

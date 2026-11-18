@@ -14,39 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 38: Quake (spell, MAG_038_*).
-//
-// Structure (setup MAG_038_QUAKE 0x8D8510, file loader 0x575620; code 0x8D8510..0x8DC530). The
-// module is built on the shared effect library that follows it (0x8DC530.., "Cure emitter"
-// helpers: Effect_AddTaskAndInitFromCtx links a child to its parent, +0x28 = live children,
-// +0x29 = phase index into a table of phase functions, +0x24 = tick counter, +0x26 bit0 = done):
-//   Root (0x8D8610) - alternates the packet arena, spawns one emitter per action (phase 1/2),
-//     runs the four effect queues, ends when they are empty.
-//   Emitter (0x8D8720) - follows the target; phase 0 spawns the ground sequence + the camera
-//     shake task when the battle stage has a ground group (stage slot 1 visible with objects),
-//     else the fallback task (sounds + shake only); phase 1 applies the damage.
-//   Ground sequence (0x8D8800) - 12 phases. Every phase up to 7 re-renders the stage ground
-//     group (0x8D8A40 -> 0x8D8B10) through the module's own mesh: every triangle / quad of the
-//     ground is split into sub-triangles (one per edge + the centroid), each tagged with one of 10
-//     zones (a 16 x 16 zone map of the ground, 0x1642568); the zone ripples (sin wave, then fall)
-//     lift the sub-triangles, cracks open along zone borders (crack lines, then side walls), rocks,
-//     dust and chips are thrown, the party / enemies are lifted and dropped. The mesh state
-//     machine (0x279299E): 0 build, 1 find zone borders (16 ticks), 2 wait for the quake, 3 crack
-//     lines grow (13 ticks), 4 crack walls grow + chips (12 ticks), 5 ripples + rocks + dust
-//     (40 ticks), 6 ripples settle, 7 done (stage ground visible again).
-//     Phases: 1 build, 2 wait 16, 3 the side opposite the targets (the caster's) drawn with the
-//     stage light, 4 it fades to black + quake sound, 5 it is hidden and the targets' shadows go
-//     off, 6 wait for the ripples + second sound, 7 the targets bounce on the ripples,
-//     8 restore flags, 9 fade back, 10 restore colours and end.
-//   Camera shake (0x8DC250) - camera shake word 0x1D97712 from table A (ticks 3..), then table B
-//     while the ripples run.
-//   Debris (0x8DA900) - a ground piece thrown up by a ripple: spins, falls back, two triangles.
-//   Rock (0x8DB030) / dust (0x8DB410) / chip (0x8DB630) - sprite flipbooks thrown from the ground.
-//   Fallback (0x8DC360) - no ground group: two sounds and table B shake.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x278C8E0..0x2792E60 (packet cursor, zone ripples, saved entity flags /
-// positions, task pools, mesh state, packet templates) + the magic buffer (packet arenas, mesh
-// entries 0x70 bytes each at +0x28000, vertex zone masks at +0x33600).
+// Effect 38: Quake
 
 #include "mag_common.h"
 
@@ -57,9 +25,6 @@ namespace quake038
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// raw memory access (node / entry layouts follow the listings offset by offset)
-	// ------------------------------------------------------------------
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline int8_t &S8(uint32_t p, int32_t o) { return AT<int8_t>(p, o); }
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
@@ -68,58 +33,54 @@ namespace quake038
 	inline int32_t &S32(uint32_t p, int32_t o) { return AT<int32_t>(p, o); }
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
-	// --- module globals ---
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x278C8E0); }
-	inline int16_t &WaveTick() { return var<int16_t>(0x278C8E4); }     // state 1 tick (0..16)
-	inline int16_t &HalfZ() { return var<int16_t>(0x278C8E6); }        // zone map half extents
+	inline int16_t &WaveTick() { return var<int16_t>(0x278C8E4); }
+	inline int16_t &HalfZ() { return var<int16_t>(0x278C8E6); }
 	inline int16_t &HalfX() { return var<int16_t>(0x278C8E8); }
-	inline int16_t &CrackTick() { return var<int16_t>(0x278C8EA); }    // state 3 tick
-	inline int16_t &PrimCount() { return var<int16_t>(0x278C8EC); }    // ground prims (last id)
-	static const uint32_t SAVED_FLAGS = 0x278C8F0;                      // 7 x u32: entity flags at phase 3
-	static const uint32_t ZONES = 0x278C910;                            // 10 x 16 bytes (see ZoneReset)
-	inline int16_t &TargetsParty() { return var<int16_t>(0x278C9B0); } // 1: the first target is a party member
-	inline int16_t &FallTick() { return var<int16_t>(0x2792B40); }      // state 5 tick
+	inline int16_t &CrackTick() { return var<int16_t>(0x278C8EA); }
+	inline int16_t &PrimCount() { return var<int16_t>(0x278C8EC); }
+	static const uint32_t SAVED_FLAGS = 0x278C8F0;
+	static const uint32_t ZONES = 0x278C910;
+	inline int16_t &TargetsParty() { return var<int16_t>(0x278C9B0); }
+	inline int16_t &FallTick() { return var<int16_t>(0x2792B40); }
 	inline uint32_t &Arena1() { return var<uint32_t>(0x2792B44); }
 	inline uint32_t &Arena0() { return var<uint32_t>(0x2792B48); }
 	inline int16_t &DebrisCount() { return var<int16_t>(0x279299C); }
-	inline int16_t &State() { return var<int16_t>(0x279299E); }         // mesh state 0..7
-	static const uint32_t CRACK_TEMPLATE = 0x27929A0;                    // POLY_FT4 template (crack lines)
-	inline uint32_t &SeqCtx() { return var<uint32_t>(0x27929C8); }      // ground sequence node
+	inline int16_t &State() { return var<int16_t>(0x279299E); }
+	static const uint32_t CRACK_TEMPLATE = 0x27929A0;
+	inline uint32_t &SeqCtx() { return var<uint32_t>(0x27929C8); }
 	inline int16_t &VertexBase() { return var<int16_t>(0x2792D68); }
 	inline int16_t &ChipCount() { return var<int16_t>(0x2792D6A); }
 	inline int16_t &RockCount() { return var<int16_t>(0x2792D6C); }
 	inline int16_t &ZoneOffsetZ() { return var<int16_t>(0x2792D6E); }
-	inline int16_t &RippleTick() { return var<int16_t>(0x2792D70); }   // state 4 tick
-	static const uint32_t SAVED_POS = 0x2792D78;                         // 7 x 0x14: entity positions
+	inline int16_t &RippleTick() { return var<int16_t>(0x2792D70); }
+	static const uint32_t SAVED_POS = 0x2792D78;
 	inline int16_t &BoundXHi() { return var<int16_t>(0x2792E04); }
 	inline int16_t &BoundXLo() { return var<int16_t>(0x2792E06); }
-	inline uint32_t &VertexZones() { return var<uint32_t>(0x2792E0C); } // per vertex: u16 zone mask, u16 count
+	inline uint32_t &VertexZones() { return var<uint32_t>(0x2792E0C); }
 	inline int16_t &DustCount() { return var<int16_t>(0x2792E18); }
-	inline uint32_t &Entries() { return var<uint32_t>(0x2792E1C); }     // 0x70-byte mesh entries
+	inline uint32_t &Entries() { return var<uint32_t>(0x2792E1C); }
 	inline int16_t &QuakeGo() { return var<int16_t>(0x2792E20); }
 	inline int16_t &BoundZHi() { return var<int16_t>(0x2792E2C); }
 	inline int16_t &BoundZLo() { return var<int16_t>(0x2792E2E); }
-	static const uint32_t WALL_TEMPLATE = 0x2792E38;                     // POLY_FT4 template (crack walls)
+	static const uint32_t WALL_TEMPLATE = 0x2792E38;
 
-	// queues (TaskQueue headers)
 	static const uint32_t Q_DEBRIS = 0x278E538, Q_SPRITES = 0x2792988, Q_EMITTER = 0x27929D0, Q_SEQUENCE = 0x2792B50;
 
-	// exe data
-	static const uint32_t ZONE_MAP = 0x1642568;       // 16 x 32 bytes: zone of a ground cell
-	static const uint32_t ZONE_MAP_B = 0x1642968;     // 16 x 32 bytes: crack delay of a ground cell
-	static const uint32_t WALL_DEPTH = 0x164253C;     // s16 per crack-wall step
-	static const uint32_t STEP_SHADE = 0x1642558;     // u8 grey level per crack step
-	static const uint32_t SHAKE_A = 0x164364C;        // s16 per tick, 0x7F ends
-	static const uint32_t SHAKE_B = 0x1643678;        // s16 x 16
+	static const uint32_t ZONE_MAP = 0x1642568;
+	static const uint32_t ZONE_MAP_B = 0x1642968;
+	static const uint32_t WALL_DEPTH = 0x164253C;
+	static const uint32_t STEP_SHADE = 0x1642558;
+	static const uint32_t SHAKE_A = 0x164364C;
+	static const uint32_t SHAKE_B = 0x1643678;
 	static const uint32_t SEQ_Rock = 0x16434A0, SEQ_Dust = 0x164335C, SEQ_Chip = 0x1643218;
 	static const void *const SOUND_Rumble = (const void *)0x1642D68;
 	static const void *const SOUND_Quake = (const void *)0x1642D6C;
 
-	static const uint32_t STAGE_GROUND = 0x1D989C0;   // stage slot 1: skeleton, objects, animation
+	static const uint32_t STAGE_GROUND = 0x1D989C0;
 	static const uint32_t ENTITY0 = 0x1D972C0, ENTITY3 = 0x1D97494, ENTITY_SIZE = 0x9C;
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// --- task / phase functions ---
 	static const uint32_t ORIG_Root = 0x8D8610;
 	static const uint32_t ORIG_Emitter = 0x8D8720;
 	static const uint32_t ORIG_Sequence = 0x8D8800;
@@ -130,22 +91,18 @@ namespace quake038
 	static const uint32_t ORIG_Shake = 0x8DC250;
 	static const uint32_t ORIG_Fallback = 0x8DC360;
 
-	// --- engine / effect library functions (original addresses) ---
-	// effect library (0x8DC530..): parent-linked task spawn, emitter anchor, matrices
 	inline void ReleaseLinkedTask(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(0x8DC530)(n); }
 	inline uint32_t AddLinkedTask(uint32_t q, uint32_t task, int32_t size, uint32_t parent) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x8DC540)(q, task, size, parent); }
 	inline void EmitterUpdatePos(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(0x8DC610)(n); }
 	inline void EmitterComputeBounds(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(0x8DC870)(n); }
 	inline void UpdateTargetPosFromBones(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(0x8DC740)(n); }
 	inline void CopyMidpointFromSource(uint32_t n, void *out) { fn<void (__cdecl *)(uint32_t, void *)>(0x8DC700)(n, out); }
-	inline void MatrixUnit(void *m) { fn<void (__cdecl *)(void *)>(0x8DD770)(m); }                        // MAG_022_sub_8DD770
-	inline void MatrixRotY(void *m, int32_t a) { fn<void (__cdecl *)(void *, int32_t)>(0x8DD8A0)(m, a); } // MAG_022_sub_8DD8A0
-	inline void MatrixRotX(void *m, int32_t a) { fn<void (__cdecl *)(void *, int32_t)>(0x8DD7E0)(m, a); } // sub_8DD7E0
-	// battle
+	inline void MatrixUnit(void *m) { fn<void (__cdecl *)(void *)>(0x8DD770)(m); }
+	inline void MatrixRotY(void *m, int32_t a) { fn<void (__cdecl *)(void *, int32_t)>(0x8DD8A0)(m, a); }
+	inline void MatrixRotX(void *m, int32_t a) { fn<void (__cdecl *)(void *, int32_t)>(0x8DD7E0)(m, a); }
 	inline void ReadAnimation(uint32_t header, uint32_t cmd, int32_t a) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(0x509440)(header, cmd, a); }
 	inline void ChainTransformationConditional(uint32_t entity, int32_t kind) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x505CE0)(entity, kind); }
 	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(dx, dz); }
-	// GTE
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
@@ -159,12 +116,8 @@ namespace quake038
 	inline void GteSetBackgroundVector(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DCF0)(a, b, c); }
 	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
 
-	// OT slot of an OTZ word (bucket list base + (otz >> shift) words)
 	inline uint32_t OtSlot(uint32_t ot, uint32_t otz, int shift) { return ot + (otz >> shift) * 4; }
 
-	// an effect-library node: +0x0C cast context, +0x10 root, +0x18 parent, +0x24 ticks, +0x26
-	// flags (bit0 done, bit2 hidden), +0x28 live children, +0x29 phase, +0x2A action, +0x2D first
-	// target slot
 	inline int PhaseOf(uint32_t n) { return S8(n, 0x29); }
 	inline void NextPhase(uint32_t n) { U8(n, 0x29) = (uint8_t)(U8(n, 0x29) + 1); }
 	static uint32_t EndCheck(uint32_t n)
@@ -181,12 +134,8 @@ namespace quake038
 	inline uint32_t Entry(int32_t id) { return Entries() + (uint32_t)(int16_t)id * 0x70; }
 	inline uint32_t EntityAt(int slot) { return ENTITY0 + ENTITY_SIZE * slot; }
 
-	// the ground sub-triangle drawn for edge k of a prim: its three vertex copies (edge ends + the
-	// prim's centroid) lifted by the zone height
 	struct EdgeVerts { int16_t v[12]; };
 
-	// uninitialised stack words the original reads (see Ground_8D8B10): the high halves of the
-	// dwords it copies from its vector locals come from older frames at the same depth
 	struct StackJunk { uint16_t w6, wA; };
 }
 }
@@ -199,12 +148,6 @@ namespace ff8fx
 {
 namespace quake038
 {
-	// ==================================================================
-	// zone ripples (10 records of 16 bytes at 0x278C910):
-	//   +0 zone index, +2 height (drawn lift, <= 0 = up), +4 angle, +6 angle speed, +8 amplitude,
-	//   +0xA phase (0 rise along sin, 1 fall), +0xC fall speed
-	// ==================================================================
-	// sub_8DA5B0: reset a zone (random speed / amplitude by zone)
 	static void ZoneReset(uint32_t z)
 	{
 		int32_t kind = S16(z, 0);
@@ -235,7 +178,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8DA580: every zone gets its index and a reset
 	static void ZonesInit()
 	{
 		for (int i = 0; i < 10; i++)
@@ -246,8 +188,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8DA680: rise along sin(angle) * amplitude up to angle 0x400, then fall back (a zone that
-	// lands is reset)
 	static void ZonesUpdate()
 	{
 		for (int i = 0; i < 10; i++)
@@ -276,7 +216,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8DA710: every lifted zone falls back to 0; 1 when all are down
 	static int32_t ZonesSettle()
 	{
 		int32_t all = 1;
@@ -294,8 +233,6 @@ namespace quake038
 
 	inline int16_t ZoneHeight(int zone) { return S16(ZONES + 0x10 * zone, 2); }
 
-	// sub_8D9A80 / sub_8D9B30: ground cell of (x, z) (clamped to the half extents, 16 x 16 cells)
-	// looked up in a 16 x 32 byte map
 	static uint16_t ZoneLookup(uint32_t map, int32_t x, int32_t z)
 	{
 		int16_t hx = HalfX();
@@ -313,17 +250,6 @@ namespace quake038
 		return U8(map, (int16_t)row * 32 + (int16_t)col);
 	}
 
-	// ==================================================================
-	// mesh entries (0x70 bytes, [0x2792E1C] + id * 0x70):
-	//   +0x00 vertices (x, y, z, pad) x 4; a triangle keeps its centroid in slot 3, a quad in
-	//         slot 4 (+0x20)
-	//   +0x28 colour + code 0x24, +0x2C colour * 3 / 5 + code 0x2C, +0x30 tpage, +0x32 clut
-	//   +0x34 vertex ids (4), then prim id + 0x190 (the centroid's id)
-	//   +0x40 crack wall step per (edge, side) (3 x 4), +0x4C spawn guard bytes
-	//   +0x58 zone per edge, +0x5C crack delay per edge, +0x60 border bits per edge (bit m: side m)
-	//   +0x64 u per vertex slot, +0x69 v per vertex slot, +0x6E 1 triangle / 2 quad
-	// ==================================================================
-	// sub_8D9380: triangle (20-byte colour triangle of the stage object) into entry `id`
 	static void BuildTriangle(int32_t id, uint32_t vtx, uint32_t poly)
 	{
 		uint32_t e = Entry(id);
@@ -361,7 +287,6 @@ namespace quake038
 		U8(e, 0x2F) = 0x2C;
 	}
 
-	// sub_8D90A0: quad (24-byte colour quad) into entry `id`
 	static void BuildQuad(int32_t id, uint32_t vtx, uint32_t poly)
 	{
 		uint32_t e = Entry(id);
@@ -404,8 +329,6 @@ namespace quake038
 		U8(e, 0x2F) = 0x2C;
 	}
 
-	// sub_8D9950: zone and crack delay of edge k (cell of the centroid of vertices a, b, n); the
-	// three vertices get the zone's bit in their mask (a new bit also counts the vertex)
 	static void TagEdge(int32_t id, int32_t k, int32_t a, int32_t b, int32_t n)
 	{
 		uint32_t e = Entry(id);
@@ -432,8 +355,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8D9730: does prim j share the vertex pair (lo, hi) on an edge of another zone than `val`?
-	// marks border bit `bit` on edge k of prim id and the matching side of j's edge
 	static int32_t MatchEdge(int32_t id, int32_t j, uint16_t val, int16_t lo, int16_t hi, int32_t k, int32_t bit)
 	{
 		uint32_t ei = Entry(id), ej = Entry(j);
@@ -494,8 +415,6 @@ namespace quake038
 		return found;
 	}
 
-	// sub_8D9640: side `bit` (vertices p, q) of edge k of prim id: when both vertices touch
-	// several zones, find the prim sharing that side in another zone
 	static void FindBorder(int32_t id, int32_t p, int32_t q, int32_t k, int32_t bit)
 	{
 		uint32_t e = Entry(id);
@@ -518,7 +437,6 @@ namespace quake038
 			if (MatchEdge(id, j, val, lo, hi, k, bit) == 1) return;
 	}
 
-	// sub_8D95E0: the prims whose id matches the state-1 tick (id % 16) look for their borders
 	static void FindBorders(int32_t id, int32_t k, int32_t a, int32_t b, int32_t n)
 	{
 		if ((int16_t)id % 16 != WaveTick()) return;
@@ -527,17 +445,12 @@ namespace quake038
 		FindBorder(id, a, n, k, 2);
 	}
 
-	// ==================================================================
-	// ground drawing
-	// ==================================================================
-	// FT4 culled when all four corners are off to the right and below (unsigned >= 0xA00, >= 0x780)
 	static bool OffScreen4(uint32_t p)
 	{
 		return U16(p, 8) >= 0xA00 && U16(p, 0x10) >= 0xA00 && U16(p, 0x18) >= 0xA00 && U16(p, 0x20) >= 0xA00
 			&& U16(p, 0xA) >= 0x780 && U16(p, 0x12) >= 0x780 && U16(p, 0x1A) >= 0x780 && U16(p, 0x22) >= 0x780;
 	}
 
-	// sub_8DA3E0: side wall under a raised edge (p1 - p2 at the zone height h, bottom at +16)
 	static uint32_t RaisedWall(uint32_t e, uint32_t cur, uint32_t ot, const int16_t *p1, const int16_t *p2, int32_t i1, int32_t i2, int32_t h)
 	{
 		int16_t *w = (int16_t *)FieldAlloc(0x20);
@@ -584,8 +497,6 @@ namespace quake038
 		return cur;
 	}
 
-	// sub_8D9F70: crack line along a border side (pA - pB), widened 0xC0 across the side, grows
-	// once the state-3 tick passes the edge's crack delay; shade of the side's wall step (read by the caller)
 	static uint32_t CrackLine(uint32_t e, uint32_t cur, const int16_t *pA, const int16_t *pB, int32_t k, int16_t tick, uint8_t step)
 	{
 		uint32_t ot = RenderOT44();
@@ -645,8 +556,6 @@ namespace quake038
 		return cur + 0x28;
 	}
 
-	// sub_8DB580: a chip thrown from the middle of a growing wall's top edge (1 in 4, while the
-	// state-4 tick is below 12); the guard byte is never raised (the chip decrements the next one)
 	static void SpawnChip(const int16_t *pA, const int16_t *pB, uint32_t guard)
 	{
 		uint32_t ctx = SeqCtx();
@@ -662,13 +571,10 @@ namespace quake038
 		U32(n, 0xA8) = guard + 1;
 	}
 
-	// the drawing part of sub_8DA200: wall under a crack side at step `step` (depth offset of the
-	// step, shade of the next step); returns the cursor, *drawn when inserted
 	static uint32_t CrackWallDraw(uint32_t e, uint32_t cur, const int16_t *pA, const int16_t *pB, uint8_t step, int16_t *w, bool *drawn)
 	{
 		uint32_t ot = RenderOT44();
 		*drawn = false;
-		// w: pA lowered, pB lowered, pA, pB
 		ff8fx::copy<(8)>(w + 8, pA);
 		ff8fx::copy<(8)>(w + 12, pB);
 		ff8fx::copy<(8)>(w, pA);
@@ -705,8 +611,6 @@ namespace quake038
 		return cur + 0x28;
 	}
 
-	// sub_8DA200: crack wall of side m of edge k: one step deeper every tick (up to 13 steps)
-	// while the state-4 tick runs; a drawn wall may throw a chip
 	static uint32_t CrackWall(uint32_t e, uint32_t cur, const int16_t *pA, const int16_t *pB, int32_t k, int32_t m)
 	{
 		if (RippleTick() == 0) return cur;
@@ -714,7 +618,6 @@ namespace quake038
 		uint8_t step = U8(slot, 0x40);
 		if (step > 0xC) return cur;
 		U8(slot, 0x40) = (uint8_t)(step + 1);
-		// 30 fps layer: see mag038_quake_held.inc
 		FX_HELD(held_note_wall(m, step);)
 		int16_t w[16];
 		bool drawn;
@@ -723,8 +626,6 @@ namespace quake038
 		return cur;
 	}
 
-	// the drawing part of sub_8D9BE0 once the zones are raised (state >= 5): the sub-triangle,
-	// then the side walls along its border sides
 	static uint32_t RaisedEdge(uint32_t e, int32_t k, int32_t a, int32_t b, int32_t n, const int16_t *v, int32_t h, uint32_t ot, uint32_t cur)
 	{
 		GteLoadV012(v, v + 4, v + 8);
@@ -764,8 +665,6 @@ namespace quake038
 		return cur;
 	}
 
-	// the crack part of sub_8D9BE0 (states 3 and 4): crack lines along the border sides, and
-	// in state 4 the growing walls
 	static uint32_t CrackEdge(uint32_t e, int32_t k, const int16_t *v, int16_t tick, uint32_t cur, bool walls)
 	{
 		if (U8(e, k + 0x60) & 1) cur = CrackLine(e, cur, v + 4, v, k, tick, U8(e, 3 * k + 0x40));
@@ -778,7 +677,6 @@ namespace quake038
 		return cur;
 	}
 
-	// sub_8D9BE0: edge k (vertex slots a, b + centroid slot n) of prim id
 	static uint32_t DrawEdge(int32_t id, int32_t k, uint32_t cur, int32_t a, int32_t b, int32_t n)
 	{
 		uint32_t e = Entry(id);
@@ -796,7 +694,6 @@ namespace quake038
 			v[5] = (int16_t)(v[5] + h);
 			v[9] = (int16_t)(v[9] + h);
 		}
-		// 30 fps layer: see mag038_quake_held.inc
 		FX_HELD(held_note_edge(id, k, a, b, n, st, (int16_t)h);)
 		if (st > 4) cur = RaisedEdge(e, k, a, b, n, v, (int16_t)h, ot, cur);
 		if (st == 3 || st == 4) cur = CrackEdge(e, k, v, CrackTick(), cur, st == 4);
@@ -804,8 +701,6 @@ namespace quake038
 		return cur;
 	}
 
-	// sub_8DB210: a random point of the ground (inside a random prim's first sub-triangle, then
-	// moved up to +-0x400 in x / z) within the zone map; 8 tries
 	static int32_t RandomGroundPoint(int16_t *out)
 	{
 		for (int t = 0; t < 8; t++)
@@ -833,8 +728,6 @@ namespace quake038
 		return 0;
 	}
 
-	// sub_8DAE10: debris vertex j from entry vertex vi: top at a random 1/8..1 of the way from the
-	// vertex to the debris centre, bottom a random fraction of that, below
 	static void DebrisVertex(uint32_t n, uint32_t e, int32_t j, int32_t vi)
 	{
 		int32_t r = CrtRand() % 0xE00;
@@ -855,8 +748,6 @@ namespace quake038
 		U8(n, j + 0x9A) = v;
 	}
 
-	// sub_8DA750: a debris piece of a random prim (its first sub-triangle) inside the zone map;
-	// `junk` = the uninitialised high half of the original's z word (copied to +0x22)
 	static void SpawnDebris(uint16_t junk, StackJunk *sj)
 	{
 		uint32_t ctx = SeqCtx();
@@ -894,7 +785,6 @@ namespace quake038
 		S16(d, 0x1E) = ZoneHeight((int16_t)zone);
 	}
 
-	// sub_8DAF40: a rock burst: `count` rock sprites on random ground points around the first one
 	static void SpawnRocks(int32_t count, uint16_t junk)
 	{
 		int16_t p[3];
@@ -925,7 +815,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8DB330: a dust burst: 6 dust sprites on random ground points
 	static void SpawnDust(uint16_t junk)
 	{
 		int16_t p[3];
@@ -955,10 +844,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8D8B10: the stage ground group through the quake mesh, then one step of the mesh state
-	// machine. State 0 transforms the ground vertices (each vertex group by its bone matrix, as
-	// the GTE light matrix) into the vertex workspace and builds the mesh entries; state 1 finds
-	// the zone borders; states >= 3 draw.
 	static uint32_t Ground(uint32_t model, uint32_t hdr, uint32_t cur)
 	{
 		uint32_t vtx = U32(hdr, 4);
@@ -971,7 +856,6 @@ namespace quake038
 		S32((uint32_t)tmp, 8) = -1;
 		GteSetRotMatrixCtrl(&Camera());
 		GteSetTransVectorCtrl(&Camera());
-		// 30 fps layer: see mag038_quake_held.inc
 		FX_HELD(held_note_ground();)
 		int32_t id = 0;
 		int32_t nverts = 0;
@@ -1067,10 +951,6 @@ namespace quake038
 			}
 		}
 		FieldFree(0xC);
-		// words the original reads from its stack without writing them: the spawners' vector
-		// locals sit where 0x8DA680 saved ebx / ebp (the 0xC-byte scratch and vertex workspace
-		// pointers) and where the debris spawner left its y; after the rock spawner the return
-		// address into this function (0x008D902F)
 		StackJunk sj;
 		sj.w6 = (uint16_t)((uint32_t)tmp >> 16);
 		sj.wA = (uint16_t)(vtx >> 16);
@@ -1133,8 +1013,6 @@ namespace quake038
 		return cur;
 	}
 
-	// sub_8D8A40: the ground render: GTE = camera (ComposeAffineTransform with a unit matrix),
-	// ground animation re-read, then the ground through the quake mesh
 	static void GroundRender()
 	{
 		Mat4x3 unit = {}, cam = {};
@@ -1160,10 +1038,6 @@ namespace quake038
 		FieldFree(0x2C);
 	}
 
-	// ==================================================================
-	// root and emitter
-	// ==================================================================
-	// sub_8D86F0 (root phase 1): the emitter of the current action
 	static void Root_SpawnEmitter(uint32_t n)
 	{
 		U8(n, 0x63) = 1;
@@ -1171,7 +1045,6 @@ namespace quake038
 		NextPhase(n);
 	}
 
-	// sub_8DC4D0 (root phase 2): next action once the emitter is done
 	static void Root_NextAction(uint32_t n)
 	{
 		if (U8(n, 0x63)) return;
@@ -1184,27 +1057,25 @@ namespace quake038
 		else NextPhase(n);
 	}
 
-	// MAG_038_QUAKE_Tick (0x8D8610): root task
 	static uint32_t __cdecl RootTask(TaskNode *node)
 	{
 		uint32_t n = (uint32_t)node;
-		// 30 fps layer: see mag038_quake_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0x5C) & 1) ? Arena0() : Arena1();
 		UpdateTargetPosFromBones(n);
 		switch (PhaseOf(n))
 		{
-		case 0: NextPhase(n); break;                 // sub_8D86E0
+		case 0: NextPhase(n); break;
 		case 1: Root_SpawnEmitter(n); break;
 		case 2: Root_NextAction(n); break;
-		case 3:                                      // sub_8DC500: done when the queues are empty
+		case 3:
 			if (S16(n, 0x5E) == 0)
 			{
 				U8(n, 0x26) |= 1;
 				NextPhase(n);
 			}
 			break;
-		default: break;                              // nullsub
+		default: break;
 		}
 		U16(n, 0x5E) = (uint16_t)ExecuteTaskQueue((TaskQueue *)Q_EMITTER);
 		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)Q_SEQUENCE));
@@ -1214,8 +1085,6 @@ namespace quake038
 		return EndCheck(n);
 	}
 
-	// sub_8D8790 (emitter phase 0): ground sequence + camera shake when the stage ground group is
-	// shown and has objects, else the fallback
 	static void Emitter_Start(uint32_t n)
 	{
 		if ((U8(0x1D989BD, 0) & 1) && U32(U32(0x1D989C4, 0), 0) != 0)
@@ -1227,7 +1096,6 @@ namespace quake038
 		NextPhase(n);
 	}
 
-	// sub_8DC450 (emitter phase 1): damage to every target of the action once the children ended
 	static void Emitter_Damage(uint32_t n)
 	{
 		if (U8(n, 0x28)) return;
@@ -1243,7 +1111,6 @@ namespace quake038
 		NextPhase(n);
 	}
 
-	// sub_8D8720: emitter task
 	static uint32_t __cdecl EmitterTask(TaskNode *node)
 	{
 		uint32_t n = (uint32_t)node;
@@ -1264,10 +1131,6 @@ namespace quake038
 		return 0;
 	}
 
-	// ==================================================================
-	// ground sequence (0x8D8800)
-	// ==================================================================
-	// MAG_038_QUAKE_InitGroundMeshBuffers (0x8D88C0)
 	static void InitGround(uint32_t n)
 	{
 		SeqCtx() = n;
@@ -1317,8 +1180,6 @@ namespace quake038
 		U16(0x2792E46, 0) = 0x3C14;
 	}
 
-	// the side opposite the targets (the caster's): slots 3..6 when the first target is a party
-	// member, else 0..2; `fn` gets (entity, saved flags cell)
 	template<typename F> static void ForCasterSide(bool enemies, F fn)
 	{
 		if (enemies)
@@ -1327,7 +1188,6 @@ namespace quake038
 			for (int s = 0; s < 3; s++) fn(EntityAt(s), SAVED_FLAGS + 4 * s);
 	}
 
-	// darkening of an entity's two colour words toward black by level / 4096
 	static void Darken(uint32_t ent, int32_t level, uint32_t light)
 	{
 		uint8_t l0 = (uint8_t)light, l1 = (uint8_t)(light >> 8);
@@ -1351,8 +1211,6 @@ namespace quake038
 		});
 	}
 
-	// sub_8DB7B0 (phase 3): save the entity flags; the caster's side drawn with the stage light
-	// (colour mode 2)
 	static void Seq_Darken(uint32_t n)
 	{
 		for (int s = 0; s < 7; s++) U32(SAVED_FLAGS, 4 * s) = U16(EntityAt(s), 0);
@@ -1368,7 +1226,6 @@ namespace quake038
 		NextPhase(n);
 	}
 
-	// sub_8DB870 (phase 4): fade the caster's side to black; at full black the quake starts
 	static void Seq_FadeOut(uint32_t n)
 	{
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) + 0x200);
@@ -1383,7 +1240,6 @@ namespace quake038
 		GroundRender();
 	}
 
-	// sub_8DBAC0 (phase 5): the caster's side hidden (bit 2), the targets' side shadows off (0x1020)
 	static void Seq_Hide(uint32_t n)
 	{
 		if (TargetsParty())
@@ -1400,7 +1256,6 @@ namespace quake038
 		GroundRender();
 	}
 
-	// sub_8DBBA0: save every entity's position words
 	static void SavePositions()
 	{
 		for (int s = 0; s < 7; s++)
@@ -1415,7 +1270,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8DBB70 (phase 6): once the ripples start: positions saved, second sound
 	static void Seq_WaitRipples(uint32_t n)
 	{
 		if (State() == 5)
@@ -1427,8 +1281,6 @@ namespace quake038
 		GroundRender();
 	}
 
-	// sub_8DBCA0: an entity on the ripples: state 0 follows its zone's height (jittered positions
-	// while lifted, else thrown up at -0x30); state 1 falls back (+0x30 per tick) and may flinch
 	static void Bounce(uint32_t n, uint32_t ent, int slot)
 	{
 		uint32_t rec = SAVED_POS + 0x14 * slot;
@@ -1487,7 +1339,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8DBE40: every entity back to its saved position
 	static void RestorePositions()
 	{
 		for (int s = 0; s < 7; s++)
@@ -1500,8 +1351,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8DBBF0 (phase 7): the targets' side bounces while the mesh runs; positions restored at
-	// the end
 	static void Seq_Bounce(uint32_t n)
 	{
 		if (TargetsParty())
@@ -1520,8 +1369,6 @@ namespace quake038
 		}
 	}
 
-	// sub_8DBE80 (phase 8): hide / shadow flags back from the saved ones (as the original pairs
-	// them: bit 2 of entity 3 + k from saved flags k)
 	static void Seq_RestoreFlags(uint32_t n)
 	{
 		S16(n, 0x1C) = 0x1000;
@@ -1559,7 +1406,6 @@ namespace quake038
 		NextPhase(n);
 	}
 
-	// sub_8DBF60 (phase 9): fade back from black
 	static void Seq_FadeIn(uint32_t n)
 	{
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - 0x100);
@@ -1571,7 +1417,6 @@ namespace quake038
 		DarkenCasterSide(n);
 	}
 
-	// sub_8DC180 (phase 10): colour mode bit back, colours = stage light; the sequence ends
 	static void Seq_End(uint32_t n)
 	{
 		uint32_t light = var<uint32_t>(0xB8B7D8), light2 = var<uint32_t>(0xB8B9A8);
@@ -1601,22 +1446,21 @@ namespace quake038
 		NextPhase(n);
 	}
 
-	// MAG_038_QUAKE_MainSequence_11Phase (0x8D8800)
 	static uint32_t __cdecl SequenceTask(TaskNode *node)
 	{
 		uint32_t n = (uint32_t)node;
 		switch (PhaseOf(n))
 		{
-		case 0:                                      // MAG_038_QUAKE_Phase0_InitGround
+		case 0:
 			InitGround(n);
 			NextPhase(n);
 			break;
-		case 1:                                      // sub_8D8A10: build the mesh
+		case 1:
 			GroundRender();
 			S16(n, 0x30) = 0x10;
 			NextPhase(n);
 			break;
-		case 2:                                      // sub_8DB770: 16 ticks
+		case 2:
 		{
 			GroundRender();
 			S16(n, 0x30) = (int16_t)(S16(n, 0x30) - 1);
@@ -1636,14 +1480,11 @@ namespace quake038
 		case 8: Seq_RestoreFlags(n); break;
 		case 9: Seq_FadeIn(n); break;
 		case 10: Seq_End(n); break;
-		default: break;                              // nullsub
+		default: break;
 		}
 		return EndCheck(n);
 	}
 
-	// ==================================================================
-	// camera shake (0x8DC250) and the fallback (0x8DC360)
-	// ==================================================================
 	inline int16_t &CameraShake() { return var<int16_t>(0x1D97712); }
 
 	static uint32_t __cdecl ShakeTask(TaskNode *node)
@@ -1651,20 +1492,20 @@ namespace quake038
 		uint32_t n = (uint32_t)node;
 		switch (PhaseOf(n))
 		{
-		case 0:                                      // sub_8DC2C0: wait 3 ticks
+		case 0:
 			if (S16(n, 0x24) > 2) NextPhase(n);
 			break;
-		case 1:                                      // MAG_038_QUAKE_SetShakeFromTableA
+		case 1:
 		{
 			int16_t s = S16(SHAKE_A, S16(n, 0x24) * 2);
 			if (s == 0x7F) NextPhase(n);
 			else CameraShake() = s;
 			break;
 		}
-		case 2:                                      // sub_8DC300: wait for the ripples
+		case 2:
 			if (State() == 5) NextPhase(n);
 			break;
-		case 3:                                      // MAG_038_QUAKE_SetShakeFromTableB
+		case 3:
 			CameraShake() = S16(SHAKE_B, (U8(n, 0x24) & 0xF) * 2);
 			if (State() == 7)
 			{
@@ -1682,18 +1523,18 @@ namespace quake038
 		uint32_t n = (uint32_t)node;
 		switch (PhaseOf(n))
 		{
-		case 0:                                      // au_re_BdPlaySE_8
+		case 0:
 			BdPlaySE(SOUND_Rumble, 0, 0x80);
 			NextPhase(n);
 			break;
-		case 1:                                      // sub_8DC3E0
+		case 1:
 			if (S16(n, 0x24) >= 0x30)
 			{
 				BdPlaySE(SOUND_Quake, 1, 0x80);
 				NextPhase(n);
 			}
 			break;
-		case 2:                                      // MAG_038_QUAKE_SetShakeFromTableB2
+		case 2:
 		{
 			int16_t t = S16(n, 0x24);
 			CameraShake() = S16(SHAKE_B, (t & 0xF) * 2);
@@ -1709,11 +1550,6 @@ namespace quake038
 		return EndCheck(n);
 	}
 
-	// ==================================================================
-	// debris (0x8DA900): two triangles (top +0x5C, bottom +0x74, 3 vertices each) joined by
-	// three quads, spinning (+0x44 about X, +0x46 about Y), thrown up and falling back
-	// ==================================================================
-	// sub_8DAA40: triangle of vertices i0, i1, i2 (u / v per vertex at +0x94 / +0x9A)
 	static void DebrisTriangle(uint32_t n, uint32_t ot, int shift, int16_t side, int32_t i0, int32_t i1, int32_t i2)
 	{
 		uint32_t cur = PacketCursor();
@@ -1724,7 +1560,6 @@ namespace quake038
 		GteReadMAC0(&mac0);
 		if (mac0 <= 0) return;
 		GteStoreSXY012_FT3(cur);
-		// (the original's off-screen test always passes)
 		GteAVSZ3();
 		uint32_t otz;
 		GteReadOTZ32(&otz);
@@ -1744,7 +1579,6 @@ namespace quake038
 		PacketCursor() = cur + 0x20;
 	}
 
-	// sub_8DABC0: side quad a4 a5 a6 a7 (u / v of a4 on the left corners, of a5 on the right)
 	static void DebrisQuad(uint32_t n, uint32_t ot, int shift, int32_t a4, int32_t a5, int32_t a6, int32_t a7)
 	{
 		uint32_t cur = PacketCursor();
@@ -1758,7 +1592,6 @@ namespace quake038
 		GteLoadV0((const void *)(n + a7 * 8 + 0x5C));
 		GteRTPS();
 		GteReadSXY2((void *)(cur + 0x20));
-		// (the original's off-screen test always passes)
 		GteAVSZ4();
 		uint32_t otz;
 		GteReadOTZ32(&otz);
@@ -1780,7 +1613,6 @@ namespace quake038
 		PacketCursor() = cur + 0x28;
 	}
 
-	// sub_8DA960: GTE = camera * (rotate Y +0x46, X +0x44, at the debris position)
 	static void DebrisDraw(uint32_t n)
 	{
 		uint32_t ot = RenderOT44();
@@ -1801,7 +1633,6 @@ namespace quake038
 		DebrisQuad(n, ot, 2, 0, 2, 3, 5);
 	}
 
-	// sub_8DADA0: spin, gravity 0x40, lands (ends) at y >= 0
 	static void DebrisMove(uint32_t n, bool live)
 	{
 		uint16_t ax = (uint16_t)((U16(n, 0x8C) + U16(n, 0x44)) & 0xFFF);
@@ -1823,7 +1654,7 @@ namespace quake038
 		uint32_t n = (uint32_t)node;
 		switch (PhaseOf(n))
 		{
-		case 0:                                      // sub_8DAD50: up speed, spin speeds
+		case 0:
 		{
 			int32_t r = CrtRand();
 			S16(n, 0x56) = (int16_t)(-0x80 - (r & 0xFF));
@@ -1835,22 +1666,14 @@ namespace quake038
 		case 1: DebrisMove(n, true); break;
 		default: break;
 		}
-		// 30 fps layer: see mag038_quake_held.inc
 		FX_HELD(held_note_debris(n);)
 		DebrisDraw(n);
 		return EndCheck(n);
 	}
 
-	// ==================================================================
-	// sprites: rock (0x8DB030), dust (0x8DB410), chip (0x8DB630). Node: +0x1C draw position,
-	// +0x4C sequence, +0x50 frame, +0x52 last frame, +0x54 size; rock / dust: 6 records of 0xC
-	// bytes at +0x58 (x, y, z, pad, drawn flag); +0xA0..+0xA6 velocity / acceleration
-	// ==================================================================
-	// sub_8DB0F0
 	static void SpriteDraw(uint32_t n)
 	{
 		if (U8(n, 0x26) & 4) return;
-		// 30 fps layer: see mag038_quake_held.inc
 		FX_HELD(held_note_sprite(n);)
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation((const void *)(n + 0x1C), 0x1000, S16(n, 0x54));
@@ -1861,7 +1684,6 @@ namespace quake038
 		FieldFree(0xB4);
 	}
 
-	// sub_8DB1D0: next flipbook frame; 1 (and hidden) past the last one
 	static int32_t SpriteStep(uint32_t n)
 	{
 		S16(n, 0x50) = (int16_t)(S16(n, 0x50) + 1);
@@ -1874,7 +1696,6 @@ namespace quake038
 		return 0;
 	}
 
-	// rock: vy += acceleration, damped by 1/8; every record rises / falls by vy
 	static int16_t RockSpeed(uint32_t n)
 	{
 		int16_t v = (int16_t)(S16(n, 0xA6) + S16(n, 0xA2));
@@ -1886,7 +1707,7 @@ namespace quake038
 		uint32_t n = (uint32_t)node;
 		switch (PhaseOf(n))
 		{
-		case 0:                                      // sub_8DB160
+		case 0:
 		{
 			U32(n, 0x4C) = SEQ_Rock;
 			S16(n, 0x52) = 0xF;
@@ -1895,7 +1716,7 @@ namespace quake038
 			NextPhase(n);
 			break;
 		}
-		case 1:                                      // sub_8DB1A0
+		case 1:
 			if (SpriteStep(n))
 			{
 				RockCount() = (int16_t)(RockCount() - 1);
@@ -1922,7 +1743,7 @@ namespace quake038
 		uint32_t n = (uint32_t)node;
 		switch (PhaseOf(n))
 		{
-		case 0:                                      // sub_8DB4D0
+		case 0:
 		{
 			U32(n, 0x4C) = SEQ_Dust;
 			S16(n, 0x52) = 0xB;
@@ -1934,7 +1755,7 @@ namespace quake038
 			NextPhase(n);
 			break;
 		}
-		case 1:                                      // sub_8DB540
+		case 1:
 			if (SpriteStep(n))
 			{
 				DustCount() = (int16_t)(DustCount() - 1);
@@ -1958,7 +1779,6 @@ namespace quake038
 		return EndCheck(n);
 	}
 
-	// chip: vy damped by 1/16, position += velocity
 	static void ChipMove(uint32_t n)
 	{
 		int16_t v = S16(n, 0xA2);
@@ -1974,7 +1794,7 @@ namespace quake038
 		uint32_t n = (uint32_t)node;
 		switch (PhaseOf(n))
 		{
-		case 0:                                      // sub_8DB690
+		case 0:
 		{
 			U32(n, 0x4C) = SEQ_Chip;
 			S16(n, 0x52) = 0xB;
@@ -1985,7 +1805,7 @@ namespace quake038
 			NextPhase(n);
 			break;
 		}
-		case 1:                                      // sub_8DB6F0
+		case 1:
 			ChipMove(n);
 			if (SpriteStep(n))
 			{
@@ -2014,7 +1834,6 @@ namespace quake038
 		register_port(quake038::ORIG_Rock, (void *)quake038::RockTask, "Q038 RockTask", 38);
 		register_port(quake038::ORIG_Dust, (void *)quake038::DustTask, "Q038 DustTask", 38);
 		register_port(quake038::ORIG_Chip, (void *)quake038::ChipTask, "Q038 ChipTask", 38);
-		// 30 fps layer: see mag038_quake_held.inc
 		FX_HELD(register_mag038_held();)
 	}
 }

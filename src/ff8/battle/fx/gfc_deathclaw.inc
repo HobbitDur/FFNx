@@ -14,85 +14,51 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// The table handlers Death Claw's two cinematic-engine attacks carry besides the generic engine:
-// Gas 236 (MAG_236 0xA34210) and Explosion 237 (MAG_237 0xA29C00) have the same code for each of
-// them, byte for byte (module-relative addresses normalised; the module helpers they call are the
-// generic LightColourSetup 0xB29450 / SetupParentXformScaledAtOrigin 0xB27130, ported as h_B29450 /
-// h_B27130). Included INSIDE the clone's namespace by the module file.
-//   bone 4  OrbitBetweenBones (236 0xA34F60, 237 0xA2A950) = Disease Breath 231's 0xA671C0
-//           (mag231_disease_breath.cpp, copied),
-//   bone 8  VertexAtHeight (236 0xA37770, 237 0xA2D400),
-//   prim 48 TintedFT3Abr (236 0xA36FE0, 237 0xA2C9D0): type 8 (FT3) with drawFlags bit 2,
-//   draw 31 MeshHeightCut (236 0xA37370 + its block renderer 0xA37590, 237 0xA2D000 + 0xA2D220).
-// The comments below carry Gas 236's addresses (Explosion 237's are listed above).
-// Held: nothing of their own. Bone handlers run in the VM (real ticks and the engine's next-tick
-// prediction, on the saved state); prim 48 / draw 31 draw the in-between bone / node / threshold
-// on held frames (the engine's held frame), writing only the workspace, the packets and the arena
-// scratch above ctx+0x74, all put back by the held frame.
+// Cinematic GF engine: death claw
 
-	// 0x45C7A0 SSIGPU_InsertPrimAutoDepth(ot, prim): links prim into the OT slot (packet pool)
 	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	// 0x56CA30 NormalColorCol(v, rgbc, out): GTE V0 = v, RGBC = rgbc, NCCS, RGB2 -> out (GTE only)
 	static inline void xl_NormalColorCol_56CA30(const void *v, const void *rgbc, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(0x56CA30)(v, rgbc, out); }
-	// 0x56C880 TransformWorldCoordinateToProjectedSpace (RotTransPers): returns OTZ
 	static inline int32_t xl_RotTransPers_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(0x56C880)(v, sxy, p, flag); }
-	// GTE data registers (0x1CA8A10 + 4 * reg): prim 48 writes / reads them directly
 	static inline uint32_t &DcGteData(int reg) { return MEM<uint32_t>(0x1CA8A10 + 4 * reg); }
 
-	// ------------------------------------------------------------------------------------
-	// 0xA34F60 (bone 4 OrbitBetweenBones) = Disease Breath 231's 0xA671C0: two reference bones
-	// A / B (*(s16 *)bone+0xA0 [0] / [1]); angle = 0xB66B30(A.x, A.z, B.x, B.z) (direction A -> B in
-	// the XZ plane) + HIWORD(accumRot X); outPos Y = A.y + (B.y - A.y) * HIWORD(accumRot Z) / 256 +
-	// HIWORD(accumPos Y); radius = workspace+0xFC * HIWORD(accumRot Z) / 256; outPos X / Z = A +
-	// radius * (sin, cos)(angle) + HIWORD(accumPos Z) * (sin, cos)(angle + HIWORD(accumRot Y))
-	// (4.12 products, sar 12)
-	// ------------------------------------------------------------------------------------
 	static void __cdecl bh_04_OrbitBetweenBones()
 	{
-		uint8_t *refs = PTR(CUR(), 0xA0);                                   // esi
+		uint8_t *refs = PTR(CUR(), 0xA0);
 		if (!refs) return;
-		uint8_t *a = blob::GetBone(S16(refs, 0));                           // edi / [ebp-8]
-		uint8_t *b = blob::GetBone(S16(refs, 2));                           // ebx
+		uint8_t *a = blob::GetBone(S16(refs, 0));
+		uint8_t *b = blob::GetBone(S16(refs, 2));
 		int32_t ang = blob::Blob_B66B30(S16(a, 0x94), S16(a, 0x98), S16(b, 0x94), S16(b, 0x98));
 		uint8_t *bone = CUR();
 		int16_t ay = S16(a, 0x96);
-		int32_t e = add32(S32(bone, 0x50) >> 16, ang);                      // esi
-		int32_t k = S32(bone, 0x64) >> 16;                                  // ecx
+		int32_t e = add32(S32(bone, 0x50) >> 16, ang);
+		int32_t k = S32(bone, 0x64) >> 16;
 		int32_t d = mul32((int32_t)S16(b, 0x96) - (int32_t)ay, k) / 256;
 		bone = CUR();
 		S16(bone, 0x96) = (int16_t)((S32(bone, 0x60) >> 16) + ay + d);
-		int32_t r = mul32(S32(WS(), 0xFC), k) / 256;                        // [ebp-4]
-		int32_t z = mul32(x::Cos(e), r) >> 12;                              // edi
-		int32_t xx = mul32(x::Sin(e), r) >> 12;                             // ebx
+		int32_t r = mul32(S32(WS(), 0xFC), k) / 256;
+		int32_t z = mul32(x::Cos(e), r) >> 12;
+		int32_t xx = mul32(x::Sin(e), r) >> 12;
 		bone = CUR();
 		e = add32(e, S32(bone, 0x54) >> 16);
-		int32_t r2 = S32(bone, 0x5C) >> 16;                                 // [ebp-4]
+		int32_t r2 = S32(bone, 0x5C) >> 16;
 		z = add32(z, mul32(x::Cos(e), r2) >> 12);
 		xx = add32(xx, mul32(x::Sin(e), r2) >> 12);
 		S16(CUR(), 0x94) = (int16_t)(S16(a, 0x94) + xx);
 		S16(CUR(), 0x98) = (int16_t)(S16(a, 0x98) + z);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xA37770 (bone 8 VertexAtHeight): reference bone R = GetBone(*(s16 *)bone+0xA0); its mesh
-	// (R+0xD8: vertices at +0x14, count +0x18, 8 bytes each). ws+0x58 = HIWORD(accumRot Z) = k;
-	// ws+0x74 = vertices, ws+0x48 = count, ws+0x44 = highest z (>= 0), ws+0x50 / ws+0x54 = the first
-	// vertex with the highest / lowest z. The vertex: k <= 0 -> the lowest, k >= 0x1000 -> the highest,
-	// else the first vertex whose z is nearest to highest * k / 4096. outPos = R.outAngle * vertex
-	// / 256 per axis (R's outAngle used as a scale).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl bh_08_VertexAtHeight()
 	{
-		uint8_t *ref = blob::GetBone(S16(PTR(CUR(), 0xA0), 0));             // [ebp-0x14]
-		int32_t lo = 0x7FFF;                                                 // [ebp-4]
+		uint8_t *ref = blob::GetBone(S16(PTR(CUR(), 0xA0), 0));
+		int32_t lo = 0x7FFF;
 		S32(WS(), 0x58) = S32(CUR(), 0x64) >> 16;
 		uint8_t *m = PTR(ref, 0xD8);
 		PTR(WS(), 0x74) = m + U32(m, 0x14);
 		S32(WS(), 0x48) = S32(m, 0x18);
-		uint8_t *ws = WS();                                                  // edi
-		const int32_t n = S32(ws, 0x48);                                     // esi
+		uint8_t *ws = WS();
+		const int32_t n = S32(ws, 0x48);
 		const uint8_t *tab = PTR(ws, 0x74);
-		int32_t hi = 0, ihi = 0, ilo = 0;                                    // edx, [ebp-0xc], [ebp-0x10]
+		int32_t hi = 0, ihi = 0, ilo = 0;
 		for (int32_t i = 0; i < n; i++)
 		{
 			const int32_t z = S16(tab, 8 * i + 4);
@@ -104,7 +70,7 @@
 		S32(WS(), 0x54) = ilo;
 		ws = WS();
 		const int32_t k = S32(ws, 0x58);
-		const uint8_t *t = PTR(ws, 0x74);                                    // ebx
+		const uint8_t *t = PTR(ws, 0x74);
 		int32_t v;
 		if (k <= 0) v = S32(ws, 0x54);
 		else if (k >= 0x1000) v = S32(ws, 0x50);
@@ -127,32 +93,12 @@
 		S16(CUR(), 0x98) = (int16_t)(mul32(S16(ref, 0x90), vz) / 256);
 	}
 
-	// fild qword [u16 DEPTHARR[off >> 3]]; fmul dword [0x1877DA8]; call __ftol (low dword kept)
 	static inline int32_t DcDepthKey(uint32_t off)
 	{
 		uint32_t v = DEPTHARR()[off >> 3] & 0xFFFF;
 		return (int32_t)(int64_t)((double)v * (double)FLT_1877DA8());
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xA36FE0 (prim 48 TintedFT3Abr): the generic tinted FT3 (0xB28110, C().prim[8]) with a
-	// draw-mode word: record 0x14 (+0 u32 colour, +4/+6/+8 u16 UV 0..2, +0xA/+0xC/+0xE u16 vertex
-	// offsets, +0x10 u16 CLUT, +0x12 u16 tpage). Packet 0x24 (len 8): +4 RGB (lit, code 0x24 |
-	// ws+0x8C), +8/+0x10/+0x18 SXY, +0xC/+0x14/+0x1C UV + ws+0x98, +0xE CLUT + ws+0x54, +0x16 tpage
-	// | ws+0x50, +0x20 draw mode 0xE1000220 (semi-transparency mode 1). The GTE registers are
-	// written / read directly (SXY0..2 = data 12..14, MAC0 = 24, RGBC = 6, RGB2 = 22).
-	// ws+0xF0 receives the never-written local [ebp-0x10] (the generic renderer writes 0 there):
-	// Prim48Residue, the word vanilla's stack holds there.
-	// ------------------------------------------------------------------------------------
-	// The word [ebp-0x10] of prim 48 = the word 0x18 below the stack pointer of DrawMeshObject's
-	// prim call (0xB27DD4 in Ifrit's copy), last written by what that function called before at the
-	// same depth: for the mesh's first prim block, its vertex loops (the 6th argument word they push):
-	// the lighting loop when bone+0xE1 is set (its first pass pushes 1 there, the next ones 0x16 (the
-	// GTE register RGB2): 1 for at most one normal, else 0x16), otherwise the projection loop of an
-	// unscaled mesh without bone+0x4C bit 2 (0xB27C0F: 0xE, the GTE register SXY2; the two other
-	// projection loops leave the address of a DrawMeshObject local there: not reproduced, 0); for a
-	// later block, the previous block's renderer's own [ebp-0x10]: prim 48 again leaves its no-cull
-	// word (ws+0x90 & 0x10); the generic renderers' locals are not reproduced (0).
 	static uint32_t Prim48Residue()
 	{
 		uint8_t *ws = WS();
@@ -184,12 +130,12 @@
 	{
 		h_B29450((int32_t)U32(WS(), 0x84));
 		const uint32_t f0 = Prim48Residue();
-		uint8_t *ws = WS();                                                  // ebx
-		const uint32_t ot = U32(ws, 0x5C);                                   // [ebp-0x28]
-		int32_t count = S32(ws, 0x70);                                       // [ebp-0x14]
-		uint8_t *pkt = PTR(ws, 0x60);                                        // esi
-		uint8_t *rec = PTR(ws, 0x6C);                                        // edi
-		const uint32_t nocull = U32(ws, 0x90) & 0x10;                        // [ebp-0x10]
+		uint8_t *ws = WS();
+		const uint32_t ot = U32(ws, 0x5C);
+		int32_t count = S32(ws, 0x70);
+		uint8_t *pkt = PTR(ws, 0x60);
+		uint8_t *rec = PTR(ws, 0x6C);
+		const uint32_t nocull = U32(ws, 0x90) & 0x10;
 		U32(ws, 0xF0) = f0;
 		do
 		{
@@ -236,27 +182,18 @@
 		PTR(ws, 0x60) = pkt;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xA37590 (draw 31's block renderer): Gouraud quads (G4) of one prim block of the mesh, the
-	// block's type ignored. Record 0x18: +0/+4/+8/+0xC u32 colour 0..3, +0x10..+0x16 u16 vertex
-	// offsets. A quad with a vertex flagged (ws+0x40 byte != 0: not projected) is skipped. Packet
-	// 0x24 (len 8): colours lit by NormalColorCol(ws+0xE0 = V0 of the colour setup, colour) at
-	// +4/+0xC/+0x14/+0x1C, SXY at +8/+0x10/+0x18/+0x20, code (bone+0xCC | 0x38000000) >> 24 at +7;
-	// OT slot rt+0x4C + ((sum of the 4 depths) / 4 & ~3); then a draw-mode packet (0xC) with tpage
-	// bone+0x92 & 0x60 (semi-transparency mode) in the same slot.
-	// ------------------------------------------------------------------------------------
 	static void DrawHeightCutQuads_A37590()
 	{
 		h_B29450((int32_t)U32(CUR(), 0xCC));
-		uint8_t *ws = WS();                                                  // eax
-		uint8_t *bone = CUR();                                               // ebx
-		const uint8_t *fl = PTR(ws, 0x40);                                   // [ebp-8]
-		uint8_t *vb = PTR(ws, 0x7C);                                         // ecx / [ebp-0x18]
-		const uint8_t code = (uint8_t)((U32(bone, 0xCC) | 0x38000000) >> 24); // [ebp-0x10]
-		uint8_t *pkt = PTR(ws, 0x60);                                        // esi
-		const int32_t abr = U8(bone, 0x92) & 0x60;                           // [ebp-0x14]
-		uint8_t *rec = PTR(ws, 0x6C);                                        // edi
-		int32_t cnt = S32(ws, 0x70);                                         // [ebp-0xc]
+		uint8_t *ws = WS();
+		uint8_t *bone = CUR();
+		const uint8_t *fl = PTR(ws, 0x40);
+		uint8_t *vb = PTR(ws, 0x7C);
+		const uint8_t code = (uint8_t)((U32(bone, 0xCC) | 0x38000000) >> 24);
+		uint8_t *pkt = PTR(ws, 0x60);
+		const int32_t abr = U8(bone, 0x92) & 0x60;
+		uint8_t *rec = PTR(ws, 0x6C);
+		int32_t cnt = S32(ws, 0x70);
 		if (cnt > 0)
 		{
 			do
@@ -295,14 +232,6 @@
 		PTR(WS(), 0x60) = pkt;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xA37370 (draw 31 MeshHeightCut): the bone's mesh (first draw: bone+0xBC = -1, bone+0xD8 =
-	// ObjectPtr(*(s16 *)(bone+0xB8 + 2)), material colour bone+0xCC &= 0x2FFFFFF) drawn only above a
-	// height: threshold = (highest vertex z, >= 0) * outPos Z / 4096; the vertices whose z is above
-	// it are projected (flag byte 0 at ws+0x40, the others 0xFF: their quads are skipped), every prim
-	// block drawn by 0xA37590 as Gouraud quads, the block cursor stepped by the module's prim size
-	// table (C().prim_size) for the block's type.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_31_MeshHeightCut()
 	{
 		if (U32(CUR(), 0xBC) == 0)
@@ -313,7 +242,7 @@
 		}
 		PTR(WS(), 0x60) = PTR(CTX(), 0x7C);
 		PTR(WS(), 0x68) = PTR(CUR(), 0xD8);
-		uint8_t *m = PTR(WS(), 0x68);                                        // eax
+		uint8_t *m = PTR(WS(), 0x68);
 		PTR(WS(), 0x6C) = m + U32(m, 8);
 		PTR(WS(), 0x74) = m + U32(m, 0x14);
 		PTR(WS(), 0x78) = m + U32(m, 0x1C);
@@ -321,8 +250,8 @@
 		U32(WS(), 0x48) = U32(m, 0x18);
 		PTR(WS(), 0x80) = PTR(WS(), 0x7C) + 8 * U32(m, 0x18);
 		PTR(WS(), 0x40) = PTR(WS(), 0x80) + 8 * U32(m, 0x20);
-		uint8_t *ws = WS();                                                  // edx
-		int32_t hi = 0;                                                      // ecx
+		uint8_t *ws = WS();
+		int32_t hi = 0;
 		{
 			const uint8_t *v = PTR(ws, 0x74);
 			for (int32_t n = S32(ws, 0x48); n > 0; n--, v += 8)
@@ -341,9 +270,9 @@
 		ws = WS();
 		{
 			int32_t n = S32(ws, 0x48);
-			const uint8_t *v = PTR(ws, 0x74);                                // edi
-			const uint8_t *f = PTR(ws, 0x40);                                // ebx
-			uint8_t *o = PTR(ws, 0x7C);                                      // esi
+			const uint8_t *v = PTR(ws, 0x74);
+			const uint8_t *f = PTR(ws, 0x40);
+			uint8_t *o = PTR(ws, 0x7C);
 			for (; n > 0; n--, v += 8, f++, o += 8)
 			{
 				if (*f != 0) continue;
@@ -353,7 +282,7 @@
 		}
 		while (S16(PTR(ws, 0x6C), 2) != -1)
 		{
-			const uint8_t *b = PTR(ws, 0x6C);                                // ecx
+			const uint8_t *b = PTR(ws, 0x6C);
 			S32(ws, 0x70) = S16(b, 2);
 			PTR(WS(), 0x6C) = PTR(WS(), 0x6C) + 4;
 			const uint32_t size = MEM<uint8_t>(C().prim_size + (int32_t)S16(b, 0));

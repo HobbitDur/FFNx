@@ -14,42 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 145: Sleep (spell, MAG_145_*).
-//
-// Structure (setup MAG_145_SLEEP 0x6185D0, file loader MAG_145_SLEEP_FL 0x6185B0; the setup keeps
-// the cast context, attacker and first target, queues the root in 0x24AA828 (one 0x10-byte node,
-// pool 0x24AA818) and the first director in the effect queue 0x24AAAC0 (0x64 nodes of 0x24 bytes,
-// pool 0x24AAAD0), frees the 40 "Zzz" entries, plays camera animation 0xDD67B4 and uploads the
-// texture):
-//   Root (0x61AA80) - alternates the packet arena (0x24AB95C / 0x24B395C), runs the effect queue,
-//     then draws and advances the "Zzz" sprites (0x61AAD0); ends when the queue is empty.
-//   Director (0x6186A0), one per action, 61 ticks (nothing in the draw-only mode): at 0 the
-//     target's effect anchor with the ground height and the height of its bone 0xF0, 1 the main
-//     visual and the sound, every odd tick 3..0x1D one "Zzz" sprite around the target, 0x1A six
-//     orbiting bubbles, 0x1E damage, 0x2D the next action's director.
-//   Main visual (0x619100), 27 ticks: a bubble prim model (0xDD746C, scale 0x360) circling the
-//     target on a shrinking radius, rising, spinning faster and faster, fading in over 8 ticks;
-//     a copy flattened on the ground (fade from its height) and a trail of the 3 previous
-//     positions (ring 0x24AB8F0, 3 x 12 bytes per action), each with its flattened copy; until
-//     tick 0x1A it hides the target (entity flags |= 4) and redraws its battle model tinted by the
-//     sleep colour within 700 units of the bubble (0x619770); throws 3 particles per tick 4..0x14.
-//   Orbiting bubble (0x618BB0), 18 ticks: the same prim model (scale 0x180..0x1FF) thrown out and
-//     up, bouncing on the ground (new random upward speed and spin), a trail of its 3 previous
-//     positions (ring 0x24AA838, 3 x 12 bytes per action and bubble), fading out from tick 0xE;
-//     one particle per tick 2..0x11.
-//   Particle (0x619000) - flipbook 0xDD6FF0 drifting and decelerating (1/32), shrinking; 9 frames.
-//   Zzz sprites (40 x 12 bytes at 0x24AA638: frame, scale, x, y, z, rotation) - flipbook 0xDD7114,
-//     16 frames at a fixed place, drawn by the root.
-//   Target model (0x619770 -> 0x619880 -> 0x619B70): the target's shadow, then every visible object
-//     of its model through its bone matrices into the vertex buffer 0x1D98B3C, drawn as flat
-//     textured triangles / quads; every visible face with a corner within the radius of the
-//     bubble gets a Gouraud overlay (semi-transparent, colour = the sleep colour depth-cued by
-//     1 - distance / radius per corner); the weapon (+0x78) through RenderGeometry.
-// Every task draws first; in the draw-only mode (battle_to_update_flags & 0x201) it returns after
-// drawing.
-// Module globals: 0x24AA630..0x24BB960 (first target, Zzz sprites, bubble trails, queues and
-// pools, cast context 0x24AB8E0, attacker, texture file, main trails, packet arenas, packet
-// cursor 0x24BB95C).
+// Effect 145: Sleep
 
 #include "mag_common.h"
 
@@ -60,7 +25,6 @@ namespace sleep145
 	using namespace eng;
 	using namespace magc;
 
-	// raw memory access (the model renderer follows the listing offset by offset)
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline int16_t &S16(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 	inline uint16_t &U16(uint32_t p, int32_t o) { return AT<uint16_t>(p, o); }
@@ -70,14 +34,13 @@ namespace sleep145
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 	inline uint32_t &H32(uint8_t *h, int off) { return *(uint32_t *)(h + off); }
 
-	// --- module globals ---
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x24AAAC0; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x24AB8E0); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24BB95C); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	static const uint32_t ZZZ = 0x24AA638, ZZZ_END = 0x24AA818;  // 40 x 12 bytes
-	static const uint32_t BUBBLE_TRAILS = 0x24AA838;              // [action][bubble][3] x 12 bytes
-	static const uint32_t MAIN_TRAILS = 0x24AB8F0;                // [action][3] x 12 bytes
+	static const uint32_t ZZZ = 0x24AA638, ZZZ_END = 0x24AA818;
+	static const uint32_t BUBBLE_TRAILS = 0x24AA838;
+	static const uint32_t MAIN_TRAILS = 0x24AB8F0;
 	static const uint32_t ARENA_EVEN = 0x24AB95C, ARENA_ODD = 0x24B395C;
 
 	static const uint32_t ORIG_Root = 0x61AA80;
@@ -91,12 +54,10 @@ namespace sleep145
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// ---- engine functions (original addresses)
 	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, mode, out); }
 	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
 	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(model, hdr, ot, mode, cursor); }
-	// software GTE: register files 0x1CA8A10 (data) / 0x1CA927C (control)
 	inline void GteWriteData(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45D7C0)(value, reg); }
 	inline void GteReadData(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(0x45D7A0)(dst, reg); }
 	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45D7F0)(value, reg); }
@@ -111,76 +72,71 @@ namespace sleep145
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }     // someCameraWork_45DD60
-	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DDA0)(r, g, b); }    // pre_someCameraWork_45DD60 (calls 0x45DD60)
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }        // set_unk_1CA8A28
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DDA0)(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }       // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
 	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(0x460810)(); }
 	inline void GteReadMAC123u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E450)(dst); }
-	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x64DF80)(p); }  // sub_64DF80: IR0 = *(int16 *)p
-	inline void GteReadBK(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x64DFA0)(dst); }      // sub_64DFA0: control regs 13..15 -> 3 dwords
+	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x64DF80)(p); }
+	inline void GteReadBK(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x64DFA0)(dst); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
 
-	// ------------------------------------------------------------------
-	// Node layouts (effect queue: pool of 0x64 nodes of 0x24 bytes)
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct RootNode { TaskNode hdr; uint16_t counter; uint16_t pad; };
 	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter; // +0x0C
-		int16_t action;  // +0x0E
-		int16_t pos[4];  // +0x10 effect anchor x, ground height (entity +0x24), z, height of bone 0xF0
+		int16_t counter;
+		int16_t action;
+		int16_t pos[4];
 		uint8_t pad18[8];
-		int16_t slot;    // +0x20 target slot
+		int16_t slot;
 		int16_t pad22;
 	};
 	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter; // +0x0C
-		int16_t action;  // +0x0E
-		int16_t pos[3];  // +0x10 centre x, y (rising), z
-		int16_t vy;      // +0x16 rise per tick (until tick 0x12)
-		int16_t spin;    // +0x18 spin angle
-		int16_t spin_v;  // +0x1A spin speed (grows by 1/16 per tick)
-		int16_t orbit;   // +0x1C angle on the circle around the centre
-		int16_t orbit_v; // +0x1E its speed
-		int16_t radius;  // +0x20 circle radius (shrinks until tick 0x12)
-		int16_t shrink;  // +0x22 radius step
+		int16_t counter;
+		int16_t action;
+		int16_t pos[3];
+		int16_t vy;
+		int16_t spin;
+		int16_t spin_v;
+		int16_t orbit;
+		int16_t orbit_v;
+		int16_t radius;
+		int16_t shrink;
 	};
 	struct BubbleNode
 	{
 		TaskNode hdr;
-		int16_t counter; // +0x0C
-		int16_t action;  // +0x0E
-		int16_t pos[3];  // +0x10
-		int16_t index;   // +0x16 bubble 0..5 (its trail)
-		int16_t vx;      // +0x18 (decays 1/64)
-		int16_t vy;      // +0x1A
-		int16_t vz;      // +0x1C (decays 1/64)
-		int16_t ay;      // +0x1E y acceleration (grows 1/32)
-		int16_t scale;   // +0x20
-		int16_t angle;   // +0x22 y rotation (random turn at every bounce)
+		int16_t counter;
+		int16_t action;
+		int16_t pos[3];
+		int16_t index;
+		int16_t vx;
+		int16_t vy;
+		int16_t vz;
+		int16_t ay;
+		int16_t scale;
+		int16_t angle;
 	};
 	struct ParticleNode
 	{
 		TaskNode hdr;
-		int16_t frame;   // +0x0C
-		int16_t delay;   // +0x0E ticks before the first draw
-		int16_t pos[3];  // +0x10
-		int16_t pad16;   // +0x16 (never read; see the spawners)
-		int16_t vel[3];  // +0x18 (decay 1/32)
+		int16_t frame;
+		int16_t delay;
+		int16_t pos[3];
+		int16_t pad16;
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t scale;   // +0x20 (-0x30 per tick)
+		int16_t scale;
 		int16_t pad22;
 	};
-	// Zzz sprite (40 at 0x24AA638)
 	struct Zzz { int16_t frame, scale, pos[3], rot; };
-	// trail entry: a previous draw of a bubble
 	struct Trail { uint32_t used; int16_t pos[3], angle; };
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10, "root node is 0x10 bytes");
@@ -190,7 +146,6 @@ namespace sleep145
 	inline Trail *MainTrail(int32_t action) { return (Trail *)(MAIN_TRAILS + (uint32_t)(action * 3 * 12)); }
 	inline Trail *BubbleTrail(int32_t action, int32_t index) { return (Trail *)(BUBBLE_TRAILS + (uint32_t)((action * 6 + index) * 3 * 12)); }
 
-	// x / 18 as compiled (0x38E38E39, sar 2)
 	static int32_t Div18(int32_t x)
 	{
 		int32_t q = (int32_t)(((int64_t)x * 0x38E38E39) >> 32) >> 2;
@@ -207,27 +162,13 @@ namespace ff8fx
 {
 namespace sleep145
 {
-	// ==================================================================
-	// Target model (the target hidden, redrawn tinted near the bubble)
-	// Header (0xDC bytes on the scratch): +0x00 primitive list, +0x04 vertex buffer, +0x08..+0x0E
-	// primitive counts, +0x10 / +0x14..+0x1A as RenderGeometry's, +0x1C code bits (entity +0x28),
-	// +0x20 visible objects, +0x28..+0x2A depth cue, +0x48 NCLIP, +0x50 OTZ, +0x58 / +0x60 / +0x68 /
-	// +0x70 corner copies (+6 of each: its overlay fade), +0x78 / +0x88 GTE results, +0xA8 bubble
-	// centre (3 dwords), +0xB4 squared radius, +0xB8 sleep colour, +0xBC camera x entity matrix
-	// ==================================================================
 
-	// 0x619B70: the object's flat textured triangles (0x10-byte records) and quads (0x14-byte
-	// records); a visible face with a corner within the radius gets a Gouraud overlay (G3 / G4)
-	// one bucket closer: corner colour = far colour (the sleep colour) x (1 - d / radius), d the
-	// corner's squared distance to the centre plus (face normal . offset) >> 8. The GTE light,
-	// background and colour matrix registers hold the work values (the camera rotation, kept in the
-	// colour matrix registers, is put back after the outer product).
 	static uint32_t GlowPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
 		const uint32_t verts = U32(hdr, 4);
 		uint32_t rec = U32(hdr, 0);
-		int32_t w10, w4, w3c, w34;  // the listing's stack words (argument slots reused)
+		int32_t w10, w4, w3c, w34;
 		uint32_t bucket = 0;
 		for (uint32_t i = 0; i < U16(hdr, 8); i++, rec += 0x10)
 		{
@@ -253,7 +194,6 @@ namespace sleep145
 			GteReadOTZ32(hdr + 0x50);
 			bucket = ot + (uint32_t)shl32(S32(hdr, 0x50) >> (shift & 31), 2);
 			InsertPrim(bucket, pk);
-			// corner 0: offset -> IR (squared by SQR), light row 1 = x, y / z
 			w10 = S16(hdr, 0x58) - S32(hdr, 0xA8);
 			w3c = S16(hdr, 0x5A) - S32(hdr, 0xAC);
 			w4 = S16(hdr, 0x5C);
@@ -269,7 +209,6 @@ namespace sleep145
 			w4 = w4 & 0xFFFF;
 			GteWriteCtrl((uint32_t)w10, 8);
 			GteWriteCtrl((uint32_t)w4, 9);
-			// corner 1
 			w10 = S16(hdr, 0x60) - S32(hdr, 0xA8);
 			w3c = S16(hdr, 0x62) - S32(hdr, 0xAC);
 			w4 = S16(hdr, 0x64);
@@ -291,7 +230,6 @@ namespace sleep145
 			w10 = (int32_t)((uint32_t)w10 + ((uint32_t)w3c + (uint32_t)w4));
 			GteSQR();
 			GteWriteCtrl((uint32_t)w10, 0xD);
-			// corner 2
 			w10 = S16(hdr, 0x68) - S32(hdr, 0xA8);
 			w3c = S16(hdr, 0x6A) - S32(hdr, 0xAC);
 			w4 = S16(hdr, 0x6C);
@@ -310,7 +248,6 @@ namespace sleep145
 			w10 = (int32_t)((uint32_t)w10 + ((uint32_t)w3c + (uint32_t)w4));
 			GteSQR();
 			GteWriteCtrl((uint32_t)w10, 0xE);
-			// face normal: outer product of the edges (rotation diagonal x IR)
 			{
 				int32_t c = S16(hdr, 0x60);
 				int32_t a = S16(hdr, 0x68) - c;
@@ -432,7 +369,6 @@ namespace sleep145
 			GteReadOTZ32(hdr + 0x50);
 			bucket = ot + (uint32_t)shl32(S32(hdr, 0x50) >> (shift & 31), 2);
 			InsertPrim(bucket, pk);
-			// corner 0
 			w10 = S16(hdr, 0x58) - S32(hdr, 0xA8);
 			w3c = S16(hdr, 0x5A) - S32(hdr, 0xAC);
 			w4 = S16(hdr, 0x5C);
@@ -448,7 +384,6 @@ namespace sleep145
 			w4 = w4 & 0xFFFF;
 			GteWriteCtrl((uint32_t)w10, 8);
 			GteWriteCtrl((uint32_t)w4, 9);
-			// corner 1
 			w10 = S16(hdr, 0x60) - S32(hdr, 0xA8);
 			w3c = S16(hdr, 0x62) - S32(hdr, 0xAC);
 			w4 = S16(hdr, 0x64);
@@ -470,7 +405,6 @@ namespace sleep145
 			w10 = (int32_t)((uint32_t)w10 + ((uint32_t)w3c + (uint32_t)w4));
 			GteSQR();
 			GteWriteCtrl((uint32_t)w10, 0xD);
-			// corner 2
 			w10 = S16(hdr, 0x68) - S32(hdr, 0xA8);
 			w3c = S16(hdr, 0x6A) - S32(hdr, 0xAC);
 			w4 = S16(hdr, 0x6C);
@@ -489,7 +423,6 @@ namespace sleep145
 			w10 = (int32_t)((uint32_t)w10 + ((uint32_t)w3c + (uint32_t)w4));
 			GteSQR();
 			GteWriteCtrl((uint32_t)w10, 0xE);
-			// face normal (outer product of the edges of corners 0..2)
 			{
 				int32_t c = S16(hdr, 0x60);
 				int32_t a = S16(hdr, 0x68) - c;
@@ -532,7 +465,6 @@ namespace sleep145
 			GteReadData(&w10, 9);
 			GteReadData(&w4, 10);
 			GteReadData(&w3c, 11);
-			// the normal replaces corner 0's copy; corner 3 is done on the CPU
 			S16(hdr, 0x58) = (int16_t)w10;
 			S16(hdr, 0x5A) = (int16_t)w4;
 			S16(hdr, 0x5C) = (int16_t)w3c;
@@ -613,9 +545,6 @@ namespace sleep145
 		return pk;
 	}
 
-	// 0x619880: the camera rotation words go to the colour matrix registers (16..18), the far colour
-	// = the header's sleep colour; every visible object: its vertices through their bone matrices
-	// (world space) into the vertex buffer (+4), then its faces through the camera (GlowPrims)
 	static uint32_t ModelObjects(uint32_t model, uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t cam0 = U32(0x1D97778, 0), cam8 = U32(0x1D97778, 8), cam10 = U32(0x1D97778, 0x10);
@@ -677,12 +606,9 @@ namespace sleep145
 		return cursor;
 	}
 
-	// 0x619770: the entity's shadow, its model (ModelObjects), its weapon (+0x78) through
-	// RenderGeometry; the bone matrices are rebuilt from the pose afterwards
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
-		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, FrameCursor());
@@ -712,25 +638,19 @@ namespace sleep145
 		}
 	}
 
-	// ==================================================================
-	// Main visual (0x619100)
-	// ==================================================================
 	struct MainFrame
 	{
-		uint32_t slot;   // target slot
-		int16_t pos[4];  // bubble centre as drawn, + the low word of its fade
-		int32_t fade2;   // fade of the flattened copies
+		uint32_t slot;
+		int16_t pos[4];
+		int32_t fade2;
 	};
 
-	// y rotation angles (0, a, 0) -> matrix
 	static void RotY(int16_t a, Mat4x3 *m)
 	{
 		int16_t ang[3] = { 0, a, 0 };
 		BuildRotationMatrixFromAngles(ang, m);
 	}
 
-	// the bubble on its circle, its ground copy, its trail (3 previous draws, each with its ground
-	// copy) and until tick 0x1A the target tinted by the sleep colour around the bubble
 	static void MainDraw(const MainNode *n, const Trail *trail, MainFrame *f)
 	{
 		const int32_t c = n->counter;
@@ -761,14 +681,12 @@ namespace sleep145
 		if (c < 8)
 		{
 			int32_t fade = shl32(8 - c, 9);
-			// 30 fps layer: see mag145_sleep_held.inc
 			FX_HELD(fade = held_ramp(fade, c, -0x200, 0x1000);)
 			H32(h, 0x1C) = 0xC0;
 			H32(h, 0xC) = (uint32_t)fade;
 		}
 		f->pos[3] = (int16_t)H32(h, 0xC);
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
-		// the ground copy: y column and y translation zeroed
 		m.m[2][1] = 0;
 		m.m[1][1] = 0;
 		m.m[0][1] = 0;
@@ -778,7 +696,6 @@ namespace sleep145
 		GteSetTransVector(&v);
 		if (H32(h, 0xC) == 0)
 		{
-			// (height << 12) / -2000 as compiled (0xEF9DB22D, sar 7), sign-extended from 20 bits
 			int32_t y = n->pos[1];
 			if (y < -2000) y = -2000;
 			int32_t q = (int32_t)(((int64_t)shl32(y, 12) * (int32_t)0xEF9DB22D) >> 32) >> 7;
@@ -826,7 +743,7 @@ namespace sleep145
 			S32(hm, 0xA8) = f->pos[0];
 			S32(hm, 0xAC) = f->pos[1];
 			S32(hm, 0xB0) = f->pos[2];
-			S32(hm, 0xB4) = 0x77A10; // 700 squared
+			S32(hm, 0xB4) = 0x77A10;
 			U8(hm, 0xB8) = 0xA0;
 			U8(hm, 0xB9) = 0xB0;
 			U8(hm, 0xBA) = 8;
@@ -844,7 +761,6 @@ namespace sleep145
 	{
 		MainNode *p = (MainNode *)n;
 		Trail *trail = MainTrail(p->action);
-		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(held_note_draw(ORIG_Main, p, trail);)
 		MainFrame f;
 		MainDraw(p, trail, &f);
@@ -872,7 +788,7 @@ namespace sleep145
 				ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), ORIG_Particle);
 				q->frame = 0;
 				q->delay = (int16_t)(CrtRand() % 4 + k);
-				ff8fx::copy<(8)>(q->pos, f.pos); // + the fade word into +0x16
+				ff8fx::copy<(8)>(q->pos, f.pos);
 				q->pos[0] = (int16_t)(q->pos[0] + (int16_t)(CrtRand() % 280 - 140));
 				q->pos[1] = (int16_t)(q->pos[1] + (int16_t)(CrtRand() % 280 - 93));
 				q->pos[2] = (int16_t)(q->pos[2] + (int16_t)(CrtRand() % 280 - 140));
@@ -888,11 +804,6 @@ namespace sleep145
 		return TASK_END;
 	}
 
-	// ==================================================================
-	// Orbiting bubble (0x618BB0)
-	// ==================================================================
-
-	// the bubble (fading out from tick 0xE) and its trail; `drawn` = its position as drawn
 	static void BubbleDraw(const BubbleNode *n, const Trail *trail, int16_t drawn[3])
 	{
 		const int32_t c = n->counter;
@@ -918,7 +829,6 @@ namespace sleep145
 		if (c >= 0xE)
 		{
 			int32_t fade = shl32(c - 0xE, 10);
-			// 30 fps layer: see mag145_sleep_held.inc
 			FX_HELD(fade = held_ramp(fade, c, 0x400, -0x3800);)
 			H32(h, 0x1C) = 0xC0;
 			H32(h, 0xC) = (uint32_t)fade;
@@ -952,7 +862,6 @@ namespace sleep145
 	{
 		BubbleNode *p = (BubbleNode *)n;
 		Trail *trail = BubbleTrail(p->action, p->index);
-		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(held_note_draw(ORIG_Bubble, p, trail);)
 		int16_t drawn[3];
 		BubbleDraw(p, trail, drawn);
@@ -974,7 +883,6 @@ namespace sleep145
 		p->ay = (int16_t)(ay + (int16_t)(ay >> 5));
 		if (p->pos[1] > 0)
 		{
-			// bounce: new upward speed, gravity and a random turn
 			p->pos[1] = 0;
 			p->vy = (int16_t)(-130 - CrtRand() % 80);
 			p->ay = (int16_t)(CrtRand() % 60 + 50);
@@ -991,10 +899,6 @@ namespace sleep145
 			q->pos[0] = drawn[0];
 			q->pos[1] = drawn[1];
 			q->pos[2] = drawn[2];
-			// UNINIT 0x618E34 / 0x618F3F: the original copies its position as two dwords from a stack
-			// SVECTOR whose pad word ([esp+0x1E], i.e. entry esp - 0x52) it never writes: that pad lands
-			// in the particle's +0x16 (never read; the trail entry's copy is overwritten by the angle).
-			// It holds what older frames left there: 0 in every harness run, taken as 0 here.
 			q->pad16 = 0;
 			q->pos[0] = (int16_t)(q->pos[0] + (int16_t)(CrtRand() % 280 - 140));
 			q->pos[1] = (int16_t)(q->pos[1] + (int16_t)(CrtRand() % 280 - 93));
@@ -1008,9 +912,6 @@ namespace sleep145
 		return p->counter >= 0x12 ? TASK_END : 0;
 	}
 
-	// ==================================================================
-	// Particle (0x619000): flipbook frame `frame`
-	// ==================================================================
 	static void ParticleDraw(const ParticleNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -1022,7 +923,6 @@ namespace sleep145
 		FieldFree(0xB4);
 	}
 
-	// drift: decelerate by 1/32, shrink by 0x30
 	static void ParticleUpdate(ParticleNode *p)
 	{
 		p->scale = (int16_t)(p->scale - 0x30);
@@ -1044,7 +944,6 @@ namespace sleep145
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(held_note_draw(ORIG_Particle, p, nullptr);)
 		ParticleDraw(p);
 		if (DrawOnly()) return 0;
@@ -1052,9 +951,6 @@ namespace sleep145
 		return p->frame >= 9 ? TASK_END : 0;
 	}
 
-	// ==================================================================
-	// Zzz sprites (0x61AAD0, run by the root after the effect queue)
-	// ==================================================================
 	static void ZzzDraw(uint8_t *h, const Zzz *z)
 	{
 		*(uint16_t *)(h + 4) = (uint16_t)z->frame;
@@ -1073,7 +969,6 @@ namespace sleep145
 
 	static void ZzzTick()
 	{
-		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(held_note_zzz();)
 		uint8_t *h = ZzzBegin();
 		for (Zzz *z = (Zzz *)ZZZ; P(z) < ZZZ_END; z++)
@@ -1087,13 +982,9 @@ namespace sleep145
 		FieldFree(0xB4);
 	}
 
-	// ==================================================================
-	// Root task (0x61AA80): node +0x0C counter
-	// ==================================================================
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = ARENA_ODD;
 		if (!(r->counter & 1)) PacketCursor() = ARENA_EVEN;
@@ -1103,9 +994,6 @@ namespace sleep145
 		return alive ? 0 : TASK_END;
 	}
 
-	// ==================================================================
-	// Director (0x6186A0): one per action (node +0x0C counter, +0x0E action, +0x20 target slot)
-	// ==================================================================
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		if (DrawOnly()) return 0;
@@ -1141,7 +1029,6 @@ namespace sleep145
 		}
 		if (d->counter == 0x1A)
 		{
-			// six bubbles thrown out around a random direction, 682 (1/6 turn) apart
 			int16_t out0[3] = { 0, 0, (int16_t)0xF000 };
 			const int32_t r = CrtRand() % 4096;
 			for (int32_t k = 0; k < 6; k++)
@@ -1172,7 +1059,6 @@ namespace sleep145
 		const int16_t c = d->counter;
 		if (c >= 3 && c <= 0x1E && (c & 1))
 		{
-			// one Zzz sprite in a free entry, within 700 of the target's anchor
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(d->slot), pos);
 			for (int spawned = 0; spawned < 1; spawned++)
@@ -1224,7 +1110,6 @@ namespace sleep145
 		register_port(sleep145::ORIG_Main, (void *)sleep145::MainTask, "S145 MainTask", 145);
 		register_port(sleep145::ORIG_Bubble, (void *)sleep145::BubbleTask, "S145 BubbleTask", 145);
 		register_port(sleep145::ORIG_Particle, (void *)sleep145::ParticleTask, "S145 ParticleTask", 145);
-		// 30 fps layer: see mag145_sleep_held.inc
 		FX_HELD(register_mag145_held();)
 	}
 }

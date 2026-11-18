@@ -14,24 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 123: Slow (spell, MAG_123_*).
-//
-// Structure (setup MAG_123_SLOW 0x6BD1C0 -> _Init 0x6BD1F0, file loader 0x6BD1D0 = the texture
-// file named at 0x126E4B4; the setup starts camera animation 0x126D730 and queues the TIM):
-//   RootTask (0x6BD260) - alternates the packet arena (magic buffer + 0x1AAC / + 0x19AAC); on
-//     counter 1 of a 10-tick cycle sets up the target pool (first time) and starts the target task
-//     of the next action on its first target; every tick rebuilds the effect camera matrix
-//     (MAG_069_sub_67AAE0 of the battle camera, 0x2521470) and runs the target queue; ends when
-//     it is empty.
-//   Target (0x6BD3E0) - node 0x764, one per action: two keyframed prim-model layouts (the clock
-//     0x12652B0 at the target's anchor, the second 0x1268D3C lowered by the target's size) played
-//     with the callback ClockPart (0x6BD580), both turned with the target and scaled by its size;
-//     sound at 0; the target model blinks (entity flag bit 3) over 20..59; a screen fade at 48;
-//     when both layouts have finished: the status, end.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2521448..0x25214B0 (texture file, magic buffer base, context, root pool,
-// packet cursor 0x252146C, effect camera matrix 0x2521470, target / root queues). The target pool
-// (3 x 0x764), the morph vertex buffer (+0x162C) and the packet arenas are in the magic buffer.
+// Effect 123: Slow
 
 #include "mag_common.h"
 
@@ -42,70 +25,59 @@ namespace slow123
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x252144C); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x252144C); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2521450); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252146C); }
-	inline Mat4x3 *EffCam() { return (Mat4x3 *)0x2521470; }                // effect camera matrix
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521490; }         // pool: magic buffer, 3 x 0x764
+	inline Mat4x3 *EffCam() { return (Mat4x3 *)0x2521470; }
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521490; }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6BD260;
 	static const uint32_t ORIG_TargetTask = 0x6BD3E0;
-	static const uint32_t MODEL_Clock = 0x12652B0;      // prim-model layout data (0x1D8-byte layout)
-	static const uint32_t MODEL_Lower = 0x1268D3C;      // prim-model layout data (0x568-byte layout)
+	static const uint32_t MODEL_Clock = 0x12652B0;
+	static const uint32_t MODEL_Lower = 0x1268D3C;
 	static const void *const SOUND_Slow = (const void *)0x126E4B0;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_063_sub_701270: rotation about the vertical axis by -angle (3x3 and pad; translation not written)
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
 	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)((int32_t)(uint16_t)angle, out); }
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); } // sub_56C220: a = a x b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pool set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0x764 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E action index
-		uint8_t *entity;   // +0x10 target entity
-		int16_t pos[4];    // +0x14 effect anchor (GetDefaultEffectPosition)
-		int16_t spawn[4];  // +0x1C effect spawn position of bone 0xF0
-		uint8_t clock[0x1D8]; // +0x24 prim-model layout (prim::Layout: data, frame, state)
-		uint8_t lower[0x568]; // +0x1FC prim-model layout
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		int16_t pos[4];
+		int16_t spawn[4];
+		uint8_t clock[0x1D8];
+		uint8_t lower[0x568];
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 camera x (turn about the vertical axis + position)
-		int32_t scale[3];  // +0x20 4.12, applied to the record offsets and the matrix
-		int32_t scaled;    // +0x2C scale present (never written by the original, see TargetTask)
-		uint32_t morph;    // +0x30 blended vertex frames
+		Mat4x3 m;
+		int32_t scale[3];
+		int32_t scaled;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x764, "Slow nodes");
 	static_assert(sizeof(PrimArg) == 0x34, "Slow prim block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6BD580): one object of a layout (keyframe model element)
-	// ------------------------------------------------------------------
 	static void __cdecl ClockPart(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -143,7 +115,6 @@ namespace slow123
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset (scaled by the block's scale when "scaled")
 		int16_t off[4] = {};
 		const int32_t scaled = arg->scaled;
 		if (scaled)
@@ -161,7 +132,6 @@ namespace slow123
 		if (scaled) Scale3DMatrix(&m, arg->scale);
 		if (r->flags & 0x1000)
 		{
-			// through the effect camera matrix (camera-facing), the block's position added below
 			GteSetRotMatrixCtrl(EffCam());
 			GteLoadV0(off);
 			GteMVMVA_RotV0();
@@ -189,7 +159,6 @@ namespace slow123
 		{
 			if (r->flags & 0x100)
 			{
-				// diagonal scale matrix (its pad and translation are not written: sub_56C220 reads the 3x3)
 				Mat4x3 s = {};
 				s.m[0][0] = r->scale[0];
 				s.m[1][1] = r->scale[1];
@@ -226,9 +195,6 @@ namespace ff8fx
 {
 namespace slow123
 {
-	// ------------------------------------------------------------------
-	// Target (0x6BD3E0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -239,17 +205,11 @@ namespace slow123
 		arg.scale[2] = s;
 		arg.scale[1] = s;
 		arg.scale[0] = s;
-		// VANILLA UNINITIALISED READ (0x6BD3E0..0x6BD4E9): the block's "scaled" word [esp+0x2C] (the
-		// task's entry esp - 8) is never written, the callback tests it (0x6BD66B). With the game's
-		// executor the slot holds what the root's MAG_069_sub_67AAE0 left in its frame ([esp+0x14]
-		// there): the int32 it stores as the effect camera matrix's m[1][0] (0 unless the camera
-		// rolls; then the layouts are scaled like Haste's)
 		arg.scaled = EffCam()->m[1][0];
 		RotationY((int16_t)-*(const int16_t *)(t->entity + 0xE), &arg.m);
 		arg.m.t[0] = t->pos[0];
 		arg.m.t[2] = t->pos[2];
 		arg.m.t[1] = *(const int16_t *)(t->entity + 0x24);
-		// 30 fps layer: see mag123_slow_held.inc
 		FX_HELD(held_note_play(t->clock, &arg);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		int32_t left = prim::play((prim::Layout *)t->clock, ClockPart, (int)&arg, 0);
@@ -257,11 +217,9 @@ namespace slow123
 		arg.m.t[0] = t->pos[0];
 		arg.m.t[2] = t->pos[2];
 		arg.m.t[1] = (int32_t)t->spawn[1] - (s >> 4) - (s >> 2);
-		// 30 fps layer: see mag123_slow_held.inc
 		FX_HELD(held_note_play(t->lower, &arg);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		left |= prim::play((prim::Layout *)t->lower, ClockPart, (int)&arg, 0);
-		// the target blinks over 20..59 (entity flag bit 3 on the ticks e % (40 - e) == 0)
 		const int32_t e = t->counter - 0x14;
 		if ((uint32_t)e < 0x28)
 		{
@@ -279,13 +237,9 @@ namespace slow123
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6BD260)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag123_slow_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -330,7 +284,6 @@ namespace slow123
 	{
 		register_port(slow123::ORIG_RootTask, (void *)slow123::RootTask, "S123 RootTask", 123);
 		register_port(slow123::ORIG_TargetTask, (void *)slow123::TargetTask, "S123 TargetTask", 123);
-		// 30 fps layer: see mag123_slow_held.inc
 		FX_HELD(register_mag123_held();)
 	}
 }

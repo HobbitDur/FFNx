@@ -14,44 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 321: Ker Plunk (enemy attack 231 of kernel.bin; Jumbo Cactuar c0m084; MAG_321_*): the targets lifted and spun (texture
-// file "mag320.tim").
-//
-// Structure (file loader 0x5979E0 = the texture file 0xCD2AFC -> 0x221D524; _Init 0x597A00 keeps the context 0x221D51C, the
-// caster's slot 0x221D520 and the first target's slot 0x221BC68, queues the root (pool 0x221BC70, queue 0x221BC90) and the
-// director in the effect queue 0x221C600 (100 x 0x24, pool 0x221C610), frees the 100 particles (0x221BCA0, 0x18 bytes, word +0
-// = owner mask: 1 dust, 2 debris, 4 << k the k-th target's burst), plays the camera animation 0xCD1284 and queues the TIM;
-// both run original):
-//   Root (0x598D00) - packet cursor 0x2239528 = 0x221D528 / 0x222B528 on its counter's parity, the effect queue; once it is
-//     empty, TexRestoreTask (0x598D60, the texture restore 0x508630 of 0x221D528 on its counter 1) in the root queue; ends.
-//   Director (0x597AB0) - nothing on draw-only ticks. Tick 0: the point 0xAF0 in front of the caster (its default effect
-//     position moved by -2800 x sin / cos of its y angle), the looping sound 0xCD29DC (voice slot 0x223952C). Tick 1: the
-//     sound 0xCD2AF0. Tick 0x18: 3 rings (0x597E30, delays 0 / 3 / 6, size 0x5CC growing by 0x5CC - 1/8 a tick), the dust
-//     (0x597F90), the debris (0x598230), the white flash (0x598570) and for every target k: its lift (0x5985C0: spin
-//     (1..3) << 12 x tick / 12 about x, tick x 0x2000 / 12 about y, height -0x1770 - 0..0x9C3) and a ring (0x598B90) at it.
-//     Tick 0x5C: the sound 0xCD2AF4 at the targets' centre. Tick 0x61: the loop released. Ends after tick 0x64.
-//   Rings (0x597E30) - prim model 0xCD153C at the point, uniform scale +0x1C (+ +0x1E, step - step / 8), fade (tick - 0xC)
-//     << 9 from tick 0xC; 0x14 ticks after the delay.
-//   Target ring (0x598B90) - prim model 0xCD1D5C at the target, scale (+0x1C, +0x20, +0x1C), +0x20 + +0x22 (step - step /
-//     10), fade (tick - 6) << 9 from tick 6; 0xE ticks after a delay of 1.
-//   Dust (0x597F90) - ticks 0..0xA: 6 new ones (mask 1) around the point (+-0x898 / -0..0x12B, size 0x900..0x12FF, rising
-//     -5 - 0..0x2C); sequence 0xCD1390 at each one's point (light matrix + back colour = the camera; rotation scale = size,
-//     pulled size >> 3 towards the eye); frame + 1, y + rise; ends once none is left.
-//   Debris (0x598230) - ticks 0..5: 5 new ones (mask 2) around the point (+-0x76C / -0..0xF9, size 0x300..0x7FF, rise -0x6E
-//     - 0..0xEF (- 1/8 a tick), spins +-0x1E..0x63 / +-0xF..0x36 about x / z); prim model 0xCD1C24 at each one (angles
-//     +0x10 / +0x14, scale size shrinking by size / 8 a frame from frame 8); 0x10 frames.
-//   Flash (0x598570) - every tick (draw-only too): white screen feedback 0x47CF50(0, 0xFF, 0xFF, 0xFF, 0x3F); 0x14 ticks.
-//   Lift (0x5985C0) - EVERY tick (draw-only too): tick 0 keeps the target's flags & 0x1020, position and angles (0x221D420
-//     + slot x 0x24); ticks 0..0x41: flags | 0x1020, angles as above, the position turned about the lift point by them,
-//     height + sin ramp up (ticks 0..0xB) / hold / down (0x36..0x41) x the height; from tick 0x42 position / angles put back.
-//     Not on draw-only ticks: tick 0x42 the burst (0x5988B0, mask 4 << k); after tick 0x43 the flags put back and the action
-//     result of target k; ends.
-//   Burst (0x5988B0) - ticks 0..3: 8 new ones at the target (size 0x600..0x9FF, a random direction x 0x46..0x9F in xz, y
-//     -0..0x77 unused); sequence 0xCD1390 as the dust; x / z + velocity, velocity - velocity / 8; ends once none is left.
-// Every drawing task draws first and updates afterwards, except the dust / debris / burst that spawn first; on draw-only ticks
-// a task returns after drawing.
-// ENTITY WRITES: the targets' flags (0x1020), angles +0x0C / +0x0E, position +0x1C..+0x22 (put back). CAMERA: the camera
-// animation 0xCD1284 (engine). Module globals: 0x221BC68..0x2239530.
+// Effect 321: Ker Plunk: the targets lifted and spun
 
 #include "mag_common.h"
 
@@ -70,15 +33,14 @@ namespace kerplunk321
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	// --- module globals ---
 	inline TaskQueue *RootQueue() { return (TaskQueue *)0x221BC90; }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x221C600; }
 	inline uint32_t &Ctx() { return var<uint32_t>(0x221D51C); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x221D520); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2239528); }
 	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x223952C); }
-	inline uint32_t Saved(int slot) { return 0x221D420 + (uint32_t)slot * 0x24; }   // flags & 0x1020, angles, position
-	static const uint32_t PARTS = 0x221BCA0, PARTS_END = 0x221C600;   // 100 x 0x18 bytes
+	inline uint32_t Saved(int slot) { return 0x221D420 + (uint32_t)slot * 0x24; }
+	static const uint32_t PARTS = 0x221BCA0, PARTS_END = 0x221C600;
 	static const uint32_t ARENA_A = 0x221D528, ARENA_B = 0x222B528;
 
 	static const uint32_t ORIG_Root = 0x598D00, ORIG_TexRestore = 0x598D60, ORIG_Director = 0x597AB0, ORIG_Ring = 0x597E30,
@@ -89,22 +51,19 @@ namespace kerplunk321
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); } // scale3DMatrix
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void CentrePosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); } // CalculateCenterPosition
+	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void CentrePosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void ScreenFeedback(int32_t a, int32_t r, int32_t g, int32_t b, int32_t n) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(0x47CF50)(a, r, g, b, n); } // Battle_RequestScreenFeedback
-	inline int32_t VoiceActive(uint32_t v) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(v); }  // BdSound_IsVoiceSlotActive
-	inline void VoiceRelease(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(v); }             // BdSound_ReleaseVoiceSlot
+	inline void ScreenFeedback(int32_t a, int32_t r, int32_t g, int32_t b, int32_t n) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(0x47CF50)(a, r, g, b, n); }
+	inline int32_t VoiceActive(uint32_t v) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(v); }
+	inline void VoiceRelease(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(v); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }                    // MAC = L * V0 + BK
-	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // BK = matrix translation
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }               // R = s * I
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); } // TR = v
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
+	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
 
-	// a particle (0x18 bytes): +0 owner mask, +4 frame, +6 size, +8 point (4 words), +0x0E spin x (debris), +0x10 / +0x12 /
-	// +0x14 velocity (dust: rise +0x12; burst: x / z) or angles x / z (debris, rise +0x12, spin z +0x16)
 	enum { P_MASK = 0, P_FRAME = 4, P_SIZE = 6, P_POS = 8 };
 }
 }
@@ -131,9 +90,6 @@ namespace kerplunk321
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Rings (0x597E30 / 0x598B90)
-	// ------------------------------------------------------------------
 	static void RingDraw(uint32_t n, uint32_t model, const int32_t *sc, int32_t from, int32_t fade)
 	{
 		const int16_t ang[3] = { 0, 0, 0 };
@@ -183,7 +139,6 @@ namespace kerplunk321
 			S16(n, 0xE) = (int16_t)(S16(n, 0xE) - 1);
 			return 0;
 		}
-		// 30 fps layer: see mag321_ker_plunk_held.inc
 		FX_HELD(held_note_node(REC_RING, n);)
 		PointRingDraw(n, RingFade(S16(n, 0xC), 0xC));
 		if (DrawOnly()) return 0;
@@ -203,7 +158,6 @@ namespace kerplunk321
 			S16(n, 0xE) = (int16_t)(S16(n, 0xE) - 1);
 			return 0;
 		}
-		// 30 fps layer: see mag321_ker_plunk_held.inc
 		FX_HELD(held_note_node(REC_TRING, n);)
 		TargetRingDraw(n, RingFade(S16(n, 0xC), 6));
 		if (DrawOnly()) return 0;
@@ -214,10 +168,6 @@ namespace kerplunk321
 		return S16(n, 0xC) >= 0xE ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Dust (0x597F90) / burst (0x5988B0): sequence 0xCD1390 at each point, lit by the camera
-	// ------------------------------------------------------------------
-	// h: sequence header (0xB4), w: work (0x48): +8 camera copy, +0x28 direction, +0x38 point
 	static void SeqSetup(uint32_t h, uint32_t w)
 	{
 		U16(h, 0x24) = 0;
@@ -266,7 +216,6 @@ namespace kerplunk321
 				S16(p, 0x12) = (int16_t)(-5 - CrtRand() % 0x2D);
 			}
 		}
-		// 30 fps layer: see mag321_ker_plunk_held.inc
 		FX_HELD(held_note_parts(REC_DUST, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
@@ -274,7 +223,6 @@ namespace kerplunk321
 		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 1)) continue;
-			// 30 fps layer: see mag321_ker_plunk_held.inc
 			FX_HELD(held_note_particle(p);)
 			SeqDraw(h, w, p);
 			if (DrawOnly()) continue;
@@ -319,7 +267,6 @@ namespace kerplunk321
 				S16(p, 0x14) = (int16_t)(mul32(ComputeCos(a), sp) >> 12);
 			}
 		}
-		// 30 fps layer: see mag321_ker_plunk_held.inc
 		FX_HELD(held_note_parts(REC_BURST, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
@@ -328,7 +275,6 @@ namespace kerplunk321
 		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
 		{
 			if (!(mask & U32(p, P_MASK))) continue;
-			// 30 fps layer: see mag321_ker_plunk_held.inc
 			FX_HELD(held_note_particle(p);)
 			SeqDraw(h, w, p);
 			if (DrawOnly()) continue;
@@ -351,13 +297,8 @@ namespace kerplunk321
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Debris (0x598230)
-	// ------------------------------------------------------------------
-	// size of a debris at frame f: shrinking by size / 8 a frame from frame 8
 	static int32_t DebrisScale(int32_t s, int32_t f) { return f >= 8 ? s + mul32(f - 8, -(s / 8)) : s; }
 
-	// h: prim header (0x58), w: work (0x68): +0 angles, +8 camera copy, +0x28 matrix, +0x48 scale
 	static void DebrisDraw(uint32_t h, uint32_t w, uint32_t p, int32_t s)
 	{
 		U16(w, 0) = U16(p, 0x10);
@@ -415,7 +356,6 @@ namespace kerplunk321
 				if (U8(p, 0x14) & 1) S16(p, 0x16) = (int16_t)-v;
 			}
 		}
-		// 30 fps layer: see mag321_ker_plunk_held.inc
 		FX_HELD(held_note_parts(REC_DEBRIS, n);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		int alive = 0;
@@ -423,7 +363,6 @@ namespace kerplunk321
 		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 2)) continue;
-			// 30 fps layer: see mag321_ker_plunk_held.inc
 			FX_HELD(held_note_particle(p);)
 			const int16_t f = S16(p, P_FRAME);
 			DebrisDraw(h, w, p, DebrisScale(S16(p, P_SIZE), f));
@@ -447,9 +386,6 @@ namespace kerplunk321
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Flash (0x598570) and lift (0x5985C0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FlashTask(TaskNode *tn)
 	{
 		ScreenFeedback(0, 0xFF, 0xFF, 0xFF, 0x3F);
@@ -465,7 +401,6 @@ namespace kerplunk321
 		const int16_t c = S16(n, 0xC);
 		const int slot = S16(n, 0xE);
 		const uint32_t e = P(Entity(slot)), s = Saved(slot);
-		// 30 fps layer: see mag321_ker_plunk_held.inc
 		FX_HELD(held_note_node(REC_LIFT, n);)
 		if (c == 0)
 		{
@@ -514,9 +449,6 @@ namespace kerplunk321
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x597AB0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -586,13 +518,9 @@ namespace kerplunk321
 		return S16(n, 0xC) > 0x64 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x598D00) and texture restore (0x598D60)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		// 30 fps layer: see mag321_ker_plunk_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? ARENA_B : ARENA_A;
 		const int running = ExecuteTaskQueue(EffectQueue());
@@ -627,7 +555,6 @@ namespace kerplunk321
 		register_port(ORIG_Lift, (void *)LiftTask, "321 LiftTask", 321);
 		register_port(ORIG_Burst, (void *)BurstTask, "321 BurstTask", 321);
 		register_port(ORIG_TargetRing, (void *)TargetRingTask, "321 TargetRingTask", 321);
-		// 30 fps layer: see mag321_ker_plunk_held.inc
 		FX_HELD(register_mag321_held();)
 	}
 }

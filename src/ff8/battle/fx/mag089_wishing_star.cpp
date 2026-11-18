@@ -14,57 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 89: Wishing Star (kernel.bin Rinoa limit break part 2 {Combine} Wishing Star, section 25 entry 3, effect id +2 = 89;
-// MAG_089_WISHING_STAR): Rinoa rides Angelo up into a starry sky, the screen shatters, Angelo dives through the targets eight
-// times (eight damage waves) under a rain of sparkles, and both come back. A standalone hand-written module (not the act library,
-// not a cinematic clone) 0x6F9CF0..0x6FE040 (41 functions in IDA, no missing / bogus start; the file loader is the shared null
-// loader 0x5755E0). Ported: the six tasks and every helper; the setup (0x6F9CF0 -> 0x6F9D00) is not ported. Four helpers are
-// copies of other modules' functions (0x6FA270 = 70 / 212 / 260's entity-flag save, 0x6FA2A0 = 65 / 70's flag 4 on the party,
-// 0x6FBE00 / 0x6FBE40 = 65 / 212 / 260's flag-4 restore); the star dots 0x6FCD50 / 0x6FCF70 are 65's 0x6E4350 / 0x6E4570 on
-// this module's tables. It calls 65's 0x6E2AC0 (screen feedback) and 0x6E2C10 (camera blend) and 65 / 70 / 260 call its
-// 0x6FC9E0 (flipbook) and 0x6FC250 (camera keys) through their original addresses.
-//
-// Setup 0x6F9D00 (runs once, not ported): queues the TIMs 0x14AF700 / 0x14B7B20, keeps the magic buffer 0x2556600, the cast
-// context 0x2556584 and the CASTER's entity 0x2556588 (Rinoa), starts the root task in the root queue 0x25565C8 (one 0x14-byte
-// node at 0x25565D8).
-//   RootTask (0x6F9D80) - alternates the module packet arena (0x25565EC = magic buffer + 0x1A88C / + 0x2A88C, end 0x25565F0);
-//     on counter 2 saves the seven entities' flag words (0x6FA270), sets up the three pools (director 1 x 0x41C at + 0x5A40,
-//     queue B 0x20 x 0x30 at + 0xC40, queue C 8 x 0x188 at the magic buffer) and starts the director: the targets' box
-//     (centre x / y, max z) of the first wave's targets, Rinoa's position / angles kept, flag 4 on the party, Rinoa's external
-//     animation set bound (0x5022C0, chain transformation 1), Angelo's model container bound (0x6EC060, at the director + 0x34),
-//     Rinoa and Angelo put at the centre (entity +0x1C..+0x20), the particle / sprite / shard tables reset, the screen shards
-//     built from model 0x1496550 (0x6FA3E0), the stream loader reset (+ 0x5E5C) and the 8 x 128 star dots seeded (+ 0x7C04,
-//     groups 0x14AF490). Then each tick the director queue, queue B, queue C; ends when the director ends.
-//   Director (0x6FA780) - node 0x41C: counter +0xC, targets +0x14, Angelo's container +0x34 (+0x40 matrix, +0x60 animation),
-//     Rinoa's saved position +0xD0 / angles +0xE0, centre +0xD8, layouts +0x118 / +0x330. A 0x10F-tick timeline:
-//       0..0x15    Rinoa (and Angelo) rise from the centre (entity +0x20, +0x5C), flag 4 on the enemies at 0; from 3 a flash
-//                  and debris (0x6FD1B0, queue B) at Angelo's / Rinoa's bones every few ticks; camera keys 0..3, 4..0x14
-//       0x16..0x31 they keep rising; queue B reset at 0x16 (enemy flags restored); 0x1E..0x21 Rinoa turns (+0x1E)
-//       0x20..0x23 a layout at Angelo's bone 0x13; 0x24 the screen capture (0x6FBEE0) into + 0x14404, white fade, then the
-//                  shards fall (0x6FD100 / 0x6FCFD0) until 0x4A; screen feedback (65's 0x6E2AC0) 0x24..0xE1
-//       0x25..0xE1 the starry sky: layout +0x330 and the star dots (0x6FCD50, twinkling 0x6FCF70)
-//       0x4B..0x5E a layout at the centre; 0x57..0x65 a growing prim model (0x1497140); 0x66..0x93 seven dives (queue C
-//                  0x6FD580: Angelo's trail, sparks and particle models, a damage wave each at its tick 6)
-//       0xA2..0xB0 the landing: three prim models at Angelo's bone 0x13; 0xB1..0xE2 the last dive (0x6FDB80 -> 0x6FDC20),
-//                  the eighth damage wave at 0xB4, a layout at the centre
-//       0xC5..0x102 white fade; 0xE3 Rinoa / the camera / the party flags put back, bones rebuilt; 0xEB..0x102 falling sparks
-//       0x10F      Rinoa's angles back; ends when the stream loader is idle (else the counter goes to 0x11F and waits)
-//     Stream loads (0x5341D0) of files 0x2F6..0x2FC / 0x168..0x16A into + 0xBC04 with waits at 0x24 / 0x65 / 0xAD (the
-//     director returns without a step while the loader is busy), TIM uploads at 0x4A / 0xAD; sounds at 0 / 0x32 / 0xA2.
-//     Camera: armed return at 0 (0x50A730), camera keys (0x6FC250) 0..3 / 0x15..0x22 / 0x31..0x49 / 0x5F..0x6D, Rinoa-relative
-//     camera 4..0x14, eye turned about the look-at 0x65..0xA0 (0x6FC300), fixed at 0xA1, blended 0xB0..0xE1 (65's 0x6E2C10),
-//     put back at 0xE3. Particles drawn every tick by flag (0x255658E: models 0x6FC500, 0x255658D: sprites 0x6FC8B0) and
-//     updated (0x6FCCF0 / 0x6FC750).
-//   Queue B: FlashTask (0x6FD340, flipbook 0x14A0538, 12 frames) and DebrisTask (0x6FD3C0, prim model 0x14A04D8, 15 ticks).
-//   Queue C: DiveTask (0x6FD580) / LastDiveTask (0x6FDC20): a prim model and particles along Angelo's dive; the dive's layout.
-// Prim-player callback 0x6FBB80 (blended vertex frames, flag 0x200 = no rotation of the offset, 0x4000 = blend mode 0).
-// The effect WRITES ENTITY POSITIONS: Rinoa's +0x1C..+0x20 at the start and at 0xE3 (put back), +0x20 / +0x5C every tick of
-// 0..0x31 and 0xA2..0xB0, +0x1E / +0x58 0x1E..0x21 and 0xA2; Rinoa's angles +0xC..+0x10 (+0xE = 0 at the start, put back at
-// 0x10F); entity flags (bit 2 / 3 of Rinoa, bit 2 of the party / enemies, put back) and bit 2 of the enemies drawn by the
-// capture. It WRITES THE BATTLE CAMERA: eye 0xB8B7F0 / look-at 0xB8B7F8, 0x1D977A2 and 0x1D8E038 (see above).
-// Module globals: 0x2556584..0x2556624. Pools, arenas, particle tables in the magic buffer; static tables 0x14AF460..0x14AF700
-// (the star groups 0x14AF490..0x14AF510 are WRITTEN: angles reset and turned).
-
 #include "mag_common.h"
 #include <intrin.h>
 
@@ -75,23 +24,22 @@ namespace ws089
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2556584); }               // cast context (g_MagicCastContext)
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556588); }            // Rinoa's entity
-	inline uint8_t &SpritesOn() { return var<uint8_t>(0x255658D); }            // sprites drawn (0x6FC8B0)
-	inline uint8_t &ModelsOn() { return var<uint8_t>(0x255658E); }             // particle models drawn (0x6FC500)
-	inline uint8_t *&SpriteCursor() { return var<uint8_t *>(0x2556590); }      // sprite alloc cursor
-	inline uint8_t *&PartCursor() { return var<uint8_t *>(0x2556594); }        // particle model alloc cursor
-	inline TaskQueue *QC() { return (TaskQueue *)0x2556598; }                  // dives: magic buffer, 8 x 0x188
-	inline TaskQueue *QB() { return (TaskQueue *)0x25565A8; }                  // flashes / debris: + 0xC40, 0x20 x 0x30
-	inline TaskQueue *QA() { return (TaskQueue *)0x25565B8; }                  // director: + 0x5A40, 1 x 0x41C
-	inline uint32_t &Cursor() { return var<uint32_t>(0x25565EC); }             // module packet arena cursor
-	inline uint32_t &CursorEnd() { return var<uint32_t>(0x25565F0); }          // its end
-	inline int16_t *Centre() { return (int16_t *)0x25565F8; }                  // targets' centre x, y, (max) z
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556600); }            // Magic_TextureOFF (magic buffer)
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x2556604; }            // 7 entities' flag words
-	inline uint8_t *&TargetCursor() { return var<uint8_t *>(0x2556620); }      // next damage wave's target records
-	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }         // battle_texture_data_ptr (frame packet arena)
+	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2556584); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556588); }
+	inline uint8_t &SpritesOn() { return var<uint8_t>(0x255658D); }
+	inline uint8_t &ModelsOn() { return var<uint8_t>(0x255658E); }
+	inline uint8_t *&SpriteCursor() { return var<uint8_t *>(0x2556590); }
+	inline uint8_t *&PartCursor() { return var<uint8_t *>(0x2556594); }
+	inline TaskQueue *QC() { return (TaskQueue *)0x2556598; }
+	inline TaskQueue *QB() { return (TaskQueue *)0x25565A8; }
+	inline TaskQueue *QA() { return (TaskQueue *)0x25565B8; }
+	inline uint32_t &Cursor() { return var<uint32_t>(0x25565EC); }
+	inline uint32_t &CursorEnd() { return var<uint32_t>(0x25565F0); }
+	inline int16_t *Centre() { return (int16_t *)0x25565F8; }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2556600); }
+	inline uint32_t *SavedFlags() { return (uint32_t *)0x2556604; }
+	inline uint8_t *&TargetCursor() { return var<uint8_t *>(0x2556620); }
+	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_RootTask = 0x6F9D80;
@@ -102,46 +50,45 @@ namespace ws089
 	static const uint32_t ORIG_LastDiveTask = 0x6FDC20;
 	static const uint32_t ORIG_PartCallback = 0x6FBB80;
 
-	static const uint32_t STAR_GROUPS = 0x14AF490;   // 8 x 16: colour, colour 2, angle steps (+8), angles (+0xC)
-	static const uint32_t PART_KINDS = 0x14AF510;    // particle model kinds, 16 bytes: model, far colour, sprite at death, steps
-	static const uint32_t SQRT_TABLE = 0x14AF4E0;    // SquareRoot0 table (index 0x40..0xFF)
-	static const uint32_t CAPTURE_MODELS = 0x14AF6E0; // 4 x (OT index, mode) of the stage models in the capture
-	static const uint32_t SEQ_Spark = 0x14A067C;     // falling sparks
-	static const uint32_t SEQ_Sparkle = 0x14A07F4;   // dive / particle sparkles
+	static const uint32_t STAR_GROUPS = 0x14AF490;
+	static const uint32_t PART_KINDS = 0x14AF510;
+	static const uint32_t SQRT_TABLE = 0x14AF4E0;
+	static const uint32_t CAPTURE_MODELS = 0x14AF6E0;
+	static const uint32_t SEQ_Spark = 0x14A067C;
+	static const uint32_t SEQ_Sparkle = 0x14A07F4;
 	static const uint32_t SEQ_Flash = 0x14A0538;
 	static const uint32_t MDL_Debris = 0x14A04D8;
 	static const uint32_t MDL_Trail = 0x1497140;
 	static const uint32_t MDL_Shards = 0x1496550;
 	static const uint32_t LAYOUT_Dive = 0x14A3EB0;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotY(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(angle, out); }    // Effect_RotationYMatrix
-	inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(angle, out); }    // MAG_063_RotationXMatrix
-	inline void RotZ(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x7012C0)(angle, out); }    // MAG_065_RotationZMatrix
-	inline void RotationFromAngles(const int16_t *angles, void *out) { fn<void (__cdecl *)(const int16_t *, void *)>(0x701310)(angles, out); }  // MAG_017_sub_701310
+	inline void RotY(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(angle, out); }
+	inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(angle, out); }
+	inline void RotZ(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x7012C0)(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, void *out) { fn<void (__cdecl *)(const int16_t *, void *)>(0x701310)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const void *a, void *b) { fn<void (__cdecl *)(const void *, void *)>(0x56C270)(a, b); }       // GTE_MatrixMultiply
-	inline void MatMul3(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); } // Matrix3x3_MultiplyPSX (pad not written)
-	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void TransformVec3(const void *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const void *, const int32_t *, int32_t *)>(0x56C600)(m, in, out); } // TransformVectorBy3x3Matrix
+	inline void MatrixMultiply(const void *a, void *b) { fn<void (__cdecl *)(const void *, void *)>(0x56C270)(a, b); }
+	inline void MatMul3(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); }
+	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void TransformVec3(const void *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const void *, const int32_t *, int32_t *)>(0x56C600)(m, in, out); }
 	inline int32_t ISqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); } // Effect_DirectionFromPitchYaw
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); } // MAG_063_RenderPrimSet
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); } // Effect_FullScreenTile
+	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t a) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, a); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(0x5022C0)(entity, out, data); } // BattleEntity_BindExternalAnimSet
-	inline void BindModelContainer(void *c, void *sections, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x6EC060)(c, sections, data); } // Effect_BindModelContainerSections
-	inline void SetAnim(void *c, int32_t id) { fn<void (__cdecl *)(void *, int32_t)>(0x6574D0)(c, id); } // au_re_Battle_ReadAnimation_6
-	inline uint32_t DrawCreatureModel(void *c, uint32_t buf, uint32_t cursor, uint32_t end) { return fn<uint32_t (__cdecl *)(void *, uint32_t, uint32_t, uint32_t)>(0x6A79B0)(c, buf, cursor, end); } // Effect_DrawCreatureModel
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(0x5022C0)(entity, out, data); }
+	inline void BindModelContainer(void *c, void *sections, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x6EC060)(c, sections, data); }
+	inline void SetAnim(void *c, int32_t id) { fn<void (__cdecl *)(void *, int32_t)>(0x6574D0)(c, id); }
+	inline uint32_t DrawCreatureModel(void *c, uint32_t buf, uint32_t cursor, uint32_t end) { return fn<uint32_t (__cdecl *)(void *, uint32_t, uint32_t, uint32_t)>(0x6A79B0)(c, buf, cursor, end); }
 	inline void GetEffectSpawnPosition(void *c, int32_t bone, int32_t a, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(c, bone, a, out); }
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }    // BS_Camera_ArmReturnAfterEffect
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
 	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline int32_t StreamBusy() { return fn<int32_t (__cdecl *)()>(0x534270)(); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x534300)(a); } // au_re_BattleFile_preLoad_1
-	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); } // Battle_QueueTIMUpload_GetEOF
+	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x534300)(a); }
+	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
 	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
 	inline void ClearOrderingTable(uint32_t ot, int32_t n) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x45D530)(ot, n); }
 	inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(0x45B640)(env); }
@@ -152,146 +99,136 @@ namespace ws089
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
 	inline void PreBattleReadAnimation(void *hdr, void *cmd, uint32_t anim) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x509440)(hdr, cmd, anim); }
-	inline void ScreenFeedback() { fn<void (__cdecl *)()>(0x6E2AC0)(); }     // MAG_065_GreatAttractor_ScreenFeedback
-	// MAG_065_GreatAttractor_CameraBlend: look-at / eye between two (look-at, eye) keys by t (4.12), 0x1D977A2 from za to zb
+	inline void ScreenFeedback() { fn<void (__cdecl *)()>(0x6E2AC0)(); }
 	inline void CameraBlend(const int16_t *k0, const int16_t *k1, int32_t za, int32_t zb, int32_t t) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int32_t)>(0x6E2C10)(k0, k1, za, zb, t); }
-	// software GTE
-	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }   // IR1..3 = 3 x u8
-	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }        // IR1..3 low bytes
-	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }       // GTE_LoadIRFromMatrixColumn
-	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }           // GTE_StoreIRToMatrixColumn
+	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
+	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
+	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
+	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }       // GTE_LoadV0FromDwords
-	inline void GteLoadV0u16(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }          // GTE_LoadV0_u16
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
+	inline void GteLoadV0u16(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }  // GTE_ReadSXY012_Split
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }       // GTE_ReadOTZ (dword)
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadRGBC(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E110)(src); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
 
-	// the compiler's magic-number divisions, step by step
 	inline uint32_t mulhi_u(uint32_t a, uint32_t b) { return (uint32_t)(((uint64_t)a * b) >> 32); }
 	inline int32_t mulhi_s(int32_t a, int32_t b) { return (int32_t)(((int64_t)a * b) >> 32); }
-	// cdq; and edx, m; add; sar n (C signed division by 2^n)
 	inline int32_t sdiv_pow2(int32_t v, int n) { return (int32_t)((uint32_t)v + ((uint32_t)(v >> 31) & ((1u << n) - 1))) >> n; }
-	inline int32_t div6(int32_t v) { const int32_t h = mulhi_s(v, 0x2AAAAAAB); return h + (int32_t)((uint32_t)h >> 31); }    // v / 6 (trunc)
-	inline int32_t div80(int32_t v) { const int32_t h = mulhi_s(v, 0x66666667) >> 5; return h + (int32_t)((uint32_t)h >> 31); } // v / 80 (trunc)
-	inline int32_t div3(int32_t v) { const int32_t h = mulhi_s(v, 0x55555556); return h + (int32_t)((uint32_t)h >> 31); }     // v / 3 (trunc)
+	inline int32_t div6(int32_t v) { const int32_t h = mulhi_s(v, 0x2AAAAAAB); return h + (int32_t)((uint32_t)h >> 31); }
+	inline int32_t div80(int32_t v) { const int32_t h = mulhi_s(v, 0x66666667) >> 5; return h + (int32_t)((uint32_t)h >> 31); }
+	inline int32_t div3(int32_t v) { const int32_t h = mulhi_s(v, 0x55555556); return h + (int32_t)((uint32_t)h >> 31); }
 	template<typename T> static inline T &F(void *p, uint32_t off) { return *(T *)((uint8_t *)p + off); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x25565D8)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up, director started
-		uint32_t parity;   // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t parity;
 	};
-	struct DirectorNode // pool of 1 node of 0x41C bytes (magic buffer + 0x5A40)
+	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E[6];
-		uint8_t targets[0x20];  // +0x14 the first wave's target entities, 8 bytes each (entity, unused)
-		uint8_t angelo[0x9C];   // +0x34 Angelo's model container (+0x1C position, +0x40 matrix, +0x60 animation)
-		uint32_t rinoa_xy; // +0xD0 Rinoa's entity +0x1C at the start
-		uint32_t rinoa_z;  // +0xD4 Rinoa's entity +0x20
-		int16_t centre[3]; // +0xD8 targets' centre x, y and max z
+		uint8_t targets[0x20];
+		uint8_t angelo[0x9C];
+		uint32_t rinoa_xy;
+		uint32_t rinoa_z;
+		int16_t centre[3];
 		int16_t padDE;
-		uint32_t rinoa_ang0; // +0xE0 Rinoa's entity +0xC at the start
-		uint32_t rinoa_ang1; // +0xE4 Rinoa's entity +0x10
-		uint8_t sections[0x10]; // +0xE8 Angelo's sections (0x6EC060)
-		uint8_t animset[0x20];  // +0xF8 Rinoa's external animation set (0x5022C0)
-		uint8_t layout[0x218];  // +0x118 prim-model layout (0x68 / 0x70 / 0x218 bytes decoded)
-		uint8_t layout2[0xEC];  // +0x330 the sky's layout
+		uint32_t rinoa_ang0;
+		uint32_t rinoa_ang1;
+		uint8_t sections[0x10];
+		uint8_t animset[0x20];
+		uint8_t layout[0x218];
+		uint8_t layout2[0xEC];
 	};
-	struct SmallNode // queue B pool: 0x20 nodes of 0x30 bytes (magic buffer + 0xC40)
+	struct SmallNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t size;      // +0x12 (0x1000)
-		int16_t vel[3];    // +0x14 debris velocity
-		int8_t ang[2];     // +0x1A debris angles (x 16)
-		int8_t gravity;    // +0x1C
-		int8_t dang[2];    // +0x1D
-		int8_t frame;      // +0x1F flash frame / debris life
+		int16_t pos[3];
+		int16_t size;
+		int16_t vel[3];
+		int8_t ang[2];
+		int8_t gravity;
+		int8_t dang[2];
+		int8_t frame;
 		uint8_t pad20[0x10];
 	};
-	struct DiveNode // queue C pool: 8 nodes of 0x188 bytes (magic buffer)
+	struct DiveNode
 	{
 		TaskNode hdr;
-		Mat4x3 m;          // +0x0C direction (from angles), translation +0x20 = position
-		int16_t counter;   // +0x2C
+		Mat4x3 m;
+		int16_t counter;
 		int16_t pad2E;
-		uint8_t layout[0x158]; // +0x30
+		uint8_t layout[0x158];
 	};
-	// the prim-player callback's parameter block (a stack block of the caller)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 anchor matrix
-		uint32_t cursor;   // +0x20 packet cursor
-		int16_t depth;     // +0x24 prim header +0x18
+		Mat4x3 m;
+		uint32_t cursor;
+		int16_t depth;
 		int16_t pad26;
-		uint32_t morph;    // +0x28 blended vertex frames (magic buffer + 0x1888C)
+		uint32_t morph;
 	};
-	// particle tables in the magic buffer
-	struct Sprite // + 0x1240, 0x200 x 0x18
+	struct Sprite
 	{
-		uint32_t seq;      // +0x00 flipbook
-		int16_t pos[3];    // +0x04
-		int16_t life;      // +0x0A
-		int16_t vel[3];    // +0x0C
-		int16_t scale;     // +0x12
-		int8_t acc[3];     // +0x14 (z: not accumulated)
+		uint32_t seq;
+		int16_t pos[3];
+		int16_t life;
+		int16_t vel[3];
+		int16_t scale;
+		int8_t acc[3];
 		uint8_t pad17;
 	};
-	struct PModel // particle model, + 0x4240, 0x80 x 0x30
+	struct PModel
 	{
-		uint8_t life;      // +0x00
-		uint8_t kind;      // +0x01 PART_KINDS index
-		int16_t fade;      // +0x02 depth cue (IR0)
-		int16_t scale[3];  // +0x04 diagonal scale
-		int16_t vel[3];    // +0x0A
-		int16_t m[9];      // +0x10 rotation
+		uint8_t life;
+		uint8_t kind;
+		int16_t fade;
+		int16_t scale[3];
+		int16_t vel[3];
+		int16_t m[9];
 		int16_t pad22;
-		int32_t pos[3];    // +0x24
+		int32_t pos[3];
 	};
-	struct Shard // + 0x5EA4, 0x78 x 0x34: a triangle of the captured screen
+	struct Shard
 	{
-		int16_t pos[3];    // +0x00 centroid (x, y on screen)
-		int16_t life;      // +0x06 (0x10 / 0: gone)
-		int16_t vel[3];    // +0x08
-		int16_t len;       // +0x0E distance from the centre
-		uint32_t rot;      // +0x10 its spin matrix (+ 0x7704 + 0x14 n)
-		int16_t v[3][3];   // +0x14 vertices relative to the centroid
+		int16_t pos[3];
+		int16_t life;
+		int16_t vel[3];
+		int16_t len;
+		uint32_t rot;
+		int16_t v[3][3];
 		uint8_t pad26[2];
-		uint8_t uv0[2];    // +0x28
-		uint16_t clut;     // +0x2A
-		uint8_t uv1[2];    // +0x2C
-		uint16_t tpage;    // +0x2E
-		uint8_t uv2[2];    // +0x30
+		uint8_t uv0[2];
+		uint16_t clut;
+		uint8_t uv1[2];
+		uint16_t tpage;
+		uint8_t uv2[2];
 		uint8_t pad32[2];
 	};
-	// DRAWENV
 	struct DrawEnv
 	{
-		int16_t clip[4];   // +0x00
-		int16_t ofs[2];    // +0x08
-		int16_t tw[4];     // +0x0C
-		uint16_t tpage;    // +0x14
-		uint8_t dtd, dfe;  // +0x16
-		uint8_t isbg, r0, g0, b0; // +0x18
-		uint8_t dr_env[0x40]; // +0x1C
+		int16_t clip[4];
+		int16_t ofs[2];
+		int16_t tw[4];
+		uint16_t tpage;
+		uint8_t dtd, dfe;
+		uint8_t isbg, r0, g0, b0;
+		uint8_t dr_env[0x40];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(DirectorNode) == 0x41C && sizeof(SmallNode) == 0x30 && sizeof(DiveNode) == 0x188, "Wishing Star 089 nodes");
@@ -314,17 +251,12 @@ namespace ws089
 	inline PModel *PModels() { return (PModel *)(TexBase() + 0x4240); }
 	inline Shard *Shards() { return (Shard *)(TexBase() + 0x5EA4); }
 
-	// ------------------------------------------------------------------
-	// Entity flags
-	// ------------------------------------------------------------------
-	// 0x6FA270: the seven entities' flag words saved
 	static void SaveEntityFlags()
 	{
 		uint32_t *dst = SavedFlags();
 		for (uint32_t e = 0x1D972C0; e < 0x1D97704; e += 0x9C) *dst++ = *(const uint16_t *)e;
 	}
 
-	// 0x6FA2A0: flag 4 on the party entities with flag 2
 	static void PartyFlag4On()
 	{
 		for (uint32_t e = 0x1D972C0; e < 0x1D97494; e += 0x9C)
@@ -334,7 +266,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FBDE0: flag 4 on the enemy entities (slots 3..6) with flag 2
 	static void EnemyFlag4On()
 	{
 		for (uint32_t e = 0x1D97494; e < 0x1D97704; e += 0x9C)
@@ -344,7 +275,6 @@ namespace ws089
 		}
 	}
 
-	// flag 4 of the entities with flag 2 back to the saved value
 	static void RestoreFlag4(uint32_t e, const uint32_t *src, const uint32_t *end)
 	{
 		for (; src < end; e += 0x9C, src++)
@@ -353,10 +283,9 @@ namespace ws089
 			if (f & 2) *(uint16_t *)e = (uint16_t)((((uint8_t)*src ^ (uint32_t)f) & 4) ^ f);
 		}
 	}
-	static void RestoreEnemyFlags() { RestoreFlag4(0x1D97494, SavedFlags() + 3, SavedFlags() + 7); } // 0x6FBE00
-	static void RestorePartyFlags() { RestoreFlag4(0x1D972C0, SavedFlags(), SavedFlags() + 3); }     // 0x6FBE40
+	static void RestoreEnemyFlags() { RestoreFlag4(0x1D97494, SavedFlags() + 3, SavedFlags() + 7); }
+	static void RestorePartyFlags() { RestoreFlag4(0x1D972C0, SavedFlags(), SavedFlags() + 3); }
 
-	// 0x6FBE80: the four stage models' bones rebuilt (bit 1 set on the shown ones), the enemies' flag 4 back
 	static void StageModelsBack()
 	{
 		for (uint32_t m = 0x1D98991; m < 0x1D98A41; m += 0x2C)
@@ -368,10 +297,6 @@ namespace ws089
 		RestoreFlag4(0x1D97494, SavedFlags() + 3, SavedFlags() + 7);
 	}
 
-	// ------------------------------------------------------------------
-	// Tables
-	// ------------------------------------------------------------------
-	// 0x6FA2C0: particle models free
 	static void PModelsInit()
 	{
 		uint8_t *p = (uint8_t *)PModels();
@@ -379,7 +304,6 @@ namespace ws089
 		PartCursor() = (uint8_t *)PModels();
 	}
 
-	// 0x6FA2F0: sprites free
 	static void SpritesInit()
 	{
 		uint8_t *p = (uint8_t *)Sprites() + 0xA;
@@ -387,7 +311,6 @@ namespace ws089
 		SpriteCursor() = (uint8_t *)Sprites();
 	}
 
-	// 0x6FA320: shards gone; 64 random spin matrices (scaled 0xF00 - 0..0x1FF), 0x14 bytes apart, at + 0x7704
 	static void ShardsReset()
 	{
 		uint8_t *p = (uint8_t *)Shards() + 6;
@@ -406,7 +329,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FCC90: a free sprite (life 0) from the cursor on, or nullptr
 	static Sprite *SpriteAlloc()
 	{
 		uint8_t *p = SpriteCursor();
@@ -430,7 +352,6 @@ namespace ws089
 		return (Sprite *)p;
 	}
 
-	// 0x6FDB20: a free particle model (life 0) from the cursor on, or nullptr
 	static PModel *PModelAlloc()
 	{
 		uint8_t *p = PartCursor();
@@ -454,12 +375,6 @@ namespace ws089
 		return (PModel *)p;
 	}
 
-	// ------------------------------------------------------------------
-	// Screen shards
-	// ------------------------------------------------------------------
-	// 0x6FA3E0: one shard per triangle of `model` (screen x / y): vertices sorted by x (rotated), relative to the centroid,
-	// uvs / tpage from the captured screen, velocity = (centroid - off) * 4 / |centroid - off| (SquareRoot0 inline); then each
-	// shard alive (0x10) with a random spin matrix
 	static void ShardsInit(uint32_t model, const int16_t *off)
 	{
 		uint8_t *rec = (uint8_t *)Shards();
@@ -489,7 +404,6 @@ namespace ws089
 				F<int16_t>(rec, 2) = (int16_t)cy;
 				int32_t cz = div3(F<int16_t>(h, 8) + F<int16_t>(h, 0x18) + F<int16_t>(h, 0x10));
 				F<int16_t>(rec, 4) = (int16_t)cz;
-				// sort by x (the smallest first, the order kept round)
 				int32_t minx = v0[0];
 				int flag = 0;
 				if (F<int16_t>(h, 0xC) < minx) { minx = F<int16_t>(h, 0xC); flag = 1; }
@@ -545,7 +459,6 @@ namespace ws089
 				F<uint8_t>(rec, 0x2D) = (uint8_t)F<int16_t>(h, 0xE);
 				F<uint8_t>(rec, 0x30) = (uint8_t)((uint8_t)F<int16_t>(h, 0x14) - (uint8_t)base);
 				F<uint8_t>(rec, 0x31) = (uint8_t)F<int16_t>(h, 0x16);
-				// direction from the offset point, its length by SquareRoot0
 				v0[0] = (int16_t)(cx - F<int16_t>(h, 0x1C));
 				F<int16_t>(h, 6) = (int16_t)(cy - F<int16_t>(h, 0x1E));
 				F<int16_t>(h, 8) = (int16_t)(cz - F<int16_t>(h, 0x20));
@@ -579,7 +492,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FD100: the shards with len < limit spin (their matrix) and move; a shard whose first vertex reaches 0 is gone
 	static void ShardsUpdate(int32_t limit)
 	{
 		uint8_t *rec = (uint8_t *)Shards();
@@ -608,8 +520,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FCFD0: the shards as textured triangles (0x24 808080) on the screen, into the frame arena, OT + 0x1000 (alt viewport);
-	// a shard entirely off one side is not drawn
 	static void ShardsDraw()
 	{
 		uint8_t *pk = (uint8_t *)FrameArena();
@@ -645,10 +555,6 @@ namespace ws089
 		FrameArena() = (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// The screen capture
-	// ------------------------------------------------------------------
-	// 0x6FC0A0: the shown stage models (0x1D98991 + 0x2C n bit 0) and the shown enemies (with their shadows; flag 4 set) into `ot`
 	static void CaptureModels(uint32_t ot)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x4C);
@@ -698,8 +604,6 @@ namespace ws089
 		FieldFree(0x4C);
 	}
 
-	// 0x6FBEE0: the screen capture into `ot` (0x1122 entries): a draw mode (texture window 0x100 x 0x100) and a draw
-	// environment on the other display buffer, the stage models / enemies, then a draw environment at (0x180, 0x100)
 	static int32_t Capture(uint32_t ot)
 	{
 		ClearOrderingTable(ot, 0x1122);
@@ -747,11 +651,6 @@ namespace ws089
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Small draws
-	// ------------------------------------------------------------------
-	// 0x6FC450: full-screen tile (r, g, b) at step t of a fade in over `in` ticks, held `hold`, out over `out`, into the
-	// frame arena
 	static int32_t FadeLevel(int32_t t, int32_t in, int32_t hold, int32_t out)
 	{
 		const int32_t din = in != 0 ? in : 1;
@@ -767,7 +666,6 @@ namespace ws089
 		FrameArena() = Tile(r, g, b, level, FrameArena());
 	}
 
-	// 0x6FC250 (Effect_CameraKeysLerp): battle camera between two (look-at, eye) keys, step i of n, 0x1D977A2 from za to zb
 	static void CameraKeys(const int16_t *k0, const int16_t *k1, int32_t za, int32_t zb, int32_t i, int32_t n)
 	{
 		const int32_t d = n - 1;
@@ -790,8 +688,6 @@ namespace ws089
 		GteStoreIR123((void *)0xB8B7F0);
 	}
 
-	// 0x6FC300: the eye turned about the look-at by Y `yaw` (then X `pitch`), its distance x s (4.12); the eye height first
-	// pulled by s
 	static void CameraOrbit(int32_t pitch, int32_t yaw, int32_t s)
 	{
 		uint8_t frame[0x48];
@@ -816,7 +712,6 @@ namespace ws089
 		var<int16_t>(0xB8B7F4) = (int16_t)(var<int16_t>(0xB8B7FC) + v[2]);
 	}
 
-	// 0x6FC410: one damage wave: the next (target count / 8) target records
 	static void DamageWave()
 	{
 		const uint32_t n = (uint32_t)((ActionData *)F<uint8_t *>(Ctx(), 4))->target_count >> 3;
@@ -827,7 +722,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FD2D0: a point (x, y, z, bone) of a model (container or battle entity) in world space (bones rebuilt from the pose)
 	static void BonePoint(uint8_t *c, const int16_t *pt, int16_t *out)
 	{
 		Mat4x3 m;
@@ -841,7 +735,6 @@ namespace ws089
 		GteStoreIR123(out);
 	}
 
-	// 0x6FD1B0: a flash (queue B, 0x6FD340) and n debris (0x6FD3C0) at a bone point of `c`
 	static void FlashAt(uint8_t *c, const int16_t *pt, int32_t n)
 	{
 		int16_t v[4];
@@ -875,7 +768,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FD4D0 / 0x6FDB80: a dive (queue C) facing the angles (a, b), placed k (6 / 2) x its z axis from the centre
 	static DiveNode *DiveSpawn(uint32_t task, int32_t a, int32_t b, int32_t k)
 	{
 		DiveNode *t = (DiveNode *)AddTaskToQueue(QC(), task);
@@ -893,11 +785,6 @@ namespace ws089
 		return t;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim player callback
-	// ------------------------------------------------------------------
-	// 0x6FBB80: one object: frames of its model blended by channel B (0x701390 into the block's buffer), rotation from its
-	// angles, offset rotated by the anchor matrix (flag 0x200: not), scale, colour (channel A) and blend (flag 0x4000)
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		PrimArg *blk = (PrimArg *)arg_;
@@ -976,7 +863,6 @@ namespace ws089
 		FieldFree(0x6C);
 	}
 
-	// a layout through the anchor (x, y, z) (Y angle 0) and the camera, the morph buffer + 0x1888C, at `depth`
 	static int Play(uint8_t *layout, int32_t x, int32_t y, int32_t z, int16_t depth, uint32_t *cursor)
 	{
 		PrimArg a;
@@ -994,10 +880,6 @@ namespace ws089
 		return left;
 	}
 
-	// ------------------------------------------------------------------
-	// Particles
-	// ------------------------------------------------------------------
-	// 0x6FCCF0: sprites move (x / y by their velocity, which then accelerates; z by velocity + 4 x acceleration), age
 	static void SpritesUpdate()
 	{
 		uint8_t *p = (uint8_t *)Sprites() + 0xA;
@@ -1017,8 +899,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FC9E0 (MAG_065_RenderFlipbook): the frame's sprite pieces (0x14-byte records +0x2C, count +0x30) as quads scaled by the
-	// header's matrix +0x84 / position +0x98 (+0x25 bit 0: a draw-mode packet after each piece)
 	static uint32_t Flipbook(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -1112,7 +992,6 @@ namespace ws089
 		return (uint32_t)pk;
 	}
 
-	// 0x6FC8B0: the sprites, one flipbook frame each (frame by life), scaled by +0x12, through the camera, into the module arena
 	static void SpritesDraw()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -1158,8 +1037,6 @@ namespace ws089
 		FieldFree(0xB4);
 	}
 
-	// 0x6FC750: particle models age, spin / scale / fade by their kind's steps and move (velocity pulled by their y axis / 80);
-	// at death a sparkle (kind +7) at its position
 	static void PModelsUpdate()
 	{
 		uint8_t *p = (uint8_t *)PModels();
@@ -1200,8 +1077,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FC500: the particle models: their kind's model (one quad), rotated / scaled, through the camera, far colour by kind,
-	// depth cue by +2, into the module arena
 	static void PModelsDraw()
 	{
 		const uint32_t ot = OTBase() + 0x44;
@@ -1270,11 +1145,6 @@ namespace ws089
 		Cursor() = (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// The star dots (65's 0x6E4350 / 0x6E4570 on this module's tables)
-	// ------------------------------------------------------------------
-	// 0x6FCD50: the star dots (8 groups x 128, each group turned by its angles 0x14AF49C / 0x14AF49E) at (x, y, z) through
-	// the camera; dots with distance < limit; twinkling colour (level x 16)
 	static uint32_t Stars(int32_t depth, int32_t x, int32_t y, int32_t z, int32_t limit, uint32_t cursor)
 	{
 		const uint8_t *st = (const uint8_t *)(TexBase() + 0x7C04);
@@ -1335,7 +1205,6 @@ namespace ws089
 		return (uint32_t)pk;
 	}
 
-	// 0x6FCF70: the dots twinkle (level += step, bouncing at 0 / 255); the groups turn
 	static void StarsTwinkle()
 	{
 		uint8_t *p = (uint8_t *)(TexBase() + 0x7C0F);
@@ -1356,10 +1225,6 @@ namespace ws089
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Queue B tasks
-	// ------------------------------------------------------------------
-	// the flash's draw: frame +0x1F of flipbook 0x14A0538 at its position (shadow-rotation camera, size +0x12)
 	static void FlashDraw(const SmallNode *t)
 	{
 		TransformCameraByShadowRotation(t->pos, t->size, -(t->size >> 2));
@@ -1371,7 +1236,6 @@ namespace ws089
 		FieldFree(0xB4);
 	}
 
-	// 0x6FD340: flash: frame +0x1F of flipbook 0x14A0538 at its position (shadow-rotation camera, size +0x12), 12 frames
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		SmallNode *t = (SmallNode *)n;
@@ -1381,7 +1245,6 @@ namespace ws089
 		return t->frame < 0xC ? 0 : TASK_END;
 	}
 
-	// the debris' draw: prim model 0x14A04D8 at pos turned (ax, ay, 0)
 	static void DebrisDraw(const int16_t *pos, int16_t ax, int16_t ay)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x80);
@@ -1402,7 +1265,6 @@ namespace ws089
 		FieldFree(0x80);
 	}
 
-	// 0x6FD3C0: debris: prim model 0x14A04D8 at its position, angles x 16, falling (gravity +0x1C, bouncing at y >= 0), 15 ticks
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		SmallNode *t = (SmallNode *)n;
@@ -1420,9 +1282,6 @@ namespace ws089
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Queue C tasks
-	// ------------------------------------------------------------------
 	static void RandRotZMul(int16_t *m, const void *dir)
 	{
 		RotZ(CrtRand(), m);
@@ -1438,7 +1297,6 @@ namespace ws089
 		MatMul3(dir, &rx, out);
 	}
 
-	// a dive's trail: prim model 0x1497140 at its frame `m`
 	static void TrailDraw(const Mat4x3 *m, uint32_t *cursor)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x78);
@@ -1451,7 +1309,6 @@ namespace ws089
 		FieldFree(0x78);
 	}
 
-	// `count` particle models along the frame `dir` turned by random Z (tilt: and X -0x200) (kind `kind`), at p
 	static void PModelBurst(const Mat4x3 *dir, const int32_t *p, int kind, bool tilt, int count)
 	{
 		for (int left = count;;)
@@ -1480,7 +1337,6 @@ namespace ws089
 		}
 	}
 
-	// `count` sparkles at p flying along the frame `m` in random directions of its xy plane (z `z`), speed 0x80..0xFF / 0x1000
 	static void SparkleBurst(const void *m, const int32_t *p, int32_t count, int16_t z)
 	{
 		for (Sprite *s = SpriteAlloc(); s;)
@@ -1506,9 +1362,6 @@ namespace ws089
 		}
 	}
 
-	// 0x6FD580: a dive: the trail model along its direction and sparks thrown sideways while it closes in (ticks 4..7),
-	// moving -z each tick; from 6 the dive's layout at the centre + z / 4 with particle bursts (6 / 8), sparkles and the damage
-	// wave at 6; ends with the layout
 	static uint32_t __cdecl DiveTask(TaskNode *n)
 	{
 		DiveNode *d = (DiveNode *)n;
@@ -1591,9 +1444,6 @@ namespace ws089
 		return 0;
 	}
 
-	// 0x6FDC20: the last dive: the trail model (module arena) closing in by half its z axis a tick; on ticks 3 / 7 / 11
-	// particle bursts at the centre spread along the dive's x / y (kinds 2..4), on 3 a tilted burst and sparkles; the frame
-	// turns X 0x400 on 3; 13 ticks
 	static uint32_t __cdecl LastDiveTask(TaskNode *n)
 	{
 		DiveNode *d = (DiveNode *)n;
@@ -1654,15 +1504,11 @@ namespace ws089
 		return c < 0xC ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// The director
-	// ------------------------------------------------------------------
 	static void SetKeys(int16_t *k, int32_t a0, int32_t a1, int32_t a2, int32_t a3, int32_t a4, int32_t a5)
 	{
 		k[0] = (int16_t)a0; k[1] = (int16_t)a1; k[2] = (int16_t)a2; k[3] = (int16_t)a3; k[4] = (int16_t)a4; k[5] = (int16_t)a5;
 	}
 
-	// 0x6FBDB0: Angelo's animation steps (the next one started at its end)
 	static void AnimStep(uint8_t *c)
 	{
 		if (BattleReadAnimation(c + 0x60, c + 0x6C) == 1)
@@ -1672,7 +1518,6 @@ namespace ws089
 		}
 	}
 
-	// the rise / fall: Rinoa's height = max z - v + 0x1770 / 0x3A98 (+0x20, +0x5C), kept in the director +0x90
 	static void RinoaHeight(DirectorNode *d, int32_t v, int32_t base)
 	{
 		*(int16_t *)(Caster() + 0x20) = (int16_t)(d->centre[2] - (int16_t)v + base);
@@ -1680,7 +1525,6 @@ namespace ws089
 		F<int32_t>(d, 0x90) = *(const int32_t *)(Caster() + 0x5C);
 	}
 
-	// 0x6FAAA8: prim model 0x1497140 at the centre scaled by g (4.12), sinking as it grows (+ 0x3A98 z)
 	static void GrowDraw(const DirectorNode *d, int32_t g)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x9C);
@@ -1704,8 +1548,6 @@ namespace ws089
 		FieldFree(0x9C);
 	}
 
-	// 0x6FAD82: the landing's three prim models at p: 0x149D0F8 (uv step (lt & 3) x 0x20; lt 0xB..0xE: blended, fade `fade`),
-	// 0x1499FA8 turned Z `angle`, 0x149C730 blended with fade g
 	static void LandingDraw(uint32_t lt, const int16_t *p, int32_t angle, int32_t fade, int32_t g)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x8C);
@@ -1758,7 +1600,6 @@ namespace ws089
 		FieldFree(0x8C);
 	}
 
-	// the director's camera on counter `counter` (Rinoa-relative from her entity position as the tick set it)
 	static void DirectorCamera(int32_t counter)
 	{
 		const int16_t *ctr = Centre();
@@ -1852,7 +1693,6 @@ namespace ws089
 		if (c == 7) SetAnim(angelo, 1);
 		else if (c == 0x1E) SetAnim(angelo, 2);
 		else if (c == 0x20) SetAnim(angelo, 3);
-		// 0..0x15: the rise, flashes / debris from 3
 		uint32_t s = (uint32_t)(int32_t)d->counter;
 		if (s < 0x16)
 		{
@@ -1872,7 +1712,6 @@ namespace ws089
 				if (s % 7 == 0) FlashAt(Caster(), (const int16_t *)(0x14AF480 + ((s / 7) & 1) * 8), 0);
 			}
 		}
-		// 0x1E..0x21: Rinoa turns
 		s = (uint32_t)((int32_t)d->counter - 0x1E);
 		if (s <= 3)
 		{
@@ -1880,7 +1719,6 @@ namespace ws089
 			*(int32_t *)(Caster() + 0x58) = *(const int16_t *)(Caster() + 0x1E);
 			F<int32_t>(d, 0x8C) = *(const int32_t *)(Caster() + 0x58);
 		}
-		// 0x16..0x31: the rise goes on
 		s = (uint32_t)((int32_t)d->counter - 0x16);
 		if (s < 0x1C)
 		{
@@ -1892,14 +1730,12 @@ namespace ws089
 			}
 			RinoaHeight(d, sdiv_pow2((int32_t)(q * 12000), 12), 0x1770);
 		}
-		// 0x4B..0x5E: a layout at the centre
 		s = (uint32_t)((int32_t)d->counter - 0x4B);
 		if (s < 0x14)
 		{
 			if (s == 0) DecodeModelPrimLayout(0x14A6370, d->layout, 0x68);
 			Play(d->layout, d->centre[0], d->centre[1], d->centre[2] + 0x3A98, 0, &Cursor());
 		}
-		// 0x57..0x65: a growing prim model
 		s = (uint32_t)((int32_t)d->counter - 0x57);
 		if (s < 0xF)
 		{
@@ -1907,7 +1743,6 @@ namespace ws089
 			FX_HELD(held_note_grow(g);)
 			GrowDraw(d, g);
 		}
-		// 0x66..0x93: seven dives
 		s = (uint32_t)((int32_t)d->counter - 0x66);
 		if (s < 0x3C && s <= 0x2D)
 		{
@@ -1922,7 +1757,6 @@ namespace ws089
 			default: break;
 			}
 		}
-		// 0x20..0x23: a layout at Angelo's bone 0x13
 		s = (uint32_t)((int32_t)d->counter - 0x20);
 		if (s < 4)
 		{
@@ -1931,7 +1765,6 @@ namespace ws089
 			GetEffectSpawnPosition(angelo, 0x13, 0, p);
 			Play(d->layout, p[0], p[1], p[2], -0x200, &Cursor());
 		}
-		// 0xA2..0xB0: the landing, three prim models at Angelo's bone 0x13
 		const uint32_t lt = (uint32_t)((int32_t)d->counter - 0xA2);
 		if (lt < 0xF)
 		{
@@ -1952,7 +1785,6 @@ namespace ws089
 			FX_HELD(held_note_landing(lt, p, g);)
 			LandingDraw(lt, p, (int32_t)((lt & 0xFF) << 8), shl32((int32_t)(lt - 0xB) + 1, 10), g);
 		}
-		// 0xB1..0xE2: the last dive, the eighth wave, a layout at the centre
 		s = (uint32_t)((int32_t)d->counter - 0xB1);
 		if (s < 0x32)
 		{
@@ -1972,7 +1804,6 @@ namespace ws089
 				Play(d->layout, d->centre[0], d->centre[1], d->centre[2], 0, &Cursor());
 			}
 		}
-		// 0x25..0xE1: the sky and the stars
 		s = (uint32_t)((int32_t)d->counter - 0x25);
 		if (s < 0xBD)
 		{
@@ -1981,7 +1812,6 @@ namespace ws089
 			FX_HELD(held_note_stars();)
 			FrameArena() = Stars(0, Centre()[0], 0, Centre()[2], 0x10000, FrameArena());
 		}
-		// 0x24..0x4A: the capture, the white flash, the shards
 		s = (uint32_t)((int32_t)d->counter - 0x24);
 		if (s < 0x27)
 		{
@@ -1995,7 +1825,6 @@ namespace ws089
 			ShardsDraw();
 		}
 		if ((uint32_t)((int32_t)d->counter - 0x24) < 0xBE) ScreenFeedback();
-		// Angelo
 		if ((uint16_t)d->counter < 0x10F)
 		{
 			if (!(angelo[0] & 4))
@@ -2005,7 +1834,6 @@ namespace ws089
 			}
 			if (!(angelo[0] & 8)) AnimStep(angelo);
 		}
-		// 0xC5..0x102: white fade; 0xE3 put back
 		s = (uint32_t)((int32_t)d->counter - 0xC5);
 		if (s < 0x3E)
 		{
@@ -2024,7 +1852,6 @@ namespace ws089
 				StageModelsBack();
 			}
 		}
-		// 0xEB..0x102: falling sparks (128 / 64 / ... per tick, 4 at the end)
 		s = (uint32_t)((int32_t)d->counter - 0xEB);
 		if (s < 0x18)
 		{
@@ -2069,7 +1896,6 @@ namespace ws089
 		}
 		SpritesUpdate();
 		PModelsUpdate();
-		// stream loads (the director waits for the loader at 0x24 / 0x65 / 0xAD)
 		const uint32_t buf = TexBase() + 0xBC04;
 		c = d->counter;
 		if (c == 0)
@@ -2113,7 +1939,6 @@ namespace ws089
 			StreamLoad(0x16A, TexBase() + 0xBC04, 1);
 		}
 		StreamPump();
-		// sounds
 		c = d->counter;
 		if (c == 0) BdPlaySE((const void *)0x14913F0, 1, 0x80);
 		else if (c == 0x32) BdPlaySE((const void *)0x14913F4, 1, 0x80);
@@ -2124,13 +1949,10 @@ namespace ws089
 			*(uint8_t *)Caster() |= 0xC;
 			angelo[0] |= 0xC;
 		}
-		// the shards fall
 		s = (uint32_t)((int32_t)d->counter - 0x24);
 		if (s < 0x27) ShardsUpdate(s < 0xA ? (int32_t)(mulhi_u((s * 5) << 9, 0xCCCCCCCD) >> 3) : 0xA00);
 		if ((uint32_t)((int32_t)d->counter - 0x25) < 0xBD) StarsTwinkle();
-		// camera
 		DirectorCamera(d->counter);
-		// next tick; the end waits for the loader
 		d->counter++;
 		if (d->counter >= 0x10F)
 		{
@@ -2142,9 +1964,6 @@ namespace ws089
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// The root task
-	// ------------------------------------------------------------------
 	static void DirectorInit(DirectorNode *d)
 	{
 		Memset32(&d->counter, 0, 0x104);
@@ -2209,7 +2028,6 @@ namespace ws089
 		off[2] = 0;
 		ShardsInit(MDL_Shards, off);
 		StreamStateInit((void *)(TexBase() + 0x5E5C));
-		// the star dots: 8 groups (colours 0x14AF490 / 0x14AF494, their angles reset) x 128 dots at random directions
 		uint8_t *st = (uint8_t *)(TexBase() + 0x7C04);
 		for (uint32_t g = STAR_GROUPS + 8; g < 0x14AF518; g += 0x10)
 		{
@@ -2287,7 +2105,6 @@ namespace ws089
 		register_port(ws089::ORIG_DebrisTask, (void *)ws089::DebrisTask, "089 DebrisTask", 89);
 		register_port(ws089::ORIG_DiveTask, (void *)ws089::DiveTask, "089 DiveTask", 89);
 		register_port(ws089::ORIG_LastDiveTask, (void *)ws089::LastDiveTask, "089 LastDiveTask", 89);
-		// 30 fps layer: see mag089_wishing_star_held.inc
 		FX_HELD(register_mag089_held();)
 	}
 }

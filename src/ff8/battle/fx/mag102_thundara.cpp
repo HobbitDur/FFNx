@@ -14,25 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 102: Thundara (spell, MAG_102_*, file mag101).
-//
-// Structure (setup MAG_102_THUNDARA 0x6DC2D0 -> _Init 0x6DC2E0, file loader 0x6DC2B0 = mag101.tim):
-//   RootTask (0x6DC390) - idles its first tick, then alternates the packet arena (magic buffer
-//     + 0 / + 0x8000); every 15 ticks (counter 0) spawns the bolt of the next action on the
-//     action's first target (it waits while a bolt of 26 frames or less runs on that target);
-//     runs the bolt, spark and flash queues, ends when all three are empty.
-//   Bolt (0x6DC510) - frame 0: 20 sparks around the target (kept in the node); 4: sound;
-//     12: the sparks are thrown outwards + a full-screen flash quad; 11..: the strike, sprite
-//     sequence layers keyed on the frame and three prim models (tilted glow x2, column, flash
-//     ball) whose size / fade are sin() of the frame; every other frame two flash sprites
-//     around the target; 26: damage; ends after 31.
-//   Spark (0x6DCC00) - shared-looking 20-frame flipbook (frame = anim % 20) with a brightness
-//     ramp; moves by a 1/16 sub-unit velocity with a constant acceleration.
-//   Flash (0x6DCD10) - 8-frame flipbook at a fixed place.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2543F18..0x2544E10 (bolt pool 3 x 0x6C, texture file, flash pool 0x20 x 0x18,
-// texture base, context, root pool, packet cursor 0x254437C, spark pool 0x3C x 0x2C, queues
-// 0x2544DD0 (root / bolts) and 0x2544DF0 (sparks / flashes)).
+// Effect 102: Thundara
 
 #include "mag_common.h"
 
@@ -43,10 +25,9 @@ namespace thundara102
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x2544DD0); }    // .first = root, .second = bolts
-	inline TaskQueuePair &Particles() { return var<TaskQueuePair>(0x2544DF0); } // .first = sparks, .second = flashes
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2544360); }             // Magic_TextureOFF (magic buffer)
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x2544DD0); }
+	inline TaskQueuePair &Particles() { return var<TaskQueuePair>(0x2544DF0); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2544360); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2544364); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x254437C); }
 
@@ -57,88 +38,78 @@ namespace thundara102
 	static const uint32_t BOLT_POOL = 0x2543F18;
 	static const int BOLT_POOL_COUNT = 3;
 	static const void *const SOUND_Thundara = (const void *)0x1321BD8;
-	static const void *const FLASH_Colour = (const void *)0x1321BDC;  // flash quad colour word
-	// strike layers (sprite sequences)
-	static const uint32_t SEQ_Strike = 0x131E878;    // frames 0..7
-	static const uint32_t SEQ_UpperA = 0x131EABC;    // frames 2..9, 200 units lower
-	static const uint32_t SEQ_UpperB = 0x131ECB0;    // same frames, at the anchor
-	static const uint32_t SEQ_Core = 0x131F0E8;      // frames 2..10
-	static const uint32_t SEQ_Arc = 0x131FF74;       // frames 5..13
-	static const uint32_t SEQ_ArcLow = 0x131EECC;    // frames 5..12, 200 units lower
-	static const uint32_t SEQ_Glow = 0x131F458;      // frames 8..16
-	static const uint32_t SEQ_Smoke = 0x131F5B4;     // frames 11..19
-	static const uint32_t SEQ_Fade = 0x131FA68;      // frames 9..18, darkening sin() colour
+	static const void *const FLASH_Colour = (const void *)0x1321BDC;
+	static const uint32_t SEQ_Strike = 0x131E878;
+	static const uint32_t SEQ_UpperA = 0x131EABC;
+	static const uint32_t SEQ_UpperB = 0x131ECB0;
+	static const uint32_t SEQ_Core = 0x131F0E8;
+	static const uint32_t SEQ_Arc = 0x131FF74;
+	static const uint32_t SEQ_ArcLow = 0x131EECC;
+	static const uint32_t SEQ_Glow = 0x131F458;
+	static const uint32_t SEQ_Smoke = 0x131F5B4;
+	static const uint32_t SEQ_Fade = 0x131FA68;
 	static const uint32_t SEQ_Spark = 0x131F244;
 	static const uint32_t SEQ_FlashSprite = 0x131E760;
-	// prim models
 	static const uint32_t MODEL_TiltedGlow = 0x13200D0;
 	static const uint32_t MODEL_Column = 0x13207B8;
 	static const uint32_t MODEL_FlashBall = 0x1320EA0;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// engine functions not in fx_port.h / mag_common.h
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone` (0xF1 = centre)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C 0..14, a bolt spawn at 0
-		uint8_t action;   // +0x0E next action
-		uint8_t started;  // +0x0F the first tick only sets it
-		uint32_t arena;   // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct SparkNode // pool of 0x3C nodes of 0x2C bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		uint8_t delay;    // +0x0E counter value of the first draw
-		uint8_t anim;     // +0x0F flipbook frame = anim % 20
-		int16_t pos[3];   // +0x10
+		int16_t counter;
+		uint8_t delay;
+		uint8_t anim;
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t vel[3];   // +0x18 1/16 units per tick
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t acc[3];   // +0x20 added to vel every tick
+		int16_t acc[3];
 		int16_t pad26;
-		int16_t level;    // +0x28 brightness 0..0x80
-		int16_t dlevel;   // +0x2A
+		int16_t level;
+		int16_t dlevel;
 	};
-	struct BoltNode // pool of 3 nodes of 0x6C bytes
+	struct BoltNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C frame
-		int16_t action;   // +0x0E action index
-		uint8_t *entity;  // +0x10 target entity
-		int16_t pos[4];   // +0x14 effect anchor (x, y, z) + a zero word
-		SparkNode *sparks[20]; // +0x1C the frame-0 sparks, filled from the last slot down
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		int16_t pos[4];
+		SparkNode *sparks[20];
 	};
-	struct FlashNode // pool of 0x20 nodes of 0x18 bytes
+	struct FlashNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C flipbook frame (low 3 bits)
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];   // +0x10
+		int16_t pos[3];
 		int16_t pad16;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(SparkNode) == 0x2C && sizeof(BoltNode) == 0x6C && sizeof(FlashNode) == 0x18, "Thundara nodes");
 
-	// Thunder_InitBoltTask (0x6DA380): rep stosd of `count` dwords
 	static void FillDwords(void *dst, uint32_t value, uint32_t count)
 	{
 		uint32_t *d = (uint32_t *)dst;
 		for (uint32_t k = 0; k < count; k++) d[k] = value;
 	}
 
-	// MAG_003_EmitScreenFlashQuad (0x7011A0): semi-transparent flat quad over the whole screen
-	// (320 x 216) in the colour word at `colour`, in the header bucket render list + 0x20
 	static uint32_t ScreenFlashQuad(const void *colour, uint32_t cursor)
 	{
 		uint8_t *p = (uint8_t *)cursor;
@@ -157,7 +128,6 @@ namespace thundara102
 		return cursor + 0x18;
 	}
 
-	// x / -10 (0x99999999, >> 2)
 	static int16_t DivNeg10(int16_t v)
 	{
 		int32_t x = v;
@@ -180,9 +150,6 @@ namespace ff8fx
 {
 namespace thundara102
 {
-	// ------------------------------------------------------------------
-	// Root task (0x6DC390)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -191,7 +158,6 @@ namespace thundara102
 			r->started = 1;
 			return 0;
 		}
-		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -209,7 +175,6 @@ namespace thundara102
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				// wait while a bolt of 26 frames or less runs on this target
 				BoltNode *pool = (BoltNode *)BOLT_POOL;
 				bool busy = false;
 				for (int k = 0; k < BOLT_POOL_COUNT; k++)
@@ -239,11 +204,6 @@ namespace thundara102
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim models of the strike: GTE = camera * (translate anchor, scale / rotate), then the
-	// model with header +0x0C = fade toward black (flags 0xF3)
-	// ------------------------------------------------------------------
-	// MAG_102_THUNDARA_BuildTiltMatrix (0x6DCE80): s * rotation about X by `angle`
 	static void BuildTiltMatrix(int16_t angle, Mat4x3 *m, int32_t scale)
 	{
 		int16_t s16 = (int16_t)scale;
@@ -272,12 +232,9 @@ namespace thundara102
 		GteSetTransVector(m);
 	}
 
-	// MAG_102_THUNDARA_RenderTiltedGlow (0x6DCD90): a glow tilted by `tilt` about X growing as
-	// sin(t / 4), t = frame * 4096 / duration; fades out over the last three quarters
 	static uint32_t TiltedGlow(const int16_t *pos, int32_t tilt, int32_t frame, int32_t duration, uint32_t ot, int mode, uint32_t cursor)
 	{
 		int32_t t = shl32(frame, 12) / duration;
-		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(t = held_frame_arg(t, frame, 12, duration);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		int32_t s = ComputeSin(t >> 2);
@@ -293,7 +250,7 @@ namespace thundara102
 		{
 			int32_t x = t - 0x400;
 			int32_t q = (int32_t)(((int64_t)x * 0x55555556) >> 32);
-			q += (int32_t)((uint32_t)q >> 31);                // x / 3
+			q += (int32_t)((uint32_t)q >> 31);
 			*(int32_t *)(h + 0xC) = q + x;
 		}
 		*(uint32_t *)(h + 0x1C) = 0xF3;
@@ -302,12 +259,9 @@ namespace thundara102
 		return cursor;
 	}
 
-	// MAG_102_THUNDARA_RenderColumn (0x6DCEE0): a column at the target's height, wide and flat
-	// at first; s = sin(frame * 1024 / duration) widens it and fades it out
 	static uint32_t Column(const int16_t *pos, int32_t height, int32_t frame, int32_t duration, uint32_t ot, int mode, uint32_t cursor)
 	{
 		int32_t t = shl32(frame, 10) / duration;
-		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(t = held_frame_arg(t, frame, 10, duration);)
 		int32_t s = ComputeSin(t);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -329,12 +283,9 @@ namespace thundara102
 		return cursor;
 	}
 
-	// MAG_102_THUNDARA_RenderFlashBall (0x6DCFE0): a ball at the target's height, size and fade
-	// s = sin(frame * 1024 / duration)
 	static uint32_t FlashBall(const int16_t *pos, int32_t height, int32_t frame, int32_t duration, uint32_t ot, int mode, uint32_t cursor)
 	{
 		int32_t t = shl32(frame, 10) / duration;
-		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(t = held_frame_arg(t, frame, 10, duration);)
 		int32_t s = ComputeSin(t);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -354,9 +305,6 @@ namespace thundara102
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Bolt (0x6DC510)
-	// ------------------------------------------------------------------
 	static void Layer(uint8_t *h, uint32_t seq, int32_t frame)
 	{
 		*(uint32_t *)h = seq;
@@ -365,7 +313,6 @@ namespace thundara102
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 	}
 
-	// the strike at frame f = counter - 11 (header h: 0xB4 bytes of scratch)
 	static void BoltLayers(const BoltNode *p, int32_t f, uint8_t *h)
 	{
 		if (f < 8)
@@ -424,14 +371,12 @@ namespace thundara102
 		}
 		if (f >= 9 && f < 0x13)
 		{
-			// colour 0x80 - sin((f - 9) * 1024 / 10) / 128 (flag 4 = header colour)
 			int32_t k = f - 9;
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
 			*(uint16_t *)(h + 4) = (uint16_t)k;
 			int32_t x = shl32(k, 10);
 			int32_t q = (int32_t)(((int64_t)x * 0x66666667) >> 32) >> 2;
-			q += (int32_t)((uint32_t)q >> 31);                // x / 10
-			// 30 fps layer: see mag102_thundara_held.inc
+			q += (int32_t)((uint32_t)q >> 31);
 			FX_HELD(q = held_frame_arg(q, k, 10, 10);)
 			*(uint32_t *)h = SEQ_Fade;
 			uint8_t level = (uint8_t)(0x80 - (uint8_t)(ComputeSin(q) >> 7));
@@ -443,7 +388,6 @@ namespace thundara102
 		}
 	}
 
-	// two flash sprites around the target (radius size / 2 + 300, random height)
 	static void SpawnFlashes(const BoltNode *p)
 	{
 		for (int k = 2; k; k--)
@@ -467,7 +411,6 @@ namespace thundara102
 		if (p->counter == 4) BdPlaySE3D(SOUND_Thundara, 0x101, p->pos);
 		if (p->counter == 0)
 		{
-			// 20 sparks on a ring around the target, 500 units lower than the anchor
 			for (int k = 0; k < 20; k++)
 			{
 				SparkNode *s = (SparkNode *)AddTaskToQueue(&Particles().first, ORIG_SparkTask);
@@ -489,7 +432,6 @@ namespace thundara102
 		}
 		if (p->counter == 0xC)
 		{
-			// the sparks are thrown away from the anchor (decelerating by 1/10) and fade out
 			for (int k = 19; k >= 0; k--)
 			{
 				SparkNode *s = p->sparks[k];
@@ -501,7 +443,6 @@ namespace thundara102
 				s->dlevel = (int16_t)(-10 - (CrtRand() & 7));
 			}
 		}
-		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(held_note_draw(ORIG_BoltTask, p, sizeof(BoltNode));)
 		if (p->counter == 0xC) PacketCursor() = ScreenFlashQuad(FLASH_Colour, PacketCursor());
 		if (p->counter > 0xA)
@@ -519,9 +460,6 @@ namespace thundara102
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x6DCC00)
-	// ------------------------------------------------------------------
 	static void SparkDraw(const SparkNode *p)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -537,7 +475,6 @@ namespace thundara102
 		FieldFree(0xB4);
 	}
 
-	// velocity += acceleration, position += velocity / 16, brightness += step (clamped 0..0x80)
 	static void SparkUpdate(SparkNode *p)
 	{
 		uint8_t anim = p->anim;
@@ -559,7 +496,6 @@ namespace thundara102
 		SparkNode *p = (SparkNode *)n;
 		if (p->counter >= (int16_t)(uint16_t)p->delay)
 		{
-			// 30 fps layer: see mag102_thundara_held.inc
 			FX_HELD(held_note_draw(ORIG_SparkTask, p, sizeof(SparkNode));)
 			SparkDraw(p);
 			SparkUpdate(p);
@@ -568,9 +504,6 @@ namespace thundara102
 		return p->counter < 0x20 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Flash sprite (0x6DCD10): 8-frame flipbook
-	// ------------------------------------------------------------------
 	static void FlashDraw(const FlashNode *p)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -585,7 +518,6 @@ namespace thundara102
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		FlashNode *p = (FlashNode *)n;
-		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(held_note_draw(ORIG_FlashTask, p, sizeof(FlashNode));)
 		FlashDraw(p);
 		p->counter++;
@@ -599,7 +531,6 @@ namespace thundara102
 		register_port(thundara102::ORIG_BoltTask, (void *)thundara102::BoltTask, "T102 BoltTask", 102);
 		register_port(thundara102::ORIG_SparkTask, (void *)thundara102::SparkTask, "T102 SparkTask", 102);
 		register_port(thundara102::ORIG_FlashTask, (void *)thundara102::FlashTask, "T102 FlashTask", 102);
-		// 30 fps layer: see mag102_thundara_held.inc
 		FX_HELD(register_mag102_held();)
 	}
 }

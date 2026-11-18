@@ -14,24 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 291: Pandemona - Tornado Zone (timeline-family GF, MAG_291_*).
-//
-// Structure (see gf_study/gf_inventory_timeline.md):
-//   SequenceTask (master, 0x6ED350) - flips the packet arena, spawns the creature timeline at
-//     tick 2 (records the targets, sorts them by x), then runs five single queues in order:
-//     creature 0x25562A8, flipbooks 0x2556298, trails 0x2556288, falling-target prims
-//     0x2556278, landed-target prims 0x2556268.
-//   TimelineTask (0x6ED900) - 480-tick timeline: tornado layers, prim models, particles, the
-//     Pandemona model (drawn 100..376, animated 130..376), the targets sucked up, spun, carried
-//     round and dropped (their battle entities are hidden and drawn by the module itself while
-//     airborne), camera, streamed loads, damage when each target lands.
-//   particle tasks: SwirlFlipbook 0x6F0ED0, RiseFlipbook 0x6F0FB0, Trail 0x6F1060,
-//     FallPrim 0x6F0E30, LandPrim 0x6F0D90 (prim player callback 0x6F06F0, called by address).
-// Module globals: 0x2556258..0x25562F8 (gf_study/gf_global_ranges.md) plus the stream state
-// dword 0x13BBBE8 (static data).
-//
-// Engine and module helpers that are not task functions are called through their original
-// addresses (namespace w); only the seven task functions are ported.
+// Effect 291: Pandemona - Tornado Zone
 
 #include "fx_port.h"
 
@@ -41,33 +24,30 @@ namespace p291
 {
 	using namespace eng;
 
-	// ------------------------------------------------------------------
-	// module globals
-	// ------------------------------------------------------------------
-	inline uint32_t &Pause() { return var<uint32_t>(0x2556258); }            // debug pause, never set by the game
+	inline uint32_t &Pause() { return var<uint32_t>(0x2556258); }
 	inline uint8_t *CastCtx() { return var<uint8_t *>(0x255625C); }
-	inline TaskQueue &QLand() { return var<TaskQueue>(0x2556268); }          // stru_2556268.header: LandPrim
-	inline TaskQueue &QFall() { return var<TaskQueue>(0x2556278); }          // stru_2556268.data: FallPrim
-	inline TaskQueue &QTrail() { return var<TaskQueue>(0x2556288); }         // stru_2556288.header: Trail
-	inline TaskQueue &QFlip() { return var<TaskQueue>(0x2556298); }          // stru_2556288.data: flipbooks
+	inline TaskQueue &QLand() { return var<TaskQueue>(0x2556268); }
+	inline TaskQueue &QFall() { return var<TaskQueue>(0x2556278); }
+	inline TaskQueue &QTrail() { return var<TaskQueue>(0x2556288); }
+	inline TaskQueue &QFlip() { return var<TaskQueue>(0x2556298); }
 	inline TaskQueue &QCreature() { return var<TaskQueue>(0x25562A8); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25562DC); }
-	inline int32_t &Ground() { return var<int32_t>(0x25562E0); }             // mean target z (entity +0x20)
-	inline int32_t &Center() { return var<int32_t>(0x25562E8); }             // Ground() + 4000: tornado centre
+	inline int32_t &Ground() { return var<int32_t>(0x25562E0); }
+	inline int32_t &Center() { return var<int32_t>(0x25562E8); }
 	inline int32_t &Flash() { return var<int32_t>(0x25562F0); }
-	inline uint8_t *MB() { return var<uint8_t *>(0x25562F4); }               // = MAGIC_TEXTURE_BUFFER_BASE
-	inline int32_t &LoadState() { return var<int32_t>(0x13BBBE8); }          // static data, not a module global
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }      // battle_texture_data_ptr_1D8E054
-	inline int16_t &CamW(int i) { return var<int16_t>(0xB8B7F0 + 2 * i); }   // eye x, z(*), y   (*) 683D10 keeps it
-	inline int16_t &CamL(int i) { return var<int16_t>(0xB8B7F8 + 2 * i); }   // look-at
-	inline int16_t &ShakeY() { return var<int16_t>(0x1D97712); }             // BATTLE_CAMERA_SHAKE_OFFSET_Y
-	inline int16_t &Roll() { return var<int16_t>(0x1D977A2); }               // g_BattleCam_Roll
+	inline uint8_t *MB() { return var<uint8_t *>(0x25562F4); }
+	inline int32_t &LoadState() { return var<int32_t>(0x13BBBE8); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline int16_t &CamW(int i) { return var<int16_t>(0xB8B7F0 + 2 * i); }
+	inline int16_t &CamL(int i) { return var<int16_t>(0xB8B7F8 + 2 * i); }
+	inline int16_t &ShakeY() { return var<int16_t>(0x1D97712); }
+	inline int16_t &Roll() { return var<int16_t>(0x1D977A2); }
 	inline int16_t &W1D8E038() { return var<int16_t>(0x1D8E038); }
-	inline int16_t SinT(int i) { return *(const int16_t *)(0x13B7BB8 + 4 * i); } // 4096 (sin, cos) pairs
+	inline int16_t SinT(int i) { return *(const int16_t *)(0x13B7BB8 + 4 * i); }
 	inline int16_t CosT(int i) { return *(const int16_t *)(0x13B7BBA + 4 * i); }
 
 	inline int Count() { return *(uint8_t *)(*(uint32_t *)(CastCtx() + 4) + 0x10); }
-	inline uint8_t *TargetIds() { return *(uint8_t **)(*(uint32_t *)(CastCtx() + 4) + 8); } // 0x18 bytes per target
+	inline uint8_t *TargetIds() { return *(uint8_t **)(*(uint32_t *)(CastCtx() + 4) + 8); }
 
 	template<typename T> inline T &At(void *p, int o) { return *(T *)((uint8_t *)p + o); }
 	template<typename T> inline const T &At(const void *p, int o) { return *(const T *)((const uint8_t *)p + o); }
@@ -79,27 +59,22 @@ namespace p291
 	static const uint32_t ORIG_SwirlFlipTask = 0x6F0ED0;
 	static const uint32_t ORIG_RiseFlipTask = 0x6F0FB0;
 	static const uint32_t ORIG_TrailTask = 0x6F1060;
-	static const uint32_t CB_Prim = 0x6F06F0; // MAG_291_sub_6F06F0: prim player object -> prim set, rel. to ctx matrix
+	static const uint32_t CB_Prim = 0x6F06F0;
 
-	// ------------------------------------------------------------------
-	// engine / module helpers (original addresses)
-	// ------------------------------------------------------------------
 	namespace w
 	{
 		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
 		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(0x7016B0)(src, layout, n); }
-		inline void RotY(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(a, m); }           // MAG_063_sub_701270 (3x3 + pad)
-		inline void RotX(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(a, m); }           // MAG_063_sub_701220
+		inline void RotY(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(a, m); }
+		inline void RotX(int32_t a, void *m) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(a, m); }
 		inline void Scale3D(void *m, const void *v) { fn<void (__cdecl *)(void *, const void *)>(0x56BEF0)(m, v); }
-		inline void Basis(const void *v, void *m) { fn<void (__cdecl *)(const void *, void *)>(0x50CBA0)(v, m); } // BuildOrthonormalBasis
-		inline void Billboard(void *m) { fn<void (__cdecl *)(void *)>(0x673810)(m); }  // MAG_226_sub_673810: m = camera 3x3, t = camera * t
-		// sub_56CB90: out = (a * wa + b * wb) >> 12 on 3 x s16
+		inline void Basis(const void *v, void *m) { fn<void (__cdecl *)(const void *, void *)>(0x50CBA0)(v, m); }
+		inline void Billboard(void *m) { fn<void (__cdecl *)(void *)>(0x673810)(m); }
 		inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); }
 		inline uint32_t PrimSet(void *hdr, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x701DD0)(hdr, ot, mode, cursor); }
-		inline void CamRotate(int32_t angle, int32_t scale) { fn<void (__cdecl *)(int32_t, int32_t)>(0x683D10)(angle, scale); } // MAG_278_sub_683D10
-		inline void DefaultPos(void *ent, void *out) { fn<void (__cdecl *)(void *, void *)>(0x571400)(ent, out); }           // GetDefaultEffectPosition
-		// streaming / sound / gameplay
+		inline void CamRotate(int32_t angle, int32_t scale) { fn<void (__cdecl *)(int32_t, int32_t)>(0x683D10)(angle, scale); }
+		inline void DefaultPos(void *ent, void *out) { fn<void (__cdecl *)(void *, void *)>(0x571400)(ent, out); }
 		inline void Load(int id, uint32_t dst, int kind) { fn<void (__cdecl *)(int, uint32_t, int)>(0x5341D0)(id, dst, kind); }
 		inline int LoadBusy() { return fn<int (__cdecl *)()>(0x534270)(); }
 		inline void LoadPump() { fn<void (__cdecl *)()>(0x534210)(); }
@@ -110,32 +85,30 @@ namespace p291
 		inline void PlayStream() { fn<void (__cdecl *)(int, int, int)>(0x5018C0)(0x80, 1, 0x7F); }
 		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
 		inline void StreamStateInit(void *s) { fn<void (__cdecl *)(void *)>(0x534110)(s); }
-		// creature model
-		inline void ReadAnim6(void *e, int id) { fn<void (__cdecl *)(void *, int)>(0x6574D0)(e, id); }   // au_re_Battle_ReadAnimation_6
-		inline void Advance(void *e) { fn<void (__cdecl *)(void *)>(0x6FBDB0)(e); }                      // MAG_089_sub_6FBDB0
-		// module helpers
-		inline void Pivot(void *ent, void *out) { fn<void (__cdecl *)(void *, void *)>(0x6ED770)(ent, out); }                 // bone y range of an entity
+		inline void ReadAnim6(void *e, int id) { fn<void (__cdecl *)(void *, int)>(0x6574D0)(e, id); }
+		inline void Advance(void *e) { fn<void (__cdecl *)(void *)>(0x6FBDB0)(e); }
+		inline void Pivot(void *ent, void *out) { fn<void (__cdecl *)(void *, void *)>(0x6ED770)(ent, out); }
 		inline void Bind(void *e, void *sec, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x6F0A70)(e, sec, data); }
 		inline uint32_t DrawCreature(void *e, int a2, uint32_t a3, uint32_t cursor, uint32_t a5) { return fn<uint32_t (__cdecl *)(void *, int, uint32_t, uint32_t, uint32_t)>(0x6F0AE0)(e, a2, a3, cursor, a5); }
 		inline void BonePos(void *e, uint32_t data, void *out) { fn<void (__cdecl *)(void *, uint32_t, void *)>(0x6F0CC0)(e, data, out); }
-		inline void HitTarget(void *ent) { fn<void (__cdecl *)(void *)>(0x6F0D20)(ent); }                                     // ApplyActionResultToTarget
+		inline void HitTarget(void *ent) { fn<void (__cdecl *)(void *)>(0x6F0D20)(ent); }
 		inline void Flatten(uint32_t mesh) { fn<void (__cdecl *)(uint32_t)>(0x6F2E40)(mesh); }
 		inline void Flatten2(uint32_t mesh) { fn<void (__cdecl *)(uint32_t)>(0x6F2E60)(mesh); }
 		inline void PartReset(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1520)(nd); }
 		inline int16_t *PartAlloc(void *nd) { return fn<int16_t *(__cdecl *)(void *)>(0x6F1550)(nd); }
-		inline void PartFall(void *nd) { fn<void (__cdecl *)(void *)>(0x6F19C0)(nd); }                                          // drift, gravity -10
-		inline void PartOrbit(void *nd, int32_t a, int32_t b) { fn<void (__cdecl *)(void *, int32_t, int32_t)>(0x6F1A30)(nd, a, b); } // pos = GTE(R v + T) + swirl
-		inline void PartBounce(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1B20)(nd); }                                        // gravity +20, bounce on y >= 0
+		inline void PartFall(void *nd) { fn<void (__cdecl *)(void *)>(0x6F19C0)(nd); }
+		inline void PartOrbit(void *nd, int32_t a, int32_t b) { fn<void (__cdecl *)(void *, int32_t, int32_t)>(0x6F1A30)(nd, a, b); }
+		inline void PartBounce(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1B20)(nd); }
 		inline void PartDrift(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1BA0)(nd); }
 		inline void PartDraw(void *nd) { fn<void (__cdecl *)(void *)>(0x6F1650)(nd); }
 		inline void Scale3(int32_t a, int32_t s, void *out) { fn<void (__cdecl *)(int32_t, int32_t, void *)>(0x6F15E0)(a, s, out); }
-		inline void MatY(int32_t a, int32_t s, int32_t sy, void *m) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, void *)>(0x6F29D0)(a, s, sy, m); } // scaled rotation about y
+		inline void MatY(int32_t a, int32_t s, int32_t sy, void *m) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, void *)>(0x6F29D0)(a, s, sy, m); }
 		inline void Morph(uint32_t a, uint32_t b, int32_t t) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(0x6F2D20)(a, b, t); }
 		typedef void (__cdecl *Fn12)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
 		inline void Tornado(const int32_t *a) { fn<Fn12>(0x6F2A30)(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11]); }
 		typedef void (__cdecl *Fn10)(void *, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
 		inline void Ribbon(void *m, const int32_t *a) { fn<Fn10>(0x6F1C10)(m, a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9]); }
-		inline void EntDraw(void *ent, void *ang, void *pivot, void *scale) { fn<void (__cdecl *)(void *, void *, void *, void *)>(0x68D1D0)(ent, ang, pivot, scale); } // MAG_274_sub_68D1D0
+		inline void EntDraw(void *ent, void *ang, void *pivot, void *scale) { fn<void (__cdecl *)(void *, void *, void *, void *)>(0x68D1D0)(ent, ang, pivot, scale); }
 		inline int TrailPush(int max, int count, void *entries, void *a, void *b, int c0, int c1, int c2) { return fn<int (__cdecl *)(int, int, void *, void *, void *, int, int, int)>(0x6D99D0)(max, count, entries, a, b, c0, c1, c2); }
 		inline uint32_t TrailDraw(int32_t *count, void *entries, int d, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t *, void *, int, uint32_t, int, uint32_t)>(0x6F1290)(count, entries, d, ot, mode, cursor); }
 	}
@@ -153,18 +126,9 @@ namespace p291
 {
 	using namespace eng;
 
-	// ------------------------------------------------------------------
-	// Master (0x6ED350). Node: +0x0C u16 counter, +0x0F u8 creature spawned, +0x10 arena parity.
-	// Target record (0x20, creature node +0x14 + 0x20 i):
-	//   +0x00 entity*       +0x04 s16 bone-y max (feet)  +0x06 s16 bone-y min (head)
-	//   +0x08 s16 1/size     +0x0A s16 draw scale (4.12)  +0x0C s16 x, y  +0x10 s16 z (entity +0x1C..)
-	//   +0x14 s16 angles x, y, z (entity +0x0C.., y + 0x800)  +0x1C u8 landed ticks
-	//   +0x1D u8 drawn by the module  +0x1E u8 not linked to another target (draw the chain)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		uint8_t *nd = (uint8_t *)n;
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_note_master();)
 		if (At<uint32_t>(nd, 0x10))
 		{
@@ -206,7 +170,6 @@ namespace p291
 				At<int16_t>(rec, 8) = size == 0 ? (int16_t)0x10 : (int16_t)(0x10000 / ((int32_t)size + 0x400));
 				w::Pivot(ent, rec + 4);
 			}
-			// sort the records by entity x, largest first
 			if (Count() - 1 > 0)
 			{
 				for (int p = 1; p - 1 < Count() - 1; p++)
@@ -224,7 +187,6 @@ namespace p291
 					}
 				}
 			}
-			// +0x1E: the entity's part chain (+0x8C) holds no other target
 			for (int i = 0; i < Count(); i++)
 			{
 				uint8_t *rec = cr + 0x14 + 0x20 * i;
@@ -258,7 +220,7 @@ namespace p291
 			w::Flatten2(0x13ACDB0);
 			w::StreamStateInit(MB() + 0x231D4);
 		}
-		uint32_t left = (uint32_t)nd; // the original keeps the node pointer here: non-zero
+		uint32_t left = (uint32_t)nd;
 		if (nd[0xF])
 		{
 			left = (uint32_t)ExecuteTaskQueue(&QCreature());
@@ -274,27 +236,14 @@ namespace p291
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Timeline (0x6ED900). One node at modelBuffer + 0x21A4, 0x1030 bytes:
-	//   +0x0C s16 tick, +0x10 voice slot, +0x14 target records (0x20 each),
-	//   +0x154 creature model E (+0x40 root matrix, t at +0x54/+0x58/+0x5C; +0x60 BattleAnimHeader,
-	//   +0x6C BattleAnimCmd), +0x1F0 prim player layout, +0x41C model section table,
-	//   +0x42C particle pool (128 x 0x18: s16 pos[3], life, vel[3], scale, angle A, angle B,
-	//   s8 spin A, spin B, u8 model; free hint at +0x102C).
-	// The original's stack frame is emulated by fr (esp-relative offsets after the 4 register
-	// pushes: locals 0x10..0xAF): ctx = fr + 0x44 (prim player context: matrix, +0x20 s16 depth
-	// bias, +0x22 s16 uv scroll, +0x24 mode table, +0x28 vertex scratch = modelBuffer + 0x31D4).
-	// ------------------------------------------------------------------
 	static uint8_t g_fr[0xB0];
 	inline int16_t &F16(uint8_t *fr, int o) { return *(int16_t *)(fr + o); }
 	inline int32_t &F32(uint8_t *fr, int o) { return *(int32_t *)(fr + o); }
 
-	// a draw pass of tick c: the node and the emulated stack frame
 	struct Pass
 	{
 		uint8_t *nd, *fr;
 		int32_t c;
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(int num = 0, den = 1; bool held = false, interp = false;)
 	};
 
@@ -305,17 +254,14 @@ namespace p291
 	static void Play(const Pass &p, uint8_t *ctx)
 	{
 		prim::Layout *l = (prim::Layout *)(p.nd + 0x1F0);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(if (held_play(p, l, ctx)) return;)
 		prim::play(l, (prim::Callback)CB_Prim, (int)ctx, Pause());
 	}
 
-	// ---- 10..39: intro prim model (from 18) ----
 	static void DrawA(const Pass &p, int32_t v)
 	{
 		uint8_t *fr = p.fr;
 		int32_t scroll = (int32_t)shl32(v, 3);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_lerp(p, (uint32_t)(v + 1) < 0x1E, scroll, (int32_t)shl32(v + 1, 3));)
 		F32(fr, 0x58) = 0;
 		F32(fr, 0x5C) = 0;
@@ -329,7 +275,6 @@ namespace p291
 		Play(p, fr + 0x44);
 	}
 
-	// ---- 24..39: three tornado layers growing ----
 	struct ParB { int32_t t[3][12]; };
 	static void GenB(int32_t v, ParB &r)
 	{
@@ -345,12 +290,10 @@ namespace p291
 	{
 		ParB r;
 		GenB(v, r);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_par_b(p, v, r);)
 		for (int k = 0; k < 3; k++) w::Tornado(r.t[k]);
 	}
 
-	// ---- 40..99: tornado layers, the ground prim sets ----
 	struct ParC { int32_t t[3][12]; int32_t e, ang2, fade, third; };
 	static void GenC(int32_t v, ParC &r)
 	{
@@ -370,7 +313,6 @@ namespace p291
 	{
 		ParC r;
 		GenC(v, r);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_par_c(p, v, r);)
 		for (int k = 0; k < 3; k++) w::Tornado(r.t[k]);
 		uint8_t *ws = (uint8_t *)FieldAlloc(0x8C);
@@ -418,7 +360,6 @@ namespace p291
 		FieldFree(0x8C);
 	}
 
-	// ---- 100..153: tornado layers fading out, ground prim sets ----
 	struct ParD { int32_t on, more; int32_t t[3][12]; int32_t v36, ang2; };
 	static void GenD(int32_t v, ParD &r)
 	{
@@ -443,7 +384,6 @@ namespace p291
 	{
 		ParD r;
 		GenD(v, r);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_par_d(p, v, r);)
 		if (!r.on) return;
 		w::Tornado(r.t[0]);
@@ -495,7 +435,6 @@ namespace p291
 		FieldFree(0x8C);
 	}
 
-	// ---- 144..173: prim model round the centre ----
 	static void DrawE(const Pass &p)
 	{
 		uint8_t *fr = p.fr;
@@ -510,8 +449,6 @@ namespace p291
 		Play(p, fr + 0x44);
 	}
 
-	// prim player at a bone of the creature, facing the camera (184..223, 254..283, 284..319);
-	// scroll1 / next_in: the scroll of tick c + 1 and whether that tick is still in the block
 	static void DrawBonePrim(const Pass &p, int bo, int32_t scroll, int32_t scroll1, bool next_in, int16_t bias, uint32_t table)
 	{
 		uint8_t *fr = p.fr;
@@ -520,7 +457,6 @@ namespace p291
 		F32(fr, 0x5C) = F16(fr, bo + 2);
 		F32(fr, 0x60) = F16(fr, bo + 4);
 		w::Billboard(fr + 0x44);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_lerp(p, next_in, scroll, scroll1);)
 		F16(fr, 0x66) = (int16_t)scroll;
 		F32(fr, 0x6C) = (int32_t)(MB() + 0x31D4);
@@ -529,7 +465,6 @@ namespace p291
 		Play(p, fr + 0x44);
 	}
 
-	// ---- 224..253: prim model, stretched ----
 	static void DrawG(const Pass &p, int32_t v)
 	{
 		uint8_t *fr = p.fr;
@@ -544,7 +479,6 @@ namespace p291
 		ComposeAffineTransform(&Camera(), (Mat4x3 *)(fr + 0x44), (Mat4x3 *)(fr + 0x44));
 		int32_t s = shl32(v, 5);
 		F32(fr, 0x2C) = s;
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_lerp(p, (uint32_t)(p.c + 1 - 224) < 0x1E, s, shl32(v + 1, 5));)
 		F16(fr, 0x66) = (int16_t)s;
 		F32(fr, 0x68) = 0x13EF430;
@@ -553,7 +487,6 @@ namespace p291
 		Play(p, fr + 0x44);
 	}
 
-	// the ring prim set 0x13AEBC0 at (-500, 0, ground) (254..283 always, 284..319 fading)
 	static void DrawRing(int32_t scroll, bool fading, int32_t fade)
 	{
 		uint8_t *ws = (uint8_t *)FieldAlloc(0x8C);
@@ -591,7 +524,6 @@ namespace p291
 		FieldFree(0x8C);
 	}
 
-	// ---- 335..376: prim model on the creature's hand, oriented up the tornado; four ribbons ----
 	struct ParJ { int32_t r[4][10]; };
 	static void GenJ(int32_t v, ParJ &p)
 	{
@@ -623,13 +555,10 @@ namespace p291
 		Play(p, fr + 0x44);
 		ParJ r;
 		GenJ(v, r);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_par_j(p, v, r);)
 		for (int k = 0; k < 4; k++) w::Ribbon(fr + 0x70, r.r[k]);
 	}
 
-	// ---- 377..416: four ribbons round the ground, then 4 timed prim sets from the table
-	// 0x13BBBC0 (12 bytes each: s16 base, rate, y scale, pad, start, end) ----
 	struct ParK
 	{
 		int32_t r[4][10];
@@ -666,7 +595,6 @@ namespace p291
 		uint8_t *fr = p.fr;
 		ParK r;
 		GenK(v, r);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_par_k(p, v, r);)
 		w::RotX(0x400, fr + 0x90);
 		F32(fr, 0xA4) = 0;
@@ -698,7 +626,6 @@ namespace p291
 		FieldFree(0x8C);
 	}
 
-	// ---- 224+: the airborne targets, drawn by the module (their battle entities are hidden) ----
 	static void DrawTargets(const Pass &p)
 	{
 		uint8_t *nd = p.nd, *fr = p.fr;
@@ -745,11 +672,7 @@ namespace p291
 
 	static bool CreatureDrawn(int32_t c) { return c >= 100 && c < 377 && (c < 224 || c >= 254); }
 
-	// ------------------------------------------------------------------
-	// Target motion of the timeline ticks. fr carries the creature's hand position (BonePos)
-	// at +0x2C (254..283) / +0x1C (335..376).
-	// ------------------------------------------------------------------
-	static void MotionSink(uint8_t *nd, int32_t v) // 224..253: pulled towards the tornado
+	static void MotionSink(uint8_t *nd, int32_t v)
 	{
 		for (int i = 0; i < Count(); i++)
 		{
@@ -763,7 +686,7 @@ namespace p291
 		}
 	}
 
-	static void MotionLift(uint8_t *nd, uint8_t *fr, int32_t v) // 254..283: lifted to the hand, one after another
+	static void MotionLift(uint8_t *nd, uint8_t *fr, int32_t v)
 	{
 		int32_t wgt = (int32_t)((uint32_t)shl32(v, 12) / 20u);
 		for (int i = 0; i < Count(); i++)
@@ -795,7 +718,7 @@ namespace p291
 		}
 	}
 
-	static void MotionSpin(uint8_t *nd, uint8_t *fr, int32_t v) // 335..376: spun up round the hand, then flung up
+	static void MotionSpin(uint8_t *nd, uint8_t *fr, int32_t v)
 	{
 		int32_t wgt = (int32_t)((uint32_t)shl32(v, 12) >> 5);
 		for (int i = 0; i < Count(); i++)
@@ -827,7 +750,7 @@ namespace p291
 		}
 	}
 
-	static void OrbitReset(uint8_t *nd) // 377: back to the recorded position, fresh angles
+	static void OrbitReset(uint8_t *nd)
 	{
 		for (int i = 0; i < Count(); i++)
 		{
@@ -840,7 +763,7 @@ namespace p291
 		}
 	}
 
-	static void MotionOrbit(uint8_t *nd, int32_t v) // 377..416: carried round the tornado
+	static void MotionOrbit(uint8_t *nd, int32_t v)
 	{
 		int32_t base = shl32(v, 7);
 		for (int i = 0; i < Count(); i++)
@@ -857,7 +780,7 @@ namespace p291
 		}
 	}
 
-	static void DropReset(uint8_t *nd) // 440: above the recorded position
+	static void DropReset(uint8_t *nd)
 	{
 		for (int i = 0; i < Count(); i++)
 		{
@@ -870,7 +793,6 @@ namespace p291
 		}
 	}
 
-	// 440..479: the drop. real = the tick itself (prims, damage, unhide, shake); false = the motion only
 	static void MotionDrop(uint8_t *nd, int32_t v, bool real)
 	{
 		for (int i = 0; i < Count(); i++)
@@ -924,7 +846,6 @@ namespace p291
 		}
 	}
 
-	// four new particles at the tornado floor, outward drift (40..99, 100..124, 377..416)
 	static void SpawnFloorParticles(uint8_t *nd)
 	{
 		int k = 4;
@@ -940,7 +861,6 @@ namespace p291
 		}
 	}
 
-	// particles out of the hand position (fr + bo: x, y, z), half = 184..223 (radius halved)
 	static void SpawnHandParticles(uint8_t *nd, uint8_t *fr, int bo, int32_t n, bool half)
 	{
 		for (int32_t k = n; k != 0; k--)
@@ -963,7 +883,6 @@ namespace p291
 		}
 	}
 
-	// the flipbook swirls round the tornado (24..39: radius from the tornado growth; 40..99)
 	static void SpawnSwirls(int32_t n, int16_t r, int16_t y, int16_t va, int16_t vb, int16_t da)
 	{
 		for (int32_t k = n; k != 0; k--)
@@ -980,11 +899,6 @@ namespace p291
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Camera part of the timeline (0x6EFDE5..0x6F060E). real = the tick itself (also the sounds,
-	// the model set-up at 99 and the voice release); false = the camera math only. Returns true
-	// on a cut.
-	// ------------------------------------------------------------------
 	static bool CamStep(uint8_t *nd, int32_t c, bool real)
 	{
 		bool cut = false;
@@ -1231,16 +1145,13 @@ namespace p291
 		uint8_t *fr = g_fr;
 		int32_t c = At<int16_t>(nd, 0xC);
 
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_note_timeline(nd, c);)
 		Pass p = { nd, fr, c };
 
-		// screen flash
 		if (c < 8) Flash() = (2800 * c) >> 3;
 		else if (c <= 0x1D8) Flash() = 0xAF0;
 		else Flash() = (2800 * (480 - c)) >> 3;
 
-		// 10..39: intro prim model, falling particles, then (24..) tornado and swirls
 		{
 			uint32_t v = (uint32_t)(c - 10);
 			if (v < 0x1E)
@@ -1278,7 +1189,6 @@ namespace p291
 			}
 		}
 
-		// 40..99: tornado, swirls, orbiting floor particles, ground prim sets
 		{
 			uint32_t v = (uint32_t)(c - 0x28);
 			if (v < 0x3C)
@@ -1301,7 +1211,6 @@ namespace p291
 			}
 		}
 
-		// 100..153: the creature rises (root y), floor particles, trails at 114, tornado fades
 		{
 			uint32_t v = (uint32_t)(c - 0x64);
 			if (v < 0x36)
@@ -1321,7 +1230,6 @@ namespace p291
 						w::PartOrbit(nd, 0x3C, 0x800);
 						if (v == 0x18)
 						{
-							// the floor particles either die or are flung out, rising
 							int16_t *q = (int16_t *)(nd + 0x42C);
 							for (int k = 0; k < 0x80; k++, q += 12)
 							{
@@ -1344,7 +1252,7 @@ namespace p291
 						{
 							for (int32_t k = 2;; k--)
 							{
-								uint8_t *t = (uint8_t *)AddTaskToQueue(&QTrail(), ORIG_TrailTask); // (no null test)
+								uint8_t *t = (uint8_t *)AddTaskToQueue(&QTrail(), ORIG_TrailTask);
 								At<int16_t>(t, 0xC) = 0;
 								At<int32_t>(t, 0x20) = 0;
 								At<int16_t>(t, 0x10) = (int16_t)(shl32(k, 11) - 0x1770);
@@ -1370,7 +1278,6 @@ namespace p291
 			}
 		}
 
-		// 144..173: prim model round the centre
 		{
 			uint32_t v = (uint32_t)(c - 0x90);
 			if (v < 0x1E)
@@ -1381,7 +1288,6 @@ namespace p291
 		}
 		if (c == 0x9A) w::PartReset(nd);
 
-		// 184..223: prim model on the hand, particles out of it
 		{
 			uint32_t v = (uint32_t)(c - 0xB8);
 			if (v < 0x28)
@@ -1396,7 +1302,6 @@ namespace p291
 			}
 		}
 
-		// 224..253: stretched prim model, targets pulled in
 		{
 			uint32_t v = (uint32_t)(c - 0xE0);
 			if (v < 0x1E)
@@ -1429,7 +1334,6 @@ namespace p291
 			}
 		}
 
-		// 254..283: hand prim, ring, particles and rising flipbooks, the targets lifted
 		{
 			uint32_t v = (uint32_t)(c - 0xFE);
 			if (v < 0x1E)
@@ -1469,7 +1373,6 @@ namespace p291
 			}
 		}
 
-		// 284..319: hand prim, ring fading, particles slowed down
 		{
 			uint32_t v = (uint32_t)(c - 0x11C);
 			if (v < 0x24)
@@ -1494,7 +1397,6 @@ namespace p291
 			}
 		}
 
-		// 335..376: particles fall, the targets spun round the hand, four ribbons
 		{
 			uint32_t v = (uint32_t)(c - 0x14F);
 			if (v < 0x2A)
@@ -1527,7 +1429,6 @@ namespace p291
 			}
 		}
 
-		// 377..416: the targets carried round, floor particles orbit, ribbons and timed rings
 		{
 			uint32_t v = (uint32_t)(c - 0x179);
 			if (v < 0x28)
@@ -1553,7 +1454,6 @@ namespace p291
 			}
 		}
 
-		// 417..439: particles slowed, bouncing (the bounce update is not pause-guarded)
 		{
 			uint32_t v = (uint32_t)(c - 0x1A1);
 			if (v < 0x17)
@@ -1574,7 +1474,6 @@ namespace p291
 			}
 		}
 
-		// 440..479: the drop
 		uint32_t vdrop = (uint32_t)(c - 0x1B8);
 		if (vdrop < 0x28)
 		{
@@ -1587,7 +1486,6 @@ namespace p291
 		}
 		if (vdrop < 0x5C8)
 		{
-			// landed targets stand on their feet (bone y range recomputed every tick)
 			for (int i = 0; i < Count(); i++)
 			{
 				uint8_t *rec = Rec(nd, i), *ent = Ent(nd, i);
@@ -1606,7 +1504,6 @@ namespace p291
 		if (CreatureDrawn(c))
 			FrameCursor() = w::DrawCreature(E(nd), 0x2000, (uint32_t)(MB() + 0x31D4), FrameCursor(), var<uint32_t>(0x1D969A8));
 
-		// streamed loads (the timeline waits while the loader is busy)
 		{
 			uint32_t D = (uint32_t)(MB() + 0x2321C);
 			switch ((uint16_t)c)
@@ -1662,7 +1559,6 @@ namespace p291
 			break;
 		default: break;
 		}
-		// the creature's animation (NOT pause-guarded), after its draw
 		if (c >= 0x82 && c < 0x179 && (c < 0xE0 || c >= 0xFE)) w::Advance(E(nd));
 
 		CamStep(nd, c, true);
@@ -1691,11 +1587,6 @@ namespace p291
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Target prim players (0x6F0D90 landed, 0x6F0E30 falling; identical code, two queues).
-	// Node: +0x0C record*, +0x10 prim player layout. Scaled by the entity size, at the entity
-	// position (y + the record's foot offset).
-	// ------------------------------------------------------------------
 	static void TargetPrimCtx(uint8_t *ctx, uint8_t *rec, const int16_t *pos)
 	{
 		uint8_t *ent = At<uint8_t *>(rec, 0);
@@ -1719,11 +1610,6 @@ namespace p291
 		return left != 0 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Swirl flipbook (0x6F0ED0), 12 frames of 0x13AFCC0 circling the tornado. Node 0x1C:
-	// +0x0C s16 frame, +0x0E s16 radius, +0x10 s16 angle, +0x12 s16 angle step,
-	// +0x14 s16 z, +0x16 s16 size, +0x18 s16 camera push (x -1/4)
-	// ------------------------------------------------------------------
 	static void SwirlDraw(uint8_t *nd, int16_t angle, int16_t frame)
 	{
 		int32_t i = angle & 0xFFF;
@@ -1752,10 +1638,6 @@ namespace p291
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Rising flipbook (0x6F0FB0), 12 frames of 0x13AFE04. Node 0x1C: +0x0C s16 pos[3],
-	// +0x12 s16 frame, +0x14 s8 vel[3] (x16 per tick), +0x18 s16 size, +0x1A s16 camera push
-	// ------------------------------------------------------------------
 	static void RiseDraw(uint8_t *nd, const int16_t *pos, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, At<int16_t>(nd, 0x18), -(At<int16_t>(nd, 0x1A) >> 2));
@@ -1778,18 +1660,7 @@ namespace p291
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Trail (0x6F1060): a glowing ribbon wound up the tornado. Node 0x45C:
-	//   +0x0C s16 age, +0x10 s16 height, +0x12 s16 phase, +0x14 s16 phase step, +0x16 s16 spin,
-	//   +0x18 s16 spin step, +0x1A s16 scale, +0x1C s16 scale step, +0x1E s16 step change,
-	//   +0x20 s32 entries, +0x24 30 entries x 0x24 (two 8-byte points, projected edges,
-	//   +0x20 u8 brightness, +0x21 s8 brightness change (-4 per tick), +0x22 u8 colour).
-	// For 21 ticks a new pair of points is pushed at the head; the ribbon fades by itself.
-	// VANILLA UNINITIALISED READ: the 4th word of both 8-byte points (stack slots +0x0E / +0x16
-	// of the frame, never written) is copied into every new entry; the port keeps what the
-	// previous tick left there (g_trail_pts), vanilla holds whatever the stack held.
-	// ------------------------------------------------------------------
-	static int16_t g_trail_pts[8]; // frame +0x08: point b (x, y, z, ?), frame +0x10: point a
+	static int16_t g_trail_pts[8];
 
 	static void TrailMatrix(uint8_t *m, int16_t spin, int16_t scale)
 	{
@@ -1827,7 +1698,6 @@ namespace p291
 			g_trail_pts[5] = y2;
 			At<int32_t>(nd, 0x20) = w::TrailPush(0x1E, At<int32_t>(nd, 0x20), nd + 0x24, g_trail_pts + 4, g_trail_pts, 0x10, 0x58, (3 - (age & 3)) << 5);
 		}
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(held_note_trail(nd);)
 		uint8_t mat[0x20];
 		TrailMatrix(mat, At<int16_t>(nd, 0x16), At<int16_t>(nd, 0x1A));
@@ -1865,7 +1735,6 @@ namespace p291
 		register_port(p291::ORIG_SwirlFlipTask, (void *)p291::SwirlFlipTask, "P291 SwirlFlipTask", 291);
 		register_port(p291::ORIG_RiseFlipTask, (void *)p291::RiseFlipTask, "P291 RiseFlipTask", 291);
 		register_port(p291::ORIG_TrailTask, (void *)p291::TrailTask, "P291 TrailTask", 291);
-		// 30 fps layer: see mag291_pandemona_held.inc
 		FX_HELD(register_mag291_held();)
 	}
 }

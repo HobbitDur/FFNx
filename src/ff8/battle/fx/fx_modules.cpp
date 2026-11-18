@@ -14,80 +14,51 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Per-effect module table, engine regions and external call sites (see fx_modules.h).
-// Module global ranges come from gf_study/gf_global_ranges.md.
+// Memory owned by each effect, for the verifier
 
 #include "fx_modules.h"
 
 namespace ff8fx::mod
 {
-	// Quezacotl: its streamed files
 	static const Region streams_q116[] = { { 0x1298C68, 0x109FC }, { 0x12A9664, 0x4D9C } };
-	// Cactuar: pool/table pointer cells 0xCF3564..0xCF3593 (written at the creature's first tick)
-	static const Region streams_c199[] = { { 0xCF3564, 0x30 }, { 0x24FBDA4, 0x162B } }; // + shared camera script cells
-	// Pandemona: texture load state machine cell (outside the module range)
+	static const Region streams_c199[] = { { 0xCF3564, 0x30 }, { 0x24FBDA4, 0x162B } };
 	static const Region streams_p291[] = { { 0x13BBBE8, 4 } };
-	// Odin: ripple-texture destination in exe data, pool/scratch pointer cells, summon data (loads 0x227/0x229/0x22A)
 	static const Region streams_o187[] = { { 0xFA94A8, 0x4000 }, { 0xE41E50, 0xC }, { 0xE41E98, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } };
-	// Doomtrain: pool pointer cells, summon data (loads 0x22E..0x231), shadow-camera scratch
 	static const Region streams_d191[] = { { 0xE3C8C0, 0x18 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 }, { 0x1D99C18, 8 } };
-	// Gilgamesh: the 16 sword model files in .data (their skeletons are rebuilt), summon data
-	// (loads 0x2EE/0x2F0/0x2F1), pool pointer cells
 	static const Region streams_g327[] = { { 0xE808D0, 0x10C50 }, { 0x209FAB8, 0x40000 }, { 0xCD0398, 0xC }, { 0x24FBDA4, 0x162B } };
-	// Odin reverse: loads 0x2E3/0x2E8 into exe data + the ripple texture right after (0xEECC2C..0xEF4C30),
-	// pool/scratch pointer cells, summon data (loads 0x2E5/0x2E7), the camera script's saved camera
 	static const Region streams_o326[] = { { 0xEECC2C, 0x8004 }, { 0xE19668, 0xC }, { 0xE196B0, 4 }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } };
-	// GF cinematic engine (Ifrit family): mesh depth scale, fog words, camera-related word
-	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C } }; // + tail of the per-vertex depth array 0x2798C18 (Breath reaches 0x2798F9A)
-	static const Region streams_ps[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C }, { 0xB8BA00, 8 } }; // streams_gfc + the two colour words draw 47 PaletteHsvShift writes (gfc_palshift.inc: 211, 269)
+	static const Region streams_gfc[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C } };
+	static const Region streams_ps[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x35C }, { 0xB8BA00, 8 } };
 	static const Region streams_s302[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_c318[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_t324[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c319[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
-	// actor family: module scratch stack + camera copy (0x2793DA4..0x2793E78), ParsePolygons temporaries,
-	// static cells the modules write, Siren's load destinations outside the 1 MB buffer
 	static const Region streams_a095[] = { { 0x2793DA4, 0xD4 }, { 0x153386C, 0x154 }, { 0x16A40EC, 0x1284 }, { 0x2795110, 0x68 }, { 0x19D1018, 0x23600 }, { 0x1D99C18, 8 } };
-	// Tonberry / Boko: module data, shared scratch + camera copy, RenderGeometry temporaries,
-	// TransformCameraByShadowRotation scratch, Boko load destinations outside the 1 MB buffer
 	static const Region streams_a090[] = { { 0x15474EC, 0x530 }, { 0x2793DA4, 0xD4 }, { 0x2795960, 0x218 }, { 0x1D99C18, 8 } };
 	static const Region streams_a097[] = { { 0x152B94C, 0xD4 }, { 0x168356C, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
 	static const Region streams_a098[] = { { 0x152B2C4, 0xF4 }, { 0x167484C, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
 	static const Region streams_a099[] = { { 0x152AABC, 0x174 }, { 0x1665B28, 0x8120 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 }, { 0x2795113, 0x68 } };
 	static const Region streams_a100[] = { { 0x1529B8C, 0x134 }, { 0x1656E04, 0xC340 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x19D1018, 0x23600 } };
-	// Fire: per-target free flags (exe data) + shadow-camera scratch; Fira/Firaga: scratch
 	static const Region streams_f002[] = { { 0xDEE360, 0x1C }, { 0x21DFED0, 0x20 } };
 	static const Region streams_f142[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_f143[] = { { 0x21DFED0, 0x20 } };
-	// Thunder/Thundara: shadow-camera scratch; Thundaga: + the shard meshes it rewrites in exe data
 	static const Region streams_t003[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t102[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t105[] = { { 0x130E55C, 0x3040 }, { 0x21DFED0, 0x20 } };
-	// Blizzard/Blizzara: shadow-camera scratch; Blizzaga: + the static UV model list and the
-	// sparkle matrix translation it rewrites in exe data
 	static const Region streams_i144[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_i103[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_i104[] = { { 0x1315774, 0x1900 }, { 0x13197C4, 0xC }, { 0x21DFED0, 0x20 } };
-	// Bio: acid CLUT and the mesh vertex blocks it rewrites in exe data; Holy: draw-environment
-	// restore packets in exe data; Quake/Ultima/both: shadow-camera scratch
 	static const Region streams_b022[] = { { 0x16146FC, 0x100 }, { 0x1615CEC, 0x2D8 }, { 0x1617E44, 0x150 }, { 0x1619890, 0xE98 }, { 0x161F758, 0x810 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_q038[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_u149[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_h175[] = { { 0x21DFED0, 0x20 }, { 0xD592C0, 0x30 } };
-	// Meltdown: entity-shadow temporaries, RenderGeometry temporaries; Pain: camera copy;
-	// Drain/Death (actor library copies): scratch stack + camera copy, actor data they rewrite in exe
-	// data, Death's reaper model container
 	static const Region streams_m148[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_p034[] = { { 0x2793E58, 0x20 } };
 	static const Region streams_d039[] = { { 0x2793DA4, 0xD4 }, { 0x15D1F18, 0x140 } };
-	// Confuse (actor library copy): the two morph vertex arrays it rewrites in exe data + scratch;
-	// Flare/Sleep: shadow-camera scratch; Tornado: funnel matrix translation and capture OT link in
-	// exe data, scratch, RenderGeometry temporary (entities, camera and stage flag are engine regions)
 	static const Region streams_c036[] = { { 0x15D9E0C, 0x590 }, { 0x15DBAE4, 0x590 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_f124[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_s145[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_t146[] = { { 0xDD674C, 0xC }, { 0xDD6780, 4 }, { 0x21DFED0, 0x20 }, { 0x1D99C18, 8 } };
-	// Demi: the mote matrix it rewrites in exe data (also read by the silhouette pull), scratch and
-	// entity-shadow temporaries; Dispel/Aura: shadow-camera scratch
 	static const Region streams_d107[] = { { 0x12F9978, 0x20 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_d109[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_a111[] = { { 0x21DFED0, 0x20 } };
@@ -117,14 +88,13 @@ namespace ff8fx::mod
 	static const Region streams_a126[] = { { 0x124227C, 4 } };
 	static const Region streams_w153[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_m013[] = { { 0x163257C, 0x169C }, { 0x21DFED0, 0x20 }, { 0x1D9770C, 2 } };
-	static const Region streams_d232[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x478 }, { 0x1D99C18, 8 } }; // streams_gfc with the depth-array tail up to 0x27990B6
-	static const Region streams_f234[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x478 }, { 0x1D99C18, 8 } }; // streams_gfc with the widened depth tail + 0x5106E0 packet cursor
+	static const Region streams_d232[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x478 }, { 0x1D99C18, 8 } };
+	static const Region streams_f234[] = { { 0x1877DA8, 4 }, { 0x209AB64, 0x10 }, { 0xC78BF0, 0x10 }, { 0x1D96DC4, 4 }, { 0x2798C40, 0x478 }, { 0x1D99C18, 8 } };
 	static const Region streams_l030[] = { { 0x17CC72C, 0x60A0 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d041[] = { { 0x15CAAB0, 0x2FE }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c190[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_m048[] = { { 0x15AE4FC, 0x9790 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_m008[] = { { 0x1636C94, 0x5BC }, { 0x1818B78, 0x12BC }, { 0x181CB14, 0x488 }, { 0x19EB018, 0x530C }, { 0x2793DA4, 0xD4 }, { 0x2795110, 0x68 }, { 0x1D99C18, 8 } };
-	// Doom Activation: shared scratch + camera copy, the tint packets, RenderGeometry / shadow temporaries, the sprite camera words
 	static const Region streams_d009[] = { { 0x2793DA4, 0xD4 }, { 0x2795110, 0x68 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_b012[] = { { 0x1362E44, 0x188 }, { 0x1363734, 0x188 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_d015[] = { { 0x17FC68C, 0x5944 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
@@ -136,7 +106,7 @@ namespace ff8fx::mod
 	static const Region streams_s042[] = { { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_b043[] = { { 0x2793DA4, 0xD4 } };
 	static const Region streams_j044[] = { { 0x21DFED0, 0x20 }, { 0x1D97712, 2 }, { 0x1DCD6E4, 0xC } };
-	static const Region streams_s045[] = { { 0x2793E58, 0x20 } }; // (stage group words 0x1D98992.. are inside the tracked battle entity array)
+	static const Region streams_s045[] = { { 0x2793E58, 0x20 } };
 	static const Region streams_s046[] = { { 0x15C0FE8, 0x1370 }, { 0x2793DA4, 0xD4 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c047[] = { { 0x15B824C, 0x24 }, { 0x17B97A4, 0x1980 }, { 0x2793DA4, 0xD4 } };
 	static const Region streams_r049[] = { { 0x2793E58, 0x20 } };
@@ -183,20 +153,17 @@ namespace ff8fx::mod
 	static const Region streams_m308[] = { { 0x21DFED0, 0x20 }, { 0x1DCD6E4, 0xC } };
 	static const Region streams_d320[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0xFF12A8, 2 } };
 	static const Region streams_r303[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
-	static const Region streams_s209[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x209FAB8, 0x40000 }, { 0x1D97708, 0x20 }, { 0x1B47810, 4 } }; // "Sorceress" spawn 209: camera animation cells, the grid cells in the summon data, the camera shake word, the VRAM-emulation flag (0x45BEE0)
-	static const Region streams_z167[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } }; // Zantetsuken 167 (Odin c0m070): as 227 (setup camera animation)
-	static const Region streams_g218[] = { { 0xF1DD54, 0xBCC }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } }; // Gilgamesh kills Seifer 218: the sword model in .data (its skeleton is rebuilt), summon data (load 0x2C5), the shared camera script cells
-	static const Region streams_d251[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1434430, 0x3D58 } }; // Demon Slice 251: the stream loader / shadow-camera words (as 304) + the wave layout 0x1434430 (its height words normalised in exe data)
-	static const Region streams_b210[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } }; // Bloodfest 210: the stream loader / shadow-camera words (as 304)
-	static const Region streams_i173[] = { { 0x21DFED0, 0x20 } }; // Ice Breath 173: shadow-camera scratch
-	// Gargantua burrow: the spawn stream pointer in exe data (never put back) + the sprite / shadow-camera engine words
+	static const Region streams_s209[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x209FAB8, 0x40000 }, { 0x1D97708, 0x20 }, { 0x1B47810, 4 } };
+	static const Region streams_z167[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	static const Region streams_g218[] = { { 0xF1DD54, 0xBCC }, { 0x209FAB8, 0x40000 }, { 0x24FBDA4, 0x162B } };
+	static const Region streams_d251[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1434430, 0x3D58 } };
+	static const Region streams_b210[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
+	static const Region streams_i173[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_g301[] = { { 0x103DC9C, 4 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
-	// BGH251F2 destruction: the bone scripts (their loop counters live in exe data) + the sprite / shadow-camera engine words
 	static const Region streams_b298[] = { { 0x1056560, 0x31C }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
-	// Trauma shatter: the bone scripts (their loop counters live in exe data) + the sprite / shadow-camera engine words
 	static const Region streams_t290[] = { { 0x106E648, 0x24C }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
-	static const Region streams_m207[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1CA8850, 4 }, { 0x1CA89AC, 4 }, { 0x1CA89B4, 4 }, { 0x1B47810, 4 } }; // Maelstrom 207: as Gravija 214
-	static const Region streams_g214[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1CA8850, 4 }, { 0x1CA89AC, 4 }, { 0x1CA89B4, 4 }, { 0x1B47810, 4 } }; // Gravija 214: 311's sprite cells + the screen-copy request (0x45B5E0) and the VRAM-emulation flag (0x45BEE0)
+	static const Region streams_m207[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1CA8850, 4 }, { 0x1CA89AC, 4 }, { 0x1CA89B4, 4 }, { 0x1B47810, 4 } };
+	static const Region streams_g214[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x1CA8850, 4 }, { 0x1CA89AC, 4 }, { 0x1CA89B4, 4 }, { 0x1B47810, 4 } };
 	static const Region streams_s176[] = { { 0xD4516C, 0xC }, { 0x21DFED0, 0x20 } };
 	static const Region streams_b157[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_m158[] = { { 0x21DFED0, 0x20 } };
@@ -217,8 +184,6 @@ namespace ff8fx::mod
 	static const Region streams_d174[] = { { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_s213[] = { { 0x117ADE0, 0x9A0 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_e217[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
-	// LV5 Death 345 (LV?Death 74 relocated): the module scratch stack below the camera copy, the reaper model container's
-	// rewritten skeleton / fade, the actor data files (relocated in place)
 	static const Region streams_l345[] = { {0x2793DA4,0xD4}, {0x1D99C18,8}, {0x1525774,0x548}, {0x1643698,0x6FD0} };
 	static const Region streams_g150[] = { { 0x21DFED0, 0x20 } };
 	static const Region streams_k181[] = { { 0x21DFED0, 0x20 } };
@@ -249,8 +214,6 @@ namespace ff8fx::mod
 	static const Region streams_z274[] = { { 0x10E9538, 0x268 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_s189[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 }, { 0xD1B490, 0x18 } };
 	static const Region streams_s085[] = { { 0x2793DA4, 0xD4 } };
-	// Angel Wing 84: the model container's skeleton block (rewritten pose), the module scratch stack below the camera copy,
-	// RenderGeometry's last packet, the sprite draws' camera scratch, the shadow scratch
 	static const Region streams_r084[] = { { 0x1572BC8, 0x430 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_z112[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_z212[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
@@ -271,38 +234,34 @@ namespace ff8fx::mod
 	static const Region streams_i197[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
 	static const Region streams_r087[] = { { 0x155B1FC, 0x670 }, { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
 	static const Region streams_i198[] = { { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC }, { 0x1D99C18, 8 } };
-	static const Region streams_s200[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } }; // the shared camera-script cells, the shadow-rotation scratch
-	static const Region streams_r089[] = { { 0x1491414, 0x670 }, { 0x14AF490, 0x80 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } }; // Angelo pose block, star groups, RenderGeometry last packet, shadow scratch
-	static const Region streams_e017[] = { { 0xB8B9A8, 4 }, { 0x21DFED0, 0x20 } }; // the battle ambient colour, the shadow-rotation scratch
-	static const Region streams_b110[] = { { 0x12E0658, 0x9A0 }, { 0x21DFED0, 0x20 } }; // the stream model vertex table (rewritten every tick), the shadow-rotation scratch
-	static const Region streams_r161[] = { { 0x24FEB98, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs Elvoret: the caster and boss bind blocks, the camera shake word
-	static const Region streams_r159[] = { { 0x24FEBF8, 0x30 } }; // Renzokuken vs X-ATM092: the caster and boss bind blocks
-	static const Region streams_r141[] = { { 0x24FEC28, 0x20 } }; // Renzokuken 5 hits: the caster bind block
-	static const Region streams_r259[] = { { 0x24FEB68, 0x20 } }; // Renzokuken 6 hits: the caster bind block
-	static const Region streams_r332[] = { { 0x24FEB38, 0x20 } }; // Renzokuken 7 hits: the caster bind block
-	static const Region streams_r333[] = { { 0x24FEB08, 0x20 } }; // Renzokuken 8 hits: the caster bind block
-	static const Region streams_r334[] = { { 0x24FEAD8, 0x30 } }; // Renzokuken vs Bahamut: the caster and boss bind blocks
-	static const Region streams_r335[] = { { 0x24FEAA8, 0x30 } }; // Renzokuken vs NORG: the caster and boss bind blocks
-	static const Region streams_r336[] = { { 0x24FEA78, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs Ultima Weapon: the caster and boss bind blocks, the camera shake word
-	static const Region streams_r337[] = { { 0x24FEA48, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs the Sorceress (wormlike): the caster and boss bind blocks, the camera shake word
-	static const Region streams_r339[] = { { 0x24FEA08, 0x40 } }; // Renzokuken vs Adel: the caster, boss and Rinoa bind blocks
-	static const Region streams_r340[] = { { 0x24FE9D8, 0x30 } }; // Renzokuken vs Ultimecia (final form): the caster and boss bind blocks
-	static const Region streams_r341[] = { { 0x24FE9A8, 0x30 }, { 0x1D97712, 2 } }; // Renzokuken vs Jumbo Cactuar: the caster and boss bind blocks, the camera shake word
-	static const Region streams_r342[] = { { 0x24FE978, 0x30 } }; // Renzokuken vs Ultimecia + Griever: the caster and boss bind blocks
-	static const Region streams_r343[] = { { 0x24FE948, 0x30 } }; // Renzokuken vs Griever: the caster and boss bind blocks
+	static const Region streams_s200[] = { { 0x24FBDA4, 0x162B }, { 0x21DFED0, 0x20 } };
+	static const Region streams_r089[] = { { 0x1491414, 0x670 }, { 0x14AF490, 0x80 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 }, { 0x1D999C8, 0x80 }, { 0xB8B9E4, 0xC } };
+	static const Region streams_e017[] = { { 0xB8B9A8, 4 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_b110[] = { { 0x12E0658, 0x9A0 }, { 0x21DFED0, 0x20 } };
+	static const Region streams_r161[] = { { 0x24FEB98, 0x30 }, { 0x1D97712, 2 } };
+	static const Region streams_r159[] = { { 0x24FEBF8, 0x30 } };
+	static const Region streams_r141[] = { { 0x24FEC28, 0x20 } };
+	static const Region streams_r259[] = { { 0x24FEB68, 0x20 } };
+	static const Region streams_r332[] = { { 0x24FEB38, 0x20 } };
+	static const Region streams_r333[] = { { 0x24FEB08, 0x20 } };
+	static const Region streams_r334[] = { { 0x24FEAD8, 0x30 } };
+	static const Region streams_r335[] = { { 0x24FEAA8, 0x30 } };
+	static const Region streams_r336[] = { { 0x24FEA78, 0x30 }, { 0x1D97712, 2 } };
+	static const Region streams_r337[] = { { 0x24FEA48, 0x30 }, { 0x1D97712, 2 } };
+	static const Region streams_r339[] = { { 0x24FEA08, 0x40 } };
+	static const Region streams_r340[] = { { 0x24FE9D8, 0x30 } };
+	static const Region streams_r341[] = { { 0x24FE9A8, 0x30 }, { 0x1D97712, 2 } };
+	static const Region streams_r342[] = { { 0x24FE978, 0x30 } };
+	static const Region streams_r343[] = { { 0x24FE948, 0x30 } };
 	static const Region streams_d014[] = { { 0x2793DA4, 0xD4 }, { 0x1D99C18, 8 }, { 0x162C97C, 0x548 }, { 0x1801FD0, 0x6FD0 } };
 	static const Region streams_a096[] = { { 0x2793DA4, 0xD4 }, { 0x152BBBC, 0x60E }, { 0x169227C, 0xA4 }, { 0x1696140, 0xBCA4 }, { 0x1D99C18, 8 } };
-	// Shiva: glow-ring node cell, summon data (CharacterLoad 0x221/0x222/0x224 destination, read by
-	// BdTransSummonStream), TransformCameraByShadowRotation scratch
 	static const Region streams_s185[] = { { 0xD32508, 4 }, { 0x209FAB8, 0x40000 }, { 0x21DFED0, 0x20 }, { 0x24FBDA4, 0x162B }, { 0x1D99C18, 8 } };
 	static const Region streams_p140[] = { { 0x11B539C, 0xB17 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_c278[] = { { 0x10B6FB4, 0x5A9 }, { 0x1D99C18, 8 }, { 0x21DFED0, 0x20 } };
 	static const Region streams_m338[] = { { 0x136BB50, 0x549 }, { 0x1D99C18, 8 } };
-	// Renzokuken: the block BS_BindEntityModelFromComData fills with the caster's animation set pointers
 	static const Region streams_r160[] = { { 0x24FEBC8, 0x20 } };
 
 	const Module modules[] = {
-		// timeline-A (own pause flag, creature spawned by the master at counter 2)
 		{ 116, 0x25216D8, 0x25217D0, 0, 0, true, "Quezacotl", streams_q116, 2 },
 		{ 325, 0x250517C, 0x2505230, 0, 0, false, "Diablos" },
 		{ 278, 0x2508110, 0x25081FC, 0, 0, false, "Carbuncle", streams_c278, 3 },
@@ -310,9 +269,8 @@ namespace ff8fx::mod
 		{ 140, 0x2517AA0, 0x2517B50, 0, 0, false, "Phoenix", streams_p140, 3 },
 		{ 338, 0x25561C8, 0x2556254, 0, 0, false, "Moomba", streams_m338, 2 },
 		{ 69,  0x2556628, 0x2556F98, 0, 0, false, "Griever" },
-		// timeline-B (draw-only mode on battle_to_update_flags bit0, creature spawned by the timeline)
 		{ 185, 0x22BC128, 0x22BD108, 0, 0, false, "Shiva", streams_s185, 5 },
-		{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar", streams_c199, 2 }, // + its private rand seed
+		{ 199, 0x2259950, 0x225A8E4, 0xCF3A68, 4, false, "Cactuar", streams_c199, 2 },
 		{ 187, 0x24FD458, 0x24FE910, 0, 0, false, "Odin", streams_o187, 5 },
 		{ 326, 0x24F0BD0, 0x24F2308, 0, 0, false, "Odin (reverse)", streams_o326, 5 },
 		{ 191, 0x24FBD68, 0x24FD458, 0, 0, false, "Doomtrain", streams_d191, 4 },
@@ -320,16 +278,13 @@ namespace ff8fx::mod
 		{ 328, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Masamune)", streams_g327, 4 },
 		{ 329, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalibur)", streams_g327, 4 },
 		{ 330, 0x21FF2A8, 0x2201080, 0, 0, false, "Gilgamesh (Excalipoor)", streams_g327, 4 },
-		// GF cinematic engine family (engine state block 0x2796E00..0x2798C40)
 		{ 201, 0x2796E00, 0x2798C40, 0, 0, false, "Ifrit", streams_gfc, 5 },
-		// the six other compilations: same engine block, plus each clone's queue/file pointer statics below it
 		{ 6,   0x2796EF8, 0x2798C40, 0, 0, false, "Leviathan", streams_gfc, 5 },
 		{ 202, 0x2796DE0, 0x2798C40, 0, 0, false, "Bahamut", streams_gfc, 5 },
 		{ 203, 0x2796DA8, 0x2798C40, 0, 0, false, "Cerberus", streams_gfc, 5 },
 		{ 204, 0x2796D70, 0x2798C40, 0, 0, false, "Alexander", streams_gfc, 5 },
 		{ 205, 0x2796D30, 0x2798C40, 0, 0, false, "Brothers", streams_gfc, 5 },
 		{ 206, 0x2796CF8, 0x2798C40, 0, 0, false, "Eden", streams_gfc, 5 },
-		// actor state-machine family (the heal-spell effect library)
 		{ 95,  0x257F8A0, 0x258FCF4, 0, 0, false, "Siren", streams_a095, 6 },
 		{ 96,  0x257B740, 0x257F8A0, 0, 0, false, "MiniMog", streams_a096, 5 },
 		{ 90,  0x259EEA8, 0x25A4E00, 0, 0, false, "Tonberry", streams_a090, 4 },
@@ -337,7 +292,6 @@ namespace ff8fx::mod
 		{ 98,  0x256E358, 0x2575268, 0, 0, false, "Boko ChocoFlare", streams_a098, 6 },
 		{ 99,  0x2565A30, 0x256E358, 0, 0, false, "Boko ChocoMeteor", streams_a099, 7 },
 		{ 100, 0x255EAC8, 0x2565A30, 0, 0, false, "Boko ChocoBocle", streams_a100, 6 },
-		// spells
 		{ 2,   0x24CA818, 0x24DFD70, 0, 0, false, "Fire", streams_f002, 2 },
 		{ 142, 0x24BFB48, 0x24C10B4, 0, 0, false, "Fira", streams_f142, 1 },
 		{ 143, 0x24BECC8, 0x24BFB40, 0, 0, false, "Firaga", streams_f143, 1 },
@@ -350,7 +304,7 @@ namespace ff8fx::mod
 		{ 22,  0x27044E0, 0x2714F24, 0, 0, false, "Bio", streams_b022, 6 },
 		{ 38,  0x278C8E0, 0x2792E60, 0, 0, false, "Quake", streams_q038, 1 },
 		{ 149, 0x2461E88, 0x2464BA8, 0, 0, false, "Ultima", streams_u149, 1 },
-		{ 175, 0x2374578, 0x2394208, 0x1D99C18, 4, false, "Holy", streams_h175, 2 }, // + RenderGeometry temporary
+		{ 175, 0x2374578, 0x2394208, 0x1D99C18, 4, false, "Holy", streams_h175, 2 },
 		{ 148, 0x2464BA8, 0x2476660, 0, 0, false, "Meltdown", streams_m148, 4 },
 		{ 34,  0x26BA9E0, 0x26C0380, 0, 0, false, "Pain", streams_p034, 1 },
 		{ 39,  0x269D958, 0x269E764, 0, 0, false, "Drain", streams_d039, 2 },
@@ -655,25 +609,25 @@ namespace ff8fx::mod
 	const int module_count = (int)(sizeof(modules) / sizeof(modules[0]));
 
 	const Region engine_regions[] = {
-		{ 0x20DFAB8, 0x100000, "magic buffer" }, // MAGIC_TEXTURE_BUFFER_BASE: creature, particle pools, packet arenas (fx_verify: wherever 0x571B50 says, FFNx moves it)
-		{ 0x21DFAB8, 4, "magic buffer cursor" },  // its fill cursor (zeroed with it by Magic_ClearMemoryForTex)
+		{ 0x20DFAB8, 0x100000, "magic buffer" },
+		{ 0x21DFAB8, 4, "magic buffer cursor" },
 		{ 0x1D99A88, 4, "MAGIC_TEXTURE_BUFFER_PTR" },
-		{ 0xB8B7F0, 0x20, "battle camera" },      // Battle_Camera_world/LookAt + ReturnView
-		{ 0x1D97700, 0xB0, "camera state" },      // camera shake, roll, blend, BD_LINK_TASK_HEADER_CAMERA, view matrix
-		{ 0x1D8E038, 0x20, "render list globals" }, // word_1D8E038 .. battle_texture_data_ptr_1D8E054 (frame packet cursor)
+		{ 0xB8B7F0, 0x20, "battle camera" },
+		{ 0x1D97700, 0xB0, "camera state" },
+		{ 0x1D8E038, 0x20, "render list globals" },
 		{ 0x1CA8A10, 0x70, "GTE data registers" },
-		{ 0x1CA9210, 0xF0, "GTE control registers" },            // + the float light-matrix mirror below them
-		{ 0x209D078, 0x2A40, "hit-effect queue pool + header" },  // effects spawn screen fades into it
-		{ 0x1D9898C, 0xDC, "battle entity array" },  // screen flash, currentBsId visibility bits
-		{ 0x1D972C0, 0x440, "BattleEntitySlotData" }, // entity_flags hide bits, Carbuncle's party lift, Odin/Doomtrain target edits
-		{ 0x1D96ED0, 0x1C0, "battle state controllers" }, // entity +0x74 blocks (7 x 0x40): Renzokuken's animation-set bind
-		{ 0x1D971F0, 0xD0, "weapon animation slots" },    // entity +0x78 headers (3 x 0x44): Renzokuken's animation-set bind
-		{ 0x1D99AB0, 0x20, "effect light/position" }, // shared effect light/position struct (Moomba)
-		{ 0x1DCD6E0, 0x10, "streamed-file loader" },  // dword_1DCD6E4/E8/EC
+		{ 0x1CA9210, 0xF0, "GTE control registers" },
+		{ 0x209D078, 0x2A40, "hit-effect queue pool + header" },
+		{ 0x1D9898C, 0xDC, "battle entity array" },
+		{ 0x1D972C0, 0x440, "BattleEntitySlotData" },
+		{ 0x1D96ED0, 0x1C0, "battle state controllers" },
+		{ 0x1D971F0, 0xD0, "weapon animation slots" },
+		{ 0x1D99AB0, 0x20, "effect light/position" },
+		{ 0x1DCD6E0, 0x10, "streamed-file loader" },
 		{ 0x1D999C4, 4, "Field_Alloc pointer" },
-		{ 0x2557098, 4, "effect LCG seed" },          // shared effect LCG seed (MAG_106_sub_7059E0)
-		{ 0x1CFF6F4, 4, "screen feedback request" },  // g_Battle_ScreenFeedbackRequest
-		{ 0x1D98220, 0x204, "VRAM upload queue" },    // + count
+		{ 0x2557098, 4, "effect LCG seed" },
+		{ 0x1CFF6F4, 4, "screen feedback request" },
+		{ 0x1D98220, 0x204, "VRAM upload queue" },
 		{ 0x1CA8828, 4, "ssigpu_execution_cur" },
 	};
 	const int engine_region_count = (int)(sizeof(engine_regions) / sizeof(engine_regions[0]));
@@ -692,12 +646,9 @@ namespace ff8fx::mod
 		{ 0x506690, 0, "ApplyActionResultToTarget" },
 		{ 0x505C00, 0, "QueueChainTransformation" },
 		{ 0x506C10, 1, "AddTaskToQueueAnimSeq" },
-		// Renzokuken (160): the caster gets the module's animation set (weapon slot, state controller, bind block)
 		{ 0x5022C0, 3, "BS_BindEntityModelFromComData" },
-		// battle-stage model swaps (Griever: attacker model 36/37 at tick 50, swap at 110)
 		{ 0x512AA0, 2, "loadBS_36Or37" },
 		{ 0x512AC0, 2, "BS_SwapModel_512AC0" },
-		// GF cinematic engine (Ifrit family): sound/music, CLUT upload and battle calls it makes directly
 		{ 0x46B3A0, 0, "Sound_46B3A0" },
 		{ 0x46B3E0, 0, "Sound_46B3E0" },
 		{ 0x46B450, 0, "Sound_46B450" },
@@ -710,44 +661,32 @@ namespace ff8fx::mod
 		{ 0x504270, 0, "Battle_504270" },
 		{ 0x5099A0, 0, "Battle_5099A0" },
 		{ 0x50A730, 0, "Battle_50A730" },
-		// cinematic clones: off-screen model/stage renders (pose battle models, execute an OT),
-		// blit queue, streaming volume, screen feedback request (Eden draw 58)
 		{ 0xB65810, 0, "GfCinematic_RenderPartyModelsOffscreen" },
 		{ 0xB65D10, 0, "GfCinematic_RenderBattleStageOffscreen" },
 		{ 0xB65F30, 0, "GfCinematic_RenderBattleModelOffscreen" },
 		{ 0xB65B00, 0, "GfCinematic_RenderStageGroundOffscreen" },
 		{ 0x505EB0, 0, "QueueBlitCommand" },
 		{ 0x46BD40, 0, "SdStreamingVolumeTranslation" },
-		// Griever death (66): music stop, sound volume fade, battle text
 		{ 0x46B800, 1, "Music_StopChannelOrAll" },
 		{ 0x46BEC0, 2, "Sfx_SetAllChannelsVolumeTrans" },
 		{ 0x4876F0, 3, "printMonsterRelatedText" },
-		// Ultimecia final form (76): victory fanfare queue, music channel volume, streamed music
 		{ 0x501A20, 2, "BS_R0win_QueueVictoryFanfare" },
 		{ 0x501B10, 2, "BS_Music_SetChannelVolumeCommand" },
 		{ 0x46CBB0, 1, "Music_WavStream_Play" },
-		// Ultimecia final form death (77): entity status flag, animation re-evaluation, summon link
 		{ 0x509CD0, 2, "pre_updateEntityStatusFlag" },
 		{ 0x509C80, 1, "updateEntityAnimation" },
 		{ 0x47DF60, 0, "linkedToSummonGF" },
 		{ 0x47CF50, 0, "Battle_RequestScreenFeedback" },
-		// actor family (Siren, MiniMog, Tonberry, Boko): music volume fades, conditional hit reaction
 		{ 0x46BB40, 0, "Music_SetVolumeImmediate" },
 		{ 0x505CE0, 0, "QueueChainTransformationConditional" },
-		// Tonberry's stream, Boko's TIM uploads
 		{ 0x501460, 0, "BdPlayStream" },
 		{ 0x505E30, 0, "Battle_QueueTIMUpload_GetEOF" },
-		// cinematic GFs, Water, Meteor, Odin: VRAM uploads; texture restore; misc engine calls
 		{ 0x505DF0, 0, "Battle_QueueVramUpload" },
 		{ 0x508630, 0, "Battle_RestoreDefaultEffectTexture" },
 		{ 0x4A2900, 0, "Engine_4A2900" },
 		{ 0x403D99, 0, "OutputDebugString_1" },
-		// Meteor: VRAM readback request (VM 0x035)
 		{ 0x505E70, 0, "Battle_QueueVramReadback_Type2" },
-		// spells: positional sound (3rd argument points into the caller's stack: 2 compared)
 		{ 0x5013A0, 2, "BdPlaySE3D" },
-		// Scan: pad input (the target viewer and the text pager poll the pad), text layers,
-		// scan text, entity names
 		{ 0x49ED30, 2, "read_pad_held_raw" },
 		{ 0x4A2D60, 1, "remap_pad_input" },
 		{ 0x49F0A0, 3, "ReadAnalog_49F0A0" },
@@ -759,21 +698,15 @@ namespace ff8fx::mod
 		{ 0x49FBC0, 0, "Text_49FBC0" },
 		{ 0xB68390, 1, "manageScanText_Dup" },
 		{ 0xB68810, 0, "ScanText_B68810" },
-		// enemy Scan (68): its own copies of the scan text functions
 		{ 0xB67EF0, 1, "manageScanText" },
 		{ 0xB68370, 0, "ScanText_GetLine" },
 		{ 0xB687C0, 0, "ScanText_B687C0" },
 		{ 0x47EAF0, 1, "CharacterName_47EAF0" },
 		{ 0x495100, 1, "MonsterName_495100" },
-		// Elvoret entrance (17): the caster's entity sound
 		{ 0x5015A0, 4, "BdPlayActorSE" },
-		// Biggs & Wedge 1st death (110): the targets' battle text
 		{ 0x487750, 2, "printMonsterRelatedText0" },
-		// Renzokuken (160 / 161 / 159): the hit sparks' AnimSeq task on the caster (finisher)
 		{ 0x571840, 2, "AddTaskToQueueAnimSeq_99_B0_B1_B4_A5" },
-		// Gargantua burrow (301) / Trauma shatter (290) / BGH251F2 destruction (298): the caster's shadow
 		{ 0x5088A0, 4, "BattleEntity_DrawShadow" },
-		// Zan (322) / Metsu (323): the battle file streamer
 		{ 0x534110, 1, "BattleFile_StreamState_Init" },
 		{ 0x5341D0, 3, "Stream_QueueLoad" },
 		{ 0x534210, 0, "Stream_Pump" },

@@ -14,55 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 68: Scan (enemy attack 135 "Scan", Tri-Point c0m030; MAG_068_SCAN_*).
-//
-// A copy of the spell Scan's library (effect 40, mag040_scan.cpp) reduced to its short sequence: the
-// emitter always spawns the short scanner (the spell's choice by the target record +2 bit 1 is gone)
-// and the viewer, the long scanner, the screen dimmer / restorer, the scan bars, the spinner, the
-// board and the backdrop are not in this copy. Every function left is the spell's code at its own
-// addresses except: the line draws (0x7DC810, 0x7DD3D0) insert with SSIGPU_InsertPrimAutoDepth
-// 0x45C7A0 (the spell: 0x45C8E0), the text pager calls manageScanText 0xB67EF0 / ScanText_GetLine
-// 0xB68370 (the spell: their copies 0xB68390 / 0xB68810).
-//
-// Structure (module code 0x7DC180..0x7DEA00: file loader MAG_068_UNK3_FL 0x7DC180, setup
-// MAG_068_SCAN 0x7DC1A0 sets up the queues and the root node, queues the TIM and takes the two packet
-// arenas: texture buffer + 0 (0x25FFC3C) / + 0x4000 (0x25FFC38)). Every node starts with the shared
-// effect-library header (Effect_AddTaskAndInitFromCtx 0x8DC540); every task runs its current phase
-// function (node +0x29) from a small table and ends when it is flagged done (+0x26 bit0) and has no
-// live children. No task tests the draw-only flags (battle_to_update_flags 0x201).
-//   Root (0x7DC280) - packet arena by tick parity (cursor 0x25FCE30), follows the caster's bones;
-//     phase 1 spawns the emitter of the current action, arms the camera return (0x50A730) and hides
-//     the battle menu (0x4A8480(0)); phase 2 moves to the next action; phase 3 waits for the four
-//     queues to be empty, shows the menu again (0x4A8480(1)) and ends. Queues run: emitters,
-//     controllers (0x78 nodes), sprites (0x58), models (0x6C).
-//   Emitter (0x7DC3A0): sound at its first tick; phase 0 (0x7DC430) finds the scanned entities (the
-//     target and its linked parts, flags 0x25FCE34[7]; main entity 0x25FFAA8 = 0x501FF0(target)) and
-//     spawns the scanner 0x7DC600. Phase 1 applies the action result once the scanner is gone.
-//   Scanner (0x7DC600): the target entity is marked (entity +1 |= 0x78), the camera task (0x7DD950
-//     mode 2) and the reticle; then the spinner model (0x7DDED0), the text pager (0x7DE540, layer 1,
-//     pad 0x20 = next line, 0x40 = close) and the stat board (0x7DE110, stat bars 0x7DE200); the
-//     camera circles the target (it writes the battle camera) until the text is closed; then the
-//     camera returns (0x7DE830 for the last action, else mode 3).
-//   Reticle (0x7DC6F0): a screen-space fan of green lines (0x7DC810) plus four lines to the screen
-//     corners (0x7DD330) moving along the table 0x15956F0 (one point per tick until 0x7FFF), then
-//     shrinking; spawns four corner brackets (0x7DCF10), four sliding brackets (0x7DD150), the
-//     rotating morph model (0x7DCBE0) and the model pair (0x7DC950), then the ring (0x7DD510).
-//   Camera (0x7DD950): blends the battle camera (eye / look-at 0xB8B7F0.., projection 0x1D8E038)
-//     from the current one to a view of the target defined by the target's info record
-//     (0x1594998 + class * 16, class = 0x7DC560), in steps of +0x32 over the camera state
-//     0x25FCDE0 (pointer 0x1591C40).
-//   HUD models are drawn in screen space (GTE set to the node's own matrix: 0x7DC9F0 / 0x7DDF40,
-//     sprites 0x7DD6C0); lines go to the render list + 0x14. Two models morph their vertices
-//     (0x7DCC80, GTE GPF / GPL) into their exe data.
-// No task writes a battle entity's position (+0x1C..+0x20); the entities' flags (+0, +1) are written.
-// Module globals: 0x25FCDD8..0x26005B4 (texture file 0x25FCDD8, camera state 0x25FCDE0, packet
-// cursor 0x25FCE30, scanned-entity flags 0x25FCE34, model pool / queue 0x25FCE70 / 0x25FD6E0
-// (20 x 0x6C), HUD active 0x25FD708, root pool / queue 0x25FD758 / 0x25FD820 (2 x 0x64), sprite
-// pool / queue 0x25FD830 / 0x25FFA90 (100 x 0x58), closing 0x25FFAA4, main entity 0x25FFAA8,
-// emitter queue / pool 0x25FFAC8 / 0x25FFAD8 (4 x 0x58), arenas 0x25FFC38 / 0x25FFC3C, controller
-// queue / pool 0x25FFC40 / 0x25FFC50 (20 x 0x78), confirm 0x26005B0, text done 0x26005B2); the
-// morphed vertex blocks in the exe data 0x1591C4C (0x30 vertices) and 0x1592034 (0xA0 vertices);
-// battle entities (flags, matrices), the battle camera and the text layers.
+// Effect 68: Scan
 
 #include "mag_common.h"
 
@@ -73,138 +25,130 @@ namespace scan068
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	// shared effect-library node header (0x30 bytes, Effect_AddTaskAndInitFromCtx 0x8DC540)
 	struct FxNode
 	{
-		TaskNode hdr;          // +0x00
-		CastContext *ctx;      // +0x0C
-		FxNode *root;          // +0x10
-		FxNode *emitter;       // +0x14
-		FxNode *parent;        // +0x18 (its +0x28 counts the live children)
-		int16_t pos[4];        // +0x1C x, y, z (copied from the parent); HUD nodes: screen / view space
-		int16_t counter;       // +0x24
-		uint16_t flags;        // +0x26 bit0 done, bit2 hidden
-		uint8_t children;      // +0x28
-		int8_t phase;          // +0x29
-		int8_t action;         // +0x2A
-		int8_t target;         // +0x2B
-		uint8_t attacker;      // +0x2C
-		uint8_t slot;          // +0x2D target entity slot
-		uint8_t line;          // +0x2E
-		uint8_t last;          // +0x2F
+		TaskNode hdr;
+		CastContext *ctx;
+		FxNode *root;
+		FxNode *emitter;
+		FxNode *parent;
+		int16_t pos[4];
+		int16_t counter;
+		uint16_t flags;
+		uint8_t children;
+		int8_t phase;
+		int8_t action;
+		int8_t target;
+		uint8_t attacker;
+		uint8_t slot;
+		uint8_t line;
+		uint8_t last;
 	};
-	struct RootNode // pool of 2 nodes of 0x64 bytes
+	struct RootNode
 	{
 		FxNode h;
-		uint8_t bones[0x28];   // +0x30
-		int16_t last_action;   // +0x58
-		int16_t target_count;  // +0x5A
-		int16_t tick;          // +0x5C arena parity
-		int16_t alive;         // +0x5E
+		uint8_t bones[0x28];
+		int16_t last_action;
+		int16_t target_count;
+		int16_t tick;
+		int16_t alive;
 		uint8_t pad60[3];
-		uint8_t busy;          // +0x63
+		uint8_t busy;
 	};
-	struct EmitterNode // pool of 4 nodes of 0x58 bytes
+	struct EmitterNode
 	{
 		FxNode h;
-		uint8_t anchor[0x18];  // +0x30
-		int16_t bmin[4];       // +0x48
-		int16_t bmax[4];       // +0x50
+		uint8_t anchor[0x18];
+		int16_t bmin[4];
+		int16_t bmax[4];
 	};
-	struct CtlNode // controllers / screen-space line parts: pool of 20 nodes of 0x78 bytes
+	struct CtlNode
 	{
 		FxNode h;
-		int32_t scale[3];      // +0x30 (the spell's viewer: zoom of the target)
+		int32_t scale[3];
 		uint32_t pad3C;
-		int16_t rot[3];        // +0x40 (the spell's viewer)
+		int16_t rot[3];
 		int16_t pad46;
-		int16_t dx, dy;        // +0x48 sliding bracket: drift per tick
+		int16_t dx, dy;
 		uint32_t pad4C;
-		uint32_t shape;        // +0x50 bracket line list (8 words per line, 0xFF ends)
-		int16_t offx;          // +0x54 (the spell's viewer)
+		uint32_t shape;
+		int16_t offx;
 		int16_t pad56;
-		int16_t offz;          // +0x58 (the spell's viewer)
+		int16_t offz;
 		int16_t pad5A;
-		uint32_t pad;          // +0x5C text: pad bits
-		uint32_t prev;         // +0x60 text: previous pad bits
-		int16_t size;          // +0x64 bracket scale
-		int16_t timer;         // +0x66
-		int16_t mode;          // +0x68 camera mode
-		int16_t lines;         // +0x6A text: line count
-		int16_t line;          // +0x6C text: line shown
-		int16_t fade;          // +0x6E scan bars: brightness
-		int16_t moved;         // +0x70 (the spell's viewer)
-		int16_t idle;          // +0x72 (the spell's viewer)
-		int16_t index;         // +0x74 bracket corner
+		uint32_t pad;
+		uint32_t prev;
+		int16_t size;
+		int16_t timer;
+		int16_t mode;
+		int16_t lines;
+		int16_t line;
+		int16_t fade;
+		int16_t moved;
+		int16_t idle;
+		int16_t index;
 		int16_t pad76;
 	};
-	struct ModelNode // HUD models: pool of 20 nodes of 0x6C bytes
+	struct ModelNode
 	{
 		FxNode h;
-		int32_t scale[3];      // +0x30
+		int32_t scale[3];
 		uint32_t pad3C;
-		uint8_t rgb[4];        // +0x40
-		int16_t angle[3];      // +0x44 x, y, z
+		uint8_t rgb[4];
+		int16_t angle[3];
 		int16_t pad4A;
-		uint32_t model;        // +0x4C prim model
-		int16_t fade;          // +0x50
+		uint32_t model;
+		int16_t fade;
 		int16_t pad52;
-		uint32_t morph_a;      // +0x54 morph model: vertex sets
-		uint32_t morph_b;      // +0x58
-		int16_t fade1;         // +0x5C model pair: fades
-		int16_t fade2;         // +0x5E
-		int16_t table;         // +0x60 stat bar: table 0 / 1
-		int16_t which;         // +0x62 stat bar: index
-		int16_t max;           // +0x64 stat bar: full width
-		int16_t timer;         // +0x66
-		int16_t wave;          // +0x68 pulse angle
-		int16_t blend;         // +0x6A morph model: blend
+		uint32_t morph_a;
+		uint32_t morph_b;
+		int16_t fade1;
+		int16_t fade2;
+		int16_t table;
+		int16_t which;
+		int16_t max;
+		int16_t timer;
+		int16_t wave;
+		int16_t blend;
 	};
-	struct SpriteNode // pool of 100 nodes of 0x58 bytes
+	struct SpriteNode
 	{
 		FxNode h;
 		uint8_t pad30[0x1C];
-		uint32_t seq;          // +0x4C flipbook
-		int16_t frame;         // +0x50
-		int16_t last;          // +0x52
+		uint32_t seq;
+		int16_t frame;
+		int16_t last;
 		uint32_t pad54;
 	};
-	// camera state (0x25FCDE0, pointer at 0x1591C40)
 	struct CamState
 	{
-		int16_t eye[4];        // +0x00 (+0x06 copied with it)
-		int16_t look[4];       // +0x08 current look-at (+0x0E copied with it)
-		int16_t look0[4];      // +0x10 start
-		int16_t look1[4];      // +0x18 end
-		uint32_t angles[2];    // +0x20 the main entity's angles (saved)
-		uint32_t place[2];     // +0x28 the main entity's position (saved)
-		int16_t t;             // +0x30 blend 0..0x1000
-		int16_t step;          // +0x32
-		int16_t yaw, yaw0, yaw1;     // +0x34
-		int16_t dist, dist0, dist1;  // +0x3A
-		int16_t h, h0, h1;           // +0x40
-		int16_t proj, proj0, proj1;  // +0x46
-		int16_t cls;           // +0x4C target class
+		int16_t eye[4];
+		int16_t look[4];
+		int16_t look0[4];
+		int16_t look1[4];
+		uint32_t angles[2];
+		uint32_t place[2];
+		int16_t t;
+		int16_t step;
+		int16_t yaw, yaw0, yaw1;
+		int16_t dist, dist0, dist1;
+		int16_t h, h0, h1;
+		int16_t proj, proj0, proj1;
+		int16_t cls;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(FxNode) == 0x30 && sizeof(RootNode) == 0x64 && sizeof(EmitterNode) == 0x58, "Scan nodes");
 	static_assert(sizeof(CtlNode) == 0x78 && sizeof(ModelNode) == 0x6C && sizeof(SpriteNode) == 0x58, "Scan nodes");
 	static_assert(sizeof(CamState) == 0x4E, "Scan camera state");
 
-	// ------------------------------------------------------------------
-	// Module globals
-	// ------------------------------------------------------------------
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25FCE30); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x25FFAC8; }  // 4 x 0x58
-	inline TaskQueue *QControls() { return (TaskQueue *)0x25FFC40; }  // 20 x 0x78
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x25FFA90; }   // 100 x 0x58
-	inline TaskQueue *QModels() { return (TaskQueue *)0x25FD6E0; }    // 20 x 0x6C
+	inline TaskQueue *QEmitters() { return (TaskQueue *)0x25FFAC8; }
+	inline TaskQueue *QControls() { return (TaskQueue *)0x25FFC40; }
+	inline TaskQueue *QSprites() { return (TaskQueue *)0x25FFA90; }
+	inline TaskQueue *QModels() { return (TaskQueue *)0x25FD6E0; }
 	inline CamState &Cam() { return **(CamState **)0x1591C40; }
-	inline int32_t &Scanned(int k) { return ((int32_t *)0x25FCE34)[k]; }   // entity k is scanned
+	inline int32_t &Scanned(int k) { return ((int32_t *)0x25FCE34)[k]; }
 	inline int16_t &HudActive() { return var<int16_t>(0x25FD708); }
 	inline int16_t &Closing() { return var<int16_t>(0x25FFAA4); }
 	inline int16_t &Confirmed() { return var<int16_t>(0x26005B0); }
@@ -219,12 +163,9 @@ namespace scan068
 	static const uint32_t ORIG_AltBoard = 0x7DE110, ORIG_AltText = 0x7DE540;
 
 	static const void *const SOUND_Scan = (const void *)0x1594994;
-	static const uint32_t INFO_TABLE = 0x1594998;   // 16 bytes per entity class
-	static const uint32_t RETICLE_PATH = 0x15956F0; // (x, y) per tick, 0x7FFF ends
+	static const uint32_t INFO_TABLE = 0x1594998;
+	static const uint32_t RETICLE_PATH = 0x15956F0;
 
-	// ------------------------------------------------------------------
-	// Engine / effect-library functions (original addresses)
-	// ------------------------------------------------------------------
 	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
 	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
 	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
@@ -240,33 +181,27 @@ namespace scan068
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t CartesianToGameAngle(int32_t a, int32_t b) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(a, b); }
 	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t a, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, a, out); }
-	inline uint8_t *MainPartOf(uint8_t *entity) { return fn<uint8_t *(__cdecl *)(uint8_t *)>(0x501FF0)(entity); } // compare_com_127_501FF0
+	inline uint8_t *MainPartOf(uint8_t *entity) { return fn<uint8_t *(__cdecl *)(uint8_t *)>(0x501FF0)(entity); }
 	inline uint32_t RenderPrimModelB(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x8DE9D0)(header, ot, mode, cursor); }
-	inline void InsertPrimAutoDepth(uint32_t ot, void *prim) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); } // SSIGPU_InsertPrimAutoDepth
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }            // BS_Camera_ArmReturnAfterEffect
-	inline void BattleMenuShow(int32_t on) { fn<void (__cdecl *)(int32_t)>(0x4A8480)(on); } // sub_4A8480
-	// pad
+	inline void InsertPrimAutoDepth(uint32_t ot, void *prim) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
+	inline void BattleMenuShow(int32_t on) { fn<void (__cdecl *)(int32_t)>(0x4A8480)(on); }
 	inline uint32_t ReadPadHeldRaw(int32_t a, int32_t b) { return fn<uint32_t (__cdecl *)(int32_t, int32_t)>(0x49ED30)(a, b); }
 	inline uint32_t RemapPadInput(uint32_t raw) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x4A2D60)(raw); }
-	// text layers
 	inline void TextSetLayerText(int32_t layer, const void *text) { fn<void (__cdecl *)(int32_t, const void *)>(0x4A0410)(layer, text); }
 	inline void TextLayer4A0700(int32_t layer, int32_t a) { fn<void (__cdecl *)(int32_t, int32_t)>(0x4A0700)(layer, a); }
 	inline void TextSetPosition(int32_t layer, const int16_t *rect) { fn<void (__cdecl *)(int32_t, const int16_t *)>(0x4A07A0)(layer, rect); }
 	inline void TextLayer4A0640(int32_t layer) { fn<void (__cdecl *)(int32_t)>(0x4A0640)(layer); }
 	inline void TextLayer4A0680(int32_t layer) { fn<void (__cdecl *)(int32_t)>(0x4A0680)(layer); }
 	inline void TextLayer49FBC0(int32_t layer, int32_t a) { fn<void (__cdecl *)(int32_t, int32_t)>(0x49FBC0)(layer, a); }
-	inline uint8_t ScanTextLines(uint32_t slot) { return (uint8_t)fn<uint32_t (__cdecl *)(uint32_t)>(0xB67EF0)(slot); }   // manageScanText
-	inline const void *ScanTextLine(uint32_t slot, uint32_t line) { return fn<const void *(__cdecl *)(uint32_t, uint32_t)>(0xB68370)(slot, line); } // ScanText_GetLine
+	inline uint8_t ScanTextLines(uint32_t slot) { return (uint8_t)fn<uint32_t (__cdecl *)(uint32_t)>(0xB67EF0)(slot); }
+	inline const void *ScanTextLine(uint32_t slot, uint32_t line) { return fn<const void *(__cdecl *)(uint32_t, uint32_t)>(0xB68370)(slot, line); }
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 	template<typename T> static inline const T &F(const uint8_t *p, uint32_t off) { return *(const T *)(p + off); }
 
 	static inline int32_t Div4096(int32_t x) { return x / 4096; }
 
-	// ------------------------------------------------------------------
-	// Target helpers
-	// ------------------------------------------------------------------
-	// sub_7DC560: the entity class used for the info record (entity +4, with special cases)
 	static int16_t EntityClass(int16_t slot)
 	{
 		uint8_t *e = Entity(slot);
@@ -285,7 +220,6 @@ namespace scan068
 		return t;
 	}
 
-	// sub_7DDC30: the target's info record (class into the camera state)
 	static const uint8_t *InfoOf(const FxNode *n)
 	{
 		const int16_t c = EntityClass((int16_t)(uint16_t)n->slot);
@@ -293,7 +227,6 @@ namespace scan068
 		return (const uint8_t *)(INFO_TABLE + (int32_t)c * 16);
 	}
 
-	// MAG_068_sub_7DC470: the main entity, and which entities are scanned (the target and its parts)
 	static void FindScannedEntities(int16_t slot)
 	{
 		uint8_t *e = Entity(slot);
@@ -329,10 +262,6 @@ namespace scan068
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Drawing helpers
-	// ------------------------------------------------------------------
-	// a green LINE_F2 between two screen points into the render list + 0x14 (sub_7DD3D0)
 	static void Line(const int16_t *a, const int16_t *b)
 	{
 		uint8_t *p = (uint8_t *)PacketCursor();
@@ -349,8 +278,6 @@ namespace scan068
 		PacketCursor() = (uint32_t)(p + 0x10);
 	}
 
-	// sub_7DC810: `count` green lines along the circle of radius r around the node's screen point
-	// (+0xA0, +0x6C) from angle a0, 0x80 per line; `out` = the last point
 	static void Fan(const FxNode *n, int16_t r, int16_t a0, int16_t count, int16_t *out)
 	{
 		const uint32_t ot = LinesOT();
@@ -382,7 +309,6 @@ namespace scan068
 		PacketCursor() = (uint32_t)p;
 	}
 
-	// sub_7DD330: four lines from the node's screen point to the corners of the scan window
 	static void CornerLines(const FxNode *n)
 	{
 		int16_t o[2] = { (int16_t)(n->pos[0] + 0xA0), (int16_t)(n->pos[1] + 0x6C) };
@@ -396,7 +322,6 @@ namespace scan068
 		Line(o, c);
 	}
 
-	// sub_7DD040: the bracket's line list (+0x50), scaled by +0x64, at the node's screen point
 	static void BracketLines(const CtlNode *n)
 	{
 		const uint32_t ot = LinesOT();
@@ -421,8 +346,6 @@ namespace scan068
 		PacketCursor() = (uint32_t)p;
 	}
 
-	// sub_7DC9F0 (render 0x572200) / sub_7DDF40 (render 0x8DE9D0): a HUD prim model at the node's
-	// view-space position, turned Y then X then Z, scaled (the node's matrix is the GTE's)
 	static void DrawHudModel(const ModelNode *n, bool alt)
 	{
 		if (n->h.flags & 4) return;
@@ -447,7 +370,6 @@ namespace scan068
 		FieldFree(0x58);
 	}
 
-	// sub_7DD6C0: a HUD sprite (flipbook frame) at the node's view-space position, scale s
 	static void DrawHudSprite(const SpriteNode *n, int16_t s)
 	{
 		if (n->h.flags & 4) return;
@@ -468,8 +390,6 @@ namespace scan068
 		FieldFree(0xB4);
 	}
 
-	// sub_7DCC80: vertex blend out = a * (1 - t) + b * t (4.12) of the vertex blocks (+4 = count,
-	// 8 bytes per vertex from +8), through the GTE (GPF then GPL)
 	static void MorphVertices(const uint8_t *a, const uint8_t *b, uint8_t *out, int16_t t)
 	{
 		const uint8_t *pa = a + 8;
@@ -495,10 +415,6 @@ namespace scan068
 		FieldFree(8);
 	}
 
-	// ------------------------------------------------------------------
-	// Camera (0x7DD950) helpers
-	// ------------------------------------------------------------------
-	// sub_7DDC80: one blend step (t += step, capped at 0x1000: 1 = arrived)
 	static int32_t CameraBlend(CamState &c)
 	{
 		int32_t arrived = 0;
@@ -519,7 +435,6 @@ namespace scan068
 		return arrived;
 	}
 
-	// sub_7DDDC0 (math part): eye = look-at + RotY(yaw) * (0, h, dist)
 	static void CameraEye(CamState &c)
 	{
 		Mat4x3 m;
@@ -536,7 +451,6 @@ namespace scan068
 		c.eye[2] = (int16_t)(c.look[2] + out[2]);
 	}
 
-	// sub_7DDDC0: the eye, then the battle camera words and the projection
 	static void CameraApply()
 	{
 		CamState &c = Cam();
@@ -548,7 +462,6 @@ namespace scan068
 		var<int16_t>(0x1D8E038) = c.proj;
 	}
 
-	// sub_7DD9B0: the blend's start (current camera) and end (the view of the target for `mode`)
 	static void CameraSetup(CtlNode *n)
 	{
 		const uint8_t *info = InfoOf(&n->h);
@@ -647,9 +560,6 @@ namespace scan068
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Camera (0x7DD950) and camera return (0x7DE830)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl CameraTask(TaskNode *t)
 	{
 		CtlNode *n = (CtlNode *)t;
@@ -657,20 +567,18 @@ namespace scan068
 		{
 		case 0:
 			CameraSetup(n);
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note_camera(n);)
 			break;
-		case 1: // 0x7DDC60: blend, done when arrived
+		case 1:
 			if (CameraBlend(Cam()) == 1)
 			{
 				*(uint8_t *)&n->h.flags |= 1;
 				n->h.phase++;
 			}
 			CameraApply();
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note_camera(n);)
 			break;
-		default: break; // 0x7DDE80
+		default: break;
 		}
 		return TaskEnd(&n->h);
 	}
@@ -680,7 +588,7 @@ namespace scan068
 		CtlNode *n = (CtlNode *)t;
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DE890: the battle's saved camera back
+		case 0:
 			var<uint32_t>(0xB8B7F8) = var<uint32_t>(0xB8B808);
 			var<uint32_t>(0xB8B7FC) = var<uint32_t>(0xB8B80C);
 			var<uint32_t>(0xB8B7F4) = var<uint32_t>(0xB8B804);
@@ -689,7 +597,7 @@ namespace scan068
 			n->timer = 1;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DE8E0
+		case 1:
 			n->timer--;
 			if (n->timer <= 0)
 			{
@@ -697,21 +605,17 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DE900
+		default: break;
 		}
 		return TaskEnd(&n->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Screen-space line parts
-	// ------------------------------------------------------------------
-	// Corner bracket (0x7DCF10): at a fixed corner of the scan window
 	static uint32_t __cdecl CornerTask(TaskNode *t)
 	{
 		CtlNode *n = (CtlNode *)t;
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DCF70
+		case 0:
 			switch (n->index)
 			{
 			case 0: n->shape = 0x1595570; n->h.pos[0] = (int16_t)-0x90; n->h.pos[1] = (int16_t)-0x60; break;
@@ -723,8 +627,7 @@ namespace scan068
 			n->size = 0x1000;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DD010
-			// 30 fps layer: see mag068_scan_held.inc
+		case 1:
 			FX_HELD(held_note(REC_BRACKET, n);)
 			BracketLines(n);
 			if (HudActive() == 0)
@@ -733,18 +636,17 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DD140
+		default: break;
 		}
 		return TaskEnd(&n->h);
 	}
 
-	// Sliding bracket (0x7DD150): on the reticle, then sliding out to its corner while growing
 	static uint32_t __cdecl BracketTask(TaskNode *t)
 	{
 		CtlNode *n = (CtlNode *)t;
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DD1C0
+		case 0:
 			ff8fx::copy<(8)>(n->h.pos, n->h.parent->pos);
 			switch (n->index)
 			{
@@ -758,9 +660,8 @@ namespace scan068
 			n->timer = 0x1E;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DD280: follows the reticle
+		case 1:
 			ff8fx::copy<(8)>(n->h.pos, n->h.parent->pos);
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note(REC_BRACKET_FOLLOW, n);)
 			BracketLines(n);
 			n->timer--;
@@ -770,18 +671,16 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 2: // 0x7DD2C0: slides out and grows
+		case 2:
 			n->h.pos[0] = (int16_t)(n->h.pos[0] + n->dx);
 			n->h.pos[1] = (int16_t)(n->h.pos[1] + n->dy);
 			n->size = (int16_t)(n->size + 0x400);
 			n->timer--;
 			if (n->timer < 0) n->h.phase++;
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note(REC_BRACKET, n);)
 			BracketLines(n);
 			break;
-		case 3: // 0x7DD2F0
-			// 30 fps layer: see mag068_scan_held.inc
+		case 3:
 			FX_HELD(held_note(REC_BRACKET, n);)
 			BracketLines(n);
 			if (HudActive() == 0)
@@ -790,36 +689,33 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DD320
+		default: break;
 		}
 		return TaskEnd(&n->h);
 	}
 
-	// Ring (0x7DD510): a fan growing around the right of the window, a pointer line and a sprite
 	static uint32_t __cdecl RingTask(TaskNode *t)
 	{
 		CtlNode *n = (CtlNode *)t;
 		int16_t out[2];
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DD580
+		case 0:
 			n->timer = 0;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DD5A0
+		case 1:
 			n->timer = (int16_t)(n->timer + 4);
 			if (n->timer >= 0x18)
 			{
 				n->timer = 0x18;
 				n->h.phase++;
 			}
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note(REC_RING1, n);)
 			Fan(&n->h, 0x30, 0x600, n->timer, out);
 			break;
-		case 2: // 0x7DD5E0
+		case 2:
 		{
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note(REC_RING2, n);)
 			Fan(&n->h, 0x30, 0x600, n->timer, out);
 			const int16_t p[2] = { (int16_t)(out[0] + 0x18), (int16_t)(out[1] + 0x18) };
@@ -828,9 +724,8 @@ namespace scan068
 			n->h.phase++;
 			break;
 		}
-		case 3: // 0x7DD880
+		case 3:
 		{
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note(REC_RING3, n);)
 			Fan(&n->h, 0x30, 0x600, n->timer, out);
 			const int16_t p[2] = { (int16_t)(out[0] + 0x18), (int16_t)(out[1] + 0x18) };
@@ -844,19 +739,18 @@ namespace scan068
 			}
 			break;
 		}
-		default: break; // 0x7DD910
+		default: break;
 		}
 		return TaskEnd(&n->h);
 	}
 
-	// Reticle (0x7DC6F0)
 	static uint32_t __cdecl ReticleTask(TaskNode *t)
 	{
 		CtlNode *n = (CtlNode *)t;
 		int16_t out[2];
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DC760
+		case 0:
 		{
 			const int16_t *path = (const int16_t *)RETICLE_PATH + 2 * n->h.counter;
 			n->h.pos[0] = path[0];
@@ -865,14 +759,13 @@ namespace scan068
 			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), ORIG_Corner, 0x78, n))->index = i;
 			AddEffectTask(QModels(), ORIG_Morph, 0x6C, n);
 			AddEffectTask(QModels(), ORIG_Pair, 0x6C, n);
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note(REC_RETICLE, n);)
 			Fan(&n->h, 8, 0, 0x20, out);
 			CornerLines(&n->h);
 			n->h.phase++;
 			break;
 		}
-		case 1: // 0x7DD440: along the path
+		case 1:
 		{
 			const int16_t *path = (const int16_t *)RETICLE_PATH + 2 * n->h.counter;
 			if (path[0] == 0x7FFF)
@@ -885,60 +778,53 @@ namespace scan068
 				n->h.pos[0] = path[0];
 				n->h.pos[1] = path[1];
 			}
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note(REC_RETICLE, n);)
 			Fan(&n->h, 8, 0, 0x20, out);
 			CornerLines(&n->h);
 			n->timer = 8;
 			break;
 		}
-		case 2: // 0x7DD4A0: the circle shrinks
+		case 2:
 			n->timer = (int16_t)(n->timer - 2);
 			if (n->timer > 0)
 			{
-				// 30 fps layer: see mag068_scan_held.inc
 				FX_HELD(held_note(REC_RETICLE_CLOSE, n);)
 				Fan(&n->h, n->timer, 0, 0x20, out);
 				CornerLines(&n->h);
 			}
 			else n->h.phase++;
 			break;
-		case 3: // 0x7DD4E0
+		case 3:
 			AddEffectTask(QControls(), ORIG_Ring, 0x78, n);
 			n->h.phase++;
 			break;
-		case 4: // 0x7DD920
+		case 4:
 			if (HudActive() == 0)
 			{
 				*(uint8_t *)&n->h.flags |= 1;
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DD940
+		default: break;
 		}
 		return TaskEnd(&n->h);
 	}
 
-	// ------------------------------------------------------------------
-	// HUD models
-	// ------------------------------------------------------------------
-	// Model pair (0x7DC950): two models along the tables 0x1595440 / 0x1595488 / 0x15953F8 /
-	// 0x159541C for ticks 3..17, then the second one pulses
 	static void PairPhase(ModelNode *n)
 	{
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DCAD0
+		case 0:
 			*(uint8_t *)&n->h.flags |= 4;
 			n->h.pos[2] = 0x480;
 			n->scale[2] = 0x1000;
 			n->angle[2] = 0xA00;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DCB00
+		case 1:
 			if (n->h.counter >= 3) n->h.phase++;
 			break;
-		case 2: // 0x7DCB10
+		case 2:
 		{
 			const int16_t k = n->h.counter;
 			*(uint8_t *)&n->h.flags &= 0xFB;
@@ -951,7 +837,7 @@ namespace scan068
 			if (k >= 0x11) n->h.phase++;
 			break;
 		}
-		case 3: // 0x7DCB80
+		case 3:
 			n->wave = (int16_t)((n->wave + 0x200) & 0xFFF);
 			n->fade2 = (int16_t)((int16_t)(ComputeSin(n->wave) + 0x1000) / 4);
 			if (HudActive() == 0)
@@ -960,7 +846,7 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DCBD0
+		default: break;
 		}
 	}
 
@@ -978,18 +864,16 @@ namespace scan068
 	{
 		ModelNode *n = (ModelNode *)t;
 		PairPhase(n);
-		// 30 fps layer: see mag068_scan_held.inc
 		FX_HELD(held_note(REC_PAIR, n);)
 		PairDraw(n);
 		return TaskEnd(&n->h);
 	}
 
-	// Morph model (0x7DCBE0): spins in while shrinking, then morphs twice
 	static void MorphPhase(ModelNode *n)
 	{
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DCD20
+		case 0:
 			n->h.pos[0] = 0;
 			n->h.pos[1] = 0;
 			n->h.pos[2] = 0x480;
@@ -1005,7 +889,7 @@ namespace scan068
 			n->fade = 0x1000;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DCD80
+		case 1:
 			n->fade = (int16_t)(n->fade - 0x155);
 			if (n->fade < 0) n->fade = 0;
 			n->angle[0] = (int16_t)((n->angle[0] - 0x7D) & 0xFFF);
@@ -1021,12 +905,12 @@ namespace scan068
 			n->scale[2] = n->scale[0];
 			n->scale[1] = n->scale[0];
 			break;
-		case 2: // 0x7DCE10
+		case 2:
 			n->angle[2] = (int16_t)((n->angle[2] + 0xAA) & 0xFFF);
 			n->timer--;
 			if (n->timer <= 0) n->h.phase++;
 			break;
-		case 3: // 0x7DCE40
+		case 3:
 			n->blend = (int16_t)(n->blend + 0x200);
 			n->angle[2] = (int16_t)((n->angle[2] + 0xAA) & 0xFFF);
 			if (n->blend >= 0x1000)
@@ -1038,7 +922,7 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 4: // 0x7DCE90
+		case 4:
 			n->blend = (int16_t)(n->blend + 0x400);
 			if (n->blend >= 0x1000)
 			{
@@ -1046,7 +930,7 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 5: // 0x7DCEC0
+		case 5:
 			if ((int8_t)((uint8_t)n->h.counter & 7) < 4) n->angle[2] = (int16_t)((n->angle[2] + 0x2A) & 0xFFF);
 			if (HudActive() == 0)
 			{
@@ -1054,7 +938,7 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DCF00
+		default: break;
 		}
 	}
 
@@ -1062,15 +946,12 @@ namespace scan068
 	{
 		ModelNode *n = (ModelNode *)t;
 		MorphPhase(n);
-		// 30 fps layer: see mag068_scan_held.inc
 		FX_HELD(held_note(REC_MORPH, n);)
 		MorphVertices((const uint8_t *)n->morph_a, (const uint8_t *)n->morph_b, (uint8_t *)n->model, n->blend);
 		DrawHudModel(n, false);
 		return TaskEnd(&n->h);
 	}
 
-	// Stat bar (0x7DE200): one bar of the target's stats (HP, then the bytes +0xA5..+0xA9, +0xAB of
-	// its battle stats 0x1D27B28 + slot * 0xD0), growing to its value, pulsing
 	static int16_t BarWidth(uint8_t *stats, int which)
 	{
 		int32_t d;
@@ -1105,7 +986,7 @@ namespace scan068
 	{
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DE2A0
+		case 0:
 		{
 			const int16_t k = n->which;
 			const FxNode *parent = n->h.parent;
@@ -1129,7 +1010,7 @@ namespace scan068
 			n->h.phase++;
 			break;
 		}
-		case 1: // 0x7DE4A0: shown after its delay
+		case 1:
 			n->timer--;
 			if (n->timer < 0)
 			{
@@ -1137,7 +1018,7 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 2: // 0x7DE4C0: grows to its width
+		case 2:
 			n->scale[0] += 0x300;
 			if (n->scale[0] > n->max) n->scale[0] = n->max;
 			if (Closing() == 1)
@@ -1146,11 +1027,10 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DE500
+		default: break;
 		}
 	}
 
-	// pulse: fade = (sin(wave) + 0x1000) / 6
 	static void StatBarPulse(ModelNode *n)
 	{
 		n->wave = (int16_t)((n->wave + 0x100) & 0xFFF);
@@ -1164,7 +1044,6 @@ namespace scan068
 		ModelNode *n = (ModelNode *)t;
 		StatBarPhase(n);
 		StatBarPulse(n);
-		// 30 fps layer: see mag068_scan_held.inc
 		FX_HELD(held_note(REC_STATBAR, n);)
 		DrawHudModel(n, false);
 		return TaskEnd(&n->h);
@@ -1175,7 +1054,7 @@ namespace scan068
 		ModelNode *n = (ModelNode *)t;
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DE180
+		case 0:
 			n->scale[0] = 0x1000;
 			n->scale[1] = 0x1000;
 			n->scale[2] = 0x1000;
@@ -1185,7 +1064,7 @@ namespace scan068
 			n->model = 0x159346C;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DE1C0: bars 1..7 of table 1
+		case 1:
 			for (int16_t i = 1; i < 8; i++)
 			{
 				ModelNode *b = (ModelNode *)AddEffectTask(QModels(), ORIG_StatBar, 0x6C, n);
@@ -1194,27 +1073,25 @@ namespace scan068
 			}
 			n->h.phase++;
 			break;
-		case 2: // 0x7DE510
+		case 2:
 			if (Closing() == 1)
 			{
 				n->h.flags |= 1;
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DE530
+		default: break;
 		}
-		// 30 fps layer: see mag068_scan_held.inc
 		FX_HELD(held_note(REC_STATIC, n);)
 		DrawHudModel(n, false);
 		return TaskEnd(&n->h);
 	}
 
-	// Alt spinner (0x7DDED0): a model turning in (y 0x400 -> 0), until closing (render 0x8DE9D0)
 	static void AltSpinnerPhase(ModelNode *n)
 	{
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DE020
+		case 0:
 			n->scale[0] = 0x1000;
 			n->scale[1] = 0x1000;
 			n->scale[2] = 0x1000;
@@ -1225,7 +1102,7 @@ namespace scan068
 			n->angle[1] = 0x400;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DE060
+		case 1:
 			n->angle[1] = (int16_t)(n->angle[1] - 0x80);
 			if (n->angle[1] <= 0)
 			{
@@ -1233,14 +1110,14 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 2: // 0x7DE090
+		case 2:
 			if (Closing() == 1)
 			{
 				n->h.flags |= 1;
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DE0B0
+		default: break;
 		}
 	}
 
@@ -1248,19 +1125,17 @@ namespace scan068
 	{
 		ModelNode *n = (ModelNode *)t;
 		AltSpinnerPhase(n);
-		// 30 fps layer: see mag068_scan_held.inc
 		FX_HELD(held_note(REC_ALTSPINNER, n);)
 		DrawHudModel(n, true);
 		return TaskEnd(&n->h);
 	}
 
-	// Sprite (0x7DD650): an opening flipbook, then a looping one
 	static uint32_t __cdecl SpriteTask(TaskNode *t)
 	{
 		SpriteNode *n = (SpriteNode *)t;
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DD780
+		case 0:
 			n->h.pos[0] = 0x190;
 			n->h.pos[1] = 0xC0;
 			n->h.pos[2] = 0x900;
@@ -1268,7 +1143,7 @@ namespace scan068
 			n->last = 0x1F;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DD7B0 (frame step 0x7DD7F0 inlined)
+		case 1:
 			n->frame++;
 			if (n->frame > n->last)
 			{
@@ -1281,7 +1156,7 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 2: // 0x7DD820 (frame step 0x7DD850 inlined)
+		case 2:
 			n->frame++;
 			if (n->frame > n->last) n->frame = 0;
 			if (HudActive() == 0)
@@ -1290,17 +1165,13 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DD870
+		default: break;
 		}
-		// 30 fps layer: see mag068_scan_held.inc
 		FX_HELD(held_note(REC_SPRITE, n);)
 		DrawHudSprite(n, 0x400);
 		return TaskEnd(&n->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Text pager (0x7DE540)
-	// ------------------------------------------------------------------
 	static void TextOpen(CtlNode *n)
 	{
 		TextDone() = 0;
@@ -1337,9 +1208,9 @@ namespace scan068
 		n->pad = RemapPadInput(ReadPadHeldRaw(0, 0)) & 0xFFFF;
 		switch (n->h.phase)
 		{
-		case 0: TextOpen(n); break;       // 0x7DE5D0
-		case 1: TextShowLine(n); break;   // 0x7DE600
-		case 2: // 0x7DE680: 0x40 closes, 0x20 or the timer shows the next line; past the last one closes
+		case 0: TextOpen(n); break;
+		case 1: TextShowLine(n); break;
+		case 2:
 			if (n->pad & 0x40)
 			{
 				n->h.phase++;
@@ -1355,15 +1226,12 @@ namespace scan068
 			if (n->line < n->lines) n->h.phase--;
 			else n->h.phase++;
 			break;
-		case 3: TextClose(n); break;      // 0x7DE6D0
-		default: break;                   // 0x7DE700
+		case 3: TextClose(n); break;
+		default: break;
 		}
 		return TaskEnd(&n->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Scanner (0x7DC600)
-	// ------------------------------------------------------------------
 	static void MarkTarget(CtlNode *n)
 	{
 		Entity(n->h.slot)[1] |= 0x78;
@@ -1374,7 +1242,7 @@ namespace scan068
 		CtlNode *n = (CtlNode *)t;
 		switch (n->h.phase)
 		{
-		case 0: // 0x7DC680
+		case 0:
 			MarkTarget(n);
 			((CtlNode *)AddEffectTask(QControls(), ORIG_Camera, 0x78, n))->mode = 2;
 			HudActive() = 1;
@@ -1382,7 +1250,7 @@ namespace scan068
 			n->timer = 0x2D;
 			n->h.phase++;
 			break;
-		case 1: // 0x7DDE90
+		case 1:
 			n->timer--;
 			if (n->timer < 0)
 			{
@@ -1391,7 +1259,7 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 2: // 0x7DE0C0
+		case 2:
 			n->timer--;
 			if (n->timer < 0)
 			{
@@ -1400,7 +1268,7 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 3: // 0x7DE710: the camera circles the target until the text is closed
+		case 3:
 		{
 			const uint8_t *info = InfoOf(&n->h);
 			CamState &c = Cam();
@@ -1417,11 +1285,10 @@ namespace scan068
 				Closing() = 1;
 				n->h.phase++;
 			}
-			// 30 fps layer: see mag068_scan_held.inc
 			FX_HELD(held_note_camera(n);)
 			break;
 		}
-		case 4: // 0x7DE7A0
+		case 4:
 			if (n->h.children == 0)
 			{
 				uint8_t *e = Entity(n->h.slot);
@@ -1437,27 +1304,24 @@ namespace scan068
 				n->h.phase++;
 			}
 			break;
-		case 5: // 0x7DE910
+		case 5:
 			if (n->h.children == 0)
 			{
 				*(uint8_t *)&n->h.flags |= 1;
 				n->h.phase++;
 			}
 			break;
-		default: break; // 0x7DE930
+		default: break;
 		}
 		return TaskEnd(&n->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Emitter (0x7DC3A0) and root (0x7DC280)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl EmitterTask(TaskNode *t)
 	{
 		EmitterNode *e = (EmitterNode *)t;
 		if (e->h.counter == 0)
 		{
-			int16_t mid[4]; // read and not used
+			int16_t mid[4];
 			CopyMidpointFromSource(e, mid);
 			BdPlaySE(SOUND_Scan, 0, 0x80);
 		}
@@ -1465,14 +1329,14 @@ namespace scan068
 		ComputeModelBounds(e);
 		switch (e->h.phase)
 		{
-		case 0: // 0x7DC430: the scanned entities, the scanner (always the short sequence)
+		case 0:
 			Confirmed() = 0;
 			Closing() = 0;
 			FindScannedEntities((int16_t)(uint16_t)e->h.slot);
 			AddEffectTask(QControls(), ORIG_AltScanner, 0x78, e);
 			e->h.phase++;
 			break;
-		case 1: // 0x7DE940: the action result once the scanner is gone
+		case 1:
 			if (e->h.children == 0)
 			{
 				((RootNode *)e->h.root)->busy = 0;
@@ -1481,7 +1345,7 @@ namespace scan068
 				e->h.phase++;
 			}
 			break;
-		default: break; // 0x7DE980
+		default: break;
 		}
 		return TaskEnd(&e->h);
 	}
@@ -1490,17 +1354,17 @@ namespace scan068
 	{
 		switch (r->h.phase)
 		{
-		case 0: // 0x7DC350
+		case 0:
 			r->h.phase++;
 			break;
-		case 1: // 0x7DC360
+		case 1:
 			r->busy = 1;
 			AddEffectTask(QEmitters(), ORIG_Emitter, 0x58, r);
 			CameraArmReturn();
 			BattleMenuShow(0);
 			r->h.phase++;
 			break;
-		case 2: // 0x7DE990
+		case 2:
 			if (r->busy == 0)
 			{
 				const int8_t a = r->h.action;
@@ -1512,7 +1376,7 @@ namespace scan068
 				else r->h.phase++;
 			}
 			break;
-		case 3: // 0x7DE9C0
+		case 3:
 			if (r->alive == 0)
 			{
 				BattleMenuShow(1);
@@ -1520,7 +1384,7 @@ namespace scan068
 				r->h.phase++;
 			}
 			break;
-		default: break; // 0x7DE9F0
+		default: break;
 		}
 	}
 
@@ -1529,7 +1393,6 @@ namespace scan068
 		RootNode *r = (RootNode *)t;
 		if (r->tick & 1) PacketCursor() = var<uint32_t>(0x25FFC3C);
 		else PacketCursor() = var<uint32_t>(0x25FFC38);
-		// 30 fps layer: see mag068_scan_held.inc
 		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);
@@ -1561,7 +1424,6 @@ namespace scan068
 		register_port(ORIG_AltSpinner, (void *)AltSpinnerTask, "068 AltSpinner", 68);
 		register_port(ORIG_AltBoard, (void *)AltBoardTask, "068 AltBoard", 68);
 		register_port(ORIG_AltText, (void *)AltTextTask, "068 AltText", 68);
-		// 30 fps layer: see mag068_scan_held.inc
 		FX_HELD(register_mag068_held();)
 	}
 }

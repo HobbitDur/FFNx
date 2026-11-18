@@ -14,51 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 76: Ultimecia's final form appears (enemy attack 355 of kernel.bin, no name; Ultimecia
-// c0m126; MAG_076_ULTIMECIA_FINAL_FORM_SPAWN).
-//
-// Structure (setup 0x61F9A0, file loader 0x61F980 = texture 0xDE4224 "magic/mag075.tim"; the setup
-// keeps the texture base 0x24C66A0, the cast context 0x24C6650, the CASTER slot 0x24C6658, the
-// first target slot 0x24C3278 and the caster entity's matrix (+0x40) 0x24C6680, starts the root
-// task (queue 0x24C3290, 1 x 0x10) and the intro (queue 0x24C5830, pool 0x24C5840, 0x64 x 0x24),
-// frees both particle pools and queues the TIM upload):
-//   RootTask (0x6225A0) - module packet cursor 0x24C66A4 = texture base (+0xC000 on odd ticks),
-//     runs the master queue, ends when it is empty.
-//   Intro (0x61FA80, 0x28 ticks) - tick 0: the caster's x / z kept (0x24C5828 / 0x24C582C), white
-//     screen flash, caster y = 5000 (entity +0x1E) and hidden (flags | 4), sub_4A8480(0), the
-//     fanfare sequence 0xEAA7EC (BS_R0win_QueueVictoryFanfare, done byte 0x24C5820: the intro
-//     waits for it from tick 1); 0xA battle model load (loadBS_36Or37); 0x26 model swap (waits
-//     while a file load is pending) + ambient colour to every entity with flag 2 (+0x2C); 0x27 wav
-//     stream (Music_WavStream_Play); then Wait (0x61FC90, 0x32 ticks), then the Master.
-//   Master (0x61FCD0) - keeps 0x24C6660 = camera x caster matrix; a 0x29A-tick timeline:
-//       0      camera script 0xDE4160 (shared camera-script task 0x63E9C0 in the master queue),
-//              camera return armed, voice slot (0xDE3FF0)
-//       0x28   chain 0xF, caster shown (flags & ~4), Burst (0x6201A0); 0x32 Spin (0x620530);
-//              0x4A..0x59 white flash down
-//       0x5A.. caster y -= 0x37 every tick (90 ticks); 0x5B Rise (0x620820); 0x96 Halo (0x620BD0);
-//              0xA0 chain 0x10
-//       0xB4   caster y back (0x24C582A)
-//       0xF0.. battle messages 1 / 3 / 4 (0x10E, 0x15E, 0x1AE; music volume at 0x10E), Flash1
-//              (0x620DD0) at 0x1DF, Flash2 (0x620F60) at 0x1E3, screen fade task at 0x1F6
-//       0x1FE  chain 0x11; 0x1FF sound 0xDE4148; 0x203 white feedback task (0x620140, 0x5F ticks) +
-//              texture restore task (0x622560); 0x204 Debris (0x6215E0); 0x206 Ring (0x621110) +
-//              Burst2 (0x621250)
-//       0x25D  damage (target record of action 0); 0x296 voice released; 0x29A flash off, camera
-//              save words (0xB8B800 = 0xB8B7F0, 0x1D977A0 = 0x1D8E038), sub_4A8480(1), update
-//              flags & ~0x400, ends.
-//   Particle pools: pool 1 0x24C32A0 (100 x 0x20: Burst bit 0, Spin bit 1, Burst2 bit 2), pool 2
-//   0x24C3F20 (200 x 0x20: Rise bit 0, Debris bit 0). Every particle task spawns, then draws and
-//   updates every particle of its kind; particle tasks end once their pool kind is empty.
-//   Model draws: Effect_RenderPrimModel (0x572200; Burst / Spin into the frame packets 0x1D8E054,
-//   the others into the module packets) and the module's prim renderer (0x6219D0, Debris; a copy of
-//   Gastric Juice's 0x5E0450).
-// Every task but RootTask and the texture restore tests the draw-only flags (battle_to_update_flags
-// & 0x201; the intro only bit 0, or bit 9 with a file load pending).
-// The effect WRITES the caster entity (position y +0x1E, flags +0x00 bit 2), every flag-2 entity's
-// +0x2C (ambient colour), the update flags (& ~0x400), the camera save words 0xB8B800..0xB8B80F and
-// 0x1D977A0 and, through the camera-script task, the battle camera.
-// Module globals: 0x24C3270..0x24C66AC.
-
 #include "mag_common.h"
 #include <string.h>
 
@@ -69,7 +24,6 @@ namespace uff076
 	using namespace eng;
 	using namespace magc;
 
-	// raw memory access (the tasks follow the listing offset by offset)
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline int16_t &S16(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 	inline uint16_t &U16(uint32_t p, int32_t o) { return AT<uint16_t>(p, o); }
@@ -78,21 +32,20 @@ namespace uff076
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	// --- module globals ---
-	static const uint32_t SPAWN_POS = 0x24C3270;                      // 4 x int16 (Flash1 / Flash2 anchor)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x24C3290; }      // pool 0x24C3280, 1 x 0x10
-	static const uint32_t POOL1 = 0x24C32A0, POOL1_END = 0x24C3F20;   // 100 x 0x20
-	static const uint32_t POOL2 = 0x24C3F20, POOL2_END = 0x24C5820;   // 200 x 0x20
+	static const uint32_t SPAWN_POS = 0x24C3270;
+	inline TaskQueue *QRoot() { return (TaskQueue *)0x24C3290; }
+	static const uint32_t POOL1 = 0x24C32A0, POOL1_END = 0x24C3F20;
+	static const uint32_t POOL2 = 0x24C3F20, POOL2_END = 0x24C5820;
 	inline uint8_t &FanfareDone() { return var<uint8_t>(0x24C5820); }
-	static const uint32_t SAVED_XY = 0x24C5828, SAVED_Z = 0x24C582C;  // caster +0x1C / +0x20 dwords
+	static const uint32_t SAVED_XY = 0x24C5828, SAVED_Z = 0x24C582C;
 	inline int16_t SavedX() { return var<int16_t>(0x24C5828); }
 	inline int16_t SavedY() { return var<int16_t>(0x24C582A); }
 	inline int16_t SavedZ() { return var<int16_t>(0x24C582C); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x24C5830; }    // pool 0x24C5840, 0x64 x 0x24
+	inline TaskQueue *QMaster() { return (TaskQueue *)0x24C5830; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x24C6650); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x24C6658); }
-	static const uint32_t CASTER_VIEW = 0x24C6660;                    // camera x CASTER_FRAME
-	static const uint32_t CASTER_FRAME = 0x24C6680;                   // caster entity +0x40 (setup)
+	static const uint32_t CASTER_VIEW = 0x24C6660;
+	static const uint32_t CASTER_FRAME = 0x24C6680;
 	inline uint32_t &TexBase() { return var<uint32_t>(0x24C66A0); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24C66A4); }
 	inline uint32_t &Voice() { return var<uint32_t>(0x24C66A8); }
@@ -119,34 +72,32 @@ namespace uff076
 
 	static const uint32_t MODEL_Burst = 0xDE2DE0, MODEL_Spin = 0xDE2EB8, MODEL_Rise = 0xDE25E8, MODEL_Halo = 0xDE27F0;
 	static const uint32_t MODEL_Flash2 = 0xDE37A8, MODEL_Ring = 0xDE1748, MODEL_Debris = 0xDE2470;
-	static const int32_t *const UP = (const int32_t *)0xDE4150;      // reference direction of the pool particles
+	static const int32_t *const UP = (const int32_t *)0xDE4150;
 	static const uint32_t CAMERA_SCRIPT = 0xDE4160;
 	static const void *const SOUND_Voice = (const void *)0xDE3FF0;
 	static const void *const SOUND_Hit = (const void *)0xDE4148;
 	static const uint32_t FANFARE = 0xEAA7EC;
-	static const uint32_t WAV_DIR = 0x1A77F88, WAV_NAME = 0xDE4230;   // directory string, 10 name bytes
+	static const uint32_t WAV_DIR = 0x1A77F88, WAV_NAME = 0xDE4230;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(0x508500)(); }                                           // sub_508500
-	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); } // MAG_066_sub_63E960
-	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(0x50A730)(); }                                                   // BS_Camera_ArmReturnAfterEffect
+	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
+	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); }
+	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
 	inline void Sub4A8480(int32_t a) { fn<void (__cdecl *)(int32_t)>(0x4A8480)(a); }
-	inline int32_t VoiceBusy(uint32_t v) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(v); }                         // sub_4A2900
-	inline void VoiceRelease(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(v); }                                  // sub_4A2940
-	inline void ChainTransformation(void *entity, int32_t id) { fn<void (__cdecl *)(void *, int32_t)>(0x505C00)(entity, id); } // QueueChainTransformation
-	inline void BattleMessage(int32_t slot, int32_t a, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x4876F0)(slot, a, b); } // printMonsterRelatedText
-	inline void ScreenFeedback(int32_t a, int32_t r, int32_t g, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(0x47CF50)(a, r, g, b, c); } // Battle_RequestScreenFeedback
-	inline void QueueFanfare(uint32_t seq, uint8_t *done) { fn<void (__cdecl *)(uint32_t, uint8_t *)>(0x501A20)(seq, done); } // BS_R0win_QueueVictoryFanfare
-	inline void MusicChannelVolume(int32_t channel, int32_t volume) { fn<void (__cdecl *)(int32_t, int32_t)>(0x501B10)(channel, volume); } // BS_Music_SetChannelVolumeCommand
-	inline void WavStreamPlay(int32_t a, const char *name, int32_t b, int32_t c, int32_t d, int32_t e) { fn<void (__cdecl *)(int32_t, const char *, int32_t, int32_t, int32_t, int32_t)>(0x46CBB0)(a, name, b, c, d, e); } // Music_WavStream_Play
-	inline void LoadBattleModel(int32_t a, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x512AA0)(a, dst); }   // loadBS_36Or37
-	inline void SwapBattleModel(int32_t a, uint32_t src) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x512AC0)(a, src); }   // sub_512AC0
+	inline int32_t VoiceBusy(uint32_t v) { return fn<int32_t (__cdecl *)(uint32_t)>(0x4A2900)(v); }
+	inline void VoiceRelease(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(v); }
+	inline void ChainTransformation(void *entity, int32_t id) { fn<void (__cdecl *)(void *, int32_t)>(0x505C00)(entity, id); }
+	inline void BattleMessage(int32_t slot, int32_t a, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x4876F0)(slot, a, b); }
+	inline void ScreenFeedback(int32_t a, int32_t r, int32_t g, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(0x47CF50)(a, r, g, b, c); }
+	inline void QueueFanfare(uint32_t seq, uint8_t *done) { fn<void (__cdecl *)(uint32_t, uint8_t *)>(0x501A20)(seq, done); }
+	inline void MusicChannelVolume(int32_t channel, int32_t volume) { fn<void (__cdecl *)(int32_t, int32_t)>(0x501B10)(channel, volume); }
+	inline void WavStreamPlay(int32_t a, const char *name, int32_t b, int32_t c, int32_t d, int32_t e) { fn<void (__cdecl *)(int32_t, const char *, int32_t, int32_t, int32_t, int32_t)>(0x46CBB0)(a, name, b, c, d, e); }
+	inline void LoadBattleModel(int32_t a, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x512AA0)(a, dst); }
+	inline void SwapBattleModel(int32_t a, uint32_t src) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x512AC0)(a, src); }
 	inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); } // sub_56BDE0
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); } // GTE_MatrixMultiply
+	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 
-	// GTE (module prim renderer)
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -158,11 +109,11 @@ namespace uff076
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }        // set_unk_1CA8A28
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }       // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
 	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
 	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
@@ -170,29 +121,24 @@ namespace uff076
 	inline Mat4x3 *M(uint32_t p) { return (Mat4x3 *)p; }
 	inline int32_t *V(uint32_t p) { return (int32_t *)p; }
 
-	// ------------------------------------------------------------------
-	// Node layouts (master queue: pool of 0x64 nodes of 0x24 bytes)
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct RootNode { TaskNode hdr; int16_t counter; uint16_t pad; };
 	struct Node
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t e;         // +0x0E feedback: tick count; texture restore: done flag
-		int16_t pos[4];    // +0x10 Flash2 / Ring anchor
-		int16_t angle;     // +0x18 Ring z angle
-		int16_t spin;      // +0x1A Ring spin
-		int16_t scale;     // +0x1C Halo / Flash / Ring scale
-		int16_t step;      // +0x1E scale step
-		int16_t sy;        // +0x20 Flash1 y scale
+		int16_t counter;
+		int16_t e;
+		int16_t pos[4];
+		int16_t angle;
+		int16_t spin;
+		int16_t scale;
+		int16_t step;
+		int16_t sy;
 		uint16_t pad22;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10, "root node is 0x10 bytes");
 	static_assert(sizeof(Node) == 0x24, "master queue nodes are 0x24 bytes");
-	// pool particles (0x20 bytes): +0 kind bits (dword, 0 = free), +4 age, +6 size / delay,
-	// +8 position, +0x10.. velocity / scale / angle words, +0x18.. direction / angles (per task)
 }
 }
 
@@ -204,18 +150,10 @@ namespace ff8fx
 {
 namespace uff076
 {
-	// ==================================================================
-	// Module prim renderer (0x6219D0, a copy of Gastric Juice's 0x5E0450; header 0x5C bytes on the
-	// scratch: +0x00 model, +0x04 vertices, +0x08..+0x0A far colour, +0x0C fade, +0x10 / +0x14
-	// texture page / clut words, +0x18 texture offset, +0x1C flags, +0x20 section cursor, +0x24
-	// NCLIP, +0x2C OTZ, +0x30 GTE FLAG, +0x58 draw mode word)
-	// ==================================================================
 
-	// clip bits of one corner: x outside 0..0xA00 -> xbit, y outside 0..0x6C0 -> ybit
 	static uint32_t ClipX(uint32_t xy, uint32_t bit) { const int16_t x = S16(xy, 0); return (x < 0 || x > 0xA00) ? bit : 0; }
 	static uint32_t ClipY(uint32_t xy, uint32_t bit) { const int16_t y = S16(xy, 2); return (y < 0 || y > 0x6C0) ? bit : 0; }
 
-	// the texture page / clut words of a packet (flags 0x100 / 0x400, 0x200 / 0x800)
 	static void PageWords(uint32_t h, uint32_t pk, int32_t page_off)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -225,7 +163,6 @@ namespace uff076
 		else if (f & 0x200) U16(pk, 0xE) = U16(h, 0x14);
 	}
 
-	// the face's semi-transparency bit (flags bit 0 / 1 sets it, bit 2 / 3 clears it)
 	static void SemiTrans(uint32_t h, uint32_t pk, uint32_t set, uint32_t clear)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -233,7 +170,6 @@ namespace uff076
 		if (f & clear) U32(pk, 4) &= 0xFDFFFFFF;
 	}
 
-	// 0x621AC0: flat textured triangles (0x14-byte records -> 0x24-byte packets)
 	static uint32_t PrimFT3(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -280,7 +216,6 @@ namespace uff076
 		return pk;
 	}
 
-	// 0x621D20: flat textured quads (0x18-byte records -> 0x2C-byte packets)
 	static uint32_t PrimFT4(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -333,7 +268,6 @@ namespace uff076
 		return pk;
 	}
 
-	// 0x621FF0: Gouraud textured triangles (0x1C-byte records -> 0x2C-byte packets)
 	static uint32_t PrimGT3(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -385,7 +319,6 @@ namespace uff076
 		return pk;
 	}
 
-	// 0x622250: Gouraud textured quads (0x24-byte records -> 0x38-byte packets)
 	static uint32_t PrimGT4(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -447,9 +380,6 @@ namespace uff076
 		return pk;
 	}
 
-	// 0x6219D0: the model's sections (two skipped words, FT3, FT4, two skipped words, GT3, GT4; an
-	// empty section is one zero word); vertices = model + 8 unless flag 0x2000, texture offset 0
-	// unless flag 0x1000
 	static uint32_t PrimRender(uint32_t h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -471,11 +401,6 @@ namespace uff076
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// helpers
-	// ------------------------------------------------------------------
-
-	// first free particle of a pool (kind dword 0), or 0
 	static uint32_t PoolFree(uint32_t pool, uint32_t end)
 	{
 		for (uint32_t e = pool; e < end; e += 0x20)
@@ -483,7 +408,6 @@ namespace uff076
 		return 0;
 	}
 
-	// au_re_BdLinkTask_59 (0x61FC40): a master-queue task, counter and +0xE cleared
 	static Node *AddMasterTask(uint32_t fn)
 	{
 		Node *n = (Node *)AddTaskToQueue(QMaster(), fn);
@@ -492,7 +416,6 @@ namespace uff076
 		return n;
 	}
 
-	// the particle tasks' base matrix (scratch + 8): camera x translation (caster x, y, caster z)
 	static void BaseMatrix(uint32_t s, int32_t y)
 	{
 		S16(s, 0) = 0;
@@ -505,8 +428,6 @@ namespace uff076
 		ComposeAffineTransform(&Camera(), M(s + 8), M(s + 8));
 	}
 
-	// the pool particles' rotation: the reference direction UP turned onto the particle's
-	// direction (+0x18..+0x1C), plus `extra` about the same axis
 	static void TurnTo(uint32_t s, uint32_t e, int32_t vec, int32_t axis, uint32_t out, int32_t extra, bool add)
 	{
 		S32(s, vec) = S16(e, 0x18);
@@ -517,7 +438,6 @@ namespace uff076
 		BuildAxisAngleRotationMatrix(a, M(out), V(s + axis));
 	}
 
-	// the particle / part matrix (scratch + 0x28) composed with the base matrix, into the GTE
 	static void LoadPartMatrix(uint32_t s)
 	{
 		ComposeAffineTransform(M(s + 8), M(s + 0x28), M(s + 0x28));
@@ -525,7 +445,6 @@ namespace uff076
 		GteSetTransVector(M(s + 0x28));
 	}
 
-	// header fade of a draw: flags 0xF3 (fade +0x0C toward the far colour) or 0x33 (+0x0C not written)
 	static const uint32_t FADE = 0xF3, NOFADE = 0x33;
 	static void SetFade(uint32_t h, uint32_t flags, int32_t fade)
 	{
@@ -533,11 +452,6 @@ namespace uff076
 		if (flags == FADE) S32(h, 0xC) = fade;
 	}
 
-	// ------------------------------------------------------------------
-	// Burst (0x6201A0): pool 1 kind 1, counter 0..0x32 spawns particles
-	// (counter / 20 + 1 a tick: size, upward direction, speed); each draws flat (scale size / 2, size, 0) turned to its
-	// direction, accelerates by 1/8 a tick, fades out from age 0x10, dies at 0x18
-	// ------------------------------------------------------------------
 	static uint32_t BurstFade(int32_t age, int32_t *fade)
 	{
 		if (age < 0x10) return NOFADE;
@@ -605,7 +519,6 @@ namespace uff076
 				S16(e, 0x1C) = (int16_t)S32(s, 0x50);
 			}
 		}
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Burst, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 0) = MODEL_Burst;
@@ -633,11 +546,6 @@ namespace uff076
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Spin (0x620530): pool 1 kind 2, every 4th tick of counters 0..0x32 one particle (size,
-	// direction, spin 2..5 either way); drawn at the base (scale size, 0x6000, size) turned to its
-	// direction and spun about it; fades in for 8 ticks, out from age 0x10, dies at 0x18
-	// ------------------------------------------------------------------
 	static uint32_t SpinFade(int32_t age, int32_t *fade)
 	{
 		if (age < 8) *fade = (8 - age) << 9;
@@ -692,7 +600,6 @@ namespace uff076
 				NormalizeSVector((const int16_t *)s, (int16_t *)(e + 0x18));
 			}
 		}
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Spin, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 0) = MODEL_Spin;
@@ -720,12 +627,6 @@ namespace uff076
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Rise (0x620820): pool 2 kind 1, every 3rd tick of counters 0..0x5A one particle (position on
-	// an upward cone, a y angle 0 / 0x800, scales x / y and a y-scale step); drawn turned about y
-	// then to its direction, scale (x, y, 0) growing by the step (1/8 less each tick); fades from
-	// age 0xC, dies at 0x14; module packets
-	// ------------------------------------------------------------------
 	static uint32_t RiseFade(int32_t age, int32_t *fade)
 	{
 		if (age < 0xC) return NOFADE;
@@ -791,7 +692,6 @@ namespace uff076
 				S16(e, 0x1C) = (int16_t)S32(s, 0x70);
 			}
 		}
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Rise, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 0) = MODEL_Rise;
@@ -821,13 +721,6 @@ namespace uff076
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Burst2 (0x621250): pool 1 kind 4, ten particles at counter 0 (start delay 0..12 ticks, a
-	// position on a horizontal ring, scales, spin); after its delay each draws turned to its
-	// direction (+ its angle), scale (x, y, x): y grows for 8 ticks, the angle turns from age 0x10,
-	// fades from age 0x36, dies at 0x46; the task ends at counter 0x20 once the kind is empty;
-	// module packets
-	// ------------------------------------------------------------------
 	static uint32_t Burst2Fade(int32_t age, int32_t *fade)
 	{
 		if (age < 0x36) return NOFADE;
@@ -853,7 +746,6 @@ namespace uff076
 		PacketCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, PacketCursor());
 	}
 
-	// one tick of a particle that is not dying (its delay first)
 	static void Burst2Move(uint32_t e)
 	{
 		if (S16(e, 6) > 0)
@@ -906,7 +798,6 @@ namespace uff076
 				NormalizeSVector((const int16_t *)s, (int16_t *)(e + 0x18));
 			}
 		}
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Burst2, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 0) = MODEL_Spin;
@@ -934,12 +825,6 @@ namespace uff076
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Debris (0x6215E0): pool 2 kind 1, ten particles a tick for counters 0..0x2A (size, outward
-	// and upward speed, two spinning angles); drawn with angles (x, y, y), scale size, through the
-	// module prim renderer; the speed slows 1/8 (x, z) / grows 1/16 (y), the spins grow 1/16; fades
-	// in for 4 ticks, out from age 0x18, dies at 0x20; frame packets
-	// ------------------------------------------------------------------
 	static uint32_t DebrisFade(int32_t age, int32_t *fade)
 	{
 		if (age < 4) *fade = (4 - age) << 10;
@@ -1021,7 +906,6 @@ namespace uff076
 				if (sy & 1) S16(e, 0x1E) = (int16_t)-sy;
 			}
 		}
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Debris, node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x5C));
 		U32(h, 0) = MODEL_Debris;
@@ -1048,14 +932,6 @@ namespace uff076
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// single-node parts: a uniform / (s, sy, s) scale about an anchor projected through
-	// TransformCameraByShadowRotation; the header fade from the counter; module packets
-	// ------------------------------------------------------------------
-
-	// Halo (0x620BD0), 0x168 ticks: the caster's effect bone 0xF0 every tick, scale 0x800 (+ step
-	// 0x1800 shrinking by 1/4 from counter 0x158); fades in over 6 ticks, then flickers (0x100 /
-	// 0x800 on even / odd counters), full from 0x158; drawn twice
 	static int32_t HaloFade(int32_t c)
 	{
 		if (c < 6) return 0x1000 - c * 0x2AA;
@@ -1096,10 +972,8 @@ namespace uff076
 	static uint32_t __cdecl HaloTask(TaskNode *node)
 	{
 		Node *n = (Node *)node;
-		// the anchor's 4th word is never written (only loaded into the GTE VZ0 pad)
 		int16_t pos[4] = { 0, 0, 0, 0 };
 		GetEffectSpawnPosition(Caster(), 0xF0, 0x800, pos);
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Halo, node, 0, pos);)
 		HaloDraw(n, pos);
 		if (DrawOnly()) return 0;
@@ -1107,8 +981,6 @@ namespace uff076
 		return n->counter >= 0x168 ? TASK_END : 0;
 	}
 
-	// Flash1 (0x620DD0), 0x1A ticks: the caster's effect bone 0xF0 every tick, scale (s, 0xA0, s),
-	// s from 0xC00 growing by a step shrinking by 1/6; fades from counter 0x12
 	static uint32_t Flash1Fade(int32_t c, int32_t *fade)
 	{
 		if (c < 0x12) return NOFADE;
@@ -1147,9 +1019,8 @@ namespace uff076
 	static uint32_t __cdecl Flash1Task(TaskNode *node)
 	{
 		Node *n = (Node *)node;
-		int16_t pos[4] = { 0, 0, 0, 0 }; // 4th word never written (GTE VZ0 pad)
+		int16_t pos[4] = { 0, 0, 0, 0 };
 		GetEffectSpawnPosition(Caster(), 0xF0, 0x800, pos);
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Flash1, node, 0, pos);)
 		Flash1Draw(n, pos);
 		if (DrawOnly()) return 0;
@@ -1157,8 +1028,6 @@ namespace uff076
 		return n->counter >= 0x1A ? TASK_END : 0;
 	}
 
-	// Flash2 (0x620F60), 0x14 ticks: at the anchor kept when it started (0x24C3270), scale s from
-	// 0x255 growing by a step shrinking by 1/5; fades in over 2 ticks, out from counter 0xE
 	static uint32_t Flash2Fade(int32_t c, int32_t *fade)
 	{
 		if (c < 2) *fade = (2 - c) << 11;
@@ -1198,7 +1067,6 @@ namespace uff076
 	static uint32_t __cdecl Flash2Task(TaskNode *node)
 	{
 		Node *n = (Node *)node;
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Flash2, node, 0, nullptr);)
 		Flash2Draw(n);
 		if (DrawOnly()) return 0;
@@ -1206,9 +1074,6 @@ namespace uff076
 		return n->counter >= 0x14 ? TASK_END : 0;
 	}
 
-	// Ring (0x621110), 0x4F ticks: at the caster's effect bone 0xF1 (taken when it started), z angle
-	// turning 0x10 a tick, scale from 0x680 growing by a step shrinking by 1/6 for 16 ticks, then
-	// by step / 64; fades from counter 0x3F
 	static uint32_t RingFade(int32_t c, int32_t *fade)
 	{
 		if (c < 0x3F) return NOFADE;
@@ -1252,7 +1117,6 @@ namespace uff076
 	static uint32_t __cdecl RingTask(TaskNode *node)
 	{
 		Node *n = (Node *)node;
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_task(ORIG_Ring, node, 0, nullptr);)
 		RingDraw(n);
 		if (DrawOnly()) return 0;
@@ -1260,11 +1124,6 @@ namespace uff076
 		return n->counter >= 0x4F ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// small tasks
-	// ------------------------------------------------------------------
-
-	// FeedbackA (0x6200F0): white screen feedback every tick (draw-only ticks too) for e ticks
 	static uint32_t __cdecl FeedbackA(TaskNode *node)
 	{
 		Node *n = (Node *)node;
@@ -1274,7 +1133,6 @@ namespace uff076
 		return n->counter >= n->e ? TASK_END : 0;
 	}
 
-	// FeedbackB (0x620140): the same from its second tick
 	static uint32_t __cdecl FeedbackB(TaskNode *node)
 	{
 		Node *n = (Node *)node;
@@ -1284,7 +1142,6 @@ namespace uff076
 		return n->counter >= n->e ? TASK_END : 0;
 	}
 
-	// MAG_076_sub_6200A0: a feedback task for `ticks` ticks (kind 0: FeedbackA, else FeedbackB)
 	static void AddFeedbackTask(int32_t kind, int16_t ticks)
 	{
 		Node *n = (Node *)AddTaskToQueue(QMaster(), kind ? ORIG_FeedbackB : ORIG_FeedbackA);
@@ -1292,8 +1149,6 @@ namespace uff076
 		n->e = ticks;
 	}
 
-	// TexRestore (0x622560): the battle textures restored (anim-seq task 0x508630 at counter 1, done
-	// flag +0xE); ends when it is done
 	static uint32_t __cdecl TexRestoreTask(TaskNode *node)
 	{
 		Node *n = (Node *)node;
@@ -1303,7 +1158,6 @@ namespace uff076
 		return done ? TASK_END : 0;
 	}
 
-	// Wait (0x61FC90): 0x32 ticks, then the Master
 	static uint32_t __cdecl WaitTask(TaskNode *node)
 	{
 		Node *n = (Node *)node;
@@ -1314,7 +1168,6 @@ namespace uff076
 		return TASK_END;
 	}
 
-	// MAG_076_sub_61FC60: the ambient colour word 0xB8B9A8 = c, and every entity with flag 2 gets it
 	static void SetAmbient(uint32_t c)
 	{
 		var<uint32_t>(0xB8B9A8) = c;
@@ -1322,9 +1175,6 @@ namespace uff076
 			if (*Entity(slot) & 2) *(uint32_t *)(Entity(slot) + 0x2C) = c;
 	}
 
-	// ------------------------------------------------------------------
-	// Intro (0x61FA80)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl IntroTask(TaskNode *node)
 	{
 		Node *n = (Node *)node;
@@ -1367,9 +1217,6 @@ namespace uff076
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x61FCD0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *node)
 	{
 		Node *n = (Node *)node;
@@ -1406,7 +1253,7 @@ namespace uff076
 			if (c == 1) AddMasterTask(ORIG_Rise);
 			else if (c == 0x3C)
 			{
-				Node *h = (Node *)AddTaskToQueue(QMaster(), ORIG_Halo); // au_re_BdLinkTask_60
+				Node *h = (Node *)AddTaskToQueue(QMaster(), ORIG_Halo);
 				h->counter = 0;
 				h->scale = 0x800;
 				h->step = 0x1800;
@@ -1427,7 +1274,6 @@ namespace uff076
 			else if (c == 0xBE) BattleMessage(CasterSlot(), 4, 0x3C);
 			else if (c == 0xEF)
 			{
-				// MAG_076_sub_620D60
 				GetEffectSpawnPosition(Caster(), 0xF0, 0x800, (int16_t *)SPAWN_POS);
 				Node *f = (Node *)AddTaskToQueue(QMaster(), ORIG_Flash1);
 				ff8fx::copy<(8)>(f->pos, (const void *)SPAWN_POS);
@@ -1438,7 +1284,6 @@ namespace uff076
 			}
 			else if (c == 0xF3)
 			{
-				// au_re_BdLinkTask_61
 				Node *f = (Node *)AddTaskToQueue(QMaster(), ORIG_Flash2);
 				ff8fx::copy<(8)>(f->pos, (const void *)SPAWN_POS);
 				f->counter = 0;
@@ -1453,7 +1298,6 @@ namespace uff076
 			else if (c == 0) ChainTransformation(Caster(), 0x11);
 			else if (c == 8)
 			{
-				// MAG_076_sub_6210A0
 				Node *r = (Node *)AddTaskToQueue(QMaster(), ORIG_Ring);
 				r->counter = 0;
 				GetEffectSpawnPosition(Caster(), 0xF1, 0, r->pos);
@@ -1485,13 +1329,9 @@ namespace uff076
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6225A0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *node)
 	{
 		RootNode *r = (RootNode *)node;
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = (r->counter & 1) ? TexBase() + 0xC000 : TexBase();
 		const int a = ExecuteTaskQueue(QMaster());
@@ -1518,7 +1358,6 @@ namespace uff076
 		register_port(uff076::ORIG_Burst2, (void *)uff076::Burst2Task, "U076 Burst2", 76);
 		register_port(uff076::ORIG_Debris, (void *)uff076::DebrisTask, "U076 Debris", 76);
 		register_port(uff076::ORIG_TexRestore, (void *)uff076::TexRestoreTask, "U076 TexRestore", 76);
-		// 30 fps layer: see mag076_ultimecia_final_form_spawn_held.inc
 		FX_HELD(register_mag076_held();)
 	}
 }

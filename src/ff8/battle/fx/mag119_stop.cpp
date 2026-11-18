@@ -14,28 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 119: Stop (spell, MAG_119_*).
-//
-// Structure (setup MAG_119_STOP 0x6BEFD0 -> _Init 0x6BF000, file loader 0x6BEFE0 = the texture
-// file named at 0x1287C38; the setup starts camera animation 0x1286E04 and queues the TIM):
-//   RootTask (0x6BF070) - alternates the packet arena (magic buffer + 0x866C / + 0x2066C); on
-//     counter 1 of a 20-tick cycle sets up the target pool (first time) and starts the target task
-//     of the next action on its first target; runs the target queue, ends when it is empty.
-//   Target (0x6BF1B0) - node 0x504, one per action: the clock, a keyframed prim-model layout
-//     0x127DB5C in front of the target (offset along its facing by its size), drawn by the callback
-//     ClockPart (0x6BF410, "STOP_RenderKeyframedModelElement"); sound at 0, a screen fade at 50.
-//     At layout frame 53 the callback breaks the clock pieces (records 3, 5 .. 15) into shards:
-//     every polygon of their models becomes a shard (ShardsInit 0x6BF870 + the per-primitive
-//     builders 0x6BF980 / 0x6BFB20 / 0x6BFD00 / 0x6BFEA0) flying away from the piece's centre with
-//     a random spin; those pieces are no longer drawn. From tick 53 the task moves / spins / fades
-//     all 514 shards (ShardsUpdate 0x6C0080) and draws the 7 shard groups (ShardsDraw 0x6C0160 with
-//     the per-primitive packet builders 0x6C0220 FT3, 0x6C0470 FT4, 0x6C0730 GT3, 0x6C0990 GT4);
-//     the status at 53, end at 70.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2521590..0x25215D8 (texture file, magic buffer base, context, root pool,
-// packet cursor 0x25215B4, target / root queues). The target pool (3 x 0x504), the morph vertex
-// buffer (+0xF0C), the shard buffer (+0x15FC, 0x202 x 0x38, shared by all targets) and the packet
-// arenas are in the magic buffer.
+// Effect 119: Stop
 
 #include "mag_common.h"
 
@@ -46,20 +25,18 @@ namespace stop119
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521594); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2521594); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2521598); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25215B4); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x25215B8; }         // pool: magic buffer, 3 x 0x504
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x25215B8; }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6BF070;
 	static const uint32_t ORIG_TargetTask = 0x6BF1B0;
-	static const uint32_t MODEL_Clock = 0x127DB5C;      // prim-model layout data (0x4E8-byte layout)
+	static const uint32_t MODEL_Clock = 0x127DB5C;
 	static const void *const SOUND_Stop = (const void *)0x1287C34;
 
-	// the shard groups: buffer offset (magic buffer), shard count, model object of the layout data
-	static const uint32_t SHARDS = 0x15FC;              // 0x202 shards of 0x38 bytes
+	static const uint32_t SHARDS = 0x15FC;
 	static const int SHARD_COUNT = 0x202;
 	struct ShardGroup { int16_t record; uint32_t offset; int32_t count; uint32_t object_cell; };
 	static const ShardGroup GROUPS[7] = {
@@ -68,27 +45,23 @@ namespace stop119
 		{ 15, 0x79BC, 0x3A, 0x127DB84 },
 	};
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesA(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); }  // MAG_117_sub_701430
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701530)(angles, out); }  // MAG_065_sub_701530
-	// MAG_063_sub_701270: rotation about the vertical axis by -angle (3x3 and pad; translation not written)
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesA(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701530)(angles, out); }
 	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)((int32_t)(uint16_t)angle, out); }
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); } // sub_56C220: a = a x b (3x3)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	// software GTE
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }            // OTZ (dword)
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
@@ -97,66 +70,59 @@ namespace stop119
 	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
 	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..19, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pool set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0x504 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E action index
-		uint8_t *entity;   // +0x10 target entity
-		int16_t pos[4];    // +0x14 effect anchor (GetDefaultEffectPosition)
-		uint8_t clock[0x4E8]; // +0x1C prim-model layout (prim::Layout: data, frame, state)
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		int16_t pos[4];
+		uint8_t clock[0x4E8];
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 camera x local
-		uint32_t morph;    // +0x20 blended vertex frames
-		int16_t pos[4];    // +0x24 local position (x, y, z; the pad is never written, never read)
-		Mat4x3 local;      // +0x2C turn about the vertical axis + position
+		Mat4x3 m;
+		uint32_t morph;
+		int16_t pos[4];
+		Mat4x3 local;
 	};
-	// one shard (a polygon of a clock piece)
 	struct Shard
 	{
-		int16_t pos[3];    // +0x00 centre
-		int16_t quad;      // +0x06 4 vertices
-		int16_t vel[3];    // +0x08 per tick
-		int16_t fade;      // +0x0E toward black, +0x100 per tick up to 0x1000
-		int16_t spin[3];   // +0x10 rotation angles applied to the vertices every tick
-		int16_t pad16;     // +0x16
-		int16_t v[4][4];   // +0x18 vertex offsets from the centre (x, y, z, pad never written)
+		int16_t pos[3];
+		int16_t quad;
+		int16_t vel[3];
+		int16_t fade;
+		int16_t spin[3];
+		int16_t pad16;
+		int16_t v[4][4];
 	};
-	// ShardsDraw's parameter block (Field_Alloc 0x50)
 	struct DrawBlock
 	{
-		uint8_t far[4];    // +0x00 far colour r, g, b (0)
-		uint8_t *group;    // +0x04 polygon group cursor in the model
-		Shard *shard;      // +0x08
-		uint32_t cursor;   // +0x0C packet cursor
-		uint32_t ot;       // +0x10
-		int32_t shift;     // +0x14 OT index = otz >> shift
+		uint8_t far[4];
+		uint8_t *group;
+		Shard *shard;
+		uint32_t cursor;
+		uint32_t ot;
+		int32_t shift;
 		uint8_t pad18[8];
-		int32_t otz;       // +0x20
-		int32_t flag;      // +0x24 GTE FLAG
-		int16_t pos[4];    // +0x28 the shard's first 8 bytes
-		int16_t v[4][4];   // +0x30 world vertices
+		int32_t otz;
+		int32_t flag;
+		int16_t pos[4];
+		int16_t v[4][4];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x504, "Stop nodes");
 	static_assert(sizeof(PrimArg) == 0x4C && sizeof(Shard) == 0x38 && sizeof(DrawBlock) == 0x50, "Stop blocks");
 
-	// x / 3 (0x55555556), x / 4 as C divisions
 	static inline int16_t Div3(int32_t x)
 	{
 		const int32_t hi = (int32_t)(((int64_t)x * 0x55555556) >> 32);
@@ -164,11 +130,6 @@ namespace stop119
 	}
 	static inline int16_t Div4(int32_t x) { return (int16_t)(x / 4); }
 
-	// ------------------------------------------------------------------
-	// Shard builders (called while a piece's header is on the scratch stack: +0 model, +4 vertices,
-	// +0x20 polygon group cursor, +0x34.. transformed vertices)
-	// ------------------------------------------------------------------
-	// 0x6BF980 (20-byte records) / 0x6BFD00 (28-byte records): triangles
 	static Shard *InitTris(uint8_t *h, Shard *out, int32_t stride)
 	{
 		uint8_t *g = *(uint8_t **)(h + 0x20);
@@ -207,7 +168,6 @@ namespace stop119
 		return out;
 	}
 
-	// 0x6BFB20 (24-byte records) / 0x6BFEA0 (36-byte records): quads
 	static Shard *InitQuads(uint8_t *h, Shard *out, int32_t stride)
 	{
 		uint8_t *g = *(uint8_t **)(h + 0x20);
@@ -242,8 +202,6 @@ namespace stop119
 		return out;
 	}
 
-	// 0x6BF870: the shards of one piece (its model's polygons, through the current GTE matrix), then
-	// their velocity away from the piece's centre s (1/16 per tick) and a random spin
 	static void ShardsInit(uint8_t *h, Shard *buf, int32_t count, const int16_t *s)
 	{
 		uint8_t *model = *(uint8_t **)h;
@@ -277,7 +235,6 @@ namespace stop119
 		} while (--count);
 	}
 
-	// 0x6C0080: every shard moves by its velocity, its vertices turn by its spin, it fades
 	static void ShardsUpdate(Shard *q, int32_t n)
 	{
 		do
@@ -310,7 +267,6 @@ namespace stop119
 		} while (--n);
 	}
 
-	// the shard's world vertices (centre + offsets) into the draw block
 	static void ShardVertices(DrawBlock *P, int nv)
 	{
 		const Shard *s = P->shard;
@@ -324,7 +280,6 @@ namespace stop119
 		}
 	}
 
-	// the screen clip bits of a projected vertex: x outside 0..0xA00 = bit, y outside 0..0x6C0 = bit << 4
 	static inline uint32_t Clip(const uint8_t *xy, uint32_t bit)
 	{
 		const int16_t x = *(const int16_t *)xy, y = *(const int16_t *)(xy + 2);
@@ -339,7 +294,6 @@ namespace stop119
 		InsertPrimAutoDepth(P->ot + (uint32_t)(P->otz >> P->shift) * 4, packet);
 	}
 
-	// 0x6C0220: flat textured triangles (GP0 FT3, 20-byte polygon records)
 	static void DrawFT3(DrawBlock *P)
 	{
 		uint8_t *rec = P->group;
@@ -387,7 +341,6 @@ namespace stop119
 		P->cursor = (uint32_t)base;
 	}
 
-	// 0x6C0470: flat textured quads (GP0 FT4, 24-byte polygon records)
 	static void DrawFT4(DrawBlock *P)
 	{
 		uint8_t *rec = P->group;
@@ -439,7 +392,6 @@ namespace stop119
 		P->group = rec;
 	}
 
-	// 0x6C0730: gouraud textured triangles (GP0 GT3, 28-byte polygon records)
 	static void DrawGT3(DrawBlock *P)
 	{
 		uint8_t *rec = P->group;
@@ -492,7 +444,6 @@ namespace stop119
 		P->cursor = (uint32_t)base;
 	}
 
-	// 0x6C0990: gouraud textured quads (GP0 GT4, 36-byte polygon records)
 	static void DrawGT4(DrawBlock *P)
 	{
 		uint8_t *rec = P->group;
@@ -553,8 +504,6 @@ namespace stop119
 		P->group = rec;
 	}
 
-	// 0x6C0160: the shards of one piece, drawn with its model's polygon records (under the camera
-	// matrix the caller set)
 	static void ShardsDraw(Shard *buf, uint8_t *model)
 	{
 		DrawBlock *P = (DrawBlock *)FieldAlloc(0x50);
@@ -577,17 +526,12 @@ namespace stop119
 		FieldFree(0x50);
 	}
 
-	// the 7 shard groups (tick 53 on)
 	static void ShardsDrawAll(uint8_t *shards)
 	{
 		for (int k = 0; k < 7; k++)
 			ShardsDraw((Shard *)(shards + GROUPS[k].offset - SHARDS), (uint8_t *)(MODEL_Clock + *(const uint32_t *)GROUPS[k].object_cell));
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6BF410): one object of the clock. frame = the layout frame being drawn
-	// (the original reads l->frame).
-	// ------------------------------------------------------------------
 	static void ClockPartBody(prim::Layout *l, prim::Record *r, const PrimArg *arg, int32_t frame)
 	{
 		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
@@ -636,10 +580,9 @@ namespace stop119
 		}
 		else if (frame >= 0x35 && (int16_t)r->index >= 3 && (int16_t)r->index <= 0xF && (r->index & 1))
 		{
-			// the clock pieces break at frame 53 (their shards are drawn by the target task)
 			if (frame == 0x35)
 			{
-				Mat4x3 w = {};    // only its translation is read (0x6BF5E8: the centre's address - 0x14)
+				Mat4x3 w = {};
 				int16_t s[4] = {};
 				w.t[0] = arg->pos[0] + v[0];
 				s[0] = (int16_t)w.t[0];
@@ -675,7 +618,6 @@ namespace stop119
 		{
 			if (r->flags & 0x100)
 			{
-				// diagonal scale matrix (its pad and translation are not written: sub_56C220 reads the 3x3)
 				Mat4x3 s = {};
 				s.m[0][0] = r->scale[0];
 				s.m[1][1] = r->scale[1];
@@ -717,16 +659,12 @@ namespace ff8fx
 {
 namespace stop119
 {
-	// ------------------------------------------------------------------
-	// Target (0x6BF1B0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
 		if (t->counter == 0) BdPlaySE3D(SOUND_Stop, 1, t->pos);
 		if (t->counter >= 0)
 		{
-			// the clock stands in front of the target (along its facing, by its size)
 			PrimArg arg;
 			RotationY((int16_t)-*(const int16_t *)(t->entity + 0xE), &arg.local);
 			const int32_t size = *(const int16_t *)(t->entity + 0x26) + 0x1000;
@@ -740,8 +678,7 @@ namespace stop119
 			arg.pos[2] = (int16_t)z;
 			arg.local.t[1] = t->pos[1];
 			arg.pos[1] = t->pos[1];
-			arg.pos[3] = 0; // never written by the original (not read)
-			// 30 fps layer: see mag119_stop_held.inc
+			arg.pos[3] = 0;
 			FX_HELD(held_note_play(t, &arg);)
 			ComposeAffineTransform(&Camera(), &arg.local, &arg.m);
 			arg.morph = TexBase() + 0xF0C;
@@ -749,7 +686,6 @@ namespace stop119
 			if (t->counter == 0x32) ScreenFadeTask(0, 1, 0, 0x80);
 			if (t->counter < 0x35) goto end;
 			ShardsUpdate((Shard *)(TexBase() + SHARDS), SHARD_COUNT);
-			// 30 fps layer: see mag119_stop_held.inc
 			FX_HELD(held_note_shards(t);)
 			GteSetRotMatrix(&Camera());
 			GteSetTransVector(&Camera());
@@ -762,13 +698,9 @@ namespace stop119
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6BF070)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag119_stop_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -810,7 +742,6 @@ namespace stop119
 	{
 		register_port(stop119::ORIG_RootTask, (void *)stop119::RootTask, "S119 RootTask", 119);
 		register_port(stop119::ORIG_TargetTask, (void *)stop119::TargetTask, "S119 TargetTask", 119);
-		// 30 fps layer: see mag119_stop_held.inc
 		FX_HELD(register_mag119_held();)
 	}
 }

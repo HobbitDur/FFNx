@@ -14,57 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 65: Great Attractor (enemy attack 360 of kernel.bin; Ultimecia c0m124; no other kernel.bin
-// entry uses effect 65; MAG_065_GREAT_ATTRACTOR).
-//
-// Structure (setup 0x6E0350 -> 0x6E0380, file loader 0x6E0360 = texture 0x1342D20 "mag064.tim"; the
-// setup queues the TIM, keeps the cast context 0x2544F6C and the CASTER's entity 0x2544F70 and starts
-// the root task in the root queue 0x2544F98, one 0x14-byte node at 0x2544FA8):
-//   RootTask (0x6E03F0) - alternates the module packet arena (magic buffer + 0x7648 / + 0x17648); on
-//     counter 1 (not paused) saves the seven entities' flag words (0x6E07A0), sets up the master pool
-//     (1 x 0xDB8 at the magic buffer), starts the master, claims a voice slot (0x1334D70), keeps every
-//     target entity with its position, the targets' centre (0x2544FE0) and the caster's position
-//     (0x2544FD8), resets the stream loader state (magic buffer + 0x27648) and seeds the 8 x 128 star
-//     dots (magic buffer + 0xDB8, 16 bytes each: direction x random distance, colour, twinkle);
-//     then each tick: the master queue, then the layout queue 0x2544F78; ends when the master ends.
-//   Master (0x6E07D0) - node 0xDB8: counter, target count, voice slot, the caster's position, the
-//     targets' centre, the targets (entity + saved position), two prim-model layouts (+0x48, +0xA0C).
-//     A 0x228-tick timeline (plus the stream-load waits at counters 0x1F and 0xED):
-//       1..0x1F    two billboard quads (0x6E4230) and the star dots (0x6E4350) in the module arena; the
-//                  caster sinks (entity +0x20 -= 0x142); flag 8 of the caster for the first 10 ticks
-//       0x20..0x21D the backdrop quad and the dots into the frame arena
-//       0x2A..0x36, 0x37..0x42  two mirrored layouts at the caster's bones 0x133ABB8 / 0x133ABB0
-//       0x43.., 0x61.., 0x7B.., 0x91..  one layout each at the caster (0x6E45D0)
-//       0xA7..0xED the caster swings (entity +0x20), four beams (0x6E4710) from its bones
-//       0xEE.., 0x108.., 0x122.., 0x13C..  one layout each (0x6E4670)
-//       0x156..0x191 the targets and the caster are pulled to the centre (entity +0x1C..+0x20,
-//                  +0x54..+0x5C), four twisted rays (0x6E48A0)
-//       0x192..0x1D5 four vortex rings (0x6E4BD0) spawning ribbons, layout tasks (0x6E50A0) and
-//                  sprite particles; screen feedback (0x6E2AC0)
-//       0x1D2..0x1F0, 0x214..0x227 white screen tiles (0x6E2AE0)
-//       0x1D8..0x21D an overlay layout (callback 0x6E5050, scale 0x2544F64), 128 particle models
-//                  and two textured quad particles a tick
-//       0x21E      positions, camera and entity flags restored, chain transformation 0x505C00
-//       0x224      damage (0x506BA0), voice slot released; 0x228 ends when the stream loader is idle
-//     Particle systems drawn every tick by flag (0x2544FD0..FD3): ribbons (0x6E3990, segments at
-//     magic buffer + 0x3B530, 32 chains at + 0x3CD30), sprite particles (0x6E33C0, + 0x3E1F0), particle
-//     models (0x6E2ED0, + 0x3B530) and quads (0x6E3610, + 0x27690); the dot colours twinkle (0x6E4570).
-//     Stream loads (0x5341D0) of files 0x187..0x18A into magic buffer + 0x27690 (the layouts) and
-//     0x168..0x16A into + 0x7648.
-//   LayoutTask (0x6E50A0) - node 0x1B8: a prim-model layout at its position, depth +0x12, scaled
-//     by +0x14 (0x2544F64, read by the callback 0x6E5050), into the frame arena; ends with the layout.
-// Prim-player callback 0x6E2750: one object (flags 0x20000 / 0x40000: other rotation orders, 0x800:
-// offset rotated by the object's rotation, 0x200: screen-axes offset, 0x100: 3x3 scale, 0x4000 /
-// 0x2000: blend modes; per-object uv scroll modes '1' / '2' / '3').
-// Draw-only flags (battle_to_update_flags 0x201) are not tested; the debug pause 0x2544F68 is.
-// The effect WRITES ENTITY POSITIONS: the caster's +0x1C..+0x20 (and +0x54..+0x5C) every tick of
-// 1..0x1F, 0xA7..0xED, 0x156..0x191 and on 0x20 / 0x21E; the targets' +0x1C..+0x20 on 0x156 and
-// 0x20 / 0x21E (restored); entity +0x30 (scale pointer). It WRITES THE BATTLE CAMERA: eye 0xB8B7F0 /
-// look-at 0xB8B7F8 and 0x1D977A2 on 0..0x1E, 0x36, 0x42..0x5F, 0x60..0x79, 0x7A..0x8F, 0x90..0xA5,
-// 0xA6, 0xC5..0xEC, 0xED, 0x107, 0x121, 0x13B, 0x155..0x190, 0x191..0x1D4, 0x1D7, 0x21E (back to
-// 0xB8B800); camera return armed at 0 (0x50A730).
-// Module globals: 0x2544F60..0x2545014. Pools, arenas, particle tables in the magic buffer.
-
 #include "mag_common.h"
 
 namespace ff8fx
@@ -74,190 +23,179 @@ namespace ga065
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline int32_t &Scale() { return var<int32_t>(0x2544F64); }              // overlay layout scale (callback 0x6E5050)
-	inline int32_t &Pause() { return var<int32_t>(0x2544F68); }              // debug pause
-	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2544F6C); }             // cast context
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2544F70); }          // caster entity
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2544F78; }          // pool: magic buffer + 0x3D430, 8 x 0x1B8
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2544F88; }           // pool: magic buffer, 1 x 0xDB8
-	inline uint8_t *&SegCursor() { return var<uint8_t *>(0x2544FBC); }       // ribbon segments (0x18) alloc cursor
-	inline uint8_t *&ChainCursor() { return var<uint8_t *>(0x2544FC0); }     // ribbon chains (0x38) alloc cursor
-	inline uint8_t *&PModelCursor() { return var<uint8_t *>(0x2544FC4); }    // particle models (0x16) alloc cursor
-	inline uint8_t *&QuadCursor() { return var<uint8_t *>(0x2544FC8); }      // quad particles (0x20) alloc cursor
-	inline uint8_t *&SpriteCursor() { return var<uint8_t *>(0x2544FCC); }    // sprite particles (8) alloc cursor
-	inline uint8_t *Flags() { return (uint8_t *)0x2544FD0; }                 // ribbons / sprites / models / quads on
+	inline int32_t &Scale() { return var<int32_t>(0x2544F64); }
+	inline int32_t &Pause() { return var<int32_t>(0x2544F68); }
+	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2544F6C); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2544F70); }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2544F78; }
+	inline TaskQueue *QMaster() { return (TaskQueue *)0x2544F88; }
+	inline uint8_t *&SegCursor() { return var<uint8_t *>(0x2544FBC); }
+	inline uint8_t *&ChainCursor() { return var<uint8_t *>(0x2544FC0); }
+	inline uint8_t *&PModelCursor() { return var<uint8_t *>(0x2544FC4); }
+	inline uint8_t *&QuadCursor() { return var<uint8_t *>(0x2544FC8); }
+	inline uint8_t *&SpriteCursor() { return var<uint8_t *>(0x2544FCC); }
+	inline uint8_t *Flags() { return (uint8_t *)0x2544FD0; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2544FD4); }
-	inline int16_t *CasterPos() { return (int16_t *)0x2544FD8; }              // x, y, z, (w) of the caster at the start
-	inline int16_t *Centre() { return (int16_t *)0x2544FE0; }                // the targets' centre
-	inline int16_t &NoiseShift() { return var<int16_t>(0x2544FE8); }         // ribbon jitter: 15 - shift
-	inline int16_t &NoiseHalf() { return var<int16_t>(0x2544FEA); }          // (1 << shift) / 2
-	inline int16_t &NoiseKeep() { return var<int16_t>(0x2544FEC); }          // second jitter threshold
-	inline int16_t &RibbonDepth() { return var<int16_t>(0x2544FEE); }        // OT offset of the ribbons
+	inline int16_t *CasterPos() { return (int16_t *)0x2544FD8; }
+	inline int16_t *Centre() { return (int16_t *)0x2544FE0; }
+	inline int16_t &NoiseShift() { return var<int16_t>(0x2544FE8); }
+	inline int16_t &NoiseHalf() { return var<int16_t>(0x2544FEA); }
+	inline int16_t &NoiseKeep() { return var<int16_t>(0x2544FEC); }
+	inline int16_t &RibbonDepth() { return var<int16_t>(0x2544FEE); }
 	inline int32_t &Lcg() { return var<int32_t>(0x2544FF0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2544FF4); }          // Magic_TextureOFF (magic buffer)
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x2544FF8; }          // 7 entities' flag words
-	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }       // battle_texture_data_ptr (frame packet arena)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2544FF4); }
+	inline uint32_t *SavedFlags() { return (uint32_t *)0x2544FF8; }
+	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
 	inline int16_t &CameraZoom() { return var<int16_t>(0x1D977A2); }
 	inline uint32_t OT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6E03F0;
 	static const uint32_t ORIG_MasterTask = 0x6E07D0;
 	static const uint32_t ORIG_LayoutTask = 0x6E50A0;
-	static const uint32_t SINCOS = 0x133ED20;        // 4096 x (sin, cos) words
-	static const uint32_t DIST_TABLE = 0x133AD20;    // 128 x 128 bytes: length of (x, y)
-	static const uint32_t OBJS0 = 0x133AB98;         // "0000000000000000"
-	static const uint32_t OBJS23 = 0x1342D2C;        // "2300000000000000"
-	static const uint32_t STARS = 0x133ABC8;         // 8 x 16 bytes: colour, twinkle, uv scroll (x, y), speed
-	static const uint32_t BONE_R = 0x133ABB0;        // caster bone offsets (x, y, z, bone)
+	static const uint32_t SINCOS = 0x133ED20;
+	static const uint32_t DIST_TABLE = 0x133AD20;
+	static const uint32_t OBJS0 = 0x133AB98;
+	static const uint32_t OBJS23 = 0x1342D2C;
+	static const uint32_t STARS = 0x133ABC8;
+	static const uint32_t BONE_R = 0x133ABB0;
 	static const uint32_t BONE_L = 0x133ABB8;
-	static const uint32_t ENTITY_SCALE = 0x133AB88;  // entity +0x30 while pulled
-	static const uint32_t SPRITE_SEQ = 0x1334F0C;    // sprite particle flipbook
+	static const uint32_t ENTITY_SCALE = 0x133AB88;
+	static const uint32_t SPRITE_SEQ = 0x1334F0C;
 	static const void *const SOUND_Voice = (const void *)0x1334D70;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotY(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(angle, out); }    // MAG_063_sub_701270
-	inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(angle, out); }    // MAG_063_sub_701220
-	inline void RotZ(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x7012C0)(angle, out); }    // MAG_065_sub_7012C0
-	inline void RotationFromAngles(const int16_t *angles, void *out) { fn<void (__cdecl *)(const int16_t *, void *)>(0x701310)(angles, out); }  // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, void *out) { fn<void (__cdecl *)(const int16_t *, void *)>(0x7015B0)(angles, out); } // MAG_063_sub_7015B0
-	inline void RotationFromAnglesC(const int16_t *angles, void *out) { fn<void (__cdecl *)(const int16_t *, void *)>(0x701530)(angles, out); } // MAG_065_sub_701530
+	inline void RotY(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701270)(angle, out); }
+	inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(angle, out); }
+	inline void RotZ(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x7012C0)(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, void *out) { fn<void (__cdecl *)(const int16_t *, void *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, void *out) { fn<void (__cdecl *)(const int16_t *, void *)>(0x7015B0)(angles, out); }
+	inline void RotationFromAnglesC(const int16_t *angles, void *out) { fn<void (__cdecl *)(const int16_t *, void *)>(0x701530)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatMulScaleDiag(void *a, const int16_t *b) { fn<void (__cdecl *)(void *, const int16_t *)>(0x56C220)(a, b); }    // sub_56C220
-	inline void MatrixMultiply(const void *a, void *b) { fn<void (__cdecl *)(const void *, void *)>(0x56C270)(a, b); }       // GTE_MatrixMultiply
-	inline void MatMul3(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); } // Matrix3x3_MultiplyPSX (pad not written)
-	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void Apply3D(const void *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); } // apply3DTransform
-	inline void TransformVec3(const void *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const void *, const int32_t *, int32_t *)>(0x56C600)(m, in, out); } // TransformVectorBy3x3Matrix
-	inline int32_t OrthoBasis(const int32_t *v, void *m) { return fn<int32_t (__cdecl *)(const int32_t *, void *)>(0x50CBA0)(v, m); } // BuildOrthonormalBasis: returns |v|
+	inline void MatMulScaleDiag(void *a, const int16_t *b) { fn<void (__cdecl *)(void *, const int16_t *)>(0x56C220)(a, b); }
+	inline void MatrixMultiply(const void *a, void *b) { fn<void (__cdecl *)(const void *, void *)>(0x56C270)(a, b); }
+	inline void MatMul3(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); }
+	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void Apply3D(const void *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); }
+	inline void TransformVec3(const void *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const void *, const int32_t *, int32_t *)>(0x56C600)(m, in, out); }
+	inline int32_t OrthoBasis(const int32_t *v, void *m) { return fn<int32_t (__cdecl *)(const int32_t *, void *)>(0x50CBA0)(v, m); }
 	inline int32_t ISqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); } // MAG_063_sub_6A6020
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); } // MAG_063_sub_701DD0
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); } // MAG_063_sub_7040B0
-	inline uint32_t Flipbook(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); } // MAG_065_sub_6FC9E0
-	// MAG_065_sub_6FC250: battle camera between two (look-at, eye) keys, step i of n, 0x1D977A2 from za to zb
+	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
+	inline uint32_t Flipbook(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); }
 	inline void CameraKeys(const int16_t *k0, const int16_t *k1, int32_t za, int32_t zb, int32_t i, int32_t n) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int32_t, int32_t)>(0x6FC250)(k0, k1, za, zb, i, n); }
-	inline void PartyShadowOn() { fn<void (__cdecl *)()>(0x6DF940)(); }      // MAG_065_sub_6DF940: flag 4 on the party entities with flag 2
-	inline void EnemyShadowOn() { fn<void (__cdecl *)()>(0x6FBDE0)(); }      // MAG_065_sub_6FBDE0: same on the enemy entities (slots 3..6)
-	inline void ModelsFlag2On() { fn<void (__cdecl *)()>(0x6F8BD0)(); }      // MAG_065_sub_6F8BD0: bit 1 of byte 0x1D98991 + 0x2C n
+	inline void PartyShadowOn() { fn<void (__cdecl *)()>(0x6DF940)(); }
+	inline void EnemyShadowOn() { fn<void (__cdecl *)()>(0x6FBDE0)(); }
+	inline void ModelsFlag2On() { fn<void (__cdecl *)()>(0x6F8BD0)(); }
 	inline void RequestScreenFeedback(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(0x47CF50)(a, b, c, d, e); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t a) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, a); }
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }    // BS_Camera_ArmReturnAfterEffect
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
 	inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
 	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline int32_t StreamBusy() { return fn<int32_t (__cdecl *)()>(0x534270)(); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }          // au_re_BattleFile_preLoad
-	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x534300)(a); } // au_re_BattleFile_preLoad_1
+	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
+	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x534300)(a); }
 	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-	// software GTE
-	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }   // IR1..3 = 3 x u8
-	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }        // IR1..3 low bytes
-	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }       // GTE_LoadIRFromMatrixColumn
-	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }           // GTE_StoreIRToMatrixColumn
+	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
+	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
+	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
+	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }       // GTE_LoadV0FromDwords
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }  // GTE_ReadSXY012_Split
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }       // GTE_ReadOTZ (dword)
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 
-	// the compiler's magic-number divisions, step by step
 	inline uint32_t mulhi_u(uint32_t a, uint32_t b) { return (uint32_t)(((uint64_t)a * b) >> 32); }
 	inline int32_t mulhi_s(int32_t a, int32_t b) { return (int32_t)(((int64_t)a * b) >> 32); }
-	// cdq; and edx, m; add; sar n (C signed division by 2^n)
 	inline int32_t sdiv_pow2(int32_t v, int n) { return (int32_t)((uint32_t)v + ((uint32_t)(v >> 31) & ((1u << n) - 1))) >> n; }
 	inline int16_t SinTab(int32_t i) { return *(const int16_t *)(SINCOS + (uint32_t)i * 4); }
 	inline int16_t CosTab(int32_t i) { return *(const int16_t *)(SINCOS + (uint32_t)i * 4 + 2); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2544FA8)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F master started
-		uint32_t parity;   // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t parity;
 	};
-	struct Target // 12 bytes
+	struct Target
 	{
 		uint8_t *entity;
-		uint32_t pos_xy;   // entity +0x1C at the start
-		uint32_t pos_z;    // entity +0x20 at the start
+		uint32_t pos_xy;
+		uint32_t pos_z;
 	};
-	struct MasterNode // pool of 1 node of 0xDB8 bytes (magic buffer)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t ntargets;  // +0x0E
-		uint32_t voice;    // +0x10 voice slot (0x4A29A0)
-		uint32_t caster_xy; // +0x14 caster entity +0x1C at the start
-		uint32_t caster_z; // +0x18 caster entity +0x20
-		int16_t centre[3]; // +0x1C the targets' centre
+		int16_t counter;
+		int16_t ntargets;
+		uint32_t voice;
+		uint32_t caster_xy;
+		uint32_t caster_z;
+		int16_t centre[3];
 		int16_t pad22;
-		Target targets[3]; // +0x24
-		uint8_t layout_a[0x9C4]; // +0x48
-		uint8_t layout_b[0x3AC]; // +0xA0C
+		Target targets[3];
+		uint8_t layout_a[0x9C4];
+		uint8_t layout_b[0x3AC];
 	};
-	struct LayoutNode // pool of 8 nodes of 0x1B8 bytes (magic buffer + 0x3D430)
+	struct LayoutNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t depth;     // +0x12
-		int32_t scale;     // +0x14 -> 0x2544F64
-		uint8_t layout[0x1A0]; // +0x18
+		int16_t pos[3];
+		int16_t depth;
+		int32_t scale;
+		uint8_t layout[0x1A0];
 	};
-	// the prim-player callback's parameter block (a stack block of the caller)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 anchor matrix
-		uint32_t objs;     // +0x20 per-object uv scroll mode string
-		uint32_t cursor;   // +0x24 packet cursor
-		int16_t depth;     // +0x28 prim header +0x18
-		int16_t scroll;    // +0x2A uv scroll (modes '1' / '2' / '3')
-		uint32_t morph;    // +0x2C blended vertex frames
+		Mat4x3 m;
+		uint32_t objs;
+		uint32_t cursor;
+		int16_t depth;
+		int16_t scroll;
+		uint32_t morph;
 	};
-	// particle tables in the magic buffer
-	struct Star // + 0xDB8, 8 x 128
-	{
-		int16_t pos[3];    // direction x distance
-		int16_t dist;      // +6 drawn while dist < the master's limit
-		uint8_t rgb[3];    // +8
-		uint8_t level;     // +0xB twinkle level (0: plain colour)
-		uint8_t rgb2[3];   // +0xC
-		uint8_t speed;     // +0xF twinkle step (signed)
-	};
-	struct PModel // particle model, + 0x3B530, 128 x 0x16
+	struct Star
 	{
 		int16_t pos[3];
-		uint8_t life;      // +6
-		int8_t model;      // +7
-		int16_t vel[3];    // +8
-		int16_t scale;     // +0xE
-		int16_t rot[2];    // +0x10
-		int8_t drot[2];    // +0x14
+		int16_t dist;
+		uint8_t rgb[3];
+		uint8_t level;
+		uint8_t rgb2[3];
+		uint8_t speed;
 	};
-	struct QuadP // quad particle, + 0x27690, 64 x 0x20
+	struct PModel
 	{
 		int16_t pos[3];
-		int16_t life;      // +6
-		int16_t m[9];      // +8 rotation
-		int16_t vel[3];    // +0x1A
+		uint8_t life;
+		int8_t model;
+		int16_t vel[3];
+		int16_t scale;
+		int16_t rot[2];
+		int8_t drot[2];
 	};
-	struct SpriteP // sprite particle, + 0x3E1F0, 128 x 8
+	struct QuadP
 	{
 		int16_t pos[3];
-		int16_t life;      // +6
+		int16_t life;
+		int16_t m[9];
+		int16_t vel[3];
+	};
+	struct SpriteP
+	{
+		int16_t pos[3];
+		int16_t life;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MasterNode) == 0xDB8 && sizeof(LayoutNode) == 0x1B8, "Attractor 065 nodes");
@@ -277,10 +215,6 @@ namespace ga065
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// Small helpers
-	// ------------------------------------------------------------------
-	// 0x6E3F10: module LCG (15 bits)
 	static int32_t NextLcg()
 	{
 		const int32_t v = (int32_t)(((uint32_t)Lcg() * 125u + 0xEu) & 0x7FFF);
@@ -288,27 +222,23 @@ namespace ga065
 		return v;
 	}
 
-	// 0x6E2B70: out x / z = sin / cos(angle) * radius (y kept)
 	static void Polar(int32_t angle, int32_t radius, int16_t *out)
 	{
 		out[0] = (int16_t)(mul32(ComputeSin(angle), radius) >> 12);
 		out[2] = (int16_t)(mul32(ComputeCos(angle), radius) >> 12);
 	}
 
-	// 0x6E2BB0: bit 1 of the four model bytes 0x1D98991 + 0x2C n cleared
 	static void ModelsFlag2Off()
 	{
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) *(uint8_t *)a &= 0xFD;
 	}
 
-	// 0x6E07A0: the seven entities' flag words saved
 	static void SaveEntityFlags()
 	{
 		uint32_t *dst = SavedFlags();
 		for (uint32_t e = 0x1D972C0; e < 0x1D97704; e += 0x9C) *dst++ = *(const uint16_t *)e;
 	}
 
-	// 0x6E2BD0: flag 4 of the entities with flag 2 back to the saved value
 	static void RestoreEntityFlag4()
 	{
 		const uint32_t *src = SavedFlags();
@@ -319,10 +249,8 @@ namespace ga065
 		}
 	}
 
-	// 0x6E2AC0: screen feedback request
 	static void Feedback() { RequestScreenFeedback(0, 0xFF, 0xFF, 0xFF, 0x3F); }
 
-	// 0x6E2AE0: full-screen tile (r, g, b) faded in over `in` ticks, held `hold`, out over `out`, into the frame arena
 	static int32_t FadeLevel(int32_t t, int32_t in, int32_t hold, int32_t out)
 	{
 		if (t < in) return shl32(t + 1, 12) / in;
@@ -335,7 +263,6 @@ namespace ga065
 		FrameArena() = Tile(r, g, b, FadeLevel(t, in, hold, out), FrameArena());
 	}
 
-	// 0x6E2DB0: rotation about Y by angle, scaled by s (y axis = s, unrotated); translation not written
 	static void RotYScaled(int32_t angle, int32_t s, Mat4x3 *m)
 	{
 		uint32_t *d = (uint32_t *)m;
@@ -350,7 +277,6 @@ namespace ga065
 		m->m[2][2] = (int16_t)cs;
 	}
 
-	// 0x6E3270: rotation about X by angle (sin / cos table), x axis = s
 	static void RotXScaledTab(int32_t angle, int32_t s, Mat4x3 *m)
 	{
 		uint32_t *d = (uint32_t *)m;
@@ -365,7 +291,6 @@ namespace ga065
 		m->m[2][2] = (int16_t)cs;
 	}
 
-	// 0x6E32E0: rotation about Y by angle (sin / cos table)
 	static void RotYTab(int32_t angle, Mat4x3 *m)
 	{
 		uint32_t *d = (uint32_t *)m;
@@ -379,14 +304,13 @@ namespace ga065
 		m->m[2][2] = cs;
 	}
 
-	// 0x6E2CB0 / 0x6E2D30: a caster bone point (x, y, z, bone) in world space (bones rebuilt from the pose)
 	static Mat4x3 *BoneMatrix(uint16_t bone)
 	{
 		uint8_t *skel = **(uint8_t ***)(Caster() + 0x64);
 		return (Mat4x3 *)(skel + 0x20 + mul32((int16_t)bone, 0x30));
 	}
 
-	static void BonePoint32(const int16_t *v, int32_t *out) // 0x6E2CB0 (MAC, 32 bits)
+	static void BonePoint32(const int16_t *v, int32_t *out)
 	{
 		Mat4x3 m;
 		BuildBoneMatricesFromPose(Caster() + 0x60);
@@ -398,7 +322,7 @@ namespace ga065
 		GteReadMAC123(out);
 	}
 
-	static void BonePoint16(const int16_t *v, int16_t *out) // 0x6E2D30 (IR, 16 bits)
+	static void BonePoint16(const int16_t *v, int16_t *out)
 	{
 		Mat4x3 m;
 		BuildBoneMatricesFromPose(Caster() + 0x60);
@@ -410,7 +334,6 @@ namespace ga065
 		GteStoreIR123(out);
 	}
 
-	// 0x6E2C10: look-at / eye between two (look-at, eye) keys by t (4.12), 0x1D977A2 from za to zb
 	static void CameraBlend(const int16_t *k0, const int16_t *k1, int32_t za, int32_t zb, int32_t t)
 	{
 		CameraZoom() = (int16_t)(sdiv_pow2(mul32(zb - za, t), 12) + za);
@@ -431,10 +354,6 @@ namespace ga065
 		GteStoreIR123((void *)0xB8B7F0);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-model packets
-	// ------------------------------------------------------------------
-	// 0x6E30B0: textured gouraud triangles of a particle model (records 0x1C), clipped to the screen
 	static uint32_t DrawTris(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -486,7 +405,6 @@ namespace ga065
 		return (uint32_t)pk;
 	}
 
-	// 0x6E36D0: textured gouraud quads of a quad particle (records 0x24), clipped to the screen
 	static uint32_t DrawQuads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -544,9 +462,6 @@ namespace ga065
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6E2750): one object of a layout
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		PrimArg *arg = (PrimArg *)arg_;
@@ -585,7 +500,6 @@ namespace ga065
 		if (r->flags & 0x20000) RotationFromAnglesC(r->rot, &m);
 		else if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x800) MatVec(&m, off, off);
 		int32_t t0, t1, t2;
@@ -669,7 +583,6 @@ namespace ga065
 		FieldFree(0x6C);
 	}
 
-	// 0x6E5050: the overlay layout's objects scaled by 0x2544F64 (in the record), then 0x6E2750
 	static void __cdecl ScaledPartCallback(prim::Layout *l, prim::Record *r, int arg)
 	{
 		r->scale[0] = (int16_t)(mul32(r->scale[0], Scale()) >> 12);
@@ -678,12 +591,8 @@ namespace ga065
 		PartCallback(l, r, arg);
 	}
 
-	// ------------------------------------------------------------------
-	// Particle models (magic buffer + 0x3B530, 128 x 0x16)
-	// ------------------------------------------------------------------
 	inline uint8_t *PModels() { return (uint8_t *)(TexBase() + 0x3B530); }
 
-	// 0x6E2E20: every particle model free, cursor at the first
 	static void PModelsInit()
 	{
 		for (uint32_t off = 0xAEA;; off -= 0x16)
@@ -694,7 +603,6 @@ namespace ga065
 		PModelCursor() = PModels();
 	}
 
-	// 0x6E2E50: a free particle model (life 0) from the cursor on, with random rotations
 	static PModel *PModelAlloc()
 	{
 		uint8_t *first = PModels();
@@ -722,7 +630,6 @@ namespace ga065
 		return m;
 	}
 
-	// 0x6E3330: particle models move and age
 	static void PModelsUpdate()
 	{
 		PModel *p = (PModel *)PModels();
@@ -742,7 +649,6 @@ namespace ga065
 		}
 	}
 
-	// 0x6E2ED0: the particle models (8 meshes in the magic buffer), turned, scaled, into the frame arena
 	static void PModelsDraw()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x78);
@@ -793,12 +699,8 @@ namespace ga065
 		FieldFree(0x78);
 	}
 
-	// ------------------------------------------------------------------
-	// Sprite particles (magic buffer + 0x3E1F0, 128 x 8)
-	// ------------------------------------------------------------------
 	inline uint8_t *Sprites() { return (uint8_t *)(TexBase() + 0x3E1F0); }
 
-	// 0x6E3390
 	static void SpritesInit()
 	{
 		uint8_t *p = Sprites() + 6;
@@ -806,7 +708,6 @@ namespace ga065
 		SpriteCursor() = Sprites();
 	}
 
-	// 0x6E34F0: a free sprite particle from the cursor on
 	static SpriteP *SpriteAlloc()
 	{
 		uint8_t *first = Sprites();
@@ -829,7 +730,6 @@ namespace ga065
 		return (SpriteP *)p;
 	}
 
-	// 0x6E3550: sprite particles age
 	static void SpritesUpdate()
 	{
 		uint8_t *p = Sprites() + 6;
@@ -840,7 +740,6 @@ namespace ga065
 		}
 	}
 
-	// 0x6E33C0: sprite particles: a flipbook (0x1334F0C) frame by age, at the particle, into the module arena
 	static void SpritesDraw()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -882,12 +781,8 @@ namespace ga065
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Quad particles (magic buffer + 0x27690, 64 x 0x20; mesh at + 0x3B3C0)
-	// ------------------------------------------------------------------
 	inline uint8_t *Quads() { return (uint8_t *)(TexBase() + 0x27690); }
 
-	// 0x6E3580
 	static void QuadsInit()
 	{
 		for (uint32_t off = 0x7E0;; off -= 0x20)
@@ -898,7 +793,6 @@ namespace ga065
 		QuadCursor() = Quads();
 	}
 
-	// 0x6E35B0: a free quad particle from the cursor on
 	static QuadP *QuadAlloc()
 	{
 		uint8_t *first = Quads();
@@ -921,7 +815,6 @@ namespace ga065
 		return (QuadP *)p;
 	}
 
-	// 0x6E38C0: quad particles move and age
 	static void QuadsUpdate()
 	{
 		QuadP *q = (QuadP *)Quads();
@@ -942,7 +835,6 @@ namespace ga065
 		}
 	}
 
-	// 0x6E3610: the quad particles (their own rotation, the quads' mesh) into the module arena
 	static void QuadsDraw()
 	{
 		const uint8_t *mesh = (const uint8_t *)(TexBase() + 0x3B3C0);
@@ -955,7 +847,7 @@ namespace ga065
 			*(int32_t *)h = q->pos[0];
 			*(int32_t *)(h + 4) = q->pos[1];
 			*(int32_t *)(h + 8) = q->pos[2];
-			GteSetTransVectorCtrl((const Mat4x3 *)(h - 0x14)); // (its translation = the three words at h)
+			GteSetTransVectorCtrl((const Mat4x3 *)(h - 0x14));
 			*(const uint8_t **)(h + 0x10) = mesh + 8;
 			*(const uint8_t **)(h + 0x14) = mesh + *(const uint32_t *)mesh + 0x1C;
 			PacketCursor() = DrawQuads(h + 0x10, OT(0x44), 4, PacketCursor());
@@ -963,15 +855,10 @@ namespace ga065
 		FieldFree(0x28);
 	}
 
-	// ------------------------------------------------------------------
-	// Ribbons: segments (magic buffer + 0x3B530, 256 x 0x18: position, life (-1 free), velocity,
-	// progress, width / width step, next) in chains (+ 0x3CD30, 32 x 0x38)
-	// ------------------------------------------------------------------
 	inline uint8_t *Segs() { return (uint8_t *)(TexBase() + 0x3B530); }
 	inline uint8_t *Chains() { return (uint8_t *)(TexBase() + 0x3CD30); }
 	template<typename T> inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 
-	// 0x6E3910: ribbon jitter parameters, every segment and chain free
 	static void RibbonsInit(int32_t shift, int32_t keep, int32_t depth)
 	{
 		NoiseShift() = (int16_t)(15 - shift);
@@ -987,7 +874,6 @@ namespace ga065
 		for (int n = 0x20; n != 0; n--, c += 0x38) *(uint32_t *)c = 0;
 	}
 
-	// 0x6E41D0: a free segment from the cursor on
 	static uint8_t *SegAlloc()
 	{
 		uint8_t *first = Segs();
@@ -1010,7 +896,6 @@ namespace ga065
 		return p;
 	}
 
-	// 0x6E4F60: a new chain from a spawn record (0x38 bytes) with its first segment
 	static void ChainNew(const uint8_t *rec)
 	{
 		uint8_t *first = Chains();
@@ -1048,8 +933,6 @@ namespace ga065
 		F<uint16_t>(c, 0x36) = *(const uint16_t *)(rec + 0x36);
 	}
 
-	// 0x6E3F30: chains fade, their heads move (jittered by the LCG) towards the end point and drop a
-	// segment each tick; segments drift and thin out; thin tails are freed
 	static void RibbonsUpdate()
 	{
 		uint8_t *c = Chains();
@@ -1106,7 +989,7 @@ namespace ga065
 					GteLoadIR123(c + 0x18);
 					GteGPL();
 					GteStoreIR123(at);
-					at[3] = 0; // (never read: the segment's life word is set below)
+					at[3] = 0;
 				}
 				uint8_t *s = SegAlloc();
 				if (!s)
@@ -1157,7 +1040,6 @@ namespace ga065
 		}
 	}
 
-	// 0x6E3D90: ribbon edges of segment s towards n (dir carries the previous direction, mitred joints)
 	static void SegEdges(uint8_t *s, uint8_t *n, const int16_t *prev, int16_t *dir)
 	{
 		if (F<int16_t>(s, 4) < 0) return;
@@ -1213,8 +1095,6 @@ namespace ga065
 		F<int16_t>(s, 2) = (int16_t)(y - oy);
 	}
 
-	// 0x6E3AC0: one chain: each segment between the chain's two end points by its progress, projected,
-	// its width along a half sine, its colour from the header's gradient; edges; one quad per pair
 	static void RibbonDraw(uint8_t *h, uint8_t *seg, int32_t count)
 	{
 		uint8_t *o = h + 0x50;
@@ -1263,7 +1143,7 @@ namespace ga065
 			seg = F<uint8_t *>(seg, 0x14);
 			o += 0x14;
 		} while (seg);
-		int16_t *dir = (int16_t *)(h + 4); // (Field_Alloc memory: not written when the first segment is behind)
+		int16_t *dir = (int16_t *)(h + 4);
 		uint8_t *s = h + 0x50;
 		SegEdges(s, s + 0x14, nullptr, dir);
 		s += 0x14;
@@ -1298,7 +1178,6 @@ namespace ga065
 		}
 	}
 
-	// 0x6E3990: every chain with two segments or more; a fading chain (+0x36 < 0x1000) dims its gradient
 	static void RibbonsDraw()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x190);
@@ -1340,11 +1219,6 @@ namespace ga065
 		FieldFree(0x190);
 	}
 
-	// ------------------------------------------------------------------
-	// Backdrop pieces
-	// ------------------------------------------------------------------
-	// 0x6E4230: one prim model at (x, y, z): turned about Y and scaled (0x6E2DB0); flags bit 15: a
-	// billboard (only the position goes through the camera); uv scroll (v) when given
 	static uint32_t Billboard(int32_t x, int32_t y, int32_t z, int32_t angle, int32_t scale, int32_t scroll, int32_t flags, int32_t depth, uint32_t model, uint32_t cursor)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x8C);
@@ -1385,8 +1259,6 @@ namespace ga065
 		return cursor;
 	}
 
-	// 0x6E4350: the star dots (8 groups x 128, each group turned by its angles 0x133ABC8 +4 / +6) at
-	// (x, y, z) through the camera; dots with distance < limit; twinkling colour (level x 16)
 	static uint32_t Stars(int32_t depth, int32_t x, int32_t y, int32_t z, int32_t limit, uint32_t cursor)
 	{
 		Star *st = (Star *)(TexBase() + 0xDB8);
@@ -1447,7 +1319,6 @@ namespace ga065
 		return (uint32_t)pk;
 	}
 
-	// 0x6E4570: the dots twinkle (level += step, bouncing at 0 / 255); the groups turn
 	static void StarsTwinkle()
 	{
 		uint8_t *p = (uint8_t *)(TexBase() + 0xDC3);
@@ -1468,8 +1339,6 @@ namespace ga065
 		}
 	}
 
-	// 0x6E45D0 / 0x6E4670: layout A at the caster's start position, through the camera; 0x6E45D0's
-	// objects scroll their uvs by step * 32 ('2' / '3' modes of 0x1342D2C)
 	static void CasterLayout(MasterNode *m, int32_t step, bool scroll)
 	{
 		PrimArg arg;
@@ -1478,7 +1347,7 @@ namespace ga065
 		arg.m.t[1] = 0;
 		arg.m.t[2] = CasterPos()[2];
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-		arg.scroll = scroll ? (int16_t)shl32(step, 5) : 0; // (0x6E4670 never sets it: its objects never read it)
+		arg.scroll = scroll ? (int16_t)shl32(step, 5) : 0;
 		arg.morph = TexBase() + 0x6CB8;
 		arg.cursor = PacketCursor();
 		arg.objs = scroll ? OBJS23 : OBJS0;
@@ -1487,7 +1356,6 @@ namespace ga065
 		PacketCursor() = arg.cursor;
 	}
 
-	// 0x6E4810: beam mesh (0x133822C) bent by sines of its z, x by a, y by b, z x 8 (into out)
 	static void BendBeam(const uint8_t *model, uint8_t *out, int32_t a, int32_t b)
 	{
 		const int16_t *v = (const int16_t *)(model + 8);
@@ -1500,7 +1368,6 @@ namespace ga065
 		}
 	}
 
-	// 0x6E4710: a bent beam from p0 to p1 (basis along p1 - p0, x mirrored on z)
 	static void Beam(const int16_t *p0, const int16_t *p1, int32_t a, int32_t b)
 	{
 		BendBeam((const uint8_t *)0x133822C, (uint8_t *)(TexBase() + 0x6CB8), a, b);
@@ -1527,7 +1394,6 @@ namespace ga065
 		FieldFree(0x9C);
 	}
 
-	// 0x6E4B70: twisted ray mesh (0x133A0FC): x += sin(z * b >> 12) * a >> 12 (into out)
 	static void TwistRay(const uint8_t *model, uint8_t *out, int32_t a, int32_t b)
 	{
 		const int16_t *v = (const int16_t *)(model + 8);
@@ -1541,8 +1407,6 @@ namespace ga065
 		}
 	}
 
-	// 0x6E48A0: a ray from `from` to the centre + the table's offset scaled down by t (4.12): the model
-	// (texture, along the basis; the table's spin +0x12 (+= +0x10) while t > 1/2) and the twisted ray
 	static void RayDraw(const int16_t *from, const int16_t *centre, const uint8_t *tab, int32_t t, int32_t u, int32_t sign, uint32_t model, int16_t spin)
 	{
 		int32_t fade = -0x800;
@@ -1609,15 +1473,12 @@ namespace ga065
 		FieldFree(0xDC);
 	}
 
-	// (the table's spin turns while the ray fades: u past 1/2)
 	static void Ray(const int16_t *from, const int16_t *centre, uint8_t *tab, int32_t t, int32_t u, int32_t sign, uint32_t model)
 	{
 		if (0x1000 - u < 0x800 && Pause() == 0) *(int16_t *)(tab + 0x12) = (int16_t)(*(int16_t *)(tab + 0x12) + *(const int16_t *)(tab + 0x10));
 		RayDraw(from, centre, tab, t, u, sign, model, *(const int16_t *)(tab + 0x12));
 	}
 
-	// 0x6E4DA0: a ribbon chain spawned on a ring (radius size + a) towards the ring + phase (radius
-	// size + b) when the ring is wide enough, with probability by the LCG
 	static void RingSpawn(const int16_t *pos, int32_t angle, int32_t phase, int32_t size, int32_t a, int32_t b, uint32_t from, uint32_t to)
 	{
 		const int32_t ab = a + b;
@@ -1655,8 +1516,6 @@ namespace ga065
 		ChainNew(rec);
 	}
 
-	// 0x6E4BD0: a vortex ring (table record 0x24: angle, depth, radius offset a, b1, b2, b3, spin, spin
-	// step, ribbon end points 3 x, position +0x1C): spawns ribbons on three rings, spins, the ring model
 	static void RingDraw(uint8_t *rec, const int16_t *pos, int32_t size, uint32_t model, int16_t spin);
 	static void Ring(uint8_t *rec, const int16_t *pos, int32_t size, uint32_t model, int32_t spawn)
 	{
@@ -1675,7 +1534,6 @@ namespace ga065
 		RingDraw(rec, pos, size, model, *(const int16_t *)(rec + 0xC));
 	}
 
-	// the ring model at its radius (the ring's position for the ribbons kept at +0x1C), turned by spin
 	static void RingDraw(uint8_t *rec, const int16_t *pos, int32_t size, uint32_t model, int16_t spin)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x94);
@@ -1707,19 +1565,14 @@ namespace ga065
 		FieldFree(0x94);
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6E07D0)
-	// ------------------------------------------------------------------
 	inline uint32_t LayoutData(uint32_t slot) { return TexBase() + 0x27690 + *(const uint32_t *)(TexBase() + slot); }
 
-	// counter - 1 = s (0..0x1E): the backdrop's scale (s * 0x800 / 31)
 	static int32_t BackdropSize(uint32_t s)
 	{
 		const uint32_t x = s << 11, h = mulhi_u(x, 0x8421085u);
 		return (int32_t)((((x - h) >> 1) + h) >> 4);
 	}
 
-	// counter - 0xA7 = s (0..0x46): the beams' bend amplitudes (x: a, y: b)
 	static void BeamBends(uint32_t s, int32_t *pa, int32_t *pb)
 	{
 		int32_t a, b;
@@ -1748,14 +1601,12 @@ namespace ga065
 		*pb = b;
 	}
 
-	// counter - 0x156 = s (0..0x3B): the rays' progress t (50 s) and fade u (s * 0x1000 / 60)
 	static void RayParams(uint32_t s, int32_t *t, int32_t *u)
 	{
 		*t = (int32_t)(mulhi_u(s * 3000u, 0x88888889u) >> 5);
 		*u = (int32_t)(mulhi_u(s << 12, 0x88888889u) >> 5);
 	}
 
-	// counter - 0x192 = s (0..0x43): the vortex rings' radius
 	static int32_t RingSize(uint32_t s)
 	{
 		const int32_t g = (int32_t)(mulhi_u(s << 12, 0xF0F0F0F1u) >> 6);
@@ -1772,7 +1623,6 @@ namespace ga065
 		return sdiv_pow2(mul32(0x1000 - v, 5000), 12) + 0x138;
 	}
 
-	// counter - 0x1D8 = s (0..0x45): the overlay layout's scale (0x2544F64)
 	static int32_t OverlayScale(uint32_t s)
 	{
 		const uint32_t x = s << 10, h = mulhi_u(x, 0xD41D41D5u);
@@ -1784,7 +1634,6 @@ namespace ga065
 		return 0x1200 - c4;
 	}
 
-	// the two mirrored layouts at the caster's bones (counters 0x2A..0x36 and 0x37..0x42)
 	static void MirroredLayouts(MasterNode *m, bool roty)
 	{
 		PrimArg arg;
@@ -1796,7 +1645,7 @@ namespace ga065
 		arg.cursor = PacketCursor();
 		arg.objs = OBJS0;
 		arg.depth = 0;
-		arg.scroll = 0; // (never read: '0' objects)
+		arg.scroll = 0;
 		prim::play((prim::Layout *)m->layout_a, PartCallback, (int)&arg, Pause());
 		PacketCursor() = arg.cursor;
 		if (roty) RotY(0x320, &arg.m);
@@ -1823,8 +1672,6 @@ namespace ga065
 		eye[0] = (int16_t)ex; eye[1] = (int16_t)ey; eye[2] = (int16_t)ez;
 	}
 
-	// the camera part of the master (0x6E1EE8..0x6E26E8): pure function of the counter, the caster's
-	// start position and the targets' centre (writes the camera words and 0x1D977A2)
 	static void MasterCamera(int32_t c)
 	{
 		int16_t k0[6], k1[6];
@@ -1922,7 +1769,6 @@ namespace ga065
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 1..0x1F: the billboards and the dots in the module arena, the caster sinks
 		{
 			const uint32_t s = (uint32_t)(m->counter - 1);
 			if (s < 0x1F)
@@ -1930,7 +1776,6 @@ namespace ga065
 				const int32_t size = BackdropSize(s);
 				if (s < 10) *Caster() |= 8;
 				else *(uint16_t *)Caster() &= 0xFFF7;
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_backdrop(0, (int32_t)s, size);)
 				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, 0, 0x800C, 0x800, 0x1334FFC, PacketCursor());
 				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, shl32((int32_t)s, 5), 0x8030, -0x200, 0x1336924, PacketCursor());
@@ -1938,16 +1783,13 @@ namespace ga065
 				if (Pause() == 0) *(int16_t *)(Caster() + 0x20) = (int16_t)(*(int16_t *)(Caster() + 0x20) - 0x142);
 			}
 		}
-		// 0x20..0x21D: the backdrop and the dots in the frame arena
 		if ((uint32_t)(m->counter - 0x20) < 0x1FE)
 		{
 			*(uint8_t *)0x1D98A15 &= 0xFD;
-			// 30 fps layer: see mag065_great_attractor_held.inc
 			FX_HELD(held_note_backdrop(1, 0, 0);)
 			FrameArena() = Billboard(CasterPos()[0], 0, CasterPos()[2], 0, 0x1000, 0, 0xC, 0, 0x1334FFC, FrameArena());
 			FrameArena() = Stars(0, CasterPos()[0], 0, CasterPos()[2], 0x10000, FrameArena());
 		}
-		// 0x2A..0x36 / 0x37..0x42: the mirrored layouts
 		{
 			const uint32_t s = (uint32_t)(m->counter - 0x2A);
 			if (s < 0xD)
@@ -1957,7 +1799,6 @@ namespace ga065
 					DecodeModelPrimLayout(LayoutData(0x27694), m->layout_a, 0x3AC);
 					DecodeModelPrimLayout(LayoutData(0x27694), m->layout_b, 0x3AC);
 				}
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_mirrored(m, false);)
 				MirroredLayouts(m, false);
 			}
@@ -1971,12 +1812,10 @@ namespace ga065
 					DecodeModelPrimLayout(LayoutData(0x27698), m->layout_a, 0x1AC);
 					DecodeModelPrimLayout(LayoutData(0x27698), m->layout_b, 0x1AC);
 				}
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_mirrored(m, true);)
 				MirroredLayouts(m, true);
 			}
 		}
-		// 0x43.., 0x61.., 0x7B.., 0x91..: one layout at the caster (uv scroll)
 		{
 			static const struct { int16_t start, len; uint32_t slot, size; } P[4] = {
 				{ 0x43, 0x1E, 0x2769C, 0x280 }, { 0x61, 0x1A, 0x276A0, 0x280 }, { 0x7B, 0x16, 0x276A4, 0x280 }, { 0x91, 0x16, 0x276A8, 0x9C4 } };
@@ -1994,12 +1833,10 @@ namespace ga065
 						PartyShadowOn();
 					}
 				}
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_caster_layout(m, s, true, P[k].len);)
 				CasterLayout(m, s, true);
 			}
 		}
-		// 0xA7..0xED: the caster swings, four beams
 		{
 			uint32_t s = (uint32_t)(m->counter - 0xA7);
 			if (s < 0x47)
@@ -2036,7 +1873,6 @@ namespace ga065
 				int32_t a, b;
 				BeamBends(s, &a, &b);
 				int16_t r0[3], l0[3], p[3];
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_beams((int32_t)s, a, b);)
 				BonePoint16((const int16_t *)BONE_R, r0);
 				const int16_t *cp = CasterPos();
@@ -2052,7 +1888,6 @@ namespace ga065
 				Beam(l0, p, a, b);
 			}
 		}
-		// 0xEE.., 0x108.., 0x122.., 0x13C..: one layout at the caster
 		{
 			static const struct { int16_t start; uint32_t slot, size; } P[4] = {
 				{ 0xEE, 0x27694, 0x120 }, { 0x108, 0x27698, 0x120 }, { 0x122, 0x2769C, 0x120 }, { 0x13C, 0x276A0, 0x85C } };
@@ -2069,12 +1904,10 @@ namespace ga065
 						PartyShadowOn();
 					}
 				}
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_caster_layout(m, s, false, 0x1A);)
 				CasterLayout(m, s, false);
 			}
 		}
-		// 0x156..0x191: everyone pulled to the centre, four rays
 		{
 			const uint32_t s = (uint32_t)(m->counter - 0x156);
 			if (s < 0x3C)
@@ -2113,7 +1946,6 @@ namespace ga065
 				if (Pause() == 0) *(int16_t *)(Caster() + 0x20) = (int16_t)(*(int16_t *)(Caster() + 0x20) - 0xAA);
 				int16_t c[3] = { m->centre[0], m->centre[1], (int16_t)(m->centre[2] + 0x7D0) };
 				int16_t r0[3], l0[3];
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_rays((int32_t)s, t, u);)
 				BonePoint16((const int16_t *)BONE_R, r0);
 				Ray(r0, c, (uint8_t *)0x133AC40, t, u, -1, TexBase() + 0x36620);
@@ -2123,7 +1955,6 @@ namespace ga065
 				Ray(l0, c, (uint8_t *)0x133AC7C, t, u, -1, TexBase() + 0x38490);
 			}
 		}
-		// 0x192..0x1D5: the vortex rings, ribbons, layout tasks, sprite particles
 		{
 			const uint32_t s = (uint32_t)(m->counter - 0x192);
 			if (s < 0x44)
@@ -2140,7 +1971,6 @@ namespace ga065
 				int16_t c[3] = { m->centre[0], m->centre[1], (int16_t)(m->centre[2] + 0x7D0) };
 				const int32_t size = RingSize(s);
 				const int32_t spawn = s >= 6 ? 1 : 0;
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_rings((int32_t)s, c, size);)
 				Ring((uint8_t *)0x133AC90, c, size, TexBase() + 0x36620, spawn);
 				Ring((uint8_t *)0x133ACB4, c, size, TexBase() + 0x393C8, spawn);
@@ -2202,14 +2032,11 @@ namespace ga065
 				}
 			}
 		}
-		// 0x1D2..0x1F0: white tile
 		if ((uint32_t)(m->counter - 0x1D2) < 0x1F)
 		{
-			// 30 fps layer: see mag065_great_attractor_held.inc
 			FX_HELD(held_note_tile(m->counter - 0x1D2, 4, 2, 0x19, 0x1F);)
 			FadeTile(m->counter - 0x1D2, 0xFF, 0xFF, 0xFF, 4, 2, 0x19);
 		}
-		// 0x1D8..0x21D: particle models, quads, the overlay layout
 		{
 			const int32_t s = m->counter - 0x1D8;
 			if ((uint32_t)s < 0x46)
@@ -2279,7 +2106,6 @@ namespace ga065
 						q = QuadAlloc();
 					}
 				}
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_overlay(m, s);)
 				PrimArg arg;
 				RotY(0, &arg.m);
@@ -2289,20 +2115,18 @@ namespace ga065
 				arg.m.t[2] = 0x1000;
 				arg.objs = OBJS0;
 				arg.depth = -0x400;
-				arg.scroll = 0; // (never read: '0' objects)
+				arg.scroll = 0;
 				Scale() = OverlayScale(s);
 				arg.cursor = FrameArena();
 				prim::play((prim::Layout *)m->layout_a, ScaledPartCallback, (int)&arg, Pause());
 				FrameArena() = arg.cursor;
 			}
 		}
-		// 0x214..0x227: white tile; 0x21E: everything back
 		int32_t zero = 0;
 		{
 			const int32_t s = m->counter - 0x214;
 			if ((uint32_t)s < 0x14)
 			{
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_tile(s, 8, 4, 8, 0x14);)
 				FadeTile(s, 0xFF, 0xFF, 0xFF, 8, 4, 8);
 				if (s == 0xA)
@@ -2331,16 +2155,13 @@ namespace ga065
 				}
 			}
 		}
-		// the particle systems
 		if (Flags()[0])
 		{
-			// 30 fps layer: see mag065_great_attractor_held.inc
 			FX_HELD(held_note_particles(0);)
 			RibbonsDraw();
 		}
 		if (Flags()[1])
 		{
-			// 30 fps layer: see mag065_great_attractor_held.inc
 			FX_HELD(held_note_particles(1);)
 			SpritesDraw();
 		}
@@ -2348,18 +2169,15 @@ namespace ga065
 		{
 			if (Flags()[2])
 			{
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_particles(2);)
 				PModelsDraw();
 			}
 			if (Flags()[3])
 			{
-				// 30 fps layer: see mag065_great_attractor_held.inc
 				FX_HELD(held_note_particles(3);)
 				QuadsDraw();
 			}
 		}
-		// stream loads (the layouts' files), waits
 		const int16_t c = m->counter;
 		if (c == 0)
 		{
@@ -2429,13 +2247,9 @@ namespace ga065
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Layout task (0x6E50A0): a layout at its position (scaled by +0x14) into the frame arena
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *L = (LayoutNode *)n;
-		// 30 fps layer: see mag065_great_attractor_held.inc
 		FX_HELD(held_note_layout(L);)
 		PrimArg arg;
 		arg.morph = TexBase() + 0x6CB8;
@@ -2450,19 +2264,15 @@ namespace ga065
 		arg.depth = L->depth;
 		arg.objs = OBJS0;
 		arg.cursor = FrameArena();
-		arg.scroll = 0; // (never read: '0' objects)
+		arg.scroll = 0;
 		const int left = prim::play((prim::Layout *)L->layout, ScaledPartCallback, (int)&arg, Pause());
 		FrameArena() = arg.cursor;
 		return left != 0 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6E03F0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag065_great_attractor_held.inc
 		FX_HELD(held_note_root();)
 		if (r->parity)
 		{
@@ -2559,7 +2369,6 @@ namespace ga065
 		register_port(ga065::ORIG_RootTask, (void *)ga065::RootTask, "A065 RootTask", 65);
 		register_port(ga065::ORIG_MasterTask, (void *)ga065::MasterTask, "A065 MasterTask", 65);
 		register_port(ga065::ORIG_LayoutTask, (void *)ga065::LayoutTask, "A065 LayoutTask", 65);
-		// 30 fps layer: see mag065_great_attractor_held.inc
 		FX_HELD(register_mag065_held();)
 	}
 }

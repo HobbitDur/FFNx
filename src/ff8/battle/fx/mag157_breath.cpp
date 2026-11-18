@@ -14,56 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 157: Breath (enemy attack 37 of kernel.bin, used by the Hexadragon c0m024; MAG_157_*).
-// A swirl gathers at the caster's mouth, then three clouds of breath roll toward the target: each
-// one a burst, a lit puff, smoke particles, a rolling cloud model pair and a ring pair, with
-// splatter sprites on the target.
-//
-// Structure (setup MAG_157_BREATH_Init 0x603E90, file loader 0x603E70 = the texture file named at
-// 0xDB4CC8 (mag156.tim, file 0x23ECDF4); the setup keeps the texture-off buffer (0x571B50) in
-// 0x23ECE18, the cast context 0x23ECDEC, the first target's slot 0x23EB5F0 and the caster's slot
-// 0x23ECDF0, sets up the root queue 0x23EB618 (2 nodes) and the effect queue 0x23EBF90 (0x64 nodes
-// of 0x24 bytes) with the director, clears the particle table, starts camera animation 0xDB0828 and
-// queues the TIM):
-//   RootTask (0x605460) - packets into the texture-off buffer (its first or second 0xC000 bytes on
-//     the counter's parity, cursor 0x23ECE1C), runs the effect queue; once it is empty adds the
-//     texture restore task to the root queue and ends.
-//   TexRestore (0x6054D0) - counter 1 = Battle_RestoreDefaultEffectTexture (done flag +0x0E); ends
-//     once it is done.
-//   Director (0x603F50) - every tick (also in the draw-only mode) rebuilds the two breath frames:
-//     A (0x23ECDB0) = camera o (rotation from (0, 0, -1) onto direction A 0x23ECDD8, at mouth
-//     position A 0x23ECDF8), B (0x23EB5C0) likewise from direction B 0x23EB5E0 / position B
-//     0x23EBF88. Then, not in the draw-only mode: counter 0 = the target's default effect position
-//     (0x23ECDD0), mouth A = the caster's effect position (bone 0xF0) + (0, 0x226, -0x280) in the
-//     caster's frame, direction A toward the target (length root 0x23ECDE8); 1 = two swirls and
-//     sound 0xDB4CAC; 2 = the breath particles; 0x13 = mouth B (+ (0, 0x384, -0x546)), direction B
-//     (length root 0x23EB5F4); 0x14 / 0x20 / 0x2B = one cloud each (cloud 0..2) and at 0x14 sound
-//     0xDB4CB0; 0x41 = damage (action 0's targets); ends after counter 0x46.
-//   Swirl (0x6043A0) - prim model 0xDB0DBC in frame A turned by +0x18 (+0x1A a tick), scale +0x1C,
-//     fading in (counters 0..3) and out (from 0x16); 30 ticks.
-//   BreathParticles (0x6044D0) - particle type 1: sprites (sequence 0xDB0B34) on circles in frame A
-//     (angle +8 turning by +0xA, radius +0xE, depth +0xC), lit through the GTE light matrix; counters
-//     0..0x1E three a tick; ends from counter 4 once none is left.
-//   Cloud (0x604780) - cloud position (0x23ECE00 + 8 x cloud) cleared at 0, the burst at 0, the puff
-//     at 8 (speed = 11 x length root B / 16 / 4), the puff particles at 9, the cloud model pair and
-//     the ring pair at 0xC, the splatter at 0xF; ends at counter 0x16. Draws nothing.
-//   Burst (0x6049F0) - prim model 0xDB42C4 in frame B, scale +0x1C shrinking, fading in; 10 ticks.
-//   Puff (0x604B30) - sprite sequence 0xDB0AC0 (frame = counter & 3) at the cloud position in frame
-//     B; the cloud moves forward by the puff's speed a tick; 5 ticks.
-//   PuffParticles (0x604C80) - particle type 2: sprites (sequence 0xDB0CE0) at their position in
-//     frame B; counters 0..4 six a tick around the cloud position; ends from counter 4 once none is left.
-//   CloudModels (0x604E90) - prim models 0xDB20DC and 0xDB2F54 at the cloud position (frame B, then
-//     the camera), rolling, growing, fading from counter 8; the cloud moves forward (speed -1/6 a
-//     tick); 16 ticks.
-//   Rings (0x6050A0) - prim model 0xDB3BDC twice at the cloud position (frame B, then frame A),
-//     turning, growing, fading from counter 8; 18 ticks.
-//   Splatter (0x6052A0) - particle type 4: sprites (sequence 0xDB0914) around the target's default
-//     effect position; counters 0..4 six a tick; ends from counter 4 once none is left.
-// Particle table 0x23EB628: 100 entries of 0x18 bytes (+0 = type bits).
-// Module globals: 0x23EB5C0..0x23ECE40 (frame B, direction B, target slot, length root B, root pool
-// / queue, particle table, mouth B, effect queue / pool, frame A, target position, direction A,
-// length root A, context, caster slot, texture file, mouth A, cloud positions, texture-off buffer,
-// packet cursor, sprite frame 0x23ECE20).
+// Effect 157: Breath
 
 #include "mag_common.h"
 
@@ -74,7 +25,6 @@ namespace breath157
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline Mat4x3 &FrameB() { return var<Mat4x3>(0x23EB5C0); }
 	inline int32_t *DirB() { return (int32_t *)0x23EB5E0; }
 	inline uint32_t &TargetSlot() { return var<uint32_t>(0x23EB5F0); }
@@ -92,8 +42,8 @@ namespace breath157
 	inline int16_t *CloudPos(int16_t i) { return (int16_t *)(0x23ECE00 + (uint32_t)(int32_t)i * 8); }
 	inline uint32_t &TexBase() { return var<uint32_t>(0x23ECE18); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23ECE1C); }
-	inline Mat4x3 &SpriteFrame() { return var<Mat4x3>(0x23ECE20); }  // rotation never written (0); translation per sprite
-	static const uint32_t PARTS = 0x23EB628, PARTS_END = 0x23EBF88;  // 100 x 0x18
+	inline Mat4x3 &SpriteFrame() { return var<Mat4x3>(0x23ECE20); }
+	static const uint32_t PARTS = 0x23EB628, PARTS_END = 0x23EBF88;
 	static const int PART_COUNT = 100;
 	static const uint32_t ARENA_SIZE = 0xC000;
 
@@ -109,48 +59,44 @@ namespace breath157
 	static const uint32_t ORIG_CloudModels = 0x604E90;
 	static const uint32_t ORIG_Rings = 0x6050A0;
 	static const uint32_t ORIG_Splatter = 0x6052A0;
-	static const uint32_t REF_DIR = 0xDB4CB8;          // (0, 0, -0x1000)
+	static const uint32_t REF_DIR = 0xDB4CB8;
 	static const uint32_t MODEL_Swirl = 0xDB0DBC, MODEL_Burst = 0xDB42C4, MODEL_Cloud1 = 0xDB20DC, MODEL_Cloud2 = 0xDB2F54, MODEL_Ring = 0xDB3BDC;
 	static const uint32_t SEQ_Breath = 0xDB0B34, SEQ_Puff = 0xDB0AC0, SEQ_PuffPart = 0xDB0CE0, SEQ_Splatter = 0xDB0914;
 	static const void *const SOUND_Start = (const void *)0xDB4CAC;
 	static const void *const SOUND_Cloud = (const void *)0xDB4CB0;
 
-	// ---- engine functions (original addresses)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
 	inline int32_t NormalizeVectorLen(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
 	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline int32_t ComputeSin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D130)(a); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // MAG_148_sub_64DDA0: BK = m.t
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
 	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
-	inline void GteSetRotDiag(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }     // MAG_148_sub_64DDD0: R11 = R22 = R33 = s
-	inline void GteTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }                     // MAG_148_sub_64DE90: TR = IR1..3
+	inline void GteSetRotDiag(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
+	inline void GteTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }
 	inline void RestoreDefaultEffectTexture(uint32_t tex, void *done) { fn<void (__cdecl *)(uint32_t, void *)>(0x508630)(tex, done); }
 
-	// ------------------------------------------------------------------
-	// Node / table layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 2 nodes of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t done;      // +0x0E texture restore: done flag
+		int16_t counter;
+		int16_t done;
 	};
-	struct EffectNode // pool of 0x64 nodes of 0x24 bytes
+	struct EffectNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t w0E;       // +0x0E cloud index (director: next cloud)
-		int16_t w10, w12, w14, w16, w18, w1A, w1C, w1E, w20, w22; // task values (see each task)
+		int16_t counter;
+		int16_t w0E;
+		int16_t w10, w12, w14, w16, w18, w1A, w1C, w1E, w20, w22;
 	};
-	struct Part // 0x18 bytes
+	struct Part
 	{
-		uint32_t type;     // +0x00 bit 0 breath, bit 1 puff particle, bit 2 splatter (0 = free)
-		int16_t frame;     // +0x04
-		int16_t size;      // +0x06
-		int16_t v[8];      // +0x08 breath: angle, turn, depth, radius; others: position (4 words)
+		uint32_t type;
+		int16_t frame;
+		int16_t size;
+		int16_t v[8];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Breath nodes");
@@ -168,9 +114,6 @@ namespace breath157
 		return -1;
 	}
 
-	// ------------------------------------------------------------------
-	// Draws (each one task's draw, from its node)
-	// ------------------------------------------------------------------
 	static uint8_t *ModelHeader(uint32_t model, uint32_t flags)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -183,7 +126,6 @@ namespace breath157
 	{
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 	}
-	// rotation from angles, scale s, no translation, composed with the frame f; loaded into the GTE
 	static void ModelMatrix(Mat4x3 &m, const int16_t ang[3], int32_t s, const Mat4x3 *f)
 	{
 		ComposeZYXRotationMatrix(ang, &m);
@@ -200,7 +142,6 @@ namespace breath157
 		GteSetTransVector(&m);
 	}
 
-	// Swirl (0x6043A0): fading in (counters 0..3) and out (from 0x16)
 	static void SwirlMatrix(const EffectNode *t)
 	{
 		int16_t ang[3];
@@ -232,7 +173,6 @@ namespace breath157
 		FieldFree(0x58);
 	}
 
-	// Burst (0x6049F0): fading in (counters 0..7)
 	static void BurstMatrix(const EffectNode *t)
 	{
 		int16_t ang[3] = { 0, 0, 0 };
@@ -256,8 +196,6 @@ namespace breath157
 		FieldFree(0x58);
 	}
 
-	// CloudModels (0x604E90): model 1 in frame B (fading from counter 8), then model 2 (scale + 0x2A0)
-	// by the camera with the translation of model 1 (the header kept after its free)
 	static void CloudModel1Matrix(const EffectNode *t, Mat4x3 &m)
 	{
 		const int16_t *c = CloudPos(t->w0E);
@@ -316,8 +254,6 @@ namespace breath157
 		CloudModel2(t, m, h);
 	}
 
-	// Rings (0x6050A0): the ring in frame B (fading from counter 8), then again (x + 0x400) in
-	// frame A with the translation of the first (the header kept after its free)
 	static void Ring1Matrix(const EffectNode *t, Mat4x3 &m)
 	{
 		const int16_t *c = CloudPos(t->w0E);
@@ -376,8 +312,6 @@ namespace breath157
 		Ring2(t, m, h);
 	}
 
-	// sprite frame of the lit sprites: the frame's light matrix / back colour, the particle at v in
-	// it, scale s on the rotation diagonal, the translation pulled toward the camera by s / 8
 	static void LitSpriteSetup(const Mat4x3 *frame)
 	{
 		GteSetRotMatrixCtrl(&SpriteFrame());
@@ -413,7 +347,6 @@ namespace breath157
 		return h;
 	}
 
-	// one breath particle (0x6044D0's draw)
 	static void BreathPartDraw(uint8_t *h, const Part *p)
 	{
 		int16_t v[4];
@@ -425,7 +358,6 @@ namespace breath157
 		LitSpritePull(p->size);
 		SeqDraw(h);
 	}
-	// Puff (0x604B30)
 	static void PuffDraw(const EffectNode *t)
 	{
 		LitSpriteSetup(&FrameB());
@@ -438,7 +370,6 @@ namespace breath157
 		SeqDraw(h);
 		FieldFree(0xB4);
 	}
-	// one puff particle (0x604C80's draw)
 	static void PuffPartDraw(uint8_t *h, const Part *p)
 	{
 		GteLoadV0(p->v);
@@ -449,7 +380,6 @@ namespace breath157
 		GteTransFromIR();
 		SeqDraw(h);
 	}
-	// one splatter particle (0x6052A0's draw)
 	static void SplatterDraw(uint8_t *h, const Part *p)
 	{
 		*(int16_t *)(h + 4) = p->frame;
@@ -467,13 +397,9 @@ namespace ff8fx
 {
 namespace breath157
 {
-	// ------------------------------------------------------------------
-	// Swirl (0x6043A0), Burst (0x6049F0), Puff (0x604B30)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SwirlTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_SWIRL, t);)
 		SwirlDraw(t);
 		if (DrawOnly()) return 0;
@@ -485,7 +411,6 @@ namespace breath157
 	static uint32_t __cdecl BurstTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_BURST, t);)
 		BurstDraw(t);
 		if (DrawOnly()) return 0;
@@ -499,7 +424,6 @@ namespace breath157
 	static uint32_t __cdecl PuffTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_PUFF, t);)
 		PuffDraw(t);
 		if (DrawOnly()) return 0;
@@ -509,13 +433,9 @@ namespace breath157
 		return t->counter >= 5 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// CloudModels (0x604E90), Rings (0x6050A0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl CloudModelsTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_CLOUDMODELS, t);)
 		CloudModelsDraw(t);
 		if (DrawOnly()) return 0;
@@ -535,7 +455,6 @@ namespace breath157
 	static uint32_t __cdecl RingsTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_RINGS, t);)
 		RingsDraw(t);
 		if (DrawOnly()) return 0;
@@ -549,13 +468,9 @@ namespace breath157
 		return t->counter >= 0x12 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// BreathParticles (0x6044D0): type 1
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl BreathParticlesTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_BREATHPARTS, t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
@@ -599,13 +514,9 @@ namespace breath157
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// PuffParticles (0x604C80): type 2
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl PuffParticlesTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_PUFFPARTS, t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
@@ -648,13 +559,9 @@ namespace breath157
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Splatter (0x6052A0): type 4
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SplatterTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note(REC_SPLATTER, t);)
 		uint8_t *h = SeqHeader(SEQ_Splatter);
 		int alive = 0;
@@ -691,9 +598,6 @@ namespace breath157
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Cloud (0x604780)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl CloudTask(TaskNode *nd)
 	{
 		if (DrawOnly()) return 0;
@@ -759,11 +663,6 @@ namespace breath157
 		return t->counter >= 0x16 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x603F50)
-	// ------------------------------------------------------------------
-	// a mouth position: the caster's effect position (bone 0xF0) + off in the caster's frame; its
-	// direction toward the target (normalised) and the root of its length
 	static void Mouth(int16_t *mouth, int32_t *dir, int32_t &len, int32_t off_y, int32_t off_z)
 	{
 		GetEffectSpawnPosition(Caster(), 0xF0, 0x1000, mouth);
@@ -837,13 +736,9 @@ namespace breath157
 		return t->counter > 0x46 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x605460) and texture restore (0x6054D0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		RootNode *r = (RootNode *)nd;
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + ARENA_SIZE;
 		else PacketCursor() = TexBase();
@@ -882,7 +777,6 @@ namespace breath157
 		register_port(breath157::ORIG_CloudModels, (void *)breath157::CloudModelsTask, "B157 CloudModels", 157);
 		register_port(breath157::ORIG_Rings, (void *)breath157::RingsTask, "B157 Rings", 157);
 		register_port(breath157::ORIG_Splatter, (void *)breath157::SplatterTask, "B157 Splatter", 157);
-		// 30 fps layer: see mag157_breath_held.inc
 		FX_HELD(register_mag157_held();)
 	}
 }

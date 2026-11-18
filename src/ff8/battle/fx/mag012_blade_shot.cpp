@@ -14,45 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 12: Blade Shot (enemy attack 7 of kernel.bin, Mesmerize; MAG_012_*).
-//
-// Structure (setup MAG_012_BLADE_SHOT 0x6E8AE0 -> _Init 0x6E8AF0, file loader 0x6E8AC0 = the
-// texture file named at 0x1365714 (mag011.tim); the setup keeps the CASTER's entity (clears its
-// +0x7C bit 7) and the first target's entity, starts camera animation 0x1365634, queues the TIM,
-// and starts the root task with the blade's flight from the caster's anchor 7 (+0x1C) to the
-// target's default effect position (+0x24) over 32 ticks, the direction (+0x5C) and its angle):
-//   RootTask (0x6E8C90) - alternates the packet arena (magic buffer + 0x2546100 / 0x254E100);
-//     sound 0x136562C at the caster's hand on counter 5;
-//     counters 0..31: the blade flies out (motion t += 0x80 per tick; the speed follows a cube-root
-//       ramp 0x800 + cbrt-like(t/2 - 0x400)/16, sideways swing along the direction, a lift arc,
-//       spin about x), drawn as prim model 0x13646EC (ZYX-like rotation 0x6E9AB0) and tilting
-//       (+0x58 -= 0x20 per tick);
-//     counters 32..61: it turns (once: start / end swapped, a side velocity from the last step) and
-//       flies back towards the caster's hand anchor 7 (fetched every tick, 600 higher), spinning
-//       0x210 per tick; the caster's blade object (+0x7C bit 7) is hidden from 32 until 62;
-//     counters 32..35: impact sprite 0x1362C80 at the target's anchor 0xF1 (damage at 32);
-//     counters 32..36: flash sprite 0x13628FC at the blade position of counter 32;
-//     counters 32..51 / 34..53: two expanding rings (model 0x136401C, 0x6EA3E0) at the impact;
-//     counters 32..51: two morphing wing pairs (models 0x1362E3C / 0x136372C, their vertex tables
-//       blended in place from two key tables by 0x6E9970) turned +-0x71 / +-0x11C about the facing;
-//     counters 32..41: two sparks per tick (particle task, sequence 0x1362AEC);
-//     counters 32, 34, 36: five glints (particle task, sequence 0x136298C) and five streaks (streak
-//       task, sequence 0x13627E4) thrown out of the impact;
-//     counters 0..61: two after-images of the blade per tick (trail task; the first 12 degrees
-//       behind); counters 60..64: catch sprite 0x1362C80 at the blade (+100 y), sound 0x1365630 at
-//       60; runs the trail and particle queues; ends from counter 65 when both are empty.
-//   PartTask (0x6E9B50, node 0x34) / StreakTask (0x6E9C10) - sprite at the node, draw THEN update
-//     (velocity += acceleration, position += velocity); the streak's sprite is turned along its
-//     screen-space direction (header +8).
-//   TrailTask (0x6E9D60, node 0x20) - the blade model 0x1364F14 at a fixed pose, fading over 8 ticks
-//     (depth-cued towards blue), drawn by the module's own prim-model renderer 0x6E9E80
-//     (triangles 0x6E9EF0 / quads 0x6EA150, GTE-lit, far colour from header +8..+0xA).
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2545EF0 caster entity, 0x2545EF4 texture file, 0x25460F8 target entity,
-// 0x25460FC context, 0x2556100 packet cursor, queues 0x2556110 (root, pool 0x2545188 1 x 0x64),
-// 0x2556120 (trails, pool 0x2545EF8 0x10 x 0x20), 0x2556130 (particles, pool 0x25451F0 0x40 x 0x34);
-// the streak reads the (never written) vector 0x2556108. The morph models' vertex tables
-// (0x1362E44 / 0x1363734, 49 vertices) are rewritten every tick.
+// Effect 12: Blade Shot
 
 #include "mag_common.h"
 
@@ -63,28 +25,27 @@ namespace blade012
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2545EF0); }          // caster entity (setup)
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25460F8); }          // first target's entity (setup)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2545EF0); }
+	inline uint8_t *&Target() { return var<uint8_t *>(0x25460F8); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25460FC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556100); }
 	inline TaskQueue *QTrails() { return (TaskQueue *)0x2556120; }
 	inline TaskQueue *QParts() { return (TaskQueue *)0x2556130; }
 	static const uint32_t ARENA_A = 0x2546100, ARENA_B = 0x254E100;
-	static const uint32_t STATIC_V0 = 0x2556108;         // streak: vector never written by the module
+	static const uint32_t STATIC_V0 = 0x2556108;
 
 	static const uint32_t ORIG_RootTask = 0x6E8C90;
 	static const uint32_t ORIG_PartTask = 0x6E9B50;
 	static const uint32_t ORIG_StreakTask = 0x6E9C10;
 	static const uint32_t ORIG_TrailTask = 0x6E9D60;
-	static const uint32_t MODEL_Blade = 0x13646EC;       // prim models
+	static const uint32_t MODEL_Blade = 0x13646EC;
 	static const uint32_t MODEL_Ring = 0x136401C;
 	static const uint32_t MODEL_Trail = 0x1364F14;
-	static const uint32_t MODEL_WingA = 0x1362E3C;       // morph models (vertex table at +8)
+	static const uint32_t MODEL_WingA = 0x1362E3C;
 	static const uint32_t KEYS_WingA0 = 0x136340C, KEYS_WingA1 = 0x136359C;
 	static const uint32_t MODEL_WingB = 0x136372C;
 	static const uint32_t KEYS_WingB0 = 0x1363CFC, KEYS_WingB1 = 0x1363E8C;
-	static const uint32_t SEQ_Hit = 0x1362C80;           // sprite sequences
+	static const uint32_t SEQ_Hit = 0x1362C80;
 	static const uint32_t SEQ_Flash = 0x13628FC;
 	static const uint32_t SEQ_Spark = 0x1362AEC;
 	static const uint32_t SEQ_Glint = 0x136298C;
@@ -92,14 +53,12 @@ namespace blade012
 	static const void *const SOUND_Throw = (const void *)0x136562C;
 	static const void *const SOUND_Catch = (const void *)0x1365630;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(x, y); }
 	inline void ApplyZRotation(int32_t angle, Mat4x3 *m) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x56D090)(angle, m); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); } // GTE_MatrixMultiply: b = a * b
-	// software GTE (prim lists of the module's own renderer)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	namespace gte
 	{
 		inline void LoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
@@ -113,88 +72,82 @@ namespace blade012
 		inline void AVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 		inline void AVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 		inline void ReadOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-		inline void SetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
-		inline void LoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); } // sub_45E120
-		inline void DPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }                                   // sub_45F4C0
-		inline void StoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); } // sub_45E370
-		inline void LoadRGBC(uint32_t src) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(src); }         // set_unk_1CA8A28
-		inline void DPCS() { fn<void (__cdecl *)()>(0x45F270)(); }                                   // sub_45F270
-		inline void StoreRGB2(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(dst); }        // set_param_with_dword_1CA8A68
+		inline void SetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+		inline void LoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
+		inline void DPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
+		inline void StoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
+		inline void LoadRGBC(uint32_t src) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(src); }
+		inline void DPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
+		inline void StoreRGB2(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(dst); }
 	}
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	// a straight motion from start to end, t 0..0x1000 (4.12)
 	struct Motion
 	{
-		int16_t pos[4];    // +0x00 current point (pos[3] = copy of start[3])
-		int16_t start[3];  // +0x08
-		int16_t t;         // +0x0E
-		int16_t end[3];    // +0x10
-		int16_t dt;        // +0x16
+		int16_t pos[4];
+		int16_t start[3];
+		int16_t t;
+		int16_t end[3];
+		int16_t dt;
 	};
-	struct RootNode // pool of 1 node of 0x64 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint32_t arena;    // +0x10 packet arena parity
-		Motion mot;        // +0x14 flight (out: caster hand -> target; back: target -> hand)
-		int16_t blade[3];  // +0x2C blade position
-		int16_t ang;       // +0x32 out: speed ramp angle of the tick
-		int16_t prev[4];   // +0x34 blade position (+ angle) of the previous tick
-		int16_t accx;      // +0x3C back: side offsets
+		uint32_t arena;
+		Motion mot;
+		int16_t blade[3];
+		int16_t ang;
+		int16_t prev[4];
+		int16_t accx;
 		int16_t pad3E;
-		int16_t accz;      // +0x40
+		int16_t accz;
 		int16_t pad42;
-		int16_t velx;      // +0x44 back: side offset steps
+		int16_t velx;
 		int16_t pad46;
-		int16_t velz;      // +0x48
+		int16_t velz;
 		int16_t pad4A;
-		int16_t hit[4];    // +0x4C impact position (target anchor 0xF1, then the blade at 32)
-		int16_t rot[4];    // +0x54 blade rotation (x spin, y facing, z tilt)
-		int16_t dirx;      // +0x5C unit direction (4.12), negated on the turn
-		int16_t dirz;      // +0x5E
-		uint8_t turned;    // +0x60
+		int16_t hit[4];
+		int16_t rot[4];
+		int16_t dirx;
+		int16_t dirz;
+		uint8_t turned;
 		uint8_t pad61[3];
 	};
-	struct PartNode // particle queue: pool of 0x40 nodes of 0x34 bytes (particles and streaks)
+	struct PartNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C flipbook frame
+		int16_t counter;
 		int16_t pad0E;
-		uint32_t seq;      // +0x10 sprite sequence
-		int16_t pos[3];    // +0x14
-		int16_t life;      // +0x1A
-		int16_t vel[3];    // +0x1C
-		int16_t scale;     // +0x22 (streaks: 0, unused)
-		int16_t acc[3];    // +0x24
+		uint32_t seq;
+		int16_t pos[3];
+		int16_t life;
+		int16_t vel[3];
+		int16_t scale;
+		int16_t acc[3];
 		int16_t pad2A;
-		int16_t dir[4];    // +0x2C streaks: initial velocity (screen direction reference)
+		int16_t dir[4];
 	};
-	struct TrailNode // pool of 0x10 nodes of 0x20 bytes
+	struct TrailNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10 blade position at spawn
-		int16_t fade;      // +0x16 strength (counter << 9 until counter 8)
-		int16_t rot[4];    // +0x18 blade rotation at spawn
+		int16_t pos[3];
+		int16_t fade;
+		int16_t rot[4];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(Motion) == 0x18 && sizeof(RootNode) == 0x64, "Blade Shot nodes");
 	static_assert(sizeof(PartNode) == 0x34 && sizeof(TrailNode) == 0x20, "Blade Shot nodes");
 
-	// Thunder_InitBoltTask (0x6DA380): rep stosd of `count` dwords
 	static void FillDwords(void *dst, uint32_t value, uint32_t count)
 	{
 		uint32_t *d = (uint32_t *)dst;
 		for (uint32_t k = 0; k < count; k++) d[k] = value;
 	}
 
-	// MAG_003_sub_6D5940: rotation about the X axis (translation and pad untouched)
 	static void RotX(int16_t angle, Mat4x3 *m)
 	{
 		const int32_t s = ComputeSin(angle);
@@ -210,7 +163,6 @@ namespace blade012
 		m->m[2][2] = (int16_t)c;
 	}
 
-	// MAG_011_sub_6D9510: rotation about y (3x3 only)
 	static void YawMatrix(int16_t yaw, Mat4x3 *m)
 	{
 		const int32_t sn = ComputeSin(yaw);
@@ -226,8 +178,6 @@ namespace blade012
 		m->m[2][2] = (int16_t)cs;
 	}
 
-	// 0x6E9AB0: m = Ry(angles[1]) * Rz(angles[2]) * Rx(angles[0]) (3x3; the y matrix's own
-	// translation words are never read)
 	static void AngleMatrix(const int16_t *angles, Mat4x3 *m)
 	{
 		RotX(angles[0], m);
@@ -237,7 +187,6 @@ namespace blade012
 		MatrixMultiply(&y, m);
 	}
 
-	// 0x6E8C60: restart a motion at its start, t = 0, dt = 0x1000 / ticks
 	static void MotionInit(Motion *m, int32_t ticks)
 	{
 		ff8fx::copy<(8)>(m->pos, m->start);
@@ -245,7 +194,6 @@ namespace blade012
 		m->dt = (int16_t)(0x1000 / ticks);
 	}
 
-	// 0x6E9B00: t += dt, pos = start * (1 - t) + end * t (GTE interpolation)
 	static void MotionStep(Motion *m)
 	{
 		m->t = (int16_t)(m->t + m->dt);
@@ -258,7 +206,6 @@ namespace blade012
 		GteStoreIR123(m->pos);
 	}
 
-	// 0x6E9970: the vertex table of the header's model = key tables k0 / k1 (vertices at +8) blended by t
 	static void MorphVertices(const uint8_t *h, uint32_t k0, uint32_t k1, int32_t t)
 	{
 		const uint32_t model = *(const uint32_t *)h;
@@ -277,7 +224,6 @@ namespace blade012
 		}
 	}
 
-	// 0x6E99F0: unit vector of the polar / azimuth angles ang[1] / ang[2] (ang[0] unused)
 	static void SphereDir(const int16_t *ang, int16_t *out)
 	{
 		const int32_t s = ComputeSin(ang[1]);
@@ -286,7 +232,6 @@ namespace blade012
 		out[0] = (int16_t)((int32_t)(0u - (uint32_t)mul32(ComputeCos(ang[2]), s)) >> 12);
 	}
 
-	// 0x6E9A50: in turned about y by angle
 	static void YawVector(const int16_t *in, int16_t *out, int32_t angle)
 	{
 		const int32_t s = (int32_t)(0u - (uint32_t)ComputeSin(angle));
@@ -296,16 +241,9 @@ namespace blade012
 		out[1] = in[1];
 	}
 
-	// ------------------------------------------------------------------
-	// The module's prim-model renderer (0x6E9E80) and its lists
-	// ------------------------------------------------------------------
 	static inline bool out_x(int16_t v) { return v < 0 || v > 0xA00; }
 	static inline bool out_y(int16_t v) { return v < 0 || v > 0x6C0; }
 
-	// 0x6E9EF0: Gouraud triangles, 0x14-byte records (code + rgb0, u16 vertex indices +4/+6/+8, rgb1
-	// +0x0C, rgb2 +0x10); the three vertices are first copied into the header (+0x34/+0x3C/+0x44)
-	// -> 0x1C-byte POLY_G3 (tag 0x06000000), colours depth-cued (far colour = header +8..+0xA, IR0 =
-	// header +0xC); OT index (OTZ - 8) >> mode, only when > 0
 	static uint32_t DrawTriangles(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor)
 	{
 		uint32_t list = *(const uint32_t *)(h + 0x20);
@@ -375,9 +313,6 @@ namespace blade012
 		return cursor;
 	}
 
-	// 0x6EA150: Gouraud quads, 0x18-byte records (4th vertex index +0x0A, rgb1..3 +0x0C/+0x10/+0x14)
-	// -> 0x24-byte POLY_G4 (tag 0x08000000), depth-cued like the triangles; a quad whose OTZ - 8 is
-	// <= 0 still takes its packet space
 	static uint32_t DrawQuads(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor)
 	{
 		uint32_t list = *(const uint32_t *)(h + 0x20);
@@ -445,7 +380,6 @@ namespace blade012
 		return cursor;
 	}
 
-	// 0x6E9E80: header [0] = model (vertices at +8, lists at model + [model] + 0x10: triangles then quads)
 	static uint32_t DrawModel(uint8_t *h, uint32_t ot, uint32_t mode, uint32_t cursor)
 	{
 		const uint32_t model = *(const uint32_t *)h;
@@ -463,10 +397,6 @@ namespace blade012
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Draws
-	// ------------------------------------------------------------------
-	// the blade (prim model) at the root's position / rotation (header h allocated by the caller)
 	static void BladeDraw(const RootNode *n, uint8_t *h)
 	{
 		Mat4x3 m;
@@ -482,7 +412,6 @@ namespace blade012
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// a sprite sequence at pos, frame (header h allocated by the caller)
 	static void SeqDraw(const int16_t *pos, uint8_t *h, uint32_t seq, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
@@ -492,11 +421,8 @@ namespace blade012
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// ring expansion s (4.12 over 20 ticks) of 0x6EA3E0
 	static uint32_t RingScale(int32_t k) { return (uint32_t)shl32(k, 12) / 20; }
 
-	// 0x6EA3E0 body: the ring model at the impact, its z row stretched by 1 + s, pushed out along
-	// the facing by s / 4, fading in with sin(s / 4)
 	static void RingDraw(const RootNode *n, uint32_t s)
 	{
 		uint8_t *h = AllocHeader(0x58);
@@ -523,15 +449,12 @@ namespace blade012
 		FieldFree(0x58);
 	}
 
-	// 0x6EA3E0: ring k (0..19) of the impact
 	static void Ring(const RootNode *n, int32_t k)
 	{
 		if ((uint32_t)k >= 0x14) return;
 		RingDraw(n, RingScale(k));
 	}
 
-	// a morphing wing pair at the impact: the model's vertices blended by sin(s / 4), drawn turned
-	// by the facing +- yaw
 	static void WingPair(const RootNode *n, uint32_t s, uint32_t model, uint32_t k0, uint32_t k1, int16_t yaw)
 	{
 		uint8_t *h = AllocHeader(0x58);
@@ -563,7 +486,6 @@ namespace blade012
 		FieldFree(0x58);
 	}
 
-	// particle / glint sprite (header h allocated by the caller)
 	static void PartDraw(const PartNode *p, uint8_t *h)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->scale >> 2));
@@ -573,10 +495,9 @@ namespace blade012
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// streak sprite, turned along its direction on screen (header h allocated by the caller)
 	static void StreakDraw(const PartNode *p, uint8_t *h)
 	{
-		int16_t d[4]; // d[3] is never written (the camera transform reads x, y, z)
+		int16_t d[4];
 		d[0] = (int16_t)(p->pos[0] - p->dir[0]);
 		d[1] = (int16_t)(p->pos[1] - p->dir[1]);
 		d[2] = (int16_t)(p->pos[2] - p->dir[2]);
@@ -598,10 +519,8 @@ namespace blade012
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// after-image fade angle of a trail counter
 	static int32_t TrailAngle(int16_t counter) { return shl32(counter, 10) / 8; }
 
-	// after-image: the blade model at the node's pose, depth-cued by sin(a) (and the node's fade)
 	static void TrailDraw(const TrailNode *t, uint8_t *h, int32_t a)
 	{
 		Mat4x3 m;
@@ -629,10 +548,6 @@ namespace blade012
 		PacketCursor() = DrawModel(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// ------------------------------------------------------------------
-	// Blade motion (root task)
-	// ------------------------------------------------------------------
-	// counters 0..31: flight out
 	static void BladeOut(RootNode *n)
 	{
 		const int32_t x = ((int32_t)n->mot.t >> 1) - 0x400;
@@ -654,7 +569,6 @@ namespace blade012
 		n->blade[2] = (int16_t)((mul32(n->dirz, e) >> 12) + n->mot.pos[2]);
 	}
 
-	// counter 32 (once): the blade turns: side steps from its last step, start / end swapped, 30 ticks
 	static void BladeTurn(RootNode *n)
 	{
 		n->turned = 1;
@@ -675,7 +589,6 @@ namespace blade012
 		n->dirz = (int16_t)-n->dirz;
 	}
 
-	// counters 32..61, after the hand anchor went to mot.end: flight back
 	static void BladeBack(RootNode *n)
 	{
 		n->mot.end[1] = (int16_t)(n->mot.end[1] - 600);
@@ -704,13 +617,9 @@ namespace ff8fx
 {
 namespace blade012
 {
-	// ------------------------------------------------------------------
-	// Particle tasks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl PartTask(TaskNode *tn)
 	{
 		PartNode *p = (PartNode *)tn;
-		// 30 fps layer: see mag012_blade_shot_held.inc
 		FX_HELD(held_note(K_PART, p, sizeof(PartNode));)
 		uint8_t *h = AllocHeader(0xB4);
 		PartDraw(p, h);
@@ -729,7 +638,6 @@ namespace blade012
 	static uint32_t __cdecl StreakTask(TaskNode *tn)
 	{
 		PartNode *p = (PartNode *)tn;
-		// 30 fps layer: see mag012_blade_shot_held.inc
 		FX_HELD(held_note(K_STREAK, p, sizeof(PartNode));)
 		uint8_t *h = AllocHeader(0xB4);
 		StreakDraw(p, h);
@@ -748,7 +656,6 @@ namespace blade012
 	static uint32_t __cdecl TrailTask(TaskNode *tn)
 	{
 		TrailNode *t = (TrailNode *)tn;
-		// 30 fps layer: see mag012_blade_shot_held.inc
 		FX_HELD(held_note(K_TRAIL, t, sizeof(TrailNode));)
 		uint8_t *h = AllocHeader(0x58);
 		TrailDraw(t, h, TrailAngle(t->counter));
@@ -757,10 +664,6 @@ namespace blade012
 		return t->counter < 8 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Spawns (root task)
-	// ------------------------------------------------------------------
-	// counters 32..41: two sparks per tick falling out of the impact, one to each side
 	static void SpawnSparks(const RootNode *n)
 	{
 		for (int32_t i = 2; i != 0; i--)
@@ -789,11 +692,9 @@ namespace blade012
 		}
 	}
 
-	// counters 32, 34, 36: five particles thrown around the facing (glints: shift 5, 13 frames;
-	// streaks: shift 4, 8 frames)
 	static void SpawnFan(const RootNode *n, int32_t k, bool streaks)
 	{
-		int16_t ang[3]; // ang[0] is never used
+		int16_t ang[3];
 		ang[1] = (int16_t)((CrtRand() >> 9) + (streaks ? 0x300 : 0x1E0));
 		ang[2] = (int16_t)(k * 17 * 8 + (streaks ? 0 : 0x44));
 		for (int32_t i = 5; i != 0; i--)
@@ -832,7 +733,6 @@ namespace blade012
 		}
 	}
 
-	// counters 0..61: two after-images of the blade (the first turned back by 0x14A)
 	static void SpawnTrails(const RootNode *n)
 	{
 		for (int32_t i = 2; i != 0; i--)
@@ -848,13 +748,9 @@ namespace blade012
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x6E8C90)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		RootNode *n = (RootNode *)tn;
-		// 30 fps layer: see mag012_blade_shot_held.inc
 		FX_HELD(held_note_root(n);)
 		if (n->arena != 0)
 		{
@@ -871,7 +767,6 @@ namespace blade012
 		{
 			uint8_t *h = AllocHeader(0x58);
 			BladeOut(n);
-			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_BLADE, n, h, 0x58, 0);)
 			BladeDraw(n, h);
 			FieldFree(0x58);
@@ -886,7 +781,6 @@ namespace blade012
 			if (k == 0 && n->turned == 0) BladeTurn(n);
 			GetEffectSpawnPosition(Caster(), 7, 0, n->mot.end);
 			BladeBack(n);
-			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_BLADE, n, h, 0x58, 0);)
 			BladeDraw(n, h);
 			FieldFree(0x58);
@@ -903,7 +797,6 @@ namespace blade012
 				GetEffectSpawnPosition(Target(), 0xF1, 0, n->hit);
 				ApplyActionResultToTarget(Ctx()->actions[0].targets);
 			}
-			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_HIT, n, h, 0xB4, k);)
 			SeqDraw(n->hit, h, SEQ_Hit, (int16_t)k);
 			FieldFree(0xB4);
@@ -913,28 +806,23 @@ namespace blade012
 		{
 			uint8_t *h = AllocHeader(0xB4);
 			if (k == 0) ff8fx::copy<(8)>(n->hit, n->blade);
-			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_FLASH, n, h, 0xB4, k);)
 			SeqDraw(n->hit, h, SEQ_Flash, (int16_t)k);
 			FieldFree(0xB4);
 		}
-		// 30 fps layer: see mag012_blade_shot_held.inc
 		FX_HELD(held_note_k(K_RING, n, (int32_t)n->counter - 0x20);)
 		Ring(n, (int32_t)n->counter - 0x20);
-		// 30 fps layer: see mag012_blade_shot_held.inc
 		FX_HELD(held_note_k(K_RING, n, (int32_t)n->counter - 0x22);)
 		Ring(n, (int32_t)n->counter - 0x22);
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < 0x14)
 		{
-			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_k(K_WING_A, n, k);)
 			WingPair(n, RingScale(k), MODEL_WingA, KEYS_WingA0, KEYS_WingA1, 0x71);
 		}
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < 0x14)
 		{
-			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_k(K_WING_B, n, k);)
 			WingPair(n, RingScale(k), MODEL_WingB, KEYS_WingB0, KEYS_WingB1, 0x11C);
 		}
@@ -949,11 +837,10 @@ namespace blade012
 		if ((uint32_t)k < 5)
 		{
 			uint8_t *h = AllocHeader(0xB4);
-			int16_t pos[4]; // pos[3] is never written
+			int16_t pos[4];
 			pos[0] = n->blade[0];
 			pos[1] = (int16_t)(n->blade[1] + 0x64);
 			pos[2] = n->blade[2];
-			// 30 fps layer: see mag012_blade_shot_held.inc
 			FX_HELD(held_note_h(K_CATCH, n, h, 0xB4, k);)
 			SeqDraw(pos, h, SEQ_Hit, (int16_t)k);
 			FieldFree(0xB4);

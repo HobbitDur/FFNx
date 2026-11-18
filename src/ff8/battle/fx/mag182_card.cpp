@@ -14,60 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 182: Card (command ability Card: kernel.bin command ability data entry 10 +0 = 182;
-// MAG_182_*). No other kernel.bin entry uses effect 182. Sparkles rise around the target, two
-// rings turn on the floor and twelve shards fly up; when the target is carded it fades out and
-// a card spins up out of it while twelve small cards drift away leaving trails.
-//
-// Structure (setup MAG_182_CARD 0x5C9FE0, file loader 0x5C9FC0 = the texture file named at
-// 0xD3D3E4 (mag181.tim, kept in 0x2306510); the setup keeps the texture base 0x23065CC
-// (Magic_TextureOFF), the cast context 0x2306508, the first target's slot 0x2304220 and the
-// caster's slot 0x230650C, sets up the root queue 0x2304238 (1 node) and the effect queue
-// 0x23056E8 (0x64 nodes of 0x24 bytes), clears both particle pools and queues the TIM. Target
-// record 0 +3 bit 2 set: DirectorA 0x5CA0E0 and camera animation 0xD39FD8 (no card: the short
-// version), else DirectorB 0x5CA970 and camera animation 0xD39370):
-//   RootTask (0x5CB4E0) - packet arena = the texture base (+ 0xC000 on odd counters; cursor
-//     0x23065D0), runs the effect queue, ends when it is empty.
-//   Directors (nothing in the draw-only mode) - counter 0: the target's entity flag bit 3 (8) is
-//     cleared (kept in node +0x0E), its default effect position into node +0x10, its entity
-//     +0x3C into +0x16, its size (entity +0x26) clamped to 0x600..0x1100 into +0x1C (+0x1E =
-//     size * 2200 >> 12 before the lower clamp); 1: Sparkles, two Rings, twelve Shards, sound
-//     (0xD3D38C A / 0xD3D388 B at the target's default effect position); screen flash
-//     (Effect_SetScreenFlash) counter << 8 up to 8, (end - counter) << 8 over the last 8 ticks.
-//     DirectorA ends after 0x28 (flag bit 3 put back + the action result at 0x23); DirectorB:
-//     0x14 TargetFade, 0x18 twelve Cards, 0x1A CardModel, 0x40 flag bit 3 put back + the action
-//     result, ends after 0x41.
-//   Sparkles (0x5CA490) - pool 0x2304D88 (0x64 x 0x18): sprite sequence 0xD3ACCC, colour table
-//     0xD3D3C4 by frame & 7; they rise (y += vy, vy -= vy >> 4); 3 spawned per tick 0..0xE
-//     around the target; ends at counter >= 4 once none is left.
-//   Rings (0x5CA6B0) - model 0xD3B3D8 on the floor (y 0) at the target, turning (+0x18 by +0x1A)
-//     and growing (+0x1C by +0x1E, +0x1E += +0x1E / 32), fade (0x18 - c) << 8 below 8, 0x800,
-//     (c - 0x12) << 8 from 0x1A; 0x22 ticks. The second ring's +0x1E is never written (the
-//     effect pool node's leftover).
-//   Shards (0x5CA810) - after a delay (+0x16) twelve models (table 0xD3D394 by +0x0E) turning
-//     (+0x18 by +0x1A), their y scale +0x20 growing by +0x22 below counter 0xA, scale +0x1C
-//     shrinking by +0x1E from 0xE; 0x18 ticks.
-//   Cards (0x5CAED0, twelve, mask 1 << k in +0x0E) - after a delay (+0x18) a card sprite
-//     (sequence 0xD3ABC0, frame = counter below 8) drifting up (y -= vy, vy -= vy / 10) and a
-//     trail: pool 0x2304248 (0x78 x 0x18) entries of its mask (3 per tick while counter <=
-//     +0x1A + 5), static, playing the sequence from frame 6; ends at counter >= 4 once its trail
-//     is gone.
-//   CardModel (0x5CB130) - model 0xD3AE78 turning (+0x18 by +0x1A, +0x1A -= +0x1A / 16) and
-//     rising from counter 0x10 (y -= +0x1E), drawn below counter 0x1E (fading out from 0x16,
-//     (c - 0x16) << 9); its world matrices of the last 5 ticks (0x2306518, 5 x 0x24: flag +
-//     matrix) drawn as after-images (fade 0xC00 + 0x20 * k cumulative), 5 of them, 0x23 - c from
-//     counter 0x1E; 0x23 ticks.
-//   TargetFade (0x5CB390) - the target (slot in +0x0E) fades to the battle's far colours over 6
-//     ticks: entity +0x07 = (0x1000 - sin(c * 1024 / 6)) * 255 >> 12, +0x2C / +0x28 = the depth
-//     cue of 0x32000000 / 0 toward the far colours 0xB8B9A8 / 0xB8B7D8 by IR0 0x1000 - sin,
-//     +0x2B = 2; entity flag bit 11 (0x800) set at its first tick; at the end flag bit 11 put back
-//     (saved in +0x1A) and bit 2 (4) set: the battle renderer no longer draws the target.
-// Every drawing task draws THEN updates; nothing moves in the draw-only mode. The module writes
-// the target's entity flags (bit 3 cleared during the effect; bits 11 / 2 and the colours
-// +0x07 / +0x28..+0x2F by TargetFade) and no camera word (the camera is the engine's animation).
-// Module globals: 0x2304220..0x23065D4 (target slot, root pool / queue, trail pool, sparkle
-// pool, effect queue / pool, context 0x2306508, caster slot 0x230650C, texture file 0x2306510,
-// after-image matrices 0x2306518, texture base 0x23065CC, packet cursor 0x23065D0).
+// Effect 182: Card
 
 #include "mag_common.h"
 
@@ -78,15 +25,14 @@ namespace card182
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2306508); }
 	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2304220); }
 	inline uint32_t &TexBase() { return var<uint32_t>(0x23065CC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23065D0); }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23056E8; }
-	static const uint32_t TRAIL_POOL = 0x2304248, TRAIL_END = 0x2304D88;    // 0x78 x 0x18 (card trails)
-	static const uint32_t SPARK_POOL = 0x2304D88, SPARK_END = 0x23056E8;    // 0x64 x 0x18 (sparkles)
-	static const uint32_t AFTER = 0x2306518, AFTER_END = 0x23065CC;          // 5 x 0x24: CardModel world matrices
+	static const uint32_t TRAIL_POOL = 0x2304248, TRAIL_END = 0x2304D88;
+	static const uint32_t SPARK_POOL = 0x2304D88, SPARK_END = 0x23056E8;
+	static const uint32_t AFTER = 0x2306518, AFTER_END = 0x23065CC;
 	static const uint32_t ARENA_HALF = 0xC000;
 
 	static const uint32_t ORIG_RootTask = 0x5CB4E0;
@@ -100,55 +46,51 @@ namespace card182
 	static const uint32_t ORIG_TargetFade = 0x5CB390;
 	static const uint32_t SEQ_Sparkle = 0xD3ACCC, SEQ_Card = 0xD3ABC0;
 	static const uint32_t MODEL_Ring = 0xD3B3D8, MODEL_Card = 0xD3AE78;
-	static const uint32_t SHARD_MODELS = 0xD3D394;                            // 12 model pointers
-	static const uint32_t SPARK_COLOURS = 0xD3D3C4;                           // 8 colour words
+	static const uint32_t SHARD_MODELS = 0xD3D394;
+	static const uint32_t SPARK_COLOURS = 0xD3D3C4;
 	static const void *const SOUND_CardA = (const void *)0xD3D38C;
 	static const void *const SOUND_CardB = (const void *)0xD3D388;
 
-	// ---- engine functions (original addresses)
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // GTE_SetFarColor
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }      // GTE_LoadRGBC
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }                 // GTE_StoreRGB2
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 
-	// ------------------------------------------------------------------
-	// Node / particle layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad;
 	};
-	struct Node // effect pool, 0x64 nodes of 0x24 bytes
+	struct Node
 	{
 		TaskNode hdr;
-		int16_t c;         // +0x0C counter
-		int16_t e;         // +0x0E directors: the target's flag bit 3; shards: model index; cards: mask; fade: target slot
-		int16_t x, y, z;   // +0x10 position
-		int16_t w16;       // +0x16 directors / sparkles: top y (entity +0x3C); shards: delay
-		int16_t w18;       // +0x18 angle; cards: delay; fade: duration
-		int16_t w1A;       // +0x1A angle rate; cards: their delay; fade: the target's flag bit 11
-		int16_t w1C;       // +0x1C scale / size; cards: sprite scale
-		int16_t w1E;       // +0x1E scale rate / spread / vy
-		int16_t w20;       // +0x20 shards: y scale
-		int16_t w22;       // +0x22 shards: y scale rate
+		int16_t c;
+		int16_t e;
+		int16_t x, y, z;
+		int16_t w16;
+		int16_t w18;
+		int16_t w1A;
+		int16_t w1C;
+		int16_t w1E;
+		int16_t w20;
+		int16_t w22;
 	};
-	struct Particle // pool entry, 0x18 bytes
+	struct Particle
 	{
-		uint32_t tag;      // +0x00 sparkles: 1 = alive (bit 0); trails: the card's mask (0 = free)
-		int16_t frame;     // +0x04 flipbook frame
-		int16_t scale;     // +0x06
-		int16_t pos[4];    // +0x08 x, y, z (+ trails: the card's +0x16 word)
-		int16_t w10;       // +0x10
-		int16_t vy;        // +0x12 sparkles: rising speed
-		uint32_t w14;      // +0x14
+		uint32_t tag;
+		int16_t frame;
+		int16_t scale;
+		int16_t pos[4];
+		int16_t w10;
+		int16_t vy;
+		uint32_t w14;
 	};
-	struct AfterImage // 0x24 bytes
+	struct AfterImage
 	{
 		uint32_t used;
-		Mat4x3 m;          // world matrix (rotation, scale, translation) of the tick
+		Mat4x3 m;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Card nodes");
@@ -162,15 +104,13 @@ namespace card182
 
 	static uint32_t EndAt(int16_t c, int16_t n) { return c >= n ? TASK_END : 0; }
 
-	// model matrix: rotation (0, angle, 0), translation, scale (sx, sy, sz), composed with the camera; GTE set.
-	// `world` (if given) receives the matrix before the camera (CardModel's after-images)
 	static void ModelMatrix(int16_t angle, int32_t tx, int32_t ty, int32_t tz, int32_t sx, int32_t sy, int32_t sz, Mat4x3 *world)
 	{
-		int16_t ang[4]; // (4th word never written)
+		int16_t ang[4];
 		ang[0] = 0;
 		ang[1] = angle;
 		ang[2] = 0;
-		Mat4x3 m; // (pad +0x12 never written in the original: GTE R33 high half only; CardModel copies it into its after-image)
+		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		m.t[0] = tx;
 		m.t[1] = ty;
@@ -186,9 +126,6 @@ namespace card182
 		GteSetTransVector(&m);
 	}
 
-	// ------------------------------------------------------------------
-	// Sparkles (pool 0x2304D88): one entry drawn with the task's sprite header
-	// ------------------------------------------------------------------
 	static uint8_t *SparkHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -204,9 +141,6 @@ namespace card182
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 	}
 
-	// ------------------------------------------------------------------
-	// Rings (0x5CA6B0)
-	// ------------------------------------------------------------------
 	static int32_t RingFade(int32_t c) { return c < 8 ? shl32(0x18 - c, 8) : c >= 0x1A ? shl32(c - 0x12, 8) : 0x800; }
 	static void RingDraw(const Node *n, int16_t angle, int16_t scale, int32_t fade)
 	{
@@ -220,9 +154,6 @@ namespace card182
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Shards (0x5CA810)
-	// ------------------------------------------------------------------
 	static void ShardDraw(const Node *n, int16_t angle, int16_t scale, int16_t yscale)
 	{
 		ModelMatrix(angle, n->x, 0, n->z, scale, yscale, scale, nullptr);
@@ -234,9 +165,6 @@ namespace card182
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Cards (0x5CAED0): the card sprite and its trail entries (the task's sprite header)
-	// ------------------------------------------------------------------
 	static uint8_t *CardHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -257,15 +185,8 @@ namespace card182
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 	}
 
-	// ------------------------------------------------------------------
-	// CardModel (0x5CB130)
-	// ------------------------------------------------------------------
-	// the after-images drawn at counter c: their number and the first ring slot (the previous tick's)
 	static int32_t AfterCount(int32_t c) { return c >= 0x1E ? 0x23 - c : 5; }
 	static int32_t AfterFirst(int32_t c) { return c - 1 < 0 ? 0 : (c - 1) % 5; }
-	// the main model (counter below 0x1E; from 0x16 fading out) at the given state, its world matrix into
-	// after-image slot c % 5; then the after-images from the ring (each through the camera, the fade growing by
-	// 0x20 * k). The header is the one 0x58-byte block of the draw.
 	static void CardModelDraw(int16_t c, int16_t angle, int16_t x, int16_t y, int16_t z, int16_t scale, AfterImage *ring, int32_t main_fade)
 	{
 		AfterImage *slot = &ring[(int32_t)c % 5];
@@ -292,7 +213,7 @@ namespace card182
 		for (int32_t i = 0; i < count; i++, step += 0x20)
 		{
 			if (ring[k].used == 0) break;
-			Mat4x3 m; // (pad +0x12: the slot's copy of the world matrix pad, GTE R33 high half only)
+			Mat4x3 m;
 			ComposeAffineTransform(&Camera(), &ring[k].m, &m);
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
@@ -304,9 +225,6 @@ namespace card182
 	}
 	static int32_t CardModelFade(int32_t c) { return shl32(c - 0x16, 9); }
 
-	// ------------------------------------------------------------------
-	// TargetFade (0x5CB390): the target's colours by IR0 = 0x1000 - sin(c * 1024 / duration)
-	// ------------------------------------------------------------------
 	static void TargetFadeColours(uint8_t *e, int32_t ir0)
 	{
 		uint32_t colour = 0x32000000;
@@ -336,13 +254,9 @@ namespace ff8fx
 {
 namespace card182
 {
-	// ------------------------------------------------------------------
-	// Sparkles (0x5CA490)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparklesTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag182_card_held.inc
 		FX_HELD(held_note_pool(ORIG_Sparkles, n);)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
@@ -387,13 +301,9 @@ namespace card182
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Rings (0x5CA6B0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag182_card_held.inc
 		FX_HELD(held_note_node(ORIG_Ring, n);)
 		RingDraw(n, n->w18, n->w1C, RingFade(n->c));
 		if (DrawOnly()) return 0;
@@ -405,9 +315,6 @@ namespace card182
 		return EndAt(n->c, 0x22);
 	}
 
-	// ------------------------------------------------------------------
-	// Shards (0x5CA810)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ShardTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
@@ -417,7 +324,6 @@ namespace card182
 			n->w16--;
 			return 0;
 		}
-		// 30 fps layer: see mag182_card_held.inc
 		FX_HELD(held_note_node(ORIG_Shard, n);)
 		ShardDraw(n, n->w18, n->w1C, n->w20);
 		if (DrawOnly()) return 0;
@@ -428,9 +334,6 @@ namespace card182
 		return EndAt(n->c, 0x18);
 	}
 
-	// ------------------------------------------------------------------
-	// Cards (0x5CAED0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl CardTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
@@ -439,7 +342,6 @@ namespace card182
 			if (!DrawOnly()) n->w18--;
 			return 0;
 		}
-		// 30 fps layer: see mag182_card_held.inc
 		FX_HELD(held_note_pool(ORIG_Card, n);)
 		uint8_t *h = CardHeader();
 		int alive = 0;
@@ -482,13 +384,9 @@ namespace card182
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// CardModel (0x5CB130)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl CardModelTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag182_card_held.inc
 		FX_HELD(held_note_node(ORIG_CardModel, n);)
 		CardModelDraw(n->c, n->w18, n->x, n->y, n->z, n->w1C, After(), CardModelFade(n->c));
 		if (DrawOnly()) return 0;
@@ -500,9 +398,6 @@ namespace card182
 		return EndAt(n->c, 0x23);
 	}
 
-	// ------------------------------------------------------------------
-	// TargetFade (0x5CB390)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetFadeTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
@@ -518,10 +413,6 @@ namespace card182
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Directors (0x5CA0E0 / 0x5CA970)
-	// ------------------------------------------------------------------
-	// counter 0: the target's flag bit 3 kept and cleared, its position / top / size
 	static void DirectorStart(Node *t)
 	{
 		uint16_t &flags = *(uint16_t *)Target();
@@ -538,7 +429,6 @@ namespace card182
 		if (s < 0x600) t->w1C = 0x600;
 	}
 
-	// counter 1: sparkles, two rings, twelve shards
 	static void DirectorSpawn(Node *t)
 	{
 		Node *s = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Sparkles);
@@ -586,7 +476,6 @@ namespace card182
 		}
 	}
 
-	// the screen flash: counter << 8 up to 8, (end - counter) << 8 from end - 8
 	static void DirectorFlash(int16_t c, int16_t end)
 	{
 		if (c <= 8) SetScreenFlash(shl32(c, 8), 0);
@@ -600,7 +489,6 @@ namespace card182
 		BdPlaySE3D(sound, 0, pos);
 	}
 
-	// the target's flag bit 3 put back, then the action result
 	static void DirectorResult(Node *t)
 	{
 		*(uint16_t *)Target() |= (uint16_t)t->e;
@@ -675,15 +563,11 @@ namespace card182
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x5CB4E0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + ARENA_HALF;
 		else PacketCursor() = TexBase();
-		// 30 fps layer: see mag182_card_held.inc
 		FX_HELD(held_note_root();)
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
@@ -702,7 +586,6 @@ namespace card182
 		register_port(card182::ORIG_Card, (void *)card182::CardTask, "C182 Card", 182);
 		register_port(card182::ORIG_CardModel, (void *)card182::CardModelTask, "C182 CardModel", 182);
 		register_port(card182::ORIG_TargetFade, (void *)card182::TargetFadeTask, "C182 TargetFade", 182);
-		// 30 fps layer: see mag182_card_held.inc
 		FX_HELD(register_mag182_held();)
 	}
 }

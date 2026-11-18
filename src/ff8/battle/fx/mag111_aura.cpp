@@ -14,25 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 111: Aura (spell, MAG_111_*).
-//
-// Structure (setup MAG_111_AURA 0x6CD920 -> _Init 0x6CD950, file loader 0x6CD930 = the texture
-// file named at 0x12E0644; the setup starts camera animation 0x12DFD9C and queues the TIM):
-//   RootTask (0x6CD9C0) - alternates the packet arena (magic buffer + 0xE28 / + 0x18E28); on
-//     counter 1 of a 10-tick cycle sets up the pools (first time) and starts the target task of the
-//     next action on its first target, unless a target task of 28 ticks or less still runs on that
-//     target (the cycle then restarts); runs the target and flame queues, ends when both are empty.
-//   Target (0x6CDB60) - node 0x360, one per action: the aura prim-model layout 0x12DB9E0 played at
-//     the target's feet (scaled by the square root of its size) with the callback AuraPart
-//     (0x6CDE10); flames: 4 per tick over 15..18 around the target; a screen fade at 28 and a
-//     glow sprite sequence (0x12DB75C) over 28..33; sound at 0, the status at 29; ends at 34.
-//   Flame (0x6CE020) - node 0x20: the flame prim model 0x12DB818 turning around the target's
-//     vertical axis (angle += speed each tick) at a random radius, fading in over 0..7 and out
-//     from 13, ends after 20 draws.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2521970..0x25219C8 (texture file, magic buffer base, context, root pool,
-// packet cursor 0x2521994, flame / target / root queues). The target pool (3 x 0x360), the flame
-// pool (32 x 0x20), the morph vertex buffer (+0xE20) and the packet arenas are in the magic buffer.
+// Effect 111: Aura
 
 #include "mag_common.h"
 
@@ -43,79 +25,69 @@ namespace aura111
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521974); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2521974); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2521978); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521994); }
-	inline TaskQueue *QFlames() { return (TaskQueue *)0x2521998; }          // pool: + 0xA20, 0x20 x 0x20
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x25219A8; }         // pool: magic buffer, 3 x 0x360
+	inline TaskQueue *QFlames() { return (TaskQueue *)0x2521998; }
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x25219A8; }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6CD9C0;
 	static const uint32_t ORIG_TargetTask = 0x6CDB60;
 	static const uint32_t ORIG_FlameTask = 0x6CE020;
-	static const uint32_t MODEL_Aura = 0x12DB9E0;        // prim-model layout data (0x34C-byte layout)
-	static const uint32_t MODEL_Flame = 0x12DB818;       // prim model
+	static const uint32_t MODEL_Aura = 0x12DB9E0;
+	static const uint32_t MODEL_Flame = 0x12DB818;
 	static const uint32_t SEQ_Glow = 0x12DB75C;
-	static const uint32_t PART_Flags = 0x12E061C;        // per-object flags of the aura layout
+	static const uint32_t PART_Flags = 0x12E061C;
 	static const void *const SOUND_Aura = (const void *)0x12E0618;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0x360 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E action index
-		uint8_t *entity;   // +0x10 target entity
-		uint8_t aura[0x34C]; // +0x14 prim-model layout (prim::Layout: data, frame, state)
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		uint8_t aura[0x34C];
 	};
-	struct FlameNode // pool of 0x20 nodes of 0x20 bytes
+	struct FlameNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10 x, y (height - 600), z of the target anchor
-		int16_t radius;    // +0x16 (GetEffectSpawnPosition's 4th word, replaced)
-		int16_t angle;     // +0x18 around the vertical axis
-		int16_t speed;     // +0x1A angle step
-		int16_t fade;      // +0x1C strength (0x800..0xFFF)
+		int16_t pos[3];
+		int16_t radius;
+		int16_t angle;
+		int16_t speed;
+		int16_t fade;
 		int16_t pad1E;
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 camera x (size scale at the target's feet)
-		uint32_t flags;    // +0x20 per-object flags table
-		uint32_t morph;    // +0x24 blended vertex frames
+		Mat4x3 m;
+		uint32_t flags;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x360 && sizeof(FlameNode) == 0x20, "Aura nodes");
 	static_assert(sizeof(PrimArg) == 0x28, "Aura prim block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6CDE10): one object of the aura model
-	// ------------------------------------------------------------------
 	static void __cdecl AuraPart(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		PrimArg *arg = (PrimArg *)arg_;
@@ -159,7 +131,6 @@ namespace aura111
 		const uint32_t flags = *(const uint32_t *)(arg->flags + 4 * (int16_t)r->index);
 		if (flags & 0x10000000)
 		{
-			// the offset through the block's matrix, the rotation kept
 			TransformVectorBy3x3Matrix(&arg->m, m.t, m.t);
 			m.t[0] = (int32_t)((uint32_t)m.t[0] + (uint32_t)arg->m.t[0]);
 			m.t[1] = (int32_t)((uint32_t)m.t[1] + (uint32_t)arg->m.t[1]);
@@ -185,11 +156,6 @@ namespace aura111
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Flame (0x6CE020)
-	// ------------------------------------------------------------------
-	// MAG_111_sub_6CE1B0: rotation by angle about the depth axis, scaled by s (the lower row is
-	// the unit z axis; pad and translation not written)
 	static void RollScaleMatrix(int16_t angle, Mat4x3 *m, int32_t s)
 	{
 		const int32_t sn = mul32(ComputeSin(angle), s) >> 12;
@@ -205,7 +171,6 @@ namespace aura111
 		m->m[2][2] = 0x1000;
 	}
 
-	// the fade (+0x0C of the draw header): in over 0..7, out from 13, else 0x1000 - strength
 	static int32_t FlameFade(const FlameNode *f)
 	{
 		const int16_t c = f->counter;
@@ -238,7 +203,6 @@ namespace aura111
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 	}
 
-	// the flame's header (on the scratch stack): model, fade colour black, fade, mode 0xF3
 	static void FlameHeader(uint8_t *h, const FlameNode *f)
 	{
 		*(uint32_t *)h = MODEL_Flame;
@@ -262,7 +226,6 @@ namespace aura111
 	static uint32_t __cdecl FlameTask(TaskNode *n)
 	{
 		FlameNode *f = (FlameNode *)n;
-		// 30 fps layer: see mag111_aura_held.inc
 		FX_HELD(held_note_flame(f);)
 		uint8_t *h = AllocHeader(0x58);
 		FlameHeader(h, f);
@@ -274,7 +237,6 @@ namespace aura111
 		return 0;
 	}
 
-	// the glow sequence at the target's feet (step e of 0..5)
 	static void GlowDraw(const int16_t *pos, int32_t e)
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, (int32_t)0xFFFFFF00);
@@ -286,15 +248,11 @@ namespace aura111
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Target (0x6CDB60)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
 		if (t->counter >= 0)
 		{
-			// the block: camera x (scale sqrt(size) at the target's feet)
 			PrimArg arg;
 			const int16_t s = (int16_t)Sqrt(shl32(*(const int16_t *)(t->entity + 0x26), 12));
 			int16_t pos[4];
@@ -307,14 +265,11 @@ namespace aura111
 			arg.m.m[1][0] = 0;
 			arg.m.m[0][2] = 0;
 			arg.m.m[0][1] = 0;
-			// UNINIT: the block's pad word (+0x12) is never written (the matrix helpers do not
-			// read it); 0 here
 			arg.m.pad = 0;
 			GetEffectSpawnPosition(t->entity, 0xF1, 0, pos);
 			arg.m.t[0] = pos[0];
 			arg.m.t[2] = pos[2];
 			arg.m.t[1] = *(const int16_t *)(t->entity + 0x24);
-			// 30 fps layer: see mag111_aura_held.inc
 			FX_HELD(held_note_play(t, &arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.flags = PART_Flags;
@@ -350,7 +305,6 @@ namespace aura111
 			int16_t pos[4];
 			GetEffectSpawnPosition(t->entity, 0xF1, 0, pos);
 			pos[1] = (int16_t)(*(const int16_t *)(t->entity + 0x24) - 0x258);
-			// 30 fps layer: see mag111_aura_held.inc
 			FX_HELD(held_note_glow(pos, e);)
 			GlowDraw(pos, e);
 		}
@@ -366,13 +320,9 @@ namespace aura111
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6CD9C0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag111_aura_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -396,7 +346,6 @@ namespace aura111
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				// wait while a target task of 28 ticks or less runs on this target
 				TargetNode *pool = (TargetNode *)TexBase();
 				bool busy = false;
 				for (int k = 0; k < 3; k++)
@@ -443,7 +392,6 @@ namespace aura111
 		register_port(aura111::ORIG_RootTask, (void *)aura111::RootTask, "A111 RootTask", 111);
 		register_port(aura111::ORIG_TargetTask, (void *)aura111::TargetTask, "A111 TargetTask", 111);
 		register_port(aura111::ORIG_FlameTask, (void *)aura111::FlameTask, "A111 FlameTask", 111);
-		// 30 fps layer: see mag111_aura_held.inc
 		FX_HELD(register_mag111_held();)
 	}
 }

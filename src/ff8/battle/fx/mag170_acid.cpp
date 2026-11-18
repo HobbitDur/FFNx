@@ -14,45 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 170: Acid (enemy attack 35 of kernel.bin; Tri-Face c0m036; MAG_170_*). Gastric Juice 169's design
-// (mag169_gastric_juice.cpp) with one stream and the target's model melting.
-//
-// Structure (file loader 0x5DC910 = the texture file 0xD6A3EC -> 0x23B1338; _Init 0x5DC930 keeps the texture base 0x23B1348,
-// the context 0x23B0FD0, the first target's slot 0x23AF820 and the caster's slot 0x23B10E8, queues the root (one 0x10-byte
-// node, pool 0x23AF828, queue 0x23AF838) and the director in the effect queue 0x23B01A8 (100 x 0x24, pool 0x23B01B8), frees
-// the 100 droplets (0x23AF848, 0x18 bytes, word +0 = owner mask), plays the camera animation 0xD68D0C and queues the TIM;
-// both run original):
-//   Root (0x5DEDF0) - packet arena = texture base / + 0x8000 on its counter's parity, the effect queue; ends when it is empty.
-//   Director (0x5DC9F0) - nothing on draw-only ticks; tick 1: the stream, the caster's effect points 0x28 (0x23B1340) and
-//     0x26 (0x23B0FC8), the splash (mask 2), the sound 0xD6A3A4; tick 0x2E: the action result; ends after tick 0x37.
-//   Stream (0x5DCAF0) - nothing on draw-only ticks. Tick 0: the curve (stream 0x23B0FD8: the caster's effect point 0x29
-//     (flag 0x600), the target's default position +-350 on the ground, control points a third / two thirds of the way up by
-//     50..149 each, 28 samples); tick 1: the blob; tick 0xC: 4 puddles around the landing point (+-800, delay rand % 6 + k)
-//     and the melting target; tick 0xD: the landing mesh and the drip emitter (mask 1 << stream); ends at tick 0x28.
-//   Blob (0x5DCF20) - sequence 0xD68DF8 (frame tick % 6) at 4 curve samples back from the one it has reached (radius - 0x70
-//     each, a sample past the curve skipped, before its start the rest), speed 5 slowing to 2 before sample 0xE; ends past
-//     sample 0x1F.
-//   Landing mesh (0x5DD030) - prim model 0xD6904C, its 73 vertices blended towards the second shape (0xD69A74) by
-//     sin(tick * 32) into 0x23B10F0, y angle at random, scale + step (step halved) on ticks 0..7; ticks 0..7 plain, 8..15
-//     fading, 16..31 through the module's prim renderer (0x5DD300 = Gastric Juice's 0x5E0450) with the texture page moved
-//     0x20 (fade in / out); 32 ticks.
-//   Drip emitter (0x5DDE90) - droplets of its mask: sequence 0xD68EA0 (frame / 2, pull -size >> 4), falling (1/16
-//     deceleration); ticks 0..12: the count of 0xD6A3AC[tick] new ones around the landing point (size 0x700..0x10FF, +-700 /
-//     -100..-399, falling 20..69); ends from tick 4 once none is left.
-//   Puddle (0x5DE0B0) - waits its delay, then prim model 0xD69CBC at its point (y angle, scale + step), faded 0x800 /
-//     tick << 8 from tick 8; 16 ticks.
-//   Melting target (0x5DE200 -> 0x5DE3E0 -> 0x5DE500 -> 0x5DE7C0) - ticks 0..0x21: the first target hidden (entity flag 4) and
-//     its model (and weapon) redrawn with every vertex beyond the plane through the landing point facing the caster pulled
-//     down by an amount growing to tick 0x1C then shrinking (tick * 81 / 0x305B - tick * 364), within 10000 of the landing
-//     point, flattened at the ground and spread outward from the target's position; flat textured faces only; at tick 0x23
-//     the target's flag 4 is restored as it was.
-//   Splash (0x5DEA10) - droplets of mask 2: sequence 0xD68DF8 (frame base 4, frame / 2, grey 0x80 then (11 - frame) * 16 from
-//     frame 3) through the light matrix of the direction 0x26 -> 0x28 at point 0x28, decelerating (1/4), 11 frames; tick 0:
-//     16 new ones; ends from tick 4 once none is left.
-// Every drawing task draws first and updates afterwards; on draw-only ticks it returns after drawing.
-// ENTITY WRITES: the first target's flag word +0 bit 2 (hidden while it is redrawn; restored at the end). CAMERA: the camera
-// animation 0xD68D0C (engine). Module globals: 0x23AF820..0x23B1370.
-// NEVER-WRITTEN STACK WORDS: none read.
+// Effect 170: Acid
 
 #include "mag_common.h"
 
@@ -71,7 +33,6 @@ namespace acid170
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	// --- module globals ---
 	inline int32_t &TargetSlot() { return var<int32_t>(0x23AF820); }
 	inline TaskQueue *QRoot() { return (TaskQueue *)0x23AF838; }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23B01A8; }
@@ -80,23 +41,22 @@ namespace acid170
 	inline uint32_t &TexBase() { return var<uint32_t>(0x23B1348); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23B134C); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	static const uint32_t DROPS = 0x23AF848, DROPS_END = 0x23B01A8;   // 100 x 0x18 bytes
-	static const uint32_t STREAM = 0x23B0FD8;                         // 1 x 0x110 bytes
-	static const uint32_t MESH_VERTS = 0x23B10F0;                     // 73 x 8 bytes
-	static const uint32_t SPLASH_FROM = 0x23B0FC8, SPLASH_AT = 0x23B1340; // the caster's effect points 0x26 / 0x28
-	static const uint32_t SPLASH_MATRIX = 0x23B1350;                  // Mat4x3 (translation 0x23B1364)
+	static const uint32_t DROPS = 0x23AF848, DROPS_END = 0x23B01A8;
+	static const uint32_t STREAM = 0x23B0FD8;
+	static const uint32_t MESH_VERTS = 0x23B10F0;
+	static const uint32_t SPLASH_FROM = 0x23B0FC8, SPLASH_AT = 0x23B1340;
+	static const uint32_t SPLASH_MATRIX = 0x23B1350;
 
 	static const uint32_t ORIG_Root = 0x5DEDF0, ORIG_Director = 0x5DC9F0, ORIG_Stream = 0x5DCAF0, ORIG_Blob = 0x5DCF20,
 		ORIG_Mesh = 0x5DD030, ORIG_Drips = 0x5DDE90, ORIG_Puddle = 0x5DE0B0, ORIG_Melt = 0x5DE200, ORIG_Splash = 0x5DEA10;
 	static const uint32_t SEQ_Blob = 0xD68DF8, SEQ_Drip = 0xD68EA0;
 	static const uint32_t MODEL_Mesh = 0xD6904C, MODEL_Puddle = 0xD69CBC;
-	static const uint32_t MESH_A = 0xD69054, MESH_B = 0xD69A74;       // 73 vertices of 8 bytes each
-	static const int32_t *const DRIP_COUNTS = (const int32_t *)0xD6A3AC; // droplets per tick 0..12
+	static const uint32_t MESH_A = 0xD69054, MESH_B = 0xD69A74;
+	static const int32_t *const DRIP_COUNTS = (const int32_t *)0xD6A3AC;
 	static const uint32_t SOUND_Acid = 0xD6A3A4;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, mode, out); }
 	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
@@ -120,50 +80,47 @@ namespace acid170
 	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
 	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
 	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
-	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45D7F0)(value, reg); }     // GTE_WriteControlReg
-	inline void GteLoadV0SVec3(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }                       // GTE_LoadV0FromSVec3
+	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45D7F0)(value, reg); }
+	inline void GteLoadV0SVec3(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
-	inline void GteStoreIR123SVec(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(v); }                    // GTE_StoreIR123ToSVec
-	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(0x460810)(); }                                        // MAC = L * IR + BK
+	inline void GteStoreIR123SVec(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(v); }
+	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(0x460810)(); }
 	inline void GteReadMAC1Shl12(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x64DF60)(dst); }
 	inline void VectorNormalS16(uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }                    // MAC = L * V0 + BK
-	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // BK = matrix translation
-	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }     // R11 / R22 / R33 = s
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
+	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
+	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
 
-	// ------------------------------------------------------------------
-	// Node layouts (effect queue: pool of 100 nodes of 0x24 bytes)
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct Node // every effect-queue task
+	struct Node
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t idx;       // +0x0E stream index (director: next stream; drips / splash: owner mask; puddle: delay)
-		int16_t pos[4];    // +0x10 landing / target position
-		int16_t a18;       // +0x18 blob: curve sample; mesh / puddle: y angle
-		int16_t a1a;       // +0x1A blob: speed; mesh: unused random; melt: the target's flag 4 as it was
-		int16_t a1c;       // +0x1C blob / mesh / puddle: scale
-		int16_t a1e;       // +0x1E mesh / puddle: scale step
+		int16_t counter;
+		int16_t idx;
+		int16_t pos[4];
+		int16_t a18;
+		int16_t a1a;
+		int16_t a1c;
+		int16_t a1e;
 		uint32_t pad20;
 	};
-	struct Stream // 0x110 bytes
+	struct Stream
 	{
-		int16_t src[4];      // +0x00 caster's effect point 0x29
-		int16_t dst[4];      // +0x08 landing point
-		int16_t cp[4][4];    // +0x10 Bezier control points
-		int16_t curve[28][4]; // +0x30 curve samples
+		int16_t src[4];
+		int16_t dst[4];
+		int16_t cp[4][4];
+		int16_t curve[28][4];
 	};
-	struct Drop // droplet entry (0x18 bytes)
+	struct Drop
 	{
-		uint32_t flags;    // owner mask (1 << stream: drip emitter, 2: splash), 0 = free
-		int16_t frame;     // +0x04 flipbook frame
-		int16_t scale;     // +0x06
-		int16_t pos[3];    // +0x08
+		uint32_t flags;
+		int16_t frame;
+		int16_t scale;
+		int16_t pos[3];
 		int16_t pad0;
-		int16_t vel[3];    // +0x10
+		int16_t vel[3];
 		int16_t pad1;
 	};
 #pragma pack(pop)
@@ -172,7 +129,6 @@ namespace acid170
 	inline Stream *StreamOf(int32_t i) { return (Stream *)(STREAM + (uint32_t)(i * 0x110)); }
 	inline Drop *Drops() { return (Drop *)DROPS; }
 
-	// the first free droplet (mask 0) among the first 100, or null
 	static Drop *FreeDrop()
 	{
 		int32_t i = 0;
@@ -182,19 +138,9 @@ namespace acid170
 		return i < 0x64 ? e : nullptr;
 	}
 
-
-	// ==================================================================
-	// Module prim renderer (0x5DD300 = Gastric Juice 169's 0x5E0450; header 0x5C bytes on the scratch: +0x00 model, +0x04 vertices,
-	// +0x08..+0x0A far colour, +0x0C fade, +0x10 / +0x14 texture page / clut words, +0x18 texture
-	// offset, +0x1C flags, +0x20 section cursor, +0x24 NCLIP, +0x2C OTZ, +0x30 GTE FLAG, +0x58 draw
-	// mode word)
-	// ==================================================================
-
-	// clip bits of one corner: x outside 0..0xA00 -> xbit, y outside 0..0x6C0 -> ybit
 	static uint32_t ClipX(uint32_t xy, uint32_t bit) { const int16_t x = S16(xy, 0); return (x < 0 || x > 0xA00) ? bit : 0; }
 	static uint32_t ClipY(uint32_t xy, uint32_t bit) { const int16_t y = S16(xy, 2); return (y < 0 || y > 0x6C0) ? bit : 0; }
 
-	// the texture page / clut words of a packet (flags 0x100 / 0x400, 0x200 / 0x800)
 	static void PageWords(uint32_t h, uint32_t pk, int32_t page_off)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -204,7 +150,6 @@ namespace acid170
 		else if (f & 0x200) U16(pk, 0xE) = U16(h, 0x14);
 	}
 
-	// the face's semi-transparency bit (flags bit 0 / 1 sets it, bit 2 / 3 clears it)
 	static void SemiTrans(uint32_t h, uint32_t pk, uint32_t set, uint32_t clear)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -212,7 +157,6 @@ namespace acid170
 		if (f & clear) U32(pk, 4) &= 0xFDFFFFFF;
 	}
 
-	// 0x5DD3F0 (= 169's 0x5E0540): flat textured triangles (0x14-byte records -> 0x24-byte packets)
 	static uint32_t PrimFT3(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -259,7 +203,6 @@ namespace acid170
 		return pk;
 	}
 
-	// 0x5DD650 (= 169's 0x5E07A0): flat textured quads (0x18-byte records -> 0x2C-byte packets)
 	static uint32_t PrimFT4(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -312,7 +255,6 @@ namespace acid170
 		return pk;
 	}
 
-	// 0x5DD920 (= 169's 0x5E0A70): Gouraud textured triangles (0x1C-byte records -> 0x2C-byte packets)
 	static uint32_t PrimGT3(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -364,7 +306,6 @@ namespace acid170
 		return pk;
 	}
 
-	// 0x5DDB80 (= 169's 0x5E0CD0): Gouraud textured quads (0x24-byte records -> 0x38-byte packets)
 	static uint32_t PrimGT4(uint32_t h, uint32_t ot, int32_t shift, uint32_t pk)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -426,9 +367,6 @@ namespace acid170
 		return pk;
 	}
 
-	// 0x5DD300 = Gastric Juice 169's 0x5E0450: the model's sections (two skipped words, FT3, FT4, two skipped words, GT3, GT4; an
-	// empty section is one zero word); vertices = model + 8 unless flag 0x2000, texture offset 0
-	// unless flag 0x1000
 	static uint32_t PrimRender(uint32_t h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t f = U32(h, 0x1C);
@@ -461,16 +399,7 @@ namespace ff8fx
 {
 namespace acid170
 {
-	// ==================================================================
-	// Melting target
-	// Header (0xAC bytes on the scratch): +0x00 primitive list, +0x04 vertex buffer, +0x08..+0x0E primitive counts, +0x10 /
-	// +0x14..+0x1A as RenderGeometry's, +0x1C code bits (entity +0x28), +0x20 visible objects, +0x28..+0x2A depth cue, +0x2C
-	// the vertex's plane distance << 12, +0x30 the plane offset << 12, +0x34 -normal y, +0x38 the pull, +0x3C the melt amount,
-	// +0x40 the squared radius, +0x44 NCLIP, +0x4C OTZ, +0x50 GTE FLAG, +0x54 a vector, +0x74 the plane normal (3 words) and
-	// -offset (+0x7A), +0x7C the landing point, +0x84 the target's position, +0x8A spread (body 1, weapon 0), +0x8C camera x entity
-	// ==================================================================
 
-	// 0x5DE7C0: the object's flat textured triangles (0x10-byte records) and quads (0x14-byte records)
 	static uint32_t FlatPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
@@ -527,9 +456,6 @@ namespace acid170
 		return pk;
 	}
 
-	// one vertex out of the object's bone (camera-less world space) at out: beyond the plane (L x V + BK > 0) and within the
-	// radius of the landing point, pulled down by the melt; above the ground it is flattened at y 0 and (body) spread outward
-	// from the target's position
 	static void MeltVertex(uint32_t hdr, uint32_t out)
 	{
 		GteStoreIR123SVec(out);
@@ -566,8 +492,6 @@ namespace acid170
 		S16(out, 4) = (int16_t)(S16(out, 4) + (int16_t)(mul32(S16(hdr, 0x58), S32(hdr, 0x38)) >> 12));
 	}
 
-	// 0x5DE500: the plane into the light matrix's first row and BK red; every visible object: its vertices through their bone
-	// matrices (MeltVertex) into the vertex buffer, then its faces through the camera (FlatPrims)
 	static uint32_t MeltObjects(uint32_t model, uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		GteWriteCtrl(U32(hdr, 0x74), 8);
@@ -615,12 +539,9 @@ namespace acid170
 		return cursor;
 	}
 
-	// 0x5DE3E0: the entity's shadow, its model, its weapon (+0x78), both through MeltObjects; the bone matrices are rebuilt from
-	// the pose afterwards
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
-		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, FrameCursor());
@@ -652,10 +573,8 @@ namespace acid170
 		}
 	}
 
-	// the melt amount of a tick: up to tick 0x1C, then down
 	static int32_t MeltAmount(int32_t c) { return c < 0x1C ? mul32(c, 81) : 0x305B - mul32(c, 364); }
 
-	// the plane through the landing point whose normal points from it to the caster, the target hidden and redrawn melting
 	static void MeltDraw(const Node *n, int32_t amount)
 	{
 		const Stream *s = StreamOf(n->idx);
@@ -686,7 +605,6 @@ namespace acid170
 		Node *n = (Node *)tn;
 		if (n->counter < 0x22)
 		{
-			// 30 fps layer: see mag170_acid_held.inc
 			FX_HELD(held_note_draw(ORIG_Melt, n);)
 			MeltDraw(n, MeltAmount(n->counter));
 		}
@@ -698,13 +616,8 @@ namespace acid170
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Landing mesh (0x5DD030)
-	// ------------------------------------------------------------------
-	// blend weight of the second shape: sin(tick * 1024 / 32)
 	static int32_t MeshBlend(int32_t c) { return ComputeSin(shl32(c, 10) / 32); }
 
-	// fade of the mesh by tick (0 where the draw leaves the header's fade word as it is)
 	static int32_t MeshFade(int32_t c)
 	{
 		if (c < 8) return 0;
@@ -713,7 +626,6 @@ namespace acid170
 		return shl32(c - 0x18, 9);
 	}
 
-	// the mesh at the landing point (vertices blended by s into verts); nothing from tick 32
 	static void MeshDraw(const Node *n, uint32_t verts, int32_t s, int32_t fade)
 	{
 		int16_t ang[3] = { 0, n->a18, 0 };
@@ -760,7 +672,6 @@ namespace acid170
 	static uint32_t __cdecl MeshTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Mesh, n);)
 		MeshDraw(n, MESH_VERTS + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
 		if (DrawOnly()) return 0;
@@ -774,9 +685,6 @@ namespace acid170
 		return n->counter >= 0x20 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Puddle (0x5DE0B0)
-	// ------------------------------------------------------------------
 	static int32_t PuddleFade(int32_t c) { return c < 8 ? 0x800 : shl32(c, 8); }
 
 	static void PuddleDraw(const Node *n, int32_t fade)
@@ -810,7 +718,6 @@ namespace acid170
 			n->idx--;
 			return 0;
 		}
-		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Puddle, n);)
 		PuddleDraw(n, PuddleFade(n->counter));
 		if (DrawOnly()) return 0;
@@ -819,10 +726,6 @@ namespace acid170
 		return n->counter >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Blob (0x5DCF20): 4 sprites at curve samples a18, a18 - 1, ... (radius - 0x70 each)
-	// ------------------------------------------------------------------
-	// pos(i): the point of sprite i (null: skipped); a sample before the curve's start ends the row
 	static void BlobDraw(const Node *n, const int16_t *const pos[4])
 	{
 		const uint32_t h = P(FieldAlloc(0xB4));
@@ -846,7 +749,6 @@ namespace acid170
 	static uint32_t __cdecl BlobTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Blob, n);)
 		const int16_t *pos[4];
 		for (int i = 0; i < 4; i++) pos[i] = StreamOf(n->idx)->curve[0] + (n->a18 - i) * 4;
@@ -859,9 +761,6 @@ namespace acid170
 		return n->a18 >= 0x20 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Drip emitter (0x5DDE90)
-	// ------------------------------------------------------------------
 	static void DripDraw(uint32_t h, const Drop *e)
 	{
 		TransformCameraByShadowRotation(e->pos, (int32_t)(uint16_t)e->scale, -(e->scale >> 4));
@@ -872,7 +771,6 @@ namespace acid170
 	static uint32_t __cdecl DripTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Drips, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
@@ -917,11 +815,6 @@ namespace acid170
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Splash (0x5DEA10)
-	// ------------------------------------------------------------------
-	// the light matrix: the camera x (rotation taking the down axis onto the direction 0x26 -> 0x28, at 0x28); the splash
-	// matrix's rotation goes to the GTE
 	static void SplashSetup()
 	{
 		int32_t down[3] = { 0, -0x1000, 0 };
@@ -943,8 +836,6 @@ namespace acid170
 		GteSetBKFromMatrix(&m);
 	}
 
-	// one droplet: grey 0x80 then (11 - frame) * 16 from frame 3, its camera-space position (light matrix + BK) pulled toward
-	// the camera by scale / 16 into the splash matrix's translation, the scale on the rotation diagonal, frame / 2
 	static void SplashDraw(uint32_t h, const Drop *e, int32_t grey)
 	{
 		Mat4x3 &g = *(Mat4x3 *)SPLASH_MATRIX;
@@ -969,7 +860,6 @@ namespace acid170
 	static uint32_t __cdecl SplashTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Splash, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
@@ -1017,9 +907,6 @@ namespace acid170
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Stream (0x5DCAF0): the curve, then the blob, puddles, melting target, mesh and drip emitter
-	// ------------------------------------------------------------------
 	static void StreamSetup(Stream *s)
 	{
 		GetEffectSpawnPosition(Entity(AttackerSlot()), 0x29, 0x600, s->src);
@@ -1103,9 +990,6 @@ namespace acid170
 		return n->counter >= 0x28 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5DC9F0) and root (0x5DEDF0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -1129,7 +1013,6 @@ namespace acid170
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? TexBase() + 0x8000 : TexBase();
 		const int running = ExecuteTaskQueue(EffectQueue());
@@ -1148,7 +1031,6 @@ namespace acid170
 		register_port(ORIG_Puddle, (void *)PuddleTask, "170 PuddleTask", 170);
 		register_port(ORIG_Melt, (void *)MeltTask, "170 MeltTask", 170);
 		register_port(ORIG_Splash, (void *)SplashTask, "170 SplashTask", 170);
-		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(register_mag170_held();)
 	}
 }

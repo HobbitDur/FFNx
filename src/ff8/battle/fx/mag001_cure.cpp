@@ -14,50 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 1: Cure (spell, MAG_001_CURE_*).
-//
-// Structure (module code 0x8D69E0..0x8D8510: file loader MAG_001_CURE_FL 0x8D69E0 = the texture
-// file named at 0x164252C; setup MAG_001_CURE_Init 0x8D6A00 sets up the queues, the root node and
-// the packet arenas, starts camera animation 0x16417C8 and queues the TIM). Every node starts with
-// the shared effect-library header (Effect_AddTaskAndInitFromCtx 0x8DC540: context, root, emitter,
-// parent, position, counter, flags, child count, phase, action / target, caster / target slot);
-// every task runs its current phase function (node +0x29) from a small table, and ends when it is
-// flagged done (+0x26 bit0) and has no live children.
-//   Root (0x8D6B30) - copies the camera into the shared snapshot 0x2793E58, alternates the packet
-//     arena (texture file + 0 / + 0x10000), follows the caster's bones; phases: 0..2 wait for the
-//     children, 3 spawns the emitter of the current action (marks the root busy), 4 waits while
-//     busy, then moves to the next action (back to 3) until the last one, 6 waits until the three
-//     queues (emitters, particles, glints) are empty, 9 done. Runs the three queues every tick.
-//   Emitter (0x8D6CC0) - on the action's target: target anchor and model bounds every tick
-//     (Effect library 0x8DC610 / 0x8DC870); spawns the ring at its first tick, sound at 0, heal
-//     (ApplyActionResultToTarget 0x506690) from tick 15, then done.
-//   Ring (0x8D6D80) - a light rising in a helix around the target: its position is recomputed
-//     every tick from the counter in 4 sub-steps (step = 4 * counter + s: centre + step * climb in y,
-//     radius * (sin, cos)(step * 0x80) in x / z); while spawning (flag 2) a sparkle per sub-step
-//     (counter 1..16), 1..3 motes and 2..4 glints per tick (counter ranges); while flag 8 it redraws
-//     the target model with a projected light texture (the overlay, below: the target is hidden,
-//     entity flag 4); draws its flipbook and, for 20 ticks, an additive ground glow fading out.
-//     Phase 1 switches its flipbook at 20, phase 2 runs the flipbook to its end, then unhides the
-//     target, clears the root's busy flag and ends.
-//   Mote (0x8D7F60) / Sparkle (0x8D80B0) - flipbooks moving at a random constant velocity (motes
-//     rise, sparkles fly out and up) until their last frame.
-//   Glints - the shared effect-library task Effect_Glint_Tick 0x8DCC20 (ported in fx_glint.cpp).
-// Parameters (CureParams, fx_params.h): the numbers below, one struct per part, defaults = the
-// game's; the parts are tagged (FX_PART) for the effect lab.
-// Overlay (0x8D7110, context 0x278C7E8): the target's shadow, then every object of its body (+0x64)
-// and weapon (+0x78) models: vertices through the bones into the overlay vertex buffer 0x2783E28,
-// each front-facing polygon drawn twice - flat in the entity's colour with its own texture (frame
-// arena, battle_texture_data_ptr 0x1D8E054), and, when it faces the projector and falls inside the
-// projected window, gouraud with the Cure texture page mapped by a projection from the ring's
-// position (module arena).
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x277AEC0..0x2792E78 (texture file 0x277AEC0, packet cursor 0x277AEC4, arena
-// limit 0x277AEEC, camera snapshot pointers 0x277AEF0 / 0x278C7DC, root pool 0x277AEF8 / queue
-// 0x277AFC0, particle queue 0x277BF70 (pool 300 x 0x6C), arena pointers 0x2783E18 / 0x2783E1C /
-// 0x278C798 / 0x278C79C / 0x278C7E4, overlay vertex buffer 0x2783E28, emitter queue 0x278A228
-// (pool 0x278C628, 4 x 0x58), glint pool 0x278A238 (100 x 0x5C) / queue 0x278C788, overlay sprite
-// block 0x278C7A0, overlay context 0x278C7E8), the effect library's glint cursor address 0x2792E74
-// and camera snapshot 0x2793E58.
+// Effect 1: Cure
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -69,172 +26,164 @@ namespace cure001
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	// shared effect-library node header (0x30 bytes, Effect_AddTaskAndInitFromCtx 0x8DC540)
 	struct FxNode
 	{
-		TaskNode hdr;          // +0x00
-		CastContext *ctx;      // +0x0C
-		FxNode *root;          // +0x10
-		FxNode *emitter;       // +0x14 first node under the root on this node's line (itself for one)
-		FxNode *parent;        // +0x18 (its +0x28 counts the live children)
-		int16_t pos[4];        // +0x1C x, y, z (copied from the parent)
-		int16_t counter;       // +0x24
-		uint16_t flags;        // +0x26 bit0 done, bit1 spawning, bit2 hidden, bit3 overlay drawing
-		uint8_t children;      // +0x28
-		int8_t phase;          // +0x29
-		int8_t action;         // +0x2A
-		int8_t target;         // +0x2B
-		uint8_t attacker;      // +0x2C
-		uint8_t slot;          // +0x2D target entity slot
-		uint8_t line;          // +0x2E incremented with the action (copied to the children)
-		uint8_t last;          // +0x2F
+		TaskNode hdr;
+		CastContext *ctx;
+		FxNode *root;
+		FxNode *emitter;
+		FxNode *parent;
+		int16_t pos[4];
+		int16_t counter;
+		uint16_t flags;
+		uint8_t children;
+		int8_t phase;
+		int8_t action;
+		int8_t target;
+		uint8_t attacker;
+		uint8_t slot;
+		uint8_t line;
+		uint8_t last;
 	};
-	struct RootNode // pool of 2 nodes of 0x64 bytes
+	struct RootNode
 	{
 		FxNode h;
-		uint8_t bones[0x28];   // +0x30 caster bone anchor (Effect_UpdateTargetPosFromBones)
-		int16_t last_action;   // +0x58
-		int16_t target_count;  // +0x5A
-		int16_t tick;          // +0x5C arena parity
-		int16_t alive;         // +0x5E sum of the queue results
+		uint8_t bones[0x28];
+		int16_t last_action;
+		int16_t target_count;
+		int16_t tick;
+		int16_t alive;
 		uint8_t pad60[3];
-		uint8_t busy;          // +0x63 a ring is running
+		uint8_t busy;
 	};
-	struct EmitterNode // pool of 4 nodes of 0x58 bytes
+	struct EmitterNode
 	{
 		FxNode h;
-		uint8_t anchor[0x18];  // +0x30 target bone anchor (MAG_001_CURE_Emitter_UpdatePos)
-		int16_t bmin[4];       // +0x48 model bounds (MAG_001_CURE_Emitter_ComputeModelBounds)
-		int16_t bmax[4];       // +0x50
+		uint8_t anchor[0x18];
+		int16_t bmin[4];
+		int16_t bmax[4];
 	};
-	struct Particle // ring / mote / sparkle: pool of 300 nodes of 0x6C bytes
+	struct Particle
 	{
 		FxNode h;
 		uint8_t pad30[0x12];
-		int16_t angle;         // +0x42 ring: angle of the last sub-step
+		int16_t angle;
 		uint8_t pad44[8];
-		uint32_t seq;          // +0x4C flipbook
-		int16_t frame;         // +0x50
-		int16_t last;          // +0x52 last frame
-		int16_t shade;         // +0x54 TransformCameraByShadowRotation offset (0)
+		uint32_t seq;
+		int16_t frame;
+		int16_t last;
+		int16_t shade;
 		int16_t pad56;
-		int16_t vel[3];        // +0x58 mote / sparkle velocity; ring: vel[1] = climb per sub-step
+		int16_t vel[3];
 		int16_t pad5E;
-		int16_t center[4];     // +0x60 ring: centre (x, top of the target's bounds, z)
-		int16_t radius;        // +0x68 ring radius
+		int16_t center[4];
+		int16_t radius;
 		int16_t pad6A;
 	};
-	// overlay context 0x278C7E8 (set up by 0x8D8280; the render also reads the word at +0xF4)
 	struct OverlayCtx
 	{
-		uint32_t a00;           // +0x00 0x277AEC8 (not read by the draw)
-		uint8_t *sprite;        // +0x04 0x278C7A0: +0x04 = vertex buffer 0x2783E28
-		uint8_t *entity;        // +0x08 target entity
-		uint32_t *frame_cursor; // +0x0C &battle_texture_data_ptr (0x1D8E054)
-		uint32_t *packets;      // +0x10 &module packet cursor 0x277AEC4
-		Mat4x3 world;           // +0x14 entity matrix
-		Mat4x3 view;            // +0x34 camera * world
-		Mat4x3 world2;          // +0x54 entity matrix moved by `offset`
-		Mat4x3 light;           // +0x74 projector matrix (the entity seen from light_pos)
+		uint32_t a00;
+		uint8_t *sprite;
+		uint8_t *entity;
+		uint32_t *frame_cursor;
+		uint32_t *packets;
+		Mat4x3 world;
+		Mat4x3 view;
+		Mat4x3 world2;
+		Mat4x3 light;
 		uint8_t pad94[0x10];
-		int16_t a4[3];          // +0xA4
+		int16_t a4[3];
 		int16_t padAA;
-		int16_t ac[3];          // +0xAC
+		int16_t ac[3];
 		int16_t padB2;
-		int16_t offset[3];      // +0xB4 (y = the ring's height)
+		int16_t offset[3];
 		int16_t padBA;
-		int16_t bc[3];          // +0xBC
+		int16_t bc[3];
 		int16_t padC2;
-		uint8_t rgb[3];         // +0xC4 projected colour
+		uint8_t rgb[3];
 		uint8_t padC7;
-		int32_t light_dist;     // +0xC8
-		int16_t cc;             // +0xCC
-		int16_t ce;             // +0xCE
+		int32_t light_dist;
+		int16_t cc;
+		int16_t ce;
 		int16_t padD0;
-		int16_t mode;           // +0xD2 0: offset in model space, 1: in world space
+		int16_t mode;
 		uint8_t padD4[4];
-		int16_t anim;           // +0xD8
-		int16_t slot;           // +0xDA 0xFF: the overlay advances the animation itself
-		int16_t light_pos[3];   // +0xDC projector position (the ring)
+		int16_t anim;
+		int16_t slot;
+		int16_t light_pos[3];
 		int16_t padE2;
-		int16_t proj_w;         // +0xE4 projected window size
-		int16_t proj_h;         // +0xE6
-		int16_t u_off;          // +0xE8 texture offset
-		int16_t v_off;          // +0xEA
-		uint16_t tpage;         // +0xEC
-		uint16_t clut;          // +0xEE
+		int16_t proj_w;
+		int16_t proj_h;
+		int16_t u_off;
+		int16_t v_off;
+		uint16_t tpage;
+		uint16_t clut;
 		int16_t padF0;
-		int16_t glow;           // +0xF2
-		int16_t cull;           // +0xF4 (0x278C8DC, never written by Cure) 1: projector back faces skipped
+		int16_t glow;
+		int16_t cull;
 		int16_t padF6;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(FxNode) == 0x30 && sizeof(RootNode) == 0x64 && sizeof(EmitterNode) == 0x58, "Cure nodes");
 	static_assert(sizeof(Particle) == 0x6C && sizeof(OverlayCtx) == 0xF8, "Cure nodes");
 
-	// ------------------------------------------------------------------
-	// Parameters: one struct per part, defaults = the game's values
-	// ------------------------------------------------------------------
 	enum PartId { PART_RING = 1, PART_GLOW = 2, PART_OVERLAY = 3, PART_SPARKLES = 4, PART_MOTES = 5, PART_GLINTS = 6 };
 	struct CureParams
 	{
 		struct Emitter
 		{
-			int16_t sound_tick;      // the cure sound plays at this tick
-			int16_t heal_tick;       // the HP are given from this tick
+			int16_t sound_tick;
+			int16_t heal_tick;
 		} emitter;
 		struct Ring
 		{
-			int16_t substeps;        // places per tick (each spawns a sparkle while it spawns)
-			int16_t angle_step;      // turn per place (4096 = a full turn)
-			fxp::Fraction radius;    // of the target's bounds radius
+			int16_t substeps;
+			int16_t angle_step;
+			fxp::Fraction radius;
 			int16_t radius_max;
-			int16_t climb_extra;     // climbs the target's height plus this...
-			int16_t climb_ticks;     // ...in this many ticks (upwards)
-			int16_t end_tick;        // its ending flipbook starts at this tick
-			int16_t end_frames;      // last frame of the ending flipbook
+			int16_t climb_extra;
+			int16_t climb_ticks;
+			int16_t end_tick;
+			int16_t end_frames;
 		} ring;
 		struct Glow
 		{
-			int16_t ticks;           // drawn under the ring for this many ticks
-			uint8_t grey;            // starting brightness (additive)
-			uint8_t fade;            // brightness lost per tick
+			int16_t ticks;
+			uint8_t grey;
+			uint8_t fade;
 		} glow;
 		struct Overlay
 		{
-			int16_t tex_x, tex_y;    // projected image: its VRAM place...
-			int16_t clut_x, clut_y;  // ...its palette
-			int16_t width, height;   // projected window
-			uint8_t rgb[3];          // projected light colour
+			int16_t tex_x, tex_y;
+			int16_t clut_x, clut_y;
+			int16_t width, height;
+			uint8_t rgb[3];
 			uint8_t pad;
-			int32_t light_dist;      // projector distance
+			int32_t light_dist;
 		} overlay;
 		struct Sparkle
 		{
-			fxp::Window window;      // ring ticks it spawns them (one per place)
-			fxp::Range vx, vy, vz;   // speed per tick (y down)
-			int16_t frames;          // last flipbook frame: lifetime
+			fxp::Window window;
+			fxp::Range vx, vy, vz;
+			int16_t frames;
 		} sparkle;
 		struct Mote
 		{
-			fxp::Window window;      // ring ticks it spawns them
-			fxp::Schedule count;     // how many per tick
-			fxp::Fraction radius;    // circle: of the target's bounds radius
+			fxp::Window window;
+			fxp::Schedule count;
+			fxp::Fraction radius;
 			int16_t radius_max;
-			fxp::Range angle;        // place on the circle
-			fxp::Range drop;         // below the ring: drop / drop_divisor of its height over the target
+			fxp::Range angle;
+			fxp::Range drop;
 			int16_t drop_divisor;
-			fxp::Range rise;         // rising speed per tick
-			int16_t frames;          // last flipbook frame: lifetime
+			fxp::Range rise;
+			int16_t frames;
 		} mote;
 		struct Glint
 		{
-			fxp::Window window;      // ring ticks it spawns them
-			fxp::Schedule count;     // how many per tick
+			fxp::Window window;
+			fxp::Schedule count;
 			fxp::GlintStyle style;
 		} glint;
 	};
@@ -250,14 +199,11 @@ namespace cure001
 	static CureParams g_params = DEFAULTS;
 	static inline const CureParams &P() { return g_params; }
 
-	// ------------------------------------------------------------------
-	// Module globals
-	// ------------------------------------------------------------------
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x277AEC4); }
 	inline uint32_t &PacketLimit() { return var<uint32_t>(0x277AEEC); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x278A228; }  // 4 x 0x58
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x277BF70; } // 300 x 0x6C
-	inline TaskQueue *QGlints() { return (TaskQueue *)0x278C788; }    // 100 x 0x5C
+	inline TaskQueue *QEmitters() { return (TaskQueue *)0x278A228; }
+	inline TaskQueue *QParticles() { return (TaskQueue *)0x277BF70; }
+	inline TaskQueue *QGlints() { return (TaskQueue *)0x278C788; }
 	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x278C7E8); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
@@ -266,30 +212,25 @@ namespace cure001
 	static const uint32_t ORIG_Ring = 0x8D6D80;
 	static const uint32_t ORIG_Mote = 0x8D7F60;
 	static const uint32_t ORIG_Sparkle = 0x8D80B0;
-	static const uint32_t ORIG_Glint = 0x8DCC20;         // Effect_Glint_Tick (fx_glint.cpp)
+	static const uint32_t ORIG_Glint = 0x8DCC20;
 
 	static const void *const SOUND_Cure = (const void *)0x16417C4;
 	static const uint32_t SEQ_Ring = 0x1641F78, SEQ_RingEnd = 0x1641FCC, SEQ_Mote = 0x164205C, SEQ_Sparkle = 0x1642238;
 	static const uint32_t SEQ_Glow = 0x1642504;
-	static const uint32_t CAM_SNAPSHOT = 0x2793E58;       // Effect_SharedCamMatrixSnapshot
+	static const uint32_t CAM_SNAPSHOT = 0x2793E58;
 	static const uint32_t ARENA_A = 0x278C79C, LIMIT_A = 0x2783E1C, ARENA_B = 0x278C798, LIMIT_B = 0x2783E18;
 	static const uint32_t OVERLAY_A00 = 0x277AEC8, OVERLAY_SPRITE = 0x278C7A0, OVERLAY_VERTS = 0x2783E28;
-	static const uint32_t GLINT_CURSOR = 0x2792E74;       // the effect library's glint packet cursor address
+	static const uint32_t GLINT_CURSOR = 0x2792E74;
 
-	// ------------------------------------------------------------------
-	// Engine / effect-library functions (original addresses)
-	// ------------------------------------------------------------------
-	// Effect_AddTaskAndInitFromCtx (0x8DC540): new node of `size` bytes in `q`, zeroed, header
-	// inherited from `parent` (the parent's child count goes up)
 	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
-	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }                 // the parent's child count goes down
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }                  // MAG_001_CURE_Emitter_UpdatePos
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }                // MAG_001_CURE_Emitter_ComputeModelBounds
-	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }          // (caster, ctx +0)
-	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC6E0)(n, out); } // emitter +0x30
-	inline int32_t BoundsMaxWorldY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAC0)(n); }      // Effect_GetTargetBoundsMaxWorldY (ax)
-	inline int32_t BoundsRadius(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCA70)(n); }         // Effect_GetTargetBoundsRadius
-	inline int32_t BoundsHeight(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAA0)(n); }         // Effect_GetTargetBoundsHeight (ax)
+	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }
+	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }
+	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC6E0)(n, out); }
+	inline int32_t BoundsMaxWorldY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAC0)(n); }
+	inline int32_t BoundsRadius(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCA70)(n); }
+	inline int32_t BoundsHeight(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAA0)(n); }
 	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(0x8DD770)(m); }
 	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD7E0)(m, a); }
 	inline void BuildMatrixFromDirAndUp(void *out, const void *dir, const void *up) { fn<void (__cdecl *)(void *, const void *, const void *)>(0x8DDA50)(out, dir, up); }
@@ -298,7 +239,6 @@ namespace cure001
 	inline void NormalizeVec3(const int32_t *in, int16_t *out) { fn<void (__cdecl *)(const int32_t *, int16_t *)>(0x56BD20)(in, out); }
 	inline void UnpackRotationMatrix(const void *in, void *out) { fn<void (__cdecl *)(const void *, void *)>(0x56C040)(in, out); }
 	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	// software GTE
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -306,37 +246,29 @@ namespace cure001
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }       // GTE_ReadOTZ (dword)
-	inline void GteReadSXY012(void *dst) { fn<void (__cdecl *)(void *)>(0x45E2A0)(dst); }        // 3 consecutive dwords
-	inline uint32_t GteSZ(int k) { return var<uint32_t>(0x1CA8A50 + 4 * k); }                   // SZ0..SZ3 data registers
-	inline void GteStoreSXY012_GT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E300)(p); }       // p +8, +0x14, +0x20
-	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E2E0)(p); }       // p +8, +0x10, +0x18
-	inline void GteStoreSXY012_GT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E340)(p); }       // GTE_StoreSXY012_PolyGT3_2
-	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E320)(p); }       // GTE_StoreSXY012_PolyFT3_2
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteReadSXY012(void *dst) { fn<void (__cdecl *)(void *)>(0x45E2A0)(dst); }
+	inline uint32_t GteSZ(int k) { return var<uint32_t>(0x1CA8A50 + 4 * k); }
+	inline void GteStoreSXY012_GT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E300)(p); }
+	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E2E0)(p); }
+	inline void GteStoreSXY012_GT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E340)(p); }
+	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E320)(p); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
 	inline void GteSetBackground(int32_t x, int32_t y, int32_t z) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DCF0)(x, y, z); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }                    // IR = L * V0 + BK
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
 	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
-	// drawing
 	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, void *, uint32_t, uint32_t, uint32_t, uint32_t)>(0x45C870)(ot, prim, a, b, c, d); }
-	// sub_5088A0: an entity's ground shadow (returns the packet cursor)
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	// battle models
 	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
 	inline void PreBattleReadAnimation(void *hdr, void *cmd, uint32_t anim) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x509440)(hdr, cmd, anim); }
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 	template<typename T> static inline const T &F(const uint8_t *p, uint32_t off) { return *(const T *)(p + off); }
 
-	// x / 4096 as compiled (cdq; and edx, 0xFFF; add; sar 12)
 	static inline int32_t Div4096(int32_t x) { return x / 4096; }
 
-	// ------------------------------------------------------------------
-	// Drawing helpers
-	// ------------------------------------------------------------------
-	// MAG_001_CURE_DrawSprite (0x8D6F20): the node's flipbook frame at its position (camera-facing)
 	static void DrawSprite(const Particle *p)
 	{
 		if (p->h.flags & 4) return;
@@ -349,8 +281,6 @@ namespace cure001
 		FieldFree(0xB4);
 	}
 
-	// MAG_001_CURE_DrawAdditiveGlow (0x8D6F90): flipbook `seq` frame 0 lying on the ground under the
-	// node (rotated 90 degrees about X, y = 0), in `colour`
 	static void DrawAdditiveGlow(const Particle *p, uint32_t seq, const uint32_t *colour)
 	{
 		if (p->h.flags & 4) return;
@@ -372,8 +302,6 @@ namespace cure001
 		FieldFree(0xB4);
 	}
 
-	// MAG_001_CURE_SetOverlayTexturePage (0x8D7050): projector position, the texture page / CLUT of
-	// the projected image (x, y / clut x, y as GetTPage / GetClut), its window size and texel offset
 	static void SetOverlayTexturePage(OverlayCtx *c, const int16_t *pos, int32_t x, int32_t y, int32_t cx, int32_t cy, int32_t w, int32_t h)
 	{
 		c->light_pos[0] = pos[0];
@@ -392,7 +320,6 @@ namespace cure001
 		c->proj_h = (int16_t)h;
 	}
 
-	// MAG_001_CURE_Overlay_UpdateMatrices (0x8D7200): the entity's matrix, and a copy moved by `offset`
 	static void UpdateMatrices(OverlayCtx *c, const uint8_t *entity)
 	{
 		ff8fx::copy<(0x20)>(&c->world, entity + 0x40);
@@ -413,8 +340,6 @@ namespace cure001
 		}
 	}
 
-	// MAG_001_CURE_Overlay_BuildProjectorMatrix (0x8D72C0): `light` = the entity's rotation seen from
-	// light_pos (looking at the moved entity origin, at light_dist)
 	static void BuildProjectorMatrix(OverlayCtx *c)
 	{
 		uint8_t *s = (uint8_t *)FieldAlloc(0x70);
@@ -461,7 +386,6 @@ namespace cure001
 		FieldFree(0x70);
 	}
 
-	// the projected vertices inside the window (x0..x1, y0..y1) move by the texel offset; false = out
 	static bool ProjectedUV(uint8_t *s, int count)
 	{
 		for (int v = 0; v < count; v++)
@@ -476,8 +400,6 @@ namespace cure001
 		return true;
 	}
 
-	// the three / four vertices again through the projector matrix: skipped (+0xCC = 1) when the
-	// back-face test is on and they face away from it
 	static void ProjectorPass(uint8_t *s, const uint8_t *verts)
 	{
 		GteSetRotMatrixCtrl((const Mat4x3 *)(s + 0x20));
@@ -490,12 +412,6 @@ namespace cure001
 		if (F<int16_t>(s, 0xCE) == 1 && F<int32_t>(s, 0x8C) <= 0) F<int16_t>(s, 0xCC) = 1;
 	}
 
-	// MAG_001_CURE_Overlay_RenderModel (0x8D7430): every object of `model` the entity's mask shows.
-	// Work block (Field_Alloc 0xD0): +0x00 view matrix, +0x20 projector matrix, +0x40 projected
-	// xy (4), +0x70 vertex, +0x8C NCLIP, +0x90 OTZ, +0x94..+0xA0 vertex indices, +0xA8 / +0xAC
-	// projected colour codes (GT3 / GT4), +0xB0 / +0xB4 entity colour codes (FT3 / FT4), +0xB8
-	// object mask, +0xBC tpage, +0xBE clut, +0xC0..+0xC6 window, +0xC8 / +0xCA texel offset,
-	// +0xCC skip, +0xCE back-face test.
 	static void RenderModel(const uint8_t *model, uint32_t ot, int32_t mode, OverlayCtx *c)
 	{
 		(void)mode;
@@ -537,7 +453,6 @@ namespace cure001
 			uint8_t *vcur = verts;
 			const uint8_t *p = table + offs[k];
 			if (!((F<uint32_t>(s, 0xB8) >> (k & 31)) & 1)) continue;
-			// vertices, grouped by bone: L = bone matrix, BK = its translation
 			const int32_t groups = *(const int16_t *)p;
 			p += 2;
 			for (int32_t g = groups; g > 0; g--)
@@ -564,7 +479,6 @@ namespace cure001
 					out += 0x10;
 				}
 			}
-			// polygons: 12-byte header (triangle count, quad count), 16-byte triangles, 20-byte quads
 			p = (const uint8_t *)(((uint32_t)p + 3) & ~3u);
 			const int32_t tris = *(const int16_t *)p;
 			const int32_t quads = *(const int16_t *)(p + 2);
@@ -573,7 +487,7 @@ namespace cure001
 			uint8_t *fp = (uint8_t *)fcur;
 			for (int32_t t = tris; t > 0; t--, poly += 0x10)
 			{
-				uint8_t *light = nullptr; // drawn over the model polygon, with its depth
+				uint8_t *light = nullptr;
 				const uint32_t i2 = *(const uint16_t *)(poly + 4) & 0xFFF;
 				const uint32_t i1 = *(const uint16_t *)(poly + 2) & 0xFFF;
 				const uint32_t i0 = *(const uint16_t *)poly & 0xFFF;
@@ -598,7 +512,6 @@ namespace cure001
 					if (!ProjectedUV(s, 3)) F<int16_t>(s, 0xCC) = 1;
 					if (F<int16_t>(s, 0xCC) == 0)
 					{
-						// the triangle in the projected light: gouraud, Cure texture page
 						gp[0xC] = s[0x40];
 						gp[0xD] = s[0x42];
 						gp[0x18] = s[0x44];
@@ -615,7 +528,6 @@ namespace cure001
 						gp += 0x28;
 					}
 				}
-				// the triangle itself: flat in the entity's colour, its own texture
 				F<uint32_t>(fp, 0xC) = *(const uint32_t *)(poly + 8);
 				F<uint32_t>(fp, 0x14) = *(const uint32_t *)(poly + 0xC);
 				F<uint16_t>(fp, 0x1C) = *(const uint16_t *)(poly + 6);
@@ -630,7 +542,7 @@ namespace cure001
 			}
 			for (int32_t q = quads; q > 0; q--, poly += 0x14)
 			{
-				uint8_t *light = nullptr; // drawn over the model polygon, with its depth
+				uint8_t *light = nullptr;
 				const uint32_t i2 = *(const uint16_t *)(poly + 4) & 0xFFF;
 				const uint32_t i1 = *(const uint16_t *)(poly + 2) & 0xFFF;
 				const uint32_t i0 = *(const uint16_t *)poly & 0xFFF;
@@ -705,8 +617,6 @@ namespace cure001
 		FieldFree(0xD0);
 	}
 
-	// MAG_001_CURE_DrawTargetModelWithOverlay (0x8D7110): shadow, body (+0x64) and weapon (+0x78)
-	// of the target with the projected light
 	static void DrawTargetModelWithOverlay(OverlayCtx *c)
 	{
 		uint8_t *entity = c->entity;
@@ -715,7 +625,6 @@ namespace cure001
 		else
 		{
 			const int32_t more = BattleReadAnimation(entity + 0x60, entity + 0x6C);
-			// the animation number goes in the low word of the returned register
 			if (more) PreBattleReadAnimation(entity + 0x60, entity + 0x6C, ((uint32_t)more & 0xFFFF0000u) | (uint16_t)c->anim);
 		}
 		ComposeAffineTransform(&Camera(), &c->world, &c->view);
@@ -727,7 +636,6 @@ namespace cure001
 		if (c->slot != 0xFF) BuildBoneMatricesFromPose(entity + 0x60);
 	}
 
-	// MAG_001_CURE_SetupTargetOverlay (0x8D8280)
 	static void SetupTargetOverlay(OverlayCtx *c, uint32_t a00, uint8_t *sprite, uint32_t verts, uint8_t *entity, int32_t slot)
 	{
 		c->entity = entity;
@@ -767,11 +675,6 @@ namespace cure001
 		F<uint16_t>(sprite, 0x24) = 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Particles
-	// ------------------------------------------------------------------
-	// Effect_LifetimeTick_Expired (0x8D8040): next flipbook frame; past the last one the node is
-	// hidden (frame stays last) and 1 is returned
 	static int32_t LifetimeExpired(Particle *p)
 	{
 		p->frame++;
@@ -784,7 +687,6 @@ namespace cure001
 		return 0;
 	}
 
-	// mote / sparkle phase 1 (0x8D8000 / 0x8D8160): position += velocity, done at the last frame
 	static void Integrate(Particle *p)
 	{
 		p->h.pos[0] = (int16_t)(p->h.pos[0] + p->vel[0]);
@@ -797,8 +699,6 @@ namespace cure001
 		}
 	}
 
-	// the ring's place at sub-step `step` (4 * counter + s): centre, + step * climb in y, radius *
-	// (sin, cos)(step * 0x80) in x / z
 	static void RingPlace(Particle *r, uint32_t step)
 	{
 		ff8fx::copy<(8)>(r->h.pos, r->center);
@@ -809,15 +709,11 @@ namespace cure001
 		r->h.pos[2] = (int16_t)(r->h.pos[2] + Div4096(mul32(ComputeCos(r->angle), r->radius)));
 	}
 
-	// MAG_001_CURE_Ring_SpawnSparkle (0x8D8080): counter 1..16
 	static void SpawnSparkle(Particle *r)
 	{
 		if (P().sparkle.window.has(r->h.counter)) AddEffectTask(QParticles(), ORIG_Sparkle, 0x6C, r);
 	}
 
-	// MAG_001_CURE_Ring_SpawnMotes (0x8D7E20): counter 2..: 1 (2..6), 2 (7, 8), 3 (9, 10), 2 (11..)
-	// motes on a circle of 1.5 x the target's radius (at most 0x400) at a random angle, at the ring's
-	// height lowered by a random part of the ring's height above the target's top
 	static void SpawnMotes(Particle *r)
 	{
 		const CureParams::Mote &mp = P().mote;
@@ -831,7 +727,6 @@ namespace cure001
 			m->h.pos[1] = r->h.pos[1];
 			int32_t d = (int32_t)r->h.pos[1] - (int32_t)(int16_t)BoundsMaxWorldY(r);
 			d = mul32(d, mp.drop.roll(CrtRand()));
-			// d / -48 (compiled 0xD5555555, >> 3: truncated toward zero as C does)
 			m->h.pos[1] = (int16_t)(m->h.pos[1] + d / -mp.drop_divisor);
 			const int32_t rad = mp.radius.of((int16_t)BoundsRadius(r));
 			m->radius = (int16_t)rad;
@@ -842,8 +737,6 @@ namespace cure001
 		}
 	}
 
-	// MAG_001_CURE_Ring_SpawnGlints (0x8D7D50): counter 4..10: 2 (4..6), 3 (7, 8), 4 (9, 10) glints
-	// (Effect_Glint_Tick) drawing into the module cursor: 8 ticks growing, 8 fading, spinning either way
 	static void SpawnGlints(Particle *r)
 	{
 		const CureParams::Glint &gp = P().glint;
@@ -869,10 +762,6 @@ namespace cure001
 		}
 	}
 
-	// ring phase 0 (MAG_001_CURE_Ring_State0_Init 0x8D81B0): spawning on; centre on the line's
-	// anchor at the top of the target's bounds; radius 2 x the bounds radius (at most 0x400); climb
-	// (height + 0x100) / -20 / 4 per sub-step; the overlay on the target, which the normal renderer
-	// then skips (entity flag 4)
 	static void RingInit(Particle *r)
 	{
 		*(uint8_t *)&r->h.flags |= 2;
@@ -885,7 +774,6 @@ namespace cure001
 		r->radius = (int16_t)rad;
 		if ((int16_t)rad > rp.radius_max) r->radius = rp.radius_max;
 		const int32_t hv = (int32_t)(int16_t)BoundsHeight(r) + rp.climb_extra;
-		// hv / -20 (compiled 0x99999999, >> 3: truncated toward zero), per place
 		const int32_t q = hv / -rp.climb_ticks;
 		r->vel[1] = (int16_t)((int32_t)(int16_t)q / rp.substeps);
 		SetupTargetOverlay(&Overlay(), OVERLAY_A00, (uint8_t *)OVERLAY_SPRITE, OVERLAY_VERTS, entity, r->h.slot);
@@ -894,8 +782,6 @@ namespace cure001
 		r->h.phase++;
 	}
 
-	// ring phase 2 (0x8D83A0): at the flipbook's end: the root is free again, the target shown,
-	// spawning and overlay off, done
 	static void RingEnd(Particle *r)
 	{
 		if (!LifetimeExpired(r)) return;
@@ -917,15 +803,12 @@ namespace ff8fx
 {
 namespace cure001
 {
-	// ------------------------------------------------------------------
-	// Sparkle (0x8D80B0) / Mote (0x8D7F60)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		Particle *p = (Particle *)n;
 		switch (p->h.phase)
 		{
-		case 0: // 0x8D8110: random velocity, flying out and up
+		case 0:
 			p->seq = SEQ_Sparkle;
 			p->last = P().sparkle.frames;
 			p->vel[0] = (int16_t)P().sparkle.vx.roll(CrtRand());
@@ -936,7 +819,6 @@ namespace cure001
 		case 1: Integrate(p); break;
 		default: break;
 		}
-		// 30 fps layer: see mag001_cure_held.inc
 		FX_HELD(held_note_particle(p);)
 		FX_PART(PART_SPARKLES);
 		DrawSprite(p);
@@ -954,7 +836,7 @@ namespace cure001
 		Particle *p = (Particle *)n;
 		switch (p->h.phase)
 		{
-		case 0: // 0x8D7FC0: rising at a random speed
+		case 0:
 			p->seq = SEQ_Mote;
 			p->last = P().mote.frames;
 			p->vel[1] = (int16_t)-P().mote.rise.roll(CrtRand());
@@ -965,7 +847,6 @@ namespace cure001
 		case 1: Integrate(p); break;
 		default: break;
 		}
-		// 30 fps layer: see mag001_cure_held.inc
 		FX_HELD(held_note_particle(p);)
 		FX_PART(PART_MOTES);
 		DrawSprite(p);
@@ -978,16 +859,13 @@ namespace cure001
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ring (0x8D6D80)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		Particle *r = (Particle *)n;
 		switch (r->h.phase)
 		{
 		case 0: RingInit(r); break;
-		case 1: // 0x8D8370: at 20 the ending flipbook
+		case 1:
 			if (r->h.counter >= P().ring.end_tick)
 			{
 				r->seq = SEQ_RingEnd;
@@ -1009,7 +887,6 @@ namespace cure001
 			SpawnMotes(r);
 			SpawnGlints(r);
 		}
-		// 30 fps layer: see mag001_cure_held.inc
 		FX_HELD(held_note_ring(r);)
 		if (r->h.flags & 8)
 		{
@@ -1021,8 +898,6 @@ namespace cure001
 		}
 		if (r->h.counter < P().glow.ticks)
 		{
-			// grey 0x3C - 3 * counter; the 4th byte is the high byte of the task argument (the node
-			// address) the colour is written over on the original's stack
 			const uint32_t grey = (uint8_t)(P().glow.grey - (uint8_t)(r->h.counter * P().glow.fade));
 			const uint32_t colour = grey | grey << 8 | grey << 16 | ((uint32_t)r & 0xFF000000u);
 			FX_PART(PART_RING);
@@ -1044,9 +919,6 @@ namespace cure001
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Emitter (0x8D6CC0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl EmitterTask(TaskNode *n)
 	{
 		EmitterNode *e = (EmitterNode *)n;
@@ -1054,12 +926,12 @@ namespace cure001
 		ComputeModelBounds(e);
 		switch (e->h.phase)
 		{
-		case 0: // 0x8D6D50: the ring
+		case 0:
 			AddEffectTask(QParticles(), ORIG_Ring, 0x6C, e);
 			e->h.phase++;
 			break;
 		case 1: e->h.phase++; break;
-		case 2: // 0x8D8410: heal from 15
+		case 2:
 			if (e->h.counter >= P().emitter.heal_tick)
 			{
 				ApplyActionResultToTarget(e->h.ctx->actions[e->h.action].targets + e->h.target * TARGET_STRIDE);
@@ -1079,26 +951,23 @@ namespace cure001
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x8D6B30)
-	// ------------------------------------------------------------------
 	static void RootPhase(RootNode *r)
 	{
 		switch (r->h.phase)
 		{
-		case 0: // 0x8D6C60
-		case 1: // 0x8D6C70
+		case 0:
+		case 1:
 			r->h.phase++;
 			break;
-		case 2: // 0x8D6C80: children gone
+		case 2:
 			if (r->h.children == 0) r->h.phase++;
 			break;
-		case 3: // 0x8D6C90: the emitter of the current action
+		case 3:
 			r->busy = 1;
 			AddEffectTask(QEmitters(), ORIG_Emitter, 0x58, r);
 			r->h.phase++;
 			break;
-		case 4: // 0x8D8460: when the ring is over, the next action (back to 3) or on
+		case 4:
 			if (r->busy == 0)
 			{
 				const int8_t a = r->h.action;
@@ -1111,21 +980,21 @@ namespace cure001
 				else r->h.phase++;
 			}
 			break;
-		case 5: // 0x8D84A0
+		case 5:
 			r->h.phase++;
 			break;
-		case 6: // 0x8D84B0: every queue empty
+		case 6:
 			if (r->alive == 0) r->h.phase++;
 			break;
-		case 7: // 0x8D84C0
-		case 8: // 0x8D84D0
+		case 7:
+		case 8:
 			r->h.phase++;
 			break;
-		case 9: // 0x8D84E0: done
+		case 9:
 			*(uint8_t *)&r->h.flags |= 1;
 			r->h.phase++;
 			break;
-		default: break; // 0x8D8500
+		default: break;
 		}
 	}
 
@@ -1145,14 +1014,13 @@ namespace cure001
 			PacketCursor() = var<uint32_t>(ARENA_B);
 			PacketLimit() = var<uint32_t>(LIMIT_B);
 		}
-		// 30 fps layer: see mag001_cure_held.inc
 		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);
 		r->alive = 0;
 		r->alive = (int16_t)(r->alive + ExecuteTaskQueue(QEmitters()));
 		r->alive = (int16_t)(r->alive + ExecuteTaskQueue(QParticles()));
-		FX_PART(PART_GLINTS);                 // the shared glint task draws them
+		FX_PART(PART_GLINTS);
 		r->alive = (int16_t)(r->alive + ExecuteTaskQueue(QGlints()));
 		FX_PART(0);
 		r->tick++;
@@ -1166,9 +1034,6 @@ namespace cure001
 	}
 }
 
-	// ------------------------------------------------------------------
-	// Parameter table (fx_params.h): what an editor shows of CureParams
-	// ------------------------------------------------------------------
 	namespace cure001
 	{
 		using fxp::Field;
@@ -1274,7 +1139,6 @@ namespace cure001
 		register_port(cure001::ORIG_Ring, (void *)cure001::RingTask, "001 Ring", 1);
 		register_port(cure001::ORIG_Mote, (void *)cure001::MoteTask, "001 Mote", 1);
 		register_port(cure001::ORIG_Sparkle, (void *)cure001::SparkleTask, "001 Sparkle", 1);
-		// 30 fps layer: see mag001_cure_held.inc
 		FX_HELD(register_mag001_held();)
 	}
 	FX_LAB_MODULE(register_mag001_cure);

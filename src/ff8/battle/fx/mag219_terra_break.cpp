@@ -14,46 +14,14 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 219: Terra Break (enemy attack 311 of kernel.bin, Omega Weapon c0m114), cinematic-engine module MAG_219
-// 0xABD3F0..0xACA0F0, script data magic/mag218_b.00/.01 (loaded by MAG_219_TERRA_BREAK_FL 0xABD3F0: IO_GetFile_MAGIC
-// of the names 0x186F198 / 0x186F1A4; setup MAG_219_TERRA_BREAK 0xABD420 = effect table index 218).
-//
-// The module is one more compile of the GF cinematic engine (gfc_engine.cpp) with the standard
-// table layout (draw table 0x186EAD4; its descriptor block 0x186E6D0 sits 0x404 below the draw
-// table: the engine reads it through c.desc). Instruction-level comparison against the ported
-// clones (module-relative addresses normalised, table regions symbolic, jump tables and callee
-// trees hashed; work\gfcX\tools\cmpall.py / best.py / callees.py / fdiff.py):
-//   - SetupSummon 0xABD480, BindContext 0xABD4D0, the section pointers 0xABD570, InitSequenceState
-//     0xAC9700 and SequenceTick 0xABDA90 (the unlit BuildMatricesAndDraw) are byte clones of Sand
-//     Shake 256's; the initial frame limit 0xACA0D0 sets 0x2C4 (original setup code, not ported);
-//     lit_dispatcher false;
-//   - every table handler is a byte clone of the generic (Ifrit) one or a `ret` stub (as Beam
-//     Cannon 250, plus the generic prim 8), except
-//       VM 0x006 LoadBattleFile 0xAC5820: same code, own load callback 0xAC5950 (c.load_cb),
-//       prim 6 0xAC0CE0 TintedF3 = Eden 0xAEB5B0 (apply_eden_d), draw 16 0xABE340 = Bahamut 0xB198C0
-//         ScrollTextureU (apply_shared_misc), draw 37 0xABE840 = Bahamut 0xB1A130 RibbonTrail
-//         (apply_shared_ribbon), draw 58 0xABFB20 = Eden 0xAEA550 RequestScreenFeedback (apply_eden_c)
-//         (only those slots taken),
-//       VM 0x0AD 0xAC92E0 PosFromPosedEntityJoint = Ice Strike 228's 0xA8EA50 / Homing Laser 229's
-//         0xA84780 (copied from mag228_ice_strike.cpp),
-//       VM 0x12E 0xAC53A0 ApplyNextTargetResult = Blood Pain 262's 0x954DA0 (copied),
-//       VM 0x0B3 0xAC7800 SteerTowardBone, draw 49 0xAC26B0 StageShatter (+ 0xAC2890 / 0xAC2EA0 /
-//         0xAC3460), draw 67 0xAC2230 FoggedGridSheet: Terra Break's own handlers, ported here (their
-//         module helpers 0xABFF90 / 0xAC20C0 = the generic 0xB27130 / 0xB29450: h_B27130 / h_B29450).
-// The effect's queue (0x2796C50) holds one task, the engine tick 0xABDA90.
-// Battle writes: draw 49 hides stage groups 0..2 (stage group slots 0x1D9898C + 0x2C k, +5 bit 1)
-// on its first draw (group 3 +5 bit 1 set) and rebuilds their skeletons on every draw; VM 0x0AD rebuilds the slot entity's
-// bone matrices; VM 0x12E applies the action result to the next target; the battle camera words
-// through the engine's camera ops (VM 0x039).
-
 #include "gfc_engine.h"
 
 namespace ff8fx
 {
 namespace gfc
 {
-	void apply_eden_c(Clone &c);  // mag_eden.cpp
-	void apply_eden_d(Clone &c);  // mag_eden.cpp
+	void apply_eden_c(Clone &c);
+	void apply_eden_d(Clone &c);
 
 namespace terra219
 {
@@ -76,67 +44,46 @@ namespace terra219
 	{
 		c.name = "219 Terra Break";
 		c.effect_id = 219;
-		c.vm_table = 0x186EC78;      // MAG_219 VmOpcodeTable (draw_table + 0x1A4)
-		c.bone_table = 0x186E8E8;    // MAG_219 BoneHandlerTable (draw_table - 0x1EC)
-		c.prim_table = 0x186E930;    // bone_table + 0x48
-		c.prim_size = 0x186EA20;     // bone_table + 0x138
-		c.spr_table = 0x186EA34;     // bone_table + 0x14C
-		c.ptype_table = 0x186EA60;   // bone_table + 0x178
-		c.pop_table = 0x186EA74;     // bone_table + 0x18C
-		c.draw_table = 0x186EAD4;    // MAG_219 DrawHandlerTable
+		c.vm_table = 0x186EC78;
+		c.bone_table = 0x186E8E8;
+		c.prim_table = 0x186E930;
+		c.prim_size = 0x186EA20;
+		c.spr_table = 0x186EA34;
+		c.ptype_table = 0x186EA60;
+		c.pop_table = 0x186EA74;
+		c.draw_table = 0x186EAD4;
 		c.attr_16A = 0x186EC3E;
 		c.attr_184 = 0x186EC58;
 		c.attr_186 = 0x186EC5A;
 		c.attr_194 = 0x186EC68;
 		c.attr_19C = 0x186EC70;
-		c.desc = 0x186E6D0;          // draw_table - 0x404 (read by 0xABD570)
-		c.ptr_block = 0x186E8C0;     // draw_table - 0x214 (read by 0xABD4D0)
+		c.desc = 0x186E6D0;
+		c.ptr_block = 0x186E8C0;
 		c.queue = 0x2796C50;
 		c.file00 = 0x2796C64;
 		c.file01 = 0x2796C60;
 		c.tick = 0xABDA90;
-		c.load_cb = 0xAC5950;        // passed by VM 0x006 0xAC5820
+		c.load_cb = 0xAC5950;
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// engine calls
-	// ------------------------------------------------------------------------------------
-	// 0xB66B80 (blob): matrix of joint `joint` of the model whose BattleAnimHeader is `hdr`,
-	// composed with m; joint origin -> ws+0xF0..0xF8. Returns ws+0xD0. Writes only ws + GTE.
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
 		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(0xB66B80)(hdr, joint, scale, m);
 	}
-	// 0xB67A60 (shared GF helper blob, original address): steers the point {s16 x, y, z, s16 angle A,
-	// s16 angle B} p toward the target point t: both angles turned toward the target by at most
-	// `turn` (blob 0xB67B80), p + speed * (sin, cos) of them -> ws+0xF0..0xF5 (new point), ws+0xE0 /
-	// ws+0xE4 = the new angles; returns 1 when the new point lies within `reach` of the target.
-	// Writes only the workspace.
 	static inline int32_t xl_Steer_B67A60(const void *p, const void *t, int32_t speed, int32_t turn, int32_t reach, int32_t a, int32_t b)
 	{
 		return x::f<int32_t (__cdecl *)(const void *, const void *, int32_t, int32_t, int32_t, int32_t, int32_t)>(0xB67A60)(p, t, speed, turn, reach, a, b);
 	}
-	// the bone's slot entity (scene entity table [bone+0x1B])
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
-	// ------------------------------------------------------------------------------------
-	// 0xAC92E0 (VM 0x0AD PosFromPosedEntityJoint, = Ice Strike 228's 0xA8EA50 / Homing Laser 229's
-	// 0xA84780, copied from mag228_ice_strike.cpp): the slot entity's bone matrices rebuilt from its
-	// pose (header entity+0x60, or *(entity+0x78) when op bit 15 is set), joint w0 of that model (blob
-	// 0xB66B80, composed with the entity matrix +0x40) applied to outPos -> accumPos = the camera-space
-	// point << 16. Then the bone handler. Length 4.
-	// 30 fps: while the held layer predicts the next tick, the joint comes from the entity's NEXT
-	// pose (see mag219_terra_break_held.inc).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_0AD_PosFromPosedEntityJoint()
 	{
-		uint8_t *ent = SlotEntity();                                          // edi
+		uint8_t *ent = SlotEntity();
 		const bool weapon = (U8(RT(), 0x4B) & 0x80) != 0;
-		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;                  // esi
+		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		// 30 fps layer: see mag219_terra_break_held.inc
 		FX_HELD(if (held_predicting()) held_next_pose(hdr, weapon ? hdr + 0xC : ent + 0x6C);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
@@ -150,16 +97,10 @@ namespace terra219
 		STREAM() += 4;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xAC53A0 (VM 0x12E ApplyNextTargetResult, = Blood Pain 262's 0x954DA0, copied from
-	// mag262_blood_pain.cpp): while SceneHeader+0x3A < the target count (ctx+0xCC list +0x10), the
-	// action result of target [SceneHeader+0x3A] (list +8, 0x18 each) is applied and the index
-	// stepped. Length 2.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_12E_ApplyNextTargetResult()
 	{
-		uint8_t *list = PTR(CTX(), 0xCC);                                     // ecx
-		const int32_t i = U8(SCENE(), 0x3A);                                  // eax
+		uint8_t *list = PTR(CTX(), 0xCC);
+		const int32_t i = U8(SCENE(), 0x3A);
 		if (S8(list, 0x10) > i)
 		{
 			x::ApplyActionResultToTarget((int32_t)(uint32_t)(PTR(list, 8) + 0x18 * i));
@@ -168,18 +109,11 @@ namespace terra219
 		STREAM() += 2;
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xAC7800 (VM 0x0B3 SteerTowardBone): operand s16 bone T. The bone's steering state bone+0xA0
-	// {s16 x, y, z, s16 angle A, s16 angle B}. Opcode bit 0x8000 (RT+0x4B & 0x80): start: state =
-	// outPos, A = 0xB66B30(x, z, T.x, T.z), B = 0xB66B30(y, z, T.y, T.z). Else one step (blob 0xB67A60,
-	// outPos = speed / turn rate / reach): state and outPos = the new point, A / B = the new angles,
-	// bone+0x4A bit 0 = arrived. Length 4.
-	// ------------------------------------------------------------------------------------
 	static void __cdecl op_0B3_SteerTowardBone()
 	{
-		uint8_t *t = blob::GetBone(S16(STREAM(), 2));                       // eax
-		uint8_t *cur = CUR();                                                // ecx
-		uint8_t *st = cur + 0xA0;                                            // esi
+		uint8_t *t = blob::GetBone(S16(STREAM(), 2));
+		uint8_t *cur = CUR();
+		uint8_t *st = cur + 0xA0;
 		if (U8(RT(), 0x4B) & 0x80)
 		{
 			const int16_t x0 = S16(cur, 0x94), y0 = S16(cur, 0x96), z0 = S16(cur, 0x98);
@@ -207,35 +141,22 @@ namespace terra219
 		STREAM() += 4;
 	}
 
-	// 0x56CC50 GTE_SetFogNearFar(near, far, h): fog globals 0x209AB64 / 0xC78BF0 + GTE DQA / DQB
 	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x56CC50)(a, b, h); }
-	// 0x56CAA0 GTE_RotTransPersNormalColor(v, n, colour, sxy, rgb, flag): RTPS of v -> sxy, NCDS-style lit colour -> rgb, returns OTZ
 	static inline int32_t xl_RotTransPersNormalColor_56CAA0(const void *v, const void *n, const void *c, void *sxy, void *rgb, void *flag)
 	{
 		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(0x56CAA0)(v, n, c, sxy, rgb, flag);
 	}
 
-	// ------------------------------------------------------------------------------------
-	// 0xAC2230 (draw 67 FoggedGridSheet): bone+0xB8 = {s16 reference bone, s16 texture id, s16 W, s16 H,
-	// s16 fog near, s16 fog far}. A (W+1) x (H+1) vertex grid 0x200 apart in the bone's XZ plane (Y =
-	// outPos Y << 4; the grid offset by outPos X / Z & 0x1FF: a scrolling sheet), each vertex projected
-	// and lit (0x56CAA0, colour 0x3C808080), drawn as W x H Gouraud textured quads (GT4, 0x34 bytes)
-	// with the texture's tpage / CLUT (blob 0xB665C0 / 0xB66640), UVs stepping 0x20 per cell from
-	// (-(W/2 << 5) - (outPos Z >> 4 & 0xE0), -(H/2 << 5) - (outPos X >> 4 & 0x1E0)), in the alternate
-	// viewport (SSIGPU_InsertPrimAltViewport); depth slot bone+0xC0 when bone+0xDE bit 0x20, else the
-	// cell's mean depth. Far colour = the reference bone's colour, fog near / far from the descriptor.
-	// The parent transform is built with outAngle Y forced to 0x1000 (put back after).
-	// ------------------------------------------------------------------------------------
 	static void __cdecl dh_67_FoggedGridSheet()
 	{
-		const uint8_t *d = PTR(CUR(), 0xB8);                                  // esi
+		const uint8_t *d = PTR(CUR(), 0xB8);
 		S32(WS(), 0x60) = S16(d, 4);
 		S32(WS(), 0x64) = S16(d, 6);
-		const int32_t tex = S16(d, 2);                                        // edi
+		const int32_t tex = S16(d, 2);
 		blob::TexInfo_B665C0(tex);
 		U32(WS(), 0x68) = U32(WS(), 0xFC);
 		S32(WS(), 0x6C) = blob::ClutWord_B66640(tex);
-		uint8_t *ws = WS();                                                   // ecx
+		uint8_t *ws = WS();
 		{
 			const int32_t a = shl32(S32(ws, 0x60) / 2, 5);
 			const int32_t e = ((int32_t)U16(CUR(), 0x98) >> 4) & 0xE0;
@@ -249,10 +170,10 @@ namespace terra219
 		}
 		ws = WS();
 		S32(ws, 0x78) = mul32(S32(ws, 0x60) + 1, 12);
-		uint8_t *ref = blob::GetBone(S16(d, 0));                              // ebx
+		uint8_t *ref = blob::GetBone(S16(d, 0));
 		if (U8(CUR(), 0xDE) & 0x20) U32(WS(), 0x7C) = U32(CUR(), 0xC0);
 		else U32(WS(), 0x7C) = 0xFFFFFFFFu;
-		const int16_t angy = S16(CUR(), 0x8E);                                // edi
+		const int16_t angy = S16(CUR(), 0x8E);
 		S16(CUR(), 0x8E) = 0x1000;
 		h_B27130();
 		S16(CUR(), 0x8E) = angy;
@@ -260,17 +181,17 @@ namespace terra219
 		xl_SetFogNearFar_56CC50(S16(d, 8), S16(d, 0xA), 0x200);
 		const uint32_t rc = U32(ref, 0xCC);
 		x::GteSetBackColor3((int32_t)(rc & 0xFF), (int32_t)((rc >> 8) & 0xFF), (int32_t)((rc >> 16) & 0xFF));
-		uint8_t *v = PTR(CTX(), 0x74);                                        // ebx
+		uint8_t *v = PTR(CTX(), 0x74);
 		ws = WS();
 		S16(ws, 0xC0) = (int16_t)((U16(CUR(), 0x94) & 0x1FF) - shl32(S32(ws, 0x64) / 2, 9));
 		ws = WS();
-		const int32_t z0 = (int32_t)(U16(CUR(), 0x98) & 0x1FF) - shl32(S32(ws, 0x60) / 2, 9);   // [ebp-8]
+		const int32_t z0 = (int32_t)(U16(CUR(), 0x98) & 0x1FF) - shl32(S32(ws, 0x60) / 2, 9);
 		S16(ws, 0xC2) = 0;
 		S16(WS(), 0xC8) = (int16_t)(U16(CUR(), 0x96) << 4);
 		S16(WS(), 0xCA) = 0;
 		S16(WS(), 0xCC) = 0;
 		U32(WS(), 0xE0) = 0x3C808080;
-		const uint32_t code = (U32(CUR(), 0xCC) & 0x2000000) | 0x3C000000;   // edi
+		const uint32_t code = (U32(CUR(), 0xCC) & 0x2000000) | 0x3C000000;
 		ws = WS();
 		if (S32(ws, 0x64) >= 0)
 		{
@@ -293,17 +214,17 @@ namespace terra219
 				ws = WS();
 			}
 		}
-		uint8_t *row0 = PTR(CTX(), 0x74);                                     // ebx
-		uint8_t *row1 = row0 + S32(ws, 0x78);                                 // edi
-		uint8_t *pk = PTR(CTX(), 0x7C);                                       // esi
-		int32_t vv = S32(ws, 0x74);                                           // [ebp-4]
+		uint8_t *row0 = PTR(CTX(), 0x74);
+		uint8_t *row1 = row0 + S32(ws, 0x78);
+		uint8_t *pk = PTR(CTX(), 0x7C);
+		int32_t vv = S32(ws, 0x74);
 		for (int32_t r = S32(ws, 0x64); r > 0; r--)
 		{
 			int32_t u = S32(ws, 0x70);
 			const int32_t w = S32(ws, 0x60);
 			if (w > 0)
 			{
-				const int32_t v2 = vv + 0x20;                                     // [ebp-0x14]
+				const int32_t v2 = vv + 0x20;
 				for (int32_t c = w; c > 0; c--)
 				{
 					U8(pk, 3) = 0xC;
@@ -345,50 +266,27 @@ namespace terra219
 		PTR(CTX(), 0x7C) = pk;
 	}
 
-	// 0x56CB30 (-> 0x56CB00): GTE NCLIP of three screen coordinates (SXY words)
 	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56CB30)(s0, s1, s2); }
-	// 0x45C7A0 SSIGPU_InsertPrimAutoDepth(ot, prim)
 	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(0x45C7A0)(ot, prim); }
-	// GTE data registers (0x1CA8A10 + 4 * reg)
 	static inline uint32_t &TbGte(int reg) { return MEM<uint32_t>(0x1CA8A10 + 4 * reg); }
-	// x / 3 as compiled (imul 0x55555556, + sign bit of the high half)
 	static inline int32_t TbDiv3(int32_t v)
 	{
 		const int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
 		return hi + (int32_t)((uint32_t)hi >> 31);
 	}
 
-	// Draw 49 StageShatter. The battle stage geometry groups 0..2 (stage group slots 0x1D9898C + 0x2C k, from +4: e = slot + 4:
-	// +1 bit 0 = present, +4 skeleton (bone matrices from +0x20, 0x30 each), +8 model (object table:
-	// count, offsets; per object vertex groups {bone, count, s16 xyz}, then triangle / quad records),
-	// +0x14 BattleAnimHeader, +0x28 far colour) fall apart in shards: every polygon whose centroid comes
-	// within outAngleX of the bone's outPos (model space) is launched as a shard (the pool at bone+0xBC:
-	// 0x400 records of 0x2C, model order) and from then on drawn as a free triangle / quad that falls
-	// (velocity +9 << 4 per tick on Y) and spins (byte angles +0x12 / +0x1A / +0x22 += +0x13 / +0x1B /
-	// +0x23) in the colour of the descriptor table [life +7] (semi-transparent), until its life runs
-	// out; the other polygons are drawn in place (the model as posed). Descriptor bone+0xB8: {s16
-	// offset of the colour table, s16 life, s16 reference bone}; the reference bone gives the launch
-	// velocity (outPos Y + rand(outAngle Y)) >> 4 and the spin rates (outPos Z + rand(outAngle Z)).
-	// First draw: the pool, every record's life, and stage groups 0..2 hidden from the battle stage renderer
-	// (render entries 0..2 +1 bit 1 cleared, entry 3 +1 bit 1 set).
-
-	// one shard record (0x2C): +0/+2/+4 s16 position (model space, relative to outPos), +6 u8 launched,
-	// +7 s8 life, +8 u8 0, +9 s8 fall speed, +0xC / +0x14 / +0x1C / +0x24 s16 xyz vertex offsets (the
-	// 4th only for quads), +0x12 / +0x1A / +0x22 s8 angles X / Y / Z (+0x13 / +0x1B / +0x23 their rates)
-
-	// launch of the polygons near the bone (0xAC2890), on real ticks only (it draws random numbers)
 	static void Launch_AC2890(uint8_t *e, uint8_t *pool)
 	{
 		if (!(U8(e, 1) & 1)) return;
-		uint8_t *ws = WS();                                                    // edi
+		uint8_t *ws = WS();
 		x::BuildBoneMatricesFromPose(e + 0x14);
-		uint8_t *mats = PTR(e, 4) + 0x10;                                      // [ebp-0x1c]
+		uint8_t *mats = PTR(e, 4) + 0x10;
 		const uint8_t *tab = PTR(e, 8);
 		int32_t nobj = S32(tab, 0);
 		tab += 4;
 		for (; nobj > 0; nobj--)
 		{
-			const uint8_t *obj = PTR(e, 8) + U32(tab, 0) + 2;                 // ebx
+			const uint8_t *obj = PTR(e, 8) + U32(tab, 0) + 2;
 			tab += 4;
 			uint8_t *out = PTR(CTX(), 0x74);
 			PTR(ws, 0x88) = out;
@@ -414,7 +312,7 @@ namespace terra219
 			const uint8_t *t = (const uint8_t *)(((uintptr_t)obj + 3) & ~(uintptr_t)3);
 			S16(ws, 0xD0) = S16(t, 4);
 			S16(ws, 0xD2) = S16(t, 6);
-			const uint8_t *p = t + 0xC;                                        // [ebp-4]
+			const uint8_t *p = t + 0xC;
 			const uint8_t *vb = PTR(ws, 0x88);
 			for (; S16(ws, 0xD0) > 0; S16(ws, 0xD0) = (int16_t)(S16(ws, 0xD0) - 1), pool += 0x2C, p += 0x14)
 			{
@@ -482,12 +380,9 @@ namespace terra219
 		}
 	}
 
-	// 0xAC3460: the shard's step (not frozen: life - 1, Y += speed << 4, angles += rates) and its
-	// transform (angles << 4, translation = position, composed with the parent matrix ws+0x84) into
-	// the GTE. Held frames (30 fps layer): the in-between of the step instead (TbHeldShard).
 	static void ShardStep_AC3460(uint8_t *s)
 	{
-		uint8_t *ws = WS();                                                    // ebx
+		uint8_t *ws = WS();
 		if (U8(RT(), 0x45) == 0)
 		{
 			FX_HELD(TbNoteStep(s);)
@@ -512,24 +407,22 @@ namespace terra219
 		x::SetTransVector(ws + 0xE0);
 	}
 
-	// 0xAC2EA0: the model of render entry e drawn (polygons not launched, in place) and its shards;
-	// returns the pool cursor after the model's records (0 when the entry is not present, as vanilla)
 	static uint8_t *Draw_AC2EA0(uint8_t *e, uint8_t *pool)
 	{
 		if (!(U8(e, 1) & 1)) return nullptr;
-		uint8_t *ws = WS();                                                    // ebx
+		uint8_t *ws = WS();
 		x::BuildBoneMatricesFromPose(e + 0x14);
 		Mat4x3 *par = blob::GetParentMatrix(0);
 		PTR(WS(), 0x84) = (uint8_t *)par;
 		x::ComputeBonesWorldMatrices(e + 0x14, par);
 		x::GteSetBackColor3(U8(e, 0x28), U8(e, 0x29), U8(e, 0x2A));
-		uint8_t *mats = PTR(e, 4) + 0x10;                                      // [ebp-0x38]
+		uint8_t *mats = PTR(e, 4) + 0x10;
 		const uint8_t *tab = PTR(e, 8);
 		int32_t nobj = S32(tab, 0);
 		tab += 4;
 		for (; nobj > 0; nobj--)
 		{
-			const uint8_t *obj = PTR(e, 8) + U32(tab, 0) + 2;                 // esi
+			const uint8_t *obj = PTR(e, 8) + U32(tab, 0) + 2;
 			tab += 4;
 			uint8_t *out = PTR(CTX(), 0x74);
 			PTR(ws, 0x88) = out;
@@ -552,10 +445,10 @@ namespace terra219
 				}
 			}
 			const uint8_t *t = (const uint8_t *)(((uintptr_t)obj + 3) & ~(uintptr_t)3);
-			const uint8_t *rec = t + 0xC;                                      // edi
+			const uint8_t *rec = t + 0xC;
 			S16(ws, 0xD0) = S16(t, 4);
 			S16(ws, 0xD2) = S16(t, 6);
-			uint8_t *pk = PTR(CTX(), 0x7C);                                    // esi
+			uint8_t *pk = PTR(CTX(), 0x7C);
 			const uint8_t *vb = PTR(ws, 0x88);
 			if (S16(ws, 0xD0) > 0)
 			{
@@ -649,7 +542,6 @@ namespace terra219
 		return pool;
 	}
 
-	// 0xAC26B0 (draw 49 StageShatter): see above
 	static void __cdecl dh_49_StageShatter()
 	{
 		if (U32(CUR(), 0xBC) == 0)
@@ -667,8 +559,8 @@ namespace terra219
 				MEM<uint8_t>(0x1D98A15) |= 2;
 			}
 		}
-		const uint8_t *d = PTR(CUR(), 0xB8);                                  // esi
-		uint8_t *ref = blob::GetBone(S16(d, 4));                              // eax
+		const uint8_t *d = PTR(CUR(), 0xB8);
+		uint8_t *ref = blob::GetBone(S16(d, 4));
 		PTR(WS(), 0x98) = (uint8_t *)d + S16(d, 0);
 		S32(WS(), 0x9C) = S16(d, 2);
 		S32(WS(), 0x60) = S16(CUR(), 0x94);
@@ -685,17 +577,12 @@ namespace terra219
 		static uint8_t *const ENT[3] = { (uint8_t *)0x1D98990, (uint8_t *)0x1D989BC, (uint8_t *)0x1D989E8 };
 		for (int k = 0; k < 3; k++)
 		{
-			// 30 fps layer: launches on real ticks only; the group skeleton the draw rebuilds is put back
 			FX_HELD(if (g_held.active) { pool = TbHeldDraw(ENT[k], pool); continue; })
 			Launch_AC2890(ENT[k], pool);
 			pool = Draw_AC2EA0(ENT[k], pool);
 		}
 	}
 
-	// ------------------------------------------------------------------------------------
-	// handler set: the shared handlers this module carries (only these slots taken from the shared
-	// sets), then Terra Break's own
-	// ------------------------------------------------------------------------------------
 	static VoidFn g_save_vm[0x200], g_save_big[256], g_save_draw[256];
 
 	static void apply_slots(Clone &c)
@@ -704,23 +591,23 @@ namespace terra219
 		ff8fx::copy<(sizeof(g_save_big))>(g_save_big, c.bigtab);
 		ff8fx::copy<(sizeof(g_save_draw))>(g_save_draw, c.draw);
 		apply_shared_misc(c);
-		const VoidFn d16 = c.draw[16];        // 0xABE340 = Bahamut 0xB198C0 ScrollTextureU
+		const VoidFn d16 = c.draw[16];
 		apply_eden_c(c);
-		const VoidFn d58 = c.draw[58];        // 0xABFB20 = Eden 0xAEA550 RequestScreenFeedback
+		const VoidFn d58 = c.draw[58];
 		apply_eden_d(c);
-		const VoidFn p6 = c.prim[6];          // 0xAC0CE0 = Eden 0xAEB5B0 TintedF3
+		const VoidFn p6 = c.prim[6];
 		ff8fx::copy<(sizeof(g_save_vm))>(c.vm, g_save_vm);
 		ff8fx::copy<(sizeof(g_save_big))>(c.bigtab, g_save_big);
 		ff8fx::copy<(sizeof(g_save_draw))>(c.draw, g_save_draw);
 		c.draw[16] = d16;
 		c.draw[58] = d58;
 		c.prim[6] = p6;
-		apply_shared_ribbon(c);               // draw 37 0xABE840
-		c.vm[0x0AD] = op_0AD_PosFromPosedEntityJoint;   // 0xAC92E0
-		c.vm[0x0B3] = op_0B3_SteerTowardBone;           // 0xAC7800
-		c.vm[0x12E] = op_12E_ApplyNextTargetResult;     // 0xAC53A0
-		c.draw[49] = dh_49_StageShatter;                // 0xAC26B0
-		c.draw[67] = dh_67_FoggedGridSheet;             // 0xAC2230
+		apply_shared_ribbon(c);
+		c.vm[0x0AD] = op_0AD_PosFromPosedEntityJoint;
+		c.vm[0x0B3] = op_0B3_SteerTowardBone;
+		c.vm[0x12E] = op_12E_ApplyNextTargetResult;
+		c.draw[49] = dh_49_StageShatter;
+		c.draw[67] = dh_67_FoggedGridSheet;
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
@@ -737,7 +624,6 @@ namespace terra219
 		init_clone(terra219::g_c, nullptr, 0);
 		terra219::apply_slots(terra219::g_c);
 		register_port(0xABDA90, (void *)terra219::SequenceTask, "MAG219 Terra Break SequenceTick", 219);
-		// 30 fps layer: see mag219_terra_break_held.inc
 		FX_HELD(register_mag219_terra_break_held();)
 	}
 }

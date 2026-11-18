@@ -14,39 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 106: Reflect (spell, MAG_106_*). The same effect as the "ruby" part of Carbuncle's
-// Ruby Light (mag278: RubyTask 0x6822F0 and its stones / rings / wall), in its own copy.
-//
-// Structure (setup MAG_106_REFLECT 0x6D2AE0 -> _Init 0x6D2AF0, file loader 0x6D2AC0 = the texture
-// file named at 0x13009B4 into 0x2521F70). _Init keeps the cast context, sets up the root pool and
-// the barrier / beam / hexagon / ring pools (module .data), measures the reflect wall model
-// 0x12F9B80 (lowest vertex z -> 0x2523C7E, z span + 1/16 -> 0x2523C7C), starts camera animation
-// 0x12FC200 and queues the TIM (unless cast flag bit0), seeds the shared LCG 0x2557098 with rand().
-//   DirectorTask (0x6D2C00) - alternates the packet arena (0x2523C98 / 0x2533C98); on counter 0
-//     of a 10-tick cycle starts a barrier on the first target of the next action, unless a
-//     barrier of 35 ticks or less still runs on that target (the cycle then restarts), with 8
-//     hexagons around it; runs the barrier, hexagon and ring queues and the beam list; ends when
-//     all four are empty.
-//   Barrier (0x6D3160) - node 0x5C, 41 ticks: the target's Y rotation scaled by its size composed
-//     with the camera; ticks 0..19: the hexagons' centre moves along the wall model's vertex list
-//     and 12 beams are "spawned" (see AppendByValue: never run); ticks 5..39: the reflect wall
-//     (0x12F9B80, drawn by 0x6D3490 = textured quads, gouraud triangles, gouraud quads, all with
-//     a V scroll) grows over 5..25 (vertices of z in [base, base + span * (t + 1) / 20]) and fades
-//     to black over 26..39; rings at 5, 11, 17; sound at 0, damage at 35.
-//   Hexagon (0x6D2F30) - node 0x1C, 17 ticks: prim model 0x12FBAA0 at `angle` around the centre,
-//     Z-rotated by -angle, tilted about X, squashed in x and faded from tick 11.
-//   Ring (0x6D3AF0) - node 0x1C, 21 ticks: prim model 0x12FBB78 at a height above the target,
-//     scaled up (braking speed), fade sin(t * 1024 / 20).
-//   Beam (0x6D3C50) - node 0x1C, sprite sequence 0x12F99D4 through 0x683490: vanilla dead code
-//     (the beam list is never linked, see AppendByValue).
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2521BB8..0x2543CF0 (pools, texture file, context, wall base / span, root pool,
-// beam header, both packet arenas, packet cursor 0x2543C98, queues). The shared effect LCG seed
-// 0x2557098 (MAG_106_sub_7059E0) is outside.
-// Helpers of other modules called here are local copies: MAG_103_sub_6DBCC0 (yaw x scale),
-// MAG_011_sub_6CF070 (Z rotation), MAG_003_sub_6D5940 (X rotation), Thunder_InitBoltTask
-// 0x6DA380 (dword fill), MAG_106_sub_705A00 (append by value), MAG_106_sub_6827B0 /
-// MAG_106_sub_682D00 (Carbuncle's wall renderers, shared with this module's 0x6D34E0).
+// Effect 106: Reflect
 
 #include "mag_common.h"
 
@@ -57,16 +25,15 @@ namespace reflect106
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2523B78); }
-	inline int16_t &WallSpan() { return var<int16_t>(0x2523C7C); }          // z span of the wall model + 1/16
-	inline int16_t &WallBase() { return var<int16_t>(0x2523C7E); }          // lowest vertex z of the wall model
-	inline uint8_t *&BeamHeader() { return var<uint8_t *>(0x2523C94); }     // sprite header of the beam list (per tick)
+	inline int16_t &WallSpan() { return var<int16_t>(0x2523C7C); }
+	inline int16_t &WallBase() { return var<int16_t>(0x2523C7E); }
+	inline uint8_t *&BeamHeader() { return var<uint8_t *>(0x2523C94); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543C98); }
-	inline TaskQueue *QBarriers() { return (TaskQueue *)0x2543CB0; }        // pool 0x2521BB8, 3 x 0x5C
-	inline TaskQueue *QBeams() { return (TaskQueue *)0x2543CC0; }           // pool 0x2521F78, 0x100 x 0x1C (own executor)
-	inline TaskQueue *QHexagons() { return (TaskQueue *)0x2543CD0; }        // pool 0x2521CD0, 0x18 x 0x1C
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2543CE0; }           // pool 0x2523B80, 9 x 0x1C
+	inline TaskQueue *QBarriers() { return (TaskQueue *)0x2543CB0; }
+	inline TaskQueue *QBeams() { return (TaskQueue *)0x2543CC0; }
+	inline TaskQueue *QHexagons() { return (TaskQueue *)0x2543CD0; }
+	inline TaskQueue *QRings() { return (TaskQueue *)0x2543CE0; }
 	static const uint32_t POOL_Barriers = 0x2521BB8;
 	static const uint32_t ARENA_0 = 0x2523C98;
 	static const uint32_t ARENA_1 = 0x2533C98;
@@ -76,109 +43,97 @@ namespace reflect106
 	static const uint32_t ORIG_BarrierTask = 0x6D3160;
 	static const uint32_t ORIG_RingTask = 0x6D3AF0;
 	static const uint32_t ORIG_BeamTask = 0x6D3C50;
-	static const uint32_t MODEL_Wall = 0x12F9B80;     // +4 vertex count, +8 vertices (8 bytes: x, y, z, pad)
+	static const uint32_t MODEL_Wall = 0x12F9B80;
 	static const uint32_t MODEL_Hexagon = 0x12FBAA0;
 	static const uint32_t MODEL_Ring = 0x12FBB78;
 	static const uint32_t SEQ_Beam = 0x12F99D4;
-	static const uint32_t TABLE_SinCos = 0x12FC9B4;   // 0x1000 x { s16 sin, s16 cos }
+	static const uint32_t TABLE_SinCos = 0x12FC9B4;
 	static const void *const SOUND_Reflect = (const void *)0x12FC9B0;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }  // MAG_106_sub_7059E0: (125 s + 14) & 0x7FFF
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void MatMul56C220(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }           // a = a x b (3x3 + pad)
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }        // GTE_MatrixMultiply: b = a x b (3x3 + pad)
-	// MAG_106_sub_683490 (Carbuncle's beam sprites, reached only by the dead beam task)
+	inline void MatMul56C220(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	inline uint32_t DrawBeamSprites(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x683490)(h, ot, mode, cursor); }
-	// software GTE
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }  // GTE_ReadOTZ
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }  // someCameraWork_45DD60
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }            // set_unk_1CA8A28
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }                     // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct DirectorNode // root pool 0x2523C80, 1 x 0x14
+	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C 0..9, a barrier spawn at 0
-		uint8_t action;   // +0x0E next action
+		int16_t counter;
+		uint8_t action;
 		uint8_t pad0F;
-		uint32_t arena;   // +0x10 packet arena parity
+		uint32_t arena;
 	};
-	struct BarrierNode // pool 0x2521BB8, 3 x 0x5C
+	struct BarrierNode
 	{
 		TaskNode hdr;
-		int16_t frame;      // +0x0C
-		int16_t action;     // +0x0E action index
-		uint8_t *entity;    // +0x10 first target of the action
-		Mat4x3 model;       // +0x14 Y rotation (entity +0x0E) x min(size << 2, 0x1000); translation = the
-		                    //   middle of effect points 0xF0 / 0xF1 (set at the spawn)
-		Mat4x3 view;        // +0x34 camera x model
-		int16_t center[3];  // +0x54 centre of the hexagons (x = 0, y / z along the wall model's vertices)
+		int16_t frame;
+		int16_t action;
+		uint8_t *entity;
+		Mat4x3 model;
+		Mat4x3 view;
+		int16_t center[3];
 		int16_t pad5A;
 	};
-	struct HexagonNode // pool 0x2521CD0, 0x18 x 0x1C
+	struct HexagonNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t tilt;     // +0x0E X rotation
-		int16_t angle;    // +0x10 position angle around the centre (and -Z rotation)
-		int16_t dangle;   // +0x12
-		int16_t dtilt;    // +0x14
+		int16_t counter;
+		int16_t tilt;
+		int16_t angle;
+		int16_t dangle;
+		int16_t dtilt;
 		int16_t pad16;
-		BarrierNode *parent; // +0x18
+		BarrierNode *parent;
 	};
-	struct RingNode // pool 0x2523B80, 9 x 0x1C
+	struct RingNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t height;   // +0x0E
-		int16_t scale;    // +0x10
-		int16_t speed;    // +0x12
-		int16_t accel;    // +0x14
+		int16_t counter;
+		int16_t height;
+		int16_t scale;
+		int16_t speed;
+		int16_t accel;
 		int16_t pad16;
-		BarrierNode *parent; // +0x18
+		BarrierNode *parent;
 	};
-	struct BeamNode // pool 0x2521F78, 0x100 x 0x1C (never run in vanilla)
+	struct BeamNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C sequence frame
-		int16_t angle;    // +0x0E
-		int16_t scale;    // +0x10
-		int16_t y;        // +0x12
-		int16_t vy;       // +0x14
+		int16_t counter;
+		int16_t angle;
+		int16_t scale;
+		int16_t y;
+		int16_t vy;
 		int16_t pad16;
-		BarrierNode *parent; // +0x18
+		BarrierNode *parent;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(DirectorNode) == 0x14 && sizeof(BarrierNode) == 0x5C, "Reflect nodes");
 	static_assert(sizeof(HexagonNode) == 0x1C && sizeof(RingNode) == 0x1C && sizeof(BeamNode) == 0x1C, "Reflect nodes");
 
-	// ------------------------------------------------------------------
-	// Local copies of helpers of other modules
-	// ------------------------------------------------------------------
-	// Thunder_InitBoltTask (0x6DA380): fill `count` dwords
 	static void FillDwords(void *dst, uint32_t value, uint32_t count)
 	{
 		uint32_t *d = (uint32_t *)dst;
 		for (; count; count--) *d++ = value;
 	}
 
-	// MAG_103_sub_6DBCC0: yaw rotation scaled by s (3x3 only; the yaw is the low word of arg 1)
 	static void YawScaleMatrix(int16_t yaw, Mat4x3 *m, int16_t s)
 	{
 		int32_t sn = mul32(ComputeSin(yaw), s) >> 12;
@@ -194,7 +149,6 @@ namespace reflect106
 		m->m[2][2] = (int16_t)cs;
 	}
 
-	// MAG_011_sub_6CF070: rotation about z (3x3 only: pad and translation not written)
 	static void ZRotation(int16_t angle, Mat4x3 *m)
 	{
 		const int32_t s = ComputeSin(angle);
@@ -210,7 +164,6 @@ namespace reflect106
 		m->m[2][2] = 0x1000;
 	}
 
-	// MAG_003_sub_6D5940: rotation about the X axis (translation and pad untouched)
 	static void XRotation(int16_t angle, Mat4x3 *m)
 	{
 		int32_t s = ComputeSin(angle);
@@ -226,13 +179,6 @@ namespace reflect106
 		m->m[2][2] = (int16_t)c;
 	}
 
-	// MAG_106_sub_705A00: "append" a node to a queue passed BY VALUE. It links the new node
-	// only behind the copy's tail and never writes the real header back.
-	// VANILLA DEAD CODE: the beam list 0x2543CC0 is only ever filled through this function,
-	// its head stays 0 (only _Init's InitTaskQueuePool and the executor 0x6D2EE0 write it) and
-	// its tail is the executor's last survivor (0 on an empty list), so every beam node is
-	// allocated but never linked: BeamTask never runs, and the 256-node pool fills up (after
-	// which no more are made, and no LCG number is drawn for them). Reproduced as is.
 	static TaskNode *AppendByValue(TaskQueue q, uint32_t task_fn)
 	{
 		uint8_t *p = (uint8_t *)q.pool;
@@ -250,10 +196,6 @@ namespace reflect106
 		return nullptr;
 	}
 
-	// ------------------------------------------------------------------
-	// Module helpers
-	// ------------------------------------------------------------------
-	// MAG_106_sub_6D30F0: (x, y) of src rotated by angle (module sin / cos table), z copied
 	static void Rot2D(const int16_t *src, int16_t *dst, int32_t angle)
 	{
 		const uint32_t a = (uint32_t)angle & 0xFFF;
@@ -264,7 +206,6 @@ namespace reflect106
 		dst[2] = src[2];
 	}
 
-	// MAG_106_sub_6D2DE0: middle of the entity's effect points 0xF1 and 0xF0
 	static void EffectCentre(uint8_t *entity, int16_t *out)
 	{
 		int16_t a[4], b[4];
@@ -275,8 +216,6 @@ namespace reflect106
 		out[2] = (int16_t)(((int32_t)b[2] + a[2]) >> 1);
 	}
 
-	// hexagon centre at barrier frame f (0..19): the wall model's vertices f * 3 / 4 and the next,
-	// blended by the fraction (y +2, z +4 of the 8-byte vertices)
 	static void BarrierCenter(int32_t f, int16_t out[3])
 	{
 		const uint32_t t = ((uint32_t)f * 15u << 12) / 20u;
@@ -290,14 +229,6 @@ namespace reflect106
 		out[2] = (int16_t)((mul32((int32_t)var<int16_t>(v + 0xC) - a, w) >> 12) + a);
 	}
 
-	// ------------------------------------------------------------------
-	// The reflect wall renderer (MAG_106_sub_6D3490) and its three primitive passes. Header h
-	// (0x60 bytes): +0 model, +4..+6 far colour, +8 fog (IR0, 0 = none), +0x0C / +0x0E U / V
-	// scroll, +0x10 / +0x18 texture windows around each primitive, +0x1C / +0x1E U / V wrap,
-	// +0x20 vertices, +0x24 primitive list cursor, +0x30 OTZ, +0x34 GTE FLAG, +0x38..+0x57 the
-	// primitive's vertices, +0x5C / +0x5E z range of the vertices drawn.
-	// ------------------------------------------------------------------
-	// GP0(E2) texture window word of the 4 halves at tw (+0 / +2 bytes, +4 / +6 words)
 	static uint32_t TexWindow(const uint8_t *tw)
 	{
 		uint32_t e = (uint32_t)(tw[2] & 0xF8) | 0xFFFE2000u;
@@ -310,12 +241,9 @@ namespace reflect106
 		return e;
 	}
 
-	// screen coordinate out of range: x 0..0xA00, y 0..0x6C0
 	static inline bool OutX(const uint8_t *xy) { int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
 	static inline bool OutY(const uint8_t *xy) { int16_t v = *(const int16_t *)xy; return v < 0 || v > 0x6C0; }
 
-	// the texture window prims around a primitive: window h + 0x10 inserted first, then the
-	// primitive, then the window h + 0x18
 	static uint8_t *Windows(const uint8_t *h, uint32_t bucket, uint8_t *pk, uint8_t *p2)
 	{
 		*(uint32_t *)p2 = 0x2000000;
@@ -331,8 +259,6 @@ namespace reflect106
 		return p3 + 0xC;
 	}
 
-	// vertex `index` (8 bytes at vtx + index * 4) into the header slot; false when its z word is
-	// outside [h + 0x5C, h + 0x5E] (the primitive is skipped)
 	static bool FetchVertex(uint8_t *h, int slot, const uint8_t *vtx, uint16_t index)
 	{
 		*(uint32_t *)(h + slot) = *(const uint32_t *)(vtx + index * 4);
@@ -341,8 +267,6 @@ namespace reflect106
 		return z >= *(const int16_t *)(h + 0x5C) && z <= *(const int16_t *)(h + 0x5E);
 	}
 
-	// adds the scroll word to a byte of each vertex; when any sum exceeds 0xFF all of them wrap
-	// by the wrap byte (b[] = the byte offsets, the last one is written last)
 	static void Scroll(uint8_t *pk, const int *b, int n, uint32_t scroll, uint8_t wrap)
 	{
 		uint32_t v[4], any = 0;
@@ -356,8 +280,6 @@ namespace reflect106
 		for (int i = 0; i < n; i++) pk[b[i]] = (uint8_t)v[i];
 	}
 
-	// MAG_106_sub_6827B0 (Carbuncle's module, local copy): textured quads (records of 0x18 bytes:
-	// code / colour, 4 vertex indices, UVs), fog toward the far colour
 	static uint32_t MeshFT4(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *pl = *(uint8_t **)(h + 0x24);
@@ -417,9 +339,6 @@ namespace reflect106
 		return (uint32_t)pk;
 	}
 
-	// MAG_106_sub_682D00 (Carbuncle's module, local copy): gouraud textured triangles (records of
-	// 0x1C bytes: code / colour 0, 3 vertex indices, UV 2, UV 0 / CLUT, UV 1 / page, colours 1, 2);
-	// fog: colours 1, 2 and 0 through DPCT
 	static uint32_t MeshGT3(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *pl = *(uint8_t **)(h + 0x24);
@@ -477,8 +396,6 @@ namespace reflect106
 		return (uint32_t)pk;
 	}
 
-	// MAG_106_sub_6D34E0: gouraud textured quads (records of 0x24 bytes, colours at +0x18..+0x20),
-	// fog toward the far colour
 	static uint32_t MeshGT4(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *pl = *(uint8_t **)(h + 0x24);
@@ -547,7 +464,6 @@ namespace reflect106
 		return (uint32_t)pk;
 	}
 
-	// MAG_106_sub_6D3490: the wall model's textured quads, gouraud triangles, gouraud quads
 	static uint32_t RenderWall(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *model = *(uint8_t **)h;
@@ -559,11 +475,6 @@ namespace reflect106
 		return MeshGT4(h, ot, mode, cursor);
 	}
 
-	// ------------------------------------------------------------------
-	// Draw helpers
-	// ------------------------------------------------------------------
-	// wall parameters at wall step e = barrier frame - 5 (0..34): top of the z range (+0x5E)
-	// and fog (+0x08)
 	static int32_t WallHeight(int32_t e)
 	{
 		if ((uint32_t)e <= 0x14) return (int16_t)((int16_t)((uint32_t)mul32(e + 1, WallSpan()) / 20u) + WallBase());
@@ -574,11 +485,8 @@ namespace reflect106
 		if ((uint32_t)e <= 0x14) return 0;
 		return (int32_t)((uint32_t)shl32(e + 0xFFFEC, 12) / 15u);
 	}
-	// V scroll of the wall at 8 x barrier frame (steps of 8 texels, 0x80 wrap)
 	static uint16_t WallScroll(int32_t f8) { return (uint16_t)((uint8_t)(0u - (uint8_t)f8) & 0x7F); }
 
-	// 0x6D32BE..0x6D339C: the reflect wall through the barrier's view (header freed by the caller:
-	// the ring spawn reads its +0x5E)
 	static uint8_t *WallDraw(uint16_t scroll, int32_t height, int32_t fade, const Mat4x3 *view)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x60);
@@ -605,7 +513,6 @@ namespace reflect106
 		return h;
 	}
 
-	// fade parameters of a hexagon at its tick c (0x6D2FA2..0x6D2FF4): fade and x squash from 11
 	static void HexagonFade(int32_t c, int32_t &fade, int32_t &sx)
 	{
 		if (c > 0xA)
@@ -621,25 +528,23 @@ namespace reflect106
 		}
 	}
 
-	// 0x6D2F30..0x6D30A8: hexagon at `angle` around the centre, Z-rotated by -angle, squashed in
-	// x, tilted about X, at the rotated point
 	static void HexagonDraw(const int16_t *center, int16_t angle, int16_t tilt, int32_t fade, int16_t sx, const Mat4x3 *view)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		int16_t p[4] = { 0, 0, 0, 0 }; // 4th word: vanilla stack garbage (GTE VZ0 high half only)
+		int16_t p[4] = { 0, 0, 0, 0 };
 		Rot2D(center, p, angle);
 		GteSetRotMatrix(view);
 		GteSetTransVector(view);
 		GteLoadV0(p);
 		GteMVMVA_RotV0Tr();
-		Mat4x3 X = {};  // its translation = the rotated point in view space
+		Mat4x3 X = {};
 		GteReadMAC123(X.t);
 		*(uint32_t *)(h + 0x1C) = 0xF3;
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
 		*(int32_t *)(h + 0xC) = fade;
-		Mat4x3 S = {};  // pad / translation: vanilla stack garbage (never read)
+		Mat4x3 S = {};
 		S.m[0][0] = sx;
 		S.m[1][1] = 0x1000;
 		S.m[2][2] = 0x1000;
@@ -658,11 +563,10 @@ namespace reflect106
 
 	static int32_t RingFade(int32_t c) { return ComputeSin(shl32(c, 10) / 20); }
 
-	// 0x6D3AF0..0x6D3BF9: ring at `height` above the barrier's origin, scaled
 	static void RingDraw(int16_t height, int16_t scale, int32_t fade, const Mat4x3 *view)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		int16_t V[4] = { 0, 0, height, 0 }; // 4th word: vanilla stack garbage (GTE VZ0 high half only)
+		int16_t V[4] = { 0, 0, height, 0 };
 		GteSetRotMatrix(view);
 		GteSetTransVector(view);
 		GteLoadV0(V);
@@ -696,13 +600,9 @@ namespace ff8fx
 {
 namespace reflect106
 {
-	// ------------------------------------------------------------------
-	// Hexagon (0x6D2F30): 17 ticks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl HexagonTask(TaskNode *n)
 	{
 		HexagonNode *x = (HexagonNode *)n;
-		// 30 fps layer: see mag106_reflect_held.inc
 		FX_HELD(held_note_hexagon(x);)
 		int32_t fade, sx;
 		HexagonFade(x->counter, fade, sx);
@@ -714,13 +614,9 @@ namespace reflect106
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ring (0x6D3AF0): 21 ticks, the growth speed brakes to 0x10
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *g = (RingNode *)n;
-		// 30 fps layer: see mag106_reflect_held.inc
 		FX_HELD(held_note_ring(g);)
 		RingDraw(g->height, g->scale, RingFade(g->counter), &g->parent->view);
 		if (g->counter >= 0x14) return TASK_END;
@@ -731,16 +627,12 @@ namespace reflect106
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Beam (0x6D3C50): 16-frame sprite sequence 0x12F99D4 rising from the hexagons' centre once
-	// the barrier passes frame 20. VANILLA DEAD CODE (see AppendByValue): never runs.
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl BeamTask(TaskNode *n)
 	{
 		BeamNode *b = (BeamNode *)n;
 		uint8_t *h = BeamHeader();
 		BarrierNode *parent = b->parent;
-		int16_t out[4] = { 0, 0, 0, 0 }; // 4th word: vanilla stack garbage
+		int16_t out[4] = { 0, 0, 0, 0 };
 		if (parent->frame >= 0x14)
 		{
 			if (b->vy == 0) b->vy = (int16_t)((SharedRand() & 0x3F) + 0x80);
@@ -778,15 +670,11 @@ namespace reflect106
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Barrier (0x6D3160), one per action, 41 ticks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl BarrierTask(TaskNode *n)
 	{
 		BarrierNode *b = (BarrierNode *)n;
 		int32_t scale = (int32_t)*(const int16_t *)(b->entity + 0x26) << 2;
 		if (scale > 0x1000) scale = 0x1000;
-		// the yaw goes in AX over the scale (the callee reads the low word)
 		YawScaleMatrix((int16_t)*(const uint16_t *)(b->entity + 0xE), &b->model, (int16_t)scale);
 		ComposeAffineTransform(&Camera(), &b->model, &b->view);
 		if ((uint32_t)(int32_t)b->frame < 0x14)
@@ -809,7 +697,6 @@ namespace reflect106
 		const int32_t e = b->frame - 5;
 		if ((uint32_t)e < 0x23)
 		{
-			// 30 fps layer: see mag106_reflect_held.inc
 			FX_HELD(held_note_wall(b, e);)
 			uint8_t *h = WallDraw(WallScroll(shl32(b->frame, 3)), WallHeight(e), WallFade(e), &b->view);
 			if ((uint32_t)e < 0x12 && (uint32_t)e % 6u == 0)
@@ -839,11 +726,6 @@ namespace reflect106
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Beam list executor (MAG_106_sub_6D2E50 + MAG_106_sub_6D2EE0): a per-tick sprite header on
-	// the scratch stack (published in 0x2523C94), then every node of the list; finished nodes are
-	// freed and unlinked, the tail becomes the last survivor. Returns the nodes left.
-	// ------------------------------------------------------------------
 	static uint32_t RunBeams()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -887,13 +769,9 @@ namespace reflect106
 		return alive;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x6D2C00)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		// 30 fps layer: see mag106_reflect_held.inc
 		FX_HELD(held_note_director();)
 		if (d->arena)
 		{
@@ -911,7 +789,6 @@ namespace reflect106
 			if (d->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[d->action].targets[0]);
-				// wait while a barrier of 35 ticks or less runs on this target
 				BarrierNode *pool = (BarrierNode *)POOL_Barriers;
 				bool busy = false;
 				for (int k = 0; k < 3; k++)
@@ -923,7 +800,6 @@ namespace reflect106
 				if (busy) d->counter = 0;
 				else
 				{
-					// (no null test in the original: the pool holds 3 barriers)
 					BarrierNode *b = (BarrierNode *)AddTaskToQueue(QBarriers(), ORIG_BarrierTask);
 					FillDwords(&b->frame, 0, 0x14);
 					b->action = (int16_t)(uint16_t)d->action;
@@ -969,7 +845,6 @@ namespace reflect106
 		register_port(reflect106::ORIG_HexagonTask, (void *)reflect106::HexagonTask, "R106 HexagonTask", 106);
 		register_port(reflect106::ORIG_RingTask, (void *)reflect106::RingTask, "R106 RingTask", 106);
 		register_port(reflect106::ORIG_BeamTask, (void *)reflect106::BeamTask, "R106 BeamTask", 106);
-		// 30 fps layer: see mag106_reflect_held.inc
 		FX_HELD(register_mag106_held();)
 	}
 }

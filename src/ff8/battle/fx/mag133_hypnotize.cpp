@@ -14,59 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 133: Hypnotize (enemy attack 76 of kernel.bin, Gayla c0m033; MAG_133_*). No other
-// kernel.bin entry uses effect 133.
-//
-// Structure (setup MAG_133_HYPNOTIZE 0x6B0FB0 -> _Init 0x6B0FE0, file loader 0x6B0FC0 = the
-// texture file named at 0x1212B60; the setup keeps the CASTER's entity and the cast context, starts
-// camera animation 0x1212A30 and queues the TIM; setup / loader / _Init are the copies of 126..132):
-//   MasterTask (0x6B1060) - alternates the packet arena (magic buffer + 0xE0C / + 0x10E0C); on
-//     counter 1 sets up the pools (main 1 x 0xC4 at + 0xD40, rings 8 x 0xB0 at + 0x7C0, target
-//     layouts 0x10 x 0x54 at + 0x280, target sprites 0x20 x 0x14 at + 0) and starts the main task
-//     with the targets of action 0 and the layout 0x1207958. Then the main, ring, target-layout and
-//     sprite queues; ends when all four are empty.
-//   MainTask (0x6B1230) - counters 0..0x1D: the layout 0x1207958 in VIEW space (not composed with
-//     the camera): the caster's default effect position projected (RTPS), the basis (0x50CBA0) of
-//     ((0xA0 - sx) << 4, (0x78 - sy) << 4, 12 H) as its rotation, translation (-(0xA0 - sx) << 4,
-//     -(0x78 - sy) << 4, 16 H) (H = the projection distance 0x1D8E038); its return value is not
-//     tested. Sound at counter 0. Even counters 0..0xE: a ring (table 0x1212AE0 / layouts
-//     0x1212B20). Even counters 2..0x16: a target layout at a random bone of a random target (CRT
-//     rand; layouts 0x1212B40). Even counters 0x12..0x28: a sprite at a random target's bone 0xF0
-//     (CRT rand). Damage of every target of action 0 at 0x22; ends at 0x2A.
-//   RingTask (0x6B17C0) - its table point (x, y, z, bone) through the caster's bone (0x6B18A0 =
-//     Dissolving Acid's 0x6B2B70) and the camera: the layout with the camera's rotation at that
-//     point, depth -0x80; ends with the layout.
-//   TargetLayoutTask (0x6B1900) - the layout at its spawn position with the camera's rotation
-//     scaled by its word +0x12 (GTE IR0 interpolation of the camera rows), depth -0x80; ends with
-//     the layout.
-//   SpriteTask (0x6B1740) - sprite sequence 0x12077B8 at its position through the shadow-rotation
-//     camera (0x400, -0x100), flipbook frame = its counter; 14 ticks.
-//   PrimCallback (0x6B1520, Heartbreak's 0x872700 on this module's cursor and parameter block)
-//     draws every layout object.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update: the layouts advance
-// in the prim player's play, the sprite's counter after its draw).
-// ENTITY / CAMERA: no task writes a battle entity (position +0x1C..+0x20 only read) or the camera
-// words (the camera animation is the engine's).
-// Module globals: 0x2520EE8..0x2520F60 (caster entity 0x2520EE8, texture file 0x2520EEC, magic
-// buffer base 0x2520EF0, context 0x2520EF4, master pool 0x2520EF8, packet cursor 0x2520F0C, the
-// queues 0x2520F10 sprites / 0x2520F20 target layouts / 0x2520F30 rings / 0x2520F40 main /
-// 0x2520F50 master).
-// The parameter block's blended vertex frames (magic buffer + 0xE04) lie 8 bytes before packet
-// arena A (+ 0xE0C): on arena-A ticks a blended object overwrites the tick's first packets (as in
-// the game).
-// NEVER-WRITTEN STACK WORDS (DR0 write watches under the game executor): only the 4th words of the
-// vectors loaded into GTE V0 (the ring's bone point, entry esp - 0x2A, and the callback's record
-// offset): they reach the GTE's VZ0 high half (0x1CA8A16) only, which nothing reads. The main
-// task's anchor carries the caster's height there (GetDefaultEffectPosition writes it); the target
-// layout's its scale word. The matrices' pad words (block + 0x12) are never read.
-// PC SCREEN UNITS: the PC's software GTE gives screen coordinates in eighths of a pixel
-// (GTE_RTPS 0x45FAA0: 8 x H x / z + 8 OFX); the main layout's frame takes them as the PSX's
-// pixels, so on PC its translation lands 8 times the caster's screen offset out (off screen) and
-// its basis leans out as much. HypnotizeParams main.pixels (on by default) takes them back to
-// pixels first, as the PSX had them; 0 keeps the PC's behaviour.
-// Parameters (HypnotizeParams, fx_params.h): the numbers below, one struct per part, defaults =
-// the game's; the parts are tagged (FX_PART) for the effect lab.
+// Effect 133: Hypnotize
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -78,15 +26,14 @@ namespace hypno133
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520EE8); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520EF0); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520EE8); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2520EF0); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2520EF4); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520F0C); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2520F10; }        // pool: magic buffer, 0x20 x 0x14
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520F20; }        // pool: + 0x280, 0x10 x 0x54
-	inline TaskQueue *QRings() { return (TaskQueue *)0x2520F30; }          // pool: + 0x7C0, 8 x 0xB0
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2520F40; }           // pool: + 0xD40, 1 x 0xC4
+	inline TaskQueue *QSprites() { return (TaskQueue *)0x2520F10; }
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x2520F20; }
+	inline TaskQueue *QRings() { return (TaskQueue *)0x2520F30; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2520F40; }
 	inline int16_t ProjectionH() { return var<int16_t>(0x1D8E038); }
 
 	static const uint32_t ORIG_MasterTask = 0x6B1060;
@@ -94,54 +41,51 @@ namespace hypno133
 	static const uint32_t ORIG_SpriteTask = 0x6B1740;
 	static const uint32_t ORIG_RingTask = 0x6B17C0;
 	static const uint32_t ORIG_TargetLayoutTask = 0x6B1900;
-	static const uint32_t MORPH = 0xE04;                 // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0xE0C;               // magic buffer: packet arenas
+	static const uint32_t MORPH = 0xE04;
+	static const uint32_t ARENA_A = 0xE0C;
 	static const uint32_t ARENA_B = 0x10E0C;
-	static const uint32_t MODEL_Main = 0x1207958;        // prim-model layouts
-	static const uint32_t *const MODEL_Rings = (const uint32_t *)0x1212B20;   // 8
-	static const uint32_t *const MODEL_Targets = (const uint32_t *)0x1212B40; // 8
-	static const uint32_t *const RING_TABLE = (const uint32_t *)0x1212AE0;    // 8 x (x, y, z, bone)
-	static const uint32_t SEQ_Sprite = 0x12077B8;        // sprite sequence
+	static const uint32_t MODEL_Main = 0x1207958;
+	static const uint32_t *const MODEL_Rings = (const uint32_t *)0x1212B20;
+	static const uint32_t *const MODEL_Targets = (const uint32_t *)0x1212B40;
+	static const uint32_t *const RING_TABLE = (const uint32_t *)0x1212AE0;
+	static const uint32_t SEQ_Sprite = 0x12077B8;
 	static const void *const SOUND_Hypnotize = (const void *)0x1212ADC;
 
-	// ------------------------------------------------------------------
-	// Parameters (fx_params.h): the game's values by default
-	// ------------------------------------------------------------------
 	struct HypnotizeParams
 	{
 		struct Timing
 		{
-			int16_t sound_tick;     // the sound plays (main counter)
-			int16_t damage_tick;    // every target of action 0 takes the result
-			int16_t end_tick;       // the main task ends
+			int16_t sound_tick;
+			int16_t damage_tick;
+			int16_t end_tick;
 		} timing;
 		struct Main
 		{
-			int16_t last_tick;      // drawn while the counter is at most this
-			int16_t basis_h;        // its basis: the screen offset at basis_h x H
-			int16_t depth_h;        // its translation at depth_h x H
-			int16_t offset_shift;   // the screen offset times 2^shift
-			int16_t pixels;         // 1: the screen offset in pixels (the PSX) instead of the PC's eighths
+			int16_t last_tick;
+			int16_t basis_h;
+			int16_t depth_h;
+			int16_t offset_shift;
+			int16_t pixels;
 		} main;
 		struct Spawned
 		{
-			fxp::Window window;     // main counters it is spawned at...
-			int16_t every;          // ...every this many ticks
+			fxp::Window window;
+			int16_t every;
 		};
 		Spawned rings;
 		struct Targets
 		{
 			Spawned spawn;
-			fxp::Range spread_x;    // added to the bone point's x
-			fxp::Range scale;       // its size (4096 = 1), rolled on rand() >> 4
-			int16_t depth;          // the prim header's depth
+			fxp::Range spread_x;
+			fxp::Range scale;
+			int16_t depth;
 		} targets;
 		struct Sprites
 		{
 			Spawned spawn;
-			int16_t bone;           // the target's bone point
+			int16_t bone;
 			fxp::Range spread_x, spread_y, spread_z;
-			int16_t frames;         // flipbook frames: lifetime
+			int16_t frames;
 		} sprites;
 	};
 	static const HypnotizeParams DEFAULTS = {
@@ -154,80 +98,67 @@ namespace hypno133
 	static HypnotizeParams g_params = DEFAULTS;
 	static inline const HypnotizeParams &P() { return g_params; }
 	enum PartId { PART_MAIN = 1, PART_RINGS = 2, PART_TARGETS = 3, PART_SPRITES = 4 };
-	// spawned at counter c: inside the window, every `every` ticks from its first
 	static inline bool Spawns(const HypnotizeParams::Spawned &s, int32_t c)
 	{
 		return s.window.has(c) && s.every > 0 && (c - s.window.first) % s.every == 0;
 	}
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
-	// BuildOrthonormalBasis (0x50CBA0): 3x3 basis of the direction v (int32 x3), returns |v|
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2520EF8)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0xC4 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t count;     // +0x0E targets of action 0
-		uint8_t *ents[3];  // +0x10 target entities
-		uint8_t layout[0xA8]; // +0x1C prim-model layout
+		int16_t counter;
+		int16_t count;
+		uint8_t *ents[3];
+		uint8_t layout[0xA8];
 	};
-	struct RingNode // pool of 8 nodes of 0xB0 bytes
+	struct RingNode
 	{
 		TaskNode hdr;
-		int16_t point[4];  // +0x0C table point x, y, z, caster bone
-		uint8_t layout[0x9C]; // +0x14 prim-model layout
+		int16_t point[4];
+		uint8_t layout[0x9C];
 	};
-	struct TargetNode // pool of 0x10 nodes of 0x54 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C spawn position
-		int16_t scale;     // +0x12 0x800..0xFFF
-		uint8_t layout[0x40]; // +0x14 prim-model layout
+		int16_t pos[3];
+		int16_t scale;
+		uint8_t layout[0x40];
 	};
-	struct SpriteNode // pool of 0x20 nodes of 0x14 bytes
+	struct SpriteNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t counter;   // +0x12 flipbook frame
+		int16_t pos[3];
+		int16_t counter;
 	};
-	// the prim-player callback's parameter block (a stack block of the drawing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 object frame (main: view space; else camera x anchor)
-		int32_t depth;     // +0x20 the prim header's +0x18
-		uint32_t morph;    // +0x24 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0xC4 && sizeof(RingNode) == 0xB0, "Hypnotize nodes");
 	static_assert(sizeof(TargetNode) == 0x54 && sizeof(SpriteNode) == 0x14, "Hypnotize nodes");
 	static_assert(sizeof(PrimArg) == 0x28, "Hypnotize prim block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6B1520, Heartbreak's 0x872700 on this module's cursor and block): one
-	// object of a layout. Vertex frame (or blend into the parameter block's morph buffer), rotation
-	// from the record's angles, the record's offset through the parameter matrix (flag 0x200: as
-	// is), the matrix composed with it, scale unless 1.0, fade, drawn by 0x7043B0.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -265,7 +196,6 @@ namespace hypno133
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		int32_t t[3];
 		if (r->flags & 0x200)
@@ -307,8 +237,6 @@ namespace hypno133
 		FieldFree(0x58);
 	}
 
-	// 0x6B18A0 (= Dissolving Acid's 0x6B2B70): a point through the caster's bone (word +6) composed
-	// with its matrix
 	static void BonePoint(const int16_t *entry, int16_t *out)
 	{
 		uint8_t *c = Caster();
@@ -321,10 +249,6 @@ namespace hypno133
 		GteStoreIR123(out);
 	}
 
-	// the main layout's view-space frame (0x6B1243..0x6B130B): the anchor projected, the basis of
-	// its screen offset from the centre (PSX pixels: 160, 120) at 12 H, translation at 16 H. The
-	// basis direction and the translation share the block's +0x14 words (the original's stack
-	// layout). On PC the projection is in eighths of a pixel (see PC SCREEN UNITS above).
 	static void MainFrame(const int16_t *pos, PrimArg *arg)
 	{
 		const HypnotizeParams::Main &mp = P().main;
@@ -350,7 +274,6 @@ namespace hypno133
 		v[2] = h * mp.depth_h;
 	}
 
-	// the camera rows scaled by s / 4096 through the GTE (IR0 interpolation, 0x6B190D..0x6B1958)
 	static void ScaledCamera(int32_t s, Mat4x3 *m)
 	{
 		GteSetIR0(s);
@@ -365,7 +288,6 @@ namespace hypno133
 		GteStoreIR123(&m->m[2][0]);
 	}
 
-	// an anchor through the camera: rotation already in m, translation = camera x pos + camera t
 	static void CameraAnchor(const int16_t *pos, Mat4x3 *m)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -377,7 +299,6 @@ namespace hypno133
 		m->t[2] = (int32_t)((uint32_t)m->t[2] + (uint32_t)Camera().t[2]);
 	}
 
-	// the sprite (0x6B1742..0x6B17A0)
 	static void SpriteDraw(const SpriteNode *s)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -399,13 +320,9 @@ namespace ff8fx
 {
 namespace hypno133
 {
-	// ------------------------------------------------------------------
-	// Sprite (0x6B1740)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(held_note_sprite(s);)
 		FX_PART(PART_SPRITES);
 		SpriteDraw(s);
@@ -413,9 +330,6 @@ namespace hypno133
 		return s->counter < P().sprites.frames ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Ring (0x6B17C0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *g = (RingNode *)n;
@@ -427,14 +341,10 @@ namespace hypno133
 		CameraAnchor(pos, &arg.m);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
-		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(held_note_play(PLAY_RING, n, (prim::Layout *)g->layout, &arg);)
 		return prim::play((prim::Layout *)g->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Target layout (0x6B1900)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetLayoutTask(TaskNode *n)
 	{
 		TargetNode *p = (TargetNode *)n;
@@ -444,21 +354,16 @@ namespace hypno133
 		CameraAnchor(p->pos, &arg.m);
 		arg.depth = P().targets.depth;
 		arg.morph = TexBase() + MORPH;
-		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(held_note_play(PLAY_TARGET, n, (prim::Layout *)p->layout, &arg);)
 		return prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
-	// a random target of action 0 (CRT rand)
 	static uint8_t *RandomTarget(const MainNode *t)
 	{
 		const int32_t i = mul32(CrtRand(), (int32_t)t->count) >> 15;
 		return t->ents[i];
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x6B1230)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *t = (MainNode *)n;
@@ -472,7 +377,6 @@ namespace hypno133
 			MainFrame(pos, &arg);
 			arg.depth = 0;
 			arg.morph = TexBase() + MORPH;
-			// 30 fps layer: see mag133_hypnotize_held.inc
 			FX_HELD(held_note_play(PLAY_MAIN, n, (prim::Layout *)t->layout, &arg);)
 			prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		}
@@ -523,13 +427,9 @@ namespace hypno133
 		return t->counter < pp.timing.end_tick ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6B1060)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
@@ -571,9 +471,6 @@ namespace hypno133
 	}
 }
 
-	// ------------------------------------------------------------------
-	// Parameter table (fx_params.h): what an editor shows of HypnotizeParams
-	// ------------------------------------------------------------------
 	namespace hypno133
 	{
 		using fxp::Field;
@@ -631,7 +528,6 @@ namespace hypno133
 		register_port(hypno133::ORIG_RingTask, (void *)hypno133::RingTask, "133 RingTask", 133);
 		register_port(hypno133::ORIG_TargetLayoutTask, (void *)hypno133::TargetLayoutTask, "133 TargetLayoutTask", 133);
 		register_port(hypno133::ORIG_SpriteTask, (void *)hypno133::SpriteTask, "133 SpriteTask", 133);
-		// 30 fps layer: see mag133_hypnotize_held.inc
 		FX_HELD(register_mag133_held();)
 	}
 	FX_LAB_MODULE(register_mag133_hypnotize);

@@ -14,27 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Shared effect prim-model player (Effect_PrimPlayer_Play 0x701970, ~300 callers in the effect
-// modules) - native twin and a live self-check against the original.
-//
-// Layout (the caller's player block):
-//   +0 data  (u8 *)   animation data; header = data + *(int32 *)(data + 4)
-//   +4 frame (int32)  frame counter (incremented after each unpaused play)
-//   +8 state          per-object integrator state, objects back to back
-// Header: +0 object count, +4 total frames, +8 int32 object offsets (from the header).
-// Object: +0 flags (u32; low byte copied into the record), +4 track flags tf (u32),
-//   +8 int32 key-table offsets (from the object), one per keyed channel, in channel order.
-// Channels, in order (state slots only for the channels the flags name):
-//   position  tf bits 0-2   value/vel/acc  3 x int32 each (16.16), key table 16-byte {key, v[3]}
-//   rotation  tf bits 3-5   same
-//   scale     tf bits 6-8   same (record default 0x1000)
-//   colour    tf bits 9-11  value/vel/acc  3 x int16 + pad each, key table 12-byte {key, w[3]}
-//   channel A tf bit 12     value/vel/acc  int32 each, clamped 0..0x10000000, 16-byte keys
-//   channel B tf bit 13     u16 a, u16 b, int32 c, int32 vel, int32 acc; 20-byte keys
-// A bit 0/1/2 set means "value/velocity/acceleration keyed"; any bit gives the value slot,
-// bits 1|2 the velocity slot, bit 2 the acceleration slot. Unpaused plays integrate
-// vel += acc, value += vel before the keys of the current frame overwrite slots.
-// For every object the player fills a 44-byte record and calls cb(layout, record, arg).
+// Prim model player shared by the effects
 
 #include "fx_port.h"
 #include "../../../patch.h"
@@ -51,8 +31,6 @@ namespace ff8fx::prim
 	static inline int32_t add32(int32_t a, int32_t b) { return (int32_t)((uint32_t)a + (uint32_t)b); }
 	static inline int32_t rd32(const uint8_t *p) { return *(const int32_t *)p; }
 
-	// keyframe search shared by 0x7017E0 (stride 16), 0x701790 (stride 12) and the inline
-	// lookups of channels A (16) and B (20): first key >= frame, the list ends with key -1
 	template<int STRIDE>
 	static const uint8_t *FindKey(const uint8_t *p, int32_t frame)
 	{
@@ -70,7 +48,6 @@ namespace ff8fx::prim
 		return k == frame ? p : nullptr;
 	}
 
-	// 0x701820: one 3-component integrator channel; returns the state cursor after it
 	static uint8_t *TrackEval(uint32_t f, const uint8_t *obj, const uint8_t *&keys, uint8_t *st,
 		int32_t frame, int16_t *out, bool paused)
 	{
@@ -120,7 +97,6 @@ namespace ff8fx::prim
 
 	static inline uint16_t clamp16(int32_t v) { return v < 0 ? 0 : (v > 0xFFFF ? 0xFFFF : (uint16_t)v); }
 
-	// one object of 0x701970: fills the record, advances the state cursor
 	static uint8_t *EvalObject(uint16_t index, const uint8_t *obj, uint8_t *st, int32_t frame, bool paused, Record &r)
 	{
 		ff8fx::fill<(sizeof(r))>(&r, 0);
@@ -135,7 +111,6 @@ namespace ff8fx::prim
 		st = TrackEval((tf >> 3) & 0xFF, obj, keys, st, frame, r.rot, paused);
 		st = TrackEval((tf >> 6) & 0xFF, obj, keys, st, frame, r.scale, paused);
 
-		// colour: value (u16 x3, pad) / velocity (s16 x3, pad) / acceleration
 		uint16_t *cv = (uint16_t *)st;
 		int16_t *cd = (int16_t *)(st + 8), *cdd = (int16_t *)(st + 16);
 		bool write = false;
@@ -182,7 +157,7 @@ namespace ff8fx::prim
 			st += 8;
 		}
 
-		if (tf & 0x1000) // channel A: int32 value / vel / acc, value clamped 0..0x10000000
+		if (tf & 0x1000)
 		{
 			int32_t *a = (int32_t *)st;
 			if (!paused)
@@ -197,7 +172,7 @@ namespace ff8fx::prim
 			r.a = (int16_t)(a[0] >> 16);
 			st += 12;
 		}
-		if (tf & 0x2000) // channel B: u16 x2, int32 value / vel / acc (value clamped)
+		if (tf & 0x2000)
 		{
 			int32_t *c = (int32_t *)(st + 4);
 			if (!paused)
@@ -219,7 +194,6 @@ namespace ff8fx::prim
 
 	static inline const uint8_t *Header(const Layout *l) { return l->data + rd32(l->data + 4); }
 
-	// state bytes of all objects (for the copy the self-check works on)
 	static uint32_t StateSize(const uint8_t *hdr)
 	{
 		int32_t count = rd32(hdr);
@@ -262,8 +236,6 @@ namespace ff8fx::prim
 		return total - l->frame;
 	}
 
-	// ---- live self-check: every call of the original player in the game (all effects) runs the
-	// native twin on a copy first and compares records, return value and final state ----
 	static uint32_t g_verify_ri = 0;
 	static uint32_t g_checked = 0, g_mismatch = 0;
 	struct VerifyCtx { Callback cb; Record *rec; int count; };

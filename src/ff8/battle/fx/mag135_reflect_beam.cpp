@@ -14,62 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 135: Reflect Beam (enemy attack 177 of kernel.bin, Elastoid c0m026; MAG_135_*). No other
-// kernel.bin entry uses effect 135.
-//
-// Structure (setup MAG_135_REFLECT_BEAM 0x6AEEA0 -> _Init 0x6AEED0, file loader 0x6AEEB0 = the
-// texture file named at 0x1201EB0; the setup keeps the CASTER's entity (0x2520DD0), starts camera
-// animation 0x1201D8C and queues the TIM):
-//   MasterTask (0x6AEF50) - alternates the packet arena (magic buffer + 0x2F64 / + 0x1AF64); on
-//     counter 1 sets up the pools once (sweep 1 x 0x2E0 at + 0x2A64, shots 8 x 0x26C at + 0x1704,
-//     reflections 3 x 0x32C at + 0xD80, sprites 0x60 x 0x24 at + 0) and starts the sweep: the
-//     targets of action 0 (entities, their order in the action), the centre of their default
-//     effect positions, the targets sorted by entity x (+0x1C) descending, layout 0x11FDAA4. Then the
-//     sweep queue, the caster's world bone matrices (0x5095B0), the shot queue, the caster's bone
-//     matrices rebuilt from its pose (0x508C90), the reflection and sprite queues; ends when all
-//     four are empty.
-//   SweepTask (0x6AF230) - counters 0..0x39. Screen flash from counter 15 (rise over 4 ticks, hold,
-//     fall from counter 45; off at the end). Counters 15..0x22: P = the caster's bone 0x1F (0x502170
-//     flag 0x1000); three beam segments (prim model 0x11FA580, oldest first, the two trailing ones
-//     fading (i + 4) x 0x200), segment i at s = counter - 15 - i in 0..9: its end X runs from the
-//     centre's x + 2500 down by 5000 x s / 10, the basis of (X, centre y, z) - P at P, scaled by
-//     diag(w, w, L) (sine of t / 4 + 0x200, t = s x 0x1000 / 10: w = (sine + 0x800) / 2, L = sine x
-//     |X - P| / 0x800, through the module matrix 0x2520E48); the leading segment starts a reflection
-//     on the next sorted target once X < its x (one per tick). Then layout +0x28 at P (depth -0x80).
-//     Sound at counter 0; a shot at counters 0, 4, .. 16 (from the caster's bones 29 / 30 / 32 in turn).
-//   ShotTask (0x6AFD20) - counters 0..0xC: Q = the caster's world bone (0x1201EA8 table) through
-//     (0, 0, -0x1000); layout +0x1C at Q; the bone basis (rows normalised, 0x56BDE0) at Q; E = Q +
-//     basis x (0, 0, 4a), a = (counter + 1) x 0x1000 / 13; E at or above the floor (y <= 0): E moved
-//     onto the floor along the line Q -> E (kept as the hit point, the hit flag set), length 17/16
-//     |E - Q|, else 4a; the beam
-//     model in the basis scaled by diag(w, w, length), w = sine(a / 2) / 8. While the hit flag is set
-//     layout +0x214 plays at the hit point (flag cleared when it ends); ends after counter 0xC
-//     without a hit flag.
-//   ReflectTask (0x6AF900) - at the target's bone 0xF1 (y + 0x80): counters 0..0xF: a glint on every
-//     even counter (random offset); counters 0x10..: layout +0x1C (depth -0x80), a burst every 4th
-//     counter up to 0x1F (random offset), 4 sparks per tick at counters 0x10..0x13 (random
-//     velocities, drag 1/16); damage of the target's records of action 0 at counter 0x19
-//     (0x6AFCB0); ends with the layout.
-//   BurstTask (0x6AFB00) / GlintTask (0x6AFB80) / SparkTask (0x6AFC00) - sprite sequences 0x11FA3C0
-//     (0x1770, -0x400, 16 frames) / 0x11FA208 (0x800, -0x400, 7 frames) / 0x11FA2CC (0x800, -0x200,
-//     8 frames; then velocity += drag, position += velocity) through the shadow-rotation camera.
-//   PrimCallback (0x6AF610, Petrify Stare's 0x6B9770 with Silence's flag 0x100 product) draws every
-//     layout object.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update).
-// ENTITY / CAMERA: the master rebuilds the caster entity's bone matrices (0x5095B0 world, 0x508C90
-// from the pose); no task writes an entity position (+0x1C..+0x20 only read) or the camera words (the
-// camera animation is the engine's). The screen flash level is the engine's (0x5713E0).
-// Module globals: 0x2520DD0..0x2520E5A (caster entity 0x2520DD0, texture file 0x2520DD4, magic
-// buffer base 0x2520DD8, context 0x2520DDC, master pool 0x2520DE0, packet cursor 0x2520DF4, the
-// queues 0x2520DF8 sprites / 0x2520E08 reflections / 0x2520E18 shots / 0x2520E28 sweep / 0x2520E38
-// master, the beam scale matrix 0x2520E48).
-// NEVER-WRITTEN STACK WORDS: ShotTask's end point word +6 (entry esp - 0x42) is copied into the hit
-// point's 4th word (node +0x1A, 0x6AFF04) on a floor hit: the high half of the caster entity + 0x40
-// (see ShotResidue); that word then only reaches the GTE V0 pad. The 4th words of the
-// vectors loaded into GTE V0 (the shot's (0, 0, -0x1000) and end point, the sweep's P in the layout
-// block, the callback's record offset) reach the GTE's VZ0 high half (0x1CA8A16) only. The matrices'
-// pad words are never read.
+// Effect 135: Reflect Beam
 
 #include "mag_common.h"
 
@@ -80,16 +25,15 @@ namespace reflect135
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520DD0); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520DD8); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520DD0); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2520DD8); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2520DDC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520DF4); }
-	inline Mat4x3 &Scale() { return var<Mat4x3>(0x2520E48); }              // beam scale (diagonal only written)
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2520DF8; }        // pool: magic buffer, 0x60 x 0x24
-	inline TaskQueue *QReflects() { return (TaskQueue *)0x2520E08; }       // pool: + 0xD80, 3 x 0x32C
-	inline TaskQueue *QShots() { return (TaskQueue *)0x2520E18; }          // pool: + 0x1704, 8 x 0x26C
-	inline TaskQueue *QSweep() { return (TaskQueue *)0x2520E28; }          // pool: + 0x2A64, 1 x 0x2E0
+	inline Mat4x3 &Scale() { return var<Mat4x3>(0x2520E48); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)0x2520DF8; }
+	inline TaskQueue *QReflects() { return (TaskQueue *)0x2520E08; }
+	inline TaskQueue *QShots() { return (TaskQueue *)0x2520E18; }
+	inline TaskQueue *QSweep() { return (TaskQueue *)0x2520E28; }
 
 	static const uint32_t ORIG_MasterTask = 0x6AEF50;
 	static const uint32_t ORIG_SweepTask = 0x6AF230;
@@ -98,108 +42,94 @@ namespace reflect135
 	static const uint32_t ORIG_GlintTask = 0x6AFB80;
 	static const uint32_t ORIG_SparkTask = 0x6AFC00;
 	static const uint32_t ORIG_ShotTask = 0x6AFD20;
-	static const uint32_t MORPH = 0x2D44;                // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x2F64;              // magic buffer: packet arenas
+	static const uint32_t MORPH = 0x2D44;
+	static const uint32_t ARENA_A = 0x2F64;
 	static const uint32_t ARENA_B = 0x1AF64;
-	static const uint32_t MODEL_Sweep = 0x11FDAA4;       // prim-model layouts
+	static const uint32_t MODEL_Sweep = 0x11FDAA4;
 	static const uint32_t MODEL_Reflect = 0x120031C;
 	static const uint32_t MODEL_Shot = 0x11FBF48;
 	static const uint32_t MODEL_ShotHit = 0x1201644;
-	static const uint32_t PRIM_Beam = 0x11FA580;         // prim model (0x572200)
-	static const uint32_t SEQ_Burst = 0x11FA3C0;         // sprite sequences
+	static const uint32_t PRIM_Beam = 0x11FA580;
+	static const uint32_t SEQ_Burst = 0x11FA3C0;
 	static const uint32_t SEQ_Glint = 0x11FA208;
 	static const uint32_t SEQ_Spark = 0x11FA2CC;
-	static const uint32_t SHOT_Bones = 0x1201EA8;        // 3 caster bones (29, 30, 32)
+	static const uint32_t SHOT_Bones = 0x1201EA8;
 	static const void *const SOUND_Beam = (const void *)0x1201D88;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }             // sub_56C220: a = a x b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
-	// BuildOrthonormalBasis (0x50CBA0): 3x3 basis of the direction v (int32 x3), returns |v|
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void NormalizeVector16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); } // sub_56BDE0
+	inline void NormalizeVector16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2520DE0)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct SweepNode // pool of 1 node of 0x2E0 bytes
+	struct SweepNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t count;     // +0x0E targets of action 0
-		uint8_t order[3];  // +0x10 the sorted targets' indices in the action
-		uint8_t next;      // +0x13 next sorted target to reflect on
-		uint8_t *ents[3];  // +0x14 sorted target entities
-		int16_t centre[3]; // +0x20 centre of their default effect positions
+		int16_t counter;
+		int16_t count;
+		uint8_t order[3];
+		uint8_t next;
+		uint8_t *ents[3];
+		int16_t centre[3];
 		int16_t pad26;
-		uint8_t layout[0x2B8]; // +0x28
+		uint8_t layout[0x2B8];
 	};
-	struct ShotNode // pool of 8 nodes of 0x26C bytes
+	struct ShotNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t hit;       // +0x0E hit layout playing
-		const int16_t *bone; // +0x10 caster bone (entry of SHOT_Bones)
-		int16_t hitpos[4]; // +0x14 floor hit point (+0x1A: a stack word, see ShotResidue)
-		uint8_t layout[0x1F8]; // +0x1C
-		uint8_t hitlayout[0x58]; // +0x214
+		int16_t counter;
+		int16_t hit;
+		const int16_t *bone;
+		int16_t hitpos[4];
+		uint8_t layout[0x1F8];
+		uint8_t hitlayout[0x58];
 	};
-	struct ReflectNode // pool of 3 nodes of 0x32C bytes
+	struct ReflectNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t order;     // +0x0E the target's index in the action
-		uint8_t *ent;      // +0x10 target entity
-		int16_t pos[4];    // +0x14 its bone 0xF1, y + 0x80 (+0x1A never written)
-		uint8_t layout[0x310]; // +0x1C
+		int16_t counter;
+		int16_t order;
+		uint8_t *ent;
+		int16_t pos[4];
+		uint8_t layout[0x310];
 	};
-	struct SpriteNode // pool of 0x60 nodes of 0x24 bytes (bursts, glints, sparks)
+	struct SpriteNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t counter;   // +0x12 flipbook frame
-		int16_t vel[3];    // +0x14 sparks
+		int16_t pos[3];
+		int16_t counter;
+		int16_t vel[3];
 		int16_t pad1A;
-		int16_t drag[3];   // +0x1C sparks
+		int16_t drag[3];
 		int16_t pad22;
 	};
-	// the prim-player callback's parameter block (a stack block of the playing task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 anchor x, y, z (+ a word only loaded into the GTE V0 pad)
-		int32_t depth;     // +0x08 prim header +0x18
-		uint32_t morph;    // +0x0C blended vertex frames
+		int16_t pos[4];
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(SweepNode) == 0x2E0 && sizeof(ShotNode) == 0x26C, "Reflect Beam nodes");
 	static_assert(sizeof(ReflectNode) == 0x32C && sizeof(SpriteNode) == 0x24, "Reflect Beam nodes");
 	static_assert(sizeof(PrimArg) == 0x10, "Reflect Beam prim block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6AF610, Petrify Stare's 0x6B9770 with Silence's flag 0x100 product):
-	// one object of a layout. Vertex frame (or blend into the parameter block's morph buffer),
-	// rotation from the record's angles (flag 0x40000: 0x7015B0), flag 0x200 = the offset stays in
-	// screen axes (the anchor through the camera, the offset added unrotated, the rotation not
-	// composed with the camera), else anchor + offset through the camera; scale (flag 0x100: 3x3
-	// product, else scale3DMatrix), fade, drawn by 0x7043B0.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -238,7 +168,6 @@ namespace reflect135
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x200)
 		{
@@ -303,8 +232,6 @@ namespace reflect135
 		prim::play((prim::Layout *)layout, PrimCallback, (int)&arg, 0);
 	}
 
-	// the beam model (0x11FA580) in the basis M scaled by diag(w, w, L) through the module matrix
-	// 0x2520E48, composed with the camera, on the header h
 	static void BeamRender(uint8_t *h, Mat4x3 *M, int16_t w, int16_t L)
 	{
 		Scale().m[1][1] = w;
@@ -318,15 +245,9 @@ namespace reflect135
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// ------------------------------------------------------------------
-	// Sweep beam segments (0x6AF2FF..0x6AF4FF)
-	// ------------------------------------------------------------------
-	// segment state at s = counter - 15 - i (0..9): t, its end X
 	static int32_t SegT(int32_t s) { return (int32_t)(((uint32_t)s << 12) / 10u); }
 	static int16_t SegX(const SweepNode *w, int32_t t) { return (int16_t)(w->centre[0] - (int16_t)(mul32(t, 5000) >> 12) + 0x9C4); }
 	static int32_t SegSine(int32_t t) { return ComputeSin((t >> 2) + 0x200); }
-	// one segment on the shared header h: the basis of (X - P0, P1 - cy, P2 - cz) at P, scale from the
-	// sine (w = (sine + 0x800) / 2, L = sine x |v| / 0x800)
 	static void SegmentRender(uint8_t *h, const SweepNode *w, const int16_t *P, int16_t X, int32_t sine)
 	{
 		const int32_t v[3] = { (int32_t)X - P[0], (int32_t)P[1] - w->centre[1], (int32_t)P[2] - w->centre[2] };
@@ -338,7 +259,6 @@ namespace reflect135
 		BeamRender(h, &M, (int16_t)((sine + 0x800) >> 1), (int16_t)(mul32(sine, len) >> 11));
 	}
 
-	// the screen flash level of the sweep counter c (>= 15)
 	static int32_t FlashLevel(int32_t c)
 	{
 		if (c < 0x13) return (int32_t)mul32(c - 15, 2200) / 4;
@@ -346,11 +266,6 @@ namespace reflect135
 		return (int32_t)mul32(0x39 - c, 2200) / 12;
 	}
 
-	// ShotTask's end point word +6 (entry esp - 0x42, never written), copied into the hit point's 4th word
-	// (node +0x1A, 0x6AFF04): the master's BS_ComputeBonesWorldMatrices (0x5095B0) runs just before the shot
-	// queue, one stack level up; its last ComposeAffineTransform (0x56C2F0) pushes its first argument
-	// (the caster entity + 0x40) for 0x56C600 (0x56C312) at exactly that word's dword: the word is the high
-	// half of that pointer (the caster has bones, so 0x56C2F0 always runs)
 	static int16_t ShotResidue()
 	{
 		return (int16_t)(((uint32_t)Caster() + 0x40) >> 16);
@@ -366,9 +281,6 @@ namespace ff8fx
 {
 namespace reflect135
 {
-	// ------------------------------------------------------------------
-	// Sprites (0x6AFB00 burst, 0x6AFB80 glint, 0x6AFC00 spark)
-	// ------------------------------------------------------------------
 	static void SpriteDraw(const int16_t *pos, int16_t frame, uint32_t seq, int32_t a, int32_t b)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -383,7 +295,6 @@ namespace reflect135
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_BURST, n);)
 		SpriteDraw(s->pos, s->counter, SEQ_Burst, 0x1770, -0x400);
 		s->counter++;
@@ -393,7 +304,6 @@ namespace reflect135
 	static uint32_t __cdecl GlintTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_GLINT, n);)
 		SpriteDraw(s->pos, s->counter, SEQ_Glint, 0x800, -0x400);
 		s->counter++;
@@ -403,7 +313,6 @@ namespace reflect135
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_sprite(SPR_SPARK, n);)
 		SpriteDraw(s->pos, s->counter, SEQ_Spark, 0x800, -0x200);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
@@ -416,8 +325,6 @@ namespace reflect135
 		return s->counter < 8 ? 0 : TASK_END;
 	}
 
-	// sub_6AFCB0 (as Eerie Sound Wave's 0x6B4B90): the damage of every target record of action 0
-	// that is this entity
 	static void DamageEntity(uint8_t *entity)
 	{
 		const int32_t slot = (int32_t)((uint32_t)entity - 0x1D972C0u) / 0x9C;
@@ -428,9 +335,6 @@ namespace reflect135
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Reflection (0x6AF900)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ReflectTask(TaskNode *n)
 	{
 		ReflectNode *r = (ReflectNode *)n;
@@ -479,7 +383,6 @@ namespace reflect135
 					s->drag[2] = (int16_t)((0 - (int32_t)(int16_t)z) >> 4);
 				}
 			}
-			// 30 fps layer: see mag135_reflect_beam_held.inc
 			FX_HELD(held_note_play(PLAY_REFLECT, n, (prim::Layout *)r->layout);)
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, r->pos);
@@ -492,16 +395,11 @@ namespace reflect135
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Shot (0x6AFD20)
-	// ------------------------------------------------------------------
-	// the caster's bone matrix of the shot (world matrices while the shot queue runs)
 	static const Mat4x3 *ShotBone(const ShotNode *s)
 	{
 		return (const Mat4x3 *)(**(uint8_t ***)(Caster() + 0x64) + (int32_t)*s->bone * 0x30 + 0x20);
 	}
 	static int32_t ShotAngle(int32_t counter) { return ((counter + 1) << 12) / 13; }
-	// Q = the bone through (0, 0, -0x1000); the basis = the bone's rows normalised, at Q
 	static void ShotFrame(const Mat4x3 *bone, int16_t *Q, Mat4x3 *m)
 	{
 		ff8fx::copy<(sizeof(m->m))>(m->m, bone->m);
@@ -523,7 +421,6 @@ namespace reflect135
 		NormalizeVector16(m->m[1], m->m[1]);
 		NormalizeVector16(m->m[2], m->m[2]);
 	}
-	// E = the basis through (0, 0, 4a)
 	static void ShotPoint(Mat4x3 *m, int32_t a, int16_t *E)
 	{
 		GteSetRotMatrixCtrl(m);
@@ -535,8 +432,6 @@ namespace reflect135
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(E);
 	}
-	// E at or above the floor (y <= 0): E moved onto the floor along the line Q -> E (the hit point),
-	// the length 17/16 |E - Q| (returns true); below it: 4a
 	static bool ShotProject(const int16_t *Q, int32_t a, int16_t *E, int32_t *len)
 	{
 		if (E[1] > 0)
@@ -582,9 +477,8 @@ namespace reflect135
 		if (s->counter < 0xD)
 		{
 			Mat4x3 m;
-			int16_t Q[4] = {}; // (word +6 never written: only loaded into the GTE V0 pad)
+			int16_t Q[4] = {};
 			ShotFrame(bone, Q, &m);
-			// 30 fps layer: see mag135_reflect_beam_held.inc
 			FX_HELD(held_note_play(PLAY_SHOT, n, (prim::Layout *)s->layout);)
 			Play(s->layout, Q, -0x80);
 			ShotBasis(&m, Q);
@@ -615,9 +509,6 @@ namespace reflect135
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sweep (0x6AF230)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SweepTask(TaskNode *n)
 	{
 		SweepNode *w = (SweepNode *)n;
@@ -625,9 +516,8 @@ namespace reflect135
 		const int32_t s0 = w->counter - 15;
 		if ((uint32_t)s0 < 0x14)
 		{
-			int16_t P[4] = {}; // (word +6 never written: only loaded into the GTE V0 pad)
+			int16_t P[4] = {};
 			GetEffectSpawnPosition(Caster(), 0x1F, 0x1000, P);
-			// 30 fps layer: see mag135_reflect_beam_held.inc
 			FX_HELD(held_note_sweep(n);)
 			uint8_t *h = AllocHeader(0x58);
 			h[0xA] = 0;
@@ -695,9 +585,6 @@ namespace reflect135
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6AEF50)
-	// ------------------------------------------------------------------
 	static void StartSweep()
 	{
 		SweepNode *w = (SweepNode *)AddTaskToQueue(QSweep(), ORIG_SweepTask);
@@ -722,7 +609,6 @@ namespace reflect135
 		w->centre[0] = (int16_t)(w->centre[0] / count);
 		w->centre[1] = (int16_t)(w->centre[1] / count);
 		w->centre[2] = (int16_t)(w->centre[2] / count);
-		// sorted by entity x, descending (the sweep runs towards -x)
 		for (int i = 0; i < w->count - 1; i++)
 		{
 			for (int j = i + 1; j < w->count; j++)
@@ -744,7 +630,6 @@ namespace reflect135
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
@@ -791,7 +676,6 @@ namespace reflect135
 		register_port(reflect135::ORIG_BurstTask, (void *)reflect135::BurstTask, "135 BurstTask", 135);
 		register_port(reflect135::ORIG_GlintTask, (void *)reflect135::GlintTask, "135 GlintTask", 135);
 		register_port(reflect135::ORIG_SparkTask, (void *)reflect135::SparkTask, "135 SparkTask", 135);
-		// 30 fps layer: see mag135_reflect_beam_held.inc
 		FX_HELD(register_mag135_held();)
 	}
 }

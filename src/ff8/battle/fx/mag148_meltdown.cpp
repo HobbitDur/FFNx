@@ -14,34 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 148: Meltdown (spell, MAG_148_*).
-//
-// Structure (setup MAG_148_MELTDOWN 0x6120D0, file loader 0x6120B0; root queue 0x2465778 with one
-// 0x10-byte node, effect queue 0x24657E8 with 0x64 nodes of 0x24 bytes):
-//   Root (0x614230) - alternates the packet arena (0x2466638 / 0x246E638), runs the effect queue,
-//     ends when it is empty.
-//   Director (0x612190), one per action: every tick (also in the draw-only mode) rebuilds the
-//     action's frame 0x2465788 + 0x20 * action = camera * (rotation turning -z towards the target,
-//     scale 0x600, origin 900/4096 of the way from the caster); at tick 0 takes the target and
-//     caster positions (the target not above the caster when the caster is a party member), 1
-//     spawns the disc, the two acid particle systems and plays the sound, 0x23 the caster glow and
-//     a white screen fade, 0x28 the melting target, 0x50 damage, 0x55 the next action's director;
-//     ends after tick 0x5A.
-//   Melting target (0x612540): hides the target (entity flags |= 0xC) and draws its battle model
-//     itself for 0x22 ticks: every vertex near the target is pushed along the plane normal facing
-//     the caster, more and more then back (+0x3C), flattened at the ground (y > 0 -> 0); the model's
-//     second part is drawn normally. The target's flags are restored at the end.
-//   Disc (0x612D90) - prim model 0xDCDB4C in the action frame, growing, UV scrolling, fading in
-//     and out (own prim renderer 0x612EE0 with four primitive lists and UV scroll).
-//   Caster glow (0x613A50) - prim models 0xDCADB4 (flat, z scale 0x4000) and 0xDCCDA4, decelerating
-//     growth, fade in / out.
-//   Acid particles A (0x613C40) - pool 0x2464BB0 (60 x 0x14 bytes), 3 spawned per tick 1..0x1C
-//     from the frame origin outwards, drifting back; 17-frame flipbook 0xDCABEC, then gone.
-//   Acid particles B (0x613EF0) - pool 0x2465060, 3 per tick 1..0x12, looping flipbook 0xDCAA24;
-//     they drift out until tick 0x23 then fly back decelerating (velocity x16 at 0x23).
-// Module globals: 0x2464BA8..0x2476660 (cast context 0x2466620, target / caster positions
-// 0x2466608 / 0x2466630, frames, pools, queues, packet arenas, cursor 0x2476638, scale matrix
-// 0x2476640).
+// Effect 148: Meltdown
 
 #include "mag_common.h"
 
@@ -52,7 +25,6 @@ namespace melt148
 	using namespace eng;
 	using namespace magc;
 
-	// raw memory access (the port follows the listing offset by offset)
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline int16_t &S16(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 	inline uint16_t &U16(uint32_t p, int32_t o) { return AT<uint16_t>(p, o); }
@@ -61,15 +33,14 @@ namespace melt148
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	// --- module globals ---
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x24657E8; }
 	inline CastContext *Ctx() { return var<CastContext *>(0x2466620); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2476638); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
-	inline uint32_t Frame(int32_t action) { return 0x2465788 + (uint32_t)shl32(action, 5); }   // Mat4x3 per action
-	inline uint32_t TargetPos(int32_t action) { return 0x2466608 + (uint32_t)shl32(action, 3); } // x, y, z, h
+	inline uint32_t Frame(int32_t action) { return 0x2465788 + (uint32_t)shl32(action, 5); }
+	inline uint32_t TargetPos(int32_t action) { return 0x2466608 + (uint32_t)shl32(action, 3); }
 	static const uint32_t CASTER_POS = 0x2466630;
-	static const uint32_t SCALE_MATRIX = 0x2476640;   // diagonal 0x2476640 / 48 / 50, translation 54 / 58 / 5C
+	static const uint32_t SCALE_MATRIX = 0x2476640;
 	static const uint32_t POOL_A = 0x2464BB0, POOL_A_END = 0x2465060;
 	static const uint32_t POOL_B = 0x2465060, POOL_B_END = 0x2465510;
 	static const uint32_t ARENA_EVEN = 0x2466638, ARENA_ODD = 0x246E638;
@@ -87,7 +58,6 @@ namespace melt148
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// ---- engine functions (original addresses)
 	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45D7F0)(value, reg); }
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -100,29 +70,27 @@ namespace melt148
 	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
 	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(v); }
 	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E260)(dst); }
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }        // set_unk_1CA8A28
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
 	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }       // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
 	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
 	inline void GteSetLightMatrix(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x45DE50)(m); }
 	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
 	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(0x460810)(); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C7A0)(bucket, pkt); }
-	// GTE helpers of the neighbouring modules
-	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }    // MAG_146_sub_64DEE0: V0 = 3 words
-	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); } // MAG_146_sub_64DF10: IR1..3 -> 4 words (4th 0)
-	inline void GteReadMAC1x4096(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF60)(out); } // MAG_148_sub_64DF60: MAC1 << 12
-	inline void GteSetBkFromTranslation(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x64DDA0)(m); } // MAG_148_sub_64DDA0: BK = matrix translation
-	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); } // MAG_148_sub_64DDD0: rotation = s * identity
-	inline void GteSetTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }                    // MAG_148_sub_64DE90: TR = IR1..3
-	// battle model helpers
+	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }
+	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); }
+	inline void GteReadMAC1x4096(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF60)(out); }
+	inline void GteSetBkFromTranslation(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x64DDA0)(m); }
+	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
+	inline void GteSetTransFromIR() { fn<void (__cdecl *)()>(0x64DE90)(); }
 	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(model, hdr, ot, mode, cursor); }
-	inline void NormalizeSVector(uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); } // sub_56BDE0 (x87)
+	inline void NormalizeSVector(uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); }
 }
 }
 
@@ -134,13 +102,9 @@ namespace ff8fx
 {
 namespace melt148
 {
-	// ------------------------------------------------------------------
-	// Root task (0x614230): node +0x0C counter
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		// 30 fps layer: see mag148_meltdown_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = ARENA_ODD;
 		if (!(U8(node, 0xC) & 1)) PacketCursor() = ARENA_EVEN;
@@ -149,14 +113,9 @@ namespace melt148
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x612190): node +0x0C counter, +0x0E action, +0x20 target slot, +0x22 caster slot
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		// the action frame: rotation turning (0, 0, -1) towards the target, scale 0x600, origin
-		// 900/4096 of the way from the caster to the target, composed with the camera
 		{
 			const int32_t action = S16(node, 0xE);
 			const uint32_t tp = TargetPos(action);
@@ -244,19 +203,6 @@ namespace melt148
 		return S16(node, 0xC) > 0x5A ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Melting target model
-	// Draw header (0xA4 bytes, Field_Alloc): +0x00 primitive cursor, +0x04 projected / melted
-	// vertex buffer (8 bytes each), +0x08.. list counts, +0x10 packet end, +0x14..+0x1A screen box,
-	// +0x1C colour, +0x20 object mask, +0x28.. depth cue colour, +0x2C plane distance of the vertex
-	// (x 4096), +0x30 plane distance of the target position, +0x34 normal y (0 -> 1), +0x38 push
-	// of the vertex, +0x3C melt strength, +0x40 squared radius (0x5F5E10), +0x44 NCLIP, +0x4C OTZ,
-	// +0x50 GTE flags, +0x54..+0x58 vertex - target, +0x74..+0x78 plane normal (4.12, towards the
-	// caster), +0x7A plane distance, +0x7C..+0x82 target position, +0x84 camera * entity matrix.
-	// ------------------------------------------------------------------
-
-	// 0x612B40: projects the melted vertices of one object and draws its flat-coloured textured
-	// triangles (list 1, 0x10-byte records) and quads (list 2, 0x14-byte records)
 	static uint32_t MeltDrawPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t verts = U32(hdr, 4);
@@ -316,13 +262,8 @@ namespace melt148
 		return pkt;
 	}
 
-	// 0x6128D0: every visible object of the model: its vertices through their bone matrices
-	// (world space) into the header's vertex buffer, each vertex within the squared radius +0x40 of
-	// the target pushed along the plane normal (inverse-distance weighted, at most 15000, then
-	// ground-clamped: y > 0 -> 0), then drawn through the camera (MeltDrawPrims)
 	static uint32_t MeltModel(uint32_t model, uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
-		// light matrix row 1 = plane normal (x, y / z), background colour red = plane distance
 		GteWriteCtrl(U32(hdr, 0x74), 8);
 		const uint32_t w78 = U32(hdr, 0x78);
 		GteWriteCtrl(w78, 9);
@@ -395,8 +336,6 @@ namespace melt148
 		return cursor;
 	}
 
-	// 0x6127C0 (MAG_148_MELTDOWN_RenderMeltedTarget): the entity's shadow, its model melted, its
-	// second model (+0x78) drawn normally
 	static void RenderMeltedTarget(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
@@ -428,16 +367,12 @@ namespace melt148
 		}
 	}
 
-	// melt strength of tick c: rising 81 / tick until 0x1C, then falling 364 / tick
 	static int32_t MeltStrength(int32_t c)
 	{
 		if (c < 0x1C) return c * 81;
 		return 0x305B - c * 364;
 	}
 
-	// the melting target's draw at melt strength `melt` (node +0x0E action, +0x18 target slot):
-	// the melt plane (through the target, facing the caster, its y 500 above the target but not
-	// below 0) and the model draw
 	static void MeltDraw(uint32_t node, int32_t melt, bool draw_model)
 	{
 		const int32_t slot = S16(node, 0x18);
@@ -462,7 +397,7 @@ namespace melt148
 		NormalizeVector(flat, flat);
 		int32_t angle = RotationBetweenVectors(from, flat, axis);
 		Mat4x3 rot = {};
-		BuildAxisAngleRotationMatrix(angle, &rot, axis); // (its result is not used)
+		BuildAxisAngleRotationMatrix(angle, &rot, axis);
 		n[0] = (int16_t)cw0 - tx;
 		n[1] = (int16_t)(cw0 >> 16) - by;
 		n[2] = (int16_t)cw1 - tz;
@@ -489,15 +424,10 @@ namespace melt148
 		FieldFree(0xA4);
 	}
 
-	// ------------------------------------------------------------------
-	// Melting target (0x612540): node +0x0C counter, +0x0E action, +0x18 target slot, +0x1A the
-	// target's flags 0xC bits before the effect
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MeltTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
 		const int16_t c = S16(node, 0xC);
-		// 30 fps layer: see mag148_meltdown_held.inc
 		FX_HELD(if (c < 0x22) held_note_draw(ORIG_Melt, node);)
 		MeltDraw(node, MeltStrength(c), c < 0x22);
 		if (DrawOnly()) return 0;
@@ -508,18 +438,6 @@ namespace melt148
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-model renderer of the module (0x612EE0 and its four list renderers)
-	// Header (0x7C bytes): +0x00 model, +0x04 its vertices (model + 8), +0x08..+0x0A far colour,
-	// +0x0C depth cue (GTE IR0), +0x10 / +0x14 U / V scroll, +0x18 / +0x1A / +0x1C / +0x1E
-	// colour words (+0x1C / +0x1E also the U / V wrap of the scroll), +0x20 flags (0x10 / 0x20
-	// double-sided, 0x40 / 0x80 depth cue), +0x24 list cursor, +0x28 NCLIP, +0x30 OTZ, +0x34 GTE
-	// flags, +0x5C..+0x68 scrolled coordinates, +0x6C / +0x70 U / V scroll (mod wrap), +0x74
-	// draw mode word, +0x78 texture window word (0xE2000000).
-	// ------------------------------------------------------------------
-
-	// scroll the texture coordinate bytes at pkt + offs[k] by `delta`, wrapped by `wrap` when a
-	// coordinate leaves 0..0xFF (all of them move together); the sums go through hdr +0x5C..
 	static void ScrollUV(uint32_t hdr, uint32_t pkt, const int *offs, int count, int32_t delta, int32_t wrap)
 	{
 		int32_t v[4];
@@ -537,8 +455,6 @@ namespace melt148
 		for (int k = 0; k < count; k++) U8(pkt, offs[k]) = U8(hdr, 0x5C + 4 * k);
 	}
 
-	// 0x613020: list 1 - textured triangles (0x14-byte records: +0 colour + code, +4 / +6 / +8
-	// vertex offsets / 4, +0x0C uv0 + clut, +0x10 uv1 + tpage, +0x0A uv2) as 0x28-byte packets
 	static uint32_t PrimList1(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pkt = cursor;
@@ -594,8 +510,6 @@ namespace melt148
 		return pkt;
 	}
 
-	// 0x613280: list 2 - textured quads (0x18-byte records: + vertex 4 at +0x0A, uv2 / uv3 at
-	// +0x14) as 0x30-byte packets
 	static uint32_t PrimList2(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pkt = cursor;
@@ -656,8 +570,6 @@ namespace melt148
 		return pkt;
 	}
 
-	// 0x613570: list 3 - gouraud quads (0x18-byte records: +0 colour 0 + code, +4..+0x0A vertex
-	// offsets / 4, +0x0C / +0x10 / +0x14 colours 1..3) as 0x24-byte packets
 	static uint32_t PrimList3(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t rec = U32(hdr, 0x24);
@@ -707,8 +619,6 @@ namespace melt148
 		return pkt;
 	}
 
-	// 0x613710: list 4 - gouraud textured quads (0x24-byte records: list 2's + colours 1..3 at
-	// +0x18 / +0x1C / +0x20) as 0x3C-byte packets
 	static uint32_t PrimList4(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pkt = cursor;
@@ -778,14 +688,11 @@ namespace melt148
 		return pkt;
 	}
 
-	// 0x612EE0: the model's four primitive lists (a list with no entry is skipped over)
 	static uint32_t PrimDraw(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t model = U32(hdr, 0);
 		U32(hdr, 4) = model + 8;
 		U32(hdr, 0x24) = model + U32(model, 0);
-		// draw mode word: the colour words +0x1A / +0x18 / +0x1E / +0x1C as a texture window
-		// (the original tests the header address for null: always taken)
 		uint32_t mode = ((uint32_t)(U8(hdr, 0x1A) & 0xF8) | 0xFFFE2000u) << 5;
 		mode |= U8(hdr, 0x18) & 0xF8;
 		mode <<= 5;
@@ -812,8 +719,6 @@ namespace melt148
 		return PrimList4(hdr, ot, shift, cursor);
 	}
 
-	// the scale matrix 0x2476640 (x = y = s, z = sz, no translation) composed with the action frame
-	// into the GTE
 	static void SetScaledFrame(int32_t action, uint16_t s, uint16_t sz, bool set_z_first)
 	{
 		if (set_z_first) U16(SCALE_MATRIX, 0x10) = sz;
@@ -829,9 +734,6 @@ namespace melt148
 		GteSetTransVector(&m);
 	}
 
-	// ------------------------------------------------------------------
-	// Disc (0x612D90): node +0x0C counter, +0x0E action, +0x1C size (0xC00, +0x80 / tick)
-	// ------------------------------------------------------------------
 	static void DiscDraw(uint32_t node)
 	{
 		const uint16_t s = U16(node, 0x1C);
@@ -867,7 +769,6 @@ namespace melt148
 	static uint32_t __cdecl DiscTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		// 30 fps layer: see mag148_meltdown_held.inc
 		FX_HELD(held_note_draw(ORIG_Disc, node);)
 		DiscDraw(node);
 		if (DrawOnly()) return 0;
@@ -876,10 +777,6 @@ namespace melt148
 		return S16(node, 0xC) >= 0x49 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Caster glow (0x613A50): node +0x0C counter, +0x0E action, +0x1C size (0x300), +0x1E its step
-	// (0x600, 7/8 of itself each tick)
-	// ------------------------------------------------------------------
 	static void CasterGlowDraw(uint32_t node)
 	{
 		U16(SCALE_MATRIX, 0x10) = 0x4000;
@@ -926,7 +823,6 @@ namespace melt148
 	static uint32_t __cdecl CasterGlowTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		// 30 fps layer: see mag148_meltdown_held.inc
 		FX_HELD(held_note_draw(ORIG_CasterGlow, node);)
 		CasterGlowDraw(node);
 		if (DrawOnly()) return 0;
@@ -941,12 +837,6 @@ namespace melt148
 		return (int16_t)(c + 1) >= 0x28 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Acid particles: pools of 60 entries of 0x14 bytes: +0 flipbook frame (< 0: free), +2 size,
-	// +4 position (in the action frame), +0x0C velocity. Drawn with the GTE light matrix = the
-	// action frame's rotation and BK = its translation (world position), rotation = size, then
-	// the shared sprite sequence player.
-	// ------------------------------------------------------------------
 	static void ParticleDraw(uint32_t h, uint32_t e)
 	{
 		GteLoadV0u(e + 4);
@@ -957,7 +847,6 @@ namespace melt148
 		PacketCursor() = InitEffectSequenceFromData((void *)h, RenderOT44(), 2, PacketCursor());
 	}
 
-	// sprite header + GTE setup of both particle tasks
 	static uint32_t ParticleSetup(uint32_t node, uint32_t seq)
 	{
 		const uint32_t h = P(AllocHeader(0xB4));
@@ -969,7 +858,6 @@ namespace melt148
 		return h;
 	}
 
-	// first free entry of a pool (frame < 0), or 0
 	static uint32_t FreeEntry(uint32_t pool, uint32_t end)
 	{
 		for (uint32_t e = pool; e < end; e += 0x14)
@@ -977,7 +865,6 @@ namespace melt148
 		return 0;
 	}
 
-	// A: moves by its velocity, 17 frames then free
 	static void ParticleAUpdate(uint32_t e)
 	{
 		S16(e, 0) = (int16_t)(S16(e, 0) + 1);
@@ -991,7 +878,6 @@ namespace melt148
 		U16(e, 8) = (uint16_t)(U16(e, 8) + U16(e, 0x10));
 	}
 
-	// 0x613C40 (MAG_148_sub_613C40): pool A, node +0x0C counter, +0x0E action
 	static uint32_t __cdecl ParticlesATask(TaskNode *n)
 	{
 		uint32_t node = P(n);
@@ -999,7 +885,6 @@ namespace melt148
 		for (uint32_t e = POOL_A; e < POOL_A_END; e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
-			// 30 fps layer: see mag148_meltdown_held.inc
 			FX_HELD(held_note_particle(ORIG_ParticlesA, e, node, h);)
 			ParticleDraw(h, e);
 			if (DrawOnly()) continue;
@@ -1036,8 +921,6 @@ namespace melt148
 		return S16(node, 0xC) >= 0x3C ? TASK_END : 0;
 	}
 
-	// B: looping flipbook; moves by its velocity until tick 0x23 of its task, then back (the
-	// velocity x16 at 0x23), decelerating by 1/8 each tick
 	static void ParticleBUpdate(uint32_t e, int16_t c)
 	{
 		S16(e, 0) = (int16_t)(S16(e, 0) + 1);
@@ -1065,7 +948,6 @@ namespace melt148
 		}
 	}
 
-	// 0x613EF0 (MAG_148_sub_613EF0): pool B, node +0x0C counter, +0x0E action
 	static uint32_t __cdecl ParticlesBTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
@@ -1073,7 +955,6 @@ namespace melt148
 		for (uint32_t e = POOL_B; e < POOL_B_END; e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
-			// 30 fps layer: see mag148_meltdown_held.inc
 			FX_HELD(held_note_particle(ORIG_ParticlesB, e, node, h);)
 			ParticleDraw(h, e);
 			if (DrawOnly()) continue;
@@ -1122,7 +1003,6 @@ namespace melt148
 		register_port(melt148::ORIG_CasterGlow, (void *)melt148::CasterGlowTask, "M148 CasterGlowTask", 148);
 		register_port(melt148::ORIG_ParticlesA, (void *)melt148::ParticlesATask, "M148 ParticlesATask", 148);
 		register_port(melt148::ORIG_ParticlesB, (void *)melt148::ParticlesBTask, "M148 ParticlesBTask", 148);
-		// 30 fps layer: see mag148_meltdown_held.inc
 		FX_HELD(register_mag148_held();)
 	}
 }

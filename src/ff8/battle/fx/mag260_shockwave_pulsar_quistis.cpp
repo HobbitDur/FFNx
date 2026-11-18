@@ -14,82 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 260: Shockwave Pulsar (Quistis' Blue Magic, kernel.bin section 19 "Shockwave Pulsar", magic +4 = 260;
-// MAG_260_SHOCKWAVE_PULSAR_QUISTIS*), cast by a party member (Quistis) on the enemies.
-//
-// The module 0x690690..0x693790 is a hand-written relative of the enemy Shockwave Pulsar 70 (mag070_shockwave_pulsar.cpp):
-// the two modules share their draw helpers ACROSS modules. This module's 0x693170 (target model redraw), 0x692F00
-// (shard matrix) and the primitive lists 0x691C70 / 0x691F30 / 0x6921C0 / 0x6924F0 / 0x692830 are called by 70; this
-// module calls 70's 0x6DF940 (flag 4 on the shown entities) and 70's lists 0x6DEDD0 / 0x6DF140 / 0x6DF560 (ported here
-// as native copies: EntitiesFlag4On, FlatQuads, GouraudQuads, GouraudTexQuads). Spark / shard pools, their allocators /
-// updates, the flipbook draw and the model measure are 70's text on this module's globals; the root, the master, the
-// lift / rise / ring tasks, the prim callback (70's without the scaled block), the shard draw, the screen flash entries
-// and the fade tile are this module's own.
-//
-// Structure (setup 0x690690 -> _Init 0x6906C0, file loader 0x6906A0 = the texture named at 0x112D1A4 into 0x2508610;
-// _Init queues the TIM, keeps the magic buffer base 0x25086B8, the cast context 0x2508624 and the CASTER's entity
-// 0x2508628, and starts the root task in the root queue 0x2508650, one 0x10-byte node at 0x2508660):
-//   RootTask (0x690730) - alternates the packet arena (magic buffer + 0xB650 / + 0x1B650, cursor 0x250861C); the two
-//     flash levels 0x25086A8 / 0x25086B0 are reset every tick; on counter 1 saves the seven entities' flag words, empties
-//     the spark / shard pools, resets the stream loader state (magic buffer + 0), sets up the master pool (1 x 0x1298 at
-//     magic buffer + 0x48) and the sub-task pool (0xC x 0x114 at + 0x2160), starts the master, BINDS THE CASTER'S
-//     animation set (com data 0x111B3CC, out block = master + 0x178) and starts her chain transformation 1, keeps every
-//     target of action 0 (one only in encounter 0x31C: word 0x1CFF6E0) with its position, scale 0x800000 / (size + 0x200)
-//     and whether its linked entities (+0x8C ring) hold no other target ("group": the whole ring is redrawn), and the
-//     targets' centre (0x25086A0..: middle of their default effect positions). Then each tick: the effect camera
-//     (0x67AAE0 -> 0x25086C0), the master queue, the sub-task queue; flash A (0x25086A8) -> the screen-flash entries 0..2
-//     (0x690B70; entity-array bit 1 of entries 0..2 while full), flash B (0x25086B0) -> entry 3 (0x690BA0); ends with the
-//     master (screen flash off).
-//   Master (0x690C20) - node 0x1298: counter, target count, the targets (0x24 each: entity, saved position, angles,
-//     group flag, scale target, scale, model bottom / top), the caster's bind block (+0x178), a prim-model layout
-//     (+0x198). A 0x106-tick timeline (then waits for the stream loader):
-//       flash A: 0..0x31 ramp in, 0xFA..0x105 out (0x1000 between); flash B: 0..0xB in, 0xFA.. out (0x8FC between)
-//       1, 9, 0x11, 0x19      one RiseTask per target (0x6934B0), model height measured (0x693000)
-//       0x32..0x4F            a layout (0x112A974) at the targets' centre, 0xC000 high
-//       0x50                  sub-task pool reset (the Rise / Ring tasks dropped), flag 4 on the shown entities, the
-//                             shockwave layout (0x112015C) and one LiftTask (0x6932C0) per target (entity +0x1E and
-//                             +0x58 = 0x1000, angles set)
-//       0x50..0xD5            the targets' models (or their rings) redrawn rotated and scaled (0x693170), both flashes
-//                             full, the shockwave layout 0x800 deeper; sparks (pool A) on 0x5D..0x78, model shards
-//                             (pool B) off the targets on 0xC3..0xD2; a white fade tile (0x692B80) on 0xCE..0xD5
-//       0xD6                  positions and flag bits 2 / 3 restored; then both flashes fade out over 0x20 ticks
-//       0, 0x14..0x3A, 0x3B, 0x4F..0x76, 0x77..0xB2, 0xD5   battle camera (direct sets and 0x657DF0)
-//       0xD5                  stream loads 0x168 / 0x169 into magic buffer + 0x2E50
-//       0xFC                  damage (0x506BA0); sounds at 0, 0x50, 0xAA
-//       0x106                 flag bits restored, the saved camera view put back (0xB8B800..), the sub queue emptied
-//     Every tick it draws the sparks (0x692C40, flipbook 0x6FC9E0) and, before 0xD5, the shards (0x692E10: model 0x111D30C
-//     at the target's position through the module renderer 0x691B40), then moves them (0x692DC0 / 0x692FD0).
-//   RiseTask (0x6934B0) - node 0x114: its target's scale eases from 0x1000 to the scale target over 0xD ticks; a layout
-//     (0x111DEBC) on the target; from tick 0xD the target lifts (entity +0x1E) and spins for len ticks (starting a
-//     RingTask 0x693720, layout 0x111D424 at its feet), then drops (-0x100 a tick); the target's model (or ring) is
-//     redrawn every tick (0x693170). Never ends by itself (the master resets the pool at 0x50).
-//   LiftTask (0x6932C0) - node 0x114: a layout (0x111F09C) on the target for 0x1E ticks, sets the target's height
-//     (entity +0x1E), spins its angles; a burst of 16 sparks on tick 5; flag 3 off at the end.
-//   RingTask (0x693720) - node 0x114: its layout at a fixed point, ends with the layout.
-// Prim-player callback 0x691760: one object (flags 0x40000 / 0x80000: other rotation orders, 0x1000: offset through the
-// effect camera, 0x200: screen-axes offset, 0x100: 3x3 scale, 0x4000: blend mode); objects whose type byte is '1' go
-// through the module renderer 0x691B40 (the engine's 0x7043B0 with all eight primitive lists of its own), the others
-// through 0x7043B0.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: the master draws (centre layout, tile, models, shockwave layout, sparks, shards) THEN updates; Lift and
-// Ring draw then update; Rise updates the scale, draws its layout, updates the lift, then redraws the model.
-// ENTITY WRITES: caster - animation set (com data 0x111B3CC) + chain transformation 1 (root, counter 1, engine); the
-// targets - height +0x1E every tick of the Lift / Rise tasks, matrix translation y +0x58 (0x1000 at 0x50; 0 then +0x1E
-// around the bone measure 0x693000), +0x1C / +0x20 restored at 0xD6; flag words: bit 3 on at a Rise spawn, off at a
-// Lift end, bit 2 on while redrawn, bits 2 / 3 off and the saved bit 2 back at 0xD6 / 0x106, bit 2 on every shown
-// entity at 0x50; action results (0xFC, engine). Screen-flash entries 0x1D98990 + k * 0x2C (k 0..3: +2 level, +0x28
-// word) and their bit 1 (+1).
-// CAMERA: eye 0xB8B7F0 / look-at 0xB8B7F8 on 0, 0x14..0x3A, 0x3B, 0x4F..0xB2, 0xD5, and back to the saved view
-// 0xB8B800 at 0x106; field of view 0x1D8E038 on 0, 0x4F..0x76, 0xD5, 0x106; roll 0x1D977A2 on 0; camera return armed
-// at 0 (0x50A730).
-// Module globals: 0x2508610..0x25086FC (texture file 0x2508610, pool cursors 0x2508614 / 0x2508618, packet cursor
-// 0x250861C, arena end 0x2508620, context 0x2508624, caster 0x2508628, queues 0x2508630 sub / 0x2508640 master /
-// 0x2508650 root (+ node 0x2508660), angles 0x2508690, centre 0x25086A0, flashes 0x25086A8..0x25086B4, magic buffer
-// base 0x25086B8, effect camera 0x25086C0, saved flags 0x25086E0).
-// STACK WORDS: the prim blocks' word +0x06 (never written: only loaded into the GTE V0 pad) and +0x0E (never read); the
-// callback's offset pad (V0 pad); the model draw header's +0x30 / +0x38 / +0x3C / +0x54 and the shard header's colour
-// bytes (h + 0x28..0x2A: the renderer's far colour) are Field_Alloc scratch residue (the port allocates the same way).
-
 #include "mag_common.h"
 
 namespace ff8fx
@@ -99,28 +23,27 @@ namespace pulsar260
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&SparkCursor() { return var<uint8_t *>(0x2508614); }     // pool A alloc cursor
-	inline uint8_t *&ShardCursor() { return var<uint8_t *>(0x2508618); }     // pool B alloc cursor
+	inline uint8_t *&SparkCursor() { return var<uint8_t *>(0x2508614); }
+	inline uint8_t *&ShardCursor() { return var<uint8_t *>(0x2508618); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250861C); }
-	inline uint32_t &ArenaEnd() { return var<uint32_t>(0x2508620); }         // (written, never read)
-	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2508624); }             // cast context
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508628); }          // caster entity (setup)
-	inline TaskQueue *QSub() { return (TaskQueue *)0x2508630; }              // pool: magic buffer + 0x2160, 0xC x 0x114
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2508640; }           // pool: magic buffer + 0x48, 1 x 0x1298
-	inline uint32_t &InitAngles0() { return var<uint32_t>(0x2508690); }      // copied into every target's angles
+	inline uint32_t &ArenaEnd() { return var<uint32_t>(0x2508620); }
+	inline uint8_t *&Ctx() { return var<uint8_t *>(0x2508624); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508628); }
+	inline TaskQueue *QSub() { return (TaskQueue *)0x2508630; }
+	inline TaskQueue *QMaster() { return (TaskQueue *)0x2508640; }
+	inline uint32_t &InitAngles0() { return var<uint32_t>(0x2508690); }
 	inline uint32_t &InitAngles1() { return var<uint32_t>(0x2508694); }
-	inline uint32_t &CentreX() { return var<uint32_t>(0x25086A0); }          // targets' centre (x, y words; z)
+	inline uint32_t &CentreX() { return var<uint32_t>(0x25086A0); }
 	inline int16_t &CentreY() { return var<int16_t>(0x25086A2); }
 	inline uint32_t &CentreZ() { return var<uint32_t>(0x25086A4); }
-	inline int32_t &FlashA() { return var<int32_t>(0x25086A8); }             // screen-flash entries 0..2 this tick
+	inline int32_t &FlashA() { return var<int32_t>(0x25086A8); }
 	inline int32_t &FlashAPrev() { return var<int32_t>(0x25086AC); }
-	inline int32_t &FlashB() { return var<int32_t>(0x25086B0); }             // screen-flash entry 3 this tick
+	inline int32_t &FlashB() { return var<int32_t>(0x25086B0); }
 	inline int32_t &FlashBPrev() { return var<int32_t>(0x25086B4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25086B8); }          // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x25086C0); }               // effect camera matrix (0x67AAE0)
-	inline uint32_t *SavedFlags() { return (uint32_t *)0x25086E0; }          // 7 entities' flag words
-	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C); }                // g_Battle_FrameRenderListBase
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25086B8); }
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(0x25086C0); }
+	inline uint32_t *SavedFlags() { return (uint32_t *)0x25086E0; }
+	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
 	inline int16_t &ViewWord() { return var<int16_t>(0x1D8E038); }
 	inline int16_t &CameraZoom() { return var<int16_t>(0x1D977A2); }
@@ -132,63 +55,60 @@ namespace pulsar260
 	static const uint32_t ORIG_LiftTask = 0x6932C0;
 	static const uint32_t ORIG_RiseTask = 0x6934B0;
 	static const uint32_t ORIG_RingTask = 0x693720;
-	static const uint32_t ORIG_Callback = 0x691760;    // not a task: the layouts' prim callback
-	static const uint32_t LAYOUT_CENTRE = 0x112A974;   // 0x218
-	static const uint32_t LAYOUT_WAVE = 0x112015C;     // 0x1100
-	static const uint32_t LAYOUT_LIFT = 0x111F09C;     // 0xBC
-	static const uint32_t LAYOUT_RISE = 0x111DEBC;     // 0x100
-	static const uint32_t LAYOUT_RING = 0x111D424;     // 0xD8
-	static const uint32_t OBJS_A = 0x112D190;          // object type strings ('1' = module renderer)
+	static const uint32_t ORIG_Callback = 0x691760;
+	static const uint32_t LAYOUT_CENTRE = 0x112A974;
+	static const uint32_t LAYOUT_WAVE = 0x112015C;
+	static const uint32_t LAYOUT_LIFT = 0x111F09C;
+	static const uint32_t LAYOUT_RISE = 0x111DEBC;
+	static const uint32_t LAYOUT_RING = 0x111D424;
+	static const uint32_t OBJS_A = 0x112D190;
 	static const uint32_t OBJS_WAVE = 0x112D1B4;
-	static const uint32_t SPARK_SEQ = 0x111D0F8;       // pool A flipbooks
+	static const uint32_t SPARK_SEQ = 0x111D0F8;
 	static const uint32_t BURST_SEQ = 0x111CF4C;
 	static const uint32_t SHARD_MODEL = 0x111D30C;
-	static const uint32_t COM_Anim = 0x111B3CC;        // the caster's animation set (com data)
+	static const uint32_t COM_Anim = 0x111B3CC;
 	static const void *const SOUND_0 = (const void *)0x111CF40;
 	static const void *const SOUND_50 = (const void *)0x111CF44;
 	static const void *const SOUND_AA = (const void *)0x111CF48;
-	static const uint32_t SPARKS = 0x12E0, SPARKS_LAST = 0x1AD0;   // magic buffer: pool A (0x80 x 0x10)
-	static const uint32_t SHARDS = 0x1AE0, SHARDS_LAST = 0x1ED0;   // magic buffer: pool B (0x40 x 0x10)
-	static const uint32_t MORPH = 0x1EE0;              // magic buffer: blended vertex frames
+	static const uint32_t SPARKS = 0x12E0, SPARKS_LAST = 0x1AD0;
+	static const uint32_t SHARDS = 0x1AE0, SHARDS_LAST = 0x1ED0;
+	static const uint32_t MORPH = 0x1EE0;
 	static const uint32_t ARENA_A = 0xB650, ARENA_B = 0x1B650, ARENA_C = 0x2B650;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_RotationFromAnglesYXZ
-	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701630)(angles, out); }  // MAG_RotationFromAnglesXYZ
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701630)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }    // MatrixMultiply3x3: a = a * b (3x3)
-	inline void Apply3D(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); } // apply3DTransform (rotation only)
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void Apply3D(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(geom, hdr, ot, shift, cursor); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); } // Effect_FullScreenTile
-	inline uint32_t Flipbook(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); } // MAG_065_RenderFlipbook
-	// MAG_325_CameraLerp (Diablos' module): look-at = a[0..2] -> b[0..2], eye = a[3..5] -> b[3..5] at t
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
+	inline uint32_t Flipbook(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); }
 	inline void CamLerp(const int16_t *a, const int16_t *b, int32_t t) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t)>(0x657DF0)(a, b, t); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }    // BS_Camera_ArmReturnAfterEffect
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); } // Stream_QueueLoad
-	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }          // Stream_Pump
-	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); } // au_re_BattleFile_preLoad_0
-	inline void BindEntityModelFromComData(uint8_t *entity, void *out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, void *, uint32_t)>(0x5022C0)(entity, out, data); } // BattleEntity_BindExternalAnimSet
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
+	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
+	inline void BindEntityModelFromComData(uint8_t *entity, void *out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, void *, uint32_t)>(0x5022C0)(entity, out, data); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id); }
-	inline void TransformVec3(const void *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const void *, const int32_t *, int32_t *)>(0x56C600)(m, in, out); } // TransformVectorBy3x3Matrix
-	// software GTE
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // GTE_LoadV0_u16
-	inline void GteReadIR2(void *dst) { fn<void (__cdecl *)(void *)>(0x703F90)(dst); }        // GTE_ReadIR2Word
+	inline void TransformVec3(const void *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const void *, const int32_t *, int32_t *)>(0x56C600)(m, in, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
+	inline void GteReadIR2(void *dst) { fn<void (__cdecl *)(void *)>(0x703F90)(dst); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); } // GTE_ReadSXY012_Split
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }    // GTE_ReadOTZ (dword)
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // GTE_SetFarColor
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
@@ -198,88 +118,81 @@ namespace pulsar260
 
 	inline uint32_t mulhi_u(uint32_t a, uint32_t b) { return (uint32_t)(((uint64_t)a * b) >> 32); }
 	inline int32_t mulhi_s(int32_t a, int32_t b) { return (int32_t)(((int64_t)a * b) >> 32); }
-	// cdq; and edx, m; add; sar n (C signed division by 2^n)
 	inline int32_t sdiv_pow2(int32_t v, int n) { return (int32_t)((uint32_t)v + ((uint32_t)(v >> 31) & ((1u << n) - 1))) >> n; }
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 	inline int16_t &E16(uint8_t *e, uint32_t off) { return *(int16_t *)(e + off); }
-	// battle entity slot of an entity pointer (the compiler's division by 0x9C)
 	inline int32_t SlotOf(const uint8_t *e)
 	{
 		const int32_t d = (int32_t)((uint32_t)e - 0x1D972C0);
 		int32_t q = (mulhi_s(d, (int32_t)0xD20D20D3) + d) >> 7;
 		return q + (int32_t)((uint32_t)q >> 31);
 	}
-	// the next entity of a linked ring (+0x8C)
 	inline uint8_t *NextLinked(const uint8_t *e) { return *(uint8_t *const *)(e + 0x8C); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes (0x2508660)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		uint8_t parity;    // +0x0E packet arena parity
-		uint8_t started;   // +0x0F master started
+		int16_t counter;
+		uint8_t parity;
+		uint8_t started;
 	};
-	struct Target // 0x24 bytes
+	struct Target
 	{
 		uint8_t *entity;
-		uint32_t pos_xy;   // +0x04 entity +0x1C at the start (+6 = the height word)
-		uint32_t pos_z;    // +0x08 entity +0x20 at the start
-		int16_t ang[3];    // +0x0C rotation of the redrawn model (from 0x2508690)
+		uint32_t pos_xy;
+		uint32_t pos_z;
+		int16_t ang[3];
 		int16_t pad12;
-		int32_t group;     // +0x14 1: the linked ring holds no other target (the whole ring is redrawn)
-		int32_t scale_to;  // +0x18 0x800000 / (entity +0x26 + 0x200)
-		int32_t scale;     // +0x1C model scale (the Rise task eases it to scale_to; read as a word)
-		int16_t y_max;     // +0x20 model bottom (largest bone-space y, 0x693000)
-		int16_t y_min;     // +0x22 model top
+		int32_t group;
+		int32_t scale_to;
+		int32_t scale;
+		int16_t y_max;
+		int16_t y_min;
 	};
-	struct MasterNode // pool of 1 node of 0x1298 bytes (magic buffer + 0x48)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t ntargets;  // +0x0E
-		Target targets[10]; // +0x10
-		uint8_t bind[0x20]; // +0x178 the caster's BS_BindEntityModelFromComData block
-		uint8_t layout[0x1100]; // +0x198
+		int16_t counter;
+		int16_t ntargets;
+		Target targets[10];
+		uint8_t bind[0x20];
+		uint8_t layout[0x1100];
 	};
-	struct SubNode // pool of 0xC nodes of 0x114 bytes (magic buffer + 0x2160): Lift / Rise / Ring tasks
+	struct SubNode
 	{
 		TaskNode hdr;
 		union
 		{
-			struct { Target *rec; int16_t counter; int16_t len; } t; // Lift (len unused), Rise
-			int16_t pos[4];                                          // Ring: x, y, z
+			struct { Target *rec; int16_t counter; int16_t len; } t;
+			int16_t pos[4];
 		};
-		uint8_t layout[0x100]; // +0x14
+		uint8_t layout[0x100];
 	};
-	struct Spark // pool A: magic buffer + 0x12E0, 0x80 x 0x10
+	struct Spark
 	{
 		const uint8_t *seq;
-		int16_t pos[3];    // +4
-		int16_t scale;     // +0xA
-		int8_t vel[3];     // +0xC (x 4 per tick)
-		uint8_t life;      // +0xF
+		int16_t pos[3];
+		int16_t scale;
+		int8_t vel[3];
+		uint8_t life;
 	};
-	struct Shard // pool B: magic buffer + 0x1AE0, 0x40 x 0x10
+	struct Shard
 	{
 		int16_t life;
-		int16_t off;       // +2 height offset from the target's middle
-		int16_t sy, sxz;   // +4 / +6 scale of the shard model
-		int16_t dsy, dsxz; // +8 / +0xA
-		Target *rec;       // +0xC
+		int16_t off;
+		int16_t sy, sxz;
+		int16_t dsy, dsxz;
+		Target *rec;
 	};
-	// the prim-player callback's parameter block (a stack block of the caller)
 	struct PrimArg
 	{
 		int16_t pos[3];
-		int16_t pad06;     // never written (VZ0 high half)
-		uint32_t objs;     // +0x08 object type string
-		int16_t depth;     // +0x0C prim header +0x18
-		int16_t pad0E;     // never read
-		uint32_t morph;    // +0x10 blended vertex frames
+		int16_t pad06;
+		uint32_t objs;
+		int16_t depth;
+		int16_t pad0E;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(MasterNode) == 0x1298 && sizeof(SubNode) == 0x114, "Pulsar 260 nodes");
@@ -295,11 +208,9 @@ namespace ff8fx
 {
 namespace pulsar260
 {
-	// screen clip of a projected vertex (x 0..0xA00, y 0..0x6C0: the PC's 4x subpixel screen)
 	static inline bool OutX(const uint8_t *xy) { const int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
 	static inline bool OutY(const uint8_t *xy) { const int16_t v = *(const int16_t *)(xy + 2); return v < 0 || v > 0x6C0; }
 
-	// the end of a primitive: OTZ + the header's depth (not below 0) -> bucket
 	static inline uint32_t Bucket(uint8_t *h, uint32_t ot, int32_t shift)
 	{
 		int32_t z = (int32_t)((uint32_t)F<int32_t>(h, 0x2C) + (uint32_t)F<int32_t>(h, 0x18));
@@ -312,7 +223,6 @@ namespace pulsar260
 		F<uint32_t>(p, 0) = 0x1000000;
 		F<uint32_t>(p, 4) = word;
 	}
-	// the code word with the semi-transparency switches of the header (on / off bits)
 	static inline void Code(uint8_t *h, uint8_t *pk, uint32_t code, uint8_t on, uint8_t off)
 	{
 		F<uint32_t>(pk, 4) = code;
@@ -320,10 +230,6 @@ namespace pulsar260
 		if (F<uint8_t>(h, 0x1C) & off) F<uint32_t>(pk, 4) &= 0xFDFFFFFF;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x691C70: flat triangles (0xC-byte records: code + rgb, 3 vertex indices) -> POLY_F3 packets between two
-	// draw-mode primitives; header flags 1 / 4 semi-transparency on / off, 0x10 double-sided, 0x40 depth-cued colour
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FlatTris(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -382,10 +288,6 @@ namespace pulsar260
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 70's 0x6DEDD0: flat quads (0xC-byte records: code + rgb, 4 vertex indices) -> POLY_F4 packets between two
-	// draw-mode primitives; flags 1 / 4, 0x10, 0x40 as the triangles
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FlatQuads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -449,10 +351,6 @@ namespace pulsar260
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x691F30: textured flat triangles (0x14-byte records: code + rgb, 3 vertex indices, uv2, uv0 + clut, uv1 +
-	// tpage) -> POLY_FT3 packets after a draw-mode primitive; flags 1 / 4, 0x10, 0x40
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TexTris(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -511,10 +409,6 @@ namespace pulsar260
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x6921C0: textured flat quads (0x18-byte records: code + rgb, 4 vertex indices, uv0 + clut, uv1 + tpage,
-	// uv2 | uv3 << 16) -> POLY_FT4 packets after a draw-mode primitive; flags 1 / 4, 0x10, 0x40
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TexQuads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -580,11 +474,6 @@ namespace pulsar260
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x6924F0: gouraud triangles (0x14-byte records: code + rgb0, 3 vertex indices, rgb1, rgb2) -> POLY_G3 packets
-	// between two draw-mode primitives; flags 2 / 8 semi-transparency, 0x20 double-sided, 0x80 depth cue. The cursor
-	// advances 0x48 bytes per triangle (0x24 unused).
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl GouraudTris(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -648,10 +537,6 @@ namespace pulsar260
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 70's 0x6DF140: gouraud quads (0x18-byte records: code + rgb0, 4 vertex indices, rgb1..3) -> POLY_G4 packets
-	// between two draw-mode primitives; flags 2 / 8, 0x20, 0x80. The cursor advances 0x58 bytes per quad (0x24 unused).
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl GouraudQuads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -724,10 +609,6 @@ namespace pulsar260
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x692830: gouraud textured triangles (0x1C-byte records: code + rgb0, 3 vertex indices, uv2, uv0 + clut,
-	// uv1 + tpage, rgb1, rgb2) -> POLY_GT3 packets after a draw-mode primitive; flags 2 / 8, 0x20, 0x80
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl GouraudTexTris(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -791,10 +672,6 @@ namespace pulsar260
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 70's 0x6DF560: gouraud textured quads (0x24-byte records: code + rgb0, 4 vertex indices, uv0 + clut, uv1 + tpage,
-	// uv2 | uv3 << 16, rgb1..3) -> POLY_GT4 packets after a draw-mode primitive; flags 2 / 8, 0x20, 0x80
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl GouraudTexQuads(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -869,11 +746,6 @@ namespace pulsar260
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x691B40: the module's prim-model renderer (the engine's 0x7043B0 with the eight primitive lists of its
-	// own): vertex base = model + 8 unless header flag 0x2000, far colour from the header colour bytes, then the lists
-	// (an empty list is skipped)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RenderModel(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		if (!(F<uint32_t>(h, 0x1C) & 0x2000))
@@ -910,9 +782,6 @@ namespace pulsar260
 		return c;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x691760): one object of a layout
-	// ------------------------------------------------------------------
 	static void __cdecl PrimPart(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -952,12 +821,10 @@ namespace pulsar260
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else if (r->flags & 0x80000) RotationFromAnglesC(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		const uint32_t flags = r->flags;
 		if (flags & 0x1000)
 		{
-			// the block position through the camera, the offset through the effect camera
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -974,7 +841,6 @@ namespace pulsar260
 		}
 		else if (flags & 0x200)
 		{
-			// the block position through the camera, the offset added unrotated, rotation kept
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -985,7 +851,6 @@ namespace pulsar260
 		}
 		else
 		{
-			// block position + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -1031,15 +896,10 @@ namespace pulsar260
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// small helpers
-	// ------------------------------------------------------------------
-	// 0x690B40: the seven entities' flag words
 	static void SaveEntityFlags()
 	{
 		for (int k = 0; k < 7; k++) SavedFlags()[k] = *(const uint16_t *)Entity(k);
 	}
-	// 0x692B40: bit 2 of the shown entities' flag words back to the saved value
 	static void RestoreEntityFlags()
 	{
 		for (int k = 0; k < 7; k++)
@@ -1049,7 +909,6 @@ namespace pulsar260
 			if (w & 2) *(uint16_t *)e = (uint16_t)((((uint32_t)(uint8_t)SavedFlags()[k] ^ w) & 4) ^ w);
 		}
 	}
-	// 70's 0x6DF940 (MAG_070_ShockwavePulsar_EntitiesFlag4On): flag 4 on the shown entities (flag 2)
 	static void EntitiesFlag4On()
 	{
 		for (int k = 0; k < 7; k++)
@@ -1059,8 +918,6 @@ namespace pulsar260
 			if (w & 2) *(uint16_t *)e = (uint16_t)(w | 4);
 		}
 	}
-	// 0x690B70 / 0x690BA0: the screen-flash entries 0x1D98990 + k * 0x2C (k 0..2 / 3) in use (+1 bit 0)
-	// get the level (+2) and the word +0x28
 	static void FlashEntries012(int32_t level, uint32_t v)
 	{
 		for (uint32_t e = 0x1D989B8; e < 0x1D98A3C; e += 0x2C)
@@ -1080,7 +937,6 @@ namespace pulsar260
 			*(int16_t *)0x1D98A16 = (int16_t)level;
 		}
 	}
-	// 0x690BC0 / 0x690BF0: empty pools
 	static void ClearSparks()
 	{
 		uint8_t *p = (uint8_t *)TexBase() + SPARKS + 0xF;
@@ -1093,7 +949,6 @@ namespace pulsar260
 		for (int k = 0x40; k != 0; k--, p += 0x10) *(int16_t *)p = 0;
 		ShardCursor() = (uint8_t *)TexBase() + SHARDS;
 	}
-	// 0x692D60: a free spark (life 0) from the cursor on, else from the start
 	static Spark *SparkAlloc()
 	{
 		uint8_t *p = SparkCursor();
@@ -1115,7 +970,6 @@ namespace pulsar260
 		else SparkCursor() = p + 0x10;
 		return (Spark *)p;
 	}
-	// 0x692F70: a free shard (life 0)
 	static Shard *ShardAlloc()
 	{
 		uint8_t *p = ShardCursor();
@@ -1137,7 +991,6 @@ namespace pulsar260
 		else ShardCursor() = p + 0x10;
 		return (Shard *)p;
 	}
-	// 0x692DC0: sparks: life--, position += 4 x velocity
 	static void SparksUpdate()
 	{
 		Spark *s = (Spark *)(TexBase() + SPARKS);
@@ -1150,7 +1003,6 @@ namespace pulsar260
 			s->pos[2] = (int16_t)(s->pos[2] + (int16_t)((int16_t)s->vel[2] << 2));
 		}
 	}
-	// 0x692FD0: shards: life--, scales += steps
 	static void ShardsUpdate()
 	{
 		Shard *s = (Shard *)(TexBase() + SHARDS);
@@ -1164,10 +1016,6 @@ namespace pulsar260
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// 0x692B80: a full-screen tile faded in over `in` ticks, held `hold`, out over `out` (the engine's
-	// 0x700150 on the module's packet cursor)
-	// ------------------------------------------------------------------
 	static int32_t FadeLevel(int32_t t, int32_t in, int32_t hold, int32_t out)
 	{
 		if (t < in) return shl32(t + 1, 12) / in;
@@ -1180,9 +1028,6 @@ namespace pulsar260
 		PacketCursor() = Tile(r, g, b, FadeLevel(t, in, hold, out), PacketCursor());
 	}
 
-	// ------------------------------------------------------------------
-	// 0x692C40: sparks, one flipbook frame each (frame = sequence counted down by life)
-	// ------------------------------------------------------------------
 	static void SparksDraw(const Spark *s)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -1212,7 +1057,7 @@ namespace pulsar260
 			F<int32_t>(h, 0x30) = word;
 			if (word < 0)
 			{
-				h[0x25] |= 1; // sticky in the scratch block, as the original
+				h[0x25] |= 1;
 				F<uint32_t>(h, 0x30) = (uint32_t)word & 0x7FFFFFFF;
 			}
 			*(const uint8_t **)(h + 0x2C) = frame + 4;
@@ -1221,9 +1066,6 @@ namespace pulsar260
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// MAG_260_ShardMatrix (0x692F00): rotation about y by -angle, y scaled by sy, x / z rows scaled by sxz
-	// ------------------------------------------------------------------
 	static void ShardMatrix(int32_t angle, int32_t sy, int32_t sxz, Mat4x3 *out)
 	{
 		uint32_t *w = (uint32_t *)out;
@@ -1239,10 +1081,6 @@ namespace pulsar260
 		out->m[2][2] = (int16_t)(mul32((int16_t)c, z) >> 12);
 	}
 
-	// ------------------------------------------------------------------
-	// 0x692E10: shards, the model 0x111D30C at their target's position (+ the middle of its model + the
-	// shard's offset), squashed by the shard's scales (module renderer, depth -0x400, flags 0x30)
-	// ------------------------------------------------------------------
 	static void ShardsDraw(const Shard *s)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x78);
@@ -1265,11 +1103,6 @@ namespace pulsar260
 		FieldFree(0x78);
 	}
 
-	// ------------------------------------------------------------------
-	// 0x693000: a model's vertical extent in its bone space (every shown object's vertices through their
-	// bones, IR2 min / max) -> out[0] = max, out[1] = min; returns min. The entity's matrix translation y is 0 for
-	// the bone build, then its height (+0x1E).
-	// ------------------------------------------------------------------
 	static int32_t MeasureHeight(uint8_t *e, int16_t *out)
 	{
 		F<int32_t>(e, 0x58) = 0;
@@ -1321,11 +1154,6 @@ namespace pulsar260
 		return out[1];
 	}
 
-	// ------------------------------------------------------------------
-	// MAG_260_DrawEntityModelTransformed (0x693170): an entity's model (and weapon) redrawn through its own bones, turned
-	// by `angles` and scaled by `scale` about the point `offset` of its world matrix (+0x40), through RenderGeometry into
-	// the frame arena
-	// ------------------------------------------------------------------
 	static void DrawEntityModel(uint8_t *e, const int16_t *angles, const int16_t *offset, int32_t scale)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
@@ -1368,8 +1196,6 @@ namespace pulsar260
 		FieldFree(0x5C);
 	}
 
-	// a target's model redrawn (by the master: rise = nullptr, or by its Rise task): the whole linked ring (entities
-	// shown, flag 2) when the ring holds no other target, else the target alone; then flag 4 on what was drawn
 	static void DrawTarget(Target *rec, const int16_t *vec, const SubNode *rise)
 	{
 		uint8_t *e0 = rec->entity;
@@ -1380,7 +1206,6 @@ namespace pulsar260
 			{
 				if (*(const uint16_t *)e & 2)
 				{
-					// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 					FX_HELD(held_note_model(rise, rec, e, vec);)
 					DrawEntityModel(e, rec->ang, vec, rec->scale);
 				}
@@ -1396,14 +1221,12 @@ namespace pulsar260
 		}
 		else
 		{
-			// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 			FX_HELD(held_note_model(rise, rec, e0, vec);)
 			DrawEntityModel(e0, rec->ang, vec, rec->scale);
 			*e0 |= 4;
 		}
 	}
 
-	// the layout parameter block of the Lift / Rise tasks: on the target, at the middle of its model
 	static void TargetArg(PrimArg &arg, const Target *rec, uint8_t *e)
 	{
 		arg.pos[0] = E16(e, 0x1C);
@@ -1414,26 +1237,21 @@ namespace pulsar260
 		arg.depth = (int16_t)0xFC00;
 	}
 
-	// ------------------------------------------------------------------
-	// LiftTask (0x6932C0): node +0x0C target, +0x10 counter, +0x14 layout 0x111F09C
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LiftTask(TaskNode *n)
 	{
 		SubNode *s = (SubNode *)n;
 		const int32_t n12 = shl32(s->t.counter, 12);
 		int32_t q = (mulhi_s(n12, (int32_t)0x8D3DCB09) + n12) >> 4;
-		q += (int32_t)((uint32_t)q >> 31);                    // counter x 0x1000 / 29
+		q += (int32_t)((uint32_t)q >> 31);
 		Target *rec = s->t.rec;
 		uint8_t *e = rec->entity;
 		const int32_t slot = SlotOf(e);
 		PrimArg arg;
 		TargetArg(arg, rec, e);
-		// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 		FX_HELD(held_note_play(K_LIFT, s, &arg, s->t.counter);)
 		prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		if (s->t.counter == 5)
 		{
-			// a ring of 16 sparks from the target's position
 			Spark *p = SparkAlloc();
 			if (p)
 			{
@@ -1480,9 +1298,6 @@ namespace pulsar260
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// RingTask (0x693720): node +0x0C position, +0x14 layout 0x111D424; ends with the layout
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		SubNode *s = (SubNode *)n;
@@ -1493,13 +1308,11 @@ namespace pulsar260
 		arg.pos[1] = s->pos[1];
 		arg.pos[2] = s->pos[2];
 		arg.morph = TexBase() + MORPH;
-		// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 		FX_HELD(held_note_play(K_RING, s, &arg, 0);)
 		const int left = prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		return left != 0 ? 0 : TASK_END;
 	}
 
-	// the Rise task's scale at counter c (from 0x1000 to the scale target over 0xD ticks)
 	static int32_t RiseScale(const Target *rec, int32_t c)
 	{
 		if (c < 0xD)
@@ -1511,7 +1324,6 @@ namespace pulsar260
 		}
 		return rec->scale_to;
 	}
-	// the Rise task's height at lift step t (0..0x1000), from the target's starting height (+6 of its record)
 	static int16_t RiseHeight(const Target *rec, int32_t t)
 	{
 		const int32_t tt = mul32(t, t) >> 12;
@@ -1522,10 +1334,6 @@ namespace pulsar260
 		return (int16_t)(a - b + *(const int16_t *)((const uint8_t *)rec + 6));
 	}
 
-	// ------------------------------------------------------------------
-	// RiseTask (0x6934B0): node +0x0C target, +0x10 counter, +0x12 lift length, +0x14 layout 0x111DEBC. Never ends by
-	// itself (the master resets the pool).
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RiseTask(TaskNode *n)
 	{
 		SubNode *s = (SubNode *)n;
@@ -1534,7 +1342,6 @@ namespace pulsar260
 		rec->scale = RiseScale(rec, s->t.counter);
 		PrimArg arg;
 		TargetArg(arg, rec, e);
-		// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 		FX_HELD(held_note_play(K_RISE, s, &arg, s->t.counter);)
 		prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		const uint32_t i = (uint32_t)((int32_t)s->t.counter - 0xD);
@@ -1578,9 +1385,6 @@ namespace pulsar260
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// the master's battle camera at counter c (eye 0xB8B7F0, look-at 0xB8B7F8; field of view, roll, the camera return)
-	// ------------------------------------------------------------------
 	static void MasterCamera(int32_t c, bool engine)
 	{
 		const int16_t X = (int16_t)CentreX(), Z = (int16_t)CentreZ();
@@ -1682,10 +1486,6 @@ namespace pulsar260
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x690C20)
-	// ------------------------------------------------------------------
-	// flash A: the ramp in over 0x32 ticks, out from 0xFA; flash B: in over 0xC ticks, out from 0xFA
 	static int32_t Ramp12(int32_t v)
 	{
 		int32_t q = mulhi_s(v * 2300, 0x2AAAAAAB) >> 1;
@@ -1694,7 +1494,6 @@ namespace pulsar260
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 		FX_HELD(held_note_master(m);)
 		if (m->counter < 0x32)
 		{
@@ -1708,7 +1507,6 @@ namespace pulsar260
 		else if (m->counter >= 0xFA) FlashB() = Ramp12(0x106 - (int32_t)m->counter);
 		else FlashB() = 0x8FC;
 
-		// 0x32..0x4F: the centre layout
 		if ((uint32_t)((int32_t)m->counter - 0x32) < 0x1E)
 		{
 			if (m->counter == 0x32) DecodeModelPrimLayout(LAYOUT_CENTRE, m->layout, 0x218);
@@ -1719,7 +1517,6 @@ namespace pulsar260
 			arg.morph = TexBase() + MORPH;
 			arg.objs = OBJS_A;
 			arg.depth = (int16_t)0xFF80;
-			// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 			FX_HELD(held_note_play(K_CENTRE, m, &arg, m->counter);)
 			prim::play((prim::Layout *)m->layout, PrimPart, (int)&arg, 0);
 		}
@@ -1727,15 +1524,13 @@ namespace pulsar260
 		const int32_t s = (int32_t)m->counter - 0x50;
 		if ((uint32_t)s < 0xB6)
 		{
-			// 0xCE..0xD5: a white tile fading in
 			const uint32_t w = (uint32_t)(s - 0x7E);
 			if (w < 8)
 			{
-				// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 				FX_HELD(held_note_tile((int32_t)w);)
 				FadeTile((int32_t)w, 0xFF, 0xFF, 0xFF, 7, 1, 0);
 			}
-			bool models = true;      // the targets redrawn, the layout behind them
+			bool models = true;
 			if (s == 0)
 			{
 				InitTaskQueuePool(QSub(), (void *)(TexBase() + 0x2160), 0x114, 0xC);
@@ -1767,7 +1562,6 @@ namespace pulsar260
 			{
 				if ((uint32_t)s >= 0xD && (uint32_t)s <= 0x28)
 				{
-					// 0x5D..0x78: four sparks a tick around the centre, alternately rising / falling
 					int32_t k = 4;
 					Spark *p = SparkAlloc();
 					while (p)
@@ -1798,7 +1592,6 @@ namespace pulsar260
 				}
 				else if ((uint32_t)s >= 0x73 && (uint32_t)s < 0x83)
 				{
-					// 0xC3..0xD2: two shards a tick off every target
 					for (int32_t k = 0; k < m->ntargets; k++)
 					{
 						Target *rec = &m->targets[k];
@@ -1859,7 +1652,6 @@ namespace pulsar260
 			int16_t depth = (int16_t)0xF000;
 			if (models)
 			{
-				// the targets' models redrawn rotated and scaled; both flashes full
 				FlashB() = 0x1000;
 				FlashA() = 0x1000;
 				depth = 0x800;
@@ -1881,17 +1673,14 @@ namespace pulsar260
 			arg.pos[1] = 0;
 			arg.objs = OBJS_WAVE;
 			arg.depth = depth;
-			// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 			FX_HELD(held_note_play(K_WAVE, m, &arg, m->counter);)
 			prim::play((prim::Layout *)m->layout, PrimPart, (int)&arg, 0);
 		}
 
-		// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 		FX_HELD(held_note_sparks();)
 		SparksDraw((const Spark *)(TexBase() + SPARKS));
 		if (m->counter < 0xD5)
 		{
-			// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 			FX_HELD(held_note_shards();)
 			ShardsDraw((const Shard *)(TexBase() + SHARDS));
 		}
@@ -1902,7 +1691,6 @@ namespace pulsar260
 		else if (m->counter == 0x50) BdPlaySE(SOUND_50, 0, 0x80);
 		else if (m->counter == 0xAA) BdPlaySE(SOUND_AA, 0, 0x80);
 
-		// 1, 9, 0x11, 0x19: a RiseTask on target (counter - 1) / 8
 		{
 			const uint32_t c1 = (uint32_t)((int32_t)m->counter - 1);
 			if (c1 < 0x20 && (c1 & 7) == 0 && (int32_t)(c1 >> 3) < m->ntargets)
@@ -1943,9 +1731,6 @@ namespace pulsar260
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x690730)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1979,7 +1764,7 @@ namespace pulsar260
 			int16_t minx = 0x7FFF, miny = 0x7FFF, minz = 0x7FFF;
 			int16_t maxx = (int16_t)0x8001, maxy = (int16_t)0x8001, maxz = (int16_t)0x8001;
 			m->ntargets = ((const CastContext *)Ctx())->actions->target_count;
-			if (var<uint16_t>(0x1CFF6E0) == 0x31C) m->ntargets = 1; // (encounter 0x31C: the first target only)
+			if (var<uint16_t>(0x1CFF6E0) == 0x31C) m->ntargets = 1;
 			for (int32_t i = 0; i < m->ntargets; i++)
 			{
 				Target *rec = &m->targets[i];
@@ -1999,7 +1784,6 @@ namespace pulsar260
 				if (p[2] > maxz) maxz = p[2];
 				rec->scale_to = 0x800000 / ((int32_t)E16(e, 0x26) + 0x200);
 			}
-			// a target whose linked ring (+0x8C) holds no other shown target is redrawn with its whole ring
 			for (int32_t i = 0; i < m->ntargets; i++)
 			{
 				Target *rec = &m->targets[i];
@@ -2070,7 +1854,6 @@ namespace pulsar260
 		register_port(pulsar260::ORIG_LiftTask, (void *)pulsar260::LiftTask, "260 LiftTask", 260);
 		register_port(pulsar260::ORIG_RiseTask, (void *)pulsar260::RiseTask, "260 RiseTask", 260);
 		register_port(pulsar260::ORIG_RingTask, (void *)pulsar260::RingTask, "260 RingTask", 260);
-		// 30 fps layer: see mag260_shockwave_pulsar_quistis_held.inc
 		FX_HELD(register_mag260_held();)
 	}
 }

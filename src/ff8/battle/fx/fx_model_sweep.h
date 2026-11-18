@@ -14,11 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Code shared by Red Giant's 316 and Abadon's 314 effect modules (the original modules call each other's copies): the
-// caster's model swept by a light level (sweep A: 316's 0x661550 / 0x661630 / 0x661720 + 314's 0x663760, the same text as
-// 314's 0x663590 / 0x663670 on 314's packet cursor), the model's polygons shown again (064's 0x6E5D20 through each
-// module's object walk) and the sprite renderer of the modules' particles (318's 0x65F4B0 / 298's 0x672DB0). Static
-// functions: each including module gets its own copy.
+// Model sweep shared by several effects
 
 #pragma once
 
@@ -31,17 +27,15 @@ namespace msweep
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }     // battle_texture_data_ptr (frame packet arena)
+	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t OT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline void MusicVolumeFade(int32_t v) { fn<void (__cdecl *)(int32_t)>(0x47E3C0)(v); }                               // sub_47E3C0
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); } // BattleEntity_DrawShadow
+	inline void MusicVolumeFade(int32_t v) { fn<void (__cdecl *)(int32_t)>(0x47E3C0)(v); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
 	inline void ColourLerp(void *a, uint32_t b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(void *, uint32_t, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	// software GTE
-	inline void GteLoadV0u16(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }                       // GTE_LoadV0_u16
-	inline void GteStoreIR123Minus8(void *p) { fn<void (__cdecl *)(void *)>(0x703EF0)(p); }                             // GTE_StoreIR123_Minus8 (at p - 8)
+	inline void GteLoadV0u16(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
+	inline void GteStoreIR123Minus8(void *p) { fn<void (__cdecl *)(void *)>(0x703EF0)(p); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x45E1D0)(a, b, c, d); }
@@ -49,7 +43,7 @@ namespace msweep
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }                               // GTE_ReadOTZ (dword)
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteLoadIRFromMatrixColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteStoreIRToMatrixColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
@@ -62,10 +56,6 @@ namespace msweep
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 	template<typename T> static inline T F(const uint8_t *p, uint32_t off) { return *(const T *)(p + off); }
 	static inline uint32_t Grey(uint8_t c) { return (uint32_t)c | ((uint32_t)c << 8) | ((uint32_t)c << 16); }
-	// ------------------------------------------------------------------
-	// Polygons shown again (316's 0x6612C0 -> 0x6612E0 / 314's 0x663F90 -> 0x663FB0 -> 064's 0x6E5D20): hidden bit 0x8000 of every polygon's +0x0E word
-	// cleared, object by object
-	// ------------------------------------------------------------------
 	static void ShowPolys(uint8_t *p)
 	{
 		uint8_t *poly = *(uint8_t **)p;
@@ -129,9 +119,6 @@ namespace msweep
 		FieldFree(8);
 	}
 
-	// ------------------------------------------------------------------
-	// Vertex grey level from a vertex's y: (y - level) / 4 + 0x40 (sar), clamped to 0..0x80 on 16 bits
-	// ------------------------------------------------------------------
 	static uint8_t GreyOf(int16_t y, int16_t level)
 	{
 		int32_t g = (((int32_t)y - (int32_t)level) >> 2) + 0x40;
@@ -140,10 +127,6 @@ namespace msweep
 		return (uint8_t)g;
 	}
 
-	// ------------------------------------------------------------------
-	// Sweep A's vertices (0x663760, in 314's range): one bone group (count + 3 x u16 each) through the bone matrix into
-	// the 8-byte entries (sxy, sz, grey); a vertex behind the camera only gets depth 0
-	// ------------------------------------------------------------------
 	static void ProjectA(uint8_t *h)
 	{
 		const uint8_t *data = F<uint8_t *>(h, 0x54);
@@ -187,9 +170,6 @@ namespace msweep
 		F<uint8_t *>(h, 0x58) = out;
 	}
 
-	// ------------------------------------------------------------------
-	// Sweep A's polygons (0x661720, no IDB start; 314 calls it too): the triangles then the quads of one object
-	// ------------------------------------------------------------------
 	static void PolysA(uint8_t *h, uint32_t ot, int32_t shift)
 	{
 		const uint8_t *verts = F<const uint8_t *>(h, 4);
@@ -330,9 +310,6 @@ namespace msweep
 		F<uint8_t *>(h, 0x5C) = pk;
 	}
 
-	// ------------------------------------------------------------------
-	// Sweep A's model (316's 0x661630 = 314's 0x663670): every object in the object mask (+0x18), its bone groups projected, then its polygons
-	// ------------------------------------------------------------------
 	static void ModelA(const uint8_t *model, uint8_t *h, uint32_t ot, int32_t shift)
 	{
 		const uint32_t *objs = *(const uint32_t *const *)(model + 4);
@@ -368,10 +345,6 @@ namespace msweep
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Sweep A (316's 0x661550 = 314's 0x663590 on the module's packet cursor `cursor`): the caster's shadow, its world
-	// bone matrices, its model, its bone matrices from the pose
-	// ------------------------------------------------------------------
 	static void SweepA(uint8_t *ent, int16_t level, int16_t page, int16_t clut, uint32_t &cursor)
 	{
 		FrameArena() = DrawShadow(ent, OT(0x4040), 0x10, FrameArena());
@@ -397,13 +370,6 @@ namespace msweep
 		FieldFree(0x84);
 	}
 
-	// ------------------------------------------------------------------
-	// Sprite renderer (318's 0x65F4B0 / 298's 0x672DB0, no IDB starts; the same code but for the colour word: 318's
-	// copy writes the record's grey three times + its code byte, 298's (raw_colour) the record's first dword): every sprite of the frame record (h +0x2C, count +0x30; 20 bytes:
-	// width, grey, height, code, u, v, CLUT, x, y, -, page, scale x, scale y) as a textured quad turned by the sprite matrix
-	// (h +0x64 = scale matrix h +0x84 x diag(scale x, scale y, 1)) at the scaled offset, into OT slot `slot`; a sprite whose
-	// projection overflows (GTE FLAG 0x60000) is not inserted (its packet is overwritten by the next one)
-	// ------------------------------------------------------------------
 	static uint32_t DrawSprites(uint8_t *h, uint32_t ot, int32_t slot, uint32_t cursor, bool raw_colour)
 	{
 		uint8_t *pk = (uint8_t *)cursor;

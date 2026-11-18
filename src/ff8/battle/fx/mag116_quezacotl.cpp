@@ -14,14 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 116: Quezacotl - Thunder Storm (timeline-family GF, source module "aoy", MAG_116_*).
-//
-// Structure (see gf_study/gf_inventory_timeline.md):
-//   SequenceTask (master, 0x6C3760) - flips the packet arena, spawns the creature at tick 2,
-//     runs the creature queue, then the lightning (0x2521708) and debris (0x25216E8) queues.
-//   CreatureTask (0x6C3940) - 355-tick timeline: Quezacotl model, camera moves, loads, sounds.
-//   particle tasks: debris 0x6C6660, bolts 0x6C7EA0, 0x6C7800, 0x6C8850.
-// Module globals: 0x25216D8..0x25217D0 (gf_study/gf_global_ranges.md).
+// Effect 116: Quezacotl - Thunder Storm
 
 #include "fx_port.h"
 
@@ -35,43 +28,36 @@ namespace q116
 {
 	using namespace eng;
 
-	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x25216DC); }          // debug pause, never set by the game
+	inline uint32_t &Pause() { return var<uint32_t>(0x25216DC); }
 	inline TaskQueuePair &QueueDebris() { return var<TaskQueuePair>(0x25216E8); }
 	inline TaskQueuePair &QueueBolts() { return var<TaskQueuePair>(0x2521708); }
-	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(0x2521728); } // .first = creature parts, .second = creature
+	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(0x2521728); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252176C); }
 	inline Mat4x3 &BoltFrame() { return var<Mat4x3>(0x2521780); }
 	inline uint32_t &ScreenFlash() { return var<uint32_t>(0x25217A4); }
 	inline uint8_t &DoneFlag() { return var<uint8_t>(0x25217A8); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x25217AC); }   // = MAGIC_TEXTURE_BUFFER_BASE
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x25217AC); }
 	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x25217B0); }
 
 	static const uint32_t ORIG_SequenceTask = 0x6C3760;
 	static const uint32_t ORIG_CreatureTask = 0x6C3940;
 	static const uint32_t ORIG_DebrisTask = 0x6C6660;
 	static const void *SOUND_CreatureVoice = (const void *)0x12AE500;
-	static void *const MODEL_Debris = (void *)0x12AC8B8; // prim model (off_12AC8B8)
+	static void *const MODEL_Debris = (void *)0x12AC8B8;
 
-	// ------------------------------------------------------------------
-	// Master task (0x6C3760). Node: +0x0C u16 counter, +0x0F u8 creature spawned,
-	// +0x10 u32 packet arena parity.
-	// ------------------------------------------------------------------
 	struct MasterNode
 	{
 		TaskNode hdr;
-		uint16_t counter; // +0x0C
+		uint16_t counter;
 		uint8_t pad0E;
-		uint8_t spawned;  // +0x0F
-		uint32_t parity;  // +0x10
+		uint8_t spawned;
+		uint32_t parity;
 	};
 
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		// 30 fps layer: see mag116_quezacotl_held.inc
 		FX_HELD(held_note_master();)
-		// double-buffered packet arena inside the model buffer
 		if (node->parity)
 		{
 			PacketCursor() = (uint32_t)(ModelBuffer() + 0x2E50);
@@ -84,7 +70,6 @@ namespace q116
 		}
 		ScreenFlash() = 0;
 
-		// creature spawn, once, at master tick 2
 		if (node->counter == 2 && !Pause() && !node->spawned)
 		{
 			node->spawned = 1;
@@ -96,7 +81,7 @@ namespace q116
 			*(uint32_t *)(ModelBuffer() + 0x28E50) = 1;
 		}
 
-		int creature_left = 1; // the original keeps the node pointer here: non-zero
+		int creature_left = 1;
 		if (node->spawned)
 		{
 			EffectCameraMatrix(&Camera(), &EffectCamera());
@@ -120,28 +105,23 @@ namespace q116
 		SetScreenFlash(ScreenFlash(), 0);
 		if (Pause()) return 0;
 		if (node->spawned && creature_left == 0)
-			return DoneFlag() ? TASK_END : 0; // creature finished: end once the streams are done
+			return DoneFlag() ? TASK_END : 0;
 		node->counter++;
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Debris chunk (0x6C6660): a prim model that falls under gravity and bounces on the
-	// ground plane (y > 0 is below ground), spinning; 30 ticks. Spawned in pairs by the
-	// creature task. Node 0x2C bytes.
-	// ------------------------------------------------------------------
 	struct DebrisNode
 	{
 		TaskNode hdr;
-		int16_t age;      // +0x0C
+		int16_t age;
 		int16_t pad0E;
-		int16_t pos[3];   // +0x10 x, y, z
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t vel[3];   // +0x18
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t rot[3];   // +0x20
+		int16_t rot[3];
 		int16_t pad26;
-		int8_t spin[3];   // +0x28
+		int8_t spin[3];
 		int8_t pad2B;
 	};
 	static_assert(sizeof(DebrisNode) == 0x2C, "debris node is 0x2C bytes");
@@ -167,12 +147,12 @@ namespace q116
 	{
 		p->rot[0] += p->spin[0];
 		p->rot[2] += p->spin[2];
-		p->vel[1] += 10; // gravity
+		p->vel[1] += 10;
 		p->rot[1] += p->spin[1];
 		p->pos[0] += p->vel[0];
 		p->pos[1] += p->vel[1];
 		p->pos[2] += p->vel[2];
-		if (p->pos[1] > 0) // hit the ground: bounce
+		if (p->pos[1] > 0)
 		{
 			p->pos[1] = 0;
 			p->vel[1] = -p->vel[1];
@@ -184,16 +164,12 @@ namespace q116
 		DebrisNode *p = (DebrisNode *)n;
 		DebrisDraw(p->pos, p->rot);
 		if (Pause()) return 0;
-		// 30 fps layer: see mag116_quezacotl_held.inc
 		FX_HELD(held_note_debris(p);)
 		DebrisUpdate(p);
 		p->age++;
 		return p->age < 30 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Module random generator (0x6C7CF0): 15-bit LCG, seed 0x25217A0
-	// ------------------------------------------------------------------
 	static int32_t Rand()
 	{
 		uint32_t &seed = var<uint32_t>(0x25217A0);
@@ -201,50 +177,40 @@ namespace q116
 		return (int32_t)seed;
 	}
 
-	// ------------------------------------------------------------------
-	// Branching lightning. A branch is a chain of segments that grows along a precomputed
-	// path script (s16 vertex indices; a negative entry -k starts a side branch whose path
-	// is the next k-1 entries, 0x7FFF ends the path). Each segment is a vertex of the bolt
-	// mesh (table 0x1298C70, loaded with the summon's data) projected by the GTE; consecutive
-	// segments are joined by gouraud quads whose half-width falls off with depth. Brightness
-	// starts at 0x100..0x6FE and decays by 1/8 of it per tick; the branch retracts from its
-	// root once the root segments are dark.
-	// ------------------------------------------------------------------
-	struct BoltSeg // 28 bytes, pool of 512 at modelBuffer + 0x40200
+	struct BoltSeg
 	{
-		int16_t vertex;    // +0x00 vertex index; -1 = free slot
-		int16_t width;     // +0x02 half-width at depth 0 (x32 / (otz + 0x400))
-		int16_t sx, sy;    // +0x04 projected position, then one edge of the ribbon
-		int16_t otz;       // +0x08 GTE OTZ (SZ3 / 4); -1 = hidden
+		int16_t vertex;
+		int16_t width;
+		int16_t sx, sy;
+		int16_t otz;
 		int16_t pad0A;
-		int16_t sx2, sy2;  // +0x0C other edge
+		int16_t sx2, sy2;
 		int16_t pad10[2];
-		int16_t intensity; // +0x14 brightness (x16)
-		int16_t decay;     // +0x16 added each tick while bright
-		BoltSeg *next;     // +0x18
+		int16_t intensity;
+		int16_t decay;
+		BoltSeg *next;
 	};
 	static_assert(sizeof(BoltSeg) == 28, "bolt segment is 28 bytes");
 
-	struct BranchNode // task node, 0x20 bytes (pool of queue 0x2521708)
+	struct BranchNode
 	{
 		TaskNode hdr;
-		int16_t count;          // +0x0C segments in the chain
-		int16_t width;          // +0x0E
-		int16_t intensity;      // +0x10 brightness of new segments
-		int16_t decay;          // +0x12
-		const int16_t *script;  // +0x14 path, null once finished
-		BoltSeg *head, *tail;   // +0x18, +0x1C
+		int16_t count;
+		int16_t width;
+		int16_t intensity;
+		int16_t decay;
+		const int16_t *script;
+		BoltSeg *head, *tail;
 	};
 	static_assert(sizeof(BranchNode) == 0x20, "branch node is 0x20 bytes");
 
 	static const uint32_t ORIG_BranchTask = 0x6C7800;
-	static const uint8_t *const BOLT_VERTICES = (const uint8_t *)0x1298C70; // 8 bytes each
-	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x12B05F0;    // [|dy|][|dx|] -> length, 128 x 128
+	static const uint8_t *const BOLT_VERTICES = (const uint8_t *)0x1298C70;
+	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x12B05F0;
 
 	inline BoltSeg *&SegFreeHint() { return *(BoltSeg **)(ModelBuffer() + 0x43A00); }
 	inline BoltSeg *SegPool() { return (BoltSeg *)(ModelBuffer() + 0x40200); }
 
-	// 0x6C7790
 	static BoltSeg *SegAlloc(int16_t vertex, int16_t width, int16_t intensity, int16_t decay)
 	{
 		BoltSeg *s = SegFreeHint();
@@ -264,7 +230,6 @@ namespace q116
 		return s;
 	}
 
-	// 0x6C76E0: new branch starting at script[0], as its own task
 	static void SpawnBranch(const int16_t *script, int16_t width)
 	{
 		int32_t r1 = Rand() & 0x3FF;
@@ -285,10 +250,6 @@ namespace q116
 		b->count = 1;
 	}
 
-	// Ribbon edges of segment s towards n (0x6C7B30 for branches, 0x6C8620 for bolts: the
-	// same code on two record layouts, BIAS = depth added before dividing the half-width).
-	// dir carries the previous segment's direction so joints are mitred (normalised average
-	// of both directions).
 	template<typename Seg, int BIAS>
 	static void SegEdges(Seg *s, const Seg *n, const int16_t *prev_dir, int16_t *dir)
 	{
@@ -303,7 +264,7 @@ namespace q116
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
 			int32_t len = DIST_TABLE[ady * 128 + adx];
-			int32_t px, py; // unit normal (4.12)
+			int32_t px, py;
 			if (prev_dir)
 			{
 				if (len == 0)
@@ -320,8 +281,8 @@ namespace q116
 					dir[0] = (int16_t)cx;
 					dir[1] = (int16_t)cy;
 					if (sx == 0 && sy == 0) { sx = cx * 2; sy = cy * 2; }
-					int32_t sq = (int32_t)((uint32_t)mul32(sx, sx) + (uint32_t)mul32(sy, sy)); // wraps, as the original
-					int32_t k = 0x4000 - (sq >> 13); // one Newton step of 1/|v|
+					int32_t sq = (int32_t)((uint32_t)mul32(sx, sx) + (uint32_t)mul32(sy, sy));
+					int32_t k = 0x4000 - (sq >> 13);
 					px = mul32(k, sx) >> 13;
 					py = mul32(k, sy) >> 13;
 				}
@@ -345,18 +306,6 @@ namespace q116
 		s->sy = (int16_t)(y - oy);
 	}
 
-	// Edges of the whole chain, then one GP0 0x3E quad (gouraud, textured, semi-transparent)
-	// per segment pair, grey level = brightness / 16. Shared tail of 0x6C79A0 and 0x6C84C0.
-	// VANILLA UNINITIALISED READ: the draw functions keep the joint direction in a stack local
-	// they never initialise. When a chain's first segment is behind the camera the edge routine
-	// returns before writing it, and the next joint reads what the stack slot held: the final
-	// direction of the previous chain drawn by the same function (consecutive tasks run at the
-	// same stack depth). The ports carry that value explicitly, one slot per draw function.
-	// Branches (slot = task entry esp - 0x24): the branch task's own growth writes it too - a
-	// side-branch spawn 2, 0 (SpawnBranch's saved EBX), every segment allocation the return
-	// address 0x006C78B8 of its call - so a growing branch reads 0x78B8, 0x006C, not the last
-	// direction. Before the first branch task of a tick the slot holds what code outside the
-	// effect left there (the harness: 0); the carry keeps the previous tick's value.
 	static int16_t g_dir_branch[2], g_dir_bolt[2], g_dir_arc[2];
 
 	template<typename Seg, int BIAS>
@@ -382,10 +331,10 @@ namespace q116
 				PacketCursor() += 0x34;
 				p[2] = *(uint32_t *)&a->sx;
 				p[5] = *(uint32_t *)&a->sx2;
-				p[3] = 0x3E94C008;  // uv0 + CLUT
-				p[6] = 0x00B6C038;  // uv1 + texture page
-				*(uint16_t *)((uint8_t *)p + 0x24) = 0xC008; // uv2
-				*(uint16_t *)((uint8_t *)p + 0x30) = 0xC038; // uv3
+				p[3] = 0x3E94C008;
+				p[6] = 0x00B6C038;
+				*(uint16_t *)((uint8_t *)p + 0x24) = 0xC008;
+				*(uint16_t *)((uint8_t *)p + 0x30) = 0xC038;
 				p[8] = *(uint32_t *)&b->sx;
 				p[11] = *(uint32_t *)&b->sx2;
 				uint32_t ca = (uint32_t)(int32_t)(int16_t)(a->intensity >> 4);
@@ -406,7 +355,6 @@ namespace q116
 		carry[1] = dir[1];
 	}
 
-	// 0x6C79A0: project the chain, then the ribbon
 	static void BranchDraw(BoltSeg *head, int count)
 	{
 		for (BoltSeg *s = head; s; s = s->next)
@@ -425,7 +373,6 @@ namespace q116
 		for (BoltSeg *s = b->head; s; s = s->next) s->vertex = -1;
 	}
 
-	// 0x6C7800: grow the branch by up to 4 path entries per tick, fade, draw, retract
 	static uint32_t __cdecl BranchTask(TaskNode *n)
 	{
 		BranchNode *b = (BranchNode *)n;
@@ -435,11 +382,9 @@ namespace q116
 			{
 				if (!b->script) continue;
 				int16_t v = *b->script++;
-				while (v < 0) // side branch: its path is the next -v-1 entries
+				while (v < 0)
 				{
 					SpawnBranch(b->script, b->width);
-					// SpawnBranch (0x6C76E0) is called at the same stack depth as BranchDraw and its
-					// prologue saves EBX (= 2 here) exactly where BranchDraw's direction local lives
 					g_dir_branch[0] = 2;
 					g_dir_branch[1] = 0;
 					b->script += -1 - v;
@@ -448,7 +393,7 @@ namespace q116
 				const int16_t *peek = b->script;
 				int16_t c = *peek;
 				if (c < 0) { peek -= c; c = *peek; }
-				if (c == 0x7FFF) // end of the path
+				if (c == 0x7FFF)
 				{
 					if (b->count <= 3) { BranchFreeAll(b); return TASK_END; }
 					b->script = nullptr;
@@ -456,8 +401,6 @@ namespace q116
 				int32_t w = b->width;
 				int16_t intensity = b->intensity, decay = b->decay;
 				int16_t width = (int16_t)(w + ((Rand() * w) >> 15));
-				// the call to SegAlloc (0x6C78B3) pushes its return address 0x006C78B8 exactly where
-				// BranchDraw's direction local lives (task entry esp - 0x24): what a later draw reads
 				g_dir_branch[0] = (int16_t)0x78B8;
 				g_dir_branch[1] = 0x006C;
 				BoltSeg *s = SegAlloc(v, width, intensity, decay);
@@ -490,68 +433,58 @@ namespace q116
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Main bolts (0x6C7EA0). A bolt is a "stepping leader": a point that walks from its start
-	// to a target over t = 0..0x1000 (dt per step, 8 steps per tick) with a jittered velocity;
-	// every step drops a vertex. Before the target is reached the vertex is placed on the
-	// straight start-target line (GTE interpolation), afterwards on the target itself. Each
-	// vertex drifts by shape * sin(t) and flares up then fades (hold ticks, then an
-	// accelerating decay). Kind 1 bolts spawn 3 child bolts and an impact flash on arrival;
-	// all kinds randomly fork side bolts while t < 0xC00 (budget = number of forks left).
-	// ------------------------------------------------------------------
-	struct BoltVert // 0x28 bytes, pool of 256 at modelBuffer + 0x3C9FC
+	struct BoltVert
 	{
-		int16_t pos[3];    // +0x00 world position (GTE V0)
-		int16_t width;     // +0x06 half-width at depth 0; -1 = free slot
-		int16_t vel[3];    // +0x08 drift per tick
-		int16_t hold;      // +0x0E ticks at full brightness before the decay accelerates
-		int16_t sx, sy;    // +0x10 projected position, then one edge of the ribbon
-		int16_t otz;       // +0x14
+		int16_t pos[3];
+		int16_t width;
+		int16_t vel[3];
+		int16_t hold;
+		int16_t sx, sy;
+		int16_t otz;
 		int16_t pad16;
-		int16_t sx2, sy2;  // +0x18 other edge
+		int16_t sx2, sy2;
 		int16_t pad1C[2];
-		int16_t intensity; // +0x20
-		int16_t decay;     // +0x22
-		BoltVert *next;    // +0x24
+		int16_t intensity;
+		int16_t decay;
+		BoltVert *next;
 	};
 	static_assert(sizeof(BoltVert) == 0x28, "bolt vertex is 0x28 bytes");
 
-	struct BoltNode // task node, 0x3C bytes (pool of queue 0x2521718)
+	struct BoltNode
 	{
 		TaskNode hdr;
-		int16_t unk0C;          // +0x0C always 0
-		int16_t count;          // +0x0E vertices in the chain
-		BoltVert *head, *tail;  // +0x10, +0x14
-		int16_t pos[3];         // +0x18 leader position
-		int16_t t;              // +0x1E progress 0..0x1000
-		int16_t target[3];      // +0x20
-		int16_t dt;             // +0x26
-		int16_t vel[3];         // +0x28 leader velocity (jittered every step)
-		int16_t budget;         // +0x2E forks left
-		int16_t shape[3];       // +0x30 vertex drift amplitude
-		int16_t unk36;          // +0x36
-		int16_t width;          // +0x38
-		int16_t kind;           // +0x3A 1 = main bolt (children + flash), 2 = main bolt's fork, 0 = other
+		int16_t unk0C;
+		int16_t count;
+		BoltVert *head, *tail;
+		int16_t pos[3];
+		int16_t t;
+		int16_t target[3];
+		int16_t dt;
+		int16_t vel[3];
+		int16_t budget;
+		int16_t shape[3];
+		int16_t unk36;
+		int16_t width;
+		int16_t kind;
 	};
 	static_assert(sizeof(BoltNode) == 0x3C, "bolt node is 0x3C bytes");
 
-	struct FlashNode // task node, 0x14 bytes (pool of queue 0x25216F8)
+	struct FlashNode
 	{
 		TaskNode hdr;
-		int16_t pos[3]; // +0x0C
-		int16_t age;    // +0x12
+		int16_t pos[3];
+		int16_t age;
 	};
 	static_assert(sizeof(FlashNode) == 0x14, "flash node is 0x14 bytes");
 
 	static const uint32_t ORIG_BoltTask = 0x6C7EA0;
 	static const uint32_t ORIG_FlashTask = 0x6C8430;
-	static const int16_t *const SIN_TABLE = (const int16_t *)0x12B4770; // 4096 entries, 4.12
+	static const int16_t *const SIN_TABLE = (const int16_t *)0x12B4770;
 	static void *const SEQ_ImpactFlash = (void *)0x12AE400;
 
 	inline BoltVert *&VertFreeHint() { return *(BoltVert **)(ModelBuffer() + 0x3F1FC); }
 	inline BoltVert *VertPool() { return (BoltVert *)(ModelBuffer() + 0x3C9FC); }
 
-	// 0x6C7E30: new vertex at pos (8 bytes are copied, then width overwrites the 4th word)
 	static BoltVert *VertAlloc(const int16_t *pos, int16_t width)
 	{
 		BoltVert *v = VertFreeHint();
@@ -572,7 +505,6 @@ namespace q116
 		return v;
 	}
 
-	// 0x6C7D10: new bolt task; pos/target/vel are 8-byte records whose 4th word is replaced
 	static BoltVert *SpawnBolt(const int16_t *vel, const int16_t *pos, const int16_t *target, const int16_t *shape,
 		int16_t unk36, int16_t t, int16_t dt, int16_t width, int16_t kind, int16_t budget)
 	{
@@ -606,7 +538,6 @@ namespace q116
 		return v;
 	}
 
-	// random offset of +-(0x200..0x3FF) around base, sign drawn first (0x6C81B1..)
 	static int16_t ForkOffset(int16_t base)
 	{
 		int32_t o = Rand() > 0x4000 ? -0x200 - (Rand() & 0x1FF) : (Rand() & 0x1FF) + 0x200;
@@ -634,7 +565,7 @@ namespace q116
 					b->pos[1] += (int16_t)((Rand() & 0x1FF) - 0x100);
 					b->pos[2] += (int16_t)((Rand() & 0x1FF) - 0x100);
 				}
-				int16_t at[4]; // where this step's vertex goes (4th word unused, overwritten)
+				int16_t at[4];
 				if (b->t >= 0x1000)
 				{
 					ff8fx::copy<(8)>(at, b->target);
@@ -663,7 +594,6 @@ namespace q116
 				}
 				else
 				{
-					// on the start-target line: pos * (1 - t) + target * t
 					GteSetIR0(0x1000 - b->t);
 					GteLoadIR123(b->pos);
 					GteGPF();
@@ -683,7 +613,6 @@ namespace q116
 				GteStoreIR123(v->vel);
 				if (b->t >= 0xC00) continue;
 				if (Rand() >= shl32(b->budget, 13)) continue;
-				// fork a side bolt from here
 				int16_t p[4], nv[4];
 				if (b->kind != 0)
 				{
@@ -701,7 +630,7 @@ namespace q116
 				nv[1] = (int16_t)((Rand() & 0x1FF) + b->vel[1] - 0x100);
 				nv[2] = (int16_t)((Rand() & 0x1FF) + b->vel[2] - 0x100);
 				BoltVert *c = SpawnBolt(nv, at, p, b->shape, -1, b->t, 0x200, (int16_t)(b->width >> 1), b->kind == 1 ? 2 : 0, 0);
-				if (c) ff8fx::copy<(8)>(c->vel, v->vel); // the fork starts with its parent vertex's drift (and hold)
+				if (c) ff8fx::copy<(8)>(c->vel, v->vel);
 				b->budget--;
 			}
 			for (BoltVert *v = b->head; v; v = v->next)
@@ -720,7 +649,7 @@ namespace q116
 			GteReadSXY2(&v->sx);
 			GteReadOTZ(&v->otz);
 		}
-		if (b->count >= 2) DrawRibbon<BoltVert, 0x200>(b->head, b->count, g_dir_bolt); // 0x6C84C0
+		if (b->count >= 2) DrawRibbon<BoltVert, 0x200>(b->head, b->count, g_dir_bolt);
 		if (Pause()) return 0;
 		for (BoltVert *v = b->head; v; v = v->next)
 		{
@@ -730,7 +659,7 @@ namespace q116
 		}
 		BoltVert *v = b->head;
 		if (v->intensity != 0) return 0;
-		for (;;) // retract dark vertices from the root
+		for (;;)
 		{
 			BoltVert *nx = v->next;
 			if (!nx || nx->intensity != 0) return 0;
@@ -744,7 +673,6 @@ namespace q116
 		}
 	}
 
-	// 0x6C8430: impact flash at a bolt's target, 8-frame sprite sequence
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		FlashNode *f = (FlashNode *)n;
@@ -760,48 +688,37 @@ namespace q116
 		return f->age < 8 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Electric arcs on Quezacotl's body (0x6C8850). Both ends ride along strips of the
-	// creature's skinned triangles (a face index, a strip length and a shared progress
-	// 0..0x1000 pick a point interpolated between two consecutive faces, with the surface
-	// normal). The arc is a curve of 16 points through the two ends, bulging along both
-	// normals by distance >> reach_shift, jittered by an amplitude profile (model buffer
-	// +0x3C25C, 16 x s16) scaled by the arc length. When progress is complete the arc fades
-	// over 10 ticks.
-	// ------------------------------------------------------------------
-	struct ArcPoint { int16_t width, color, pad; }; // per point of the curve, 6 bytes
+	struct ArcPoint { int16_t width, color, pad; };
 
-	struct ArcNode // task node, 0x80 bytes (pool of queue 0x2521728, creature parts)
+	struct ArcNode
 	{
 		TaskNode hdr;
-		int16_t age;            // +0x0C ticks since complete
-		int16_t progress;       // +0x0E 0..0x1000 along the face strips
-		int16_t speed;          // +0x10
-		uint8_t reach_shift;    // +0x12 bulge = distance >> reach_shift
-		uint8_t fade_shift;     // +0x13
-		const int16_t *strips;  // +0x14 first face A, strip length A, first face B, strip length B
-		const uint8_t *faces;   // +0x18 24 bytes per face: 3 x {s16 x, y, z, bone}
-		uint8_t **bones;        // +0x1C *bones + 0x20 = bone matrices, 48 bytes each
-		ArcPoint pts[16];       // +0x20
+		int16_t age;
+		int16_t progress;
+		int16_t speed;
+		uint8_t reach_shift;
+		uint8_t fade_shift;
+		const int16_t *strips;
+		const uint8_t *faces;
+		uint8_t **bones;
+		ArcPoint pts[16];
 	};
 	static_assert(sizeof(ArcNode) == 0x80, "arc node is 0x80 bytes");
 
-	struct ArcSeg // 16 bytes on the scratch stack: world position, then projected ribbon
+	struct ArcSeg
 	{
-		int16_t sx, sy;   // +0 world x, y -> projected position -> one edge
-		int16_t otz;      // +4 world z -> OTZ
-		int16_t width;    // +6
-		int16_t sx2, sy2; // +8 other edge
+		int16_t sx, sy;
+		int16_t otz;
+		int16_t width;
+		int16_t sx2, sy2;
 		int16_t padC;
-		int16_t color;    // +E grey level
+		int16_t color;
 	};
 	static_assert(sizeof(ArcSeg) == 16, "arc point is 16 bytes");
 
 	static const uint32_t ORIG_ArcTask = 0x6C8850;
 	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x12B4570;
 
-	// square root through the GTE leading-zero counter and the sqrt table, as the original:
-	// returns sqrt(v) in 4.12 (not yet shifted down)
 	static int32_t SqrtLz(int32_t v)
 	{
 		int32_t lz;
@@ -813,7 +730,6 @@ namespace q116
 		return shl32(SQRT_TABLE[idx], sh);
 	}
 
-	// trunc(i * scale / 15) with the compiler's magic-number division, exactly
 	static int32_t Div15(int32_t x)
 	{
 		int32_t hi = (int32_t)(((int64_t)x * (int32_t)0x88888889) >> 32);
@@ -821,7 +737,6 @@ namespace q116
 		return d + (int32_t)((uint32_t)d >> 31);
 	}
 
-	// 0x6C9100: centroid and unit normal (4.12) of a skinned triangle
 	static void TriangleFrame(const uint8_t *bone_mats, const uint8_t *face, int16_t *pos, int16_t *normal)
 	{
 		int16_t w[3][4];
@@ -851,11 +766,11 @@ namespace q116
 		for (int k = 0; k < 3; k++)
 		{
 			int32_t c = w[2][k] + w[1][k] + w[0][k];
-			pos[k] = (int16_t)(mul32(c, 0x5555) >> 16); // / 3
+			pos[k] = (int16_t)(mul32(c, 0x5555) >> 16);
 		}
 		int32_t lz;
 		GteReadLZCR(&lz);
-		if (lz < 0x12) // keep the squares inside the GTE's range
+		if (lz < 0x12)
 		{
 			int sh = 0x12 - lz;
 			n[0] >>= sh;
@@ -872,7 +787,6 @@ namespace q116
 		normal[2] = (int16_t)(shl32(n[2], 12) / len);
 	}
 
-	// 0x6C8F70: point and normal at progress along a strip of n faces
 	static void StripPoint(const uint8_t *bone_mats, const uint8_t *faces, int32_t n, int32_t progress, int16_t *pos, int16_t *normal)
 	{
 		int32_t at = mul32(n - 1, progress);
@@ -902,7 +816,7 @@ namespace q116
 		GteGPL();
 		GteStoreIR123(nl);
 		int32_t len2;
-		GteLoadIR123(nl); // (zero-extends the components, as the original does)
+		GteLoadIR123(nl);
 		GteSQR();
 		GteSumMAC123(&len2);
 		int32_t len = SqrtLz(len2) >> 12;
@@ -911,7 +825,6 @@ namespace q116
 		normal[2] = (int16_t)(shl32(nl[2], 12) / len);
 	}
 
-	// 0x6C8C50: project the 16 points, ribbon edges, one quad per pair into the frame arena
 	static void ArcDraw(ArcSeg *pts, int16_t *carry)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -921,8 +834,8 @@ namespace q116
 			int32_t sz3;
 			GteLoadV0(&pts[k]);
 			GteRTPS();
-			GteReadDataReg(14, &pts[k]);     // SXY2
-			GteReadDataRegTo(&sz3, 19);      // SZ3
+			GteReadDataReg(14, &pts[k]);
+			GteReadDataRegTo(&sz3, 19);
 			pts[k].otz = (int16_t)(sz3 >> 2);
 		}
 		int16_t dir[2] = { carry[0], carry[1] };
@@ -936,7 +849,7 @@ namespace q116
 		{
 			const ArcSeg *a = &pts[k], *b = &pts[k + 1];
 			if (a->otz <= 0 || b->otz <= 0) continue;
-			uint32_t *p = (uint32_t *)var<uint32_t>(0x1D8E054); // battle frame packet arena
+			uint32_t *p = (uint32_t *)var<uint32_t>(0x1D8E054);
 			var<uint32_t>(0x1D8E054) += 0x34;
 			p[2] = *(const uint32_t *)&a->sx;
 			p[5] = *(const uint32_t *)&a->sx2;
@@ -960,9 +873,6 @@ namespace q116
 		}
 	}
 
-	// the arc for a given progress: 16 points through the two strip points, bulging along
-	// both normals (widths and colours from the node), before the jitter; on the scratch stack
-	// (0x100 bytes, freed by the caller). length = distance between the two ends
 	static ArcSeg *ArcCurve(ArcNode *arc, int16_t progress, int32_t *length)
 	{
 		const uint8_t *bone_mats = *arc->bones + 0x10;
@@ -984,7 +894,7 @@ namespace q116
 		GteStoreIR123(n2);
 		for (int k = 0; k < 3; k++)
 		{
-			n1[k] += p1[k]; // control points
+			n1[k] += p1[k];
 			n2[k] += p2[k];
 		}
 		ArcSeg *pts = (ArcSeg *)FieldAlloc(0x100);
@@ -1025,8 +935,6 @@ namespace q116
 		return pts;
 	}
 
-	// 0x6C8850 draw part: the curve at the node's progress, the 14 inner points jittered by the
-	// module generator (scaled by the amplitude profile and the arc length), then the ribbon
 	static void ArcBuildDraw(ArcNode *arc)
 	{
 		int32_t length;
@@ -1042,7 +950,6 @@ namespace q116
 			pts[i].sy += (int16_t)(mul32(rv[1], amp) >> 18);
 			rv[2] = Rand() - 0x4000;
 			pts[i].otz += (int16_t)(mul32(rv[2], amp) >> 18);
-			// 30 fps layer: see mag116_quezacotl_held.inc
 			FX_HELD(held_note_arc_jitter(i, rv);)
 		}
 		ArcDraw(pts, g_dir_arc);
@@ -1052,7 +959,6 @@ namespace q116
 	static uint32_t __cdecl ArcTask(TaskNode *n)
 	{
 		ArcNode *arc = (ArcNode *)n;
-		// 30 fps layer: see mag116_quezacotl_held.inc
 		FX_HELD(held_note_arc(arc);)
 		ArcBuildDraw(arc);
 		if (Pause()) return 0;
@@ -1070,22 +976,6 @@ namespace q116
 		return arc->age < 10 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Creature timeline (0x6C3940): one node at modelBuffer + 0 (0x8D0 bytes), 355 ticks.
-	// Node: +0x0C u16 tick, +0x10 voice slot, +0x14 materialisation accumulator,
-	//   +0x18..+0x27 saved camera (look-at XZ/Y, eye XZ/Y), +0x28 creature model
-	//   (+0x68 model matrix, +0x88 BattleAnimHeader, +0x94 BattleAnimCmd), +0x34/+0x36/+0x38,
-	//   +0x44/+0x46/+0x48, +0x7C/+0x80/+0x84, +0x8C arc bone table, +0xC4 model sections,
-	//   +0xD4 prim-model player layout.
-	// Timeline: tick 1-76 intro prim model, 77-100 ring, 86-256 the creature materialises
-	// (anims 0/1/2 at 86/118/238) while the camera sweeps (86-161) and arcs crawl over it;
-	// bolts at 86-100 / 157-176 / 232-266, 207-226 camera on the creature's head, 257-276
-	// orbit, 277-302 ascent, 303-318 debris, 319-354 final prim model; streams are loaded at
-	// fixed ticks (the timeline waits for each load), damage at 345, end at 355.
-	// Locals live in a persistent frame (g_fr, same offsets as the original stack frame):
-	// a few fields are never written before being copied (the 4th word of the 8-byte bolt
-	// records), so like the original they keep what the previous tick left there.
-	// ------------------------------------------------------------------
 	namespace cx
 	{
 		inline void Sub508500() { fn<void (__cdecl *)()>(0x508500)(); }
@@ -1125,22 +1015,20 @@ namespace q116
 		inline void BuildBoneMatrices(void *header) { fn<void (__cdecl *)(void *)>(0x508C90)(header); }
 	}
 
-	static const uint32_t CB_PrimDraw = 0x6C6060;   // record -> prim model, relative to the camera
-	static const uint32_t CB_PrimMatrix = 0x6C53A0; // record -> prim model, relative to a given matrix
+	static const uint32_t CB_PrimDraw = 0x6C6060;
+	static const uint32_t CB_PrimMatrix = 0x6C53A0;
 	inline int16_t &G16(uint32_t a) { return var<int16_t>(a); }
 	inline int32_t &G32(uint32_t a) { return var<int32_t>(a); }
-	static const uint32_t CAM_EYE = 0xB8B7F0, CAM_AT = 0xB8B7F8; // XZ (2 x s16) then Y (s32)
+	static const uint32_t CAM_EYE = 0xB8B7F0, CAM_AT = 0xB8B7F8;
 	static const uint32_t BASE_Y = 0x2521770, BASE_Y2 = 0x2521774, BASE_Y3 = 0x2521778;
 
-	static uint8_t g_fr[0x90]; // the original's stack frame, esp-relative offsets
+	static uint8_t g_fr[0x90];
 	inline int16_t &F16(int o) { return *(int16_t *)(g_fr + o); }
 	inline int32_t &F32(int o) { return *(int32_t *)(g_fr + o); }
 	inline uint8_t *FP(int o) { return g_fr + o; }
 
-	// the shared prim-model player on a creature layout (paused with the module's debug pause)
 	static int Play(prim::Layout *l, uint32_t cb, void *arg)
 	{
-		// 30 fps layer: see mag116_quezacotl_held.inc
 		FX_HELD(held_note_play(l, cb, arg);)
 		return prim::play(l, (prim::Callback)cb, (int)arg, Pause());
 	}
@@ -1154,11 +1042,9 @@ namespace q116
 		prim::Layout *L = (prim::Layout *)(nd + 0xD4);
 		uint8_t *MB = ModelBuffer();
 
-		// 30 fps layer: see mag116_quezacotl_held.inc
 		FX_HELD(held_creature_begin();)
 
 		int16_t c = W16(0x0C);
-		// screen flash: full until 351, then fading out
 		if (c <= 351)
 		{
 			if ((int32_t)ScreenFlash() < 2400) ScreenFlash() = 2400;
@@ -1169,7 +1055,6 @@ namespace q116
 			if (v > (int32_t)ScreenFlash()) ScreenFlash() = (uint32_t)v;
 		}
 
-		// 86..256: the creature materialises
 		uint32_t v3 = (uint32_t)((int32_t)c - 86);
 		if (v3 < 0xAB)
 		{
@@ -1193,13 +1078,11 @@ namespace q116
 			F16(0x18) = 0x1C0; F16(0x1A) = 0x180; F16(0x1C) = 0x80; F16(0x1E) = 0x80;
 			g_fr[0x10] = g_fr[0x11] = g_fr[0x12] = 0x80; g_fr[0x13] = 0;
 			if (!Pause()) cx::AdvanceAnim(model);
-			// 30 fps layer: see mag116_quezacotl_held.inc
 			FX_HELD(held_note_materialise((int32_t)v3, v4, D32(0x14));)
 			cx::DrawMaterialise(model, v4, FP(0x18), 0x3F54, D32(0x14) >> 6, D32(0x14) >> 5, FP(0x10));
 			if (!Pause()) D32(0x14) += (int32_t)v3;
 		}
 
-		// 257..276: orbit around the creature
 		uint32_t v5 = (uint32_t)((int32_t)W16(0x0C) - 257);
 		if (v5 < 0x14)
 		{
@@ -1211,16 +1094,14 @@ namespace q116
 				int32_t s = ComputeSin((int32_t)((v5 << 12) / 40));
 				cx::RotMatrixY(s >> 7, FP(0x44));
 				cx::MatVec(FP(0x44), FP(0x18), (void *)CAM_EYE);
-				G16(0x1D977A2) += 8; // roll
+				G16(0x1D977A2) += 8;
 				G16(CAM_EYE + 4) += G16(BASE_Y);
 				cx::AdvanceAnim(model);
 			}
-			// 30 fps layer: see mag116_quezacotl_held.inc
 			FX_HELD(held_note_orbit();)
 			var<uint32_t>(0x1D8E054) = cx::DrawModel(model, MB + 0x8D0, var<uint32_t>(0x1D8E054), var<uint32_t>(0x1D969A8));
 		}
 
-		// 1..76: intro prim model
 		if ((uint32_t)((int32_t)W16(0x0C) - 1) < 0x4C)
 		{
 			if (W16(0x0C) == 1)
@@ -1233,7 +1114,6 @@ namespace q116
 			Play(L, CB_PrimDraw, FP(0x30));
 		}
 
-		// 77..100: ring, turned half round, in front of the camera
 		if ((uint32_t)((int32_t)W16(0x0C) - 77) < 0x18)
 		{
 			if (W16(0x0C) == 77)
@@ -1245,13 +1125,11 @@ namespace q116
 			F32(0x84) = 0; F16(0x88) = 0;
 			F32(0x78) = 500; F32(0x7C) = 0; F32(0x80) = G32(BASE_Y3);
 			cx::RotMatrixY(-2048, FP(0x64));
-			// 30 fps layer: see mag116_quezacotl_held.inc
 			FX_HELD(held_note_uncomposed(FP(0x64));)
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
 			Play(L, CB_PrimMatrix, FP(0x64));
 		}
 
-		// 86..161: camera sweep, arcs, first bolts
 		uint32_t v7 = (uint32_t)((int32_t)W16(0x0C) - 86);
 		if (v7 < 0x4C)
 		{
@@ -1346,7 +1224,6 @@ namespace q116
 			}
 		}
 
-		// 101..164: prim model at the base height
 		if ((uint32_t)((int32_t)W16(0x0C) - 101) < 0x40)
 		{
 			if (W16(0x0C) == 101) cx::Decode(0x1298C68, L, 0x158);
@@ -1356,7 +1233,6 @@ namespace q116
 			Play(L, CB_PrimDraw, FP(0x30));
 		}
 
-		// 157..176, every other tick: bolt from a random vertex of the creature
 		{
 			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 157);
 			if (t < 0x14 && (t & 1) == 0 && !Pause())
@@ -1380,7 +1256,6 @@ namespace q116
 			}
 		}
 
-		// 207..226: camera on the creature's head, arcs
 		{
 			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 207);
 			if (t < 0x14)
@@ -1397,7 +1272,6 @@ namespace q116
 			}
 		}
 
-		// 212..226: prim model at the look-at point, facing the camera
 		if ((uint32_t)((int32_t)W16(0x0C) - 212) < 0xF)
 		{
 			if (W16(0x0C) == 212) cx::Decode(0x12A1164, L, 0x1A0);
@@ -1408,13 +1282,11 @@ namespace q116
 			F32(0x84) = 0; F16(0x88) = 0;
 			F32(0x80) = G16(CAM_AT + 4);
 			cx::RotMatrixXY(-0x80, yaw, FP(0x64));
-			// 30 fps layer: see mag116_quezacotl_held.inc
 			FX_HELD(held_note_uncomposed(FP(0x64));)
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
 			Play(L, CB_PrimMatrix, FP(0x64));
 		}
 
-		// 227..246: prim model at the head vertex
 		if ((uint32_t)((int32_t)W16(0x0C) - 227) < 0x14)
 		{
 			if (W16(0x0C) == 227) cx::Decode(0x12A9664, L, 0x1D8);
@@ -1425,13 +1297,11 @@ namespace q116
 			F32(0x78) = F16(0x28);
 			F32(0x80) = F16(0x2C);
 			cx::RotMatrixXY(-0x80, -(int32_t)W16(0x36), FP(0x64));
-			// 30 fps layer: see mag116_quezacotl_held.inc
 			FX_HELD(held_note_uncomposed(FP(0x64));)
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
 			Play(L, CB_PrimMatrix, FP(0x64));
 		}
 
-		// 247..256: screen-space prim model (waits for the load at 247)
 		{
 			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 237);
 			if (t < 0x14 && t >= 0xA)
@@ -1450,7 +1320,6 @@ namespace q116
 			}
 		}
 
-		// 257..302: branches, orbit prim model, then the ascent (second player at 0x129F4E8)
 		{
 			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 257);
 			if (t < 0x2E)
@@ -1491,7 +1360,6 @@ namespace q116
 			}
 		}
 
-		// 303..318: debris chunks, 2 per tick
 		{
 			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 303);
 			if (t < 0x10)
@@ -1528,7 +1396,6 @@ namespace q116
 			}
 		}
 
-		// 319..354: final prim model, camera drifts back
 		{
 			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 319);
 			if (t < 0x24)
@@ -1550,7 +1417,6 @@ namespace q116
 			}
 		}
 
-		// one-shot sound cues
 		switch ((uint16_t)W16(0x0C))
 		{
 		case 0x49: case 0x4F: case 0xF8: case 0xFA: case 0xFD: case 0x102: case 0x13D: cx::Sub6C6530(0x12AE7E0); break;
@@ -1561,7 +1427,6 @@ namespace q116
 		default: break;
 		}
 
-		// stream loads: the timeline waits (repeats the tick) while a load is still busy
 		{
 			uint32_t D = (uint32_t)(ModelBuffer() + 0x28E9C);
 			int32_t cc = W16(0x0C);
@@ -1599,7 +1464,6 @@ namespace q116
 		cx::LoadPump();
 		if (W16(0x0C) == 351) cx::ReleaseVoice((uint32_t)D32(0x10));
 
-		// 232..266: bolts from the head to the ground
 		{
 			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 232);
 			if (t < 0x23)
@@ -1621,7 +1485,6 @@ namespace q116
 			}
 		}
 
-		// camera cuts and sound cues
 		switch ((uint16_t)W16(0x0C))
 		{
 		case 0:
@@ -1694,7 +1557,6 @@ namespace q116
 		return 0;
 	}
 
-	// 0x6C87B0: new arc (called by the creature timeline)
 	[[maybe_unused]] static void SpawnArc(uint8_t **bones, const int16_t *strips, const uint8_t *faces, uint8_t reach_shift, uint8_t fade_shift, int16_t speed)
 	{
 		ArcNode *arc = (ArcNode *)AddTaskToQueue(&QueueCreature().first, ORIG_ArcTask);
@@ -1726,7 +1588,6 @@ namespace q116
 		register_port(q116::ORIG_BoltTask, (void *)q116::BoltTask, "Q116 BoltTask", 116);
 		register_port(q116::ORIG_FlashTask, (void *)q116::FlashTask, "Q116 FlashTask", 116);
 		register_port(q116::ORIG_ArcTask, (void *)q116::ArcTask, "Q116 ArcTask", 116);
-		// 30 fps layer: see mag116_quezacotl_held.inc
 		FX_HELD(register_mag116_held();)
 	}
 }

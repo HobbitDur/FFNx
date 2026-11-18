@@ -14,21 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 142: Fira (spell, MAG_142_*).
-//
-// Structure (setup MAG_142_FIRA 0x61CE10, file loader 0x61CDF0 = mag141.tim):
-//   RootTask (0x61DD90) - alternates the packet arena (magic buffer + 0 / + 0x10000), runs the
-//     effect queue; when it is empty queues WaitTIMUploadEnd (0x61DE10) in the root queue, which
-//     starts the battle texture restore and ends when it is done.
-//   Director, one per action (0x61CEC0), on the action's first target: 1 fireball from the caster,
-//     3 sound, 9 explosion burst + shock ring + sparks, 10-11 embers, 11 flame columns,
-//     14 damage, 21 next action's director, screen flash in / out, ends after 26.
-//   Projectile (0x61DAF0) - flies caster -> target in 8 steps leaving trail puffs (no draw).
-//   Trail (0x61DC20), FlameColumn (0x61D7F0), ExplosionBurst (0x61D9A0) - prim models;
-//   ShockRing (0x61D6B0) - sprite sequence on a 3D plane; Spark (0x61D4C0) shared sprite 5;
-//   Ember (0x61D5D0) flipbook.
-// Module globals: 0x24BFB48..0x24C10B4 (queues, node pool, context, texture pointers, packet
-// cursor 0x24C10B0); packets go to the magic buffer (0x20DFAB8 + 0 / + 0x10000).
+// Effect 142: Fira
 
 #include "mag_common.h"
 
@@ -39,10 +25,9 @@ namespace fira142
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BFB68); } // .first = root, .second = effect queue
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BFB68); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x24C10A0); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24C10AC); }       // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24C10AC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24C10B0); }
 
 	static const uint32_t ORIG_RootTask = 0x61DD90;
@@ -60,69 +45,66 @@ namespace fira142
 	static const void *const MODEL_FlameColumn = (const void *)0xDDEF14;
 	static const void *const MODEL_Burst = (const void *)0xDDE6C4;
 	static const void *const MODEL_Trail = (const void *)0xDDE2AC;
-	static const uint32_t *const TRAIL_TABLE = (const uint32_t *)0xDDF454; // [frame] header +0x18 of a trail puff
+	static const uint32_t *const TRAIL_TABLE = (const uint32_t *)0xDDF454;
 	static const void *const SOUND_Fira = (const void *)0xDDF44C;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// ------------------------------------------------------------------
-	// Node layouts (pool of 0x96 nodes of 0x24 bytes)
-	// ------------------------------------------------------------------
 	struct RootNode { TaskNode hdr; uint16_t counter; int16_t done; };
 	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C
-		int16_t action;      // +0x0E action index
-		int16_t target[4];   // +0x10 target x, height, z, y (y and height swapped at tick 0)
-		int16_t caster[4];   // +0x18 caster x, height, z, y
-		int16_t slot;        // +0x20 target slot
-		int16_t caster_slot; // +0x22
+		int16_t counter;
+		int16_t action;
+		int16_t target[4];
+		int16_t caster[4];
+		int16_t slot;
+		int16_t caster_slot;
 	};
-	struct SparkNode   // Spark and Ember share the Fire spark / ember layouts
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t life;     // +0x0C counts down, frame = 9 - life / 2
-		int16_t delay;    // +0x0E
-		int16_t pos[3];   // +0x10
+		int16_t life;
+		int16_t delay;
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t vel[3];   // +0x18
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t scale;    // +0x20
+		int16_t scale;
 		int16_t pad22;
 	};
 	struct EmberNode
 	{
 		TaskNode hdr;
-		int16_t frame;    // +0x0C
-		int16_t delay;    // +0x0E
-		int16_t pos[3];   // +0x10
-		int16_t vel_y;    // +0x16
+		int16_t frame;
+		int16_t delay;
+		int16_t pos[3];
+		int16_t vel_y;
 		uint8_t pad18[4];
-		int16_t scale;    // +0x1C
+		int16_t scale;
 		uint8_t pad1E[6];
 	};
-	struct ModelNode   // prim-model parts: ShockRing, FlameColumn, ExplosionBurst, Trail
+	struct ModelNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t delay;    // +0x0E (FlameColumn, Trail)
-		int16_t pos[3];   // +0x10
+		int16_t counter;
+		int16_t delay;
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t yaw;      // +0x18
-		int16_t yaw_vel;  // +0x1A
-		int16_t scale;    // +0x1C
-		int16_t scale_vel;// +0x1E
-		int16_t scale_y;  // +0x20 (FlameColumn, ExplosionBurst)
-		int16_t scale_y_vel; // +0x22 (ExplosionBurst)
+		int16_t yaw;
+		int16_t yaw_vel;
+		int16_t scale;
+		int16_t scale_vel;
+		int16_t scale_y;
+		int16_t scale_y_vel;
 	};
 	struct ProjectileNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];   // +0x10
-		int16_t vel[3];   // +0x18
+		int16_t pos[4];
+		int16_t vel[3];
 		uint8_t pad1E[6];
 	};
 	static_assert(sizeof(DirectorNode) == 0x24 && sizeof(SparkNode) == 0x24 && sizeof(EmberNode) == 0x24 && sizeof(ModelNode) == 0x24 && sizeof(ProjectileNode) == 0x24, "Fira nodes are 0x24 bytes");
@@ -137,13 +119,9 @@ namespace ff8fx
 {
 namespace fira142
 {
-	// ------------------------------------------------------------------
-	// Root task (0x61DD90): node +0x0C counter
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = (uint32_t)(TexBase() + 0x10000);
 		else PacketCursor() = (uint32_t)TexBase();
@@ -158,9 +136,6 @@ namespace fira142
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Texture restore wait (0x61DE10): node +0x0C counter, +0x0E done flag
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl WaitTexRestore(TaskNode *n)
 	{
 		RootNode *w = (RootNode *)n;
@@ -170,9 +145,6 @@ namespace fira142
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x61CEC0)
-	// ------------------------------------------------------------------
 	static inline void Swap16(int16_t &a, int16_t &b)
 	{
 		a ^= b;
@@ -180,7 +152,6 @@ namespace fira142
 		a ^= b;
 	}
 
-	// DDA division of the column's fade-out constant: (x << 12) * 0x859C5061 >> 41 (x * 4096 / 981)
 	static int16_t ColumnScaleVel(int16_t r)
 	{
 		int32_t x = shl32(r, 12);
@@ -191,7 +162,6 @@ namespace fira142
 		return (int16_t)hi;
 	}
 
-	// x / 30 (0x88888889, >> 4)
 	static int16_t Div30(int16_t v)
 	{
 		int32_t x = v;
@@ -315,7 +285,6 @@ namespace fira142
 				t->caster_slot = (int16_t)(uint16_t)ad->attacker;
 			}
 		}
-		// screen flash: in during the first action, out at the end of the last one
 		if (d->action == 0 && d->counter <= 6) SetScreenFlash((uint32_t)(341 * d->counter), 0);
 		else if ((uint16_t)d->action == (uint16_t)Ctx()->actions[0].last_action && d->counter >= 0x14)
 			SetScreenFlash((uint32_t)(0x22A4 - 341 * d->counter), 0);
@@ -331,9 +300,6 @@ namespace fira142
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x61D4C0): shared sprite 5, frame 9 - life / 2
-	// ------------------------------------------------------------------
 	static void SparkDraw(const SparkNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -346,7 +312,6 @@ namespace fira142
 		FieldFree(0xB4);
 	}
 
-	// drift: x and z decelerate by 1/16, y (upwards) accelerates by 1/16; shrink by 0x28
 	static void SparkUpdate(SparkNode *p)
 	{
 		int16_t v = p->vel[0];
@@ -371,7 +336,6 @@ namespace fira142
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkTask, p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
@@ -379,9 +343,6 @@ namespace fira142
 		return p->life < 0 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ember (0x61D5D0): flipbook 0xDDE100, frame `frame`
-	// ------------------------------------------------------------------
 	static void EmberDraw(const EmberNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -393,7 +354,6 @@ namespace fira142
 		FieldFree(0xB4);
 	}
 
-	// rise: y += vel_y, vel_y grows by 1/32; shrink by 1/64
 	static void EmberUpdate(EmberNode *p)
 	{
 		int16_t v = p->vel_y;
@@ -413,7 +373,6 @@ namespace fira142
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(held_note_draw(ORIG_EmberTask, p);)
 		EmberDraw(p);
 		if (DrawOnly()) return 0;
@@ -421,9 +380,6 @@ namespace fira142
 		return p->frame >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Model parts: GTE = camera * (translate pos, rotate, scale), then the prim model / sequence
-	// ------------------------------------------------------------------
 	static void ModelMatrix(const int16_t *angles, bool zyx, const int16_t *pos, int32_t sx, int32_t sy, int32_t sz)
 	{
 		Mat4x3 m = {};
@@ -439,9 +395,6 @@ namespace fira142
 		GteSetTransVector(&m);
 	}
 
-	// Shock ring (0x61D6B0): sprite sequence 0xDDE0D8 on a flat plane (tilted 0x400) of fixed size
-	// at the target; its colour (+0x1C..+0x1E, used with +0x24 flag 4) ramps up over 0..5 and
-	// down over 14..21, in between the sequence's own colour
 	static void ShockRingMatrix(const ModelNode *p)
 	{
 		int16_t angles[4] = { 0x400, p->yaw, 0, 0 };
@@ -466,7 +419,6 @@ namespace fira142
 	static uint32_t __cdecl ShockRingTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(held_note_draw(ORIG_ShockRingTask, p);)
 		ShockRingMatrix(p);
 		uint8_t *h = AllocHeader(0xB4);
@@ -478,7 +430,6 @@ namespace fira142
 		return p->counter >= 0x16 ? TASK_END : 0;
 	}
 
-	// Flame column (0x61D7F0): spinning column growing wider; fades in over 0..3, out from 8
 	static void FlameColumnMatrix(const ModelNode *p)
 	{
 		int16_t angles[4] = { 0, p->yaw, 0, 0 };
@@ -504,7 +455,6 @@ namespace fira142
 		}
 	}
 
-	// spin decelerates by 1/16, width grows by a velocity decaying by 1/5
 	static void FlameColumnUpdate(ModelNode *p)
 	{
 		int16_t v = p->yaw_vel;
@@ -514,7 +464,7 @@ namespace fira142
 		p->scale = (int16_t)(p->scale + sv);
 		int32_t x = sv;
 		int32_t q = (int32_t)(((int64_t)x * 0x66666667) >> 32) >> 2;
-		q += (int32_t)((uint32_t)q >> 31);                   // sv / 5
+		q += (int32_t)((uint32_t)q >> 31);
 		p->counter++;
 		p->scale_vel = (int16_t)(sv - q);
 	}
@@ -528,7 +478,6 @@ namespace fira142
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(held_note_draw(ORIG_FlameColumnTask, p);)
 		FlameColumnMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
@@ -540,7 +489,6 @@ namespace fira142
 		return p->counter >= 0x12 ? TASK_END : 0;
 	}
 
-	// Explosion burst (0x61D9A0): spinning, growing taller; fades out from 14
 	static void BurstMatrix(const ModelNode *p)
 	{
 		int16_t angles[4] = { 0, p->yaw, 0, 0 };
@@ -561,7 +509,6 @@ namespace fira142
 		}
 	}
 
-	// spin decelerates by 1/16, height grows by a velocity decaying by 1/8
 	static void BurstUpdate(ModelNode *p)
 	{
 		int16_t v = p->yaw_vel;
@@ -576,7 +523,6 @@ namespace fira142
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(held_note_draw(ORIG_BurstTask, p);)
 		BurstMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
@@ -588,9 +534,6 @@ namespace fira142
 		return p->counter >= 0x16 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Projectile (0x61DAF0): 8 steps caster -> target, (counter / 2 + 1) trail puffs per step
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ProjectileTask(TaskNode *n)
 	{
 		ProjectileNode *p = (ProjectileNode *)n;
@@ -624,8 +567,6 @@ namespace fira142
 		return p->counter >= 0xA ? TASK_END : 0;
 	}
 
-	// Trail puff (0x61DC20): grows by a velocity decaying by 1/8; header +0x18 from a per-frame
-	// table; fades out from 8
 	static void TrailMatrix(const ModelNode *p)
 	{
 		int16_t angles[4] = { 0, p->yaw, 0, 0 };
@@ -664,7 +605,6 @@ namespace fira142
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(held_note_draw(ORIG_TrailTask, p);)
 		TrailMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
@@ -689,7 +629,6 @@ namespace fira142
 		register_port(fira142::ORIG_BurstTask, (void *)fira142::BurstTask, "F142 BurstTask", 142);
 		register_port(fira142::ORIG_ProjectileTask, (void *)fira142::ProjectileTask, "F142 ProjectileTask", 142);
 		register_port(fira142::ORIG_TrailTask, (void *)fira142::TrailTask, "F142 TrailTask", 142);
-		// 30 fps layer: see mag142_fira_held.inc
 		FX_HELD(register_mag142_held();)
 	}
 }

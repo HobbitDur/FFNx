@@ -14,34 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 114: Zombie (spell, MAG_114_*).
-//
-// Structure (setup MAG_114_ZOMBIE 0x6C99C0 -> _Init 0x6C99F0, file loader 0x6C99D0 = the texture
-// file named at 0x12C0238; the setup starts camera animation 0x12BD8D8 and queues the TIM):
-//   RootTask (0x6C9A60) - alternates the packet arena (magic buffer + 0x1600 / + 0x19600); on
-//     counter 1 of a 10-tick cycle sets up the target pool (first time) and starts the target task
-//     of the next action on its first target, unless any target task of 40 ticks or less still
-//     runs (the cycle then restarts); runs the target queue, ends when it is empty.
-//   Target (0x6C9BC0) - node 0x710, one per action: follows the target's effect anchor; plays the
-//     prim-model layout 0x12BA30C with the callback MistPart (0x6C9D60) every tick, scaled by the
-//     target's size (sound at 0); from 30 marks the target's entities (flags bit 3 on its +0x8C
-//     ring); over 30..59 (unless the cast context has flag 0x200) redraws the target model as a
-//     glowing overlay (0x6CA560): lifted by sin(t) * size, its vertices swayed sideways by a
-//     wave table, additive flat polygons in a colour going from black to the target's tint;
-//     damage at 54; ends at 60 (marks cleared).
-//   MistPart (0x6C9D60) - one object of the layout: record flag 0x20000 selects the rotation order,
-//     the block scale (always on here) scales the offsets and the matrix; flag 0x200 = the offset
-//     stays in screen axes, else anchor + offset through the camera; flag 0x100 = scale by a
-//     diagonal matrix product, else scale3DMatrix. Objects 2 and 3 are drawn by QuadsAdditive
-//     (0x6CA0E0: only the model's gouraud textured quads, 0x6CA1B0, each after an additive
-//     draw-mode primitive, depth offset clamped at 0), the others by MAG_070_sub_7043B0.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2521818..0x252186C (texture file, magic buffer base, context, root pool,
-// packet cursor 0x252183C, target / root queues, the zero vector 0x2521860 and the black colour
-// 0x2521868 the overlay starts from: never written). The target pool (3 x 0x710), the morph
-// vertex buffer (+0x1530) and the packet arenas are in the magic buffer. The overlay uses the
-// battle's bone workspace (0x1D98B3C) as its vertex buffer and rebuilds the target's bone
-// matrices (camera space for the draw, then back from the pose).
+// Effect 114: Zombie
 
 #include "mag_common.h"
 
@@ -52,38 +25,31 @@ namespace zombie114
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x252181C); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x252181C); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2521820); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x252183C); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521840; }         // pool: magic buffer, 3 x 0x710
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // overlay vertex buffer
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521840; }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6C9A60;
 	static const uint32_t ORIG_TargetTask = 0x6C9BC0;
-	static const uint32_t MODEL_Mist = 0x12BA30C;        // prim-model layout data (0x6F4-byte layout)
-	static const uint32_t ZERO_Vector = 0x2521860;       // module global, never written (0, 0, 0)
-	static const uint32_t OVERLAY_Colour = 0x2521868;    // module global, never written (black)
-	static const uint32_t WAVE_Table = 0x12BE238;        // s16 [4096]
+	static const uint32_t MODEL_Mist = 0x12BA30C;
+	static const uint32_t ZERO_Vector = 0x2521860;
+	static const uint32_t OVERLAY_Colour = 0x2521868;
+	static const uint32_t WAVE_Table = 0x12BE238;
 	static const void *const SOUND_Zombie = (const void *)0x12BE234;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701530)(angles, out); }  // MAG_065_sub_701530
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701530)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// MAG_070_sub_7043B0: prim model draw (header +0 model, +4 vertices, +8 fade colour, +0xC fade,
-	// +0x18 depth offset, +0x1C mode)
 	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }    // sub_56C220: a = a * b (3x3)
-	// sub_56CC00: out = colour blend of a (weight wa) and b (weight wb), weights 4.12
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
 	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	// software GTE
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0: V0 = 3 x u16
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
@@ -95,52 +61,47 @@ namespace zombie114
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }    // GTE_ReadOTZ (dword)
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }        // set_unk_1CA8A28
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }                   // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pool set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0x710 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E action index
-		uint8_t *entity;   // +0x10 target entity
-		int16_t pos[4];    // +0x14 effect anchor x, y, z, height (GetDefaultEffectPosition)
-		uint8_t mist[0x6F4]; // +0x1C prim-model layout (prim::Layout: data, frame, state)
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		int16_t pos[4];
+		uint8_t mist[0x6F4];
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 anchor x, y, z, height
-		int32_t scale[3];  // +0x08 4.12, applied to the record offsets and the matrix
-		int32_t scaled;    // +0x14 scale present (always 1)
-		int32_t depth;     // +0x18 prim header +0x18
-		uint32_t morph;    // +0x1C blended vertex frames
+		int16_t pos[4];
+		int32_t scale[3];
+		int32_t scaled;
+		int32_t depth;
+		uint32_t morph;
 	};
-	// the overlay's parameters (the arguments of 0x6CA560 after the entity)
 	struct OverlayArg
 	{
-		int16_t lift[3];   // offset added to the entity matrix translation (0, -sin * size, 0)
-		int32_t weight;    // sin: the target tint's weight in the colour (4.12)
-		int32_t amp;       // sway amplitude (* 4)
-		int32_t phase;     // wave table phase
+		int16_t lift[3];
+		int32_t weight;
+		int32_t amp;
+		int32_t phase;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x710, "Zombie nodes");
@@ -148,15 +109,9 @@ namespace zombie114
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 
-	// screen clip of a projected vertex (x 0..0xA00, y 0..0x6C0: the PC's 4x subpixel screen)
 	static inline bool OutX(const uint8_t *xy) { const int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
 	static inline bool OutY(const uint8_t *xy) { const int16_t v = *(const int16_t *)(xy + 2); return v < 0 || v > 0x6C0; }
 
-	// ------------------------------------------------------------------
-	// sub_6CA1B0: the prim model's gouraud textured quads (list at header +0x20, 0x24-byte
-	// records), each after an additive draw-mode primitive (same bucket); depth = OTZ + header
-	// +0x18, clamped at 0
-	// ------------------------------------------------------------------
 	static uint32_t GouraudQuadsAdditive(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -233,7 +188,6 @@ namespace zombie114
 		return (uint32_t)pk;
 	}
 
-	// list at p: count dword + count records of `size` bytes -> the next list
 	static inline const uint8_t *SkipList(const uint8_t *p, uint32_t size)
 	{
 		const int32_t n = *(const int32_t *)p;
@@ -241,10 +195,6 @@ namespace zombie114
 		return p + (uint32_t)mul32(n, (int32_t)size) + 4;
 	}
 
-	// ------------------------------------------------------------------
-	// MAG_114_sub_6CA0E0: a prim model drawn as its gouraud textured quads only (the 8th of the
-	// model's primitive lists), additive
-	// ------------------------------------------------------------------
 	static uint32_t QuadsAdditive(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint8_t *model = F<uint8_t *>(h, 0);
@@ -259,9 +209,6 @@ namespace zombie114
 		return GouraudQuadsAdditive(h, ot, shift, cursor);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6C9D60): one object of the layout
-	// ------------------------------------------------------------------
 	static void __cdecl MistPart(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -300,8 +247,6 @@ namespace zombie114
 		Mat4x3 m = {};
 		if (r->flags & 0x20000) RotationFromAnglesC(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (scaled by the block's scale; 4th word never written: only loaded
-		// into the GTE V0 pad)
 		int16_t off[4] = {};
 		const int32_t scaled = arg->scaled;
 		if (scaled)
@@ -319,7 +264,6 @@ namespace zombie114
 		if (scaled) Scale3DMatrix(&m, arg->scale);
 		if (r->flags & 0x200)
 		{
-			// the anchor through the camera, the offset added in screen axes
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -330,7 +274,6 @@ namespace zombie114
 		}
 		else
 		{
-			// anchor + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -347,7 +290,6 @@ namespace zombie114
 		{
 			if (r->flags & 0x100)
 			{
-				// diagonal matrix product (sub_56C220)
 				Mat4x3 d = {};
 				d.m[0][0] = r->scale[0];
 				d.m[1][1] = r->scale[1];
@@ -375,15 +317,6 @@ namespace zombie114
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// The overlay: the target model redrawn swayed, flat additive in one colour.
-	// Work block (Field_Alloc 0x8C): +0x00 camera x entity matrix, then S = +0x20:
-	//   S+0x00 polygon cursor, +0x04 vertex buffer, +0x08 / +0x0A triangle / quad counts,
-	//   +0x14 clip rectangle (x0, y0, x1, y1 / 8), +0x1C colour, +0x20 object mask,
-	//   +0x24..+0x43 four vertices (sx, sy, otz, clip flags), +0x44 NCLIP, +0x4C OTZ,
-	//   +0x5C entity origin on screen, +0x64 wave phase, +0x66 sway amplitude; +0x68 origin OTZ.
-	// ------------------------------------------------------------------
-	// sub_6CAAE0: one bone group of vertices, projected, swayed, clip-flagged
 	static void SwayVertices(uint8_t **objp, uint8_t **outp, uint8_t *s)
 	{
 		uint8_t *p = *objp;
@@ -436,7 +369,6 @@ namespace zombie114
 		F<uint32_t>(s, off + 4) = *(const uint32_t *)(v + 4);
 	}
 
-	// sub_6CA800: the object's textured triangles and quads, flat additive in the colour
 	static uint32_t FlatPolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -525,8 +457,6 @@ namespace zombie114
 		return (uint32_t)pk;
 	}
 
-	// MAG_114_sub_6CA6E0: every object of a model the mask shows (bone groups of vertices, then
-	// polygons)
 	static uint32_t SwayModel(const uint8_t *model, uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint8_t *table = *(const uint8_t *const *)(model + 4);
@@ -562,13 +492,11 @@ namespace zombie114
 		return cursor;
 	}
 
-	// MAG_114_sub_6CA560: the overlay (body +0x64, then the second model +0x78 if any)
 	static void DrawOverlay(uint8_t *entity, const OverlayArg *a)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x8C);
 		F<int16_t>(h, 0x86) = (int16_t)(a->amp >> 2);
 		F<int16_t>(h, 0x84) = (int16_t)a->phase;
-		// MAG_103_sub_6D67B0 (in the Blizzaga module, shared): copy of the entity's matrix (8 dwords)
 		for (int i = 0; i < 8; i++) F<uint32_t>(h, i * 4) = *(const uint32_t *)(entity + 0x40 + i * 4);
 		Mat4x3 *m = (Mat4x3 *)h;
 		m->t[0] = (int32_t)((uint32_t)m->t[0] + (uint32_t)(int32_t)a->lift[0]);
@@ -606,10 +534,9 @@ namespace zombie114
 		FieldFree(0x8C);
 	}
 
-	// the overlay's parameters at step e (0..29) for a target of the given size word (>> 1 + 0x800)
 	static void OverlayParams(int32_t e, int32_t reach, OverlayArg *a)
 	{
-		const uint32_t t = (uint32_t)(((uint64_t)((uint32_t)e << 12) * 0x88888889u) >> 32) >> 4; // e * 4096 / 30
+		const uint32_t t = (uint32_t)(((uint64_t)((uint32_t)e << 12) * 0x88888889u) >> 32) >> 4;
 		const int32_t sinv = ComputeSin((int32_t)t >> 2);
 		a->lift[0] = 0;
 		a->lift[1] = (int16_t)((int32_t)(0u - (uint32_t)mul32(sinv, reach)) >> 13);
@@ -619,7 +546,6 @@ namespace zombie114
 		a->phase = e * 8;
 	}
 
-	// entity +0x00 bit 3 on every entity of its +0x8C ring
 	static void MarkTarget(uint8_t *entity)
 	{
 		uint8_t *e = entity;
@@ -649,9 +575,6 @@ namespace ff8fx
 {
 namespace zombie114
 {
-	// ------------------------------------------------------------------
-	// Target (0x6C9BC0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -666,7 +589,6 @@ namespace zombie114
 		arg.scale[1] = reach;
 		arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)(int32_t)*(const int16_t *)(t->entity + 0x26)) >> 3;
 		arg.morph = TexBase() + 0x1530;
-		// 30 fps layer: see mag114_zombie_held.inc
 		FX_HELD(held_note_play(t, &arg);)
 		prim::play((prim::Layout *)t->mist, MistPart, (int)&arg, 0);
 		const int32_t e = t->counter - 0x1E;
@@ -674,7 +596,6 @@ namespace zombie114
 		{
 			OverlayArg o;
 			OverlayParams(e, arg.scale[0], &o);
-			// 30 fps layer: see mag114_zombie_held.inc
 			FX_HELD(held_note_overlay(t, &o, e, arg.scale[0]);)
 			DrawOverlay(t->entity, &o);
 		}
@@ -694,13 +615,9 @@ namespace zombie114
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6C9A60)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag114_zombie_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -722,7 +639,6 @@ namespace zombie114
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
 				uint8_t *entity = Entity(Ctx()->actions[r->action].targets[0]);
-				// wait while any target task of 40 ticks or less runs
 				TargetNode *pool = (TargetNode *)TexBase();
 				bool busy = false;
 				for (int k = 0; k < 3; k++)
@@ -760,7 +676,6 @@ namespace zombie114
 	{
 		register_port(zombie114::ORIG_RootTask, (void *)zombie114::RootTask, "Z114 RootTask", 114);
 		register_port(zombie114::ORIG_TargetTask, (void *)zombie114::TargetTask, "Z114 TargetTask", 114);
-		// 30 fps layer: see mag114_zombie_held.inc
 		FX_HELD(register_mag114_held();)
 	}
 }

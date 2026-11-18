@@ -14,56 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 298: BGH251F2's destruction (enemy attack 119 of kernel.bin, BGH251F2 second fight destruction; BGH251F2 (Damaged)
-// c0m102; MAG_298_*).
-//
-// Structure (setup 0x670970 -> _Init 0x6709A0, file loader 0x670980 = mag297.tim (name at 0x105687C) into 0x2507880; _Init
-// queues the TIM, keeps the context (0x2507884) and the CASTER's entity (0x2507888), sets up the root queue 0x25078D0 (pool
-// 0x25078E0, 1 x 0x14) and starts camera animation 0x1052298):
-//   RootTask (0x670A20) - alternates the packet arena (magic buffer + 0xA1D0 / + 0x181D0); on counter 1 (once): music volume
-//     command 0x47E3C0(0xF0), the pools (master 1 x 0x89F4 at + 0x1794, layouts 8 x 0x148 at + 0xD54, sprites 64 x 0x1C at
-//     + 0x654, bone scripts 45 x 0x24 at the magic buffer), the master (voice slot 0x104E334, the caster's position words
-//     +0x1C..+0x23 kept), 3 bone scripts (0x1056754 / 0x10567E8 / 0x1056560), the stream state (+ 0xA188). Then, below counter
-//     117, the master, script, layout and sprite queues; counter 118: file 0x168 streamed into + 0xA1D0; the stream pumped every
-//     tick once started; after counter 118, the end once the stream is done (0x5342C0).
-//   MasterTask (0x672290) - counters 0..114: the caster drawn by the module with its pose offsets (0x672330 -> 0x672470 ->
-//     0x676E00 / 0x669330, the same code as effect 290's 0x676B40 / 0x676C80 and effect 308's) and its bit 2 set; the fragments
-//     and the marks drawn; sound 0x104E330 at counter 1, the voice slot released at counter 111; from counter 90 the caster's
-//     position word +0x20 - 0x80 a tick; then the fragments move.
-//   ScriptTask (0x670C60) - the bone-script machine of effect 290 (0x1000..0x1100) on the 45 pose entries, with shatters
-//     (0x1090 -> 0x6710E0, the bones' entries stay visible), layouts at a bone (0x10A0 / 0x10A1 (y = 0) -> 0x671990), a sprite
-//     at a bone (0x10A8 -> 0x671E40), sprites with module-LCG spreads (0x10A9 -> 0x671FF0), self-resetting counted loops
-//     (0x10F0: count, reset, offset).
-//   Shatter (0x6710E0 -> 0x671280 -> 0x687AE0 / 0x6713E0): as effect 290's (12 polygons per fragment, one of 3 prim models from
-//     the module LCG 0x25078F8 (x 3 / 0x8000); a mark at the first vertex: type 0 (life 12, velocity / 4) when the module LCG is
-//     above 0x2EE0, else type 1 (life 11, velocity bytes as they are)).
-//   LayoutTask (0x671AB0) - a layout (table 0x1052278) at its point turned by RotY, scaled, depth from the spawn; ends with the
-//     layout. SpriteTask (0x671F20) - sprite sequence (table 0x104ED24) through the shadow-rotation camera, draws THEN moves
-//     (position += 4 x velocity, velocity += acceleration (y twice)); ends after the last frame.
-//   Fragments (master +0x2EC, 192 x 0xAC: 0x6725F0 draws, 0x672BB0 moves) and marks (master +0x83EC, 128 x 0xC: 0x672C40 ->
-//     0x672CD0, flipbook 0x104EA64 (type 0) / 0x104E74C (type 1), frame count - life) as effect 290's.
-//   PrimCallback (0x671B50) - effect 290's 0x6764C0.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update); the master moves the fragments after drawing them.
-// ENTITY WRITES: the caster's word +0 bit 2 (set every tick, never cleared), its position word +0x20 (counters 90..114), its
-//   bone matrices (posed with the pose entries' rotations, through its world matrix, then rebuilt from its pose 0x508C90) on
-//   every draw / shatter / spawn at a bone.
-// CAMERA: the setup's camera animation 0x1052298 (engine); no camera word is written by the tasks.
-// Module globals: 0x2507880..0x2507904 (texture file 0x2507880, context 0x2507884, caster 0x2507888, the queues 0x2507890
-// scripts / 0x25078A0 sprites / 0x25078B0 layouts / 0x25078C0 master / 0x25078D0 root, root pool 0x25078E0, packet cursor
-// 0x25078F4, module LCG 0x25078F8, magic buffer base 0x2507900).
-// MAGIC BUFFER: + 0x261D0 = the layouts' blended vertex frames; the streamed file lands on packet arena A (+ 0xA1D0) after
-// the last draw.
-// SHARED CODE: 0x671B50 / 0x6716A0 / 0x672330 / 0x672470 and 0x676E00 / 0x669330 (called) are the same code as effect 290's /
-// 308's (see mag290_trauma_shatter.cpp); 0x671280, 0x672730 / 0x6727C0 / 0x672830 / 0x672880 are effect 290's 0x675C50,
-// 0x677030 / 0x6770C0 / 0x677130 / 0x677180; 0x6710E0 / 0x6713E0 / 0x671600 / 0x6716C0 / 0x671940 / 0x6725F0 / 0x6728E0 /
-// 0x672BB0 are effect 290's with this module's sizes; 0x671F20 / 0x672260 / 0x672CD0 are effect 308's 0x668A50 / 0x668D30 /
-// 0x6696B0, and 0x671990 / 0x671E40 match 308's layout / sprite spawns (same code as 308, merge later: PrimCallback, ModLcg,
-// CasterDraw, DrawModel, DrawPolys, SpriteTask, Spread, MarkDraw, SpawnLayout, SpawnSprite); 0x671F20 / 0x671FF0 are effect
-// 64's 0x6E67F0 / 0x6E68C0 (the module LCG as the spread source).
-// STACK WORDS: the 4th words of the vectors loaded into GTE V0 (spawn positions, mark points) reach the GTE's VZ0 high half
-// (0x1CA8A16) only.
-
 #include "mag_common.h"
 #include <stddef.h>
 
@@ -74,17 +24,16 @@ namespace destruct298
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507888); }        // caster entity (setup)
-	inline TaskQueue *QScript() { return (TaskQueue *)0x2507890; }         // pool: magic buffer, 45 x 0x24
-	inline TaskQueue *QSprite() { return (TaskQueue *)0x25078A0; }         // pool: + 0x654, 64 x 0x1C
-	inline TaskQueue *QLayout() { return (TaskQueue *)0x25078B0; }         // pool: + 0xD54, 8 x 0x148
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x25078C0; }         // pool: + 0x1794, 1 x 0x89F4
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507888); }
+	inline TaskQueue *QScript() { return (TaskQueue *)0x2507890; }
+	inline TaskQueue *QSprite() { return (TaskQueue *)0x25078A0; }
+	inline TaskQueue *QLayout() { return (TaskQueue *)0x25078B0; }
+	inline TaskQueue *QMaster() { return (TaskQueue *)0x25078C0; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25078F4); }
-	inline uint32_t &LcgSeed() { return var<uint32_t>(0x25078F8); }        // module LCG
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507900); }        // Magic_TextureOFF (magic buffer)
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // projected / world vertices
+	inline uint32_t &LcgSeed() { return var<uint32_t>(0x25078F8); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2507900); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x670A20;
@@ -92,47 +41,44 @@ namespace destruct298
 	static const uint32_t ORIG_ScriptTask = 0x670C60;
 	static const uint32_t ORIG_LayoutTask = 0x671AB0;
 	static const uint32_t ORIG_SpriteTask = 0x671F20;
-	static const uint32_t ORIG_PrimCallback = 0x671B50;  // not a task: the layouts' callback
+	static const uint32_t ORIG_PrimCallback = 0x671B50;
 	static const uint32_t POOL_Sprite = 0x654, POOL_Layout = 0xD54, POOL_Master = 0x1794;
-	static const uint32_t POSE = 0x17B0;                 // magic buffer: the master's pose entries (master + 0x1C)
-	static const uint32_t MORPH = 0x261D0;               // magic buffer: blended vertex frames
+	static const uint32_t POSE = 0x17B0;
+	static const uint32_t MORPH = 0x261D0;
 	static const uint32_t STREAM_State = 0xA188, STREAM_Dest = 0xA1D0, STREAM_File = 0x168;
-	static const uint32_t ARENA_A = 0xA1D0, ARENA_B = 0x181D0; // magic buffer: packet arenas
-	static const uint32_t LAYOUTS = 0x1052278;           // 8-byte entries: data, size
-	static const uint32_t SEQUENCES = 0x104ED24;         // sprite sequence pointers
-	static const uint32_t SEQ_Mark0 = 0x104EA64, SEQ_Mark1 = 0x104E74C; // mark flipbooks (type 0 / 1)
+	static const uint32_t ARENA_A = 0xA1D0, ARENA_B = 0x181D0;
+	static const uint32_t LAYOUTS = 0x1052278;
+	static const uint32_t SEQUENCES = 0x104ED24;
+	static const uint32_t SEQ_Mark0 = 0x104EA64, SEQ_Mark1 = 0x104E74C;
 	static const uint32_t FRAG_Models[3] = { 0x104E464, 0x104E55C, 0x104E654 };
-	static const uint32_t SIN_COS = 0x10523E0;           // 4096 x (2 x s16)
-	static const uint32_t SQRT_Table = 0x1056360;        // u16 (GTE-style square root table)
+	static const uint32_t SIN_COS = 0x10523E0;
+	static const uint32_t SQRT_Table = 0x1056360;
 	static const void *const SOUND_Voice = (const void *)0x104E334;
 	static const void *const SOUND_Start = (const void *)0x104E330;
 	static const uint32_t SCRIPTS[3] = { 0x1056754, 0x10567E8, 0x1056560 };
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }                // Effect_RotationYMatrix
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }  // MAG_017_sub_701310
-	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }       // a.rot = a.rot x b
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply: b.rot = a.rot x b.rot
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	inline void Matrix3x3MultiplyPSX(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrimModel70(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
-	inline void PoseBones(uint8_t *anim_header, const void *pose) { fn<void (__cdecl *)(uint8_t *, const void *)>(0x662C00)(anim_header, pose); } // Battle_BuildBoneMatricesWithPoseOffsets
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); } // BattleEntity_DrawShadow
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrimModel70(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
+	inline void PoseBones(uint8_t *anim_header, const void *pose) { fn<void (__cdecl *)(uint8_t *, const void *)>(0x662C00)(anim_header, pose); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, shift, cursor); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); } // ColourLerp
-	inline int32_t SharedLcg() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }   // Effect_SharedLcg_Rand
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
+	inline int32_t SharedLcg() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
 	inline void MusicVolume(int32_t v) { fn<void (__cdecl *)(int32_t)>(0x47E3C0)(v); }
-	// battle file streaming (0x534110 state, 0x5341D0 load a file, 0x534210 pump, 0x5342C0 done)
 	inline void StreamLoad(int32_t id, uint32_t dst, int32_t n) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, n); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
 	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
-	// software GTE
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // V0 = 3 x u16
-	inline void GteStoreIR123Minus8(void *end) { fn<void (__cdecl *)(void *)>(0x703EF0)(end); } // IR1..3 -> end - 8
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
+	inline void GteStoreIR123Minus8(void *end) { fn<void (__cdecl *)(void *)>(0x703EF0)(end); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
@@ -140,116 +86,110 @@ namespace destruct298
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }    // GTE_ReadOTZ (dword)
-	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); } // GTE_LoadIRFromMatrixColumn
-	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }           // GTE_StoreIRToMatrixColumn
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteLoadIRColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
+	inline void GteStoreIRColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); } // GTE_LoadV0FromDwords
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }   // IR1..3 = 3 x u8
-	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }        // IR1..3 low bytes
-	inline void GteSetRotDiag32(const void *v3) { fn<void (__cdecl *)(const void *)>(0x45DBC0)(v3); }  // GTE_SetRotDiagonal_v32
-	inline void GteLoadIR32_45DBF0(const void *v3) { fn<void (__cdecl *)(const void *)>(0x45DBF0)(v3); } // (IDA: GTE_LoadIR123_32b)
-	inline void GteLoadIR32_45E090(const void *v3) { fn<void (__cdecl *)(const void *)>(0x45E090)(v3); } // (IDA: GTE_LoadIR123_32)
+	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
+	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
+	inline void GteSetRotDiag32(const void *v3) { fn<void (__cdecl *)(const void *)>(0x45DBC0)(v3); }
+	inline void GteLoadIR32_45DBF0(const void *v3) { fn<void (__cdecl *)(const void *)>(0x45DBF0)(v3); }
+	inline void GteLoadIR32_45E090(const void *v3) { fn<void (__cdecl *)(const void *)>(0x45E090)(v3); }
 	inline void GteOP() { fn<void (__cdecl *)()>(0x45E670)(); }
 	inline void GteSQR() { fn<void (__cdecl *)()>(0x45F930)(); }
 	inline void GteSumMAC123(void *dst) { fn<void (__cdecl *)(void *)>(0x703FE0)(dst); }
 	inline void GteSetLZCS(int32_t v) { fn<void (__cdecl *)(int32_t)>(0x45DCA0)(v); }
 	inline void GteReadLZCR(void *dst) { fn<void (__cdecl *)(void *)>(0x45E570)(dst); }
 
-	// ------------------------------------------------------------------
-
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct PoseEntry // 16 bytes, one per bone
+	struct PoseEntry
 	{
-		int16_t pos[3];    // +0x00 translation added to the bone (after the entity's world matrix)
-		int16_t vis;       // +0x06 >= 2: the bone's vertices are not drawn; low byte = vertex key
-		int16_t rot[3];    // +0x08 rotation added to the animation pose (0x662C00)
-		int16_t pad;       // +0x0E (the shatter's extra rotation when not 0)
+		int16_t pos[3];
+		int16_t vis;
+		int16_t rot[3];
+		int16_t pad;
 	};
-	struct Fragment // 0xAC bytes (master + 0x2EC, 192 of them)
+	struct Fragment
 	{
-		int16_t pos[3];    // +0x00
-		int16_t life;      // +0x06 ticks left (0 = free)
-		int16_t vel[3];    // +0x08
-		int16_t scale;     // +0x0E
-		int16_t angle[2];  // +0x10 x / y
-		int16_t spin[2];   // +0x14
-		uint32_t model;    // +0x18 prim model (one of FRAG_Models)
-		uint8_t uv[12][0xC]; // +0x1C the shattered polygons' texture words (uv0 + clut, uv1 + tpage, uv2)
+		int16_t pos[3];
+		int16_t life;
+		int16_t vel[3];
+		int16_t scale;
+		int16_t angle[2];
+		int16_t spin[2];
+		uint32_t model;
+		uint8_t uv[12][0xC];
 	};
-	struct Mark // 0xC bytes (master + 0x83EC, 128 of them)
+	struct Mark
 	{
-		int16_t pos[3];    // +0x00
-		int16_t life;      // +0x06 12 / 11 .. 1, 0 = free
-		int8_t vel[3];     // +0x08 (x 4 a tick)
-		uint8_t type;      // +0x0B flipbook 0 / 1
+		int16_t pos[3];
+		int16_t life;
+		int8_t vel[3];
+		uint8_t type;
 	};
-	struct RootNode // pool of 1 node of 0x14 bytes (0x25078E0)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MasterNode // pool of 1 node of 0x89F4 bytes
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..114
+		int16_t counter;
 		int16_t pad0E;
-		uint32_t voice;    // +0x10 voice slot
-		uint32_t at[2];    // +0x14 the caster's position words +0x1C..+0x23 as they were (not read)
-		PoseEntry pose[45]; // +0x1C
-		Fragment frags[0xC0]; // +0x2EC
-		Mark marks[0x80];  // +0x83EC
-		Fragment *next_frag; // +0x89EC next fragment slot to try
-		Mark *next_mark;   // +0x89F0 next mark slot to try
+		uint32_t voice;
+		uint32_t at[2];
+		PoseEntry pose[45];
+		Fragment frags[0xC0];
+		Mark marks[0x80];
+		Fragment *next_frag;
+		Mark *next_mark;
 	};
-	struct ScriptNode // pool of 45 nodes of 0x24 bytes
+	struct ScriptNode
 	{
 		TaskNode hdr;
-		PoseEntry *cur;    // +0x0C the entry this script moves
-		const int16_t *ip; // +0x10
-		int16_t vel[3];    // +0x14
+		PoseEntry *cur;
+		const int16_t *ip;
+		int16_t vel[3];
 		int16_t pad1A;
-		int16_t avel[3];   // +0x1C
+		int16_t avel[3];
 		int16_t pad22;
 	};
-	struct LayoutNode // pool of 8 nodes of 0x148 bytes
+	struct LayoutNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t scale;     // +0x12
-		int16_t turn;      // +0x14 y rotation
-		int16_t depth;     // +0x16
-		uint8_t layout[0x130]; // +0x18
+		int16_t pos[3];
+		int16_t scale;
+		int16_t turn;
+		int16_t depth;
+		uint8_t layout[0x130];
 	};
-	struct SpriteNode // pool of 64 nodes of 0x1C bytes
+	struct SpriteNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t size;      // +0x12 (TransformCameraByShadowRotation)
-		uint8_t frame;     // +0x14
-		uint8_t seq;       // +0x15 sequence index
-		int8_t vel[3];     // +0x16 (x 4 a tick)
-		int8_t acc[2];     // +0x19 x, y (y twice)
+		int16_t pos[3];
+		int16_t size;
+		uint8_t frame;
+		uint8_t seq;
+		int8_t vel[3];
+		int8_t acc[2];
 		int8_t pad1B;
 	};
-	// the prim-player callback's parameter block (a stack block of the layout task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 the layout's frame (camera composed in)
-		int32_t scale[3];  // +0x20 the record offsets and the object scaled by it (4.12)
-		int32_t scaled;    // +0x2C
-		int32_t depth;     // +0x30 the header's +0x18
-		uint32_t morph;    // +0x34 blended vertex frames
+		Mat4x3 m;
+		int32_t scale[3];
+		int32_t scaled;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(PoseEntry) == 0x10 && sizeof(Fragment) == 0xAC && sizeof(Mark) == 0xC, "BGH251F2 destruction records");
@@ -269,7 +209,6 @@ namespace ff8fx
 {
 namespace destruct298
 {
-	// sub_6716A0: module LCG (15 bits)
 	static int32_t ModLcg()
 	{
 		const uint32_t v = (LcgSeed() * 125 + 0xE) & 0x7FFF;
@@ -277,9 +216,6 @@ namespace destruct298
 		return (int32_t)v;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x671B50; same code as 290's 0x6764C0 and 308's 0x668680): one object of a layout
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -318,7 +254,6 @@ namespace destruct298
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesYXZ(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4];
 		if (arg->scaled != 0)
 		{
@@ -382,15 +317,6 @@ namespace destruct298
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// The caster's body with the pose entries (0x676B40 -> 0x676C80 -> 0x676E00 / 0x669330; same code as 308's 0x669070 /
-	// 0x6691B0 / 0x669330)
-	// ------------------------------------------------------------------
-	// Work block (Field_Alloc 0x98): +0x00 polygon cursor, +0x04 vertex buffer (0x1D98B3C), +0x08 / +0x0A triangle / quad
-	// counts, +0x0C clip rectangle (x 8 in the test), +0x14 colour word, +0x18 object mask, +0x1C..+0x3B four vertices
-	// (sxy, sz, clip flags, key), +0x3C NCLIP, +0x44 OTZ, +0x4C the pose entries.
-
-	// sub_676E00 (effect 290's code, called by this module): one bone group's vertices projected into 8-byte entries (sxy, sz, clip flags, key); both cursors advanced
 	static void ProjectGroup(const uint8_t **pp, uint8_t **outp, uint8_t *h, uint8_t key)
 	{
 		const uint8_t *p = *pp;
@@ -429,8 +355,6 @@ namespace destruct298
 		*outp = out;
 	}
 
-	// sub_669330 (effect 308's code): the triangles then the quads of one object from the projected vertices; a polygon is
-	// drawn when none of its vertices is clipped, they are not all outside one screen edge and it faces the camera
 	static uint32_t DrawPolys(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -522,8 +446,6 @@ namespace destruct298
 		return (uint32_t)pk;
 	}
 
-	// sub_672470: every object of the model in the mask: each bone group projected through its bone matrix (key = the pose
-	// entry's visibility byte), or marked clipped when the pose entry hides the bone (visibility >= 2); then its polygons
 	static uint32_t DrawModel(const uint8_t *model, uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t *objs = *(const uint32_t *const *)(model + 4);
@@ -572,9 +494,6 @@ namespace destruct298
 		return cursor;
 	}
 
-	// sub_672330: the entity's shadow, then its body with the pose entries: bone matrices from the animation pose plus the
-	// rotation offsets, through the entity's world matrix, plus the translation offsets, through the camera; then the bone
-	// matrices rebuilt from the pose
 	static void CasterDraw(uint8_t *entity, PoseEntry *pose)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x98);
@@ -607,16 +526,6 @@ namespace destruct298
 		FieldFree(0x98);
 	}
 
-	// ------------------------------------------------------------------
-	// Shatter (0x675AA0 -> 0x675C50 -> 0x687AE0 / 0x675DB0)
-	// ------------------------------------------------------------------
-	// Work block (Field_Alloc 0xB4): +0x00 rotation scratch; S = +0x20: S+0x00 polygon cursor, +0x04 vertex buffer
-	// (0x1D98B3C), +0x08 / +0x0A triangle / quad counts, +0x0C colour word, +0x10 object mask, +0x14 fragments left, +0x18
-	// polygons left in the current fragment, +0x1C speed, +0x20 scale, +0x24 chance (shared LCG <= it), +0x28 current fragment,
-	// +0x2C its texture-word cursor, +0x30 the master node, +0x34..+0x53 four vertices (x, y, z, flag), +0x64 / +0x74 two edges,
-	// +0x84 their cross product.
-
-	// sub_687AE0 (effect 276's code): one bone group's vertices through the bone matrix (world space, +6 = 0)
 	static void WorldGroup(const uint8_t **pp, uint8_t **outp)
 	{
 		const uint8_t *p = *pp;
@@ -640,8 +549,6 @@ namespace destruct298
 		*outp = out;
 	}
 
-	// sub_671600: the next free fragment (from the cursor, then from the first slot), nullptr when all 192 are in use; its
-	// prim model from the module LCG
 	static Fragment *NewFragment(MasterNode *m)
 	{
 		Fragment *f = m->next_frag;
@@ -664,7 +571,6 @@ namespace destruct298
 		return f;
 	}
 
-	// sub_671940: the next free mark, nullptr when all 128 are in use
 	static Mark *NewMark(MasterNode *m)
 	{
 		Mark *k = m->next_mark;
@@ -685,9 +591,6 @@ namespace destruct298
 		return k;
 	}
 
-	// sub_6716C0: a fragment from the polygon in S: its first vertex, life 16 + LCG / 4096, velocity = the polygon's normal
-	// (edge cross product, normalised by the square root table) x speed, a mark at its first vertex moving the same way, then
-	// y velocity - 2 x speed, its spin / angles from the module LCG, its scale from the shared LCG
 	static void FragmentInit(uint8_t *s, Fragment *f)
 	{
 		*(uint32_t *)f->pos = F<uint32_t>(s, 0x34);
@@ -768,8 +671,6 @@ namespace destruct298
 		f->scale = (int16_t)((mul32(SharedLcg(), F<int32_t>(s, 0x20)) >> 0xF) + F<int16_t>(s, 0x20));
 	}
 
-	// sub_6713E0 (part): one polygon of the shattered groups: a new fragment when the current one is full (shared-LCG chance;
-	// the fragment budget), then the polygon's texture words into it
 	enum { POLY_NEXT = 0, POLY_STOP = 1 };
 	static int ShatterPoly(uint8_t *s, const uint8_t *uv0, const uint8_t *uv1, const uint8_t *word)
 	{
@@ -806,7 +707,6 @@ namespace destruct298
 		F<uint32_t>(s, off + 4) = *(const uint32_t *)(v + 4);
 	}
 
-	// sub_6713E0: the object's triangles and quads whose vertices were all transformed (flag 0)
 	static void ShatterPolys(uint8_t *s)
 	{
 		const uint8_t *verts = F<uint8_t *>(s, 4);
@@ -845,10 +745,6 @@ namespace destruct298
 		} while (k != 0);
 	}
 
-	// sub_671280 (same code as 290's 0x675C50): every object of the model in the mask: its marked bone groups (skeleton
-	// bone +0x22 != 0) through their bone matrices into world vertices (others flagged 1); an object with a marked group is
-	// shattered. While fragments are left, the walk goes on from the object's polygon list as if it were the next group list
-	// (as the game does).
 	static void ShatterModel(const uint8_t *model, uint8_t *s)
 	{
 		const uint32_t *table = *(const uint32_t *const *)(model + 4);
@@ -903,9 +799,6 @@ namespace destruct298
 		}
 	}
 
-	// sub_6710E0: script op 0x1090 (bone ids up to -1, then fragment count, speed, scale, chance): the entity posed (rotation
-	// offsets, world matrix, translation offsets, the entries' extra rotation +0x0E), the listed bones marked (their pose
-	// entries stay visible), the marked groups shattered; the bone matrices rebuilt from the pose; an unfinished fragment is dropped
 	static const int16_t *Shatter(const int16_t *ip, uint8_t *entity, PoseEntry *pose)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -958,10 +851,6 @@ namespace destruct298
 		return ip;
 	}
 
-	// ------------------------------------------------------------------
-	// Fragments (0x676EF0 draw -> 0x677030 / 0x677180 -> 0x6771E0; 0x6774C0 move)
-	// ------------------------------------------------------------------
-	// sub_6727C0: RotX of angle a scaled by s (table 0x10523E0)
 	static void RotXScaled(int32_t a, int32_t s, uint8_t *out)
 	{
 		*(uint32_t *)out = 0;
@@ -980,7 +869,6 @@ namespace destruct298
 		*(int16_t *)(out + 0x10) = (int16_t)d;
 	}
 
-	// sub_672830: RotY of angle a (table 0x10523E0)
 	static void RotYTable(int32_t a, uint8_t *out)
 	{
 		*(uint32_t *)out = 0;
@@ -997,7 +885,6 @@ namespace destruct298
 		*(int16_t *)(out + 0x10) = d;
 	}
 
-	// sub_672730: out = RotX(ax) x s, times RotY(ay), through the GTE (columns)
 	static void FragRotation(int32_t ax, int32_t ay, int32_t s, uint8_t *out)
 	{
 		uint8_t ry[0x20], rx[0x20];
@@ -1015,9 +902,6 @@ namespace destruct298
 		GteStoreIRColumn(out + 4);
 	}
 
-	// sub_6728E0: the fragment model's triangles (3 vertex offsets per 0xC-byte record) projected; one that is not clipped, faces
-	// the camera and is not all off one screen edge is drawn with the next texture words; faded (the colour below 0x80): semi-
-	// transparent, followed by a flat subtractive copy and a draw-mode packet in the same bucket
 	static uint32_t FragPolys(uint8_t *s, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -1098,7 +982,6 @@ namespace destruct298
 		return (uint32_t)pk;
 	}
 
-	// sub_672880: the fragment's prim model (vertices at +8, triangles at + its first word) in grey 0x80 faded by +0x08
 	static uint32_t FragDraw(uint8_t *s, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		const uint8_t *model = F<uint8_t *>(s, 0);
@@ -1114,11 +997,8 @@ namespace destruct298
 		return FragPolys(s, ot, mode, cursor);
 	}
 
-	// sub_6725F0 (fade): over the fragment's last 8 ticks
 	static int32_t FragFade(int16_t life) { return life < 8 ? shl32(life, 9) : 0x1000; }
 
-	// sub_6725F0 (one fragment): its frame (rotation x scale through the camera, its point through the camera), faded (work
-	// block 0x68: +0x00 matrix, S = +0x20)
 	static void FragmentDraw(uint8_t *h, const Fragment *f, int32_t fade)
 	{
 		FragRotation(f->angle[0], f->angle[1], f->scale, h);
@@ -1147,10 +1027,8 @@ namespace destruct298
 		PacketCursor() = FragDraw(h + 0x20, RenderOT(0x44), 2, PacketCursor());
 	}
 
-	// sub_6725F0: every live fragment
 	static void DrawFragments(MasterNode *m)
 	{
-		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_frags(m);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x68);
 		const Fragment *f = m->frags;
@@ -1159,7 +1037,6 @@ namespace destruct298
 		FieldFree(0x68);
 	}
 
-	// sub_672BB0: every live fragment one tick older (a freed one becomes the next slot to try), moved, falling, bouncing
 	static void MoveFragments(MasterNode *m)
 	{
 		Fragment *f = m->frags;
@@ -1187,11 +1064,6 @@ namespace destruct298
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Marks (0x677690 -> 0x677720 -> 0x672DB0)
-	// ------------------------------------------------------------------
-	// sub_672DB0: the frame's sprites (0x14-byte records, see 301's 0x66E090) as quads around the work
-	// block's point (+0x84 matrix, +0x98 translation), into bucket `slot`
 	static uint32_t MarkSprites(uint8_t *h, uint32_t ot, int32_t slot, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -1275,9 +1147,6 @@ namespace destruct298
 		return (uint32_t)pk;
 	}
 
-
-	// sub_672CD0 (draw; effect 308's 0x6696B0 code): the mark's point through the camera, its type's flipbook at frame
-	// count - life
 	static void MarkSprite(uint8_t *h, const Mark *k)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -1298,7 +1167,6 @@ namespace destruct298
 		PacketCursor() = MarkSprites(h, RenderOT(0x44), 2, PacketCursor());
 	}
 
-	// sub_672CD0: draw, then one tick less and moved by its velocity bytes x 4
 	static void MarkDraw(uint8_t *h, Mark *k)
 	{
 		MarkSprite(h, k);
@@ -1308,10 +1176,8 @@ namespace destruct298
 		k->pos[2] = (int16_t)(k->pos[2] + (int16_t)(k->vel[2] << 2));
 	}
 
-	// sub_672C40: every live mark (work block 0xB4: the identity rotation and the sprite vertices' z words zeroed)
 	static void DrawMarks(MasterNode *m)
 	{
-		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_marks(m);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint16_t>(h, 0x92) = 0;
@@ -1330,9 +1196,6 @@ namespace destruct298
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Sprites (0x671F20; effect 64's 0x6E67F0)
-	// ------------------------------------------------------------------
 	static void SpriteDraw(const SpriteNode *s)
 	{
 		TransformCameraByShadowRotation(s->pos, s->size, -0x400);
@@ -1351,7 +1214,6 @@ namespace destruct298
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		const int32_t frames = SpriteFrames(s);
-		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_sprite(s);)
 		SpriteDraw(s);
 		const int8_t vx = s->vel[0];
@@ -1365,9 +1227,6 @@ namespace destruct298
 		return s->frame < frames ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Layouts (0x671990 spawn, 0x671AB0 task)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *L = (LayoutNode *)n;
@@ -1383,13 +1242,10 @@ namespace destruct298
 		arg.scale[0] = L->scale;
 		arg.scaled = 1;
 		arg.depth = L->depth;
-		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_layout(L, &arg);)
 		return prim::play((prim::Layout *)L->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
-	// sub_671990: script ops 0x10A0 / 0x10A1 (bone, flag, layout, scale, turn, depth): a layout task at the bone's spawn
-	// position (the entity posed with the pose entries' rotations) + the bone's pose translation (0x10A1: y = 0)
 	static const int16_t *SpawnLayout(const int16_t *ip, uint8_t *entity, PoseEntry *pose, int32_t ground)
 	{
 		const int32_t bone = ip[0];
@@ -1417,8 +1273,6 @@ namespace destruct298
 		return ip;
 	}
 
-	// sub_671E40: script op 0x10A8 (mode, bone, flag, sequence, size, velocity x / y / z, acceleration x / y / (unused)): one
-	// sprite at a bone; mode != 0 writes the fields into the ENTITY instead of a new node (as effect 64's 0x6E6710)
 	static const int16_t *SpawnSprite(const int16_t *ip, uint8_t *entity, PoseEntry *pose)
 	{
 		const int32_t mode = *ip++;
@@ -1445,15 +1299,12 @@ namespace destruct298
 		return ip + 10;
 	}
 
-	// sub_672260: module LCG x range >> 15 + base (range 0: base, no LCG step)
 	static int32_t Spread(int32_t range, int32_t base)
 	{
 		if (range == 0) return base;
 		return (mul32(ModLcg(), range) >> 15) + base;
 	}
 
-	// sub_671FF0: script op 0x10A9: `count` sprites at a bone with module-LCG spreads (mode, bone, flag, sequence, size, count,
-	// then (range, base) pairs: x, y, z, velocity x / y / z, acceleration x / y / (unused)) (as effect 64's 0x6E68C0)
 	static const int16_t *SpawnSprites(const int16_t *ip, uint8_t *entity, PoseEntry *pose)
 	{
 		const int32_t mode = ip[0];
@@ -1493,9 +1344,6 @@ namespace destruct298
 		return ip;
 	}
 
-	// ------------------------------------------------------------------
-	// Bone script (0x670C60)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ScriptTask(TaskNode *n)
 	{
 		ScriptNode *s = (ScriptNode *)n;
@@ -1599,7 +1447,6 @@ namespace destruct298
 		}
 	}
 
-	// sub_670C10: a bone script on the pose entry of its first word
 	static void StartScript(uint32_t script)
 	{
 		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScript(), ORIG_ScriptTask);
@@ -1609,16 +1456,12 @@ namespace destruct298
 		s->cur = (PoseEntry *)(TexBase() + shl32(p[0] + 0x17B, 4));
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x672290)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
 		if (m->counter >= 0x73) return TASK_END;
 		if (m->counter >= 0)
 		{
-			// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 			FX_HELD(held_note_body(m);)
 			CasterDraw(Caster(), m->pose);
 			*(uint8_t *)Caster() |= 4;
@@ -1633,13 +1476,9 @@ namespace destruct298
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x670A20)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *rn = (RootNode *)n;
-		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_root();)
 		if (rn->arena)
 		{
@@ -1691,7 +1530,6 @@ namespace destruct298
 		register_port(destruct298::ORIG_ScriptTask, (void *)destruct298::ScriptTask, "298 ScriptTask", 298);
 		register_port(destruct298::ORIG_LayoutTask, (void *)destruct298::LayoutTask, "298 LayoutTask", 298);
 		register_port(destruct298::ORIG_SpriteTask, (void *)destruct298::SpriteTask, "298 SpriteTask", 298);
-		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(register_mag298_held();)
 	}
 }

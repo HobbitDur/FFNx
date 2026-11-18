@@ -14,61 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 173: Ice Breath (enemy attack 38 of kernel.bin, Snow Lion c0m013) (MAG_173_*).
-//
-// Structure (setup MAG_173_ICE_BREATH_Init 0x5D74B0, file loader MAG_173_ICE_BREATH_FL 0x5D7490 =
-// texture 0xD61E1C (mag172.tim) into 0x2398A9C; the setup keeps the texture base 0x239A8C8, the cast
-// context 0x2398A78, the first target's slot 0x239727C, the CASTER slot 0x2398A98, queues the root
-// (queue 0x23972D0, pool 0x23972B0, 2 x 0x10) and the director (queue 0x2397C40, pool 0x2397C50,
-// 0x64 x 0x24), clears the particle table, plays camera animation 0xD5E67C and uploads the texture):
-//   Root (0x5D9BF0) - packet cursor 0x239A8CC = texture base (+0xC000 on odd ticks), runs the director
-//     queue then the crystal player queue 0x239A8D0; when the director queue is empty queues the
-//     texture restore (0x5D9C70) and ends.
-//   Director (0x5D7570), 0x60 ticks; EVERY tick, draw-only mode included: the anchor 0x2398AA0 = the
-//     caster's bone 0xF0 (0x502170) + (0, 0, -0x96) through the caster's rotation, the midpoint
-//     0x2398A90 (x / z half way to the targets' centre 0x2398A60, y 0), the floor direction 0x2398A68
-//     (anchor -> midpoint, normalised) and its length 0x2397278 (sqrt of 0x56BC50's result); then
-//     (nothing more in the draw-only mode, battle_to_update_flags & 0x201):
-//       1     targets' centre (0x5020A0), crystal player queue (pool texture base + 0x18000, 0x40 x
-//             0x11C), sound 0xD61D84
-//       2     mouth swirl (0x5D7BA0)
-//       8     mouth glow (0x5D7FE0)
-//       0xE   four breath cones (0x5D7E70, delays 0xD61D90, z angles 0xD61DA0)
-//       0x24  sound 0xD61D88; 0x25 breath puffs (0x5D80C0); 0x26 crystal spawner (0x5D8E20)
-//       0x46  five ice-trail meshes (0x5D83E0, meshes 0xD61DF0): their polygon states (0xD61E04, in
-//             the module globals) built (0x5D7980 / 0x5D79C0)
-//       0x4A  ice shards (0x5D8B40); 0x55 damage (every target record of action 0)
-//       screen flash 0x502020: level tick * 0xC0 up to tick 0x10, (0x5F - tick) * 0x180 from 0x57;
-//       0x60  flash off, ends.
-//   Particle table 0x23972E0 (100 x 0x18, kind dword +0: 1 swirl, 2 puff, 4 shard; +4 frame):
-//   Mouth swirl (0x5D7BA0, ticks 0..12: three a tick): +6 size, +8 axis, +0xE angle, +0x10 radius,
-//     +0x12 radius step, +0x16 angle step; drawn at anchor + the radius vector (0, 0, r) turned about
-//     the axis (sprite 0xD5EAA4); ends at tick 0x24 (its entries cleared).
-//   Breath puffs (0x5D80C0, ticks 0..0x1E: two a tick): +6 size (+1/16 a tick), +8 position, +0x10
-//     velocity (-1/32 a tick; y only below -300); spawned at the anchor along the floor direction
-//     turned by the task's sweep angle (+0x18 by +0x1A); sprite 0xD5E74C, colour 0xD61DB0 by frame.
-//   Ice shards (0x5D8B40, ticks 0..2: seven a tick): around the midpoint, flying away from the
-//     task's spawn point (+0xE speed, +0x10 unit direction), sprite 0xD5E8F8 stretched along it.
-//   Mouth glow (0x5D7FE0): prim model 0xD5F710 facing the camera at the anchor, growing; 0x24 ticks.
-//   Breath cones (0x5D7E70): prim model 0xD5ED20 at the anchor of tick 0xE, caster facing, shrinking,
-//     fading from its tick 12; 16 ticks.
-//   Crystal spawner (0x5D8E20, 0x1F ticks, nothing in the draw-only mode): one crystal player a tick
-//     (layout 0xD61AD4 decoded by 0x5D8FB0) along its own sweep of the floor direction.
-//   Crystal players (0x5D90B0, queue 0x239A8D0): the module's prim-model player (0x5D95B0, the shared
-//     player 0x701970 reading its pause from battle_to_update_flags bit 0: ff8fx::prim::play) with
-//     the draw callback 0x5D9130 (rotation 0x5D93A0, z spin + uniform scale from the node, vertex
-//     frames blended by 0x5D9510 into texture base + 0x1C700, object flags 0xD61E18).
-//   Ice trail (0x5D83E0, x5): mesh 0xD61DF0[i] at the anchor of tick 0x46 on the floor, turned to the
-//     targets; ticks 0..9 its polygons appear by their delay (0x5D8920 / 0x5D8990), from tick 10 they
-//     fly apart (0x5D8520 / 0x5D8590: offset, velocity -1/16 a tick, spin, depth cue by phase,
-//     16 ticks each); ends when none is drawn.
-// Every task draws THEN updates; the pool tasks, the trail, the glow and the cones skip their update
-// in the draw-only mode (the cones also their delay count).
-// The effect writes no entity field and no camera word (the setup's camera animation drives it).
-// Module globals: 0x2397278..0x239A8E0 (floor length, first target, root queue + pool, particle
-// table, director queue + pool, centre, direction, context, swept direction 0x2398A80, midpoint,
-// caster slot, texture file, anchor, the five polygon state tables 0x2398AA8..0x239A8C8, texture
-// base, packet cursor, crystal player queue).
+// Effect 173: Ice Breath
 
 #include "mag_common.h"
 
@@ -86,25 +32,24 @@ namespace ib173
 	static inline uint32_t &U32(uint32_t p, int32_t o) { return F<uint32_t>(p, o); }
 	static inline uint8_t &U8(uint32_t p, int32_t o) { return F<uint8_t>(p, o); }
 
-	// --- module globals ---
-	inline int32_t &FloorLength() { return var<int32_t>(0x2397278); }          // |anchor -> midpoint|
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23972D0; }           // pool 0x23972B0, 2 x 0x10
-	inline TaskQueue *FxQueue() { return (TaskQueue *)0x2397C40; }             // pool 0x2397C50, 0x64 x 0x24
-	inline TaskQueue *PlayerQueue() { return (TaskQueue *)0x239A8D0; }         // pool texture base + 0x18000, 0x40 x 0x11C
-	static const uint32_t CENTRE = 0x2398A60;      // targets' centre (x, y, z words)
-	static const uint32_t DIR = 0x2398A68;         // anchor -> midpoint on the floor (3 x int32, normalised)
-	static const uint32_t SWEPT = 0x2398A80;       // DIR turned by the puff task's sweep (3 x int32)
-	static const uint32_t MID = 0x2398A90;         // midpoint (x, 0, z, pad words)
-	static const uint32_t ANCHOR = 0x2398AA0;      // caster's mouth (x, y, z, pad words)
+	inline int32_t &FloorLength() { return var<int32_t>(0x2397278); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23972D0; }
+	inline TaskQueue *FxQueue() { return (TaskQueue *)0x2397C40; }
+	inline TaskQueue *PlayerQueue() { return (TaskQueue *)0x239A8D0; }
+	static const uint32_t CENTRE = 0x2398A60;
+	static const uint32_t DIR = 0x2398A68;
+	static const uint32_t SWEPT = 0x2398A80;
+	static const uint32_t MID = 0x2398A90;
+	static const uint32_t ANCHOR = 0x2398AA0;
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2398A78); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x2398A98); }
 	inline uint32_t &TexBase() { return var<uint32_t>(0x239A8C8); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x239A8CC); }
 	inline uint32_t OT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint32_t Ent(int32_t slot) { return 0x1D972C0 + (uint32_t)(slot * 0x9C); }
-	inline bool PlayerPaused() { return (var<uint8_t>(0x1D96A9C) & 1) != 0; } // the module's player tests bit 0 only
+	inline bool PlayerPaused() { return (var<uint8_t>(0x1D96A9C) & 1) != 0; }
 
-	static const uint32_t POOL = 0x23972E0, POOL_END = 0x2397C40;   // 100 x 0x18, kind dword +0
+	static const uint32_t POOL = 0x23972E0, POOL_END = 0x2397C40;
 
 	static const uint32_t ORIG_Director = 0x5D7570;
 	static const uint32_t ORIG_Swirl = 0x5D7BA0;
@@ -121,27 +66,25 @@ namespace ib173
 	static const uint32_t SEQ_Swirl = 0xD5EAA4, SEQ_Puff = 0xD5E74C, SEQ_Shard = 0xD5E8F8;
 	static const uint32_t MODEL_Cone = 0xD5ED20, MODEL_Glow = 0xD5F710;
 	static const uint32_t LAYOUT_Crystal = 0xD61AD4;
-	static const uint32_t CRYSTAL_FLAGS = 0xD61E18;  // object flag table of the crystal layout
-	static const uint32_t CONE_DELAYS = 0xD61D90;    // 4 words, stride 4
-	static const uint32_t CONE_ANGLES = 0xD61DA0;    // 4 words (z angle), stride 4
-	static const uint32_t PUFF_COLOURS = 0xD61DB0;   // header +0x1C by frame (16 entries)
-	static const uint32_t TRAIL_MESHES = 0xD61DF0;   // 5 mesh pointers
-	static const uint32_t TRAIL_STATES = 0xD61E04;   // 5 polygon state tables (0x20 per polygon)
+	static const uint32_t CRYSTAL_FLAGS = 0xD61E18;
+	static const uint32_t CONE_DELAYS = 0xD61D90;
+	static const uint32_t CONE_ANGLES = 0xD61DA0;
+	static const uint32_t PUFF_COLOURS = 0xD61DB0;
+	static const uint32_t TRAIL_MESHES = 0xD61DF0;
+	static const uint32_t TRAIL_STATES = 0xD61E04;
 	static const void *const SOUND_Start = (const void *)0xD61D84;
 	static const void *const SOUND_Blast = (const void *)0xD61D88;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint32_t entity, int32_t bone, int32_t flag, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(0x502170)(entity, bone, flag, out); }
-	inline void CalculateCenterPosition(uint32_t mask, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x5020A0)(mask, out); } // low 16 bits of the mask
+	inline void CalculateCenterPosition(uint32_t mask, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x5020A0)(mask, out); }
 	inline int32_t NormalizeVectorToFixedPoint(uint32_t in, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BC50)(in, out); }
 	inline int32_t VectorNormalS16(uint32_t in, uint32_t out) { return fn<int32_t (__cdecl *)(uint32_t, uint32_t)>(0x56BDE0)(in, out); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }           // Math_SqrtInt
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void MatrixMulVector(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector (SVECTOR)
-	inline void MatrixMultiply3(uint32_t a, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56C220)(a, b); }    // a = a * b (3x3)
+	inline void MatrixMulVector(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C4F0)(m, in, out); }
+	inline void MatrixMultiply3(uint32_t a, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56C220)(a, b); }
 	inline void Matrix3x3MultiplyPSX(uint32_t a, uint32_t b, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C090)(a, b, out); }
-	inline void TextureRestore(uint32_t tex, uint32_t done) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x508630)(tex, done); } // Battle_RestoreDefaultEffectTexture
-	// software GTE
+	inline void TextureRestore(uint32_t tex, uint32_t done) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x508630)(tex, done); }
 	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -150,12 +93,11 @@ namespace ib173
 	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3C0)(dst); }
 	inline void GteReadSXY012Split(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
-	inline void GteStoreOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }   // GTE_ReadOTZ
+	inline void GteStoreOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
 	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
 	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
 
-	// first free table entry (kind dword 0), or 0 when the table is full
 	static uint32_t PoolFree()
 	{
 		uint32_t e = POOL;
@@ -179,11 +121,6 @@ namespace ff8fx
 {
 namespace ib173
 {
-	// ------------------------------------------------------------------
-	// Table sprites (0x571C80 sequences)
-	// ------------------------------------------------------------------
-	// a mouth swirl (0x5D7BA0): w + 8 = the anchor; the radius vector (0, 0, +0x10) turned by angle +0xE
-	// about the axis +8 (matrix at w + 0x10), moved to the anchor, pushed toward the camera by size / 16
 	static void SwirlDraw(uint32_t h, uint32_t w, uint32_t e)
 	{
 		S16(h, 4) = S16(e, 4);
@@ -204,7 +141,6 @@ namespace ib173
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
 	}
 
-	// a breath puff (0x5D80C0): colour by frame, position +8, pushed toward the camera by size / 16
 	static void PuffDraw(uint32_t h, uint32_t e)
 	{
 		const uint16_t frame = U16(e, 4);
@@ -215,8 +151,6 @@ namespace ib173
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
 	}
 
-	// an ice shard (0x5D8B40): w + 8 = identity, w + 0x58 = (-0x1000, 0, 0); the sprite turned from
-	// -x onto its direction +0x10, stretched (size, size / 2, size / 2), at its position +8
 	static void ShardDraw(uint32_t h, uint32_t w, uint32_t e)
 	{
 		S32(w, 0x3C) = S16(e, 8);
@@ -240,7 +174,6 @@ namespace ib173
 		PacketCursor() = InitEffectSequenceFromData((void *)h, OT44(), 2, PacketCursor());
 	}
 
-	// motion after a draw (frame + 1 first; the entry ends when its sequence did: header +0x28 < 0)
 	static void SwirlMove(uint32_t e)
 	{
 		S16(e, 0xE) = (int16_t)(S16(e, 0xE) + S16(e, 0x16));
@@ -273,9 +206,6 @@ namespace ib173
 		S16(e, 0xC) = (int16_t)(S16(e, 0xC) + (int16_t)(mul32(speed, S32(w, 0x70)) >> 12));
 	}
 
-	// ------------------------------------------------------------------
-	// Mouth swirl (0x5D7BA0): node +0xC counter
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SwirlTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
@@ -285,7 +215,6 @@ namespace ib173
 		U32(h, 0) = SEQ_Swirl;
 		S16(h, 0x24) = 0;
 		U32(w, 0xC) = U32(ANCHOR, 4);
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_pool(ORIG_Swirl, n, h);)
 		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
 		{
@@ -327,11 +256,6 @@ namespace ib173
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Breath cones (0x5D7E70): node +0xC counter, +0xE delay, +0x10 position, +0x18 / +0x1A y / z
-	// angles, +0x1C size, +0x1E size step
-	// ------------------------------------------------------------------
-	// a depth cue of a prim-model header: flags 0xF3 + level, or 0x33 (no cue: the level is not written)
 	struct Cue { uint32_t flags; int32_t fade; };
 	static Cue ConeCue(int32_t c) { return c >= 0xC ? Cue{ 0xF3u, shl32(c - 0xC, 10) } : Cue{ 0x33u, 0 }; }
 	static Cue GlowCue(int32_t c) { return c >= 0x20 ? Cue{ 0xF3u, shl32(c - 0x20, 10) } : Cue{ 0x33u, 0 }; }
@@ -359,7 +283,6 @@ namespace ib173
 		FieldFree(0x58);
 	}
 
-	// the cone's update after its draw (size -= step, step -= step / 20)
 	static void ConeMove(uint32_t n)
 	{
 		const int16_t d = S16(n, 0x1E);
@@ -378,7 +301,6 @@ namespace ib173
 			S16(n, 0xE) = (int16_t)(delay - 1);
 			return 0;
 		}
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_node(ORIG_Cone, n);)
 		ConeDraw(n, ConeCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
@@ -386,9 +308,6 @@ namespace ib173
 		return S16(n, 0xC) >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Mouth glow (0x5D7FE0): node +0xC counter, +0x1C size, +0x1E growth
-	// ------------------------------------------------------------------
 	static void GlowDraw(uint32_t n, uint32_t anchor, Cue cue)
 	{
 		const int16_t s = S16(n, 0x1C);
@@ -402,7 +321,6 @@ namespace ib173
 		FieldFree(0x58);
 	}
 
-	// the glow's update after its draw (from its tick 0x18 the growth speeds up)
 	static void GlowMove(uint32_t n)
 	{
 		const int16_t g = S16(n, 0x1E);
@@ -419,7 +337,6 @@ namespace ib173
 	static uint32_t __cdecl GlowTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_node(ORIG_Glow, n);)
 		GlowDraw(n, ANCHOR, GlowCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
@@ -427,9 +344,6 @@ namespace ib173
 		return S16(n, 0xC) >= 0x24 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Breath puffs (0x5D80C0): node +0xC counter, +0x18 sweep angle, +0x1A sweep step
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl PuffsTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
@@ -437,7 +351,6 @@ namespace ib173
 		int32_t live = 0;
 		U32(h, 0) = SEQ_Puff;
 		S16(h, 0x24) = 4;
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_pool(ORIG_Puffs, n, h);)
 		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
 		{
@@ -492,9 +405,6 @@ namespace ib173
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ice shards (0x5D8B40): node +0xC counter, +0x10 spawn point (x, y, z words)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ShardsTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
@@ -510,7 +420,6 @@ namespace ib173
 		S16(w, 2) = 0;
 		S16(w, 4) = 0;
 		BuildRotationMatrixFromAngles((const int16_t *)w, (Mat4x3 *)(w + 8));
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_pool(ORIG_Shards, n, h);)
 		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
 		{
@@ -555,21 +464,6 @@ namespace ib173
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ice trail (0x5D83E0): node +0xC counter, +0xE mesh index, +0x10 position, +0x18 y angle,
-	// +0x1C size. Draw header (0xAC, Field_Alloc): +0 mesh, +4 vertices, +8 far colour, +0xC depth
-	// cue, +0x1C flags (0x20: both faces), +0x20 time, +0x24 mesh index -> "drew something",
-	// +0x28 polygon state cursor, +0x2C polygon cursor, +0x30 MAC0, +0x38 OTZ, +0x3C FLAG,
-	// +0x40 / +0x48 / +0x50 the three vertices, +0x64 temporaries, +0x6C mesh matrix (camera x
-	// node), +0x8C polygon matrix (translation +0xA0).
-	// Mesh polygon (0x1C bytes): +0 colour 0 + code, +4 / +6 / +8 vertex offsets (/ 4; +8's high
-	// half = uv 2), +0xC uv 0 + clut, +0x10 uv 1 + tpage, +0x14 / +0x18 colours 1 / 2.
-	// Polygon state (0x20 bytes): +0 centroid (words), +6 delay, +8 offset, +0xE phase (-1 =
-	// gone), +0x10 velocity, +0x18 / +0x1C x / z angles, +0x1A / +0x1E their steps.
-	// ------------------------------------------------------------------
-	// 0x5D79C0: the polygon states of a mesh from its polygons (header +0x2C) and vertices; the
-	// delay = (|centroid + (0, 0, length)| - length) * 12 / 6300, the velocity along that vector
-	// (0x5A..0x103), random spin steps
 	static void TrailBuildStates(uint32_t h, uint32_t verts, int32_t length)
 	{
 		uint32_t poly = U32(h, 0x2C);
@@ -618,7 +512,6 @@ namespace ib173
 		U32(h, 0x28) = st;
 	}
 
-	// 0x5D7980: header +0 = mesh, +0x24 = its index -> state table, vertices, polygons
 	static void TrailInitStates(uint32_t h)
 	{
 		const uint32_t mesh = U32(h, 0);
@@ -628,10 +521,6 @@ namespace ib173
 		TrailBuildStates(h, mesh + 8, FloorLength());
 	}
 
-	// one polygon (shared tail of 0x5D8590 / 0x5D8990): vertices +0x40 / +0x48 / +0x50 through the
-	// GTE as set, a POLY_GT3 at cursor (header words written first), culled by the GTE flags and
-	// the winding (both faces with header flag 0x20), depth cue +0xC toward the far colour;
-	// returns the cursor after it when it was inserted
 	static uint32_t TrailPoly(uint32_t h, uint32_t poly, uint32_t p, uint32_t ot, int32_t mode)
 	{
 		GteLoadV012(h + 0x40, h + 0x48, h + 0x50);
@@ -659,7 +548,6 @@ namespace ib173
 		return p + 0x28;
 	}
 
-	// the three vertices of a polygon as the mesh has them
 	static void TrailVerts(uint32_t h, uint32_t poly, uint32_t verts)
 	{
 		const uint32_t a = verts + (uint32_t)U16(poly, 4) * 4;
@@ -673,8 +561,6 @@ namespace ib173
 		U32(h, 0x54) = U32(c, 4);
 	}
 
-	// a flying polygon's state after its draw (offset += velocity, velocity -1/16, spin, phase + 1;
-	// gone after 16)
 	static void TrailPolyMove(uint32_t st)
 	{
 		S16(st, 8) = (int16_t)(S16(st, 8) + S16(st, 0x10));
@@ -693,10 +579,6 @@ namespace ib173
 		if (ph >= 0x10) S16(st, 0xE) = -1;
 	}
 
-	// 0x5D8590: the polygons flying apart (time +0x20 = trail counter - 10): a polygon whose delay
-	// has passed is drawn around its centroid: its vertices minus the centroid, turned by its
-	// angles, moved to centroid + offset (the offset before its move), depth cue phase * 0x100
-	// (phase 0: -0x1000); the others are drawn whole
 	static uint32_t TrailFlyPolys(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		const int32_t t = S32(h, 0x20);
@@ -751,8 +633,6 @@ namespace ib173
 		return cursor;
 	}
 
-	// 0x5D8990: the trail appearing (time +0x20 = trail counter): a polygon is drawn once its delay
-	// is below the time (from time 12 every polygon)
 	static uint32_t TrailGrowPolys(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		const int32_t t = S32(h, 0x20);
@@ -779,8 +659,6 @@ namespace ib173
 		return cursor;
 	}
 
-	// 0x5D8520 / 0x5D8920: header +4 / +0x2C from the mesh, the far colour (+8), the polygon state
-	// table of mesh +0x24; +0x24 = something drawn
 	static uint32_t TrailDraw(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor, bool fly)
 	{
 		const uint32_t mesh = U32(h, 0);
@@ -813,7 +691,6 @@ namespace ib173
 		U32(h, 8) = 0;
 		ComposeAffineTransform(&Camera(), &m, (Mat4x3 *)(h + 0x6C));
 		const int16_t c = S16(n, 0xC);
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_trail(n, h);)
 		if (c >= 0xA)
 		{
@@ -828,22 +705,16 @@ namespace ib173
 		FieldFree(0xAC);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		if (S16(n, 0xC) > 0xA && S32(h, 0x24) == 0) return TASK_END; // (the freed header still holds it)
+		if (S16(n, 0xC) > 0xA && S32(h, 0x24) == 0) return TASK_END;
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Crystals: the module's copies of the prim-model library (decoder, rotations, vertex blend)
-	// ------------------------------------------------------------------
-	// 0x5D9090: `count` dwords of `value` at dst
 	static void Memset32(uint32_t dst, uint32_t value, uint32_t count)
 	{
 		for (uint32_t i = 0; i < count; i++)
 			U32(dst, (int32_t)(i * 4)) = value;
 	}
 
-	// 0x5D8FB0 (= Effect_DecodeModelPrimLayout 0x7016B0): clears `size` bytes of the layout, +0 =
-	// data, every object's scale integrator (after its position / rotation ones) = 0x10000000
 	static void DecodeLayout(uint32_t data, uint32_t out, int32_t size)
 	{
 		Memset32(out, 0, (uint32_t)(size >> 2));
@@ -880,8 +751,6 @@ namespace ib173
 		}
 	}
 
-	// 0x5D9420 / 0x5D9470 / 0x5D94C0: rotation about x / y / z (the 3x3 and its pad cleared first;
-	// the y matrix is built for -angle)
 	static void RotationX(int16_t angle, uint32_t m)
 	{
 		Memset32(m, 0, 5);
@@ -919,7 +788,6 @@ namespace ib173
 		S16(m, 0x10) = 0x1000;
 	}
 
-	// 0x5D93A0 (= MAG_017_sub_701310): out = (Rz(a2) x Rx(a0)) x Ry(a1) (Matrix3x3_MultiplyPSX)
 	static void RotationFromAngles(uint32_t angles, uint32_t out)
 	{
 		Mat4x3 mx, mz, my, mzx;
@@ -930,8 +798,6 @@ namespace ib173
 		Matrix3x3MultiplyPSX((uint32_t)&mzx, (uint32_t)&my, out);
 	}
 
-	// 0x5D9510 (= MAG_017_sub_701390): vertex frames f0 and f1 of a model blended by t (4.12) into
-	// out, through the GTE (IR0 interpolation)
 	static void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out)
 	{
 		const int32_t w0 = 0x1000 - t;
@@ -953,19 +819,13 @@ namespace ib173
 		}
 	}
 
-	// 0x5D9130: crystal player draw callback (layout l, record r, parameter block b on the player
-	// task's stack: +0 position, +8 object flag table, +0xC blend buffer, +0x10 rotation added when
-	// +0x16, +0x18 scale applied when +0x24): the object's vertex frame (blended between two frames
-	// by 0x5D9510), its matrix (record rotation by 0x5D93A0; record offset + block position: flag
-	// 0x10000000 = position through the camera, else composed with it), the record scale, the
-	// block scale, the fade (record +0x24 toward record colour)
 	static void __cdecl CrystalCallback(prim::Layout *lp, prim::Record *rp, int arg)
 	{
 		const uint32_t l = (uint32_t)lp, rec = (uint32_t)rp, blk = (uint32_t)arg;
 		if (((uint32_t)(int32_t)S16(rec, 0x1C) | U32(rec, 0x18)) == 0)
-			return; // zero scale: nothing drawn
+			return;
 		if (S16(rec, 0x24) >= 0x1000 && U32(rec, 0x20) == 0)
-			return; // full fade to black: nothing drawn
+			return;
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
 		const uint32_t data = U32(l, 0);
 		const uint32_t model = data + U32(data, S16(rec, 2) * 4 + 8);
@@ -1035,10 +895,6 @@ namespace ib173
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Crystal player (0x5D90B0, queue 0x239A8D0): node +0x10 position, +0x18 scale, +0x1A z spin,
-	// +0x1C the layout
-	// ------------------------------------------------------------------
 	static void CrystalBlock(uint32_t n, uint32_t blk)
 	{
 		U32(blk, 8) = CRYSTAL_FLAGS;
@@ -1061,15 +917,11 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		uint8_t blk[0x28];
 		CrystalBlock(n, (uint32_t)blk);
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_crystal(n);)
 		const int left = prim::play((prim::Layout *)(n + 0x1C), CrystalCallback, (int)(uint32_t)blk, PlayerPaused() ? 1 : 0);
 		return left ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Crystal spawner (0x5D8E20): node +0xC counter, +0x18 sweep angle, +0x1A sweep step
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SpawnerTask(TaskNode *nd)
 	{
 		if (DrawOnly()) return 0;
@@ -1101,11 +953,6 @@ namespace ib173
 		return S16(n, 0xC) > 0x1E ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5D7570): node +0xC counter
-	// ------------------------------------------------------------------
-	// the anchor (caster bone 0xF0 + (0, 0, -0x96) through the caster's rotation) into out (x, y, z
-	// words; the pad word untouched)
 	static void ComputeAnchor(uint32_t out)
 	{
 		const int32_t slot = CasterSlot();
@@ -1221,13 +1068,9 @@ namespace ib173
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x5D9BF0) and texture restore wait (0x5D9C70)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(held_note_root();)
 		if (U8(n, 0xC) & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
@@ -1266,7 +1109,6 @@ namespace ib173
 		register_port(ib173::ORIG_Shards, (void *)ib173::ShardsTask, "173 IceShards", 173);
 		register_port(ib173::ORIG_Spawner, (void *)ib173::SpawnerTask, "173 CrystalSpawner", 173);
 		register_port(ib173::ORIG_Crystal, (void *)ib173::CrystalTask, "173 Crystal", 173);
-		// 30 fps layer: see mag173_ice_breath_held.inc
 		FX_HELD(register_mag173_held();)
 	}
 }

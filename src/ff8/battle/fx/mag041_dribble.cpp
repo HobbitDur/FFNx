@@ -14,56 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 41: Dribble (enemy attack 56 of kernel.bin, used by Wendigo c0m032; MAG_041_*): a copy of
-// the actor/heal effect library (see act_engine.h) built like Counter Laser-Eye
-// (mag030_counter_laser_eye.cpp): the same master, emitter and actor-system code with the module's
-// own globals and pools, plus the module's own dribble: the target turned into a ball, bounced in
-// the caster's hand, thrown away, and walking back.
-//
-// Setup MAG_041_DRIBBLE_Init 0x8465C0 (runs once, not ported; file loader MAG_041_DRIBBLE_FL
-// 0x8465A0 = the effect's data file 0x15CDDD8 -> 0x267B858, TIM uploaded by the setup, its two
-// packet arenas at file + 0 / + 0x5000 (and + 0x5000 / + 0xA000), file arena cursor 0x2698AB0 =
-// file + 0xA000) plays the camera animation 0x15CD9B4 and creates the root queue 0x268F288 with the
-// master and three task pools: 0x26988E8 (4 x 0x58: emitters), 0x2690BD8 (3 x 0x2A4: actor
-// systems) and 0x268F298 (0x14 x 0xDC: the dribble tasks).
-//   Master (0x8466F0) - camera copy 0x2793E58 (the module scratch stack 0x2698AA4 grows down from
-//     it), packet arena by tick parity (cursor 0x267B85C), bone follow, 11-state table: 0x846850
-//     reserves the actor pools after the arena (0x870 + 0x8340 bytes = 20 particles of 0x6C and
-//     50 actors of 0x2A0, cleared), 0x8468D0 one emitter per action (loop 0x84CF60 once the
-//     emitter releases the master's +0x63 hold), then waits for the queues to empty.
-//   Emitter (0x846900), one per action: bone follow + model bounds, sound 0x15CA5A8 at its tick
-//     17; state 0 (0x846990) spawns the actor system (0x846A20 with the actor data 0x15CD8B0,
-//     start tick 15, mode 0x2D, flag 0) and the dribble spawner (0x84B8C0), state 1 releases the
-//     master at tick 116, state 2 applies the damage of the action's current target (0x506690)
-//     from tick 116.
-//   Actor system (0x846A20 -> 0x846A80 / 0x84B890): the engine's particle actors (emitters and
-//     particles, sprite sequences 0x848E30 / prim models 0x847750 drawn into the module arena)
-//     placed by the actor data's key positions; its step 0x847500 refreshes the key positions from
-//     an entity's bones every tick.
-//   Dribble spawner (0x84B8C0 = engine 0x73A380 on {0x84B920, 0x84CEC0, ret}): at its tick 8 the
-//     dribble task.
-//   Dribble (0x84B950): 11 states on the ball block 0x267B868 (0xB8 bytes) - set-up on the target
-//     (its own draw hidden, one cast in 256 tilts the ball), grab (ticks 0..18), morph the target
-//     into a ball (+0x200 a tick), bounces in the caster's hand (bone 0x18) until tick 51, the
-//     throw (velocity from the target's facing, gravity 0x30, 16 ticks of spin), the landing
-//     (dust, sound 0x15CA5AC), the target given back, turned round and walking back for 10 ticks;
-//     while the ball is shown the target entity is placed at the ball and drawn by the module's
-//     ball renderer (0x84BA60 / 0x84BB70: the model's vertices morphed between the model and a
-//     sphere of the table radii 0x15CDC80, turned by the ball angles).
-//   Dust (0x84C8E0 = engine 0x73A380 on {0x84C940, 0x84CCB0, ret}, two ticks): two tasks 0x84CA70
-//     of 8 puffs each (random spread and speed), slowed by 3/16 a tick, flipbook 0x15CA5B0 of 16
-//     frames drawn as sprite sequences (0x84CB00).
-// No task tests the draw-only flags (battle_to_update_flags 0x201).
-// Module globals: 0x267B858..0x2698AB8 (pools, queues, file pointer 0x267B858, packet cursor
-// 0x267B85C, arenas, ball block 0x267B868, particle pool 0x2698A90 / cursor 0x26903D8, actor pool
-// 0x2698AA8 / cursor 0x2698A9C, actor state 0x2698AB4, scratch stack pointer 0x2698AA4, vertex
-// scratch 0x2690BE8, geometry descriptor 0x2698A60), the module scratch stack below the camera
-// copy 0x2793E58.
-//
-// Library functions: the ones whose code is identical to an engine port (up to module addresses)
-// are served by that port (ENGINE_PORTS); the others are ported below (db_XXXXXX), most of them
-// the text of the matching Curaga / Full-life / Confuse / Counter Laser-Eye port with this
-// module's addresses.
+// Effect 41: Dribble: a copy of
 
 #include "act_engine.h"
 
@@ -73,16 +24,14 @@ namespace act
 {
 namespace dribble
 {
-	// ---- generated (gendesc.py): the module descriptor of this copy of the library ----
 	static const Mod MOD_041 = { "dribble", 41, 0x8465A0, 0x84D010,
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x268F1B8, 0x0, 0x26903D8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2690BD8, 0x0, 0x26988E8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2698A8E, 0x2698A90, 0x0, 0x2698A9E, 0x0, 0x2698AA4, 0x0, 0x2698AB4 },
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x846AB0, 0x847500, 0x8476F0, 0x847750, 0x0, 0x8479D0, 0x847BE0, 0x847E60, 0x8480A0, 0x848340, 0x848570, 0x848830, 0x848A90, 0x848D70, 0x848EB0, 0x848EF0, 0x84A180, 0x84A1D0, 0x84A200, 0x84A280, 0x84A970, 0x84A9C0, 0x84AA60, 0x84AB20, 0x84B370, 0x84B770, 0x84B800, 0x0, 0x0, 0x0, 0x0, 0x0, 0x846900, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x846C60, 0x846D40, 0x846EA0, 0x846F70, 0x847090, 0x8472A0, 0x848E30, 0x848F80, 0x8495E0, 0x849630, 0x8496C0, 0x849790, 0x849F20, 0x84A030, 0x84A0B0, 0x84A0E0, 0x84A900, 0x84A930, 0x84AA10, 0x84AB30, 0x84AC80, 0x84B310, 0x84B340, 0x84B520, 0x84B660, 0x0, 0x847500, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
 
-	// --- module globals ---
-	static const uint32_t PACKET_CURSOR = 0x267B85C;   // module packet cursor (the actors' arena)
-	static const uint32_t ACTOR_STATE = 0x2698AB4;     // current actor system state block
-	static const uint32_t SCRATCH_SP = 0x2698AA4;      // module scratch stack pointer
-	static const uint32_t BLK = 0x267B868;             // the ball block (0xB8 bytes)
+	static const uint32_t PACKET_CURSOR = 0x267B85C;
+	static const uint32_t ACTOR_STATE = 0x2698AB4;
+	static const uint32_t SCRATCH_SP = 0x2698AA4;
+	static const uint32_t BLK = 0x267B868;
 	static const uint32_t Q_EMITTER = 0x26988E8, Q_ACTORS = 0x2690BD8, Q_TASKS = 0x268F298;
 	static const uint32_t ORIG_Master = 0x8466F0;
 	static const uint32_t ORIG_Emitter = 0x846900;
@@ -93,11 +42,10 @@ namespace dribble
 	static const uint32_t ORIG_Dust = 0x84CA70;
 	static const void *const SOUND_Grab = (const void *)0x15CA5A8;
 	static const void *const SOUND_Land = (const void *)0x15CA5AC;
-	static const uint32_t ACTOR_DATA = 0x15CD8B0;      // the actor system's data (exe data, relocated once by 0x8472A0)
-	static const uint32_t RADIUS_TABLE = 0x15CDC80;    // ball y radius by dribble tick 0..56 (6-byte records)
+	static const uint32_t ACTOR_DATA = 0x15CD8B0;
+	static const uint32_t RADIUS_TABLE = 0x15CDC80;
 	static const uint32_t DUST_FLIPBOOK = 0x15CA5B0;
 
-	// engine functions not in act::x
 	namespace gx
 	{
 		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
@@ -117,7 +65,6 @@ namespace dribble
 		static inline uint32_t sub_8DDB90(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x8DDB90)(a1, a2, a3); }
 	}
 
-	// helpers of the library code (as in act_engine.cpp / mag097_boko.cpp / mag039_drain.cpp)
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
 	{
 		U32(dst, 0) = U32(src, 0);
@@ -159,15 +106,12 @@ namespace dribble
 	static inline bool b1_out(int16_t v, int16_t hi) { return v < 0 || v > hi; }
 	static inline bool b2_out_x(int16_t v) { return v < 0 || v > 0xA00; }
 	static inline bool b2_out_y(int16_t v) { return v < 0 || v > 0x6C0; }
-	// cdq; and edx, 0xFFFF; add eax, edx; sar eax, 16  (= signed 16.16 -> integer, toward zero)
 	static inline int32_t b2_fx(uint32_t v)
 	{
 		int32_t s = (int32_t)v;
 		return add32(s, (s >> 31) & 0xFFFF) >> 16;
 	}
 
-	// common task tail (frame counter already incremented): end (release the linked task, return 2)
-	// when finished (status read before the increment) and no children are alive
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
 	{
 		if ((status & 1) != 0 && U8(node, 0x28) == 0)
@@ -178,7 +122,6 @@ namespace dribble
 		return 0;
 	}
 
-	// module ports of this file (32-bit words in and out, cdecl, like the originals)
 	uint32_t __cdecl db_8466F0(uint32_t a1);
 	uint32_t __cdecl db_846850(uint32_t a1);
 	uint32_t __cdecl db_846890(void);
@@ -254,22 +197,13 @@ namespace act
 {
 namespace dribble
 {
-	// ====================================================================================
-	// the library functions of this module whose code matches a Full-life / Curaga / Confuse /
-	// Counter Laser-Eye port up to the module's addresses and callees (the port's text with the
-	// module's addresses; the comments describe the source original), then the module's own code
-	// ====================================================================================
-	// 0x8466F0 (copy of fl_883240 0x883240: MAG_027_sub_883240): MASTER task - camera copy, packet arena by tick parity, bone
-	// follow, 11-state table, the three queues (live task count -> node +0x5E; the actor counters
-	// 0x26D9032 / 0x26D9022 are cleared before the queues run)
 	uint32_t __cdecl db_8466F0(uint32_t a1)
 	{
 		g_mod = &MOD_041;
-		// 30 fps layer: see mag041_dribble_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x268F1B8) = 0x2793E58;
@@ -284,7 +218,7 @@ namespace dribble
 		states[7] = 0x84CFC0;
 		states[8] = 0x84CFD0;
 		states[9] = 0x84CFE0;
-		states[10] = 0x84D000; // nullsub (ret)
+		states[10] = 0x84D000;
 		if ((parity & 1) != 0)
 		{
 			const uint32_t v1 = MEM<uint32_t>(0x2698A5C);
@@ -313,9 +247,6 @@ namespace dribble
 		return task_end(node, status);
 	}
 
-	// 0x846890 (copy of cl_873910 0x873910: MAG_030_sub_873910; = Wind Blast 0x879750 with this module's pool sizes): clears
-	// the two actor pools (0x870 bytes at [0x26D6A14], 0x8340 bytes at [0x26D6A2C]) and the pool
-	// cursors / counters
 	uint32_t __cdecl db_846890(void)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x2698A90), 0x870);
@@ -324,11 +255,9 @@ namespace dribble
 		MEM<uint16_t>(0x2698A9C) = 0;
 		MEM<uint16_t>(0x2698A8C) = 0;
 		MEM<uint16_t>(0x267B860) = 0;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x846A80 (copy of cg_87E200 0x87E200: MAG_028_CURAGA_MainVisual_State0_GateAndAdvance; = Confuse c_85FBA0, copy of a_7348A0 0x7348A0; engine; MiniMog sub_7348A0): state: once the frame counter +0x24 reaches
-	// +0x298, runs a_73F990 and one step of the actor system (a_7353B0), advances the state
 	uint32_t __cdecl db_846A80(uint32_t a1)
 	{
 		if (S16(a1, 0x24) >= S16(a1, 0x298))
@@ -337,27 +266,21 @@ namespace dribble
 			db_847500(a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x846AB0 (copy of cg_87E230 0x87E230: MAG_028_CURAGA_MainVisual_SetupRenderWorkspace; = Confuse c_85FBD0, copy of a_73F990 0x73F990; engine; Siren sub_73F990, all 6 actor modules): actor director set-up for node a1:
-	// *G_258FB78 = state block node+0x34; copies node+0x29A/0x29C(mode)/0x29E into it, points its 4
-	// tables (+0x224..+0x230) into the loaded actor data (node+0x30; relocated once by 0x740210,
-	// flag data+0), fills the target slot list (+4.., count = root +0x5A) from the cast context's
-	// action record, sets start / per-target / bounds positions (0x73FC20, 0x73FFB0; modes 1/3/4
-	// extra set-ups) and stores the caster-to-first-target distance in state+0.
 	uint32_t __cdecl db_846AB0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t data = U32(node, 0x30);        // edi: loaded actor data
+		const uint32_t data = U32(node, 0x30);
 		uint16_t w29a = U16(node, 0x29A);
 		uint16_t w29c = U16(node, 0x29C);
-		uint32_t st = node + 0x34;                    // eax: director state block
-		const uint32_t root = U32(node, 0x10);        // ebx
+		uint32_t st = node + 0x34;
+		const uint32_t root = U32(node, 0x10);
 		MEM<uint32_t>(0x2698AB4) = st;
 		U16(st, 0x22) = w29a;
-		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
-		U16(st, 0x24) = w29c;                         // mode
+		uint16_t caster = (uint16_t)U8(node, 0x2C);
+		U16(st, 0x24) = w29c;
 		U32(st, 0x224) = data + 4;
 		U32(st, 0x228) = data + 0x44;
 		U32(st, 0x22C) = data + 0x84;
@@ -380,7 +303,7 @@ namespace dribble
 				int32_t action = S8(node, 0x2A);
 				uint32_t tab = U32(U32(node, 0x0C), 4);
 				uint32_t rec = U32(tab + (uint32_t)mul32(action, 5) * 4, 8);
-				U32(st, 4 + 4 * i) = U8(rec, 0x18 * i);   // target slot
+				U32(st, 4 + 4 * i) = U8(rec, 0x18 * i);
 				i++;
 			} while (i < S16(st, 0x1C));
 		}
@@ -389,11 +312,11 @@ namespace dribble
 		st = MEM<uint32_t>(0x2698AB4);
 		if (U16(st, 0x24) == 4)
 			callp(0x846C60, node);
-		db_847090();   // (the original pushes node; the callee takes no argument)
+		db_847090();
 		st = MEM<uint32_t>(0x2698AB4);
 		if (U16(st, 0x24) == 1)
 		{
-			callp(0x846EA0, node);   // 0-arg function, node pushed like the original
+			callp(0x846EA0, node);
 			st = MEM<uint32_t>(0x2698AB4);
 		}
 		if (U16(st, 0x24) == 3)
@@ -401,7 +324,6 @@ namespace dribble
 			a_73FE90(node);
 			st = MEM<uint32_t>(0x2698AB4);
 		}
-		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
 		uint32_t e1 = 0x1D972C0 + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
@@ -416,13 +338,9 @@ namespace dribble
 		uint32_t dist = x::Sqrt((uint32_t)sq);
 		st = MEM<uint32_t>(0x2698AB4);
 		U32(st, 0) = dist;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x846C60 (copy of cg_87E3E0 0x87E3E0: sub_87E3E0; = Confuse c_85FD80, copy of b_72AD60 0x72AD60; 097 sub_72AD60, 098 0x722B60, 099 0x7190B0, 100 0x70FD30): sets the arena
-	// [BG_257B5CC] +0x1B4 vector to node +0x290/+0x292/+0x294 (<< 16, fixed point) and copies that
-	// 16-byte vector to the history slots +0x204, +0x1F4, +0x1E4, +0x1D4, +0x1C4 (never runs in
-	// the harness)
 	uint32_t __cdecl db_846C60(uint32_t a1)
 	{
 		const uint32_t arena = MEM<uint32_t>(0x2698AB4);
@@ -440,16 +358,11 @@ namespace dribble
 		return U32(v, 0xC);
 	}
 
-	// 0x846D40 (copy of cg_87E4C0 0x87E4C0: sub_87E4C0; = Confuse c_85FE60): the actor system's reference points from the caster (slot state +0x1E):
-	// +0x1C4 its effect bone 0xF1 (y = its height word +0x24), +0x1D4 the same on the ground (y 0),
-	// +0x1E4 bone 0xF1 again, +0x1F4 bone 0xF0, +0x204 x / z with y = its +0x3C (16.16 each);
-	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl db_846D40(void)
 	{
 		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
-		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
@@ -486,25 +399,20 @@ namespace dribble
 		U32(st, 0x204) = sx;
 		S32(st, 0x208) = h;
 		U32(st, 0x20C) = U32(st, 0x1CC);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x846EA0 (copy of cg_87E620 0x87E620: sub_87E620; = Confuse c_85FFC0, copy of b_72AFE0 0x72AFE0; 097 sub_72AFE0, 098 0x722DE0, 099 0x719330, 100 0x70FFB0): for i < count
-	// (arena [BG_257B5CC] +0x1C, re-read each pass) copies the 16-byte vector arena +0x194 into
-	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl db_846EA0(void)
 	{
 		const uint32_t arena = MEM<uint32_t>(0x2698AB4);
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
-			return arena; // void (eax = arena)
+			return arena;
 		const uint32_t src = arena + 0x194;
 		uint32_t dst = arena + 0x94;
 		do
 		{
 			i++;
-			// quirk: for i >= 4 the destinations reach the source (+0x194): the copies are done
-			// dword by dword in listing order, so the overlap behaves like the original
 			b1_copy16(dst - 0x40, src);
 			b1_copy16(dst, src);
 			b1_copy16(dst + 0x40, src);
@@ -512,18 +420,12 @@ namespace dribble
 			b1_copy16(dst + 0xC0, src);
 			dst += 0x10;
 		} while (i < (int32_t)S16(arena, 0x1C));
-		return dst; // void (eax = last destination pointer)
+		return dst;
 	}
 
-	// 0x847090 (copy of cg_87E810 0x87E810: sub_87E810; = Confuse c_8601B0): per target of the actor system (slots state +4.., count +0x1C) the
-	// target reference points +0x54 (bone 0xF1, y = height word +0x24), +0x94 (its ground point),
-	// +0xD4 (bone 0xF1), +0x114 (bone 0xF0), +0x154 (x / z, y = +0x3C), 16.16, stride 0x10;
-	// then the centre of the targets' x / z range at +0x194 (y 0). Mode 2 (+0x24) takes no bone
-	// position (the stack words keep what they held)
 	uint32_t __cdecl db_847090(void)
 	{
 		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
-		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -570,7 +472,6 @@ namespace dribble
 				if (i >= S16(st, 0x1C)) break;
 			}
 		}
-		// centre of the x / z range of the targets' +0x54 / +0x5C
 		const int32_t n = S16(st, 0x1C);
 		int32_t min_x = 0, max_x = 0, max_z = 0, min_z = 0;
 		for (int32_t i = 0; i < n; i++)
@@ -593,12 +494,9 @@ namespace dribble
 		S32(st, 0x194) = add32(min_x, max_x) / 2;
 		U32(st, 0x198) = 0;
 		S32(st, 0x19C) = add32(max_z, min_z) / 2;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x8476F0 (copy of cg_87ED10 0x87ED10: sub_87ED10; = Confuse c_8606B0, copy of a_735440 0x735440; engine; MiniMog sub_735440): draw pass of the actor system: for every actor of
-	// the list (sys+0x2C, next +4) of type 1 whose definition (sys+0x224 table, index +0x1D6)
-	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl db_8476F0(void)
 	{
 		uint32_t act = U32(U32(0x2698AB4, 0), 0x2C);
@@ -615,12 +513,9 @@ namespace dribble
 			}
 			act = U32(act, 4);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x847750 (copy of cg_87ED70 0x87ED70: sub_87ED70; = Confuse c_860710): the engine's 0x7354A0 (draw of a prim-model actor: header on the module
-	// scratch stack, model +0x170, fade +0x1CE / colour +0x16C, one copy or one per sub-position
-	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl db_847750(uint32_t a1, uint32_t a2)
 	{
 		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
@@ -677,12 +572,6 @@ namespace dribble
 		return top;
 	}
 
-	// 0x8479D0 (copy of cg_87EFF0 0x87EFF0: sub_87EFF0; = Confuse c_860990, copy of b_72BA00 0x; 097 sub_72BA00, 098 0x723800, 099 0x719D50, 100 0x7109D0): flat-shaded triangle
-	// mesh emitter - for each 0xC-byte face at ctx +0x20 (count first) projects its 3 vertices
-	// (ctx +4 base, word indices *4), builds a POLY_F3 packet (0x14 bytes) at a4, culls (GTE flag,
-	// backface unless ctx+0x1C bit 0x10, screen range), optionally light-colours it (ctx+0x1C bit
-	// 0x40) and inserts it into OT a2 at OTZ >> a3; returns the new packet cursor (never runs in
-	// the harness)
 	uint32_t __cdecl db_8479D0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -697,7 +586,7 @@ namespace dribble
 			U32(ctx, 0x20) = face;
 			return cur;
 		}
-		uint32_t pk = cur + 0xC;   // edi: packet +0xC (xy1)
+		uint32_t pk = cur + 0xC;
 		uint32_t left = count;
 		do
 		{
@@ -709,10 +598,10 @@ namespace dribble
 			x::GTE_RTPT();
 			const uint32_t fl = U32(ctx, 0x1C);
 			const uint32_t code = U32(face, 0);
-			U32(pcur, 0) = 0x4000000;          // tag: 4 words
-			U32(pk, -8) = code;                // colour + code
+			U32(pcur, 0) = 0x4000000;
+			U32(pk, -8) = code;
 			if ((fl & 1) != 0)
-				U32(pk, -8) = code | 0x2000000;   // semi-transparent
+				U32(pk, -8) = code | 0x2000000;
 			if ((fl & 4) != 0)
 				U32(pk, -8) &= 0xFDFFFFFFu;
 			x::GTE_ReadFLAG(ctx + 0x30);
@@ -755,10 +644,6 @@ namespace dribble
 		return cur;
 	}
 
-	// 0x847BE0 (copy of cg_87F200 0x87F200: sub_87F200; = Confuse c_860BA0, copy of b_72BC10 0x; 097 sub_72BC10, 098 0x723A10, 099 0x719F60, 100 0x710BE0): flat-shaded quad mesh
-	// emitter - like b_72BA00 with 4 vertices per 0xC-byte face (indices +4/+6/+8, 4th +0xA),
-	// POLY_F4 packets (0x18 bytes, tag 0x5000000), AVSZ4 depth; returns the new packet cursor
-	// (never runs in the harness)
 	uint32_t __cdecl db_847BE0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -773,7 +658,7 @@ namespace dribble
 			U32(ctx, 0x20) = face;
 			return cur;
 		}
-		uint32_t pk = cur + 0xC;   // esi: packet +0xC (xy1)
+		uint32_t pk = cur + 0xC;
 		uint32_t left = count;
 		do
 		{
@@ -785,10 +670,10 @@ namespace dribble
 			x::GTE_RTPT();
 			const uint32_t fl = U32(ctx, 0x1C);
 			const uint32_t code = U32(face, 0);
-			U32(pcur, 0) = 0x5000000;          // tag: 5 words
-			U32(pk, -8) = code;                // colour + code
+			U32(pcur, 0) = 0x5000000;
+			U32(pk, -8) = code;
 			if ((fl & 1) != 0)
-				U32(pk, -8) = code | 0x2000000;   // semi-transparent
+				U32(pk, -8) = code | 0x2000000;
 			if ((fl & 4) != 0)
 				U32(pk, -8) &= 0xFDFFFFFFu;
 			x::GTE_ReadFLAG(ctx + 0x30);
@@ -837,35 +722,28 @@ namespace dribble
 		return cur;
 	}
 
-	// 0x848340 (copy of cg_87F960 0x87F960: sub_87F960; = Confuse c_861300, copy of b_72C370 0x72C370; Boko shared; 097 sub_72C370, 098 0x724170, 099 0x71A6C0, 100 0x711340): prim-list
-	// block "Gouraud triangles" of the Boko prim renderer (ctx a1: +4 vertices, +0xC depth-cue
-	// colour, +0x1C flags, +0x20 list cursor): count at *(ctx+0x20), then per 0x14-byte record
-	// (code+rgb0, u16 vertex indices +4/+6/+8, rgb1 +0xC, rgb2 +0x10) RTPT, builds a 0x1C-byte
-	// POLY_G3 at the cursor (tag 0x06000000; flags 2 = semi-trans on, 8 = off, 0x20 = no cull,
-	// 0x80 = GTE-lit colours), rejects GTE-flagged / back-facing / fully off-screen ones,
-	// InsertPrim at OT a2[OTZ >> a3]. Returns the new packet cursor; ctx+0x20 = end of the list.
 	uint32_t __cdecl db_848340(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
-		uint32_t cursor = a4;                 // [esp+0x10]
+		uint32_t cursor = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (the original stores it into its a2 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
 			U32(ctx, 0x20) = rec;
 			return a4;
 		}
-		uint32_t pkt = cursor;                // esi = pkt + 0x10 (advances with the cursor)
+		uint32_t pkt = cursor;
 		do
 		{
 			x::GTE_LoadV012(vbase + (uint32_t)U16(rec, 4) * 4, vbase + (uint32_t)U16(rec, 6) * 4, vbase + (uint32_t)U16(rec, 8) * 4);
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(cursor, 0) = 0x6000000;       // tag: 6 words
+			U32(cursor, 0) = 0x6000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -878,7 +756,7 @@ namespace dribble
 			if (!(U32(ctx, 0x30) & 0x60000))
 			{
 				x::GTE_NCLIP();
-				uint32_t clip = 0;            // [esp+0x18]
+				uint32_t clip = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -919,14 +797,10 @@ namespace dribble
 		return cursor;
 	}
 
-	// 0x848570 (copy of cg_87FB90 0x87FB90: sub_87FB90; = Confuse c_861530, copy of b_72C5A0 0x72C5A0; Boko shared; 097 sub_72C5A0, 098 0x7243A0, 099 0x71A8F0, 100 0x711570): prim-list
-	// block "Gouraud quads": same as 0x72C370 for 0x18-byte records (4th vertex index +0x0A,
-	// rgb1..3 at +0x0C/+0x10/+0x14) -> 0x24-byte POLY_G4 packets (tag 0x08000000), 4th vertex
-	// projected with RTPS, AVSZ4, off-screen test on the 4 corners. Returns the new packet cursor.
 	uint32_t __cdecl db_848570(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
-		uint32_t cursor = a4;                 // [esp+0x14]
+		uint32_t cursor = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
 		uint32_t rec = list + 4;
@@ -944,7 +818,7 @@ namespace dribble
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(cursor, 0) = 0x8000000;       // tag: 8 words
+			U32(cursor, 0) = 0x8000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -957,7 +831,7 @@ namespace dribble
 			if (!(U32(ctx, 0x30) & 0x60000))
 			{
 				x::GTE_NCLIP();
-				uint32_t clip = 0;            // [esp+0x10]
+				uint32_t clip = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -1007,21 +881,14 @@ namespace dribble
 		return cursor;
 	}
 
-	// 0x848830 (copy of cg_87FE50 0x87FE50: sub_87FE50; = Confuse c_8617F0, copy of b_72C860 0x; Boko shared; 097 sub_72C860, 098 0x724660, 099 0x71ABB0, 100 0x711830): prim-list
-	// block "Gouraud-textured triangles": per 0x1C-byte record (code+rgb0, u16 vertex indices
-	// +4/+6/+8, uv2 in the high half of +8, uv0|clut +0xC, uv1|tpage +0x10, rgb1 +0x14, rgb2 +0x18)
-	// RTPT, builds a 0x28-byte POLY_GT3 (tag 0x09000000) with the texture offset ctx+0x18 added to
-	// the uv words and the optional tpage (ctx+0x10, flags 0x400 add / 0x100 set) / clut (ctx+0x14,
-	// flags 0x800 add / 0x200 set) overrides, rejects GTE-flagged / back-facing / off-screen ones,
-	// optional GTE-lit colours (flag 0x80), InsertPrim at OT a2[OTZ >> a3]. Returns the new cursor.
 	uint32_t __cdecl db_848830(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t ctx = a1;              // ebp
-		uint32_t pkt = a4;                    // esi
+		const uint32_t ctx = a1;
+		uint32_t pkt = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (stored into the a4 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
@@ -1034,7 +901,7 @@ namespace dribble
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(pkt, 0) = 0x9000000;          // tag: 9 words
+			U32(pkt, 0) = 0x9000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -1063,7 +930,7 @@ namespace dribble
 					U16(pkt, 0x0E) = (uint16_t)(U16(pkt, 0x0E) + U16(ctx, 0x14));
 				else if (f2 & 0x200)
 					U16(pkt, 0x0E) = U16(ctx, 0x14);
-				uint32_t zero = 0;            // [esp+0x10]
+				uint32_t zero = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -1103,20 +970,14 @@ namespace dribble
 		return pkt;
 	}
 
-	// 0x848A90 (copy of cg_8800B0 0x8800B0: sub_8800B0; = Confuse c_861A50, copy of b_72CAC0 0x72CAC0; Boko shared; 097 sub_72CAC0, 098 0x7248C0, 099 0x71AE10, 100 0x711A90): prim-list
-	// block "Gouraud-textured quads": per 0x24-byte record (code+rgb0, u16 vertex indices
-	// +4/+6/+8/+0xA, uv0|clut +0xC, uv1|tpage +0x10, uv2|uv3<<16 +0x14, rgb1..3 +0x18/+0x1C/+0x20)
-	// RTPT + RTPS, builds a 0x34-byte POLY_GT4 (tag 0x0C000000) with the texture offset ctx+0x18 and
-	// the tpage / clut overrides of 0x72C860, rejects GTE-flagged / back-facing / off-screen ones,
-	// optional GTE-lit colours (flag 0x80), InsertPrim at OT a2[OTZ >> a3]. Returns the new cursor.
 	uint32_t __cdecl db_848A90(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t ctx = a1;              // ebx
-		uint32_t pkt = a4;                    // esi
+		const uint32_t ctx = a1;
+		uint32_t pkt = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (stored into the a4 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
@@ -1129,7 +990,7 @@ namespace dribble
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(pkt, 0) = 0xC000000;          // tag: 12 words
+			U32(pkt, 0) = 0xC000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -1161,7 +1022,7 @@ namespace dribble
 					U16(pkt, 0x0E) = (uint16_t)(U16(pkt, 0x0E) + U16(ctx, 0x14));
 				else if (f2 & 0x200)
 					U16(pkt, 0x0E) = U16(ctx, 0x14);
-				uint32_t zero = 0;            // [esp+0x14]
+				uint32_t zero = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -1210,34 +1071,30 @@ namespace dribble
 		return pkt;
 	}
 
-	// 0x848D70 (copy of cg_880390 0x880390: sub_880390; = Confuse c_861D30, copy of a_740700 0x740700; engine; Siren sub_740700): draws the sprite sequences of the director's actor list
-	// (state +0x2C, next +4): every actor of kind +8 == 1 whose bone entry kind (+0x16) is 0/1/2
-	// and that has a sequence (+0x170): once (+0x1D8 == 1) or once per sub-position (s16 x/y/z at
-	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl db_848D70(void)
 	{
 		uint32_t act = U32(MEM<uint32_t>(0x2698AB4), 0x2C);
 		if (act == 0)
-			return 0; // void
+			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
 				uint32_t st = MEM<uint32_t>(0x2698AB4);
 				int32_t b = S8(act, 0x1D6);
-				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
+				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
 				if ((kind == 0 || kind == 1 || kind == 2) && U32(act, 0x170) != 0)
 				{
 					int8_t n = S8(act, 0x1D8);
 					if (n == 1)
 					{
-						db_848E30(act);   // (the original also pushes the bone entry, unused)
+						db_848E30(act);
 					}
 					else if (n > 0)
 					{
 						int32_t i = 0;
-						uint32_t sub = act + 0x19E;   // edi
+						uint32_t sub = act + 0x19E;
 						do
 						{
 							S32(act, 0xC0) = S16(sub, -2);
@@ -1252,11 +1109,9 @@ namespace dribble
 			}
 			act = U32(act, 4);
 		} while (act != 0);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x848E30 (copy of cg_880450 0x880450: sub_880450; = Confuse c_861DF0): the engine's 0x7407C0 (sprite sequence of an actor: header on the module
-	// scratch stack, sequence +0x170, variant +0x1D0, matrix +0xAC) drawing into the module arena
 	uint32_t __cdecl db_848E30(uint32_t a1)
 	{
 		const uint32_t act = a1;
@@ -1274,11 +1129,9 @@ namespace dribble
 		U16(hdr, 0x24) = 0;
 		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
 		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x848EB0 (copy of cg_8804D0 0x8804D0: Effect_ParticleEmitter_UpdateParticleList; = Confuse c_861E70, copy of a_736C00 0x736C00; engine; MiniMog sub_736C00): update pass of the actor system: for every actor of
-	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl db_848EB0(void)
 	{
 		uint32_t act = U32(U32(0x2698AB4, 0), 0x2C);
@@ -1291,20 +1144,15 @@ namespace dribble
 				db_848EF0(act);
 			act = U32(act, 4);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x848EF0 (copy of cg_880510 0x880510: Effect_Particle_DrawAndAdvance; = Confuse c_861EB0, copy of a_740880 0x740880 whose callee chain reaches this module's
-	// particle pool 0x881700): one update step of actor a1 (phase s16 +0x1CC):
-	// phase 0 = 0x741050, then if 0x7419C0 reports the end -> phase 1 and sequence +0x170 = 0,
-	// else motion step 0x740910 + 0x741120 and ++frame +0x1CA; phase 1 = 0x742CD0, clears +0x1D7
-	// and decrements the director's live-actor count (state +0x16).
 	uint32_t __cdecl db_848EF0(uint32_t a1)
 	{
 		const uint32_t act = a1;
 		uint32_t st = MEM<uint32_t>(0x2698AB4);
 		int32_t b = S8(act, 0x1D6);
-		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
+		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
 		if (phase == 0)
 		{
@@ -1314,11 +1162,11 @@ namespace dribble
 				a_740910(act, bone);
 				a_741120(act, bone);
 				U16(act, 0x1CA) = (uint16_t)(U16(act, 0x1CA) + 1);
-				return 0; // void
+				return 0;
 			}
 			U16(act, 0x1CC) = (uint16_t)(U16(act, 0x1CC) + 1);
 			U32(act, 0x170) = 0;
-			return 0; // void
+			return 0;
 		}
 		if (phase == 1)
 		{
@@ -1327,45 +1175,39 @@ namespace dribble
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x849F20 (copy of cg_881540 0x881540: sub_881540; = Confuse c_862EE0, copy of b_72E220 0x72E220; Boko shared; 097 sub_72E220, 098 0x725D50, 099 0x71C2A0, 100 0x712F20): vertex morph
-	// of a Boko model for frame S16(a1+0x1CA) of actor data a2: destination vertex block = state
-	// +0x22C table [a2+0x12C[frame]], sources = state+0x230 table [a2+0x130[frame]] and
-	// [a2+0x134[frame]], weight w = S16 a2+0x138[frame] (4096 = second source); writes
-	// dst[k] = src1[k] * (4096 - w) + src2[k] * w through the GTE (0x45E9D0 / 0x45EBF0), using an
-	// 8-byte weight block on the field stack. Does nothing when a source is missing.
 	uint32_t __cdecl db_849F20(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t data = a2;                              // edi
+		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2698AB4, 0);                  // actor state block
+		uint32_t st = U32(0x2698AB4, 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
-		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
+		uint32_t dst = U32(dst_tab, i_dst * 4);
 		uint32_t i_src1 = U8(U32(data, 0x130), frame);
-		uint32_t src1 = U32(src_tab, i_src1 * 4);              // ebp
+		uint32_t src1 = U32(src_tab, i_src1 * 4);
 		uint32_t i_src2 = U8(U32(data, 0x134), frame);
-		uint32_t src2 = U32(src_tab, i_src2 * 4);              // [esp+0x18] (a2 slot)
+		uint32_t src2 = U32(src_tab, i_src2 * 4);
 		if (src1 == 0 || src2 == 0)
-			return 0; // void
-		uint32_t w_blk = x::Field_Alloc(8);                    // esi: {+0 4096 - w, +4 w}
-		int32_t frame2 = S16(a1, 0x1CA);                       // (re-read through the a1 slot)
+			return 0;
+		uint32_t w_blk = x::Field_Alloc(8);
+		int32_t frame2 = S16(a1, 0x1CA);
 		uint32_t n = U32(dst, 4);
 		int32_t w = S16(U32(data, 0x138), frame2 * 2);
 		U32(w_blk, 4) = (uint32_t)w;
 		U32(w_blk, 0) = (uint32_t)sub32(0x1000, w);
 		if ((int32_t)n > 0)
 		{
-			uint32_t out = dst + 8;                            // ebx
-			uint32_t in2 = src2 + 8;                           // edi
-			uint32_t delta = src1 - src2;                      // ebp
+			uint32_t out = dst + 8;
+			uint32_t in2 = src2 + 8;
+			uint32_t delta = src1 - src2;
 			do
 			{
 				x::set_dword_1CA8A30(U32(w_blk, 0));
-				gx::sub_45E0B0(in2 + delta);                   // = src1 + 8 + 8k
+				gx::sub_45E0B0(in2 + delta);
 				gx::sub_45E9D0();
 				x::set_dword_1CA8A30(U32(w_blk, 4));
 				gx::sub_45E0B0(in2);
@@ -1376,29 +1218,23 @@ namespace dribble
 			} while (--n != 0);
 		}
 		x::Field_Free(8);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84A030 (copy of cg_881650 0x881650: sub_881650; = Confuse c_862FF0, copy of a_7419C0 0x7419C0, callee chain to 0x881700): end-of-life test of emitter instance a1 with
-	// descriptor a2 (+0x1E: 0 = when the animation is done +0x1D2, 1 = when timer +0x1C8 runs out,
-	// 2 = either); on end spawns the follow-up particle (0x741A40) and returns 1, else 0
 	uint32_t __cdecl db_84A030(uint32_t a1, uint32_t a2)
 	{
 		int32_t kind = (int32_t)S8(a2, 0x1E);
 		if (kind == 2)
 		{
-			// 0x7419D3
 			U16(a1, 0x1C8) = (uint16_t)(U16(a1, 0x1C8) - 1);
 			if (S16(a1, 0x1C8) < 0)
 			{
 				db_84A0B0(a1, a2);
 				return 1;
 			}
-			// -> 0x741A21
 		}
 		else if (kind == 1)
 		{
-			// 0x7419F8
 			U16(a1, 0x1C8) = (uint16_t)(U16(a1, 0x1C8) - 1);
 			if (S16(a1, 0x1C8) >= 0)
 				return 0;
@@ -1409,7 +1245,6 @@ namespace dribble
 		{
 			return 0;
 		}
-		// 0x741A21
 		if (U8(a1, 0x1D2) == 1)
 		{
 			db_84A0B0(a1, a2);
@@ -1418,24 +1253,17 @@ namespace dribble
 		return 0;
 	}
 
-	// 0x84A0B0 (copy of cg_8816D0 0x8816D0: sub_8816D0; = Confuse c_863070, copy of a_741A40 0x741A40, callee 0x881700): if descriptor a2 chains a follow-up
-	// (+0x30 == 1) allocates a particle owned by instance a1 with descriptor index a2+0x31 and
-	// anchor a1+0x1D9 (0x741A70)
 	uint32_t __cdecl db_84A0B0(uint32_t a1, uint32_t a2)
 	{
 		if (U8(a2, 0x30) == 1)
 		{
-			// quirk 0x741A4E/0x741A53: `movsx cx/dx, byte` then push ecx/edx: the high halves are a2's
-			// high word (ecx) and the caller's edx (UNINIT, 0 here); 0x741A70 only reads the low bytes.
 			uint32_t desc_index = (a2 & 0xFFFF0000u) | (uint16_t)(int16_t)S8(a2, 0x31);
 			uint32_t anchor = (uint16_t)(int16_t)S8(a1, 0x1D9);
 			return db_84A0E0(a1, desc_index, anchor);
 		}
-		return a1; // void (eax = a1 at the only call site, 0x7419C0)
+		return a1;
 	}
 
-	// 0x84A0E0 (copy of cl_8770F0 0x8770F0: copy of d_8BBC10: 0x8BBC10 (sub_8BBC10)): the engine's 0x741A70 (allocates an emitter actor record of 0x6C bytes
-	// from the pool [0x2742824], cursor 0x273B538) with the module's pool of 0x14 records
 	uint32_t __cdecl db_84A0E0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
 		const uint32_t pool = MEM<uint32_t>(0x2698A90);
@@ -1470,9 +1298,6 @@ namespace dribble
 		return slot;
 	}
 
-	// 0x84A180 (copy of cg_8817A0 0x8817A0: sub_8817A0; = Confuse c_863140, copy of a_737ED0 0x737ED0; engine; MiniMog sub_737ED0): update of a type-0 actor (emitter): first-frame
-	// init (a_742D00, +0x62 set), motion by mode +0x68 (3: F_7424C0, 4: F_742610), emission
-	// (a_737F50), frame counter +0x60, then a_741B60
 	uint32_t __cdecl db_84A180(uint32_t a1)
 	{
 		if (U16(a1, 0x62) == 0)
@@ -1488,12 +1313,9 @@ namespace dribble
 		db_84A200(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84A200 (copy of cg_881820 0x881820: sub_881820; = Confuse c_8631C0, copy of a_737F50 0x737F50; engine; MiniMog sub_737F50): emission step of an emitter: for its frame +0x60
-	// (<= 39) reads the spawn count from its definition's per-frame table (+0xC8) and spawns
-	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl db_84A200(uint32_t a1)
 	{
 		uint32_t sys = U32(0x2698AB4, 0);
@@ -1501,10 +1323,10 @@ namespace dribble
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
 		if (frame > 0x27)
-			return 0; // void
+			return 0;
 		uint32_t total = U8(U32(def, 0xC8), (int32_t)frame);
 		if (total == 0)
-			return 0; // void
+			return 0;
 		int32_t batch = S8(def, 0x36);
 		int32_t full = (int32_t)total / batch;
 		int32_t rest = (int32_t)total % batch;
@@ -1518,31 +1340,21 @@ namespace dribble
 		}
 		if (rest > 0)
 			db_84A280(a1, def, (uint32_t)rest);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84A280 (copy of cg_8818A0 0x8818A0: sub_8818A0; = Confuse c_863240, copy of a_737FD0 0x737FD0; engine; MiniMog sub_737FD0, Boko 0x72E580/0x7260B0/0x71C600/0x713280): allocates a
-	// particle actor record (a_7387B0) for the emitter a1 and initialises its a3 particles from the
-	// descriptor a2: start positions (+0xDC/+0x12C, spread along a randomly rotated down vector
-	// when desc+0x34 = 1/2), per-particle rotation matrices (+0x0C+0x20i, multiplied by the emitter
-	// matrix a1+0x2C), speeds (+0x174/+0x184), key colours (+0x1E0..), then a_743100; uses 0x50
-	// bytes of the module scratch stack [G_258FB68]
 	uint32_t __cdecl db_84A280(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
-		// +0x4E key index
 		uint32_t sp = U32(0x2698AA4, 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
 		U32(0x2698AA4, 0) = sp;
-		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
-		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = db_84AA60(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
 		uint16_t w60 = U16(a1, 0x60);
 		uint8_t mode = U8(desc, 0x16);
-		U8(node, 0x1D8) = a3_lo;                           // particle count
-		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
+		U8(node, 0x1D8) = a3_lo;
+		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
 			uint32_t ctx = U32(0x2698AB4, 0);
@@ -1564,21 +1376,19 @@ namespace dribble
 		U16(node, 0x1DA) = U16(desc, 0x64);
 		if ((int32_t)a3 > 0)
 		{
-			// (the original keeps these pointers in its own argument slots a1 / a2: compiler reuse)
-			uint32_t src = a1 + 0x4C;          // emitter position (16 bytes)
-			uint32_t emat = a1 + 0x2C;         // emitter matrix
+			uint32_t src = a1 + 0x4C;
+			uint32_t emat = a1 + 0x2C;
 			uint32_t out_speed = node + 0x184;
 			uint32_t mat = node + 0x0C;
 			uint32_t pos = node + 0x12C;
 			for (int32_t n = (int32_t)a3; n != 0; n--)
 			{
-				e6_copy16(pos - 0x50, src);    // +0xDC+0x10i: origin
+				e6_copy16(pos - 0x50, src);
 				if (U8(desc, 0x22) == 0)
-					e6_copy16(pos, src);       // +0x12C+0x10i: current position
+					e6_copy16(pos, src);
 				uint8_t spread = U8(desc, 0x34);
 				if (spread == 1)
 				{
-					// 0x738110: random direction over the whole sphere
 					U16(sp, 0x28) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2A) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2C) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -1618,7 +1428,6 @@ namespace dribble
 				}
 				else if (spread == 2)
 				{
-					// 0x7382AD: random direction on a ring (angles rand, 0, 0x400)
 					U16(sp, 0x28) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2A) = 0;
 					U16(sp, 0x2C) = 0x400;
@@ -1644,7 +1453,6 @@ namespace dribble
 					if ((x::CrtRand() & 1) != 0)
 						U16(sp, 0x4A) = (uint16_t)(0 - U16(sp, 0x4A));
 					e6_rotate_down_vector(sp);
-					// the y offset is the raw key << 16 (the rotated vector's y is not used)
 					int32_t ex = mul32(S16(sp, 0x48), S16(sp, 0x20));
 					int32_t ey = shl32(S16(sp, 0x4A), 16);
 					int32_t oldx = S32(pos, 0);
@@ -1660,23 +1468,17 @@ namespace dribble
 					S32(sp, 0x40) = ez;
 					S32(pos, 8) = add32(oldz, ez);
 				}
-				// 0x738461: particle rotation angles sp+0x30 (random range, or a copy of the
-				// spread angles; any other mode keeps the stale scratch words)
 				int32_t rmode = S8(desc, 0x21);
 				if (rmode == 0)
 					a_742350(sp + 0x30, desc + 0x3C, desc + 0x44);
 				else if (rmode == 1)
 				{
-					// quirk 0x73846D: copies the dwords sp+0x28 / sp+0x2C, including the word
-					// +0x2E this function never writes (stale module scratch, deterministic;
-					// +0x28..+0x2C are also stale when desc+0x34 is neither 1 nor 2)
 					uint32_t c0 = U32(sp, 0x28);
 					uint32_t c1 = U32(sp, 0x2C);
 					U32(sp, 0x30) = c0;
 					U32(sp, 0x34) = c1;
 				}
 				e6_rotate_zxy(mat, sp + 0x30);
-				// particle matrix = emitter matrix * particle matrix (column by column)
 				x::GTE_SetRotMatrix(emat);
 				x::GTE_LoadIRFromMatrixColumn(mat);
 				x::GTE_MVMVA_RotIR();
@@ -1690,9 +1492,9 @@ namespace dribble
 				if (U8(desc, 0x27) == 0)
 				{
 					uint32_t r1 = a_7422C0(U32(desc, 0x4C), U32(desc, 0x50));
-					U32(out_speed, -0x10) = r1;           // +0x174+4i
+					U32(out_speed, -0x10) = r1;
 					uint32_t r2 = a_7422C0(U32(desc, 0x54), U32(desc, 0x58));
-					U32(out_speed, 0) = r2;               // +0x184+4i
+					U32(out_speed, 0) = r2;
 				}
 				out_speed += 4;
 				pos += 0x10;
@@ -1712,7 +1514,6 @@ namespace dribble
 			U32(node, 0x1DC) = a_7422C0(U32(desc, 0x5C), U32(desc, 0x60));
 			if ((int32_t)a3 > 0)
 			{
-				// three key-colour sets per particle (+0x1E0 / +0x220 / +0x260, 16 bytes each)
 				uint32_t q = node + 0x220;
 				for (int32_t n = (int32_t)a3; n != 0; n--)
 				{
@@ -1725,12 +1526,9 @@ namespace dribble
 		}
 		db_84B770(node, desc);
 		U32(0x2698AA4, 0) = U32(0x2698AA4, 0) + 0x50;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84AA60 (copy of c_863A20 0x863A20: sub_863A20): the engine's 0x7387B0 with the module's actor pool: allocates an actor
-	// record of 0x2A0 bytes from the pool [0x26A9BB4] starting at the cursor 0x26A9BA8 (wraps at 49:
-	// record 49 of the 50 is never used), cleared, owner a1, definition index a2
 	uint32_t __cdecl db_84AA60(uint32_t a1, uint32_t a2)
 	{
 		const uint32_t pool = MEM<uint32_t>(0x2698AA8);
@@ -1770,25 +1568,15 @@ namespace dribble
 		return slot;
 	}
 
-	// 0x84AC80 (copy of cg_8822A0 0x8822A0: sub_8822A0; = Confuse c_863C40, copy of b_72EF80 0x72EF80; Boko shared; 097 sub_72EF80, 098 0x726AB0, 099 0x71D000, 100 0x713C80): actor position
-	// for its current key a1+0x60: actor data = state+0x224[S8 a1+0x6A]; start point A = reference
-	// point (kind data+0x100[key]: 1 = state points +0x1D4/0x1E4/0x1F4/0x204 (16.16), 0 = the actor's
-	// target slot S8 a1+0x6B points +0x94/+0xD4/+0x114/+0x154; index data+0x108[key]) plus the
-	// offset (data+0x110/0x114/0x118) rotated by the actor matrix a1+0x2C; end point B likewise
-	// (kind +0x104, index +0x10C, offset +0x11C/0x120/0x124; unknown kind = the rotated first
-	// offset); a1+0x4C/0x50/0x54 = (A * 4096 + (B - A) * t) << 4 with t = S16 data+0x128[key].
 	uint32_t __cdecl db_84AC80(uint32_t a1)
 	{
-		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x2698AB4, 0);            // ecx
+		const uint32_t act = a1;
+		const uint32_t st = U32(0x2698AB4, 0);
 		int32_t aidx = S8(act, 0x6A);
-		int32_t key = S16(act, 0x60);                          // ebx
-		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
-		uint8_t sel = U8(U32(data, 0x108), key);               // bp (movzx)
+		int32_t key = S16(act, 0x60);
+		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
+		uint8_t sel = U8(U32(data, 0x108), key);
 		uint8_t kind = U8(U32(data, 0x100), key);
-		// UNINIT 0x72F1CE: the start point is a stack SVECTOR ([esp+0x14] x, [esp+0x16] y,
-		// [esp+0x18] z) that only the switch cases fill; an unknown kind / index > 3 leaves it
-		// uninitialised (0 here)
 		int16_t ax = 0, ay = 0, az = 0;
 		uint32_t base = 0;
 		bool have = false;
@@ -1796,7 +1584,7 @@ namespace dribble
 		{
 			if (sel <= 3)
 			{
-				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5DC
+				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
 				base = st + (uint32_t)((int32_t)S8(act, 0x6B) << 4) + offs0[sel];
 				have = true;
 			}
@@ -1805,7 +1593,7 @@ namespace dribble
 		{
 			if (sel <= 3)
 			{
-				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5CC
+				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
 				base = st + offs1[sel];
 				have = true;
 			}
@@ -1819,31 +1607,30 @@ namespace dribble
 			az = (int16_t)vz;
 			ax = (int16_t)vx;
 		}
-		// first offset (SVECTOR [esp+0x1C]) rotated by the actor matrix -> IR1..3 ([esp+0x24], shorts)
 		int16_t v[4];
 		int16_t ir[8] = {};
 		v[0] = (int16_t)U16(U32(data, 0x110), key * 2);
 		v[1] = (int16_t)U16(U32(data, 0x114), key * 2);
 		v[2] = (int16_t)U16(U32(data, 0x118), key * 2);
-		v[3] = 0;                                              // (pad, not read by LoadV0)
+		v[3] = 0;
 		x::GTE_SetRotMatrix(act + 0x2C);
 		x::GTE_LoadV0(P(v));
 		x::GTE_MVMVA_RotV0();
 		x::GTE_StoreIR123(P(ir));
 		az = (int16_t)(az + ir[2]);
 		ay = (int16_t)(ay + ir[1]);
-		const int32_t key2 = S16(act, 0x60);                   // ecx
+		const int32_t key2 = S16(act, 0x60);
 		uint8_t kind2 = U8(U32(data, 0x104), key2);
 		uint8_t sel2 = U8(U32(data, 0x10C), key2);
 		ax = (int16_t)(ax + ir[0]);
-		int16_t bx, by, bz;                                    // si, di, bx
+		int16_t bx, by, bz;
 		uint32_t base2 = 0;
 		bool have2 = false;
 		if (kind2 == 0)
 		{
 			if (sel2 <= 3)
 			{
-				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
+				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
 				uint32_t g = U32(0x2698AB4, 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
@@ -1853,7 +1640,7 @@ namespace dribble
 		{
 			if (sel2 <= 3)
 			{
-				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
+				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
 				uint32_t g = U32(0x2698AB4, 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
@@ -1870,13 +1657,10 @@ namespace dribble
 		}
 		else
 		{
-			// quirk 0x72F4EA: an unknown end kind / index > 3 reuses the rotated first offset (the IR
-			// of the first MVMVA, still in [esp+0x24..0x29])
 			bz = ir[2];
 			by = ir[1];
 			bx = ir[0];
 		}
-		// second offset rotated by the actor matrix
 		v[0] = (int16_t)U16(U32(data, 0x11C), key2 * 2);
 		v[1] = (int16_t)U16(U32(data, 0x120), key2 * 2);
 		v[2] = (int16_t)U16(U32(data, 0x124), key2 * 2);
@@ -1896,19 +1680,13 @@ namespace dribble
 		S32(act, 0x50) = shl32(add32(mul32(sub32(by, a), t), shl32(a, 12)), 4);
 		a = az;
 		S32(act, 0x54) = shl32(add32(mul32(sub32(bz, a), t), shl32(a, 12)), 4);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84B770 (copy of cg_882D90 0x882D90: sub_882D90; = Confuse c_864730, copy of a_743100 0x743100, callee 0x881700): a1 = actor/effect object (+0x1D9 s8 variant), a2 = spawn
-	// descriptor: for each of the 4 bytes a2+0x28..0x2B equal to 1, spawns a sub-effect slot
-	// (a_741A70) with id s8 a2+0x2C..0x2F and variant s8 a1+0x1D9.
 	uint32_t __cdecl db_84B770(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t obj = a1;   // edi
-		const uint32_t desc = a2;  // esi
-		// quirk 0x743112..0x743179: args 2/3 are pushed as 32-bit registers of which only the low
-		// 16 bits are set (movsx r16); the high halves are leftover register bits. a_741A70 only
-		// reads their low byte, so the zero-extended 16-bit value is passed here.
+		const uint32_t obj = a1;
+		const uint32_t desc = a2;
 		if (U8(desc, 0x28) == 1)
 		{
 			uint32_t variant = (uint16_t)(int16_t)S8(obj, 0x1D9);
@@ -1933,16 +1711,12 @@ namespace dribble
 			uint32_t id = (uint16_t)(int16_t)S8(desc, 0x2F);
 			db_84A0E0(obj, id, variant);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84B800 (copy of cg_882E20 0x882E20: Effect_ParticleEmitter_EmitSpriteSlots; = Confuse c_8647C0, copy of a_743190 0x743190, callee 0x881700): for each of the 16 director slots (director G_258FB78,
-	// +0x224 slot table, +0x22 u16 skip mask) whose entry has kind (+0x11) 0/1/4 and group (+0x13)
-	// equal to director +0x18: spawns sub-effect slots via db_84A0E0(0, slot, n) - n = 0..count-1
-	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl db_84B800(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2698AB4);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(0x2698AB4);
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1977,11 +1751,9 @@ namespace dribble
 				dir = MEM<uint32_t>(0x2698AB4);
 			}
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84B890 (copy of cg_882EB0 0x882EB0: sub_882EB0; = Confuse c_864850, copy of a_7395E0 0x7395E0; engine; MiniMog sub_7395E0): state: steps the actor system (a_7353B0); when it
-	// reports done, sets the finished flag (+0x26 bit0) and advances the state index
 	uint32_t __cdecl db_84B890(uint32_t a1)
 	{
 		if (db_847500(a1) != 0)
@@ -1990,16 +1762,13 @@ namespace dribble
 			U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) | 1);
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CB00 (copy of cl_878F80 0x878F80: sub_878F80; = Cure's MAG_001_CURE_DrawSprite 0x8D6F20): draws the node's flipbook
-	// +0x4C frame +0x50 at +0x1C (camera-facing, angle +0x54) as a sprite sequence into the module
-	// arena, unless hidden (+0x26 bit 2)
 	uint32_t __cdecl db_84CB00(uint32_t a1)
 	{
 		if ((U8(a1, 0x26) & 4) != 0)
-			return 0; // void
+			return 0;
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
@@ -2008,17 +1777,13 @@ namespace dribble
 		U16(hdr, 0x24) = 0;
 		MEM<uint32_t>(PACKET_CURSOR) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x846850 (MAG_041_sub_846850; = Counter Laser-Eye 0x8738C0 without the stage light ramp):
-	// master state - once no child is alive: the two actor pools are carved from the file arena
-	// cursor [0x2698AB0] (0x870 bytes = 20 particles of 0x6C, 0x8340 bytes = 50 actors of 0x2A0)
-	// and cleared (0x846890), next state
 	uint32_t __cdecl db_846850(uint32_t a1)
 	{
 		if (U8(a1, 0x28) != 0)
-			return 0; // void
+			return 0;
 		uint32_t p = MEM<uint32_t>(0x2698AB0);
 		MEM<uint32_t>(0x2698A90) = p;
 		p += 0x870;
@@ -2027,12 +1792,9 @@ namespace dribble
 		MEM<uint32_t>(0x2698AB0) = p;
 		db_846890();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x846900 (MAG_041_sub_846900): EMITTER task (one per action) - bone-follow anchor and model
-	// bounds, state {0x846990 actor system + dribble, 0x84CEF0 release the master, 0x84CF10 damage,
-	// ret}, sound 0x15CA5A8 at its tick 17
 	uint32_t __cdecl db_846900(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2040,7 +1802,7 @@ namespace dribble
 		states[0] = 0x846990;
 		states[1] = 0x84CEF0;
 		states[2] = 0x84CF10;
-		states[3] = 0x84CF50; // nullsub (ret)
+		states[3] = 0x84CF50;
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -2051,19 +1813,14 @@ namespace dribble
 		return task_end(node, status);
 	}
 
-	// 0x846990 (MAG_041_sub_846990): emitter state 0 - the actor system (0x846A20, actor data
-	// 0x15CD8B0, start tick 15, mode 0x2D, flag 0) through the engine spawner 0x8469D0 and the
-	// dribble spawner task 0x84B8C0 (0xDC B, queue 0x268F298), next state
 	uint32_t __cdecl db_846990(uint32_t a1)
 	{
 		a_73C100(a1, ORIG_ActorSystem, ACTOR_DATA, 0xF, 0x2D, 0);
 		x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Spawner, 0xDC, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CEF0 (MAG_041_sub_84CEF0): emitter state 1 - at tick 116 releases the master (root +0x63
-	// = 0), next state
 	uint32_t __cdecl db_84CEF0(uint32_t a1)
 	{
 		if (U16(a1, 0x24) == 0x74)
@@ -2071,36 +1828,22 @@ namespace dribble
 			U8(U32(a1, 0x10), 0x63) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CF10 (MAG_041_sub_84CF10): emitter state 2 - from tick 116: damage (action result) of
-	// the action's current target, finished, next state
 	uint32_t __cdecl db_84CF10(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		if (S16(node, 0x24) < 0x74)
-			return 0; // void
+			return 0;
 		const uint32_t act = U32(U32(node, 0xC), 4) + (uint32_t)(S8(node, 0x2A) * 20);
 		x::ApplyActionResultToTarget(U32(act, 8) + (uint32_t)(S8(node, 0x2B) * 24));
 		const uint8_t st = U8(node, 0x29);
 		U8(node, 0x26) |= 1;
 		U8(node, 0x29) = (uint8_t)(st + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x847500 (sub_847500; the engine's step of the actor system 0x7353B0 with the key positions
-	// refreshed every tick): state block sys = node +0x34 (-> 0x2698AB4); unless its mode +0x24 is
-	// 2, the point A (+0x114, 16.16) = the bone 0x18 effect position of the entity S16 sys +0x1E,
-	// B (+0x154) = its bone 0x15 position, both lifted by 0x100 in z, the middle (+0xD4) = (A + B)
-	// / 2, C (+0x204) = the bone 0x18 position lifted by 0x100 twice more (z; y = 0); then the
-	// phase +0x20: 0 -> 1; 1 = one tick of the actors (0x84B800 spawns, 0x848EB0 update, 0x848D70
-	// sprite draws, 0x8476F0 model draws), finished once the frame +0x18 reaches +0x1A with no
-	// sprite / model left; 2 = done (returns 1). The live counts +0x14 / +0x16 are added to
-	// 0x2698A9E / 0x2698A8E.
-	// UNINIT 0x84751A..0x84764D: with mode 2 the three positions are never computed: the original
-	// reads its stack words [esp+4..8] as left by earlier code (not reproducible; the port uses 0).
-	// The effect's actor data never sets mode 2.
 	uint32_t __cdecl db_847500(uint32_t a1)
 	{
 		uint32_t done = 0;
@@ -2147,7 +1890,6 @@ namespace dribble
 		case 1:
 			db_84B800();
 			db_848EB0();
-			// 30 fps layer: see mag041_dribble_held.inc
 			FX_HELD(held_note_system(sys);)
 			db_848D70();
 			db_8476F0();
@@ -2169,12 +1911,6 @@ namespace dribble
 		return done;
 	}
 
-	// ====================================================================================
-	// the dribble (module code): the target turned into a ball, bounced by the caster, thrown
-	// ====================================================================================
-
-	// 0x84B920 (sub_84B920): spawner state 0 (task 0x84B8C0 = engine 0x73A380) - from its tick 8
-	// spawns the dribble task 0x84B950 (0xDC B, queue 0x268F298), next state
 	uint32_t __cdecl db_84B920(uint32_t a1)
 	{
 		if (S16(a1, 0x24) >= 8)
@@ -2182,14 +1918,9 @@ namespace dribble
 			x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Dribble, 0xDC, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84B950 (sub_84B950): DRIBBLE task - 11-state table (0x84C220 set-up, 0x84C610 / 0x84C650 /
-	// 0x84C6B0 grab and morph, 0x84C6F0 bounces, 0x84C7A0 throw, 0x84CCE0 give the target back,
-	// 0x84CD20 / 0x84CDE0 walk back, 0x84CE70 end, ret); while +0x26 bit 3 is set the target entity
-	// is placed at the ball position (block 0x267B868: +0x7C position - +0x74 pivot, into the entity
-	// position +0x1C and its matrix translation +0x54) and drawn by 0x84BA60
 	uint32_t __cdecl db_84B950(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2204,7 +1935,7 @@ namespace dribble
 		states[7] = 0x84CD20;
 		states[8] = 0x84CDE0;
 		states[9] = 0x84CE70;
-		states[10] = 0x84CEB0; // nullsub (ret)
+		states[10] = 0x84CEB0;
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 8) != 0)
 		{
@@ -2218,7 +1949,6 @@ namespace dribble
 			const int16_t pz = (int16_t)(MEM<uint16_t>(BLK + 0x80) - MEM<uint16_t>(BLK + 0x78));
 			S16(ent, 0x20) = pz;
 			S32(ent, 0x5C) = pz;
-			// 30 fps layer: see mag041_dribble_held.inc
 			FX_HELD(held_note_ball(node);)
 			db_84BA60(BLK);
 		}
@@ -2227,12 +1957,6 @@ namespace dribble
 		return task_end(node, status);
 	}
 
-	// 0x84BA60 (sub_84BA60; = ChocoBocle 0x716CD0 with the entity index at +0xB0): draws the target
-	// entity (block a1 = 0x267B868): copies the entity's 0x20-byte world matrix (+0x40) to a1
-	// +0x20, builds its bone matrices, composes camera x world into a1 +0x40 (rotation) / +0x54
-	// (translation), draws the entity shadow (sub_5088A0 into OT +0x4040, frame arena cursor a1
-	// +0x6C), then the body (entity +0x64) and the weapon (entity +0x78 -> +4) with the ball
-	// renderer 0x84BB70, and rebuilds the bone matrices
 	uint32_t __cdecl db_84BA60(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)((int32_t)S16(a1, 0xB0) * 0x9C);
@@ -2264,44 +1988,32 @@ namespace dribble
 		if (wpn != 0)
 			db_84BB70(U32(wpn, 4), MEM<uint32_t>(0x1D8E04C) + 0x44, 4, a1);
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84BB70 (sub_84BB70): ball renderer of a battle model (a1 = geometry {+0 bone matrices -
-	// 0x10, +4 object table}, a2 = OT, a3 = depth shift, a4 = block 0x267B868 {+0 ball rotation,
-	// +0x40 camera matrix, +0x64 -> {+4 vertex scratch}, +0x68 entity, +0x6C packet cursor pointer,
-	// +0x74 pivot, +0x9C / +0x9E / +0xA0 ball angles, +0xA8 morph, +0xAA..+0xAE ball radii}): per
-	// visible object (entity +0x7C mask) every vertex is put in world space by its bone (light
-	// matrix + background vector), taken relative to the pivot, and morphed between itself (weight
-	// 0x1000 - morph) and its direction scaled by the radii (weight morph) through the GTE
-	// interpolation (0x45E0B0 / 0x45E9D0 / 0x45EBF0), turned by the ball rotation (colour matrix,
-	// ColorV0) and put back at the pivot (20-byte scratch records {x, y, z, pad, sxy, sz, -});
-	// projected (RTPS), then back-face-culled textured triangles (POLY_FT3, 7 words) and quads
-	// (POLY_FT4, 9 words) tinted with the entity colour (+0x28), inserted with
-	// SSIGPU_InsertPrimDepthKeys
 	uint32_t __cdecl db_84BB70(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t blk = a4;
-		const uint32_t verts = U32(U32(blk, 0x64), 4);  // vertex scratch (ebx)
+		const uint32_t verts = U32(U32(blk, 0x64), 4);
 		const uint32_t ent = U32(blk, 0x68);
-		uint32_t cursor = U32(U32(blk, 0x6C), 0);       // packet cursor (local +0x1C)
-		const uint32_t bones = U32(a1, 0) + 0x10;       // local +0x30
-		uint32_t tab = U32(a1, 4);                      // object table {count, offsets[count]}
-		const int32_t count = S32(tab, 0);              // local +0x2C
-		const uint32_t w = x::Field_Alloc(0xA8);        // scratch block (ebp)
+		uint32_t cursor = U32(U32(blk, 0x6C), 0);
+		const uint32_t bones = U32(a1, 0) + 0x10;
+		uint32_t tab = U32(a1, 4);
+		const int32_t count = S32(tab, 0);
+		const uint32_t w = x::Field_Alloc(0xA8);
 		tab += 4;
-		U16(w, 0x9E) = U16(blk, 0xA8);                  // morph weight of the ball
+		U16(w, 0x9E) = U16(blk, 0xA8);
 		U16(w, 0x9C) = (uint16_t)(0x1000 - U16(blk, 0xA8));
-		U32(w, 0x5C) = U32(blk, 0x74);                  // pivot x, y
-		U32(w, 0x60) = U32(blk, 0x78);                  // pivot z (+ pad)
-		U16(w, 0xA0) = U16(blk, 0xAA);                  // radii
+		U32(w, 0x5C) = U32(blk, 0x74);
+		U32(w, 0x60) = U32(blk, 0x78);
+		U16(w, 0xA0) = U16(blk, 0xAA);
 		U16(w, 0xA4) = U16(blk, 0xAE);
-		U32(w, 0x98) = U32(ent, 0x7C);                  // visible objects
+		U32(w, 0x98) = U32(ent, 0x7C);
 		const uint32_t rgb = U32(ent, 0x28) & 0xFFFFFF;
-		ff8fx::copy<(0x20)>((void *)w, (const void *)blk);     // rep movsd: the ball rotation
+		ff8fx::copy<(0x20)>((void *)w, (const void *)blk);
 		U16(w, 0xA2) = U16(blk, 0xAC);
-		U32(w, 0x90) = rgb | 0x24000000;                // POLY_FT3 code + colour
-		U32(w, 0x94) = rgb | 0x2C000000;                // POLY_FT4 code + colour
+		U32(w, 0x90) = rgb | 0x24000000;
+		U32(w, 0x94) = rgb | 0x2C000000;
 		if (U16(blk, 0x9C) != 0)
 			x::sub_8DD7E0(w, (uint32_t)(int32_t)S16(blk, 0x9C));
 		if (U16(blk, 0xA0) != 0)
@@ -2317,7 +2029,6 @@ namespace dribble
 			tab += 4;
 			if (((U32(w, 0x98) >> (i & 31)) & 1) == 0)
 				continue;
-			// pass 1: world vertex, relative to the pivot, morphed to the ball, turned, back
 			const uint32_t groups = obj + 2;
 			uint32_t p = groups;
 			uint32_t wv = verts;
@@ -2370,7 +2081,6 @@ namespace dribble
 					wv += 0x14;
 				}
 			}
-			// pass 2: project every vertex (sxy -> +8, sz -> +0xC)
 			uint32_t q = groups;
 			uint32_t vp = verts;
 			for (int32_t g = (int32_t)S16(obj, 0); g > 0; g--)
@@ -2394,13 +2104,11 @@ namespace dribble
 				}
 				q = next;
 			}
-			// faces (4-aligned): u16 tri count, u16 quad count, 8 bytes, then the records
 			uint32_t f = (q + 3) & 0xFFFFFFFCu;
 			const int32_t ntri = (int32_t)S16(f, 0);
 			const int32_t nquad = (int32_t)S16(f, 2);
 			f += 0xC;
 			uint32_t pk = cursor;
-			// triangles: 16-byte records {u16 i0,i1,i2, uv2, u32 uv0+clut, u32 uv1+tpage}
 			for (int32_t k = ntri; k > 0; k--, f += 0x10)
 			{
 				const uint32_t i2 = U16(f, 4) & 0xFFF;
@@ -2434,7 +2142,6 @@ namespace dribble
 				const int32_t z1 = S32(verts + U32(w, 0x84) * 20, 0xC);
 				const int32_t z0 = S32(verts + U32(w, 0x80) * 20, 0xC);
 				const int32_t sum = add32(add32(z1, z0), z2);
-				// sum / 3 (magic 0x55555556: high dword + its sign bit)
 				int32_t hq = (int32_t)(((int64_t)sum * 0x55555556LL) >> 32);
 				hq = add32(hq, (int32_t)((uint32_t)hq >> 31));
 				const int32_t key = hq >> (a3 & 31);
@@ -2442,7 +2149,6 @@ namespace dribble
 				x::SSIGPU_InsertPrimDepthKeys(a2 + (uint32_t)key * 4, pk, (uint32_t)z0, (uint32_t)z1, (uint32_t)z2, 0);
 				pk += 0x20;
 			}
-			// quads: 20-byte records {u16 i0,i1,i2,i3, u32 uv0+clut, u32 uv1+tpage, u16 uv2, u16 uv3}
 			if (nquad > 0)
 			{
 				f += 4;
@@ -2497,14 +2203,9 @@ namespace dribble
 		}
 		U32(U32(blk, 0x6C), 0) = cursor;
 		x::Field_Free(0xA8);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C220 (sub_84C220): dribble state 0 - the ball block 0x267B868 set up on the target entity
-	// (0x84C2D0), the entity's own draw hidden (entity +0 bit 2), the custom draw enabled (+0x26
-	// bit 3), the entity position +0x1C / +0x20 kept (0x267B8F4 / 0x267B8F8); one cast in 256
-	// (rand low byte 0) tilts the ball (flag +0xB4 = 1, angle +0x9E = 0x800); pivot, radii and ball
-	// position of the first tick, next state
 	uint32_t __cdecl db_84C220(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2526,12 +2227,9 @@ namespace dribble
 		db_84C350(node, BLK);
 		db_84C460(node, BLK);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C2D0 (sub_84C2D0): clears the ball block a1 (0xB8 bytes) and sets it up: +0x60 = a2,
-	// +0x64 = geometry descriptor a3 (+4 = vertex scratch a4, +0x14..+0x24 defaults), +0x68 =
-	// entity a5, +0x6C / +0x70 = the frame arena cursor pointer 0x1D8E054, +0xB0 = slot a6
 	uint32_t __cdecl db_84C2D0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
 		x::MAG_007_sub_8DCC00(a1, 0xB8);
@@ -2554,31 +2252,25 @@ namespace dribble
 		return a1;
 	}
 
-	// 0x84C350 (sub_84C350): ball radii of the node's tick (<= 56) from the table 0x15CDC80 (6-byte
-	// records): +0xAC = y radius, +0xAA = +0xAE = 0x200 - y radius
 	uint32_t __cdecl db_84C350(uint32_t a1, uint32_t a2)
 	{
 		const int16_t t = S16(a1, 0x24);
 		if (t > 0x38)
-			return 0; // void
+			return 0;
 		const uint16_t ry = MEM<uint16_t>(RADIUS_TABLE + (uint32_t)((int32_t)t * 6));
 		const uint16_t rxz = (uint16_t)(0x200 - ry);
 		U16(a2, 0xAC) = ry;
 		U16(a2, 0xAE) = rxz;
 		U16(a2, 0xAA) = rxz;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C3A0 (sub_84C3A0): pivot of the target entity (slot a1 +0x2D): its effect position 0xF0
-	// (0xF1 unless the block flag +0xB4 is 1) with the entity at the origin and an identity
-	// rotation, minus the entity position, into the block a2 +0x74; the entity's position and matrix
-	// are put back
 	uint32_t __cdecl db_84C3A0(uint32_t a1, uint32_t a2)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		const uint32_t save1c = U32(ent, 0x1C);
 		uint32_t mtx[8];
-		ff8fx::copy<(0x20)>(mtx, (const void *)(ent + 0x40)); // rep movsd
+		ff8fx::copy<(0x20)>(mtx, (const void *)(ent + 0x40));
 		const uint32_t save20 = U32(ent, 0x20);
 		U16(ent, 0x1C) = 0;
 		U16(ent, 0x1E) = 0;
@@ -2589,23 +2281,16 @@ namespace dribble
 		U16(pv, 0) = (uint16_t)(U16(pv, 0) - U16(ent, 0x1C));
 		U16(a2, 0x76) = (uint16_t)(U16(a2, 0x76) - U16(ent, 0x1E));
 		U16(a2, 0x78) = (uint16_t)(U16(a2, 0x78) - U16(ent, 0x20));
-		ff8fx::copy<(0x20)>((void *)(ent + 0x40), mtx); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(ent + 0x40), mtx);
 		U32(ent, 0x1C) = save1c;
 		U32(ent, 0x20) = save20;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C460 (sub_84C460): ball position (block a2): until the node's tick 30 the ball rotation
-	// (+0..+0x1F) is built (0x8DDB90) from the caster's direction bone 0x18 -> bone 0x15
-	// (normalised, up = z), later it is the identity; the ball position +0x7C = the caster's bone
-	// 0x18 effect position + (0, y, 0) turned by that rotation and the ball angles (+0xA0 z, +0x9C
-	// x, +0x9E y), y = pivot y + 0x400 blended to the y radius +0xAC by the morph +0xA8
 	uint32_t __cdecl db_84C460(uint32_t a1, uint32_t a2)
 	{
 		const uint32_t caster = 0x1D972C0 + (uint32_t)U8(U32(a1, 0xC), 0) * 0x9C;
 		const uint32_t blk = a2;
-		// stack locals of the original: +0x10 offset vector, +0x18 direction, +0x20 / +0x28 bone
-		// positions, +0x30 up vector, +0x38 rotation copy
 		alignas(4) uint8_t loc[0x58];
 		ff8fx::fill<(sizeof(loc))>(loc, 0);
 		const uint32_t L = P(loc);
@@ -2624,7 +2309,7 @@ namespace dribble
 		}
 		else
 			x::MAG_022_sub_8DD770(blk);
-		ff8fx::copy<(0x20)>((void *)(L + 0x38), (const void *)blk); // rep movsd
+		ff8fx::copy<(0x20)>((void *)(L + 0x38), (const void *)blk);
 		const uint32_t pos = blk + 0x7C;
 		x::GetEffectSpawnPosition(caster, 0x18, 0, pos);
 		const uint16_t base = (uint16_t)(U16(blk, 0x76) + 0x400);
@@ -2642,10 +2327,9 @@ namespace dribble
 		U16(pos, 0) = (uint16_t)(U16(pos, 0) + U16(L, 0x10));
 		U16(blk, 0x7E) = (uint16_t)(U16(blk, 0x7E) + U16(L, 0x12));
 		U16(blk, 0x80) = (uint16_t)(U16(blk, 0x80) + U16(L, 0x14));
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C610 (sub_84C610): dribble state 1 - pivot, radii, ball position; from tick 19 next state
 	uint32_t __cdecl db_84C610(uint32_t a1)
 	{
 		db_84C3A0(a1, BLK);
@@ -2653,11 +2337,9 @@ namespace dribble
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		db_84C350(a1, BLK);
 		db_84C460(a1, BLK);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C650 (sub_84C650): dribble state 2 - the morph +0xA8 grows by 0x200 a tick; at 0x1000 next
-	// state; pivot, radii, ball position
 	uint32_t __cdecl db_84C650(uint32_t a1)
 	{
 		db_84C3A0(a1, BLK);
@@ -2670,22 +2352,18 @@ namespace dribble
 		}
 		db_84C350(a1, BLK);
 		db_84C460(a1, BLK);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C6B0 (sub_84C6B0): dribble state 3 - pivot, radii, ball position, next state
 	uint32_t __cdecl db_84C6B0(uint32_t a1)
 	{
 		db_84C3A0(a1, BLK);
 		db_84C350(a1, BLK);
 		db_84C460(a1, BLK);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C6F0 (sub_84C6F0): dribble state 4 - pivot; from tick 51 the throw: the target's chain
-	// transformation 6, velocity (sin, -0x200, cos of the target facing +0xE) * 128 / 4096 into
-	// 0x267B8FC / 0x267B8FE / 0x267B900, flight counter 0x267B91A = 0, next state; radii, position
 	uint32_t __cdecl db_84C6F0(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
@@ -2704,15 +2382,9 @@ namespace dribble
 		}
 		db_84C350(a1, BLK);
 		db_84C460(a1, BLK);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C7A0 (sub_84C7A0): dribble state 5 - the flight: pivot; for 16 ticks the ball spins
-	// (+0x9C = -0x100 a tick) and, when tilted, straightens (+0x9E = (16 - t) * 128); the morph
-	// shrinks by 0x100 a tick (to 0); position += velocity, y velocity += 0x30 (gravity); once
-	// falling at the pivot height: the target's chain transformation 6, the landing dust spawner
-	// 0x84C8E0 (queue 0x268F298, at the target position, y 0), sound 0x15CA5AC, next state;
-	// flight counter + 1, radii
 	uint32_t __cdecl db_84C7A0(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
@@ -2749,11 +2421,9 @@ namespace dribble
 		}
 		MEM<uint16_t>(BLK + 0xB2) = (uint16_t)(MEM<uint16_t>(BLK + 0xB2) + 1);
 		db_84C350(a1, BLK);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CCE0 (sub_84CCE0): dribble state 6 - custom draw off, the target's own draw back (entity
-	// +0 bit 2 cleared), its y = its ground y +0x24, next state
 	uint32_t __cdecl db_84CCE0(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
@@ -2761,13 +2431,9 @@ namespace dribble
 		U16(ent, 0) &= 0xFFFB;
 		U16(ent, 0x1E) = U16(ent, 0x24);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CD20 (sub_84CD20): dribble state 7 - keeps the target's flags (0x267B90C) and sets its bit
-	// 12; unless its animation state (entity +0x74 -> +0) is 6: chain transformation 0x1A, turned
-	// round (facing +0xE - 0x800), walk-back velocity = (kept position - position) / 10 over 10
-	// ticks, next state
 	uint32_t __cdecl db_84CD20(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
@@ -2775,7 +2441,7 @@ namespace dribble
 		MEM<uint32_t>(0x267B90C) = fl;
 		U16(ent, 0) = (uint16_t)(fl | 0x1000);
 		if (U8(U32(ent, 0x74), 0) == 6)
-			return 0; // void
+			return 0;
 		gx::QueueChainTransformation(ent, 0x1A);
 		const uint16_t facing = (uint16_t)((U16(ent, 0xE) - 0x800) & 0xFFF);
 		MEM<uint16_t>(BLK + 0xB2) = 0xA;
@@ -2783,11 +2449,9 @@ namespace dribble
 		MEM<uint16_t>(BLK + 0x94) = (uint16_t)(sub32(MEM<int16_t>(0x267B8F4), S16(ent, 0x1C)) / 10);
 		MEM<uint16_t>(BLK + 0x98) = (uint16_t)(sub32(MEM<int16_t>(0x267B8F8), S16(ent, 0x20)) / 10);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CDE0 (sub_84CDE0): dribble state 8 - the target walks back by the velocity; after 10 ticks
-	// its chain transformation (entity +0x74 -> +2), the kept position, turned round, next state
 	uint32_t __cdecl db_84CDE0(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
@@ -2798,16 +2462,15 @@ namespace dribble
 		const uint16_t t = (uint16_t)(MEM<uint16_t>(BLK + 0xB2) - 1);
 		MEM<uint16_t>(BLK + 0xB2) = t;
 		if ((int16_t)t > 0)
-			return 0; // void
+			return 0;
 		gx::QueueChainTransformation(ent, U8(U32(ent, 0x74), 2));
 		U32(ent, 0x1C) = MEM<uint32_t>(0x267B8F4);
 		U32(ent, 0x20) = MEM<uint32_t>(0x267B8F8);
 		U16(ent, 0xE) = (uint16_t)((U16(ent, 0xE) - 0x800) & 0xFFF);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CE70 (sub_84CE70): dribble state 9 - finished; the target's flag bit 12 as kept, next state
 	uint32_t __cdecl db_84CE70(uint32_t a1)
 	{
 		const uint32_t ent = 0x1D972C0 + (uint32_t)U8(a1, 0x2D) * 0x9C;
@@ -2815,14 +2478,9 @@ namespace dribble
 		const uint16_t d = (uint16_t)((U16(ent, 0) ^ MEM<uint16_t>(0x267B90C)) & 0x1000);
 		U16(ent, 0) ^= d;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84C940 (sub_84C940): dust spawner state 0 (task 0x84C8E0 = engine 0x73A380) - spawns a dust
-	// task 0x84CA70 (0xDC B, queue 0x268F298) of 8 puffs at the spawner position +0x1C: puff i
-	// at angle i * 0x200 (+ 0x100 on the spawner's second tick), the task position moved by
-	// (rand & 0x1FF) along it, velocity (rand & 0x7FF) + 0x400 along it, y velocity -0x80 -
-	// (rand & 0x3FF); from its tick 1 next state
 	uint32_t __cdecl db_84C940(uint32_t a1)
 	{
 		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(Q_TASKS, ORIG_Dust, 0xDC, a1);
@@ -2853,24 +2511,21 @@ namespace dribble
 		}
 		if (S16(a1, 0x24) >= 1)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CA70 (sub_84CA70): DUST task - state {0x84CB70 set-up, 0x84CB90 motion, ret}, then every
-	// puff (+0x58 + 8 i) drawn as the node's flipbook at its position (0x84CB00)
 	uint32_t __cdecl db_84CA70(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
 		states[0] = 0x84CB70;
 		states[1] = 0x84CB90;
-		states[2] = 0x84CCA0; // nullsub (ret)
+		states[2] = 0x84CCA0;
 		callp(states[S8(node, 0x29)], node);
 		for (int32_t i = 0; i < S16(node, 0xD8); i++)
 		{
 			U32(node, 0x1C) = U32(node, 0x58 + 8 * i);
 			U32(node, 0x20) = U32(node, 0x5C + 8 * i);
-			// 30 fps layer: see mag041_dribble_held.inc
 			FX_HELD(held_note_dust(node, i);)
 			db_84CB00(node);
 		}
@@ -2879,19 +2534,15 @@ namespace dribble
 		return task_end(node, status);
 	}
 
-	// 0x84CB70 (sub_84CB70): dust state 0 - flipbook 0x15CA5B0, last frame 15, next state
 	uint32_t __cdecl db_84CB70(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
 		U32(a1, 0x4C) = DUST_FLIPBOOK;
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x84CB90 (sub_84CB90): dust state 1 - every puff: velocity -= velocity * 768 / 4096, position
-	// += velocity / 16; next flipbook frame (0x84CC70 = engine 0x743C20); after the last one
-	// finished, next state
 	uint32_t __cdecl db_84CB90(uint32_t a1)
 	{
 		for (int32_t i = 0; i < S16(a1, 0xD8); i++)
@@ -2910,12 +2561,10 @@ namespace dribble
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-
 	struct ModPort { uint32_t addr; void *port; const char *name; };
-	// the module's functions served by the engine's ports (identical code up to module addresses)
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x846830, (void *)a_73A0D0, "041 MAG_041_sub_846830" },
 		{ 0x846840, (void *)a_73A0D0, "041 MAG_041_sub_846840" },
@@ -2965,7 +2614,6 @@ namespace dribble
 		{ 0x84D000, (void *)a_73A6D0, "041 nullsub_1598" },
 		{ 0, nullptr, nullptr }
 	};
-	// the module's own ports
 	static const ModPort PORTS[] = {
 		{ 0x8466F0, (void *)db_8466F0, "041 db_8466F0" },
 		{ 0x846850, (void *)db_846850, "041 db_846850" },
@@ -3040,7 +2688,6 @@ namespace dribble
 			act::register_module_port(41, p->addr, p->port, p->name);
 		for (const act::dribble::ModPort *p = act::dribble::PORTS; p->addr; p++)
 			act::register_module_port(41, p->addr, p->port, p->name);
-		// 30 fps layer: see mag041_dribble_held.inc
 		FX_HELD(register_mag041_held();)
 	}
 }

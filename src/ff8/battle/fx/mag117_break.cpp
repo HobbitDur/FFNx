@@ -14,37 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 117: Break (spell, MAG_117_*).
-//
-// Structure (setup MAG_117_BREAK 0x6C16A0 -> _Init 0x6C16D0, file loader 0x6C16B0 = the texture
-// file named at 0x1298C5C; the setup starts camera animation 0x1297C78 and queues the TIM):
-//   RootTask (0x6C1740) - alternates the packet arena (magic buffer + 0x5EF0 / + 0x1DEF0); on
-//     counter 1 of a 20-tick cycle sets up the pools and fills the stone dither table (256 rand()
-//     words at magic buffer + 0x5CF0) the first time, and starts the target task of the next action
-//     on its first target, unless a target task still runs on that target (the cycle then
-//     restarts); every tick the effect camera matrix 0x25216B8 (MAG_069_sub_67AAE0); runs the
-//     target, debris and spark queues, ends when all three are empty.
-//   Target (0x6C1950, MAG_117_BREAK_MainVisual_Petrify) - node 0x1570, one per action (anchor =
-//     effect bone 0xF1 of the target, y = the target's height): the stone-shell prim-model layout
-//     0x128E2D0 (0x1554-byte layout) played every tick with the callback PartCallback (0x6C23C0),
-//     scaled by (target size / 4 + 0x400); objects 0..27 are cut at a height that follows the
-//     object (only the part below it is drawn) until the layout's frame 50. Over 20..83 the target
-//     is hidden (entity bit 3 on its +0x8C ring, bit 2 over 24..83) and drawn by the effect
-//     (0x6C1C90): its shadow, then its models with every polygon whose dither word (per polygon, from
-//     the table) is at most the stone level re-textured with the stone CLUT 0x3D54 / tpage 0xB8
-//     (level rising over 24..32, full 0x8000, falling over 72..83). Sound at 0; debris (one every
-//     other tick over 50..79) and sparks (one per tick over 50..69); the status at 78; ends at 84.
-//   Debris (0x6C3440) - node 0x30: prim model 0x1297928 falling from above the target (gravity 10,
-//     bounces on y = 0 with a quarter of its speed), spinning; 30 ticks.
-//   Spark (0x6C3390) - node 0x28: sprite sequence 0x1297B00 moving out from the anchor and slowing
-//     down (acceleration -1/16 of the start velocity); 14 frames.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2521650..0x25216D8 (texture file, magic buffer base, context, root pool,
-// packet cursor 0x2521674, spark / debris / target / root queues, effect camera matrix
-// 0x25216B8). The pools (sparks + 0, debris + 0x500, targets + 0xAA0), the morph vertex buffer
-// (+0x4AF0), the cut model's projected vertices (+0x4CF0), the dither table (+0x5CF0) and the packet
-// arenas are in the magic buffer. The target draws into the frame arena (battle_texture_data_ptr
-// 0x1D8E054) with the battle's bone workspace (0x1D98B3C) as its vertex buffer.
+// Effect 117: Break
 
 #include "mag_common.h"
 
@@ -55,45 +25,40 @@ namespace break117
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2521654); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2521654); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2521658); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521674); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521678; }          // pool: magic buffer, 0x20 x 0x28
-	inline TaskQueue *QDebris() { return (TaskQueue *)0x2521688; }          // pool: + 0x500, 0x1E x 0x30
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521698; }         // pool: + 0xAA0, 3 x 0x1570
-	inline Mat4x3 *EffectCamera() { return (Mat4x3 *)0x25216B8; }          // camera composed with the effect frame
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // target model vertex buffer
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x2521678; }
+	inline TaskQueue *QDebris() { return (TaskQueue *)0x2521688; }
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521698; }
+	inline Mat4x3 *EffectCamera() { return (Mat4x3 *)0x25216B8; }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6C1740;
 	static const uint32_t ORIG_TargetTask = 0x6C1950;
 	static const uint32_t ORIG_SparkTask = 0x6C3390;
 	static const uint32_t ORIG_DebrisTask = 0x6C3440;
-	static const uint32_t MODEL_Shell = 0x128E2D0;       // prim-model layout data (0x1554-byte layout)
+	static const uint32_t MODEL_Shell = 0x128E2D0;
 	static const uint32_t MODEL_Debris = 0x1297928;
 	static const uint32_t SEQ_Spark = 0x1297B00;
 	static const void *const SOUND_Break = (const void *)0x1298C58;
 	static const uint32_t STONE_TPage = 0xB8, STONE_Clut = 0x3D54;
-	static const uint32_t BUF_Morph = 0x4AF0, BUF_Proj = 0x4CF0, BUF_Dither = 0x5CF0; // magic buffer offsets
+	static const uint32_t BUF_Morph = 0x4AF0, BUF_Proj = 0x4CF0, BUF_Dither = 0x5CF0;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); }  // MAG_117_sub_701430 (effect library)
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701430)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }   // sub_56C220: a = a * b (3x3)
-	// sub_5088A0: an entity's ground shadow (returns the packet cursor)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(uint32_t, void *, int32_t, int32_t, int32_t, int32_t)>(0x45C870)(ot, prim, a, b, c, d); }
-	// software GTE
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0: V0 = 3 x u16
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
@@ -101,62 +66,58 @@ namespace break117
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }    // GTE_ReadOTZ (dword)
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..19, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0x1570 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E action index
-		int16_t pos[4];    // +0x10 anchor x, (target height), z, w (GetEffectSpawnPosition bone 0xF1)
-		uint8_t *entity;   // +0x18 target entity
-		uint8_t layout[0x1554]; // +0x1C prim-model layout (prim::Layout: data, frame, state)
+		int16_t counter;
+		int16_t action;
+		int16_t pos[4];
+		uint8_t *entity;
+		uint8_t layout[0x1554];
 	};
-	struct DebrisNode // pool of 0x1E nodes of 0x30 bytes
+	struct DebrisNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..29
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t vel[3];    // +0x18 (y += 10 per tick)
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t rot[3];    // +0x20
+		int16_t rot[3];
 		int16_t pad26;
-		int16_t spin[3];   // +0x28 rotation step
+		int16_t spin[3];
 		int16_t pad2E;
 	};
-	struct SparkNode // pool of 0x20 nodes of 0x28 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t frame;     // +0x0C sequence frame 0..13
+		int16_t frame;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t vel[3];    // +0x18
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t acc[3];    // +0x20 velocity step
+		int16_t acc[3];
 		int16_t pad26;
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 anchor x, y, z, w
-		int32_t scale[3];  // +0x08 4.12, applied to the record offsets and the matrix
-		int32_t scaled;    // +0x14 scale present (1)
-		uint32_t morph;    // +0x18 blended vertex frames
+		int16_t pos[4];
+		int32_t scale[3];
+		int32_t scaled;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x1570 && sizeof(DebrisNode) == 0x30
@@ -165,8 +126,6 @@ namespace break117
 
 	template<typename T> static inline T &F(uint8_t *s, uint32_t off) { return *(T *)(s + off); }
 
-	// the stone level of the target draw over its 60 ticks (e = counter - 24): 0 -> 0x8000 over
-	// 0..8 (/ 9), 0x8000, then down to 0 over 48..59 (/ 12)
 	static uint32_t StoneLevel(uint32_t e)
 	{
 		if (e < 9) return (uint32_t)(((uint64_t)(e << 15) * 0x38E38E39u) >> 32) >> 1;
@@ -174,18 +133,6 @@ namespace break117
 		return 0x8000;
 	}
 
-	// ------------------------------------------------------------------
-	// Stone target (0x6C1C90 -> 0x6C1DC0 -> 0x6C22E0 / 0x6C1F20): the target's models drawn by the
-	// effect, polygons re-textured with the stone texture by a dither threshold
-	// ------------------------------------------------------------------
-	// Work block (Field_Alloc 0x88): +0x00 camera x entity matrix, then S = +0x20:
-	//   S+0x00 polygon cursor, +0x04 vertex buffer, +0x08 triangle / quad counts (6 words),
-	//   +0x14 clip rectangle (x0, y0, x1, y1), +0x1C colour, +0x20 object mask,
-	//   +0x24..+0x43 four vertices (sx, sy, otz, clip flags), +0x44 NCLIP, +0x4C OTZ,
-	//   +0x58 stone level, +0x5A dither index (byte, one per polygon), +0x5C two words never read
-	//   (0, 0 / 0x100, 0x100), +0x64 stone tpage, +0x66 stone CLUT.
-
-	// sub_6C22E0: one bone group of vertices, projected, clip-flagged against the rectangle (x 8)
 	static void ProjectVertices(uint8_t **objp, uint8_t **outp, uint8_t *s)
 	{
 		uint8_t *p = *objp;
@@ -232,8 +179,6 @@ namespace break117
 		F<uint32_t>(s, off + 4) = *(const uint32_t *)(v + 4);
 	}
 
-	// the polygon's dither word against the stone level: stone CLUT / tpage, or its own texture
-	// (tpage bit 9 cleared)
 	static inline void StoneTexture(uint8_t *s, uint8_t *pk)
 	{
 		const uint16_t dither = *(const uint16_t *)(TexBase() + BUF_Dither + (uint32_t)s[0x5A] * 2);
@@ -245,7 +190,6 @@ namespace break117
 		}
 	}
 
-	// sub_6C1F20: the object's textured triangles and quads
 	static uint32_t StonePolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -334,7 +278,6 @@ namespace break117
 		return (uint32_t)pk;
 	}
 
-	// sub_6C1DC0: every object of a model the mask shows (bone groups of vertices, then polygons)
 	static uint32_t DrawModelObjects(const uint8_t *model, uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint8_t *table = *(uint8_t *const *)(model + 4);
@@ -372,7 +315,6 @@ namespace break117
 		return cursor;
 	}
 
-	// sub_6C1C90: shadow, then the body (+0x64) and the second model (+0x78) of the target
 	static void DrawStoneTarget(uint8_t *entity, int32_t level, const uint32_t *unused, uint16_t tpage, uint16_t clut)
 	{
 		uint8_t *c = (uint8_t *)FieldAlloc(0x88);
@@ -405,16 +347,6 @@ namespace break117
 		FieldFree(0x88);
 	}
 
-	// ------------------------------------------------------------------
-	// Cut prim model (0x6C27C0, 0x6C2880 -> 0x6C28C0 / 0x6C2E00): only the part of the object at or
-	// below the cut height y (model space) is drawn; polygons crossing it are clipped there
-	// (0x6C2D20 / 0x6C3260). Header: +0 model, +4 vertices, +0x1C flags, +0x20 list cursor,
-	// +0x24 NCLIP / OTZ, +0x2C cut height; the clip lists run past the 0x58-byte header:
-	// +0x30 kept vertices, +0x90 cut-away vertices (0x18 bytes each: model vertex, screen xy,
-	// z + flags, uv, colour), +0x48.. / +0x60.. / +0x78.. the edge points.
-	// ------------------------------------------------------------------
-	// MAG_117_sub_6C27C0: every vertex projected (sx, sy, z, clip flags, side of the cut: 1 at or
-	// below, 2 above)
 	static void ProjectCut(const uint8_t *v, uint8_t *out, int32_t n, int32_t cut)
 	{
 		if (n == 0) return;
@@ -442,8 +374,6 @@ namespace break117
 		} while (--left != 0);
 	}
 
-	// sub_6C2D20 / sub_6C3260: the point of edge a -> b at the cut height (x, z, uv and, Gouraud,
-	// the colour interpolated), projected
 	static void CutEdge(const uint8_t *a, const uint8_t *b, uint8_t *out, int32_t cut, bool gouraud)
 	{
 		const int32_t dy = (int32_t)*(const int16_t *)(b + 2) - *(const int16_t *)(a + 2);
@@ -472,7 +402,6 @@ namespace break117
 		GteReadSXY2(out + 8);
 	}
 
-	// one vertex of a crossing polygon into the kept (+0x30) or cut-away (+0x90) list
 	static inline void ListVertex(uint8_t *&dst, const uint8_t *verts, uint16_t index, const uint8_t *proj, uint16_t uv)
 	{
 		*(uint32_t *)dst = *(const uint32_t *)(verts + (uint32_t)index * 4);
@@ -485,8 +414,6 @@ namespace break117
 		*(uint16_t *)(dst + 0x10) = uv;
 	}
 
-	// the triangle's three vertices: its side flags, back-face test and depth (shared by both lists);
-	// returns the side class (1 kept, 3 crossing), 0 = not drawn
 	static int TriangleSetup(uint8_t *h, const uint8_t *p0, const uint8_t *p1, const uint8_t *p2)
 	{
 		const uint8_t a = p0[6], b = p1[6], c = p2[6];
@@ -505,7 +432,6 @@ namespace break117
 
 	static inline uint32_t Bucket(uint8_t *h, uint32_t ot, int32_t shift) { return ot + (uint32_t)(*(const int32_t *)(h + 0x24) >> shift) * 4; }
 
-	// sub_6C28C0: flat textured triangles (0x14-byte records), depth-keyed
 	static uint32_t CutTrianglesFT(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor, const uint8_t *proj)
 	{
 		uint8_t *rec = *(uint8_t **)(h + 0x20);
@@ -538,7 +464,6 @@ namespace break117
 				GteReadOTZWord(h + 0x24);
 				if (A == h + 0x48)
 				{
-					// one vertex kept: a triangle (it, its two edge points)
 					CutEdge(h + 0x30, h + 0x90, h + 0x48, *(const int32_t *)(h + 0x2C), false);
 					CutEdge(h + 0x30, h + 0xA8, h + 0x60, *(const int32_t *)(h + 0x2C), false);
 					*(uint32_t *)pk = 0x7000000;
@@ -554,8 +479,6 @@ namespace break117
 				}
 				else
 				{
-					// two vertices kept: a quad (them, their edge points); the original tags it with 7 words
-					// (0x6C2BC3) although the packet is a 10-word POLY_FT4 (the cursor steps 0x28)
 					CutEdge(h + 0x30, h + 0x90, h + 0x60, *(const int32_t *)(h + 0x2C), false);
 					CutEdge(h + 0x48, h + 0x90, h + 0x78, *(const int32_t *)(h + 0x2C), false);
 					*(uint32_t *)pk = 0x7000000;
@@ -600,7 +523,6 @@ namespace break117
 		return (uint32_t)pk;
 	}
 
-	// sub_6C2E00: Gouraud textured triangles (0x1C-byte records)
 	static uint32_t CutTrianglesGT(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor, const uint8_t *proj)
 	{
 		uint8_t *rec = *(uint8_t **)(h + 0x20);
@@ -700,7 +622,6 @@ namespace break117
 		return (uint32_t)pk;
 	}
 
-	// MAG_117_sub_6C2880: list 0 (flat textured triangles), 3 empty lists, Gouraud textured triangles
 	static uint32_t RenderCutModel(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor, const uint8_t *proj)
 	{
 		uint8_t *m = *(uint8_t **)h;
@@ -710,10 +631,6 @@ namespace break117
 		return CutTrianglesGT(h, ot, shift, c, proj);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6C23C0): one object of the shell model; objects 0..27 are cut at
-	// minus half their y offset while the layout is before frame 50
-	// ------------------------------------------------------------------
 	static void PartDraw(prim::Layout *l, prim::Record *r, const PrimArg *arg, int32_t frame, uint8_t *proj)
 	{
 		if (((int32_t)r->scale[2] | *(const int32_t *)r->scale) == 0) return;
@@ -751,7 +668,6 @@ namespace break117
 		Mat4x3 m = {};
 		if (r->flags & 0x400) RotationFromAnglesC(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (scaled by the block's scale), through the camera
 		int16_t off[4] = {};
 		const int32_t scaled = arg->scaled;
 		if (scaled)
@@ -769,7 +685,6 @@ namespace break117
 		if (scaled) Scale3DMatrix(&m, arg->scale);
 		if (r->flags & 0x1000)
 		{
-			// anchor through the camera, offset through the effect camera
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -802,7 +717,6 @@ namespace break117
 		{
 			if (r->flags & 0x100)
 			{
-				// diagonal matrix product (sub_56C220)
 				Mat4x3 d = {};
 				d.m[0][0] = r->scale[0];
 				d.m[1][1] = r->scale[1];
@@ -841,9 +755,6 @@ namespace break117
 		PartDraw(l, r, (const PrimArg *)arg, l->frame, (uint8_t *)(TexBase() + BUF_Proj));
 	}
 
-	// ------------------------------------------------------------------
-	// Debris (0x6C3440), Spark (0x6C3390)
-	// ------------------------------------------------------------------
 	static void DebrisDraw(const DebrisNode *d)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
@@ -872,7 +783,6 @@ namespace break117
 		d->pos[2] = (int16_t)(d->pos[2] + d->vel[2]);
 		if (d->pos[1] > 0)
 		{
-			// bounce on the ground with a quarter of the speed
 			const int16_t v = d->vel[1];
 			d->pos[1] = 0;
 			d->vel[1] = (int16_t)((int16_t)(v >> 2) - v);
@@ -913,7 +823,6 @@ namespace break117
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *d = (DebrisNode *)n;
-		// 30 fps layer: see mag117_break_held.inc
 		FX_HELD(held_note_node(ORIG_DebrisTask, d);)
 		DebrisDraw(d);
 		DebrisMove(d);
@@ -924,7 +833,6 @@ namespace break117
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *p = (SparkNode *)n;
-		// 30 fps layer: see mag117_break_held.inc
 		FX_HELD(held_note_node(ORIG_SparkTask, p);)
 		SparkDraw(p);
 		p->frame++;
@@ -933,9 +841,6 @@ namespace break117
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Target (0x6C1950)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -948,10 +853,8 @@ namespace break117
 		arg.scale[0] = scale;
 		arg.scaled = 1;
 		arg.morph = TexBase() + BUF_Morph;
-		// 30 fps layer: see mag117_break_held.inc
 		FX_HELD(held_note_play(t, &arg);)
 		prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
-		// over 20..83 the battle does not draw the target (bit 3 on its +0x8C ring)
 		uint8_t *e = t->entity;
 		if ((uint32_t)(t->counter - 0x14) < 0x40)
 		{
@@ -977,7 +880,6 @@ namespace break117
 			const uint32_t level = StoneLevel(stone);
 			const uint32_t unused[2] = { 0, 0x01000100 };
 			t->entity[0] |= 4;
-			// 30 fps layer: see mag117_break_held.inc
 			FX_HELD(held_note_stone(t, stone);)
 			DrawStoneTarget(t->entity, (int32_t)level, unused, STONE_TPage, STONE_Clut);
 		}
@@ -987,7 +889,6 @@ namespace break117
 			GetDefaultEffectPosition(t->entity, pos);
 			BdPlaySE3D(SOUND_Break, 0x101, pos);
 		}
-		// debris every other tick over 50..79, falling from above the target
 		const int32_t e3 = t->counter - 0x32;
 		if ((uint32_t)e3 < 0x1E && !(e3 & 1))
 		{
@@ -1013,7 +914,6 @@ namespace break117
 				d->spin[2] = (int16_t)((CrtRand() & 0x7F) - 0x40);
 			}
 		}
-		// a spark every tick over 50..69, out from the anchor, slowing down
 		if ((uint32_t)(t->counter - 0x32) < 0x14)
 		{
 			SparkNode *p = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
@@ -1040,13 +940,9 @@ namespace break117
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6C1740)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag117_break_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -1066,7 +962,6 @@ namespace break117
 				InitTaskQueuePool(QTargets(), (void *)(TexBase() + 0xAA0), 0x1570, 3);
 				InitTaskQueuePool(QDebris(), (void *)(TexBase() + 0x500), 0x30, 0x1E);
 				InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x28, 0x20);
-				// the stone dither table: 256 rand() words
 				for (uint32_t off = BUF_Dither; off < 0x5EF0; off += 2)
 					*(uint16_t *)(TexBase() + off) = (uint16_t)CrtRand();
 			}
@@ -1074,7 +969,6 @@ namespace break117
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				// wait while a target task runs on this target
 				TargetNode *pool = (TargetNode *)(TexBase() + 0xAA0);
 				bool busy = false;
 				for (int k = 0; k < 3; k++)
@@ -1122,7 +1016,6 @@ namespace break117
 		register_port(break117::ORIG_TargetTask, (void *)break117::TargetTask, "B117 TargetTask", 117);
 		register_port(break117::ORIG_DebrisTask, (void *)break117::DebrisTask, "B117 DebrisTask", 117);
 		register_port(break117::ORIG_SparkTask, (void *)break117::SparkTask, "B117 SparkTask", 117);
-		// 30 fps layer: see mag117_break_held.inc
 		FX_HELD(register_mag117_held();)
 	}
 }

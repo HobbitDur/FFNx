@@ -14,35 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 156: Wild Cannon Blow (enemy attack 70 of kernel.bin; SAM08G c0m007; MAG_156_WILD_CANNON_BLOW*). Four Cannon Blow
-// shots (mag151_cannon_blow.cpp) from alternating muzzles.
-//
-// Structure (file loader 0x605510 = the texture file 0xDB7DB8 -> 0x23F03C0; _Init 0x605530 keeps the texture base 0x23F07E8, the
-// context 0x23F03B8, the first target's slot 0x23ECE40 and the caster's slot 0x23F03BC, sets up the root queue 0x23ECE68 (pool
-// 0x23ECE48, 2 x 0x10) with RootTask, the shot queue 0x23EF478 (pool 0x23EF488, 100 x 0x24) with MasterTask, frees the three
-// particle arrays (A 0x23ECE78 and B 0x23EDC88: 150 x 0x18, C 0x23EEA98: 100 x 0x18), plays the camera animation 0xDB4CD4 and
-// queues the TIM upload; both run original):
-//   RootTask (0x606C20) / TexRestoreTask (0x606C90) - as Cannon Blow's.
-//   MasterTask (0x605620) - nothing on draw-only ticks; counters 1 / 4 / 7 / 10: a ShotTask with the next shot index; counter 1:
-//     the sounds 0xDB7DAC and 0xDB7DB0; counter 0x24: the action result of every target; ends after counter 0x2D.
-//   ShotTask (0x6056E0) - nothing on draw-only ticks. Counter 0: Cannon Blow's shot set-up from the caster's effect point 0xF
-//     with x offset 0xC8 (odd shots) or point 9 with x offset -0xC8 (even shots), target x +-800 / z +-400, then FlashTask,
-//     BurstTask, RingTask, BallTask, TrailTask, Trail2Task. Counter 0xD: ImpactTask and ImpactRingTask at the target. Counter
-//     0xF: an EmitterTask at every target's effect point 0xF1. Counters 0xD..0x10: the camera shake word 0x1D97712 +-0x40 (odd
-//     +, even -). Ends at counter 0x14.
-//   FlashTask (0x605DF0, model 0xDB6DFC), BurstTask (0x605F40, particles C, sequence 0xDB5300), RingTask (0x606200, model
-//     0xDB68EC), BallTask (0x606320, sequence 0xDB528C), ImpactRingTask (0x606910, model 0xDB7484) - Cannon Blow's 0x60D260 /
-//     0x60D3B0 / 0x60D670 / 0x60D790 / 0x60E060 instruction for instruction.
-//   TrailTask (0x6063E0, particles A, sequence 0xDB4F34) / Trail2Task (0x6065A0, particles B, sequence 0xDB50E0, frame base 0) -
-//     Cannon Blow's trails with 150-particle arrays.
-//   ImpactTask (0x6067B0) - prim model 0xDB54AC at the target (flags 3, faded 0xC3 (counter - 8) << 9 from 8), y angle + spin,
-//     scale + step as Cannon Blow's (no scrolling model); ends after counter 16.
-//   EmitterTask (0x606A60) - particles C of its mask (sequence 0xDB4D88, R = size, pull -size >> 4; frame + 1, freed when ended);
-//     counters 0..2: one new particle at its point +-300 on each axis (size 0x500..0x9FF); ends from counter 4 once none is left.
-// DRAW ORDER: every task draws in the tick it updates (the particle tasks spawn after their draw); the order of the shot queue.
-// ENTITY WRITES: none. CAMERA: the camera animation 0xDB4CD4 (engine) and the shake word 0x1D97712 (ShotTask).
-// Module globals: 0x23ECE40..0x23F07F0.
-// NEVER-WRITTEN STACK WORDS: none read (the shot set-up's offset vector's 4th word is not read by 0x56C4F0).
+// Effect 156: Wild Cannon Blow
 
 #include "mag_common.h"
 
@@ -61,19 +33,18 @@ namespace wildcannon156
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline int16_t S16v(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x23F03B8); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x23F03BC); }
 	inline uint32_t &TexBase() { return var<uint32_t>(0x23F07E8); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23F07EC); }
 	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23ECE68; }
 	inline TaskQueue *ShotQueue() { return (TaskQueue *)0x23EF478; }
-	static const uint32_t PARTS_A = 0x23ECE78, PARTS_B = 0x23EDC88, PARTS_C = 0x23EEA98, PARTS_END = 0x23EF3F8; // 150 / 150 / 100 x 0x18
-	inline uint32_t Ctrl(int i) { return 0x23F0298 + (uint32_t)i * 0x20; }   // 4 control points (8 bytes)
+	static const uint32_t PARTS_A = 0x23ECE78, PARTS_B = 0x23EDC88, PARTS_C = 0x23EEA98, PARTS_END = 0x23EF3F8;
+	inline uint32_t Ctrl(int i) { return 0x23F0298 + (uint32_t)i * 0x20; }
 	inline uint32_t Target(int i) { return 0x23F0318 + (uint32_t)i * 8; }
 	inline Mat4x3 *Rot(int i) { return (Mat4x3 *)(0x23F0338 + (uint32_t)i * 0x20); }
 	inline uint32_t Start(int i) { return 0x23F03C8 + (uint32_t)i * 8; }
-	inline uint32_t Point(int i, int k) { return 0x23F03E8 + ((uint32_t)i * 0x20 + (uint32_t)k) * 8; } // 32 curve points
+	inline uint32_t Point(int i, int k) { return 0x23F03E8 + ((uint32_t)i * 0x20 + (uint32_t)k) * 8; }
 
 	static const uint32_t ORIG_Root = 0x606C20, ORIG_TexRestore = 0x606C90, ORIG_Master = 0x605620, ORIG_Shot = 0x6056E0,
 		ORIG_Flash = 0x605DF0, ORIG_Burst = 0x605F40, ORIG_Ring = 0x606200, ORIG_Ball = 0x606320, ORIG_Trail = 0x6063E0,
@@ -83,14 +54,13 @@ namespace wildcannon156
 	static const uint32_t SOUND_A = 0xDB7DAC, SOUND_B = 0xDB7DB0;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
 	inline int32_t SpawnPosition(uint8_t *entity, int32_t point, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, point, flag, out); }
 	inline void CentrePosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
 	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
 	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); } // computeCosine
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 
-	// a pool / particle record (0x18 bytes): +0 owner mask, +4 frame, +6 size, +8 point (4 words), +0x10 velocity (3 words)
 	enum { P_MASK = 0, P_FRAME = 4, P_SIZE = 6, P_POS = 8, P_VEL = 0x10 };
 
 }
@@ -104,10 +74,6 @@ namespace ff8fx
 {
 namespace wildcannon156
 {
-	// ------------------------------------------------------------------
-	// Shared draws
-	// ------------------------------------------------------------------
-	// a prim model (header 0x58) at the GTE matrix set by the caller: flags `flags`, faded (flags | 0xC0, +0x0C) when fade >= 0
 	static void PrimDraw(uint32_t model, int32_t fade, uint32_t flags = 0x33)
 	{
 		const uint32_t h = (uint32_t)FieldAlloc(0x58);
@@ -123,7 +89,6 @@ namespace wildcannon156
 		FieldFree(0x58);
 	}
 
-	// a model frame: angles (0, y, 0) or (0, 0, z), uniform scale, translation t
 	static void ScaledFrame(const int16_t *angles, int16_t scale, Mat4x3 *m)
 	{
 		ComposeZYXRotationMatrix(angles, m);
@@ -131,7 +96,6 @@ namespace wildcannon156
 		Scale3DMatrix(m, s);
 	}
 
-	// a sequence frame at the shadow-rotation camera of `pos` (header 0xB4 already filled but its frame)
 	static void SeqDraw(uint32_t h, const void *pos, int16_t r, int32_t pull, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, (int32_t)(uint16_t)r, pull);
@@ -139,7 +103,6 @@ namespace wildcannon156
 		PacketCursor() = InitEffectSequenceFromData((void *)h, RenderOT44(), 2, PacketCursor());
 	}
 
-	// the first free particle of [lo, hi) (mask 0), or 0 (none in the first `cap`)
 	static uint32_t FreeParticle(uint32_t lo, uint32_t hi, int32_t cap)
 	{
 		int32_t i = 0;
@@ -149,13 +112,9 @@ namespace wildcannon156
 		return i < cap ? p : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x606C20) and texture restore (0x606C90)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? TexBase() + 0xC000 : TexBase();
 		const int running = ExecuteTaskQueue(ShotQueue());
@@ -178,9 +137,6 @@ namespace wildcannon156
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Flash (0x605DF0), Ring (0x606200), ImpactRing (0x606910)
-	// ------------------------------------------------------------------
 	static void FlashDraw(uint32_t n, int32_t fade)
 	{
 		const int16_t ang[3] = { 0, 0, S16(n, 0x18) };
@@ -197,7 +153,6 @@ namespace wildcannon156
 	static uint32_t __cdecl FlashTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_FLASH, n);)
 		FlashDraw(n, S16(n, 0xC) >= 4 ? shl32(S16(n, 0xC) - 4, 9) : -1);
 		if (DrawOnly()) return 0;
@@ -228,7 +183,6 @@ namespace wildcannon156
 	static uint32_t __cdecl RingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_RING, n);)
 		RingDraw(n, S16(n, 0xC) >= 0 ? shl32(S16(n, 0xC), 10) : -1);
 		if (DrawOnly()) return 0;
@@ -255,7 +209,6 @@ namespace wildcannon156
 	static uint32_t __cdecl ImpactRingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_IRING, n);)
 		ImpactRingDraw(n, S16(n, 0xC) >= 3 ? mul32(S16(n, 0xC) - 3, 0x199) : -1);
 		if (DrawOnly()) return 0;
@@ -266,9 +219,6 @@ namespace wildcannon156
 		return S16(n, 0xC) > 0xD ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Impact (0x6067B0): a prim model at the target
-	// ------------------------------------------------------------------
 	static void ImpactDraw(uint32_t n, int32_t fade)
 	{
 		const int16_t ang[3] = { 0, S16(n, 0x18), 0 };
@@ -288,7 +238,6 @@ namespace wildcannon156
 	static uint32_t __cdecl ImpactTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_IMPACT, n);)
 		const int16_t c = S16(n, 0xC);
 		ImpactDraw(n, c >= 8 ? shl32(c - 8, 9) : -1);
@@ -303,9 +252,6 @@ namespace wildcannon156
 		return S16(n, 0xC) > 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ball (0x606320)
-	// ------------------------------------------------------------------
 	static void BallDraw(uint32_t n, const void *pos)
 	{
 		const int16_t r = S16(n, 0x1C);
@@ -321,7 +267,6 @@ namespace wildcannon156
 	static uint32_t __cdecl BallTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_BALL, n);)
 		BallDraw(n, (const void *)Point(S16(n, 0xE), S16(n, 0x18)));
 		if (DrawOnly()) return 0;
@@ -332,10 +277,6 @@ namespace wildcannon156
 		return S16(n, 0x18) >= 0x20 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Particle tasks
-	// ------------------------------------------------------------------
-	// one particle's draw (and, on an updating tick, frame + 1 / freed when its sequence ended): 1 = it lives on
 	static bool ParticleDraw(uint32_t h, uint32_t p, const void *pos, int32_t pull_shift)
 	{
 		const int16_t size = S16(p, P_SIZE);
@@ -350,7 +291,6 @@ namespace wildcannon156
 		return true;
 	}
 
-	// a burst particle's point: its own through the shot's rotation, + the start
 	static void BurstPoint(int i, const int16_t *local, int16_t *w)
 	{
 		MatVec(Rot(i), local, w);
@@ -359,7 +299,6 @@ namespace wildcannon156
 		w[1] = (int16_t)(w[1] + (int16_t)Rot(i)->t[1]);
 	}
 
-	// Burst (0x605F40): particles C in the shot's frame
 	static int BurstParticles(uint32_t n)
 	{
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
@@ -370,7 +309,6 @@ namespace wildcannon156
 		for (uint32_t p = PARTS_C; p < PARTS_END; p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
-			// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 			FX_HELD(held_note_particle(p);)
 			int16_t w[3];
 			BurstPoint(i, (const int16_t *)(p + P_POS), w);
@@ -390,7 +328,6 @@ namespace wildcannon156
 	static uint32_t __cdecl BurstTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_parts(REC_BURST, n);)
 		const int alive = BurstParticles(n);
 		if (DrawOnly()) return 0;
@@ -417,7 +354,6 @@ namespace wildcannon156
 		return S16(n, 0xC) >= 4 && !alive ? TASK_END : 0;
 	}
 
-	// particles of [lo, hi) with the node's mask: sequence seq (frame base `base`), pull -size >> pull_shift, size + size >> 5
 	static int TrailParticles(uint32_t n, uint32_t lo, uint32_t hi, uint32_t seq, uint16_t base, int32_t pull_shift)
 	{
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
@@ -427,7 +363,6 @@ namespace wildcannon156
 		for (uint32_t p = lo; p < hi; p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
-			// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 			FX_HELD(held_note_particle(p);)
 			if (!ParticleDraw(h, p, (const void *)(p + P_POS), pull_shift)) continue;
 			S16(p, P_SIZE) = (int16_t)(S16(p, P_SIZE) + (int16_t)(S16(p, P_SIZE) >> 5));
@@ -437,7 +372,6 @@ namespace wildcannon156
 		return alive;
 	}
 
-	// the trail's progress: + step, step - 1 down to 2
 	static void TrailStep(uint32_t n)
 	{
 		const int16_t d = S16(n, 0x1E);
@@ -445,10 +379,8 @@ namespace wildcannon156
 		if (d > 2) S16(n, 0x1E) = (int16_t)(d - 1);
 	}
 
-	// Trail (0x6063E0) / Trail2 (0x6065A0): one particle A / B a curve point (Trail2: jittered)
 	static uint32_t TrailTaskImpl(uint32_t n, bool jitter)
 	{
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_parts(jitter ? REC_TRAIL2 : REC_TRAIL, n);)
 		const uint32_t lo = jitter ? PARTS_B : PARTS_A, hi = jitter ? PARTS_C : PARTS_B;
 		const int alive = TrailParticles(n, lo, hi, jitter ? SEQ_Trail2 : SEQ_Trail, 0, 4);
@@ -481,7 +413,6 @@ namespace wildcannon156
 	static uint32_t __cdecl TrailTask(TaskNode *nd) { return TrailTaskImpl((uint32_t)nd, false); }
 	static uint32_t __cdecl Trail2Task(TaskNode *nd) { return TrailTaskImpl((uint32_t)nd, true); }
 
-	// Emitter (0x606A60): particles C of its mask, one new a tick on counters 0..2 around its point
 	static int EmitterParticles(uint32_t n)
 	{
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
@@ -491,7 +422,6 @@ namespace wildcannon156
 		for (uint32_t p = PARTS_C; p < PARTS_END; p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
-			// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 			FX_HELD(held_note_particle(p);)
 			if (!ParticleDraw(h, p, (const void *)(p + P_POS), 4)) continue;
 			alive++;
@@ -503,7 +433,6 @@ namespace wildcannon156
 	static uint32_t __cdecl EmitterTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_parts(REC_EMITTER, n);)
 		const int alive = EmitterParticles(n);
 		if (DrawOnly()) return 0;
@@ -527,9 +456,6 @@ namespace wildcannon156
 		return S16(n, 0xC) >= 4 && !alive ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Shot (0x6056E0) and Master (0x605620)
-	// ------------------------------------------------------------------
 	static uint32_t NewTask(uint32_t f, int16_t index)
 	{
 		const uint32_t t = (uint32_t)AddTaskToQueue(ShotQueue(), f);
@@ -538,7 +464,6 @@ namespace wildcannon156
 		return t;
 	}
 
-	// the shot's start, target, curve and rotation (counter 0): odd shots from point 0xF (x offset 0xC8), even from point 9 (-0xC8)
 	static void ShotSetup(int i)
 	{
 		const uint32_t ent = (uint32_t)Entity(CasterSlot());
@@ -555,7 +480,7 @@ namespace wildcannon156
 		}
 		off[1] = -250;
 		off[2] = -250;
-		off[3] = 0; // never written, never read (0x56C4F0 reads 3 words)
+		off[3] = 0;
 		MatVec((const Mat4x3 *)(ent + 0x40), off, off);
 		S16(Start(i), 0) = (int16_t)(S16(Start(i), 0) + off[0]);
 		S16(Start(i), 2) = (int16_t)(S16(Start(i), 2) + off[1]);
@@ -585,7 +510,7 @@ namespace wildcannon156
 			SplineEval(4, work, (void *)Point(i, k), t / 31);
 		FieldFree(0x190);
 		int32_t z[3] = { 0, 0, -0x1000 };
-		int32_t d[3] = { (int32_t)S16(c, 8) - S16(c, 0), (int32_t)S16(c, 0xA) - S16(c, 2), (int32_t)S16(c, 0xC) - S16(c, 4) }; // along the first control leg
+		int32_t d[3] = { (int32_t)S16(c, 8) - S16(c, 0), (int32_t)S16(c, 0xA) - S16(c, 2), (int32_t)S16(c, 0xC) - S16(c, 4) };
 		NormalizeVector(d, d);
 		int32_t axis[3];
 		const int32_t angle = RotationBetweenVectors(z, d, axis);
@@ -692,7 +617,6 @@ namespace wildcannon156
 		register_port(ORIG_Impact, (void *)ImpactTask, "156 ImpactTask", 156);
 		register_port(ORIG_ImpactRing, (void *)ImpactRingTask, "156 ImpactRingTask", 156);
 		register_port(ORIG_Emitter, (void *)EmitterTask, "156 EmitterTask", 156);
-		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(register_mag156_held();)
 	}
 }

@@ -14,59 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 279: Mega Spark (enemy attack 106 of kernel.bin; Tri-Point c0m030; MAG_279_*).
-//
-// Structure (setup 0x67EFD0 -> _Init 0x67F000, file loader 0x67EFE0 = mag278.tim (name at 0x10B6F88) into 0x2508070; _Init
-// keeps the context (0x2508074) and the CASTER's entity (0x2508078), seeds the module LCG 0x2508108 with rand(), sets up the
-// master queue 0x25080E0 (pool 0x25080F0, 1 x 0x14), starts camera animation 0x10B1A2C and queues the TIM):
-//   MasterTask (0x67F090) - alternates the packet arena (magic buffer + 0x7C7C / + 0x17C7C); on counter 1 (once) sets up the
-//     pools (main 1 x 0xB34 at + 0x3334, arcs 0x40 x 0x40 at + 0x2334, bolts 0x30 x 0x38 at + 0x18B4, prims A 3 x 0x13C at
-//     + 0x140, prims B 0x10 x 0x13C at + 0x4F4, sparks 0x10 x 0x14 at + 0), the arc profile (8 x sin(k x 0x800 / 7) at
-//     + 0x7C6C), the bolt point pool (0x180 x 0x28 at + 0x3E68, all free, cache + 0x7A68 empty) and starts the main task
-//     (action 0's targets, their mean +0x20 word, the caster's +0x1C / +0x20 words). Then: the bolts, the caster's world bone
-//     matrices (0x5095B0), the main task, the arcs, the caster's bone matrices from its pose (0x508C90), prims A, prims B,
-//     sparks; it ends when the main queue and the arc queue are both empty (the other queues are dropped as they are).
-//   MainTask (0x67F340) - counters 0..0x54. Every tick the caster's entity byte +1 gets bit 4 and its +0x0C word 0x80;
-//     counters 0..0x1F move the caster's +0x20 word toward the targets' mean - 5000 (x c / 32) and set +0x0C = 4c; counters
-//     0x0F..0x1E draw three layouts 0x10AEC64 (decoded on 0x0F) at the caster's bones 0x10B6D38 / 30 / 28 turned by RotX(+0x0C);
-//     every 4th counter below 0x20: three arcs (table rows 0x10B6D40 / 0x10B6E00 / 0x10B6EC0 + (c / 4 & 7) x 0x18 to the
-//     anchors 0x10B6D28 / 30 / 38); counters 0x18..0x3B: layout 0x10AB23C (decoded on 0x18) at the caster's bone point 0x10B6F80; every 8th
-//     counter of 0x14..0x3B: three arcs from the anchors 0x10B6D28 / 30 / 38 to the point 0x10B6F80; counters 0x28..0x36: one
-//     bolt a tick from that point to target (c - 0x28) % n (its default effect position on 0x2C..n + 0x2C, else a random bone of
-//     it), CRT rand bend. Screen fades at 0x28 / 0x30 / 0x32, sound 0x10B1B9C at 0, damage at 0x3A; counters 0x46..0x54 move
-//     the caster back; at the end its words are restored and the bit cleared.
-//   BoltTask (0x67FC30, no IDB start) - 8 steps a tick toward the destination (module LCG jitter), a point per step (the
-//     pool's linked list), branches (at most 2 levels) while t < 0xC00, at the end a prim (layout 0x10AFEE0 / 0x10B0C08) or a
-//     spark; the points fade (+0x20 / +0x22 / +0xE), are projected and drawn as a screen-space ribbon (0x6801D0 / 0x680330),
-//     drift by their velocity, the faded head points are freed; it ends when fewer than 2 points are left.
-//   ArcTask (0x680520) - an arc from a triangle centre along its normal (flag 0) or from an anchor point (flag 1) to a bone
-//     point: 6 interior points of a 3-point curve, shared LCG jitter, drawn by 0x6808F0 (= 276's 0x686DB0) with the edge
-//     routine 0x680A80; from counter 10 it fades and ends.
-//   PrimTask (0x680170) - a layout at its node's frame (camera composed in) until it finishes.
-//   SparkTask (0x6800F0) - sequence 0x10AB138 through the shadow-rotation camera (0x800, -0x200), 8 frames.
-//   PrimCallback (0x67F7E0, = Brrawghh's 0x6780F0 on this module's cursor) draws every layout object.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the tick it updates; bolts, main, arcs, prims A, prims B, sparks.
-// ENTITY WRITES: the caster - +0x0C (RotX angle) and +0x20 (position word) on counters 0..0x1F and 0x46..0x55, +0x0C = 0x80
-// in between, byte +1 bit 4 (word +0 bit 12, cleared at the end), its world bone matrices (0x5095B0) and bone matrices from
-// its pose (0x508C90) every tick; the targets' action results (engine).
-// CAMERA: the setup's camera animation 0x10B1A2C (engine); no camera word is written by the tasks.
-// Module globals: 0x2508070..0x2508110 (texture file 0x2508070, context 0x2508074, caster 0x2508078, the queues 0x2508080
-// sparks / 0x2508090 prims A / 0x25080A0 prims B / 0x25080B0 bolts / 0x25080C0 arcs / 0x25080D0 main / 0x25080E0 master,
-// master pool 0x25080F0, packet cursor 0x2508104, module LCG 0x2508108, magic buffer base 0x250810C).
-// SCREEN-SPACE RIBBONS: the bolt edge 0x680330 and the arc edge 0x680A80 take the half widths 0x1F40 / (z + 0x200) and
-// 0x2080 / (z + 0x400) in screen units; ported as the PC runs them.
-// NEVER-WRITTEN STACK WORDS:
-//   - the ribbon / arc draws' joint direction (entry esp - 8) is read before it is written when the first two points
-//     project onto one pixel: the bolt ribbon's last writer is GTE_RTPS 0x45FAA0's stored double (high dword 0x43300000,
-//     RibbonResidue), the arc draw's is the arc task's own push of its control point's address (ArcResidue).
-//   - the 4th word of the bolt's start point (main: entry esp - 0x4A, bolt: entry esp - 0x22 when it interpolates) lands in
-//     the point's +6 word (the pool's free mark, -1 = free): MainSrcPad / BoltPtPad. The bolt's word is the destination's
-//     4th word (its dt) once a bolt of the tick has reached its end (0x67FE37), carried from bolt to bolt (the executor
-//     calls them at one esp); before that a tick-start residue of other code (engine residue in game, never -1): modelled
-//     as 0, as the main's.
-//   - the 4th words of the arc's end points (arc entry esp - 0x2A / - 0x1A) land in the Field_Alloc block's +6 / +0x76
-//     (never read).
+// Effect 279: Mega Spark
 
 #include "mag_common.h"
 #include <intrin.h>
@@ -78,20 +26,19 @@ namespace megaspark279
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2508074); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508078); }        // caster entity (setup)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508080; }         // pool: magic buffer, 0x10 x 0x14
-	inline TaskQueue *QPrimA() { return (TaskQueue *)0x2508090; }          // pool: + 0x140, 3 x 0x13C
-	inline TaskQueue *QPrimB() { return (TaskQueue *)0x25080A0; }          // pool: + 0x4F4, 0x10 x 0x13C
-	inline TaskQueue *QBolts() { return (TaskQueue *)0x25080B0; }          // pool: + 0x18B4, 0x30 x 0x38
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x25080C0; }           // pool: + 0x2334, 0x40 x 0x40
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25080D0; }           // pool: + 0x3334, 1 x 0xB34
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2508078); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508080; }
+	inline TaskQueue *QPrimA() { return (TaskQueue *)0x2508090; }
+	inline TaskQueue *QPrimB() { return (TaskQueue *)0x25080A0; }
+	inline TaskQueue *QBolts() { return (TaskQueue *)0x25080B0; }
+	inline TaskQueue *QArcs() { return (TaskQueue *)0x25080C0; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x25080D0; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508104); }
-	inline uint32_t &Seed() { return var<uint32_t>(0x2508108); }           // module LCG
-	inline uint32_t &TexBase() { return var<uint32_t>(0x250810C); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &Seed() { return var<uint32_t>(0x2508108); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x250810C); }
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // the frame's packet arena
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 
 	static const uint32_t ORIG_MasterTask = 0x67F090;
 	static const uint32_t ORIG_MainTask = 0x67F340;
@@ -99,43 +46,42 @@ namespace megaspark279
 	static const uint32_t ORIG_SparkTask = 0x6800F0;
 	static const uint32_t ORIG_PrimTask = 0x680170;
 	static const uint32_t ORIG_ArcTask = 0x680520;
-	static const uint32_t ORIG_PrimCallback = 0x67F7E0;  // not a task: the layouts' callback
+	static const uint32_t ORIG_PrimCallback = 0x67F7E0;
 	static const uint32_t POOL_PrimA = 0x140, POOL_PrimB = 0x4F4, POOL_Bolts = 0x18B4, POOL_Arcs = 0x2334, POOL_Main = 0x3334;
-	static const uint32_t BUF_Points = 0x3E68;            // magic buffer: bolt points, 0x180 x 0x28
-	static const uint32_t BUF_PointCache = 0x7A68;        // the last freed point (0: none)
-	static const uint32_t BUF_Morph = 0x7A6C;             // blended vertex frames
-	static const uint32_t BUF_Profile = 0x7C6C, BUF_ProfileEnd = 0x7C7C; // arc profile, 8 words
-	static const uint32_t ARENA_A = 0x7C7C, ARENA_B = 0x17C7C;          // packet arenas
-	static const uint32_t MODEL_Ring = 0x10AEC64;         // prim-model layouts
+	static const uint32_t BUF_Points = 0x3E68;
+	static const uint32_t BUF_PointCache = 0x7A68;
+	static const uint32_t BUF_Morph = 0x7A6C;
+	static const uint32_t BUF_Profile = 0x7C6C, BUF_ProfileEnd = 0x7C7C;
+	static const uint32_t ARENA_A = 0x7C7C, ARENA_B = 0x17C7C;
+	static const uint32_t MODEL_Ring = 0x10AEC64;
 	static const uint32_t MODEL_Orb = 0x10AB23C;
 	static const uint32_t MODEL_Strike = 0x10AFEE0;
 	static const uint32_t MODEL_Hit = 0x10B0C08;
-	static const uint32_t SEQ_Spark = 0x10AB138;          // sprite sequence
-	static const uint32_t ANCHOR_0 = 0x10B6D28;           // caster bone offsets (word +3 = bone): 0x10B6D28 / 30 / 38
-	static const uint32_t POINT_Orb = 0x10B6F80;          // the orb's bone offset
-	static const uint32_t TRI_Rows = 0x10B6D40;           // triangle rows (0x18 each) of the three arc sets: + 0 / 0xC0 / 0x180
-	static const uint32_t TBL_Distance = 0x10B1BA0;       // 128 x 128 bytes: screen distance of (|dx|, |dy|)
-	static const uint32_t TBL_Lengths = 0x10B5B20;        // u16 square-root table
-	static const uint32_t TBL_Sine = 0x10B5D20;           // s16 sine (0x1000 entries)
+	static const uint32_t SEQ_Spark = 0x10AB138;
+	static const uint32_t ANCHOR_0 = 0x10B6D28;
+	static const uint32_t POINT_Orb = 0x10B6F80;
+	static const uint32_t TRI_Rows = 0x10B6D40;
+	static const uint32_t TBL_Distance = 0x10B1BA0;
+	static const uint32_t TBL_Lengths = 0x10B5B20;
+	static const uint32_t TBL_Sine = 0x10B5D20;
 	static const void *const SOUND_Spark = (const void *)0x10B1B9C;
-	static const uint32_t QUAD_UV0 = 0x3D948048, QUAD_UV1 = 0xB68078; // ribbon quads: uv0 + clut, uv1 + tpage, uv2, uv3
+	static const uint32_t QUAD_UV0 = 0x3D948048, QUAD_UV1 = 0xB68078;
 	static const uint16_t QUAD_UV2 = 0x8048, QUAD_UV3 = 0x8078;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }             // MatrixMultiply3x3: a = a x b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }   // MAG_063_RotationXMatrix
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }   // Effect_RotationYMatrix
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
 	inline void GetEffectSpawnPosition(uint8_t *ent, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(ent, bone, mode, out); }
-	inline void TriangleCentreNormal(uint32_t bones, uint32_t tri, int16_t *centre, int16_t *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, int16_t *, int16_t *)>(0x704130)(bones, tri, centre, normal); } // MAG_TriangleCentreNormal
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }   // Effect_SharedLcg_Rand
+	inline void TriangleCentreNormal(uint32_t bones, uint32_t tri, int16_t *centre, int16_t *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, int16_t *, int16_t *)>(0x704130)(bones, tri, centre, normal); }
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
 
 	template<typename T> inline T &AT(uint32_t a, int32_t off = 0) { return *(T *)(a + (uint32_t)off); }
 	inline int16_t &S16(uint32_t a, int32_t off) { return AT<int16_t>(a, off); }
@@ -143,97 +89,86 @@ namespace megaspark279
 	inline uint32_t &U32(uint32_t a, int32_t off) { return AT<uint32_t>(a, off); }
 	inline uint8_t &U8(uint32_t a, int32_t off) { return AT<uint8_t>(a, off); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x25080F0)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0xB34 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t ntargets;  // +0x0E action 0's target count
-		int16_t mean;      // +0x10 the targets' mean +0x20 word
+		int16_t counter;
+		int16_t ntargets;
+		int16_t mean;
 		int16_t pad12;
-		uint8_t *targets[3]; // +0x14 their entities
-		uint32_t saved1C;  // +0x20 the caster's +0x1C / +0x1E words
-		uint32_t saved20;  // +0x24 the caster's +0x20 / +0x22 words
-		uint8_t orb[0x734];  // +0x28 layout 0x10AB23C
-		uint8_t ring[3][0x148]; // +0x75C / +0x8A4 / +0x9EC layouts 0x10AEC64
+		uint8_t *targets[3];
+		uint32_t saved1C;
+		uint32_t saved20;
+		uint8_t orb[0x734];
+		uint8_t ring[3][0x148];
 	};
-	struct BoltNode // pool of 0x30 nodes of 0x38 bytes
+	struct BoltNode
 	{
 		TaskNode hdr;
-		int16_t count;     // +0x0C points in the list
-		int16_t strike;    // +0x0E 1: a strike prim at the end
-		uint32_t head;     // +0x10 oldest point
-		uint32_t tail;     // +0x14 newest point
-		int16_t cur[3];    // +0x18 the head of the bolt
-		int16_t t;         // +0x1E progress (0x1000 = reached)
-		int16_t dst[3];    // +0x20 destination
-		int16_t dt;        // +0x26 progress per step
-		int16_t dir[3];    // +0x28 velocity (LCG drift)
-		int16_t branches;  // +0x2E branches left (-1: a branch)
-		int16_t bend[3];   // +0x30 the points' drift (x sine of t)
-		int16_t bend3;     // +0x36
+		int16_t count;
+		int16_t strike;
+		uint32_t head;
+		uint32_t tail;
+		int16_t cur[3];
+		int16_t t;
+		int16_t dst[3];
+		int16_t dt;
+		int16_t dir[3];
+		int16_t branches;
+		int16_t bend[3];
+		int16_t bend3;
 	};
-	struct PrimNode // pool of 3 (A) / 0x10 (B) nodes of 0x13C bytes
+	struct PrimNode
 	{
 		TaskNode hdr;
-		Mat4x3 m;          // +0x0C frame
-		uint8_t layout[0x110]; // +0x2C
+		Mat4x3 m;
+		uint8_t layout[0x110];
 	};
-	struct SparkNode // pool of 0x10 nodes of 0x14 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t frame;     // +0x12
+		int16_t pos[3];
+		int16_t frame;
 	};
-	struct ArcNode // pool of 0x40 nodes of 0x40 bytes
+	struct ArcNode
 	{
 		TaskNode hdr;
-		uint8_t counter;   // +0x0C
-		uint8_t anchor;    // +0x0D 0: from a triangle (centre, normal), 1: from an anchor point
-		uint8_t amp_shift; // +0x0E
-		uint8_t fade_shift; // +0x0F
-		int16_t off[4];    // +0x10 the end's bone offset (+0x16 = bone)
-		uint32_t tri;      // +0x18 triangle row / anchor offset
-		uint32_t model;    // +0x1C the caster's skeleton (+0x64)
-		int16_t bright[8][2]; // +0x20 brightness of the 8 points (second word 0)
+		uint8_t counter;
+		uint8_t anchor;
+		uint8_t amp_shift;
+		uint8_t fade_shift;
+		int16_t off[4];
+		uint32_t tri;
+		uint32_t model;
+		int16_t bright[8][2];
 	};
-	// the prim-player callback's parameter block (a stack block of the playing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 rotation and anchor
-		int32_t depth;     // +0x20 the prim header's +0x18
-		uint32_t morph;    // +0x24 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0xB34 && sizeof(BoltNode) == 0x38, "Mega Spark nodes");
 	static_assert(sizeof(PrimNode) == 0x13C && sizeof(SparkNode) == 0x14 && sizeof(ArcNode) == 0x40, "Mega Spark nodes");
 	static_assert(sizeof(PrimArg) == 0x28, "Mega Spark prim block");
 
-	// ------------------------------------------------------------------
-	// Never-written stack words (see the module comment)
-	// ------------------------------------------------------------------
-	static uint32_t g_master_esp = 0;   // MasterTask's entry esp (its return address slot)
-	// the arc task runs at the master's entry esp - 0x40; its last write at the draw's joint direction is the push of its
-	// control point's address (arc entry esp - 0x28)
+	static uint32_t g_master_esp = 0;
 	static inline uint32_t ArcResidue() { return g_master_esp - 0x40 - 0x28; }
-	// the bolt ribbon's joint direction: the last GTE_RTPS call of the projection loop stores a double there (0x45FB89)
 	static const uint32_t RibbonResidue = 0x43300000;
 	static uint16_t MainSrcPad() { return 0; }
-	static uint16_t g_bolt_pt_pad = 0;   // the bolt task's point 4th word (entry esp - 0x22), carried from call to call
+	static uint16_t g_bolt_pt_pad = 0;
 	static uint16_t BoltPtPad() { return g_bolt_pt_pad; }
 
-	// 0x680C00: the offset v (word +3 = bone) through the caster's bone matrix -> out (3 int32)
 	static void BonePoint(const int16_t *v, int32_t *out)
 	{
 		const uint8_t *bones = *(uint8_t *const *)*(uint8_t *const *)(Caster() + 0x64);
@@ -245,14 +180,12 @@ namespace megaspark279
 		GteReadMAC123(out);
 	}
 
-	// 0x67FC10: module LCG
 	static int32_t Lcg()
 	{
 		Seed() = (Seed() * 125 + 0xE) & 0x7FFF;
 		return (int32_t)Seed();
 	}
 
-	// 0x67FBA0: a free point (the cache, else the first one marked free) with the start point, fade 0x200 / +0x300
 	static uint32_t AllocPoint(const int16_t *src)
 	{
 		const uint32_t buf = TexBase();
@@ -278,7 +211,6 @@ namespace megaspark279
 		return p;
 	}
 
-	// 0x67FA80: a bolt from src to dst (4 words each) with velocity dir, the points' drift (bend: 4 words, nullptr: module LCG)
 	static uint32_t SpawnBolt(const int16_t *dir, const int16_t *src, const int16_t *dst, const int16_t *bend, int16_t bend3,
 		int16_t t, int16_t dt, int16_t strike, int16_t branches)
 	{
@@ -330,12 +262,6 @@ namespace ff8fx
 {
 namespace megaspark279
 {
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x67F7E0, = Brrawghh's 0x6780F0 on this module's cursor): one object of a layout. Vertex frame
-	// (or blend into the parameter block's morph buffer), rotation from the record's angles, the record's offset through the
-	// parameter matrix (flag 0x200: as is), the matrix composed with it, scale (flag 0x100: 3x3 product, else scale3DMatrix),
-	// drawn by 0x7043B0.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -374,7 +300,6 @@ namespace megaspark279
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAngles2(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		int32_t t[3];
 		if (r->flags & 0x200)
@@ -424,13 +349,6 @@ namespace megaspark279
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Screen-space ribbons
-	// ------------------------------------------------------------------
-	// 0x680330 / 0x680A80: a point's ribbon edge. The screen point (x, y at +sxy) moves to its -half-width side, the +side
-	// goes to +sxy + 8; the half width num / (z + den) (z at +sxy + 4) along the unit normal of the segment to the next point
-	// (averaged with the previous segment's, `prev`); out = this segment's unit normal. A point whose segment has no length
-	// (first point) is marked behind (z = -1).
 	static void RibbonEdge(uint32_t p, uint32_t next, const int16_t *prev, int16_t *out, int32_t sxy, int32_t num, int32_t den)
 	{
 		if (S16(p, sxy + 4) < 0) return;
@@ -500,12 +418,9 @@ namespace megaspark279
 		S16(p, sxy + 0xA) = (int16_t)(y + oy);
 		S16(p, sxy + 2) = (int16_t)(y - oy);
 	}
-	// 0x680330: bolt point edge (screen point at +0x10, z at +0x14)
 	static void BoltEdge(uint32_t p, uint32_t next, const int16_t *prev, int16_t *out) { RibbonEdge(p, next, prev, out, 0x10, 0x1F40, 0x200); }
-	// 0x680A80: arc point edge (screen point at +0, z at +4)
 	static void ArcEdge(uint32_t p, uint32_t next, const int16_t *prev, int16_t *out) { RibbonEdge(p, next, prev, out, 0, 0x2080, 0x400); }
 
-	// one gouraud textured quad (0x34 bytes) of a ribbon: xy0 / xy1 of a point and of the next one, grey levels c0 / c1
 	static void RibbonQuad(uint32_t pk, uint32_t a0, uint32_t a1, uint32_t b0, uint32_t b1, int32_t c0, int32_t c1, uint32_t bucket)
 	{
 		U32(pk, 8) = a0;
@@ -527,7 +442,6 @@ namespace megaspark279
 		InsertPrimAutoDepth(bucket, (void *)pk);
 	}
 
-	// 0x6801D0: the bolt's points (count of them, from head) as a ribbon into the module's packet arena
 	static void BoltRibbon(uint32_t head, int32_t count)
 	{
 		int16_t dir[2] = { (int16_t)(RibbonResidue & 0xFFFF), (int16_t)(RibbonResidue >> 16) };
@@ -555,8 +469,6 @@ namespace megaspark279
 		}
 	}
 
-	// 0x6808F0 (= 276's 0x686DB0): the 8 points (16 bytes: x, y, z / screen xy, z, edge xy, brightness +0xE) projected,
-	// their edges, 7 quads into the frame arena
 	static void ArcDraw(uint32_t pts, uint32_t residue)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -586,9 +498,6 @@ namespace megaspark279
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x6800F0)
-	// ------------------------------------------------------------------
 	static void SparkDraw(const SparkNode *s)
 	{
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
@@ -603,16 +512,12 @@ namespace megaspark279
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->frame++;
 		return s->frame < 8 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim (0x680170): its layout at its frame until the layout ends
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl PrimTask(TaskNode *n)
 	{
 		PrimNode *p = (PrimNode *)n;
@@ -620,16 +525,10 @@ namespace megaspark279
 		ComposeAffineTransform(&Camera(), &p->m, &arg.m);
 		arg.morph = TexBase() + BUF_Morph;
 		arg.depth = -0x80;
-		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(held_note_prim(p, &arg);)
 		return prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Bolt (0x67FC30)
-	// ------------------------------------------------------------------
-	// the end of a bolt: a branch (branches < 0) leaves a hit prim (destination above the ground: y >= 0) or a spark, the
-	// trunk of a strike bolt a strike prim; the prim's frame faces the caster, scaled unless 0x1000
 	static void BoltEnd(BoltNode *b)
 	{
 		PrimNode *p;
@@ -731,8 +630,8 @@ namespace megaspark279
 			nv[0] = (int16_t)((Lcg() & 0x1FF) + b->dir[0] - 0x100);
 			nv[1] = (int16_t)((Lcg() & 0x1FF) + b->dir[1] - 0x100);
 			nv[2] = (int16_t)((Lcg() & 0x1FF) + b->dir[2] - 0x100);
-			nd[3] = 0;   // copied into the branch's dst 4th word, then replaced by its dt
-			nv[3] = 0;   // copied into the branch's dir 4th word, then replaced by its branches
+			nd[3] = 0;
+			nv[3] = 0;
 			const uint32_t q = SpawnBolt(nv, pt, nd, b->bend, -1, b->t, 0x200, 0, -1);
 			if (q)
 			{
@@ -741,7 +640,6 @@ namespace megaspark279
 			}
 			b->branches--;
 		}
-		// the points fade: +0x20 by +0x22; +0xE ticks at full step, then the step falls by 0x140 down to -0x180
 		uint32_t p = b->head;
 		do
 		{
@@ -763,7 +661,6 @@ namespace megaspark279
 			GteReadOTZ((void *)(p + 0x14));
 			p = U32(p, 0x24);
 		} while (p);
-		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(held_note_bolt(b);)
 		if (b->count >= 2) BoltRibbon(b->head, b->count);
 		p = b->head;
@@ -774,7 +671,6 @@ namespace megaspark279
 			S16(p, 4) = (int16_t)(S16(p, 4) + S16(p, 0xC));
 			p = U32(p, 0x24);
 		} while (p);
-		// the faded head points go back to the pool
 		p = b->head;
 		if (S16(p, 0x20) != 0) return 0;
 		for (;;)
@@ -791,10 +687,6 @@ namespace megaspark279
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Arc (0x680520)
-	// ------------------------------------------------------------------
-	// 0x6804B0: an arc of the caster's skeleton from the triangle row / anchor `from` to the bone offset `to`
 	static void SpawnArc(uint32_t model, uint32_t from, uint32_t to, uint8_t anchor, uint8_t amp_shift, uint8_t fade_shift)
 	{
 		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), ORIG_ArcTask);
@@ -819,8 +711,8 @@ namespace megaspark279
 		ArcNode *a = (ArcNode *)n;
 		const uint32_t bones = U32(a->model, 0) + 0x10;
 		int16_t c[4], ctrl[4], p2[4];
-		c[3] = 0;    // never written (only reaches the Field_Alloc block's +6)
-		p2[3] = 0;   // never written (only reaches the Field_Alloc block's +0x76)
+		c[3] = 0;
+		p2[3] = 0;
 		int32_t amp;
 		if (a->anchor == 0)
 		{
@@ -911,7 +803,6 @@ namespace megaspark279
 			S16(q, 2) = (int16_t)(S16(q, 2) + (mul32(SharedRand() - 0x4000, e) >> 18));
 			S16(q, 4) = (int16_t)(S16(q, 4) + (mul32(SharedRand() - 0x4000, e) >> 18));
 		}
-		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(held_note_arc(a, b, ArcResidue());)
 		ArcDraw(b, ArcResidue());
 		FieldFree(0x80);
@@ -931,9 +822,6 @@ namespace megaspark279
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x67F340)
-	// ------------------------------------------------------------------
 	static void ArcSet(uint32_t from_or_table, uint32_t to, uint8_t anchor, uint8_t amp_shift)
 	{
 		SpawnArc(U32((uint32_t)Caster(), 0x64), from_or_table, to, anchor, amp_shift, 7);
@@ -945,7 +833,7 @@ namespace megaspark279
 		*(Caster() + 1) |= 0x10;
 		*(int16_t *)(Caster() + 0xC) = 0x80;
 		PrimArg arg;
-		arg.depth = 0;   // (written before every play)
+		arg.depth = 0;
 		arg.morph = 0;
 		int32_t c = m->counter;
 		if ((uint32_t)c < 0x20)
@@ -965,7 +853,6 @@ namespace megaspark279
 					BonePoint((const int16_t *)(ANCHOR_0 + 8 * i), arg.m.t);
 					RotX(*(const int16_t *)(Caster() + 0xC), &arg.m);
 					ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-					// 30 fps layer: see mag279_mega_spark_held.inc
 					FX_HELD(held_note_main(m, REC_RING, i, &arg);)
 					prim::play((prim::Layout *)m->ring[i], PrimCallback, (int)&arg, 0);
 				}
@@ -989,7 +876,6 @@ namespace megaspark279
 				ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 				arg.morph = TexBase() + BUF_Morph;
 				arg.depth = -0x80;
-				// 30 fps layer: see mag279_mega_spark_held.inc
 				FX_HELD(held_note_main(m, REC_ORB, 0, &arg);)
 				prim::play((prim::Layout *)m->orb, PrimCallback, (int)&arg, 0);
 			}
@@ -1008,7 +894,7 @@ namespace megaspark279
 			int32_t tmp[3];
 			BonePoint((const int16_t *)POINT_Orb, tmp);
 			int16_t src[4] = { (int16_t)tmp[0], (int16_t)tmp[1], (int16_t)tmp[2], (int16_t)MainSrcPad() };
-			int16_t dst[4] = { 0, 0, 0, 0 };   // 4th word: replaced by the bolt's dt
+			int16_t dst[4] = { 0, 0, 0, 0 };
 			int16_t strike;
 			if ((uint32_t)c >= 4 && (uint32_t)c <= (uint32_t)((int32_t)m->ntargets + 4))
 			{
@@ -1025,7 +911,7 @@ namespace megaspark279
 			vel[0] = (int16_t)((CrtRand() & 0xFF) - 0x80);
 			vel[1] = (int16_t)(-0x40 - (CrtRand() & 0x7F));
 			vel[2] = (int16_t)((CrtRand() & 0x3F) + 0x40);
-			vel[3] = 0;   // replaced by the bolt's branches
+			vel[3] = 0;
 			SpawnBolt(vel, src, dst, nullptr, 0, 0, 0x200, strike, 2);
 		}
 		if (m->counter == 0) BdPlaySE(SOUND_Spark, 0, 0x80);
@@ -1048,14 +934,10 @@ namespace megaspark279
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x67F090)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		g_master_esp = (uint32_t)_AddressOfReturnAddress();
-		g_bolt_pt_pad = 0;   // tick-start residue at the bolts' entry esp - 0x22 (see the module comment)
-		// 30 fps layer: see mag279_mega_spark_held.inc
+		g_bolt_pt_pad = 0;
 		FX_HELD(held_note_master();)
 		MasterNode *mn = (MasterNode *)n;
 		if (mn->arena)
@@ -1082,7 +964,6 @@ namespace megaspark279
 			Memset32(&m->counter, 0, 0x2CA);
 			for (int32_t k = 0; k < 8; k++)
 				S16(TexBase(), BUF_Profile + 2 * k) = (int16_t)ComputeSin(shl32(k, 11) / 7);
-			// 0x67F310: every point free, no cached point
 			for (uint32_t p = TexBase() + BUF_Points + 6, i = 0; i < 0x180; i++, p += 0x28) S16(p, 0) = -1;
 			U32(TexBase(), BUF_PointCache) = 0;
 			const ActionData *act = Ctx()->actions;
@@ -1126,7 +1007,6 @@ namespace megaspark279
 		register_port(megaspark279::ORIG_ArcTask, (void *)megaspark279::ArcTask, "279 ArcTask", 279);
 		register_port(megaspark279::ORIG_PrimTask, (void *)megaspark279::PrimTask, "279 PrimTask", 279);
 		register_port(megaspark279::ORIG_SparkTask, (void *)megaspark279::SparkTask, "279 SparkTask", 279);
-		// 30 fps layer: see mag279_mega_spark_held.inc
 		FX_HELD(megaspark279::register_mag279_held();)
 	}
 }

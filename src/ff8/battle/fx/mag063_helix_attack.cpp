@@ -14,44 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 63: Helix's beam attack (enemy attack 361 of kernel.bin, no name; Helix c0m125; no other
-// kernel.bin entry uses effect 63; MAG_063_*).
-//
-// Structure (setup MAG_063_UNK2 0x6E6BE0 -> 0x6E6C10, file loader 0x6E6BF0 = mag062.tim (0x1354A1C);
-// the setup keeps the cast context, the CASTER's and the first TARGET's entities, starts camera
-// animation 0x134BFA0 and queues the TIM; its root queue 0x25450D0 holds one 0x10-byte node):
-//   RootTask (0x6E6CB0) - alternates the packet arena (magic buffer + 0x1150 / + 0x11150); on counter 1
-//     sets up the master pool (1 x 0xE08 at magic buffer + 0x348) and the particle pool (30 x 0x1C at
-//     the magic buffer) and starts the master; runs the master queue then the particle queue; ends
-//     when the master queue is empty.
-//   Master (0x6E6E10) - node 0xE08, draws THEN updates (counter 0..0x40):
-//     every tick the screen flash level (0 / ramp 0..0x6BD on 16..19 / 0x8FC / ramp down from 0x34);
-//     two points on the caster (P1 / P2: bone 1 offsets 0x13549F8 / 0x1354A00 through the caster's
-//     current pose, 0x6E7710) and their midpoint;
-//     counters 0..0x2C: layout 0x134E154 (+0x1E8) at the midpoint; 0..0x2F: layout 0x134F87C twice
-//       (+0x18 at P1, +0x100 at P2);
-//     counters 0x10..0x23: two beams (0x6E7790, prim model 0x134C2FC from P1 / P2 to the target's
-//       default effect position, turned / stretched by a cosine / sine curve of the counter, fading
-//       in over 8 ticks);
-//     counters 0x24..0x2B: two straight beams from P1 / P2 fading out;
-//     counters 0x25..0x28: a white full-screen tile 0x1000 -> 0 (0x6E7A30);
-//     counters 0x24..0x26: 10 particles a tick (0x6E7970) at the target's position;
-//     counters 0x24..0x3F: layout 0x1350048 (+0x888) at the target, turned to face the midpoint and
-//       moved 500 towards it (texture v scroll of its first object: 32 a tick);
-//     counter 0: sound 0x13549F4; 0x36: damage (first action, first target); ends at 0x40.
-//   PartCallback (0x6E7450) - one object of a layout (the shared player 0x701970): vertex-frame
-//     blend (MAG_017_sub_701390, into magic buffer + 0x21150), rotation 0x7015B0 (flag 0x40000) or
-//     0x701310, the offset through the parameter matrix, the rotation composed with it unless flag
-//     0x8000, scale (diagonal matrix product with flag 0x100, else scale3DMatrix), depth 0xFF80,
-//     texture v scroll for objects marked '1' in the parameter's object string; drawn by 0x701DD0.
-//   Particle (0x6E7970) - node 0x1C, draws THEN updates: sprite sequence 0x134C1B8 frame 0..11 at its
-//     position (TransformCameraByShadowRotation), then position += velocity, velocity += acceleration.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// The effect reads the target entity's position words +0x1C / +0x20 and never moves an entity.
-// Module globals: 0x25450A0..0x2545100 (file, context, caster / target entities, master / particle /
-// root queues, root pool, packet cursor 0x25450F0, magic buffer base 0x25450FC). The pools, the
-// packet arenas and the vertex blend buffer are in the magic buffer.
-
 #include "mag_common.h"
 
 namespace ff8fx
@@ -61,94 +23,82 @@ namespace helix063
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25450A4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25450A8); }         // caster entity (setup)
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25450AC); }         // first target's entity (setup)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x25450A8); }
+	inline uint8_t *&Target() { return var<uint8_t *>(0x25450AC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25450F0); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25450FC); }          // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x25450B0; }           // pool: magic buffer + 0x348, 1 x 0xE08
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x25450C0; }        // pool: magic buffer, 30 x 0x1C
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25450FC); }
+	inline TaskQueue *QMaster() { return (TaskQueue *)0x25450B0; }
+	inline TaskQueue *QParticles() { return (TaskQueue *)0x25450C0; }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6E6CB0;
 	static const uint32_t ORIG_MasterTask = 0x6E6E10;
 	static const uint32_t ORIG_ParticleTask = 0x6E7970;
-	static const uint32_t MODEL_Ring = 0x134F87C;     // prim-model layout data (0xE8-byte layouts, at P1 / P2)
-	static const uint32_t MODEL_Core = 0x134E154;     // prim-model layout data (0x6A0-byte layout, midpoint)
-	static const uint32_t MODEL_Impact = 0x1350048;   // prim-model layout data (0x580-byte layout, target)
-	static const uint32_t MODEL_Beam = 0x134C2FC;     // prim model of a beam
-	static const uint32_t SEQ_Particle = 0x134C1B8;   // sprite sequence of a particle (12 frames)
-	static const uint32_t POINT_A = 0x13549F8;        // caster point: bone offset x, y, z + bone index
+	static const uint32_t MODEL_Ring = 0x134F87C;
+	static const uint32_t MODEL_Core = 0x134E154;
+	static const uint32_t MODEL_Impact = 0x1350048;
+	static const uint32_t MODEL_Beam = 0x134C2FC;
+	static const uint32_t SEQ_Particle = 0x134C1B8;
+	static const uint32_t POINT_A = 0x13549F8;
 	static const uint32_t POINT_B = 0x1354A00;
-	static const uint32_t OBJS_Plain = 0x1354A08;     // per-object flags of the layouts: '1' = v scroll
+	static const uint32_t OBJS_Plain = 0x1354A08;
 	static const uint32_t OBJS_Impact = 0x1354A28;
 	static const void *const SOUND_Start = (const void *)0x13549F4;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(x, y); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }   // MAG_063_sub_701220
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }   // MAG_063_sub_701270
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }  // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_sub_7015B0
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatMulScaleDiag(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(0x56C220)(a, b); }    // sub_56C220: a = a * b (3x3)
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	// MAG_063_sub_701DD0: prim-model set draw (header 0x6C bytes)
+	inline void MatMulScaleDiag(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(0x56C220)(a, b); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
-	// MAG_063_sub_7040B0: full-screen tile, colour * level (4.12)
 	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-	// BuildOrthonormalBasis (0x50CBA0): 3x3 basis of the direction v (int32 x3), returns |v|
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	// MAG_063_sub_6A6020: unit direction of (pitch, yaw) as int16 x3 (x = sin yaw cos pitch, y = -sin pitch, z = -cos yaw cos pitch)
 	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes (0x25450E0)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		uint8_t started;   // +0x0E pools set up, master started
-		uint8_t arena;     // +0x0F packet arena parity
+		int16_t counter;
+		uint8_t started;
+		uint8_t arena;
 	};
-	struct MasterNode // pool of 1 node of 0xE08 bytes
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];    // +0x10 the target's default effect position (x, y, z, height)
-		uint8_t ring1[0xE8];   // +0x18 prim-model layout (at P1)
-		uint8_t ring2[0xE8];   // +0x100 prim-model layout (at P2)
-		uint8_t core[0x6A0];   // +0x1E8 prim-model layout (midpoint)
-		uint8_t impact[0x580]; // +0x888 prim-model layout (target)
+		int16_t pos[4];
+		uint8_t ring1[0xE8];
+		uint8_t ring2[0xE8];
+		uint8_t core[0x6A0];
+		uint8_t impact[0x580];
 	};
-	struct ParticleNode // pool of 30 nodes of 0x1C bytes
+	struct ParticleNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t vel[3];    // +0x12
-		int8_t acc[3];     // +0x18
-		int8_t frame;      // +0x1B 0..11
+		int16_t pos[3];
+		int16_t vel[3];
+		int8_t acc[3];
+		int8_t frame;
 	};
-	// the prim-player callback's parameter block (a stack block of the master)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 anchor matrix (camera * placement)
-		uint32_t objs;     // +0x20 per-object flag string
-		int16_t depth;     // +0x24 prim header +0x18
-		int16_t scroll;    // +0x26 v scroll ('1' objects: low byte & 0x7F)
+		Mat4x3 m;
+		uint32_t objs;
+		int16_t depth;
+		int16_t scroll;
 		uint8_t pad28[8];
-		uint32_t morph;    // +0x30 blended vertex frames
+		uint32_t morph;
 	};
-	// the master's two caster points
 	struct Points
 	{
 		int16_t p1[3];
@@ -158,9 +108,6 @@ namespace helix063
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(MasterNode) == 0xE08 && sizeof(ParticleNode) == 0x1C, "Helix nodes");
 	static_assert(sizeof(PrimArg) == 0x34, "Helix prim block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6E7450): one object of a layout
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -199,7 +146,6 @@ namespace helix063
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		GteSetRotMatrixCtrl(&arg->m);
 		GteLoadV0(off);
@@ -250,9 +196,6 @@ namespace helix063
 		FieldFree(0x6C);
 	}
 
-	// ------------------------------------------------------------------
-	// Caster point (0x6E7710): bone offset through the caster's current pose
-	// ------------------------------------------------------------------
 	static void CasterPoint(uint32_t data, int16_t *out)
 	{
 		uint8_t *caster = Caster();
@@ -268,9 +211,6 @@ namespace helix063
 		GteStoreIR123(out);
 	}
 
-	// ------------------------------------------------------------------
-	// Beam angles (0x6E7920): (x, y, z) -> angles {pitch & 0xFFF, -yaw, 0}
-	// ------------------------------------------------------------------
 	static void BeamAngles(int32_t dx, int32_t dy, int32_t dz, int16_t *ang)
 	{
 		const int32_t yaw = CartesianToGameAngle(dx, dz);
@@ -280,10 +220,6 @@ namespace helix063
 		ang[2] = 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Beam (0x6E7790): the beam model from `from` to `to`, stretched by len (4.12) along the
-	// direction, turned by tilt (x) and turn (y), v scroll, fade (0 = none)
-	// ------------------------------------------------------------------
 	static void Beam(const int16_t *from, const int16_t *to, int32_t scroll, int32_t tilt, int32_t turn, int32_t len, int32_t fade)
 	{
 		const int32_t dx = (int32_t)to[0] - from[0];
@@ -333,9 +269,6 @@ namespace helix063
 		FieldFree(0xBC);
 	}
 
-	// ------------------------------------------------------------------
-	// Full-screen tile fade (0x6E7A30): step i of fade-in (in steps), hold, fade-out (out steps)
-	// ------------------------------------------------------------------
 	static int32_t TileLevel(int32_t i, int32_t in, int32_t hold, int32_t out)
 	{
 		const int32_t dout = out ? out : 1;
@@ -349,13 +282,12 @@ namespace helix063
 		PacketCursor() = Tile(r, g, b, TileLevel(i, in, hold, out), PacketCursor());
 	}
 
-	// counters 0x10..0x23: the curve of the two beams (k = counter - 0x10)
 	struct BeamCurve { int32_t tilt, turn, len, fade; };
 	static BeamCurve Curve(int32_t k)
 	{
 		BeamCurve c;
 		const uint32_t x = (uint32_t)k << 12;
-		const int32_t a = (int32_t)((uint32_t)(((uint64_t)x * 0xCCCCCCCDull) >> 32) >> 4); // x / 20
+		const int32_t a = (int32_t)((uint32_t)(((uint64_t)x * 0xCCCCCCCDull) >> 32) >> 4);
 		c.fade = (uint32_t)k < 8 ? (int32_t)(0x1000 - (x >> 3)) : 0;
 		const int32_t q = a >> 2;
 		ComputeCos(q);
@@ -369,7 +301,6 @@ namespace helix063
 		return c;
 	}
 
-	// particle draw (0x6E7970 before its update): sprite frame at the node's position
 	static void ParticleDraw(ParticleNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
@@ -391,13 +322,9 @@ namespace ff8fx
 {
 namespace helix063
 {
-	// ------------------------------------------------------------------
-	// Particle (0x6E7970)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		// 30 fps layer: see mag063_helix_attack_held.inc
 		FX_HELD(held_note_particle(p);)
 		ParticleDraw(p);
 		p->frame++;
@@ -411,7 +338,6 @@ namespace helix063
 		return 0;
 	}
 
-	// x / -12 as the original computes it (0xD5555555 multiply, sar 1, sign fix)
 	static int8_t Drag(int16_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * (int64_t)(int32_t)0xD5555555) >> 32);
@@ -448,9 +374,6 @@ namespace helix063
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6E6E10)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
@@ -468,7 +391,7 @@ namespace helix063
 		mid[1] = (int16_t)(((int32_t)pts.p2[1] + pts.p1[1]) / 2);
 		mid[2] = (int16_t)(((int32_t)pts.p2[2] + pts.p1[2]) / 2);
 		PrimArg arg;
-		arg.scroll = 0; // (written for the impact layout only; the other layouts have no '1' object)
+		arg.scroll = 0;
 		ff8fx::fill<(sizeof(arg.pad28))>(arg.pad28, 0);
 		if ((uint16_t)m->counter < 0x2D)
 		{
@@ -480,7 +403,6 @@ namespace helix063
 			arg.depth = (int16_t)0xFF80;
 			arg.objs = OBJS_Plain;
 			arg.morph = TexBase() + 0x21150;
-			// 30 fps layer: see mag063_helix_attack_held.inc
 			FX_HELD(held_note_play((prim::Layout *)m->core, &arg);)
 			prim::play((prim::Layout *)m->core, PartCallback, (int)&arg, 0);
 		}
@@ -494,7 +416,6 @@ namespace helix063
 			arg.depth = (int16_t)0xFF80;
 			arg.objs = OBJS_Plain;
 			arg.morph = TexBase() + 0x21150;
-			// 30 fps layer: see mag063_helix_attack_held.inc
 			FX_HELD(held_note_play((prim::Layout *)m->ring1, &arg);)
 			prim::play((prim::Layout *)m->ring1, PartCallback, (int)&arg, 0);
 			RotY(0, &arg.m);
@@ -502,7 +423,6 @@ namespace helix063
 			arg.m.t[1] = pts.p2[1];
 			arg.m.t[2] = pts.p2[2];
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-			// 30 fps layer: see mag063_helix_attack_held.inc
 			FX_HELD(held_note_play((prim::Layout *)m->ring2, &arg);)
 			prim::play((prim::Layout *)m->ring2, PartCallback, (int)&arg, 0);
 		}
@@ -511,10 +431,8 @@ namespace helix063
 		{
 			const BeamCurve cv = Curve(k);
 			const int32_t scroll = shl32(k, 5);
-			// 30 fps layer: see mag063_helix_attack_held.inc
 			FX_HELD(held_note_beam(m, &pts, pts.p1, scroll, -cv.tilt, cv.turn, cv.len, cv.fade);)
 			Beam(pts.p1, m->pos, scroll, -cv.tilt, cv.turn, cv.len, cv.fade);
-			// 30 fps layer: see mag063_helix_attack_held.inc
 			FX_HELD(held_note_beam(m, &pts, pts.p2, scroll, cv.tilt, -cv.turn, cv.len, cv.fade);)
 			Beam(pts.p2, m->pos, scroll, cv.tilt, -cv.turn, cv.len, cv.fade);
 		}
@@ -523,7 +441,6 @@ namespace helix063
 		{
 			if ((uint32_t)(e - 1) < 4)
 			{
-				// 30 fps layer: see mag063_helix_attack_held.inc
 				FX_HELD(held_note_tile(m, e - 1);)
 				FadeTile(e - 1, 0xFF, 0xFF, 0xFF, 0, 1, 3);
 			}
@@ -531,10 +448,8 @@ namespace helix063
 			{
 				const int32_t fade = (int32_t)((uint32_t)shl32(e, 12) >> 3);
 				const int32_t scroll = shl32(e, 5);
-				// 30 fps layer: see mag063_helix_attack_held.inc
 				FX_HELD(held_note_beam(m, &pts, pts.p1, scroll, 0, 0, 0x1000, fade);)
 				Beam(pts.p1, m->pos, scroll, 0, 0, 0x1000, fade);
-				// 30 fps layer: see mag063_helix_attack_held.inc
 				FX_HELD(held_note_beam(m, &pts, pts.p2, scroll, 0, 0, 0x1000, fade);)
 				Beam(pts.p2, m->pos, scroll, 0, 0, 0x1000, fade);
 			}
@@ -553,7 +468,6 @@ namespace helix063
 			arg.objs = OBJS_Impact;
 			arg.scroll = (int16_t)shl32(e, 5);
 			arg.morph = TexBase() + 0x21150;
-			// 30 fps layer: see mag063_helix_attack_held.inc
 			FX_HELD(held_note_play((prim::Layout *)m->impact, &arg);)
 			prim::play((prim::Layout *)m->impact, PartCallback, (int)&arg, 0);
 		}
@@ -568,13 +482,9 @@ namespace helix063
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6E6CB0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag063_helix_attack_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -617,7 +527,6 @@ namespace helix063
 		register_port(helix063::ORIG_RootTask, (void *)helix063::RootTask, "H063 RootTask", 63);
 		register_port(helix063::ORIG_MasterTask, (void *)helix063::MasterTask, "H063 MasterTask", 63);
 		register_port(helix063::ORIG_ParticleTask, (void *)helix063::ParticleTask, "H063 ParticleTask", 63);
-		// 30 fps layer: see mag063_helix_attack_held.inc
 		FX_HELD(register_mag063_held();)
 	}
 }

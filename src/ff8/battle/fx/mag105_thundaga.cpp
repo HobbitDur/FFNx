@@ -14,29 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 105: Thundaga (spell, MAG_105_*, file mag104).
-//
-// Structure (setup MAG_105_THUNDAGA 0x6D3DB0 -> _Init 0x6D3DE0, file loader 0x6D3DC0 = mag104.tim):
-//   RootTask (0x6D3E50) - alternates the packet arenas (magic buffer + 0x8C1C / + 0x20C1C and the
-//     second arena + 0x20C1C / + 0x38C1C), computes the effect camera, at counter 1 (of a 46-tick
-//     cycle) sets up the pools and spawns the bolt of the next action; updates and draws the
-//     debris triangles (310 slots in the magic buffer), runs the bolt, shard and particle queues,
-//     sets the screen flash; when everything is over queues the texture restore.
-//   Bolt (0x6D43B0) - node 0x884: the lightning model, a prim-model layout (0x13009C0) played by
-//     the shared player 0x701970 with the callback BoltPart (0x6D4910) that draws each object as
-//     a prim model or as UV-scrolled textured quads (0x6D4BD0); flashes the target's colour to
-//     white at frames 2, 30, 39; screen flash ramp; sound at 0, fades at 3, 30, 39. Frame 28: the
-//     screen shatters: 14 shard meshes (exe data) are scaled, recentred and thrown, the scene is
-//     rendered into a 128 x 128 texture (0x6D5620); frames 34..41: rings of 8 sparks; frames
-//     45..56: flash sprites; frame 64: damage, end.
-//   Shard (0x6D5AD0) - a mesh flying and spinning; when its life ends it breaks into debris
-//     (one triangle per polygon, 0x6D5C00).
-//   Spark (0x6D6100), Flash (0x6D61C0) - sprite sequences; WaitTexRestore (0x6D62B0).
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2543CF0..0x2543DF0 (second arena, flash level, render-to-texture prims,
-// texture file / base, effect camera, context, root pool, packet cursor 0x2543DAC, queues);
-// pools, debris and the morph vertex buffer are in the magic buffer; the shard meshes are exe
-// data (0x130E55C..0x131159C) rewritten at frame 28.
+// Effect 105: Thundaga
 
 #include "mag_common.h"
 
@@ -47,21 +25,20 @@ namespace thundaga105
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543D4C); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&TexBase() { return var<uint8_t *>(0x2543D4C); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2543D88); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2543DAC); }
-	inline uint32_t &Arena2() { return var<uint32_t>(0x2543CF0); }          // second arena (offscreen model render)
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2543CF4); }        // screen flash, max of the bolts
+	inline uint32_t &Arena2() { return var<uint32_t>(0x2543CF0); }
+	inline int32_t &FlashLevel() { return var<int32_t>(0x2543CF4); }
 	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2543D68); }
 	inline TaskQueue &RootQueue() { return var<TaskQueue>(0x2543DE0); }
-	inline TaskQueue &BoltQueue() { return var<TaskQueue>(0x2543DD0); }     // pool: magic buffer, 3 x 0x884
-	inline TaskQueue &ShardQueue() { return var<TaskQueue>(0x2543DC0); }    // pool: + 0x198C, 0xE x 0x3C
-	inline TaskQueue &SparkQueue() { return var<TaskQueue>(0x2543DB0); }    // pool: + 0x1CD4, 0x20 x 0x2C
-	static uint8_t *const PRIM_Env = (uint8_t *)0x2543CF8;    // DR_ENV of the offscreen render
-	static uint8_t *const PRIM_Offset = (uint8_t *)0x2543D40; // draw offset
+	inline TaskQueue &BoltQueue() { return var<TaskQueue>(0x2543DD0); }
+	inline TaskQueue &ShardQueue() { return var<TaskQueue>(0x2543DC0); }
+	inline TaskQueue &SparkQueue() { return var<TaskQueue>(0x2543DB0); }
+	static uint8_t *const PRIM_Env = (uint8_t *)0x2543CF8;
+	static uint8_t *const PRIM_Offset = (uint8_t *)0x2543D40;
 	static int16_t *const RECT_Offset = (int16_t *)0x2543D50;
-	static uint8_t *const PRIM_Area = (uint8_t *)0x2543D58;   // draw area
+	static uint8_t *const PRIM_Area = (uint8_t *)0x2543D58;
 
 	static const uint32_t ORIG_RootTask = 0x6D3E50;
 	static const uint32_t ORIG_BoltTask = 0x6D43B0;
@@ -69,13 +46,12 @@ namespace thundaga105
 	static const uint32_t ORIG_SparkTask = 0x6D6100;
 	static const uint32_t ORIG_FlashTask = 0x6D61C0;
 	static const uint32_t ORIG_WaitTexRestore = 0x6D62B0;
-	static const uint32_t MODEL_Bolt = 0x13009C0;          // prim-model layout of the lightning
-	static const uint8_t *const BOLT_QuadParts = (const uint8_t *)0x1312660; // [object] != 0: UV-scrolled quads
+	static const uint32_t MODEL_Bolt = 0x13009C0;
+	static const uint8_t *const BOLT_QuadParts = (const uint8_t *)0x1312660;
 	static const void *const SOUND_Thundaga = (const void *)0x131265C;
 	static const uint32_t SEQ_Spark = 0x13115DC;
 	static const uint32_t SEQ_Flash = 0x131136C;
 	static const int DEBRIS_COUNT = 0x136;
-	// shard meshes: destination (rewritten) / source pairs
 	static const uint32_t SHARD_MESH[14][2] = {
 		{ 0x130E55C, 0x130E86C }, { 0x130E8E4, 0x130EC34 }, { 0x130ECB4, 0x130EE84 }, { 0x130EED4, 0x130F12C },
 		{ 0x130F18C, 0x130F4DC }, { 0x130F55C, 0x130F7C4 }, { 0x130F824, 0x130FA7C }, { 0x130FADC, 0x130FD34 },
@@ -85,109 +61,102 @@ namespace thundaga105
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }        // GTE_MatrixMultiply
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	inline void MatrixMultiplyVector(const void *m, const void *in, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C4F0)(m, in, out); }
 	inline uint32_t RenderGeometry(uint32_t model, void *header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, header, ot, mode, cursor); }
 	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }  // Call_Bs_ParseCamera
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
 	inline void SetDrawEnvPrim(void *prim, uint32_t env) { fn<void (__cdecl *)(void *, uint32_t)>(0x45C0F0)(prim, env); }
 	inline void SetDrawAreaPrim(void *prim, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(0x45C940)(prim, rect); }
 	inline void SetDrawOffsetPrim(void *prim, const int16_t *xy) { fn<void (__cdecl *)(void *, const int16_t *)>(0x45C9B0)(prim, xy); }
-	// software GTE
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteLoadV0FromDwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = R * V0
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }   // IR = R * IR
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteLoadIRFromMatrixColumn(const void *col) { fn<void (__cdecl *)(const void *)>(0x45E180)(col); }
 	inline void GteStoreIRToMatrixColumn(void *col) { fn<void (__cdecl *)(void *)>(0x45E470)(col); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }  // GTE_ReadOTZ
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }  // someCameraWork_45DD60
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }            // set_unk_1CA8A28
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }                     // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x1C bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C 0..45, a bolt spawn at 1
-		uint8_t action;   // +0x0E next action
+		int16_t counter;
+		uint8_t action;
 		uint8_t pad0F;
-		void *last_bolt;  // +0x10
-		uint8_t state;    // +0x14 0 = not started, 1 = running, 2 = texture restore
+		void *last_bolt;
+		uint8_t state;
 		uint8_t pad15[3];
-		uint32_t arena;   // +0x18 packet arena parity
+		uint32_t arena;
 	};
-	struct BoltNode // pool of 3 nodes of 0x884 bytes
+	struct BoltNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C frame
-		int16_t action;    // +0x0E action index
-		uint8_t *entity;   // +0x10 target entity
-		uint32_t colour;   // +0x14 the target's colour word (entity + 0x28) at the spawn
-		int32_t scale;     // +0x18 ((target size / 2) + 0xE86) / 2
-		uint8_t layout[0x868]; // +0x1C prim-model layout (prim::Layout: data, frame, state)
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		uint32_t colour;
+		int32_t scale;
+		uint8_t layout[0x868];
 	};
-	struct ShardNode // pool of 0xE nodes of 0x3C bytes
+	struct ShardNode
 	{
 		TaskNode hdr;
-		int16_t life;      // +0x0C ticks left
+		int16_t life;
 		int16_t pad0E;
-		int16_t pos[4];    // +0x10
-		int16_t vel[4];    // +0x18 1/16 units per tick
-		int16_t acc[4];    // +0x20 added to vel every tick
-		int16_t ang[4];    // +0x28 rotation angles
-		int16_t angvel[4]; // +0x30
-		uint8_t *mesh;     // +0x38 prim model (recentred shard mesh)
+		int16_t pos[4];
+		int16_t vel[4];
+		int16_t acc[4];
+		int16_t ang[4];
+		int16_t angvel[4];
+		uint8_t *mesh;
 	};
-	struct SpriteNode // Spark and Flash: pool of 0x20 nodes of 0x2C bytes
+	struct SpriteNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C sequence frame
-		int16_t end;       // +0x0E
-		uint32_t seq;      // +0x10 sprite sequence
-		int16_t pos[3];    // +0x14
-		int16_t size;      // +0x1A
-		int16_t vel[4];    // +0x1C (Spark)
-		int16_t acc[4];    // +0x24 (Spark) added to vel every tick
+		int16_t counter;
+		int16_t end;
+		uint32_t seq;
+		int16_t pos[3];
+		int16_t size;
+		int16_t vel[4];
+		int16_t acc[4];
 	};
-	struct WaitNode { TaskNode hdr; int16_t counter; int16_t done; uint8_t pad10[0x1C]; }; // done: set by the restore task
-	// debris triangle (magic buffer + 0x2A24, 0x136 slots of 0x50 bytes; free when size is 0)
+	struct WaitNode { TaskNode hdr; int16_t counter; int16_t done; uint8_t pad10[0x1C]; };
 	struct Debris
 	{
-		int16_t pos[3];    // +0x00
-		int16_t size;      // +0x06 0x1000 at the spawn, dies at 0x400 or less
-		int16_t vel[3];    // +0x08 1/16 units per tick, y bounces at 0
-		uint16_t clut;     // +0x0E
-		int16_t acc[3];    // +0x10
-		uint16_t tpage;    // +0x16
-		int16_t v[3][4];   // +0x18 corners relative to pos, 4th word = the corner's UV
-		uint32_t rgb[3];   // +0x30 (+0x33 = GPU code 0x34, gouraud textured triangle)
-		int16_t rot[9];    // +0x3C spin applied to the corners every tick
-		int16_t dsize;     // +0x4E
+		int16_t pos[3];
+		int16_t size;
+		int16_t vel[3];
+		uint16_t clut;
+		int16_t acc[3];
+		uint16_t tpage;
+		int16_t v[3][4];
+		uint32_t rgb[3];
+		int16_t rot[9];
+		int16_t dsize;
 	};
-	// argument of the bolt's part callback (the bolt task's stack)
 	struct BoltArg
 	{
-		int16_t pos[4];    // +0x00 effect anchor x, target height, z
-		uint8_t *morph;    // +0x08 vertex buffer of the morphing parts (magic buffer + 0x2254)
-		int32_t scale[4];  // +0x0C
-		const uint8_t *quad_parts; // +0x1C
+		int16_t pos[4];
+		uint8_t *morph;
+		int32_t scale[4];
+		const uint8_t *quad_parts;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x1C && sizeof(BoltNode) == 0x884 && sizeof(ShardNode) == 0x3C && sizeof(SpriteNode) == 0x2C && sizeof(WaitNode) == 0x2C, "Thundaga nodes");
@@ -196,14 +165,12 @@ namespace thundaga105
 	inline Debris *DebrisSlots() { return (Debris *)(TexBase() + 0x2A24); }
 	inline int16_t Sar16(int16_t v, int n) { return (int16_t)(v >> n); }
 
-	// Effect_Memset32_wrapper (0x701200): `count` dwords
 	static void FillDwords(void *dst, uint32_t value, uint32_t count)
 	{
 		uint32_t *d = (uint32_t *)dst;
 		for (uint32_t k = 0; k < count; k++) d[k] = value;
 	}
 
-	// x / -10 (0x99999999, >> 2)
 	static int16_t DivNeg10(int16_t v)
 	{
 		int32_t x = v;
@@ -213,14 +180,12 @@ namespace thundaga105
 		return (int16_t)hi;
 	}
 
-	// x / 3 (0x55555556)
 	static int32_t Div3(int32_t x)
 	{
 		int32_t hi = (int32_t)(((int64_t)x * 0x55555556) >> 32);
 		return hi + (int32_t)((uint32_t)hi >> 31);
 	}
 
-	// MAG_003_sub_6D5940: rotation about the X axis (translation and pad untouched)
 	static void RotX(int16_t angle, Mat4x3 *m)
 	{
 		int32_t s = ComputeSin(angle);
@@ -246,10 +211,6 @@ namespace ff8fx
 {
 namespace thundaga105
 {
-	// ------------------------------------------------------------------
-	// Debris triangles
-	// ------------------------------------------------------------------
-	// size step, move (1/16 units), y bounce at 0 and acceleration; false = the debris dies
 	static bool DebrisMove(Debris *e)
 	{
 		e->size = (int16_t)(e->size + e->dsize);
@@ -270,7 +231,6 @@ namespace thundaga105
 		return true;
 	}
 
-	// MAG_105_sub_6D40E0: spin, shrink and move every debris; returns how many are alive
 	static int32_t DebrisUpdate()
 	{
 		int32_t alive = 0;
@@ -290,11 +250,9 @@ namespace thundaga105
 		return alive;
 	}
 
-	// MAG_105_sub_6D41E0: every debris of `slots` as a gouraud textured triangle scaled by its size
 	static uint32_t DebrisDraw(const Debris *slots, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x64);
-		// +0x00 scale matrix (+0x14 translation), +0x20 camera, +0x40 camera * scale, +0x60 OTZ
 		*(int16_t *)(h + 0xE) = 0;
 		*(int16_t *)(h + 0xC) = 0;
 		*(int16_t *)(h + 0xA) = 0;
@@ -356,13 +314,10 @@ namespace thundaga105
 		return cursor;
 	}
 
-	// MAG_105_sub_6D5CF0: one debris triangle from corners i0 i1 i2 of the breaking shard (work
-	// block w: +0 polygon cursor, +4 vertices, +8 position, +0x10 velocity, +0x18 acceleration,
-	// +0x20 rotation, +0x40 rotated corners); nothing when every slot is taken
 	static void DebrisSpawn(uint8_t *w, uint32_t i0, uint32_t i1, uint32_t i2, uint32_t c0, uint32_t c1, uint32_t c2,
 		uint16_t a8, uint16_t a9, uint16_t a10, uint16_t a11, uint16_t a12)
 	{
-		(void)a8; // (passed, never read)
+		(void)a8;
 		Debris *e = DebrisSlots();
 		if (e->size != 0)
 		{
@@ -419,7 +374,6 @@ namespace thundaga105
 		e->dsize = (int16_t)(-100 - (CrtRand() & 0x7F));
 	}
 
-	// sub_6D5C80: the mesh's triangles (records of 0x14 bytes)
 	static void BreakTriangles(uint8_t *w)
 	{
 		uint8_t *pl = *(uint8_t **)w;
@@ -437,7 +391,6 @@ namespace thundaga105
 		*(uint8_t **)w = pl;
 	}
 
-	// sub_6D5F30: the mesh's quads (records of 0x1C bytes): one triangle each (corners 0, 1, 2)
 	static void BreakQuads(uint8_t *w)
 	{
 		uint8_t *pl = *(uint8_t **)w;
@@ -455,7 +408,6 @@ namespace thundaga105
 		*(uint8_t **)w = pl;
 	}
 
-	// sub_6D5C00: a shard breaks into debris triangles
 	static void ShardBreak(const int16_t *pos, const int16_t *vel, const int16_t *acc, const int16_t *angles, uint8_t *mesh)
 	{
 		uint8_t *w = (uint8_t *)FieldAlloc(0x58);
@@ -471,13 +423,9 @@ namespace thundaga105
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6D3E50)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag105_thundaga_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -525,7 +473,6 @@ namespace thundaga105
 		if (r->state == 1)
 		{
 			debris = DebrisUpdate();
-			// 30 fps layer: see mag105_thundaga_held.inc
 			FX_HELD(held_note_debris();)
 			PacketCursor() = DebrisDraw(DebrisSlots(), RenderOT44(), 2, PacketCursor());
 		}
@@ -558,9 +505,6 @@ namespace thundaga105
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Texture restore wait (0x6D62B0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl WaitTexRestore(TaskNode *n)
 	{
 		WaitNode *w = (WaitNode *)n;
@@ -570,10 +514,6 @@ namespace thundaga105
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Bolt parts
-	// ------------------------------------------------------------------
-	// MAG_011_sub_6D5580: vertices of keyframe k0 and k1 blended by w (4.12) into out
 	static void MorphVertices(const uint8_t *model, int32_t k0, int32_t k1, int32_t w, uint8_t *out)
 	{
 		int32_t inv = 0x1000 - w;
@@ -596,7 +536,6 @@ namespace thundaga105
 		} while (--n);
 	}
 
-	// GP0(E2) texture window word of the 4 halves at tw (+0 / +2 bytes, +4 / +6 words)
 	static uint32_t TexWindow(const uint8_t *tw)
 	{
 		uint32_t e = (uint32_t)(tw[2] & 0xF8) | 0xFFFE2000u;
@@ -609,12 +548,9 @@ namespace thundaga105
 		return e;
 	}
 
-	// screen coordinate out of range: x 0..0xA00, y 0..0x6C0
 	static inline bool OutX(const uint8_t *xy) { int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
 	static inline bool OutY(const uint8_t *xy) { int16_t v = *(const int16_t *)xy; return v < 0 || v > 0x6C0; }
 
-	// the texture window prims around a scrolled quad: window (h + 0x5C) inserted first, then the
-	// quad, then the window of h + 0x64
 	static uint8_t *QuadWindows(const uint8_t *h, uint32_t bucket, uint8_t *pk, uint8_t *p2)
 	{
 		*(uint32_t *)p2 = 0x2000000;
@@ -630,8 +566,6 @@ namespace thundaga105
 		return p3 + 0xC;
 	}
 
-	// sub_6D4C10: textured quads (records of 0x18 bytes: code/colour, 4 vertex indices, UVs),
-	// fog toward the far colour by h + 0x0C, V scrolled by h + 0x5A (wrapping by h + 0x6A)
 	static uint32_t MeshFT4(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *pl = *(uint8_t **)(h + 0x20);
@@ -701,8 +635,6 @@ namespace thundaga105
 		return (uint32_t)pk;
 	}
 
-	// sub_6D5070: gouraud textured quads (records of 0x24 bytes, colours at +0x18..+0x20), fog
-	// toward the far colour, V scrolled by h + 0x5A (wrapping by h + 0x68)
 	static uint32_t MeshGT4(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *pl = *(uint8_t **)(h + 0x20);
@@ -781,7 +713,6 @@ namespace thundaga105
 		return (uint32_t)pk;
 	}
 
-	// MAG_105_sub_6D4BD0: the model's textured quads then its gouraud quads
 	static uint32_t ScrolledMesh(uint8_t *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		uint8_t *model = *(uint8_t **)h;
@@ -791,7 +722,6 @@ namespace thundaga105
 		return MeshGT4(h, ot, mode, cursor);
 	}
 
-	// MAG_105_sub_6D4910: prim-player callback, one object of the lightning model
 	static void __cdecl BoltPart(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const BoltArg *arg = (const BoltArg *)arg_;
@@ -869,7 +799,6 @@ namespace thundaga105
 			*(int16_t *)(h + 0x68) = 0;
 			*(int16_t *)(h + 0x6A) = 0x80;
 			uint16_t frame = (uint16_t)l->frame;
-			// 30 fps layer: see mag105_thundaga_held.inc
 			FX_HELD(frame = held_part_frame(frame);)
 			*(uint16_t *)(h + 0x5A) = frame;
 			if (frame > 4) *(uint16_t *)(h + 0x5A) = 4;
@@ -879,10 +808,6 @@ namespace thundaga105
 		FieldFree(0x6C);
 	}
 
-	// ------------------------------------------------------------------
-	// Screen shatter (frame 28)
-	// ------------------------------------------------------------------
-	// MAG_278_sub_6D6070: bounding box (min x y z, max x y z) of a mesh's vertices
 	static void MeshBounds(const uint8_t *mesh, int16_t *box)
 	{
 		uint32_t left = *(const uint32_t *)(mesh + 4);
@@ -902,8 +827,6 @@ namespace thundaga105
 		} while (--left);
 	}
 
-	// MAG_105_sub_6D5FA0: the mesh's box and centre (b[6..8]), grown into the shatter box, the
-	// mesh recentred on its centre
 	static void RecentreMesh(int16_t *b, uint8_t *mesh, int16_t *all)
 	{
 		MeshBounds(mesh, b);
@@ -926,8 +849,6 @@ namespace thundaga105
 		} while (--left);
 	}
 
-	// MAG_105_sub_6D5990: shard mesh dst = GTE transform of src, recentred; the shard flies from
-	// the anchor + its centre, falling
 	static void ShardSpawn(const int16_t *anchor, uint8_t *dst, const uint8_t *src, int16_t *all)
 	{
 		ShardNode *s = (ShardNode *)AddTaskToQueue(&ShardQueue(), ORIG_ShardTask);
@@ -963,12 +884,8 @@ namespace thundaga105
 		s->angvel[2] = (int16_t)((CrtRand() & 0x7F) - 0x40);
 	}
 
-	// where the render-to-texture of the shatter draws its prims
 	struct CapturePrims { uint8_t *env, *area, *offset; int16_t *offset_xy; uint32_t arena; };
 
-	// the scene of the shatter box rendered into the 128 x 128 texture at (0x2C0, 0x100): draw
-	// environment of the other buffer, the model 0x1D989C0 (when shown) seen from above, then draw
-	// area / offset back to the texture rectangle
 	static void CaptureDraw(const int16_t *anchor, const int16_t *all, const CapturePrims &c)
 	{
 		int32_t maxx = all[3], minz = -all[2], minx = -all[0], maxz = all[5];
@@ -1012,7 +929,6 @@ namespace thundaga105
 			PacketCursor() = RenderGeometry(0x1D989C0, h, RenderOT44(), 0x10, PacketCursor());
 			FieldFree(0x2C);
 		}
-		// a black 128 x 128 quad (written, never inserted)
 		uint8_t *pk = (uint8_t *)PacketCursor();
 		PacketCursor() += 0x18;
 		*(int16_t *)(pk + 8) = 0;
@@ -1037,10 +953,6 @@ namespace thundaga105
 		InsertPrimAutoDepth(RenderOT44(), c.offset);
 	}
 
-	// ------------------------------------------------------------------
-	// Bolt (0x6D43B0)
-	// ------------------------------------------------------------------
-	// MAG_105_sub_6D6240: target colour white at frame k, half way back at k + 1, restored at k + 2
 	static void TargetFlash(uint8_t *entity, const uint8_t *colour, int32_t frame, int32_t k)
 	{
 		if (frame == k)
@@ -1069,13 +981,11 @@ namespace thundaga105
 		arg.scale[0] = p->scale;
 		arg.morph = TexBase() + 0x2254;
 		arg.quad_parts = BOLT_QuadParts;
-		// 30 fps layer: see mag105_thundaga_held.inc
 		FX_HELD(held_note_bolt(p, &arg);)
 		prim::play((prim::Layout *)p->layout, BoltPart, (int)&arg, 0);
 		TargetFlash(p->entity, (const uint8_t *)&p->colour, p->counter, 2);
 		TargetFlash(p->entity, (const uint8_t *)&p->colour, p->counter, 0x1E);
 		TargetFlash(p->entity, (const uint8_t *)&p->colour, p->counter, 0x27);
-		// screen flash: ramps up over 0..3, holds 0x800, down from 61
 		int16_t c = p->counter;
 		if (c < 4 || c > 0x3C)
 		{
@@ -1105,14 +1015,12 @@ namespace thundaga105
 			GteSetTransVector(&m);
 			for (int k = 0; k < 14; k++) ShardSpawn(arg.pos, (uint8_t *)SHARD_MESH[k][0], (const uint8_t *)SHARD_MESH[k][1], all);
 			SetScreenFlash(0, 0);
-			// 30 fps layer: see mag105_thundaga_held.inc
 			FX_HELD(held_note_capture(arg.pos, all);)
 			CapturePrims prims = { PRIM_Env, PRIM_Area, PRIM_Offset, RECT_Offset, Arena2() };
 			CaptureDraw(arg.pos, all, prims);
 		}
 		if ((uint32_t)(p->counter - 0x22) < 8 && !((p->counter - 0x22) & 1))
 		{
-			// a ring of 8 sparks at the target's height, thrown outwards, decelerating by 1/10
 			int32_t a = CrtRand();
 			for (int k = 8; k; k--, a += 0x200)
 			{
@@ -1138,7 +1046,6 @@ namespace thundaga105
 		}
 		if ((uint32_t)(p->counter - 0x2D) < 0xC && !((p->counter - 0x2D) & 1))
 		{
-			// a flash sprite somewhere in 0x800 around the target's centre
 			int16_t q[4];
 			GetDefaultEffectPosition(p->entity, q);
 			SpriteNode *f = (SpriteNode *)AddTaskToQueue(&SparkQueue(), ORIG_FlashTask);
@@ -1163,9 +1070,6 @@ namespace thundaga105
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Shard (0x6D5AD0)
-	// ------------------------------------------------------------------
 	static void ShardDraw(const ShardNode *p)
 	{
 		Mat4x3 m = {};
@@ -1183,7 +1087,6 @@ namespace thundaga105
 		FieldFree(0x58);
 	}
 
-	// position += velocity / 16, velocity += acceleration, angles += spin
 	static void ShardUpdate(ShardNode *p)
 	{
 		int16_t vx = p->vel[0], vy = p->vel[1];
@@ -1205,7 +1108,6 @@ namespace thundaga105
 	static uint32_t __cdecl ShardTask(TaskNode *n)
 	{
 		ShardNode *p = (ShardNode *)n;
-		// 30 fps layer: see mag105_thundaga_held.inc
 		FX_HELD(held_note_draw(ORIG_ShardTask, p, sizeof(ShardNode));)
 		ShardDraw(p);
 		p->life--;
@@ -1218,9 +1120,6 @@ namespace thundaga105
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x6D6100) and flash (0x6D61C0): sprite sequence `seq` at frame `counter`
-	// ------------------------------------------------------------------
 	static void SpriteDraw(const SpriteNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
@@ -1232,7 +1131,6 @@ namespace thundaga105
 		FieldFree(0xB4);
 	}
 
-	// position += velocity, velocity += acceleration (the counter steps in between)
 	static void SparkUpdate(SpriteNode *p)
 	{
 		int16_t vx = p->vel[0], vy = p->vel[1];
@@ -1252,7 +1150,6 @@ namespace thundaga105
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		// 30 fps layer: see mag105_thundaga_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkTask, p, sizeof(SpriteNode));)
 		SpriteDraw(p);
 		SparkUpdate(p);
@@ -1262,7 +1159,6 @@ namespace thundaga105
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		// 30 fps layer: see mag105_thundaga_held.inc
 		FX_HELD(held_note_draw(ORIG_FlashTask, p, sizeof(SpriteNode));)
 		SpriteDraw(p);
 		p->counter++;
@@ -1278,7 +1174,6 @@ namespace thundaga105
 		register_port(thundaga105::ORIG_ShardTask, (void *)thundaga105::ShardTask, "T105 ShardTask", 105);
 		register_port(thundaga105::ORIG_SparkTask, (void *)thundaga105::SparkTask, "T105 SparkTask", 105);
 		register_port(thundaga105::ORIG_FlashTask, (void *)thundaga105::FlashTask, "T105 FlashTask", 105);
-		// 30 fps layer: see mag105_thundaga_held.inc
 		FX_HELD(register_mag105_held();)
 	}
 }

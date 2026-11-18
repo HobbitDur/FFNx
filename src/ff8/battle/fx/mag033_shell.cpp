@@ -14,42 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 33: Shell (spell, MAG_033_*): a copy of the actor/heal effect library (see act_engine.h),
-// built like Drain (mag039_drain.cpp) / Confuse (mag036_confuse.cpp): same master, emitter, actor
-// system and stage-darkening code with the module's own globals and pools, plus a shield model and a
-// per-cast scale of the actor particles.
-//
-// Setup MAG_033_SHELL 0x866010 (runs once, not ported; file loader MAG_033_SHELL_FL 0x865FF0 = the
-// texture file mag032.tim -> 0x26C0380, uploaded by the setup, its packet arenas at file + 0 /
-// + 0x6000 / + 0xC000, file arena cursor 0x26C30E4 = file + 0xC000) plays the camera animation
-// 0x15F2E1C and creates the root queue 0x26C0470 with the master and four task pools: 0x26C2C68
-// (4 x 0x58: emitters), 0x26C29C8 (3 x 0x2A4: actor systems), 0x26C21C0 (10 x 0x2EC: shield
-// models), 0x26C2C58 (10 x 0x40: stage darkening).
-//   Master (0x866150) - camera copy 0x2793E58 (the module scratch stack 0x26C30D8 grows down from
-//     it), packet arena by tick parity (cursor 0x26C0384), bone follow, 11-state table: 0x8662C0
-//     reserves the actor pools after the arena (0x654 + 0x8340 bytes = 15 particles of 0x6C and 50
-//     actors of 0x2A0, cleared) and starts the stage darkening in (0x866350: the stage group words
-//     0x1D98992 + k * 0x2C up by 0x100 per tick to 0x400), 0x866440 one emitter per action (engine
-//     action loop 0x86B7E0 once the emitter releases the master's +0x63 hold), 0x86B820 after 10
-//     more ticks the darkening out (0x86B850: 0x400 down to 0), then waits for the queues to empty.
-//   Emitter (0x866470), one per action: bone follow + model bounds (CURE_Emitter helpers), sound
-//     0x15EBD68 at its first tick; state 0 spawns the shield model (0x86B340 -> 0x86B390, model
-//     0x15EC42C) and the actor system (0x866550 -> 0x8665A0 with the actor data 0x15F2D18, mode
-//     0x2D), state 1 releases the master at tick 30, state 2 applies the damage (the status).
-//   Shield model (0x86B390): decodes the prim-model layout and takes the target's bone 0xF1 as
-//     position and 3 x its height as scale (0x86B3F0: also the actor system's particle scale vector
-//     state +0x214), then plays the model every tick with the shared player 0x701970 and the draw
-//     callback 0x86B560 (block: camera x yaw x scale x position matrix) until it ends (0x86B4B0).
-//   Actor system (0x8665A0 -> 0x866600 / 0x86B310): the engine's particle actors (emitters and
-//     particles, sprite sequences 0x868860 / prim models 0x867180 drawn into the module arena) placed
-//     by the actor data's key positions (caster / targets). Unlike the engine's copies, the particle
-//     spawner 0x869CC0, the anchor placement 0x86AF90 and the instance transform 0x8691C0 scale by
-//     the state's scale vector +0x214 (0x1000 from 0x866630, the shield size once the shield starts).
-// No task tests the draw-only flags (battle_to_update_flags 0x201).
-// Module globals: 0x26C0380..0x26C30EC (file pointer 0x26C0380, packet cursor 0x26C0384, pools,
-// queues, arenas, the shield's blend buffer 0x26C2DF8, actor state 0x26C30E8, scratch stack pointer
-// 0x26C30D8, camera copy pointer 0x26C03A4), the module scratch stack below the camera copy
-// 0x2793E58, the stage group words 0x1D98992 + k * 0x2C (and the stage flags cleared by 0x8663B0).
+// Effect 33: Shell: a copy of the actor/heal effect library
 
 #include "act_engine.h"
 
@@ -59,17 +24,15 @@ namespace act
 {
 namespace shell
 {
-	// ---- generated (gendesc.py): the module descriptor of this copy of the library ----
 	static const Mod MOD_033 = { "shell", 33, 0x865FF0, 0x86B980,
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26C03A4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26C29C8, 0x0, 0x26C2C68, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26C2DE2, 0x0, 0x0, 0x26C30D0, 0x0, 0x0, 0x0, 0x26C30E8 },
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x866630, 0x867090, 0x867120, 0x867180, 0x0, 0x867400, 0x867610, 0x867890, 0x867AD0, 0x867D70, 0x867FA0, 0x868260, 0x8684C0, 0x8687A0, 0x8688E0, 0x868920, 0x869BC0, 0x869C10, 0x869C40, 0x869CC0, 0x0, 0x0, 0x0, 0x0, 0x86ADE0, 0x0, 0x86B280, 0x0, 0x0, 0x0, 0x0, 0x0, 0x866470, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x868860, 0x8689B0, 0x869010, 0x869060, 0x8690F0, 0x8691C0, 0x0, 0x869A70, 0x869AF0, 0x869B20, 0x86A370, 0x86A3A0, 0x86A480, 0x86A5A0, 0x86A6F0, 0x0, 0x86ADB0, 0x86AF90, 0x86B0E0, 0x0, 0x867090, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
 
-	// --- module globals ---
-	static const uint32_t PACKET_CURSOR = 0x26C0384;   // module packet cursor (the draws' arena)
-	static const uint32_t ACTOR_STATE = 0x26C30E8;     // current actor system state block
-	static const uint32_t SCRATCH_SP = 0x26C30D8;      // module scratch stack pointer
-	static const uint32_t CAMERA_PTR = 0x26C03A4;      // pointer to the camera copy 0x2793E58
-	static const uint32_t BLEND_BUFFER = 0x26C2DF8;    // shield vertex frames blended by MAG_017_sub_701390
+	static const uint32_t PACKET_CURSOR = 0x26C0384;
+	static const uint32_t ACTOR_STATE = 0x26C30E8;
+	static const uint32_t SCRATCH_SP = 0x26C30D8;
+	static const uint32_t CAMERA_PTR = 0x26C03A4;
+	static const uint32_t BLEND_BUFFER = 0x26C2DF8;
 	static const uint32_t Q_EMITTER = 0x26C2C68, Q_ACTORS = 0x26C29C8, Q_SHIELD = 0x26C21C0, Q_STAGE = 0x26C2C58;
 	static const uint32_t ORIG_Master = 0x866150;
 	static const uint32_t ORIG_Emitter = 0x866470;
@@ -79,7 +42,6 @@ namespace shell
 	static const uint32_t ORIG_ShieldCallback = 0x86B560;
 	static const void *const SOUND_Shell = (const void *)0x15EBD68;
 
-	// engine functions not in act::x
 	namespace cx
 	{
 		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
@@ -87,7 +49,6 @@ namespace shell
 		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
 	}
 
-	// helpers of the library code (as in act_engine.cpp / mag097_boko.cpp / mag039_drain.cpp)
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
 	{
 		U32(dst, 0) = U32(src, 0);
@@ -129,15 +90,12 @@ namespace shell
 	static inline bool b1_out(int16_t v, int16_t hi) { return v < 0 || v > hi; }
 	static inline bool b2_out_x(int16_t v) { return v < 0 || v > 0xA00; }
 	static inline bool b2_out_y(int16_t v) { return v < 0 || v > 0x6C0; }
-	// cdq; and edx, 0xFFFF; add eax, edx; sar eax, 16  (= signed 16.16 -> integer, toward zero)
 	static inline int32_t b2_fx(uint32_t v)
 	{
 		int32_t s = (int32_t)v;
 		return add32(s, (s >> 31) & 0xFFFF) >> 16;
 	}
 
-	// common task tail (frame counter already incremented): end (release the linked task, return 2)
-	// when finished (status read before the increment) and no children are alive
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
 	{
 		if ((status & 1) != 0 && U8(node, 0x28) == 0)
@@ -148,7 +106,6 @@ namespace shell
 		return 0;
 	}
 
-	// module ports of this file (32-bit words in and out, cdecl, like the originals)
 	uint32_t __cdecl h_866150(uint32_t a1);
 	uint32_t __cdecl h_8662C0(uint32_t a1);
 	uint32_t __cdecl h_866310(void);
@@ -213,21 +170,13 @@ namespace act
 {
 namespace shell
 {
-	// ====================================================================================
-	// the library functions of this module whose code matches Drain's / Confuse's / an engine port's
-	// up to the module's addresses and callees (the port's text with the module's addresses)
-	// ====================================================================================
-	// 0x866150 (MAG_033_SHELL_Tick; drain copy r_851510): MASTER task - camera copy, packet arena by tick parity, bone
-	// follow, 11-state table, the four queues (live task count -> node +0x5E; the actor counters
-	// 0x26C30D0 / 0x26C2DE2 are cleared before the queues run)
 	uint32_t __cdecl h_866150(uint32_t a1)
 	{
 		g_mod = &MOD_033;
-		// 30 fps layer: see mag033_shell_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x26C03A4) = 0x2793E58;
@@ -242,7 +191,7 @@ namespace shell
 		states[7] = 0x86B930;
 		states[8] = 0x86B940;
 		states[9] = 0x86B950;
-		states[10] = 0x86B970; // nullsub (ret)
+		states[10] = 0x86B970;
 		if ((parity & 1) != 0)
 		{
 			const uint32_t v1 = MEM<uint32_t>(0x26C2DDC);
@@ -271,9 +220,6 @@ namespace shell
 		return task_end(node, status);
 	}
 
-	// 0x8663F0 (MAG_033_sub_8663F0; drain copy r_8517B0): stage darkening in, state 1 - level +0x1C up by
-	// 0x100 per tick to 0x400 (then finished, next state), written to the four stage group words
-	// 0x1D98992 + k * 0x2C
 	uint32_t __cdecl h_8663F0(uint32_t a1)
 	{
 		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x100);
@@ -288,11 +234,9 @@ namespace shell
 		uint32_t p = 0x1D98992;
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x866600 (sub_866600, copy of a_7348A0 0x7348A0; engine; MiniMog sub_7348A0): state: once the frame counter +0x24 reaches
-	// +0x298, runs a_73F990 and one step of the actor system (a_7353B0), advances the state
 	uint32_t __cdecl h_866600(uint32_t a1)
 	{
 		if (S16(a1, 0x24) >= S16(a1, 0x298))
@@ -301,13 +245,9 @@ namespace shell
 			h_867090(a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x8667F0 (sub_8667F0, copy of b_72AD60 0x72AD60; 097 sub_72AD60, 098 0x722B60, 099 0x7190B0, 100 0x70FD30): sets the arena
-	// [BG_257B5CC] +0x1B4 vector to node +0x290/+0x292/+0x294 (<< 16, fixed point) and copies that
-	// 16-byte vector to the history slots +0x204, +0x1F4, +0x1E4, +0x1D4, +0x1C4 (never runs in
-	// the harness)
 	uint32_t __cdecl h_8667F0(uint32_t a1)
 	{
 		const uint32_t arena = MEM<uint32_t>(0x26C30E8);
@@ -325,16 +265,11 @@ namespace shell
 		return U32(v, 0xC);
 	}
 
-	// 0x8668D0 (sub_8668D0; drain copy r_851DA0): the actor system's reference points from the caster (slot state +0x1E):
-	// +0x1C4 its effect bone 0xF1 (y = its height word +0x24), +0x1D4 the same on the ground (y 0),
-	// +0x1E4 bone 0xF1 again, +0x1F4 bone 0xF0, +0x204 x / z with y = its +0x3C (16.16 each);
-	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl h_8668D0(void)
 	{
 		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
-		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
@@ -371,25 +306,20 @@ namespace shell
 		U32(st, 0x204) = sx;
 		S32(st, 0x208) = h;
 		U32(st, 0x20C) = U32(st, 0x1CC);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x866A30 (sub_866A30, copy of b_72AFE0 0x72AFE0; 097 sub_72AFE0, 098 0x722DE0, 099 0x719330, 100 0x70FFB0): for i < count
-	// (arena [BG_257B5CC] +0x1C, re-read each pass) copies the 16-byte vector arena +0x194 into
-	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl h_866A30(void)
 	{
 		const uint32_t arena = MEM<uint32_t>(0x26C30E8);
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
-			return arena; // void (eax = arena)
+			return arena;
 		const uint32_t src = arena + 0x194;
 		uint32_t dst = arena + 0x94;
 		do
 		{
 			i++;
-			// quirk: for i >= 4 the destinations reach the source (+0x194): the copies are done
-			// dword by dword in listing order, so the overlap behaves like the original
 			b1_copy16(dst - 0x40, src);
 			b1_copy16(dst, src);
 			b1_copy16(dst + 0x40, src);
@@ -397,18 +327,12 @@ namespace shell
 			b1_copy16(dst + 0xC0, src);
 			dst += 0x10;
 		} while (i < (int32_t)S16(arena, 0x1C));
-		return dst; // void (eax = last destination pointer)
+		return dst;
 	}
 
-	// 0x866C20 (sub_866C20; drain copy r_8520F0): per target of the actor system (slots state +4.., count +0x1C) the
-	// target reference points +0x54 (bone 0xF1, y = height word +0x24), +0x94 (its ground point),
-	// +0xD4 (bone 0xF1), +0x114 (bone 0xF0), +0x154 (x / z, y = +0x3C), 16.16, stride 0x10;
-	// then the centre of the targets' x / z range at +0x194 (y 0). Mode 2 (+0x24) takes no bone
-	// position (the stack words keep what they held)
 	uint32_t __cdecl h_866C20(void)
 	{
 		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
-		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -455,7 +379,6 @@ namespace shell
 				if (i >= S16(st, 0x1C)) break;
 			}
 		}
-		// centre of the x / z range of the targets' +0x54 / +0x5C
 		const int32_t n = S16(st, 0x1C);
 		int32_t min_x = 0, max_x = 0, max_z = 0, min_z = 0;
 		for (int32_t i = 0; i < n; i++)
@@ -478,14 +401,9 @@ namespace shell
 		S32(st, 0x194) = add32(min_x, max_x) / 2;
 		U32(st, 0x198) = 0;
 		S32(st, 0x19C) = add32(max_z, min_z) / 2;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x867090 (sub_867090, copy of a_7353B0 0x7353B0; engine; MiniMog sub_7353B0): one step of the actor system at node+0x34 (made
-	// current in G_258FB78): phase +0x20: 0 -> 1; 1 -> updates the actors (a_743190, a_736C00,
-	// a_740700) and draws them (a_735440), counts +0x18 up to +0x1A and moves to phase 2 when
-	// nothing is pending (+0x14/+0x16 == 0); 2 -> returns 1 (done). Always adds +0x14/+0x16 to
-	// the module counters G_258FB40 / G_258EC50
 	uint32_t __cdecl h_867090(uint32_t a1)
 	{
 		uint32_t done = 0;
@@ -500,7 +418,6 @@ namespace shell
 		case 1:
 			h_86B280();
 			h_8688E0();
-			// 30 fps layer: see mag033_shell_held.inc
 			FX_HELD(held_note_system(sys);)
 			h_8687A0();
 			h_867120();
@@ -522,9 +439,6 @@ namespace shell
 		return done;
 	}
 
-	// 0x867120 (sub_867120, copy of a_735440 0x735440; engine; MiniMog sub_735440): draw pass of the actor system: for every actor of
-	// the list (sys+0x2C, next +4) of type 1 whose definition (sys+0x224 table, index +0x1D6)
-	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl h_867120(void)
 	{
 		uint32_t act = U32(U32(0x26C30E8, 0), 0x2C);
@@ -541,12 +455,9 @@ namespace shell
 			}
 			act = U32(act, 4);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x867180 (sub_867180; drain copy r_852650): the engine's 0x7354A0 (draw of a prim-model actor: header on the module
-	// scratch stack, model +0x170, fade +0x1CE / colour +0x16C, one copy or one per sub-position
-	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl h_867180(uint32_t a1, uint32_t a2)
 	{
 		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
@@ -603,12 +514,6 @@ namespace shell
 		return top;
 	}
 
-	// 0x867400 (sub_867400, copy of b_72BA00 0x; 097 sub_72BA00, 098 0x723800, 099 0x719D50, 100 0x7109D0): flat-shaded triangle
-	// mesh emitter - for each 0xC-byte face at ctx +0x20 (count first) projects its 3 vertices
-	// (ctx +4 base, word indices *4), builds a POLY_F3 packet (0x14 bytes) at a4, culls (GTE flag,
-	// backface unless ctx+0x1C bit 0x10, screen range), optionally light-colours it (ctx+0x1C bit
-	// 0x40) and inserts it into OT a2 at OTZ >> a3; returns the new packet cursor (never runs in
-	// the harness)
 	uint32_t __cdecl h_867400(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -623,7 +528,7 @@ namespace shell
 			U32(ctx, 0x20) = face;
 			return cur;
 		}
-		uint32_t pk = cur + 0xC;   // edi: packet +0xC (xy1)
+		uint32_t pk = cur + 0xC;
 		uint32_t left = count;
 		do
 		{
@@ -635,10 +540,10 @@ namespace shell
 			x::GTE_RTPT();
 			const uint32_t fl = U32(ctx, 0x1C);
 			const uint32_t code = U32(face, 0);
-			U32(pcur, 0) = 0x4000000;          // tag: 4 words
-			U32(pk, -8) = code;                // colour + code
+			U32(pcur, 0) = 0x4000000;
+			U32(pk, -8) = code;
 			if ((fl & 1) != 0)
-				U32(pk, -8) = code | 0x2000000;   // semi-transparent
+				U32(pk, -8) = code | 0x2000000;
 			if ((fl & 4) != 0)
 				U32(pk, -8) &= 0xFDFFFFFFu;
 			x::GTE_ReadFLAG(ctx + 0x30);
@@ -681,10 +586,6 @@ namespace shell
 		return cur;
 	}
 
-	// 0x867610 (sub_867610, copy of b_72BC10 0x; 097 sub_72BC10, 098 0x723A10, 099 0x719F60, 100 0x710BE0): flat-shaded quad mesh
-	// emitter - like b_72BA00 with 4 vertices per 0xC-byte face (indices +4/+6/+8, 4th +0xA),
-	// POLY_F4 packets (0x18 bytes, tag 0x5000000), AVSZ4 depth; returns the new packet cursor
-	// (never runs in the harness)
 	uint32_t __cdecl h_867610(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -699,7 +600,7 @@ namespace shell
 			U32(ctx, 0x20) = face;
 			return cur;
 		}
-		uint32_t pk = cur + 0xC;   // esi: packet +0xC (xy1)
+		uint32_t pk = cur + 0xC;
 		uint32_t left = count;
 		do
 		{
@@ -711,10 +612,10 @@ namespace shell
 			x::GTE_RTPT();
 			const uint32_t fl = U32(ctx, 0x1C);
 			const uint32_t code = U32(face, 0);
-			U32(pcur, 0) = 0x5000000;          // tag: 5 words
-			U32(pk, -8) = code;                // colour + code
+			U32(pcur, 0) = 0x5000000;
+			U32(pk, -8) = code;
 			if ((fl & 1) != 0)
-				U32(pk, -8) = code | 0x2000000;   // semi-transparent
+				U32(pk, -8) = code | 0x2000000;
 			if ((fl & 4) != 0)
 				U32(pk, -8) &= 0xFDFFFFFFu;
 			x::GTE_ReadFLAG(ctx + 0x30);
@@ -763,35 +664,28 @@ namespace shell
 		return cur;
 	}
 
-	// 0x867D70 (sub_867D70, copy of b_72C370 0x72C370; Boko shared; 097 sub_72C370, 098 0x724170, 099 0x71A6C0, 100 0x711340): prim-list
-	// block "Gouraud triangles" of the Boko prim renderer (ctx a1: +4 vertices, +0xC depth-cue
-	// colour, +0x1C flags, +0x20 list cursor): count at *(ctx+0x20), then per 0x14-byte record
-	// (code+rgb0, u16 vertex indices +4/+6/+8, rgb1 +0xC, rgb2 +0x10) RTPT, builds a 0x1C-byte
-	// POLY_G3 at the cursor (tag 0x06000000; flags 2 = semi-trans on, 8 = off, 0x20 = no cull,
-	// 0x80 = GTE-lit colours), rejects GTE-flagged / back-facing / fully off-screen ones,
-	// InsertPrim at OT a2[OTZ >> a3]. Returns the new packet cursor; ctx+0x20 = end of the list.
 	uint32_t __cdecl h_867D70(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
-		uint32_t cursor = a4;                 // [esp+0x10]
+		uint32_t cursor = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (the original stores it into its a2 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
 			U32(ctx, 0x20) = rec;
 			return a4;
 		}
-		uint32_t pkt = cursor;                // esi = pkt + 0x10 (advances with the cursor)
+		uint32_t pkt = cursor;
 		do
 		{
 			x::GTE_LoadV012(vbase + (uint32_t)U16(rec, 4) * 4, vbase + (uint32_t)U16(rec, 6) * 4, vbase + (uint32_t)U16(rec, 8) * 4);
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(cursor, 0) = 0x6000000;       // tag: 6 words
+			U32(cursor, 0) = 0x6000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -804,7 +698,7 @@ namespace shell
 			if (!(U32(ctx, 0x30) & 0x60000))
 			{
 				x::GTE_NCLIP();
-				uint32_t clip = 0;            // [esp+0x18]
+				uint32_t clip = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -845,14 +739,10 @@ namespace shell
 		return cursor;
 	}
 
-	// 0x867FA0 (sub_867FA0, copy of b_72C5A0 0x72C5A0; Boko shared; 097 sub_72C5A0, 098 0x7243A0, 099 0x71A8F0, 100 0x711570): prim-list
-	// block "Gouraud quads": same as 0x72C370 for 0x18-byte records (4th vertex index +0x0A,
-	// rgb1..3 at +0x0C/+0x10/+0x14) -> 0x24-byte POLY_G4 packets (tag 0x08000000), 4th vertex
-	// projected with RTPS, AVSZ4, off-screen test on the 4 corners. Returns the new packet cursor.
 	uint32_t __cdecl h_867FA0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
-		uint32_t cursor = a4;                 // [esp+0x14]
+		uint32_t cursor = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
 		uint32_t rec = list + 4;
@@ -870,7 +760,7 @@ namespace shell
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(cursor, 0) = 0x8000000;       // tag: 8 words
+			U32(cursor, 0) = 0x8000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -883,7 +773,7 @@ namespace shell
 			if (!(U32(ctx, 0x30) & 0x60000))
 			{
 				x::GTE_NCLIP();
-				uint32_t clip = 0;            // [esp+0x10]
+				uint32_t clip = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -933,21 +823,14 @@ namespace shell
 		return cursor;
 	}
 
-	// 0x868260 (sub_868260, copy of b_72C860 0x; Boko shared; 097 sub_72C860, 098 0x724660, 099 0x71ABB0, 100 0x711830): prim-list
-	// block "Gouraud-textured triangles": per 0x1C-byte record (code+rgb0, u16 vertex indices
-	// +4/+6/+8, uv2 in the high half of +8, uv0|clut +0xC, uv1|tpage +0x10, rgb1 +0x14, rgb2 +0x18)
-	// RTPT, builds a 0x28-byte POLY_GT3 (tag 0x09000000) with the texture offset ctx+0x18 added to
-	// the uv words and the optional tpage (ctx+0x10, flags 0x400 add / 0x100 set) / clut (ctx+0x14,
-	// flags 0x800 add / 0x200 set) overrides, rejects GTE-flagged / back-facing / off-screen ones,
-	// optional GTE-lit colours (flag 0x80), InsertPrim at OT a2[OTZ >> a3]. Returns the new cursor.
 	uint32_t __cdecl h_868260(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t ctx = a1;              // ebp
-		uint32_t pkt = a4;                    // esi
+		const uint32_t ctx = a1;
+		uint32_t pkt = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (stored into the a4 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
@@ -960,7 +843,7 @@ namespace shell
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(pkt, 0) = 0x9000000;          // tag: 9 words
+			U32(pkt, 0) = 0x9000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -989,7 +872,7 @@ namespace shell
 					U16(pkt, 0x0E) = (uint16_t)(U16(pkt, 0x0E) + U16(ctx, 0x14));
 				else if (f2 & 0x200)
 					U16(pkt, 0x0E) = U16(ctx, 0x14);
-				uint32_t zero = 0;            // [esp+0x10]
+				uint32_t zero = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -1029,20 +912,14 @@ namespace shell
 		return pkt;
 	}
 
-	// 0x8684C0 (sub_8684C0, copy of b_72CAC0 0x72CAC0; Boko shared; 097 sub_72CAC0, 098 0x7248C0, 099 0x71AE10, 100 0x711A90): prim-list
-	// block "Gouraud-textured quads": per 0x24-byte record (code+rgb0, u16 vertex indices
-	// +4/+6/+8/+0xA, uv0|clut +0xC, uv1|tpage +0x10, uv2|uv3<<16 +0x14, rgb1..3 +0x18/+0x1C/+0x20)
-	// RTPT + RTPS, builds a 0x34-byte POLY_GT4 (tag 0x0C000000) with the texture offset ctx+0x18 and
-	// the tpage / clut overrides of 0x72C860, rejects GTE-flagged / back-facing / off-screen ones,
-	// optional GTE-lit colours (flag 0x80), InsertPrim at OT a2[OTZ >> a3]. Returns the new cursor.
 	uint32_t __cdecl h_8684C0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t ctx = a1;              // ebx
-		uint32_t pkt = a4;                    // esi
+		const uint32_t ctx = a1;
+		uint32_t pkt = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (stored into the a4 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
@@ -1055,7 +932,7 @@ namespace shell
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(pkt, 0) = 0xC000000;          // tag: 12 words
+			U32(pkt, 0) = 0xC000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -1087,7 +964,7 @@ namespace shell
 					U16(pkt, 0x0E) = (uint16_t)(U16(pkt, 0x0E) + U16(ctx, 0x14));
 				else if (f2 & 0x200)
 					U16(pkt, 0x0E) = U16(ctx, 0x14);
-				uint32_t zero = 0;            // [esp+0x14]
+				uint32_t zero = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -1136,34 +1013,30 @@ namespace shell
 		return pkt;
 	}
 
-	// 0x8687A0 (sub_8687A0, copy of a_740700 0x740700; engine; Siren sub_740700): draws the sprite sequences of the director's actor list
-	// (state +0x2C, next +4): every actor of kind +8 == 1 whose bone entry kind (+0x16) is 0/1/2
-	// and that has a sequence (+0x170): once (+0x1D8 == 1) or once per sub-position (s16 x/y/z at
-	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl h_8687A0(void)
 	{
 		uint32_t act = U32(MEM<uint32_t>(0x26C30E8), 0x2C);
 		if (act == 0)
-			return 0; // void
+			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
 				uint32_t st = MEM<uint32_t>(0x26C30E8);
 				int32_t b = S8(act, 0x1D6);
-				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
+				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
 				if ((kind == 0 || kind == 1 || kind == 2) && U32(act, 0x170) != 0)
 				{
 					int8_t n = S8(act, 0x1D8);
 					if (n == 1)
 					{
-						h_868860(act);   // (the original also pushes the bone entry, unused)
+						h_868860(act);
 					}
 					else if (n > 0)
 					{
 						int32_t i = 0;
-						uint32_t sub = act + 0x19E;   // edi
+						uint32_t sub = act + 0x19E;
 						do
 						{
 							S32(act, 0xC0) = S16(sub, -2);
@@ -1178,11 +1051,9 @@ namespace shell
 			}
 			act = U32(act, 4);
 		} while (act != 0);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x868860 (sub_868860; drain copy r_853D30): the engine's 0x7407C0 (sprite sequence of an actor: header on the module
-	// scratch stack, sequence +0x170, variant +0x1D0, matrix +0xAC) drawing into the module arena
 	uint32_t __cdecl h_868860(uint32_t a1)
 	{
 		const uint32_t act = a1;
@@ -1200,11 +1071,9 @@ namespace shell
 		U16(hdr, 0x24) = 0;
 		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
 		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x8688E0 (sub_8688E0, copy of a_736C00 0x736C00; engine; MiniMog sub_736C00): update pass of the actor system: for every actor of
-	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl h_8688E0(void)
 	{
 		uint32_t act = U32(U32(0x26C30E8, 0), 0x2C);
@@ -1217,19 +1086,15 @@ namespace shell
 				h_868920(act);
 			act = U32(act, 4);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x868920 (sub_868920, copy of a_740880 0x711EF0; engine; Siren sub_740880): one update step of actor a1 (phase s16 +0x1CC):
-	// phase 0 = 0x741050, then if 0x7419C0 reports the end -> phase 1 and sequence +0x170 = 0,
-	// else motion step 0x740910 + 0x741120 and ++frame +0x1CA; phase 1 = 0x742CD0, clears +0x1D7
-	// and decrements the director's live-actor count (state +0x16).
 	uint32_t __cdecl h_868920(uint32_t a1)
 	{
 		const uint32_t act = a1;
 		uint32_t st = MEM<uint32_t>(0x26C30E8);
 		int32_t b = S8(act, 0x1D6);
-		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
+		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
 		if (phase == 0)
 		{
@@ -1239,11 +1104,11 @@ namespace shell
 				a_740910(act, bone);
 				h_8691C0(act, bone);
 				U16(act, 0x1CA) = (uint16_t)(U16(act, 0x1CA) + 1);
-				return 0; // void
+				return 0;
 			}
 			U16(act, 0x1CC) = (uint16_t)(U16(act, 0x1CC) + 1);
 			U32(act, 0x170) = 0;
-			return 0; // void
+			return 0;
 		}
 		if (phase == 1)
 		{
@@ -1252,45 +1117,39 @@ namespace shell
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x869960 (sub_869960, copy of b_72E220 0x72E220; Boko shared; 097 sub_72E220, 098 0x725D50, 099 0x71C2A0, 100 0x712F20): vertex morph
-	// of a Boko model for frame S16(a1+0x1CA) of actor data a2: destination vertex block = state
-	// +0x22C table [a2+0x12C[frame]], sources = state+0x230 table [a2+0x130[frame]] and
-	// [a2+0x134[frame]], weight w = S16 a2+0x138[frame] (4096 = second source); writes
-	// dst[k] = src1[k] * (4096 - w) + src2[k] * w through the GTE (0x45E9D0 / 0x45EBF0), using an
-	// 8-byte weight block on the field stack. Does nothing when a source is missing.
 	uint32_t __cdecl h_869960(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t data = a2;                              // edi
+		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x26C30E8, 0);                  // actor state block
+		uint32_t st = U32(0x26C30E8, 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
-		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
+		uint32_t dst = U32(dst_tab, i_dst * 4);
 		uint32_t i_src1 = U8(U32(data, 0x130), frame);
-		uint32_t src1 = U32(src_tab, i_src1 * 4);              // ebp
+		uint32_t src1 = U32(src_tab, i_src1 * 4);
 		uint32_t i_src2 = U8(U32(data, 0x134), frame);
-		uint32_t src2 = U32(src_tab, i_src2 * 4);              // [esp+0x18] (a2 slot)
+		uint32_t src2 = U32(src_tab, i_src2 * 4);
 		if (src1 == 0 || src2 == 0)
-			return 0; // void
-		uint32_t w_blk = x::Field_Alloc(8);                    // esi: {+0 4096 - w, +4 w}
-		int32_t frame2 = S16(a1, 0x1CA);                       // (re-read through the a1 slot)
+			return 0;
+		uint32_t w_blk = x::Field_Alloc(8);
+		int32_t frame2 = S16(a1, 0x1CA);
 		uint32_t n = U32(dst, 4);
 		int32_t w = S16(U32(data, 0x138), frame2 * 2);
 		U32(w_blk, 4) = (uint32_t)w;
 		U32(w_blk, 0) = (uint32_t)sub32(0x1000, w);
 		if ((int32_t)n > 0)
 		{
-			uint32_t out = dst + 8;                            // ebx
-			uint32_t in2 = src2 + 8;                           // edi
-			uint32_t delta = src1 - src2;                      // ebp
+			uint32_t out = dst + 8;
+			uint32_t in2 = src2 + 8;
+			uint32_t delta = src1 - src2;
 			do
 			{
 				x::set_dword_1CA8A30(U32(w_blk, 0));
-				cx::sub_45E0B0(in2 + delta);                   // = src1 + 8 + 8k
+				cx::sub_45E0B0(in2 + delta);
 				cx::sub_45E9D0();
 				x::set_dword_1CA8A30(U32(w_blk, 4));
 				cx::sub_45E0B0(in2);
@@ -1301,29 +1160,23 @@ namespace shell
 			} while (--n != 0);
 		}
 		x::Field_Free(8);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x869A70 (sub_869A70, copy of a_7419C0 0x713030; engine; Siren sub_7419C0, in 095-100): end-of-life test of emitter instance a1 with
-	// descriptor a2 (+0x1E: 0 = when the animation is done +0x1D2, 1 = when timer +0x1C8 runs out,
-	// 2 = either); on end spawns the follow-up particle (0x741A40) and returns 1, else 0
 	uint32_t __cdecl h_869A70(uint32_t a1, uint32_t a2)
 	{
 		int32_t kind = (int32_t)S8(a2, 0x1E);
 		if (kind == 2)
 		{
-			// 0x7419D3
 			U16(a1, 0x1C8) = (uint16_t)(U16(a1, 0x1C8) - 1);
 			if (S16(a1, 0x1C8) < 0)
 			{
 				h_869AF0(a1, a2);
 				return 1;
 			}
-			// -> 0x741A21
 		}
 		else if (kind == 1)
 		{
-			// 0x7419F8
 			U16(a1, 0x1C8) = (uint16_t)(U16(a1, 0x1C8) - 1);
 			if (S16(a1, 0x1C8) >= 0)
 				return 0;
@@ -1334,7 +1187,6 @@ namespace shell
 		{
 			return 0;
 		}
-		// 0x741A21
 		if (U8(a1, 0x1D2) == 1)
 		{
 			h_869AF0(a1, a2);
@@ -1343,25 +1195,17 @@ namespace shell
 		return 0;
 	}
 
-	// 0x869AF0 (sub_869AF0, copy of a_741A40 0x7130B0; engine; Siren sub_741A40, in 095-100): if descriptor a2 chains a follow-up
-	// (+0x30 == 1) allocates a particle owned by instance a1 with descriptor index a2+0x31 and
-	// anchor a1+0x1D9 (0x741A70)
 	uint32_t __cdecl h_869AF0(uint32_t a1, uint32_t a2)
 	{
 		if (U8(a2, 0x30) == 1)
 		{
-			// quirk 0x741A4E/0x741A53: `movsx cx/dx, byte` then push ecx/edx: the high halves are a2's
-			// high word (ecx) and the caller's edx (UNINIT, 0 here); 0x741A70 only reads the low bytes.
 			uint32_t desc_index = (a2 & 0xFFFF0000u) | (uint16_t)(int16_t)S8(a2, 0x31);
 			uint32_t anchor = (uint16_t)(int16_t)S8(a1, 0x1D9);
 			return h_869B20(a1, desc_index, anchor);
 		}
-		return a1; // void (eax = a1 at the only call site, 0x7419C0)
+		return a1;
 	}
 
-	// 0x869BC0 (sub_869BC0, copy of a_737ED0 0x737ED0; engine; MiniMog sub_737ED0): update of a type-0 actor (emitter): first-frame
-	// init (a_742D00, +0x62 set), motion by mode +0x68 (3: F_7424C0, 4: F_742610), emission
-	// (a_737F50), frame counter +0x60, then a_741B60
 	uint32_t __cdecl h_869BC0(uint32_t a1)
 	{
 		if (U16(a1, 0x62) == 0)
@@ -1377,12 +1221,9 @@ namespace shell
 		h_869C40(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x869C40 (sub_869C40, copy of a_737F50 0x737F50; engine; MiniMog sub_737F50): emission step of an emitter: for its frame +0x60
-	// (<= 39) reads the spawn count from its definition's per-frame table (+0xC8) and spawns
-	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl h_869C40(uint32_t a1)
 	{
 		uint32_t sys = U32(0x26C30E8, 0);
@@ -1390,10 +1231,10 @@ namespace shell
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
 		if (frame > 0x27)
-			return 0; // void
+			return 0;
 		uint32_t total = U8(U32(def, 0xC8), (int32_t)frame);
 		if (total == 0)
-			return 0; // void
+			return 0;
 		int32_t batch = S8(def, 0x36);
 		int32_t full = (int32_t)total / batch;
 		int32_t rest = (int32_t)total % batch;
@@ -1407,12 +1248,9 @@ namespace shell
 		}
 		if (rest > 0)
 			h_869CC0(a1, def, (uint32_t)rest);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86A4D0 (sub_86A4D0): the engine's 0x7387B0 with the module's actor pool: allocates an actor
-	// record of 0x2A0 bytes from the pool [0x26C30DC] starting at the cursor 0x26C2DF0 (wraps at 49:
-	// record 49 of the 50 is never used), cleared, owner a1, definition index a2
 	uint32_t __cdecl h_86A4D0(uint32_t a1, uint32_t a2)
 	{
 		const uint32_t pool = MEM<uint32_t>(0x26C30DC);
@@ -1452,25 +1290,15 @@ namespace shell
 		return slot;
 	}
 
-	// 0x86A6F0 (sub_86A6F0, copy of b_72EF80 0x72EF80; Boko shared; 097 sub_72EF80, 098 0x726AB0, 099 0x71D000, 100 0x713C80): actor position
-	// for its current key a1+0x60: actor data = state+0x224[S8 a1+0x6A]; start point A = reference
-	// point (kind data+0x100[key]: 1 = state points +0x1D4/0x1E4/0x1F4/0x204 (16.16), 0 = the actor's
-	// target slot S8 a1+0x6B points +0x94/+0xD4/+0x114/+0x154; index data+0x108[key]) plus the
-	// offset (data+0x110/0x114/0x118) rotated by the actor matrix a1+0x2C; end point B likewise
-	// (kind +0x104, index +0x10C, offset +0x11C/0x120/0x124; unknown kind = the rotated first
-	// offset); a1+0x4C/0x50/0x54 = (A * 4096 + (B - A) * t) << 4 with t = S16 data+0x128[key].
 	uint32_t __cdecl h_86A6F0(uint32_t a1)
 	{
-		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x26C30E8, 0);            // ecx
+		const uint32_t act = a1;
+		const uint32_t st = U32(0x26C30E8, 0);
 		int32_t aidx = S8(act, 0x6A);
-		int32_t key = S16(act, 0x60);                          // ebx
-		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
-		uint8_t sel = U8(U32(data, 0x108), key);               // bp (movzx)
+		int32_t key = S16(act, 0x60);
+		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
+		uint8_t sel = U8(U32(data, 0x108), key);
 		uint8_t kind = U8(U32(data, 0x100), key);
-		// UNINIT 0x72F1CE: the start point is a stack SVECTOR ([esp+0x14] x, [esp+0x16] y,
-		// [esp+0x18] z) that only the switch cases fill; an unknown kind / index > 3 leaves it
-		// uninitialised (0 here)
 		int16_t ax = 0, ay = 0, az = 0;
 		uint32_t base = 0;
 		bool have = false;
@@ -1478,7 +1306,7 @@ namespace shell
 		{
 			if (sel <= 3)
 			{
-				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5DC
+				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
 				base = st + (uint32_t)((int32_t)S8(act, 0x6B) << 4) + offs0[sel];
 				have = true;
 			}
@@ -1487,7 +1315,7 @@ namespace shell
 		{
 			if (sel <= 3)
 			{
-				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5CC
+				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
 				base = st + offs1[sel];
 				have = true;
 			}
@@ -1501,31 +1329,30 @@ namespace shell
 			az = (int16_t)vz;
 			ax = (int16_t)vx;
 		}
-		// first offset (SVECTOR [esp+0x1C]) rotated by the actor matrix -> IR1..3 ([esp+0x24], shorts)
 		int16_t v[4];
 		int16_t ir[8] = {};
 		v[0] = (int16_t)U16(U32(data, 0x110), key * 2);
 		v[1] = (int16_t)U16(U32(data, 0x114), key * 2);
 		v[2] = (int16_t)U16(U32(data, 0x118), key * 2);
-		v[3] = 0;                                              // (pad, not read by LoadV0)
+		v[3] = 0;
 		x::GTE_SetRotMatrix(act + 0x2C);
 		x::GTE_LoadV0(P(v));
 		x::GTE_MVMVA_RotV0();
 		x::GTE_StoreIR123(P(ir));
 		az = (int16_t)(az + ir[2]);
 		ay = (int16_t)(ay + ir[1]);
-		const int32_t key2 = S16(act, 0x60);                   // ecx
+		const int32_t key2 = S16(act, 0x60);
 		uint8_t kind2 = U8(U32(data, 0x104), key2);
 		uint8_t sel2 = U8(U32(data, 0x10C), key2);
 		ax = (int16_t)(ax + ir[0]);
-		int16_t bx, by, bz;                                    // si, di, bx
+		int16_t bx, by, bz;
 		uint32_t base2 = 0;
 		bool have2 = false;
 		if (kind2 == 0)
 		{
 			if (sel2 <= 3)
 			{
-				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
+				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
 				uint32_t g = U32(0x26C30E8, 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
@@ -1535,7 +1362,7 @@ namespace shell
 		{
 			if (sel2 <= 3)
 			{
-				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
+				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
 				uint32_t g = U32(0x26C30E8, 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
@@ -1552,13 +1379,10 @@ namespace shell
 		}
 		else
 		{
-			// quirk 0x72F4EA: an unknown end kind / index > 3 reuses the rotated first offset (the IR
-			// of the first MVMVA, still in [esp+0x24..0x29])
 			bz = ir[2];
 			by = ir[1];
 			bx = ir[0];
 		}
-		// second offset rotated by the actor matrix
 		v[0] = (int16_t)U16(U32(data, 0x11C), key2 * 2);
 		v[1] = (int16_t)U16(U32(data, 0x120), key2 * 2);
 		v[2] = (int16_t)U16(U32(data, 0x124), key2 * 2);
@@ -1578,28 +1402,24 @@ namespace shell
 		S32(act, 0x50) = shl32(add32(mul32(sub32(by, a), t), shl32(a, 12)), 4);
 		a = az;
 		S32(act, 0x54) = shl32(add32(mul32(sub32(bz, a), t), shl32(a, 12)), 4);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86ADE0 (sub_86ADE0, copy of a_742D00 0x714370; engine; Siren sub_742D00, in 095-100): particle init: copies descriptor placement
-	// kind +0x11 to +0x68, builds the particle matrix +0x2C by descriptor +0x1C (identity / yaw
-	// focus->anchor / yaw anchor->focus / owner matrix / yaw of battle entity dir+0x1E), places it
-	// by kind (0x742EB0 / 0x742FF0 / 0x7424C0 / 0x742610) and sets its life +0x64 = desc +0x12
 	uint32_t __cdecl h_86ADE0(uint32_t a1)
 	{
 		uint32_t dir = U32(0x26C30E8, 0);
 		uint32_t table = U32(dir, 0x224);
 		int32_t di = (int32_t)S8(a1, 0x6A);
 		uint32_t owner = U32(a1, 0x5C);
-		uint32_t desc = U32(table + di * 4, 0); // ebp, kept across the calls
+		uint32_t desc = U32(table + di * 4, 0);
 		U8(a1, 0x68) = U8(desc, 0x11);
 		uint32_t m = a1 + 0x2C;
 		switch ((uint32_t)(int32_t)S8(desc, 0x1C))
 		{
-			case 0: // 0x742D38
+			case 0:
 				x::MAG_022_sub_8DD770(m);
 				break;
-			case 1: // 0x742D49: yaw of (focus dir+0x1C4/0x1CC - anchor point dir+0x54/0x5C + 16*anchor)
+			case 1:
 			{
 				x::MAG_022_sub_8DD770(m);
 				int32_t k = shl32((int32_t)S8(a1, 0x6B), 4);
@@ -1612,7 +1432,7 @@ namespace shell
 					x::MAG_022_sub_8DD8A0(m, ang);
 				break;
 			}
-			case 2: // 0x742D8B: yaw of (anchor point - focus)
+			case 2:
 			{
 				x::MAG_022_sub_8DD770(m);
 				int32_t k = shl32((int32_t)S8(a1, 0x6B), 4);
@@ -1624,10 +1444,10 @@ namespace shell
 					x::MAG_022_sub_8DD8A0(m, ang);
 				break;
 			}
-			case 3: // 0x742DCB: owner instance matrix
+			case 3:
 				ff8fx::copy<(32)>((void *)m, (void *)(owner + 0x8C));
 				break;
-			case 4: // 0x742DDD: yaw of battle entity dir+0x1E (entity +0xE)
+			case 4:
 			{
 				x::MAG_022_sub_8DD770(m);
 				uint32_t d = U32(0x26C30E8, 0);
@@ -1640,30 +1460,23 @@ namespace shell
 			default:
 				break;
 		}
-		// 0x742E11
 		switch ((uint32_t)(int32_t)S8(a1, 0x68))
 		{
-			case 0: h_86AF90(a1); break;             // 0x742E21
-			case 1: a_742FF0(a1); break;             // 0x742E38 (listing: not ported yet; part e4 ports it)
+			case 0: h_86AF90(a1); break;
+			case 1: a_742FF0(a1); break;
 			case 2:
-			case 3: a_7424C0(a1); break;             // 0x742E4F
-			case 4: callp(0x86A6F0, a1); break;   // 0x742E66
+			case 3: a_7424C0(a1); break;
+			case 4: callp(0x86A6F0, a1); break;
 			default: break;
 		}
 		U16(a1, 0x64) = (uint16_t)(int16_t)S8(desc, 0x12);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B1F0 (sub_86B1F0, copy of a_743100 0x714770; engine; Siren sub_743100): a1 = actor/effect object (+0x1D9 s8 variant), a2 = spawn
-	// descriptor: for each of the 4 bytes a2+0x28..0x2B equal to 1, spawns a sub-effect slot
-	// (a_741A70) with id s8 a2+0x2C..0x2F and variant s8 a1+0x1D9.
 	uint32_t __cdecl h_86B1F0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t obj = a1;   // edi
-		const uint32_t desc = a2;  // esi
-		// quirk 0x743112..0x743179: args 2/3 are pushed as 32-bit registers of which only the low
-		// 16 bits are set (movsx r16); the high halves are leftover register bits. a_741A70 only
-		// reads their low byte, so the zero-extended 16-bit value is passed here.
+		const uint32_t obj = a1;
+		const uint32_t desc = a2;
 		if (U8(desc, 0x28) == 1)
 		{
 			uint32_t variant = (uint16_t)(int16_t)S8(obj, 0x1D9);
@@ -1688,16 +1501,12 @@ namespace shell
 			uint32_t id = (uint16_t)(int16_t)S8(desc, 0x2F);
 			h_869B20(obj, id, variant);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B280 (sub_86B280, copy of a_743190 0x714800; engine; Siren sub_743190): for each of the 16 director slots (director G_258FB78,
-	// +0x224 slot table, +0x22 u16 skip mask) whose entry has kind (+0x11) 0/1/4 and group (+0x13)
-	// equal to director +0x18: spawns sub-effect slots via h_869B20(0, slot, n) - n = 0..count-1
-	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl h_86B280(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x26C30E8);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(0x26C30E8);
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1732,11 +1541,9 @@ namespace shell
 				dir = MEM<uint32_t>(0x26C30E8);
 			}
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B310 (sub_86B310, copy of a_7395E0 0x7395E0; engine; MiniMog sub_7395E0): state: steps the actor system (a_7353B0); when it
-	// reports done, sets the finished flag (+0x26 bit0) and advances the state index
 	uint32_t __cdecl h_86B310(uint32_t a1)
 	{
 		if (h_867090(a1) != 0)
@@ -1745,11 +1552,9 @@ namespace shell
 			U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) | 1);
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B770 (MAG_033_sub_86B770; drain copy r_8567C0): emitter state 1 - at tick 30 releases the master (root +0x63 =
-	// 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl h_86B770(uint32_t a1)
 	{
 		if (U16(a1, 0x24) == 0x1E)
@@ -1760,13 +1565,11 @@ namespace shell
 		return a1;
 	}
 
-	// 0x86B790 (MAG_033_sub_86B790; drain copy r_8567E0): emitter state 2 - from tick 30: damage of its target,
-	// finished, next state
 	uint32_t __cdecl h_86B790(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		if (S16(node, 0x24) < 0x1E)
-			return 0; // void
+			return 0;
 		const int32_t action = S8(node, 0x2A);
 		const int32_t target = S8(node, 0x2B);
 		const uint32_t acts = U32(U32(node, 0xC), 4);
@@ -1775,17 +1578,14 @@ namespace shell
 		const uint8_t st = U8(node, 0x29);
 		U8(node, 0x26) |= 1;
 		U8(node, 0x29) = (uint8_t)(st + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B7E0 (MAG_033_sub_86B7E0; drain copy r_856830): master state - action loop: while the master is not held
-	// (+0x63) and actions remain (+0x2A < +0x58), the next action (+0x2A / +0x2E up, state back
-	// to the emitter spawn); after the last one waits 10 ticks (+0x60) and goes on
 	uint32_t __cdecl h_86B7E0(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		if (U8(node, 0x63) != 0)
-			return 0; // void
+			return 0;
 		const uint8_t idx = U8(node, 0x2A);
 		if ((int16_t)(int8_t)idx < S16(node, 0x58))
 		{
@@ -1794,27 +1594,24 @@ namespace shell
 			const uint8_t st = U8(node, 0x29);
 			U8(node, 0x2E) = (uint8_t)(loops + 1);
 			U8(node, 0x29) = (uint8_t)(st - 1);
-			return 0; // void
+			return 0;
 		}
 		const uint8_t st = U8(node, 0x29);
 		U16(node, 0x60) = 0xA;
 		U8(node, 0x29) = (uint8_t)(st + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B820 (MAG_033_sub_86B820; drain copy r_856870): master state - counts +0x60 down; at 0 starts the stage darkening
-	// out (0x86B850, 0x40 bytes, stage queue), next state
 	uint32_t __cdecl h_86B820(uint32_t a1)
 	{
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
-			return 0; // void
+			return 0;
 		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x86B850, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B8B0 (MAG_033_sub_86B8B0; drain copy r_856900): stage darkening out state 0 - level +0x1C = 0x400, next state
 	uint32_t __cdecl h_86B8B0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
@@ -1823,8 +1620,6 @@ namespace shell
 		return a1;
 	}
 
-	// 0x86B8D0 (MAG_033_sub_86B8D0, copy of m_733C90 0x733C90; module 096 sub_733C90): fade-out state - level +0x1C -= 0x100 down to 0 (then
-	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl h_86B8D0(uint32_t a1)
 	{
 		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
@@ -1839,16 +1634,9 @@ namespace shell
 		uint32_t p = 0x1D98992;
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
-		return 0; // void
+		return 0;
 	}
 
-	// ====================================================================================
-	// module code: master states, emitter, pools (functions unique to this copy)
-	// ====================================================================================
-
-	// 0x866310 (MAG_033_sub_866310): clears the two actor pools (0x654 bytes at [0x26C2DE4] = 15
-	// particles of 0x6C, 0x8340 bytes at [0x26C30DC] = 50 actors of 0x2A0) and the pool cursors /
-	// counters
 	uint32_t __cdecl h_866310(void)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x26C2DE4), 0x654);
@@ -1857,16 +1645,13 @@ namespace shell
 		MEM<uint16_t>(0x26C2DF0) = 0;
 		MEM<uint16_t>(0x26C2DE0) = 0;
 		MEM<uint16_t>(0x26C0388) = 0;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x8662C0 (MAG_033_sub_8662C0): master state - once no child is alive: the two actor pools are
-	// carved from the file arena cursor [0x26C30E4] (0x654 + 0x8340 bytes) and cleared, the stage
-	// darkening task (0x866350, stage queue) starts, next state
 	uint32_t __cdecl h_8662C0(uint32_t a1)
 	{
 		if (U8(a1, 0x28) != 0)
-			return 0; // void
+			return 0;
 		uint32_t p = MEM<uint32_t>(0x26C30E4);
 		MEM<uint32_t>(0x26C2DE4) = p;
 		p += 0x654;
@@ -1876,12 +1661,9 @@ namespace shell
 		h_866310();
 		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, ORIG_StageDim, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x866470 (MAG_033_sub_866470): EMITTER task (one per action) - bone-follow anchor and model
-	// bounds, state {0x866500 shield + actor system, 0x86B770 release the master, 0x86B790 damage,
-	// ret}, sound at its first tick
 	uint32_t __cdecl h_866470(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -1889,7 +1671,7 @@ namespace shell
 		states[0] = 0x866500;
 		states[1] = 0x86B770;
 		states[2] = 0x86B790;
-		states[3] = 0x86B7D0; // nullsub (ret)
+		states[3] = 0x86B7D0;
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -1900,9 +1682,6 @@ namespace shell
 		return task_end(node, status);
 	}
 
-	// 0x86B340 (MAG_033_sub_86B340): spawns a shield model task `fn` (0x2EC bytes, shield queue)
-	// under `parent`: +0x74 model data, +0x78 animation word (sign-extended), +0x80 / +0x82 modes;
-	// returns the node
 	uint32_t __cdecl h_86B340(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
 		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(Q_SHIELD, a2, 0x2EC, a1);
@@ -1913,37 +1692,26 @@ namespace shell
 		return t;
 	}
 
-	// 0x866500 (MAG_033_sub_866500): emitter state 0 - the shield model (0x86B390, model 0x15EC42C,
-	// animation 0x258) and the actor system (0x8665A0, actor data 0x15F2D18, start tick 0, mode
-	// 0x2D) through the engine spawner 0x866550, next state
 	uint32_t __cdecl h_866500(uint32_t a1)
 	{
 		h_86B340(a1, ORIG_Shield, 0x15EC42C, 0x258, 0, 0);
 		a_73C100(a1, ORIG_ActorSystem, 0x15F2D18, 0, 0x2D, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x866630 (sub_866630, the engine's 0x73F990 plus the scale vector): actor director set-up for
-	// node a1: *0x26C30E8 = state block node+0x34; copies node+0x29A/0x29C(mode)/0x29E into it,
-	// points its 4 tables (+0x224..+0x230) into the loaded actor data (node+0x30; relocated once by
-	// 0x866E30, flag data+0), fills the target slot list (+4.., count = root +0x5A) from the cast
-	// context's action record, sets the particle scale vector +0x214/+0x218/+0x21C to 0x1000 (the
-	// shield model's state 0 overwrites it with its own scale), start / per-target / bounds positions
-	// (0x8668D0, 0x866C20; modes 1/3/4 extra set-ups) and stores the caster-to-first-target distance
-	// in state+0.
 	uint32_t __cdecl h_866630(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t data = U32(node, 0x30);        // edi: loaded actor data
+		const uint32_t data = U32(node, 0x30);
 		uint16_t w29a = U16(node, 0x29A);
 		uint16_t w29c = U16(node, 0x29C);
-		uint32_t st = node + 0x34;                    // eax: director state block
-		const uint32_t root = U32(node, 0x10);        // ebx
+		uint32_t st = node + 0x34;
+		const uint32_t root = U32(node, 0x10);
 		MEM<uint32_t>(ACTOR_STATE) = st;
 		U16(st, 0x22) = w29a;
-		uint16_t caster = (uint16_t)U8(node, 0x2C);   // bp (movzx)
-		U16(st, 0x24) = w29c;                         // mode
+		uint16_t caster = (uint16_t)U8(node, 0x2C);
+		U16(st, 0x24) = w29c;
 		U32(st, 0x224) = data + 4;
 		U32(st, 0x228) = data + 0x44;
 		U32(st, 0x22C) = data + 0x84;
@@ -1966,7 +1734,7 @@ namespace shell
 				int32_t action = S8(node, 0x2A);
 				uint32_t tab = U32(U32(node, 0x0C), 4);
 				uint32_t rec = U32(tab + (uint32_t)mul32(action, 5) * 4, 8);
-				U32(st, 4 + 4 * i) = U8(rec, 0x18 * i);   // target slot
+				U32(st, 4 + 4 * i) = U8(rec, 0x18 * i);
 				i++;
 			} while (i < S16(st, 0x1C));
 		}
@@ -1978,11 +1746,11 @@ namespace shell
 		st = MEM<uint32_t>(ACTOR_STATE);
 		if (U16(st, 0x24) == 4)
 			callp(0x8667F0, node);
-		h_866C20();   // (the original pushes node; the callee takes no argument)
+		h_866C20();
 		st = MEM<uint32_t>(ACTOR_STATE);
 		if (U16(st, 0x24) == 1)
 		{
-			callp(0x866A30, node);   // 0-arg function, node pushed like the original
+			callp(0x866A30, node);
 			st = MEM<uint32_t>(ACTOR_STATE);
 		}
 		if (U16(st, 0x24) == 3)
@@ -1990,7 +1758,6 @@ namespace shell
 			a_73FE90(node);
 			st = MEM<uint32_t>(ACTOR_STATE);
 		}
-		// distance caster entity -> first target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		int32_t s1 = S16(st, 0x1E);
 		uint32_t e1 = 0x1D972C0 + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
@@ -2005,15 +1772,10 @@ namespace shell
 		uint32_t dist = x::Sqrt((uint32_t)sq);
 		st = MEM<uint32_t>(ACTOR_STATE);
 		U32(st, 0) = dist;
-		return 0; // void
+		return 0;
 	}
 
-	// the actor instance transform helpers of the engine's 0x741120 (act_engine.cpp part e4) with
-	// this module's camera copy pointer 0x26C03A4
-	static inline int32_t h4_div65536(int32_t v) { return v / 65536; } // cdq / and edx,0xFFFF / add / sar 16
-	// 16.16 position (3 dwords at src) -> integer dwords at +0xA0, rotate the instance matrix (+0x8C)
-	// by the camera matrix column by column into +0xAC, then transform +0xA0 by the camera rotation
-	// + translation into +0xC0 (MAC1..3)
+	static inline int32_t h4_div65536(int32_t v) { return v / 65536; }
 	static void h4_world_to_view(uint32_t node, uint32_t src)
 	{
 		U32(node, 0xA0) = (uint32_t)h4_div65536(S32(src, 0));
@@ -2034,15 +1796,12 @@ namespace shell
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(node + 0xC0);
 	}
-	// rotation build of cases 3 and 4 (identical code behind the two jump tables): base = parent
-	// matrix copy (+0x1BC node +0x2C) or identity, or the camera matrix; then rotations +0xD0
-	// (8DD960) / +0xCC (8DD7E0) / +0xCE (8DD8A0), skipped when 0
 	static void h4_build_rot(uint32_t node, int32_t sub, uint32_t parent)
 	{
 		uint32_t m = node + 0x8C;
 		switch ((uint32_t)sub)
 		{
-			case 0: // parent|identity, d0, cc, ce
+			case 0:
 				if (parent != 0)
 					ff8fx::copy<(32)>((void *)m, (void *)(parent + 0x2C));
 				else
@@ -2051,7 +1810,7 @@ namespace shell
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				break;
-			case 1: // parent|identity, ce, cc, d0
+			case 1:
 				if (parent != 0)
 					ff8fx::copy<(32)>((void *)m, (void *)(parent + 0x2C));
 				else
@@ -2060,13 +1819,13 @@ namespace shell
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				break;
-			case 2: // camera, d0, cc, ce
+			case 2:
 				x::UnpackRotationMatrix(MEM<uint32_t>(CAMERA_PTR), m);
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				break;
-			case 3: // camera, ce, cc, d0
+			case 3:
 				x::UnpackRotationMatrix(MEM<uint32_t>(CAMERA_PTR), m);
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
@@ -2077,15 +1836,6 @@ namespace shell
 		}
 	}
 
-	// 0x8691C0 (sub_8691C0, the engine's 0x741120 + the actor scale): builds the transform of actor
-	// a1 from its definition a2: keyframed modes 4/5 (+0x16) pick the frame's texture entry (+0x170,
-	// 5 also morphs the vertices, 0x869960) and colour/scale (+0x16C..E, +0x1CE, +0xD4..D8, applied
-	// by scale3DMatrix); rotation matrix +0x8C by +0x1B (camera+roll / fixed X 0x400 / camera yaw /
-	// parent-or-identity or camera with ordered rotations); then projects the position(s) (+0xDC..
-	// 16.16 stride 0x10, +0x1D8 = count) to view space: one point -> +0xC0..C8 (+0xC8 += depth bias
-	// a2+0x38), several -> packed s16 x,y,z list at +0x19C (stride 8). Unlike the engine's copy both
-	// exits then scale the view matrix +0xAC by the actor system's scale vector (state +0x214, the
-	// shield size: 0x869905)
 	uint32_t __cdecl h_8691C0(uint32_t a1, uint32_t a2)
 	{
 		uint32_t node = a1;
@@ -2096,26 +1846,25 @@ namespace shell
 			int32_t frame = (int32_t)S16(node, 0x1CA);
 			uint32_t tex = U8(U32(desc, 0x12C) + frame, 0);
 			uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
-			U32(node, 0x170) = U32(U32(dir, 0x22C) + tex * 4, 0); // texture entry of this frame
+			U32(node, 0x170) = U32(U32(dir, 0x22C) + tex * 4, 0);
 			if (mode == 5)
 				h_869960(node, desc);
 		}
 
-		// 0x86920F
 		int32_t rot_mode = (int32_t)S8(desc, 0x1B);
 		uint32_t m = node + 0x8C;
 		switch ((uint32_t)rot_mode)
 		{
-			case 0: // camera rotation + roll (+0xD0)
+			case 0:
 				x::UnpackRotationMatrix(MEM<uint32_t>(CAMERA_PTR), m);
 				if (U16(node, 0xD0) != 0)
 					x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				break;
-			case 1: // identity rotated by 0x400 (8DD7E0)
+			case 1:
 				x::MAG_022_sub_8DD770(m);
 				x::sub_8DD7E0(m, 0x400);
 				break;
-			case 2: // identity + camera yaw
+			case 2:
 			{
 				uint32_t yaw = x::sub_8DD7B0(MEM<uint32_t>(CAMERA_PTR));
 				x::MAG_022_sub_8DD770(m);
@@ -2124,7 +1873,7 @@ namespace shell
 				break;
 			}
 			case 3:
-			case 4: // (same code, own jump table)
+			case 4:
 			{
 				int32_t sub = (int32_t)S8(desc, 0x1D);
 				uint32_t parent = U32(node, 0x1BC);
@@ -2135,7 +1884,6 @@ namespace shell
 				break;
 		}
 
-		// 0x86962B
 		mode = U8(desc, 0x16);
 		if (mode == 4 || mode == 5)
 		{
@@ -2144,13 +1892,13 @@ namespace shell
 			U8(node, 0x16D) = U8(U32(desc, 0xF4) + frame, 0);
 			U8(node, 0x16E) = U8(U32(desc, 0xF8) + frame, 0);
 			U16(node, 0x1CE) = U16(U32(desc, 0xFC) + frame * 2, 0);
-			U16(node, 0xD4) = U16(U32(desc, 0xE4) + frame * 2, 0); // scale x
-			U16(node, 0xD6) = U16(U32(desc, 0xE8) + frame * 2, 0); // scale y
+			U16(node, 0xD4) = U16(U32(desc, 0xE4) + frame * 2, 0);
+			U16(node, 0xD6) = U16(U32(desc, 0xE8) + frame * 2, 0);
 			uint16_t sz = U16(U32(desc, 0xEC) + frame * 2, 0);
-			int32_t scale[4]; // [esp+0x10] (the 4th dword is never written by the original)
+			int32_t scale[4];
 			scale[0] = (int32_t)S16(node, 0xD4);
 			scale[1] = (int32_t)S16(node, 0xD6);
-			U16(node, 0xD8) = sz;                                  // scale z
+			U16(node, 0xD8) = sz;
 			scale[2] = (int32_t)(int16_t)sz;
 			scale[3] = 0;
 			x::scale3DMatrix(m, P(scale));
@@ -2164,7 +1912,6 @@ namespace shell
 		}
 		else if ((int8_t)count > 0)
 		{
-			// point list
 			int32_t i = 0;
 			uint32_t src = node + 0xDC;
 			uint32_t dst = node + 0x19C;
@@ -2180,16 +1927,10 @@ namespace shell
 				dst += 8;
 			} while (i < (int32_t)S8(node, 0x1D8));
 		}
-		// 0x869905 (both exits)
 		x::scale3DMatrix(node + 0xAC, MEM<uint32_t>(ACTOR_STATE) + 0x214);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x869B20 (sub_869B20): the engine's 0x741A70 with the module's particle pool: allocates a free
-	// 0x6C particle slot from the pool [0x26C2DE4] (round robin from the cursor 0x26C0480, which
-	// wraps at 14: slot 14 of the 15 is never used; +0x69 in use), zeroes it, sets owner +0x5C = a1,
-	// descriptor index +0x6A = a2, anchor +0x6B = a3, counts it in the director (+0x14) and appends
-	// it to the particle list with state 0 (0x86AD80); returns the slot or 0
 	uint32_t __cdecl h_869B20(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
 		const uint32_t pool = MEM<uint32_t>(0x26C2DE4);
@@ -2224,29 +1965,18 @@ namespace shell
 		return slot;
 	}
 
-	// 0x869CC0 (sub_869CC0, the engine's 0x737FD0 + the actor scale): allocates a particle actor
-	// record (0x86A4D0) for the emitter a1 and initialises its a3 particles from the descriptor a2:
-	// start positions (+0xDC/+0x12C, spread along a randomly rotated down vector when desc+0x34 =
-	// 1/2; unlike the engine's copy the random rotation is scaled by the actor system's scale vector
-	// state +0x214 first: 0x869E75 / 0x86A016), per-particle rotation matrices (+0x0C+0x20i,
-	// multiplied by the emitter matrix a1+0x2C), speeds (+0x174/+0x184), key colours (+0x1E0..),
-	// then 0x86B1F0; uses 0x50 bytes of the module scratch stack [0x26C30D8]
 	uint32_t __cdecl h_869CC0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
-		// +0x4E key index
 		uint32_t sp = MEM<uint32_t>(SCRATCH_SP) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
 		MEM<uint32_t>(SCRATCH_SP) = sp;
-		// quirk (as the engine's 0x737FE1): `movsx ax` - the high half of the pushed dword is stale
-		// eax; 0x86A4D0 only reads the low byte
 		uint32_t node = h_86A4D0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
 		uint16_t w60 = U16(a1, 0x60);
 		uint8_t mode = U8(desc, 0x16);
-		U8(node, 0x1D8) = a3_lo;                           // particle count
-		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
+		U8(node, 0x1D8) = a3_lo;
+		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
 			uint32_t ctx = MEM<uint32_t>(ACTOR_STATE);
@@ -2268,26 +1998,24 @@ namespace shell
 		U16(node, 0x1DA) = U16(desc, 0x64);
 		if ((int32_t)a3 > 0)
 		{
-			// (the original keeps these pointers in its own argument slots a1 / a2: compiler reuse)
-			uint32_t src = a1 + 0x4C;          // emitter position (16 bytes)
-			uint32_t emat = a1 + 0x2C;         // emitter matrix
+			uint32_t src = a1 + 0x4C;
+			uint32_t emat = a1 + 0x2C;
 			uint32_t out_speed = node + 0x184;
 			uint32_t mat = node + 0x0C;
 			uint32_t pos = node + 0x12C;
 			for (int32_t n = (int32_t)a3; n != 0; n--)
 			{
-				e6_copy16(pos - 0x50, src);    // +0xDC+0x10i: origin
+				e6_copy16(pos - 0x50, src);
 				if (U8(desc, 0x22) == 0)
-					e6_copy16(pos, src);       // +0x12C+0x10i: current position
+					e6_copy16(pos, src);
 				uint8_t spread = U8(desc, 0x34);
 				if (spread == 1)
 				{
-					// random direction over the whole sphere
 					U16(sp, 0x28) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2A) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2C) = (uint16_t)(x::CrtRand() & 0xFFF);
 					e6_rotate_zxy(sp, sp + 0x28);
-					x::scale3DMatrix(sp, MEM<uint32_t>(ACTOR_STATE) + 0x214);   // 0x869E75
+					x::scale3DMatrix(sp, MEM<uint32_t>(ACTOR_STATE) + 0x214);
 					int32_t i2 = shl32(S16(sp, 0x4E), 1);
 					if (U8(desc, 0x33) != 0)
 					{
@@ -2323,12 +2051,11 @@ namespace shell
 				}
 				else if (spread == 2)
 				{
-					// random direction on a ring (angles rand, 0, 0x400)
 					U16(sp, 0x28) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2A) = 0;
 					U16(sp, 0x2C) = 0x400;
 					e6_rotate_zxy(sp, sp + 0x28);
-					x::scale3DMatrix(sp, MEM<uint32_t>(ACTOR_STATE) + 0x214);   // 0x86A016
+					x::scale3DMatrix(sp, MEM<uint32_t>(ACTOR_STATE) + 0x214);
 					int32_t i2 = shl32(S16(sp, 0x4E), 1);
 					if (S8(desc, 0x33) != 1)
 					{
@@ -2350,7 +2077,6 @@ namespace shell
 					if ((x::CrtRand() & 1) != 0)
 						U16(sp, 0x4A) = (uint16_t)(0 - U16(sp, 0x4A));
 					e6_rotate_down_vector(sp);
-					// the y offset is the raw key << 16 (the rotated vector's y is not used)
 					int32_t ex = mul32(S16(sp, 0x48), S16(sp, 0x20));
 					int32_t ey = shl32(S16(sp, 0x4A), 16);
 					int32_t oldx = S32(pos, 0);
@@ -2366,22 +2092,17 @@ namespace shell
 					S32(sp, 0x40) = ez;
 					S32(pos, 8) = add32(oldz, ez);
 				}
-				// particle rotation angles sp+0x30 (random range, or a copy of the spread angles; any
-				// other mode keeps the stale scratch words)
 				int32_t rmode = S8(desc, 0x21);
 				if (rmode == 0)
 					a_742350(sp + 0x30, desc + 0x3C, desc + 0x44);
 				else if (rmode == 1)
 				{
-					// quirk (as the engine's 0x73846D): copies the dwords sp+0x28 / sp+0x2C, including
-					// the word +0x2E this function never writes (stale module scratch, deterministic)
 					uint32_t c0 = U32(sp, 0x28);
 					uint32_t c1 = U32(sp, 0x2C);
 					U32(sp, 0x30) = c0;
 					U32(sp, 0x34) = c1;
 				}
 				e6_rotate_zxy(mat, sp + 0x30);
-				// particle matrix = emitter matrix * particle matrix (column by column)
 				x::GTE_SetRotMatrix(emat);
 				x::GTE_LoadIRFromMatrixColumn(mat);
 				x::GTE_MVMVA_RotIR();
@@ -2395,9 +2116,9 @@ namespace shell
 				if (U8(desc, 0x27) == 0)
 				{
 					uint32_t r1 = a_7422C0(U32(desc, 0x4C), U32(desc, 0x50));
-					U32(out_speed, -0x10) = r1;           // +0x174+4i
+					U32(out_speed, -0x10) = r1;
 					uint32_t r2 = a_7422C0(U32(desc, 0x54), U32(desc, 0x58));
-					U32(out_speed, 0) = r2;               // +0x184+4i
+					U32(out_speed, 0) = r2;
 				}
 				out_speed += 4;
 				pos += 0x10;
@@ -2417,7 +2138,6 @@ namespace shell
 			U32(node, 0x1DC) = a_7422C0(U32(desc, 0x5C), U32(desc, 0x60));
 			if ((int32_t)a3 > 0)
 			{
-				// three key-colour sets per particle (+0x1E0 / +0x220 / +0x260, 16 bytes each)
 				uint32_t q = node + 0x220;
 				for (int32_t n = (int32_t)a3; n != 0; n--)
 				{
@@ -2430,16 +2150,12 @@ namespace shell
 		}
 		h_86B1F0(node, desc);
 		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0x50;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86AF90 (sub_86AF90, the engine's 0x742EB0 + the actor scale): places particle a1 at one of
-	// the director's four per-anchor point sets (dir+0x94/0xD4/0x114/0x154 + 16*anchor, by
-	// descriptor +0x25), then adds the descriptor offset rotated by a stack copy of the particle
-	// matrix +0x2C scaled by the actor system's scale vector (state +0x214, 0x86B06B) (<<16)
 	uint32_t __cdecl h_86AF90(uint32_t a1)
 	{
-		const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);   // ebp
+		const uint32_t dir = MEM<uint32_t>(ACTOR_STATE);
 		uint32_t table = U32(dir, 0x224);
 		uint32_t desc = U32(table + (int32_t)S8(a1, 0x6A) * 4, 0);
 		uint32_t base = 0;
@@ -2462,7 +2178,6 @@ namespace shell
 			U32(a1, 0x54) = s8;
 			U32(a1, 0x58) = sc;
 		}
-		// 0x86B016: [esp+0x10] SVECTOR +0 (pad +6 never written, not read), IR123 +8, matrix +0x10
 		uint8_t local[0x30] = {};
 		*(int16_t *)(local + 0) = (int16_t)h4_div65536(S32(desc, 0));
 		*(int16_t *)(local + 2) = (int16_t)h4_div65536(S32(desc, 4));
@@ -2479,31 +2194,21 @@ namespace shell
 		U32(a1, 0x50) = (uint32_t)add32(S32(a1, 0x50), shl32(ir2, 16));
 		U32(a1, 0x4C) = (uint32_t)add32(S32(a1, 0x4C), shl32(ir1, 16));
 		U32(a1, 0x54) = (uint32_t)add32(S32(a1, 0x54), shl32(ir3, 16));
-		return 0; // void
+		return 0;
 	}
 
-	// ====================================================================================
-	// shield model (task 0x86B390 = the engine's state-table task 0x73A380: states 0x86B3F0,
-	// 0x86B4B0, ret)
-	// ====================================================================================
-
-	// 0x86B3F0 (sub_86B3F0): shield state 0 - decodes the model's prim layout (+0x74 data, +0x78
-	// animation) into +0x94; unless +0x80, position = the target's effect bone 0xF1 with y = its
-	// word +0x3C; scale = 3 * (entity +0x3C - +0x36) clamped to 0x400..0x4000 into +0x50/+0x54/+0x58
-	// and into the actor system's scale vector (state +0x214..+0x21C; +0x220 = node +0x5C), next state
 	uint32_t __cdecl h_86B3F0(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		const uint32_t slot = U8(node, 0x2D);
 		const uint32_t anim = U32(node, 0x78);
-		const uint32_t ent = slot * 0x9C + 0x1D972C0;   // edi
+		const uint32_t ent = slot * 0x9C + 0x1D972C0;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, anim);
 		if (U16(node, 0x80) == 0)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, node + 0x1C);
 			U16(node, 0x1E) = U16(ent, 0x3C);
 		}
-		// movsx (u16 difference); *3 << 10; cdq; and edx, 0x3FF; add; sar 10; 16-bit clamp; movsx
 		const int32_t h = (int16_t)(uint16_t)(U16(ent, 0x3C) - U16(ent, 0x36));
 		const int32_t t = shl32(h * 3, 10);
 		int16_t v = (int16_t)(add32(t, (t >> 31) & 0x3FF) >> 10);
@@ -2522,20 +2227,14 @@ namespace shell
 		S32(sc, 8) = s;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		U32(sc, 0xC) = w5c;
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B4B0 (sub_86B4B0): shield state 1 - plays the model (shared player 0x701970, callback
-	// 0x86B560) with a parameter block on the stack: +0 the model matrix = camera x (identity rotated
-	// by the target's yaw entity +0xE, scaled by +0x50, translated to the position +0x1C..+0x20),
-	// +0x48 the blend buffer 0x26C2DF8. When the model has ended: finished, next state.
 	uint32_t __cdecl h_86B4B0(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		const uint32_t slot = U8(node, 0x2D);
-		const uint32_t ent = slot * 0x9C + 0x1D972C0;   // edi
-		// stack frame 0x5C (the parameter block): the callback reads +0x00..+0x1F and +0x48; the
-		// other words are never written by the original (0 here, never read)
+		const uint32_t ent = slot * 0x9C + 0x1D972C0;
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
 		x::MAG_022_sub_8DD770(L);
@@ -2546,7 +2245,6 @@ namespace shell
 		x::scale3DMatrix(L, node + 0x50);
 		x::ComposeAffineTransform(0x1D97778, L, L);
 		U32(L, 0x48) = BLEND_BUFFER;
-		// 30 fps layer: see mag033_shell_held.inc
 		FX_HELD(held_note_shield(node + 0x94, L);)
 		if (prim_play(node + 0x94, ORIG_ShieldCallback, L, 0) == 0)
 		{
@@ -2554,36 +2252,28 @@ namespace shell
 			U8(node, 0x26) |= 1;
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x86B560 (sub_86B560): prim-model player draw callback of the shield (layout a1, record a2,
-	// block a3 of 0x86B4B0) - picks the object's vertex frame (blended by MAG_017_sub_701390 between
-	// two frames into the block's buffer +0x48), builds its matrix (record rotation; record offset
-	// through the block matrix; block matrix x object matrix; block translation added; record
-	// scale), sets the fade and draws it into the module arena (Effect_RenderPrimModel)
 	uint32_t __cdecl h_86B560(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		// stack (0x38 bytes, offsets from the frame base): +0x00 SVECTOR offset, +0x08 scale
-		// (3 x int32), +0x18 Mat4x3 object matrix (+0x2C translation)
 		alignas(4) uint8_t loc[0x38] = {};
 		const uint32_t L = P(loc);
 		const uint32_t M = L + 0x18;
 		const uint32_t rec = a2;
 		if (((uint32_t)(int32_t)S16(rec, 0x1C) | U32(rec, 0x18)) == 0)
-			return 0; // void (zero scale: nothing drawn)
+			return 0;
 		if (S16(rec, 0x24) >= 0x1000 && U32(rec, 0x20) == 0)
-			return 0; // void (full fade to black: nothing drawn)
+			return 0;
 
 		const uint32_t hdr = x::Field_Alloc(0x58);
 		const int32_t model = S16(rec, 2);
 		const uint32_t data = U32(a1, 0);
 		const uint32_t blk = a3;
 		const uint32_t base = data + U32(data, model * 4 + 8);
-		const int16_t f1 = S16(rec, 0x2A);   // second vertex frame
-		const int16_t f0 = S16(rec, 0x28);   // first vertex frame
+		const int16_t f1 = S16(rec, 0x2A);
+		const int16_t f0 = S16(rec, 0x28);
 		U32(hdr, 0) = base;
-		// vertex frame f: base + 0xC + f * vertex_count * 8
 		auto frame_ptr = [base](int16_t f) -> uint32_t {
 			if (f == 0)
 				return base + 0xC;
@@ -2594,7 +2284,7 @@ namespace shell
 			U32(hdr, 4) = frame_ptr(f0);
 		else
 		{
-			const int16_t t = S16(rec, 0x26);   // blend factor 0..0x1000
+			const int16_t t = S16(rec, 0x26);
 			if (t == 0)
 				U32(hdr, 4) = frame_ptr(f0);
 			else if (t == 0x1000)
@@ -2610,7 +2300,6 @@ namespace shell
 		U16(L, 0) = U16(rec, 8);
 		U16(L, 2) = U16(rec, 0xA);
 		U16(L, 4) = U16(rec, 0xC);
-		// record offset through the block matrix, object rotation composed with it
 		x::GTE_SetRotMatrix(blk);
 		x::GTE_LoadV0(L);
 		x::GTE_MVMVA_RotV0();
@@ -2633,18 +2322,17 @@ namespace shell
 		U32(hdr, 0xC) = (uint32_t)fade;
 		if (fade != 0)
 		{
-			U32(hdr, 8) = U32(rec, 0x20);   // fade colour
+			U32(hdr, 8) = U32(rec, 0x20);
 			U32(hdr, 0x1C) = 0x20F0;
 		}
 		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		MEM<uint32_t>(PACKET_CURSOR) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
 		x::Field_Free(0x58);
-		return 0; // void (prim player callback)
+		return 0;
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
-	// the module's functions served by the engine's ports (identical code up to module addresses)
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x8662A0, (void *)a_73A0D0, "033 MAG_033_sub_8662A0" },
 		{ 0x8662B0, (void *)a_73A0D0, "033 MAG_033_sub_8662B0" },
@@ -2687,7 +2375,6 @@ namespace shell
 		{ 0x86B970, (void *)a_73A6D0, "033 nullsub_1660" },
 		{ 0, nullptr, nullptr }
 	};
-	// the module's own ports
 	static const ModPort PORTS[] = {
 		{ 0x866150, (void *)h_866150, "033 MAG_033_SHELL_Tick" },
 		{ 0x8662C0, (void *)h_8662C0, "033 MAG_033_sub_8662C0" },
@@ -2751,7 +2438,6 @@ namespace shell
 			act::register_module_port(33, p->addr, p->port, p->name);
 		for (const act::shell::ModPort *p = act::shell::PORTS; p->addr; p++)
 			act::register_module_port(33, p->addr, p->port, p->name);
-		// 30 fps layer: see mag033_shell_held.inc
 		FX_HELD(register_mag033_held();)
 	}
 }

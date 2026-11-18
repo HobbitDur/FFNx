@@ -14,40 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 22: Bio (spell, MAG_022_*, file loaded by 0x89A690).
-//
-// Structure (setup MAG_022_BIO 0x89A6B0, module code 0x89A690..0x89DED0). Every node starts with
-// the shared effect-library header (Effect_AddTaskAndInitFromCtx 0x8DC540: context, root, emitter,
-// parent, position, counter, flags, child count, phase, action / target, caster / target slot);
-// every task runs its current phase function (node +0x29) from a small table, and ends when it is
-// flagged done (+0x26 bit0) and has no live children.
-//   Root (0x89A7B0) - alternates the packet arena (magic buffer + 0 / + 0xC000), follows the caster's
-//     bones, spawns one emitter per action (the next one when the previous target's acid overlay is
-//     over), runs the five queues, ends when they are empty.
-//   Emitter (0x89A8D0), one per action, on its first target: model bounds -> acid centre, size and
-//     scale; 0: stage wobble + first acid pool, 2: bubble spawner + pool, 4..10: pools 2..5,
-//     30: palette cycler + boiling blob, 32: two mist spawners, 34: target overlay; damage once
-//     the blob has burst. Sound at its first tick.
-//   Pool (0x89AAE0) - an acid puddle mesh morphed between key shapes (GTE interpolation of the vertex
-//     arrays) at an offset rotating around the target; it then collapses into a flattened splash.
-//   Blob (0x89C270) - a boiling acid mesh (random key shapes) on the target with a wobbling scale;
-//     after 5 cycles it bursts into droplets (from its vertices) and a full-screen flash.
-//   Stage wobble (0x89B8A0) - ramps the battle stage's sine wobble amplitude (0x1D98990 table) up,
-//     holds it until the blob burst, then back down.
-//   Palette (0x89CA70) - blends the acid texture's CLUT between three palettes and uploads it.
-//   Bubble spawner (0x89BA80) - bubbles (0x89BF20: flipbook that spawns a splash when it pops) and
-//     splashes (0x89BD20: flipbook circling upwards) around the target.
-//   Mist spawners (0x89CD60 / 0x89D020) - mist puffs inside (0x89CE60) and flying off the surface of
-//     a sphere around the target (0x89D120).
-//   Droplet (0x89C930) - flipbook thrown out of the blob, falling.
-//   Flash (0x89C650) - full-screen additive quad, colour script 0x162693C.
-//   Overlay (0x89D3D0) - hides the target model (entity flag 4) and draws it itself: shadow, then
-//     every object with its vertices displaced by a sine wobble whose amplitude rises, holds and
-//     falls; the target reappears when it is over.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x2704568..0x2714F24 (file pointer, packet cursor 0x270456C, node pools, queues,
-// overlay vertex buffer 0x270E560, arena bases 0x2714BA0 / 0x2714BA4, overlay context 0x2714E30);
-// the mesh vertex buffers and the palette TIM live in the exe's data (0x16146E8..0x1623784).
+// Effect 22: Bio
 
 #include "mag_common.h"
 
@@ -58,177 +25,169 @@ namespace bio022
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	// shared effect-library node header (0x30 bytes, Effect_AddTaskAndInitFromCtx 0x8DC540)
 	struct FxNode
 	{
-		TaskNode hdr;          // +0x00
-		CastContext *ctx;      // +0x0C
-		FxNode *root;          // +0x10
-		FxNode *emitter;       // +0x14 first node under the root on this node's line (itself for one)
-		FxNode *parent;        // +0x18 (its +0x28 counts the live children)
-		int16_t pos[4];        // +0x1C x, y, z (copied from the parent)
-		int16_t counter;       // +0x24
-		uint16_t flags;        // +0x26 bit0 done, bit2 hidden, bit3 overlay drawing
-		uint8_t children;      // +0x28
-		int8_t phase;          // +0x29
-		int8_t action;         // +0x2A
-		int8_t target;         // +0x2B
-		uint8_t attacker;      // +0x2C
-		uint8_t slot;          // +0x2D target entity slot
+		TaskNode hdr;
+		CastContext *ctx;
+		FxNode *root;
+		FxNode *emitter;
+		FxNode *parent;
+		int16_t pos[4];
+		int16_t counter;
+		uint16_t flags;
+		uint8_t children;
+		int8_t phase;
+		int8_t action;
+		int8_t target;
+		uint8_t attacker;
+		uint8_t slot;
 		uint8_t pad2E[2];
 	};
-	struct RootNode // pool of 2 nodes of 0x64 bytes
+	struct RootNode
 	{
 		FxNode h;
-		uint8_t bones[0x28];   // +0x30 caster bone anchor (Effect_UpdateTargetPosFromBones)
-		int16_t last_action;   // +0x58
-		int16_t target_count;  // +0x5A
-		int16_t tick;          // +0x5C arena parity
-		int16_t alive;         // +0x5E sum of the queue results
+		uint8_t bones[0x28];
+		int16_t last_action;
+		int16_t target_count;
+		int16_t tick;
+		int16_t alive;
 		uint8_t pad60[3];
-		uint8_t busy;          // +0x63 an action's overlay is running
+		uint8_t busy;
 	};
-	struct EmitterNode // pool of 4 nodes of 0x8C bytes
+	struct EmitterNode
 	{
 		FxNode h;
-		uint8_t anchor[0x18];  // +0x30 target bone anchor (MAG_001_CURE_Emitter_UpdatePos)
-		int16_t bmin[4];       // +0x48 model bounds (MAG_001_CURE_Emitter_ComputeModelBounds)
-		int16_t bmax[4];       // +0x50
-		Mat4x3 spin_m;         // +0x58 rotation about Y by `spin`
-		int16_t center[4];     // +0x78 acid centre
-		int16_t acid_done;     // +0x80 the blob has burst
-		int16_t spin;          // +0x82 turns by -0x40 per tick
-		int16_t radius;        // +0x84 half height, at most 0xA00
-		int16_t scale;         // +0x86
-		int16_t big;           // +0x88 tall target: the blob is drawn as a puddle
+		uint8_t anchor[0x18];
+		int16_t bmin[4];
+		int16_t bmax[4];
+		Mat4x3 spin_m;
+		int16_t center[4];
+		int16_t acid_done;
+		int16_t spin;
+		int16_t radius;
+		int16_t scale;
+		int16_t big;
 		int16_t pad8A;
 	};
-	struct WobbleNode // pool of 10 nodes of 0x38 bytes (every 0x2714BA8 task)
-	{
-		FxNode h;              // stage wobble: h.pos[0] = amplitude, h.pos[1] = hold ticks
-		int16_t pad30;
-		int16_t from;          // +0x32 palette cycler: palette blended from
-		int16_t to;            // +0x34 ... to
-		int16_t t;             // +0x36 ... blend 0..0x1000
-	};
-	struct Particle // pool of 300 nodes of 0x70 bytes
+	struct WobbleNode
 	{
 		FxNode h;
-		int32_t scale[3];      // +0x30
+		int16_t pad30;
+		int16_t from;
+		int16_t to;
+		int16_t t;
+	};
+	struct Particle
+	{
+		FxNode h;
+		int32_t scale[3];
 		int32_t pad3C;
-		int16_t rot[3];        // +0x40 x, y, z (bubble)
+		int16_t rot[3];
 		int16_t pad46;
 		uint8_t pad48[4];
-		uint32_t seq;          // +0x4C sprite sequence
-		int16_t frame;         // +0x50
-		int16_t last;          // +0x52
-		int16_t shade;         // +0x54 TransformCameraByShadowRotation offset
+		uint32_t seq;
+		int16_t frame;
+		int16_t last;
+		int16_t shade;
 		int16_t pad56;
-		int16_t vel[3];        // +0x58
+		int16_t vel[3];
 		int16_t pad5E;
-		int16_t acc[3];        // +0x60
+		int16_t acc[3];
 		int16_t pad66;
-		int16_t variant;       // +0x68
-		int16_t angle;         // +0x6A splash: circling angle
-		int16_t speed;         // +0x6C
+		int16_t variant;
+		int16_t angle;
+		int16_t speed;
 		int16_t pad6E;
 	};
-	struct MeshNode // pool of 20 nodes of 0x98 bytes (pool and blob)
+	struct MeshNode
 	{
 		FxNode h;
-		int32_t scale[3];      // +0x30
+		int32_t scale[3];
 		uint8_t pad3C[8];
-		int16_t rot[3];        // +0x44
+		int16_t rot[3];
 		int16_t pad4A;
-		uint8_t *mesh;         // +0x4C output mesh (morphed vertices + polygons)
-		int16_t frame;         // +0x50
+		uint8_t *mesh;
+		int16_t frame;
 		int16_t pad52;
-		int16_t offs[3];       // +0x54 pool: offset from the centre at the end of the collapse
+		int16_t offs[3];
 		int16_t pad5A;
-		int16_t offs_to[3];    // +0x5C pool: offset at first
+		int16_t offs_to[3];
 		int16_t pad62;
-		int16_t wob[3];        // +0x64 blob: scale wobble angles
+		int16_t wob[3];
 		int16_t pad6A;
-		const uint8_t *src;    // +0x6C morph key shapes
-		const uint8_t *dst;    // +0x70
-		int16_t key_a;         // +0x74
-		int16_t key_b;         // +0x76
-		int16_t spin;          // +0x78 pool: rotation of the offset about Y
+		const uint8_t *src;
+		const uint8_t *dst;
+		int16_t key_a;
+		int16_t key_b;
+		int16_t spin;
 		uint8_t pad7A[8];
-		int16_t spin_d;        // +0x82 pool: spin left to turn during the collapse
-		int16_t t;             // +0x84 morph 0..0x1000
+		int16_t spin_d;
+		int16_t t;
 		uint8_t pad86[4];
-		int16_t cycles;        // +0x8A blob: key shapes reached
-		int16_t variant;       // +0x8C pool 0..5
-		int16_t step;          // +0x8E
-		int16_t steps;         // +0x90
-		int16_t frac;          // +0x92 step * 0x1000 / steps
-		int16_t lit;           // +0x94 pool: drawn as a puddle
-		int16_t scale_d;       // +0x96
+		int16_t cycles;
+		int16_t variant;
+		int16_t step;
+		int16_t steps;
+		int16_t frac;
+		int16_t lit;
+		int16_t scale_d;
 	};
-	struct FlashNode // pool of 2 nodes of 0x3C bytes
+	struct FlashNode
 	{
 		FxNode h;
-		const uint32_t *script; // +0x30 colour words; hi byte 0xFF = end, 0xFE = wait (byte 2 = until tick)
-		uint32_t colour;        // +0x34
-		int16_t idx;            // +0x38
+		const uint32_t *script;
+		uint32_t colour;
+		int16_t idx;
 		int16_t pad3A;
 	};
-	// overlay context 0x2714E30 (0xF4 bytes, set up by 0x89DC30)
 	struct OverlayCtx
 	{
-		uint32_t a00;           // +0x00 0x2705160 (not read by the draw)
-		uint8_t *sprite;        // +0x04 0x2714DE8: +0x04 = vertex buffer 0x270E560
-		uint8_t *entity;        // +0x08 target entity
-		uint32_t *frame_cursor; // +0x0C &battle_texture_data_ptr (0x1D8E054)
-		uint32_t *packets;      // +0x10 &module packet cursor
-		Mat4x3 world;           // +0x14 entity matrix
-		Mat4x3 view;            // +0x34 camera * world
-		Mat4x3 world2;          // +0x54 entity matrix moved by `offset`
-		Mat4x3 light;           // +0x74
+		uint32_t a00;
+		uint8_t *sprite;
+		uint8_t *entity;
+		uint32_t *frame_cursor;
+		uint32_t *packets;
+		Mat4x3 world;
+		Mat4x3 view;
+		Mat4x3 world2;
+		Mat4x3 light;
 		uint8_t pad94[0x10];
-		int16_t a4[3];          // +0xA4
+		int16_t a4[3];
 		int16_t padAA;
-		int16_t ac[3];          // +0xAC
+		int16_t ac[3];
 		int16_t padB2;
-		int16_t offset[3];      // +0xB4
+		int16_t offset[3];
 		int16_t padBA;
-		int16_t bc[3];          // +0xBC
+		int16_t bc[3];
 		int16_t padC2;
-		uint8_t rgb[3];         // +0xC4
+		uint8_t rgb[3];
 		uint8_t padC7;
-		int32_t light_dist;     // +0xC8
-		int16_t wobble_phase;   // +0xCC advances 0xA0 per tick
-		int16_t wobble_amp;     // +0xCE
+		int32_t light_dist;
+		int16_t wobble_phase;
+		int16_t wobble_amp;
 		int16_t padD0;
-		int16_t mode;           // +0xD2 0: offset in model space, 1: in world space
+		int16_t mode;
 		uint8_t padD4[4];
-		int16_t anim;           // +0xD8
-		int16_t slot;           // +0xDA 0xFF: the overlay advances the animation itself
-		int16_t light_pos[3];   // +0xDC
+		int16_t anim;
+		int16_t slot;
+		int16_t light_pos[3];
 		uint8_t padE2[0x10];
-		int16_t glow;           // +0xF2
+		int16_t glow;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(FxNode) == 0x30 && sizeof(RootNode) == 0x64 && sizeof(EmitterNode) == 0x8C, "Bio nodes");
 	static_assert(sizeof(WobbleNode) == 0x38 && sizeof(Particle) == 0x70 && sizeof(MeshNode) == 0x98, "Bio nodes");
 	static_assert(sizeof(FlashNode) == 0x3C && sizeof(OverlayCtx) == 0xF4, "Bio nodes");
 
-	// ------------------------------------------------------------------
-	// Module globals
-	// ------------------------------------------------------------------
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x270456C); }
-	inline uint32_t &ArenaA() { return var<uint32_t>(0x2714BA4); } // magic buffer (Magic_TextureOFF)
-	inline uint32_t &ArenaB() { return var<uint32_t>(0x2714BA0); } // magic buffer + 0xC000
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2714960; }  // 4 x 0x8C
-	inline TaskQueue *QControl() { return (TaskQueue *)0x2714BA8; }   // 10 x 0x38
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x270E540; } // 300 x 0x70
-	inline TaskQueue *QMeshes() { return (TaskQueue *)0x2705150; }    // 20 x 0x98
-	inline TaskQueue *QFlash() { return (TaskQueue *)0x27044E0; }     // 2 x 0x3C
+	inline uint32_t &ArenaA() { return var<uint32_t>(0x2714BA4); }
+	inline uint32_t &ArenaB() { return var<uint32_t>(0x2714BA0); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2714960; }
+	inline TaskQueue *QControl() { return (TaskQueue *)0x2714BA8; }
+	inline TaskQueue *QParticles() { return (TaskQueue *)0x270E540; }
+	inline TaskQueue *QMeshes() { return (TaskQueue *)0x2705150; }
+	inline TaskQueue *QFlash() { return (TaskQueue *)0x27044E0; }
 	inline OverlayCtx &Overlay() { return var<OverlayCtx>(0x2714E30); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
@@ -250,11 +209,11 @@ namespace bio022
 	static const uint32_t ORIG_Overlay = 0x89D3D0;
 
 	static const void *const SOUND_Bio = (const void *)0x16146E4;
-	static const uint32_t STAGE_WOBBLE = 0x1D98990;       // 4 stage groups of 0x2C bytes: +2 amplitude
-	static const uint32_t PALETTE_TIM = 0x16146E8;        // acid CLUT (uploaded every tick)
-	static const uint32_t PALETTES = 0x1614F68;           // 3 source palette TIMs
-	static const uint32_t POOL_KEYS = 0x16189CC;          // pool key shapes 0..6
-	static const uint32_t BLOB_KEYS = 0x1626000;          // blob key shapes 0..4
+	static const uint32_t STAGE_WOBBLE = 0x1D98990;
+	static const uint32_t PALETTE_TIM = 0x16146E8;
+	static const uint32_t PALETTES = 0x1614F68;
+	static const uint32_t POOL_KEYS = 0x16189CC;
+	static const uint32_t BLOB_KEYS = 0x1626000;
 	static const uint32_t MESH_Pool = 0x1615CE4, MESH_Splat = 0x1617E3C, MESH_Blob = 0x1619888, MESH_BlobBoil = 0x161F750;
 	static const uint32_t KEY_BlobA = 0x16189E8, KEY_BlobB = 0x161E8B0;
 	static const uint32_t SEQ_SplashA = 0x1614F74, SEQ_SplashB = 0x1615120;
@@ -264,24 +223,15 @@ namespace bio022
 	static const uint32_t COUNT_Bubbles = 0x162694C, COUNT_Splashes = 0x162696C, COUNT_MistA = 0x162698C, COUNT_MistB = 0x16269AC;
 	static const uint32_t OVERLAY_A00 = 0x2705160, OVERLAY_SPRITE = 0x2714DE8, OVERLAY_VERTS = 0x270E560;
 
-
-	// ------------------------------------------------------------------
-	// Engine / effect-library functions (original addresses)
-	// ------------------------------------------------------------------
-	// Effect_AddTaskAndInitFromCtx (0x8DC540): new node of `size` bytes in `q`, zeroed, header
-	// inherited from `parent` (the parent's child count goes up)
 	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
-	// Effect_ReleaseLinkedTask (0x8DC530): the parent's child count goes down
 	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
-	// the node's target / caster anchor from their bones 0xF0 / 0xF1 (+0x30..+0x45)
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }        // MAG_001_CURE_Emitter_UpdatePos
-	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); } // (caster, ctx +0)
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }      // MAG_001_CURE_Emitter_ComputeModelBounds (+0x48..+0x57)
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
+	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }
 	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC700)(n, out); }
-	inline int32_t BoundsCenterY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCB80)(n); }  // Effect_GetTargetBoundsCenterWorldY
-	inline int32_t BoundsHalfHeight(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCA50)(n); } // MAG_022_sub_8DCA50
-	inline int32_t BoundsBaseY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAF0)(n); }      // sub_8DCAF0: entity +0x1E + bounds min y
-	// rotation matrices (MATRIX, 0x20 bytes): identity, then m = R(angle) * m
+	inline int32_t BoundsCenterY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCB80)(n); }
+	inline int32_t BoundsHalfHeight(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCA50)(n); }
+	inline int32_t BoundsBaseY(void *n) { return fn<int32_t (__cdecl *)(void *)>(0x8DCAF0)(n); }
 	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(0x8DD770)(m); }
 	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD7E0)(m, a); }
 	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD8A0)(m, a); }
@@ -292,8 +242,7 @@ namespace bio022
 	inline void NormalizeVec3(const int32_t *in, int16_t *out) { fn<void (__cdecl *)(const int32_t *, int16_t *)>(0x56BD20)(in, out); }
 	inline void BuildMatrixFromDirAndUp(void *out, const void *dir, const void *up) { fn<void (__cdecl *)(void *, const void *, const void *)>(0x8DDA50)(out, dir, up); }
 	inline void UnpackRotationMatrix(const void *in, void *out) { fn<void (__cdecl *)(const void *, void *)>(0x56C040)(in, out); }
-	// software GTE
-	inline void GteLoadV012Block(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E020)(v); } // V0..V2 from 3 consecutive SVECTORs
+	inline void GteLoadV012Block(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E020)(v); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(0x45E060)(v); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -301,31 +250,27 @@ namespace bio022
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }       // GTE_ReadOTZ (dword)
-	inline void GteStoreSXY012_GT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E300)(p); }       // p +8, +0x14, +0x20
-	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E2E0)(p); }       // p +8, +0x10, +0x18
-	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E320)(p); }       // (same layout)
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteStoreSXY012_GT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E300)(p); }
+	inline void GteStoreSXY012_FT3(void *p) { fn<void (__cdecl *)(void *)>(0x45E2E0)(p); }
+	inline void GteStoreSXY012_FT4(void *p) { fn<void (__cdecl *)(void *)>(0x45E320)(p); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
 	inline void GteSetBackground(int32_t x, int32_t y, int32_t z) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DCF0)(x, y, z); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }                    // IR = L * V0 + BK
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }                     // GTE_MVMVA_RotV0_Tr_2
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
 	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
 	inline void GteLoadIRBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(rgb); }
 	inline void GteStoreIRBytes(void *rgb) { fn<void (__cdecl *)(void *)>(0x45E410)(rgb); }
-	// drawing
 	inline void InsertPrimAltViewport(uint32_t bucket, void *p) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, p); }
 	inline uint32_t GetTPage(int32_t tp, int32_t abr, int32_t x, int32_t y) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(0x45C690)(tp, abr, x, y); }
 	inline void SetDrawMode(void *p, int32_t dfe, int32_t dtd, uint32_t tpage, const void *tw) { fn<void (__cdecl *)(void *, int32_t, int32_t, uint32_t, const void *)>(0x45BFC0)(p, dfe, dtd, tpage, tw); }
-	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); } // Battle_QueueTIMUpload_GetEOF
-	// battle models
+	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
 	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
 	inline void PreBattleReadAnimation(void *hdr, void *cmd, int32_t anim) { fn<void (__cdecl *)(void *, void *, int32_t)>(0x509440)(hdr, cmd, anim); }
-	// sub_5088A0: an entity's ground shadow (returns the packet cursor)
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 
-	// x / 4096 / 10 as compiled (0x66666667, >> 2)
 	static int16_t Div40960(int32_t x)
 	{
 		int32_t q = x / 4096;
@@ -334,7 +279,6 @@ namespace bio022
 		return (int16_t)hi;
 	}
 
-	// x / -12 as compiled (0xD5555555, >> 1)
 	static int16_t DivNeg12(int32_t x)
 	{
 		int32_t hi = (int32_t)(((int64_t)x * (int32_t)0xD5555555) >> 32) >> 1;
@@ -342,10 +286,8 @@ namespace bio022
 		return (int16_t)hi;
 	}
 
-	// x / 2^18, rounded toward zero (cdq; and 0x3FFFF; add; sar 18)
 	static int32_t Div2p18(int32_t x) { return (x + ((x >> 31) & 0x3FFFF)) >> 18; }
 
-	// end of every task: counter + 1; done and no live children -> released
 	static uint32_t Finish(FxNode *n)
 	{
 		n->counter++;
@@ -357,7 +299,6 @@ namespace bio022
 		return 0;
 	}
 
-	// sub_89BEE0: next flipbook frame; past the last one the node is hidden (frame stays last)
 	static int AdvanceFrame(Particle *p)
 	{
 		p->frame++;
@@ -380,10 +321,6 @@ namespace ff8fx
 {
 namespace bio022
 {
-	// ------------------------------------------------------------------
-	// Meshes (pool and blob)
-	// ------------------------------------------------------------------
-	// sub_89B0D0: out vertices = src * (1 - t) + dst * t (GTE interpolation, 4.12)
 	static void Morph(const uint8_t *src, const uint8_t *dst, uint8_t *out, int32_t t)
 	{
 		const uint8_t *a = src + 8;
@@ -410,9 +347,6 @@ namespace bio022
 		FieldFree(8);
 	}
 
-	// mesh layout: +0 vertex block size, +4 vertex count, +8 vertices (8 bytes), then the polygon
-	// count and the polygons (0x1C bytes: +0 colour/code, +4..+8 vertex indices * 2, +0xA uv2,
-	// +0xC uv0/clut, +0x10 uv1/tpage, +0x14 / +0x18 colours)
 	static const uint8_t *MeshPolys(const uint8_t *mesh, int32_t *count)
 	{
 		int32_t vb = *(const int32_t *)mesh / 4;
@@ -420,7 +354,6 @@ namespace bio022
 		return mesh + vb * 4 + 0x1C;
 	}
 
-	// gouraud textured triangle from the three projected vertices of a polygon
 	static uint8_t *MeshTriangle(const uint8_t *poly, uint8_t *pkt, uint32_t ot, uint8_t *otz)
 	{
 		GteStoreSXY012_GT3(pkt);
@@ -440,7 +373,6 @@ namespace bio022
 		return pkt + 0x28;
 	}
 
-	// sub_89AB90: the mesh at pos, rotated (rot), scaled (scale), seen by the camera
 	static void DrawMesh(MeshNode *m)
 	{
 		uint32_t ot = RenderOT(0x44);
@@ -477,8 +409,6 @@ namespace bio022
 		FieldFree(0x3C);
 	}
 
-	// a vertex already in world space sags: above y = -0x100 it spreads away from the centre
-	// (by (y + 0x100) / 0x200, y at most 0x200) and is flattened onto the ground (y at most 0)
 	static void Sag(int16_t *v, const MeshNode *m)
 	{
 		int16_t y = v[1];
@@ -494,8 +424,6 @@ namespace bio022
 		if (v[1] > 0) v[1] = 0;
 	}
 
-	// sub_89AD30: the mesh as a puddle: vertices to world space (light matrix = the model matrix,
-	// background = its translation), sagged onto the ground, then seen by the camera
 	static void DrawMeshPuddle(MeshNode *m)
 	{
 		uint8_t *pkt = (uint8_t *)PacketCursor();
@@ -540,10 +468,6 @@ namespace bio022
 		FieldFree(0x3C);
 	}
 
-	// ------------------------------------------------------------------
-	// Pool (0x89AAE0)
-	// ------------------------------------------------------------------
-	// sub_89B170: pos = acid centre + Ry(spin) * (offs_to + (offs - offs_to) * frac)
 	static void PoolUpdatePos(MeshNode *m)
 	{
 		int16_t v[4];
@@ -564,7 +488,6 @@ namespace bio022
 		m->h.pos[2] = (int16_t)(m->h.pos[2] + out[2]);
 	}
 
-	// sub_89B250 (phase 0): size, key shapes 0 / 1 and the pool's place around the target
 	static void PoolInit(MeshNode *m)
 	{
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
@@ -628,8 +551,6 @@ namespace bio022
 		m->h.phase++;
 	}
 
-	// sub_89B660 (phase 1): morph 0x800 per tick through key shapes 0..4; then the splat mesh
-	// (keys 5 -> 6, puddle) and the collapse toward the target over the emitter's ticks left to 30
 	static void PoolBubble(MeshNode *m)
 	{
 		m->t = (int16_t)(m->t + 0x800);
@@ -659,7 +580,6 @@ namespace bio022
 		m->dst = *(const uint8_t *const *)(POOL_KEYS + 4 * m->key_b);
 	}
 
-	// spin and scale toward the emitter's (rem / steps of the difference left)
 	static void PoolFollow(MeshNode *m, int32_t rem, int32_t steps)
 	{
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
@@ -670,7 +590,6 @@ namespace bio022
 		m->scale[0] = sc;
 	}
 
-	// sub_89B740 (phase 2): splat morph 0x400 per tick while following the emitter
 	static void PoolCollapse(MeshNode *m)
 	{
 		int32_t steps = m->steps;
@@ -688,7 +607,6 @@ namespace bio022
 		}
 	}
 
-	// sub_89B7E0 (phase 3): follows the emitter until the last step, then done
 	static void PoolSettle(MeshNode *m)
 	{
 		int16_t steps = m->steps;
@@ -704,7 +622,6 @@ namespace bio022
 		}
 	}
 
-	// sub_89B870 (phase 4)
 	static void PoolWaitEnd(MeshNode *m)
 	{
 		if (m->h.emitter->counter >= 0x1E)
@@ -723,7 +640,7 @@ namespace bio022
 		case 2: PoolCollapse(m); break;
 		case 3: PoolSettle(m); break;
 		case 4: PoolWaitEnd(m); break;
-		default: break; // nullsub_1743
+		default: break;
 		}
 	}
 
@@ -732,7 +649,6 @@ namespace bio022
 		MeshNode *m = (MeshNode *)n;
 		PoolPhase(m);
 		PoolUpdatePos(m);
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(held_note_draw(ORIG_Pool, m);)
 		Morph(m->src, m->dst, m->mesh, m->t);
 		if (m->lit == 0) DrawMesh(m);
@@ -740,21 +656,15 @@ namespace bio022
 		return Finish(&m->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Blob (0x89C270)
-	// ------------------------------------------------------------------
-	// the blob's morph and draw (flat on a tall target)
 	static void BlobShow(MeshNode *m)
 	{
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(held_note_draw(ORIG_Blob, m);)
 		Morph(m->src, m->dst, m->mesh, m->t);
 		if (e->big == 1) DrawMeshPuddle(m);
 		else DrawMesh(m);
 	}
 
-	// sub_89C750: droplets thrown from every 8th vertex (starting at vertex 2k) of the blob
 	static void BlobBurst(MeshNode *m, int32_t k)
 	{
 		uint8_t *s = (uint8_t *)FieldAlloc(0x30);
@@ -789,7 +699,6 @@ namespace bio022
 		FieldFree(0x30);
 	}
 
-	// sub_89C410 (phase 0): on the acid centre, first morph at 0x400
 	static void BlobInit(MeshNode *m)
 	{
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
@@ -808,7 +717,6 @@ namespace bio022
 		m->h.phase++;
 	}
 
-	// sub_89C4C0 (phase 1): grows (0x400 per tick), then the boiling mesh (keys 4 -> 0)
 	static void BlobGrow(MeshNode *m)
 	{
 		m->t = (int16_t)(m->t + 0x400);
@@ -827,7 +735,6 @@ namespace bio022
 		BlobShow(m);
 	}
 
-	// sub_89C550 (phase 2): boils between random key shapes 0..3; after 5 the blob bursts
 	static void BlobBoil(MeshNode *m)
 	{
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
@@ -861,10 +768,10 @@ namespace bio022
 		case 0: BlobInit(m); break;
 		case 1: BlobGrow(m); break;
 		case 2: BlobBoil(m); break;
-		case 3: BlobBurst(m, 1); m->h.phase++; break; // sub_89C8C0
-		case 4: BlobBurst(m, 2); m->h.phase++; break; // sub_89C8E0
-		case 5: m->h.flags |= 1; m->h.phase++; break; // sub_89C900
-		default: break;                                // nullsub_1748
+		case 3: BlobBurst(m, 1); m->h.phase++; break;
+		case 4: BlobBurst(m, 2); m->h.phase++; break;
+		case 5: m->h.flags |= 1; m->h.phase++; break;
+		default: break;
 		}
 	}
 
@@ -873,7 +780,6 @@ namespace bio022
 		MeshNode *m = (MeshNode *)n;
 		BlobPhase(m);
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
-		// scale wobble and spin of the next tick's draw
 		int32_t r = CrtRand();
 		m->wob[0] = (int16_t)(m->wob[0] + (r & 0x7F) + 0x80);
 		r = CrtRand();
@@ -908,10 +814,6 @@ namespace bio022
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sprites (splash, bubble, droplet, mist)
-	// ------------------------------------------------------------------
-	// sub_89BD90: camera-facing flipbook `seq` frame `frame` at pos
 	static void DrawSprite(Particle *p, int32_t size)
 	{
 		if (p->h.flags & 4) return;
@@ -924,7 +826,6 @@ namespace bio022
 		FieldFree(0xB4);
 	}
 
-	// sub_89BF80: the flipbook on the plane rotated by rot (y, z, x) and scaled
 	static void DrawOrientedSprite(Particle *p)
 	{
 		if (p->h.flags & 4) return;
@@ -948,7 +849,6 @@ namespace bio022
 		FieldFree(0xB4);
 	}
 
-	// splash (0x89BD20) - sub_89BE00: flipbook A / B, random circling
 	static void SplashInit(Particle *p)
 	{
 		if (p->variant == 0) p->seq = SEQ_SplashA;
@@ -960,7 +860,6 @@ namespace bio022
 		p->h.phase++;
 	}
 
-	// sub_89BE60: rises 0x40 per tick while circling (radius sin / cos >> 7)
 	static void SplashMove(Particle *p)
 	{
 		p->angle = (int16_t)((uint16_t)(p->speed + p->angle) & 0xFFF);
@@ -986,15 +885,13 @@ namespace bio022
 		{
 		case 0: SplashInit(p); break;
 		case 1: SplashMove(p); break;
-		default: break; // nullsub_1745
+		default: break;
 		}
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(held_note_draw(ORIG_Splash, p);)
 		DrawSprite(p, (int16_t)p->scale[0]);
 		return Finish(&p->h);
 	}
 
-	// bubble (0x89BF20) - sub_89C070: flipbook A / B lying flat
 	static void BubbleInit(Particle *p)
 	{
 		p->rot[0] = 0x400;
@@ -1011,7 +908,6 @@ namespace bio022
 		p->h.phase++;
 	}
 
-	// sub_89C0B0: when the flipbook is over, a splash of the same kind and size
 	static void BubblePop(Particle *p)
 	{
 		if (!AdvanceFrame(p)) return;
@@ -1029,15 +925,13 @@ namespace bio022
 		{
 		case 0: BubbleInit(p); break;
 		case 1: BubblePop(p); break;
-		default: break; // nullsub_1746
+		default: break;
 		}
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(held_note_draw(ORIG_Bubble, p);)
 		DrawOrientedSprite(p);
 		return Finish(&p->h);
 	}
 
-	// droplet (0x89C930) - sub_89C9B0: size 1..8 eighths of the emitter's scale
 	static void DropletInit(Particle *p)
 	{
 		EmitterNode *e = (EmitterNode *)p->h.emitter;
@@ -1051,7 +945,6 @@ namespace bio022
 		p->h.phase++;
 	}
 
-	// sub_89CA00: velocity += acceleration (gravity 6 on y), position += velocity
 	static void DropletFall(Particle *p)
 	{
 		int16_t ay = p->acc[1];
@@ -1068,7 +961,6 @@ namespace bio022
 		}
 	}
 
-	// droplet and mist: below the ground (y > 0) the sprite is hidden and done
 	static void BelowGround(Particle *p)
 	{
 		if (p->h.pos[1] > 0) p->h.flags |= 5;
@@ -1081,16 +973,14 @@ namespace bio022
 		{
 		case 0: DropletInit(p); break;
 		case 1: DropletFall(p); break;
-		default: break; // nullsub_1749
+		default: break;
 		}
 		BelowGround(p);
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(held_note_draw(ORIG_Droplet, p);)
 		DrawSprite(p, (int16_t)p->scale[0]);
 		return Finish(&p->h);
 	}
 
-	// sub_89CF30: pos += a random point of the ball of radius r (random direction, random length)
 	static void RandomOffsetInBall(Particle *p, int32_t r)
 	{
 		int32_t rr = r;
@@ -1111,7 +1001,6 @@ namespace bio022
 		p->h.pos[2] = (int16_t)(p->h.pos[2] + out[2]);
 	}
 
-	// sub_89D280: pos += a random point of the sphere of radius r
 	static void RandomOffsetOnSphere(Particle *p, int32_t r)
 	{
 		int32_t rr = r;
@@ -1131,7 +1020,6 @@ namespace bio022
 		p->h.pos[2] = (int16_t)(p->h.pos[2] + out[2]);
 	}
 
-	// mist inside (0x89CE60) - sub_89CEE0: somewhere in the ball of 3/16 of the scale
 	static void MistAInit(Particle *p)
 	{
 		EmitterNode *e = (EmitterNode *)p->h.emitter;
@@ -1148,24 +1036,21 @@ namespace bio022
 		switch (p->h.phase)
 		{
 		case 0: MistAInit(p); break;
-		case 1: // sub_89CFE0
+		case 1:
 			if (AdvanceFrame(p))
 			{
 				p->h.flags |= 1;
 				p->h.phase++;
 			}
 			break;
-		default: break; // nullsub_1751
+		default: break;
 		}
 		BelowGround(p);
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(held_note_draw(ORIG_MistA, p);)
 		DrawSprite(p, (int16_t)p->scale[0]);
 		return Finish(&p->h);
 	}
 
-	// mist flying off (0x89D120) - sub_89D1A0: on the sphere of 5/16 of the scale, flying away
-	// from the centre (1/12..1/19 of the distance per tick), decelerating by -1/12 of that
 	static void MistBInit(Particle *p)
 	{
 		EmitterNode *e = (EmitterNode *)p->h.emitter;
@@ -1187,7 +1072,6 @@ namespace bio022
 		p->h.phase++;
 	}
 
-	// sub_89D330: velocity += acceleration, position += velocity
 	static void MistBMove(Particle *p)
 	{
 		p->vel[0] = (int16_t)(p->vel[0] + p->acc[0]);
@@ -1210,27 +1094,20 @@ namespace bio022
 		{
 		case 0: MistBInit(p); break;
 		case 1: MistBMove(p); break;
-		default: break; // nullsub_1753
+		default: break;
 		}
 		BelowGround(p);
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(held_note_draw(ORIG_MistB, p);)
 		DrawSprite(p, (int16_t)p->scale[0]);
 		return Finish(&p->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Spawners
-	// ------------------------------------------------------------------
-	// bubble spawner (0x89BA80) - sub_89BAE0: on the acid centre
 	static void SpawnerAtCenter(FxNode *n)
 	{
 		ff8fx::copy<(8)>(n->pos, ((EmitterNode *)n->emitter)->center);
 		n->phase++;
 	}
 
-	// sub_89BB00: ticks 0..20, table counts of bubbles on a ring (radius (0x380..0x4FF) * scale)
-	// and of splashes on the same kind of ring at a random height of the target
 	static void BubbleSpawn(FxNode *n)
 	{
 		if (n->counter > 0x14)
@@ -1291,12 +1168,11 @@ namespace bio022
 		{
 		case 0: SpawnerAtCenter(s); break;
 		case 1: BubbleSpawn(s); break;
-		default: break; // nullsub_1747
+		default: break;
 		}
 		return Finish(s);
 	}
 
-	// mist spawners: table counts per tick, size = the emitter's scale or half of it
 	static void MistSpawn(FxNode *n, int16_t last_tick, uint32_t counts, uint32_t task)
 	{
 		if (n->counter > last_tick)
@@ -1319,7 +1195,6 @@ namespace bio022
 		}
 	}
 
-	// 0x89CD60: sub_89CDC0, then sub_89CDE0 (ticks 0..24)
 	static uint32_t __cdecl MistSpawnerATask(TaskNode *n)
 	{
 		FxNode *s = (FxNode *)n;
@@ -1327,12 +1202,11 @@ namespace bio022
 		{
 		case 0: SpawnerAtCenter(s); break;
 		case 1: MistSpawn(s, 0x18, COUNT_MistA, ORIG_MistA); break;
-		default: break; // nullsub_1750
+		default: break;
 		}
 		return Finish(s);
 	}
 
-	// 0x89D020: sub_89D080, then sub_89D0A0 (ticks 0..20)
 	static uint32_t __cdecl MistSpawnerBTask(TaskNode *n)
 	{
 		FxNode *s = (FxNode *)n;
@@ -1340,14 +1214,11 @@ namespace bio022
 		{
 		case 0: SpawnerAtCenter(s); break;
 		case 1: MistSpawn(s, 0x14, COUNT_MistB, ORIG_MistB); break;
-		default: break; // nullsub_1754
+		default: break;
 		}
 		return Finish(s);
 	}
 
-	// ------------------------------------------------------------------
-	// Stage wobble (0x89B8A0): h.pos[0] = amplitude, h.pos[1] = hold ticks
-	// ------------------------------------------------------------------
 	static void SetStageWobble(int16_t amp)
 	{
 		for (int k = 0; k < 4; k++) *(int16_t *)(STAGE_WOBBLE + 2 + 0x2C * k) = amp;
@@ -1358,7 +1229,7 @@ namespace bio022
 		WobbleNode *w = (WobbleNode *)n;
 		switch (w->h.phase)
 		{
-		case 0: // sub_89B910: amplitude and the wobble bytes of the 4 stage groups to 0
+		case 0:
 			w->h.pos[0] = 0;
 			for (int k = 0; k < 4; k++)
 			{
@@ -1369,7 +1240,7 @@ namespace bio022
 			}
 			w->h.phase++;
 			break;
-		case 1: // sub_89B950: up 0x80 per tick to 0x400
+		case 1:
 			w->h.pos[0] = (int16_t)(w->h.pos[0] + 0x80);
 			if (w->h.pos[0] >= 0x400)
 			{
@@ -1378,18 +1249,18 @@ namespace bio022
 			}
 			SetStageWobble(w->h.pos[0]);
 			break;
-		case 2: // sub_89B990: until the blob has burst
+		case 2:
 			if (((EmitterNode *)w->h.emitter)->acid_done != 0)
 			{
 				w->h.pos[1] = 0;
 				w->h.phase++;
 			}
 			break;
-		case 3: // sub_89B9B0: 4 more ticks
+		case 3:
 			w->h.pos[1]++;
 			if (w->h.pos[1] >= 4) w->h.phase++;
 			break;
-		case 4: // sub_89B9D0: down 0x80 per tick to 0, then done
+		case 4:
 			w->h.pos[0] = (int16_t)(w->h.pos[0] - 0x80);
 			if (w->h.pos[0] <= 0)
 			{
@@ -1399,15 +1270,11 @@ namespace bio022
 			}
 			SetStageWobble(w->h.pos[0]);
 			break;
-		default: break; // nullsub_1744
+		default: break;
 		}
 		return Finish(&w->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Palette cycler (0x89CA70)
-	// ------------------------------------------------------------------
-	// sub_89CB90: n 15-bit colours of `out` = a * (1 - t) + b * t (TIMs, CLUT at +0x14), STP set
 	static void LerpClut(uint32_t a, uint32_t b, uint32_t out, int32_t t, int32_t n)
 	{
 		const uint8_t *pa = (const uint8_t *)a + 0x14;
@@ -1451,12 +1318,12 @@ namespace bio022
 		WobbleNode *c = (WobbleNode *)n;
 		switch (c->h.phase)
 		{
-		case 0: // sub_89CAD0
+		case 0:
 			c->from = 0;
 			c->h.phase++;
 			c->to = 1;
 			break;
-		case 1: // sub_89CAF0: blends to a random other palette, 2 ticks each; ends at the burst
+		case 1:
 		{
 			c->t = (int16_t)(c->t + 0x800);
 			EmitterNode *e = (EmitterNode *)c->h.emitter;
@@ -1477,14 +1344,11 @@ namespace bio022
 			}
 			break;
 		}
-		default: break; // nullsub_1750 (0x89CD10)
+		default: break;
 		}
 		return Finish(&c->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Flash (0x89C650): full-screen additive quad
-	// ------------------------------------------------------------------
 	static void FlashDraw(const FlashNode *f)
 	{
 		uint32_t bucket = RenderOT(0x1C);
@@ -1528,17 +1392,12 @@ namespace bio022
 				f->colour = w;
 				f->idx = idx;
 			}
-			// 30 fps layer: see mag022_bio_held.inc
 			FX_HELD(held_note_draw(ORIG_Flash, f);)
 			FlashDraw(f);
 		}
 		return Finish(&f->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Target overlay (0x89D3D0)
-	// ------------------------------------------------------------------
-	// sub_89DC30
 	static void InitOverlay(OverlayCtx *mc, uint32_t a00, uint8_t *sprite, uint32_t verts, uint8_t *entity, int32_t slot)
 	{
 		mc->entity = entity;
@@ -1578,7 +1437,6 @@ namespace bio022
 		*(uint16_t *)(sprite + 0x24) = 0;
 	}
 
-	// sub_89D550: the entity's matrix, and a copy moved by `offset`
 	static void CopyWorld(OverlayCtx *mc, const uint8_t *entity)
 	{
 		ff8fx::copy<(0x20)>(&mc->world, entity + 0x40);
@@ -1600,7 +1458,6 @@ namespace bio022
 		}
 	}
 
-	// sub_89D610: `light` = the entity's rotation seen from light_pos (at light_dist)
 	static void BuildLightMatrix(OverlayCtx *mc)
 	{
 		uint8_t *s = (uint8_t *)FieldAlloc(0x70);
@@ -1647,10 +1504,6 @@ namespace bio022
 		FieldFree(0x70);
 	}
 
-	// sub_89D780: one model object (bone groups of vertices, then textured triangles and quads)
-	// with every vertex moved by amp * (sin, cos)(phase + 12 * y) / 2^18 in x / z; flat colours
-	// from the entity's colour (+0x28). Vertices go to the sprite's buffer, packets to the frame
-	// arena (battle_texture_data_ptr).
 	static void DrawOverlayObject(const uint8_t *obj, uint32_t ot, int32_t mode, OverlayCtx *mc)
 	{
 		(void)mode;
@@ -1674,7 +1527,6 @@ namespace bio022
 		{
 			const uint8_t *p = table + offs[i];
 			if (!((*(const uint32_t *)(s + 0x70) >> (i & 31)) & 1)) continue;
-			// vertices, grouped by bone
 			uint8_t *v = verts;
 			int32_t groups = *(const int16_t *)p;
 			p += 2;
@@ -1706,7 +1558,6 @@ namespace bio022
 					v += 0x10;
 				}
 			}
-			// polygons: 12-byte header (triangle count, quad count), 16-byte triangles, 20-byte quads
 			p = (const uint8_t *)(((uintptr_t)p + 3) & ~(uintptr_t)3);
 			int32_t tris = *(const int16_t *)p;
 			int32_t quads = *(const int16_t *)(p + 2);
@@ -1784,7 +1635,6 @@ namespace bio022
 		FieldFree(0x74);
 	}
 
-	// sub_89D460: shadow, body (+0x64) and weapon (+0x78) of the target with the wobble
 	static void DrawOverlay(OverlayCtx *mc)
 	{
 		uint8_t *entity = mc->entity;
@@ -1800,7 +1650,6 @@ namespace bio022
 		if (mc->slot != 0xFF) BuildBoneMatricesFromPose(entity + 0x60);
 	}
 
-	// sub_89DBD0 (phase 0): hide the target, the overlay draws it
 	static void OverlayInit(FxNode *o)
 	{
 		uint8_t slot = o->slot;
@@ -1811,7 +1660,6 @@ namespace bio022
 		o->phase++;
 	}
 
-	// glow + 0x40 per tick, at most 0x300 (sub_89DD20 / sub_89DD70)
 	static void OverlayGlow(OverlayCtx &mc)
 	{
 		mc.glow = (int16_t)(mc.glow + 0x40);
@@ -1825,7 +1673,7 @@ namespace bio022
 		switch (o->phase)
 		{
 		case 0: OverlayInit(o); break;
-		case 1: // sub_89DD20: amplitude + 0x200 per tick up to 0x1000
+		case 1:
 			OverlayGlow(mc);
 			mc.wobble_amp = (int16_t)(mc.wobble_amp + 0x200);
 			if (mc.wobble_amp >= 0x1000)
@@ -1834,11 +1682,11 @@ namespace bio022
 				o->phase++;
 			}
 			break;
-		case 2: // sub_89DD70: until tick 26
+		case 2:
 			OverlayGlow(mc);
 			if (o->counter >= 0x1A) o->phase++;
 			break;
-		case 3: // sub_89DDA0: amplitude - 0x100 per tick; at 0 the target is shown again
+		case 3:
 		{
 			mc.glow = (int16_t)(mc.glow - 0x40);
 			if (mc.glow < 0) mc.glow = 0;
@@ -1853,22 +1701,17 @@ namespace bio022
 			}
 			break;
 		}
-		default: break; // nullsub_1755
+		default: break;
 		}
 		mc.wobble_phase = (int16_t)((uint16_t)(mc.wobble_phase + 0xA0) & 0xFFF);
 		if (o->flags & 8)
 		{
-			// 30 fps layer: see mag022_bio_held.inc
 			FX_HELD(held_note_draw(ORIG_Overlay, o);)
 			DrawOverlay(&mc);
 		}
 		return Finish(o);
 	}
 
-	// ------------------------------------------------------------------
-	// Emitter (0x89A8D0)
-	// ------------------------------------------------------------------
-	// sub_89A9D0 (phase 0): acid centre / size / scale from the target's bounds, stage wobble, pool 0
 	static void EmitterInit(EmitterNode *e)
 	{
 		CopyMidpointFromSource(e, e->center);
@@ -1878,7 +1721,7 @@ namespace bio022
 		if (hh > 0xA00) e->radius = 0xA00;
 		int32_t rad = e->radius;
 		int32_t hi = (int32_t)(((int64_t)shl32(rad, 12) * 0x4BDA12F7) >> 32) >> 7;
-		hi += (int32_t)((uint32_t)hi >> 31); // rad * 4096 / 432
+		hi += (int32_t)((uint32_t)hi >> 31);
 		int16_t s = (int16_t)hi;
 		e->scale = s;
 		if (s < 0x1000) e->scale = 0x1000;
@@ -1896,7 +1739,6 @@ namespace bio022
 		e->h.phase++;
 	}
 
-	// a pool of `variant` once the emitter's counter reaches `tick`
 	static void EmitterPool(EmitterNode *e, int16_t tick, int16_t variant)
 	{
 		if (e->h.counter < tick) return;
@@ -1910,18 +1752,18 @@ namespace bio022
 		switch (e->h.phase)
 		{
 		case 0: EmitterInit(e); break;
-		case 1: // sub_89BA20: bubble spawner and pool 1
+		case 1:
 			if (e->h.counter >= 2)
 			{
 				AddEffectTask(QControl(), ORIG_BubbleSpawner, 0x38, e);
 				EmitterPool(e, 2, 1);
 			}
 			break;
-		case 2: EmitterPool(e, 4, 2); break;  // sub_89C130
-		case 3: EmitterPool(e, 6, 3); break;  // sub_89C170
-		case 4: EmitterPool(e, 8, 4); break;  // sub_89C1B0
-		case 5: EmitterPool(e, 10, 5); break; // sub_89C1F0
-		case 6: // sub_89C230: palette cycler and blob
+		case 2: EmitterPool(e, 4, 2); break;
+		case 3: EmitterPool(e, 6, 3); break;
+		case 4: EmitterPool(e, 8, 4); break;
+		case 5: EmitterPool(e, 10, 5); break;
+		case 6:
 			if (e->h.counter >= 0x1E)
 			{
 				AddEffectTask(QControl(), ORIG_Palette, 0x38, e);
@@ -1929,7 +1771,7 @@ namespace bio022
 				e->h.phase++;
 			}
 			break;
-		case 7: // sub_89CD20: mist spawners
+		case 7:
 			if (e->h.counter >= 0x20)
 			{
 				AddEffectTask(QControl(), ORIG_MistSpawnerA, 0x38, e);
@@ -1937,14 +1779,14 @@ namespace bio022
 				e->h.phase++;
 			}
 			break;
-		case 8: // sub_89D3A0: target overlay
+		case 8:
 			if (e->h.counter >= 0x22)
 			{
 				AddEffectTask(QControl(), ORIG_Overlay, 0x38, e);
 				e->h.phase++;
 			}
 			break;
-		case 9: // sub_89DE20: damage once the blob has burst
+		case 9:
 			if (e->acid_done == 1)
 			{
 				ApplyActionResultToTarget(e->h.ctx->actions[e->h.action].targets);
@@ -1952,7 +1794,7 @@ namespace bio022
 				e->h.phase++;
 			}
 			break;
-		default: break; // nullsub_1756
+		default: break;
 		}
 	}
 
@@ -1969,20 +1811,17 @@ namespace bio022
 		return Finish(&e->h);
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x89A7B0)
-	// ------------------------------------------------------------------
 	static void RootPhase(RootNode *r)
 	{
 		switch (r->h.phase)
 		{
-		case 0: r->h.phase++; break; // sub_89A890
-		case 1: // sub_89A8A0: emitter of the current action
+		case 0: r->h.phase++; break;
+		case 1:
 			r->busy = 1;
 			AddEffectTask(QEmitters(), ORIG_Emitter, 0x8C, r);
 			r->h.phase++;
 			break;
-		case 2: // sub_89DE70: when its overlay is over, the next action (back to phase 1)
+		case 2:
 			if (r->busy == 0)
 			{
 				int8_t a = r->h.action;
@@ -1994,21 +1833,20 @@ namespace bio022
 				else r->h.phase++;
 			}
 			break;
-		case 3: // sub_89DEA0: until every queue is empty
+		case 3:
 			if (r->alive == 0)
 			{
 				r->h.flags |= 1;
 				r->h.phase++;
 			}
 			break;
-		default: break; // nullsub_1757
+		default: break;
 		}
 	}
 
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(held_note_root();)
 		if (r->tick & 1) PacketCursor() = ArenaA();
 		else PacketCursor() = ArenaB();
@@ -2048,7 +1886,6 @@ namespace bio022
 		register_port(bio022::ORIG_MistSpawnerB, (void *)bio022::MistSpawnerBTask, "B022 MistSpawnerBTask", 22);
 		register_port(bio022::ORIG_MistB, (void *)bio022::MistBTask, "B022 MistBTask", 22);
 		register_port(bio022::ORIG_Overlay, (void *)bio022::OverlayTask, "B022 OverlayTask", 22);
-		// 30 fps layer: see mag022_bio_held.inc
 		FX_HELD(register_mag022_held();)
 	}
 }

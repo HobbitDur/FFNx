@@ -14,33 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 124: Flare (spell, MAG_124_*).
-//
-// Structure (setup MAG_124_FLARE 0x6BBDA0 -> _Init 0x6BBDD0, file loader 0x6BBDB0 = the texture
-// file named at 0x12652A4; the setup starts camera animation 0x125D0C0 and queues the TIM):
-//   RootTask (0x6BBE40) - alternates the packet arena (magic buffer + 0x30BC / + 0x1B0BC), clears
-//     the screen flash level, and on counter 1 of a 10-tick cycle sets up the pools (first time)
-//     and spawns the target task of the next action, unless a target task younger than 61 ticks
-//     still runs on that target (the cycle then restarts); computes the effect camera, runs the
-//     target and particle queues, sets the screen flash; ends when both queues are empty.
-//   Target (0x6BC040) - node 0xB44, one per action (on its first target): sound at 0; screen
-//     flash ramp (up over 0..7, 0x800, down from 77); fades at 39 and 41; the target's colour
-//     blends to red over 4..35 and back over 72..80; plays two prim-model layouts (the burst
-//     0x1252C0C at the target, the ground ring 0x125C5C4 at its feet) with the prim-player
-//     callback PrimPart (0x6BC4A0); over 40..79 hides the target and draws it itself as a
-//     rippling red silhouette (0x6BC8A0); damage at 80; at 0..7 spawns 6 particles per tick; ends
-//     when both layouts are over (the target is shown again).
-//   Particle (0x6BD020) - node 0x2C: the shared burst sprite (0x1252BE4) on a sphere around the
-//     target (radius `size` along a direction turning by a random angular velocity): it shows at
-//     its spawn radius, collapses into the centre at a random time, bursts out again from tick 41
-//     and fades out from tick 56.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Module globals: 0x25213D0..0x2521448 (flash level, texture file, magic buffer base, context,
-// root pool, packet cursor 0x25213F4, effect camera 0x25213F8, particle / target / root queues).
-// The target pool (3 x 0xB44), the particle pool (64 x 0x2C), the morph vertex buffer (+0x2CCC)
-// and the packet arenas are in the magic buffer. The silhouette draws into the frame arena
-// (battle_texture_data_ptr 0x1D8E054) with the battle's bone workspace (0x1D98B3C) as its
-// vertex buffer.
+// Effect 124: Flare
 
 #include "mag_common.h"
 
@@ -51,50 +25,42 @@ namespace flare124
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline int32_t &FlashLevel() { return var<int32_t>(0x25213D0); }       // screen flash, max of the targets
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25213D8); }        // Magic_TextureOFF (magic buffer)
+	inline int32_t &FlashLevel() { return var<int32_t>(0x25213D0); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25213D8); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25213DC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25213F4); }
 	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x25213F8); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x2521418; }       // pool: + 0x21CC, 0x40 x 0x2C
-	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521428; }         // pool: magic buffer, 3 x 0xB44
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // silhouette vertex buffer
+	inline TaskQueue *QParticles() { return (TaskQueue *)0x2521418; }
+	inline TaskQueue *QTargets() { return (TaskQueue *)0x2521428; }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6BBE40;
 	static const uint32_t ORIG_TargetTask = 0x6BC040;
 	static const uint32_t ORIG_ParticleTask = 0x6BD020;
-	static const uint32_t MODEL_Burst = 0x1252C0C;       // prim-model layout data (0xA70-byte layout)
-	static const uint32_t MODEL_Ring = 0x125C5C4;        // prim-model layout data (0xA8-byte layout)
+	static const uint32_t MODEL_Burst = 0x1252C0C;
+	static const uint32_t MODEL_Ring = 0x125C5C4;
 	static const uint32_t SEQ_Particle = 0x1252BE4;
 	static const void *const SOUND_Flare = (const void *)0x125DE9C;
-	static const void *const COLOUR_Red = (const void *)0x12652A0;   // 0x002020FF
-	static const uint32_t RIPPLE_Distance = 0x125DEA0;   // u8 [128][128]: distance of (|dy|, |dx|)
-	static const uint32_t RIPPLE_Weights = 0x1261EA0;    // u16 [20][128]: weight by distance, per step
-	static const uint32_t SIN_Table = 0x12632A0;         // s16 [4096]
+	static const void *const COLOUR_Red = (const void *)0x12652A0;
+	static const uint32_t RIPPLE_Distance = 0x125DEA0;
+	static const uint32_t RIPPLE_Weights = 0x1261EA0;
+	static const uint32_t SIN_Table = 0x12632A0;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	// sub_56CC00: out = colour blend of a (weight wa) and b (weight wb), weights 4.12
 	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	// sub_5088A0: an entity's ground shadow (returns the packet cursor)
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline void MatrixMultiplyVector(const void *m, const void *in, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C4F0)(m, in, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }    // sub_56C220: a = a * b (3x3)
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(a, b); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	// MAG_070_sub_7043B0: prim model draw (header +0 model, +4 vertices, +8 fade colour, +0xC fade,
-	// +0x18 depth offset, +0x1C mode)
 	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
-	// software GTE
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0: V0 = 3 x u16
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
@@ -102,63 +68,56 @@ namespace flare124
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }    // GTE_ReadOTZ (dword)
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 3 nodes of 0xB44 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t action;    // +0x0E action index
-		uint8_t *entity;   // +0x10 target entity
-		int16_t pos[4];    // +0x14 effect anchor x, y, z, height (GetDefaultEffectPosition)
-		int16_t spawn[4];  // +0x1C effect anchor 0xF0 (GetEffectSpawnPosition; not read)
-		uint32_t colour;   // +0x24 the target's colour before the effect
-		int32_t radius;    // +0x28 silhouette: largest ripple offset of the last draw (at most 0x80)
-		uint8_t burst[0xA70];  // +0x2C prim-model layout (prim::Layout: data, frame, state)
-		uint8_t ring[0xA8];    // +0xA9C
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		int16_t pos[4];
+		int16_t spawn[4];
+		uint32_t colour;
+		int32_t radius;
+		uint8_t burst[0xA70];
+		uint8_t ring[0xA8];
 	};
-	struct ParticleNode // pool of 0x40 nodes of 0x2C bytes
+	struct ParticleNode
 	{
 		TaskNode hdr;
-		int16_t size;      // +0x0C radius around the anchor
-		int16_t grow;      // +0x0E spawn radius, then the burst step
-		int16_t start;     // +0x10 tick the collapse starts
-		int16_t pos[3];    // +0x12 anchor x, y, z
-		int16_t shade;     // +0x18 sprite size (0x4B0)
-		int16_t ang[3];    // +0x1A direction angles
-		int16_t alpha;     // +0x20 brightness (sprite colour)
-		int16_t vel[3];    // +0x22 angular velocity
-		int16_t age;       // +0x28
+		int16_t size;
+		int16_t grow;
+		int16_t start;
+		int16_t pos[3];
+		int16_t shade;
+		int16_t ang[3];
+		int16_t alpha;
+		int16_t vel[3];
+		int16_t age;
 		int16_t pad2A;
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 x, y, z (+ height word)
-		int32_t scale[3];  // +0x08 4.12, applied to the record offsets and the matrix
-		int32_t scaled;    // +0x14 scale present
-		int32_t depth;     // +0x18 prim header +0x18 (/ 4 for objects 2 and 3)
-		uint32_t morph;    // +0x1C blended vertex frames
+		int16_t pos[4];
+		int32_t scale[3];
+		int32_t scaled;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0xB44 && sizeof(ParticleNode) == 0x2C, "Flare nodes");
 	static_assert(sizeof(PrimArg) == 0x20, "Flare prim block");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6BC4A0): one object of the burst / ring model
-	// ------------------------------------------------------------------
 	static void __cdecl PrimPart(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -197,7 +156,6 @@ namespace flare124
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset, scaled by the block's scale
 		int16_t off[4] = {};
 		const int32_t scaled = arg->scaled;
 		if (scaled)
@@ -216,7 +174,6 @@ namespace flare124
 		const uint32_t flags = r->flags;
 		if (flags & 0x1000)
 		{
-			// the block position through the camera, the offset through the effect camera
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -233,7 +190,6 @@ namespace flare124
 		}
 		else if (flags & 0x200)
 		{
-			// the block position through the camera, the offset added unrotated, rotation kept
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -244,7 +200,6 @@ namespace flare124
 		}
 		else
 		{
-			// block position + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -261,7 +216,6 @@ namespace flare124
 		{
 			if (flags & 0x100)
 			{
-				// diagonal matrix product (sub_56C220)
 				Mat4x3 d = {};
 				d.m[0][0] = r->scale[0];
 				d.m[1][1] = r->scale[1];
@@ -291,19 +245,8 @@ namespace flare124
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Silhouette (0x6BC8A0): the target model redrawn flat in its colour, its vertices rippled on
-	// screen around the anchor
-	// ------------------------------------------------------------------
-	// Work block (Field_Alloc 0x84): +0x00 camera x entity matrix, then S = +0x20:
-	//   S+0x00 polygon cursor, +0x04 vertex buffer, +0x08 triangle / quad counts (6 words),
-	//   +0x14 clip rectangle (x0, y0, x1, y1), +0x1C colour, +0x20 object mask,
-	//   +0x24..+0x43 four vertices (sx, sy, otz, clip flags), +0x44 NCLIP, +0x4C OTZ,
-	//   +0x54 weight row, +0x58 radius, +0x5A / +0x5C anchor on screen, +0x5E largest offset,
-	//   +0x60 ripple phase, +0x62 ripple amplitude.
 	template<typename T> static inline T &F(uint8_t *s, uint32_t off) { return *(T *)(s + off); }
 
-	// sub_6BCE40: one bone group of vertices, projected, rippled, clip-flagged
 	static void RippleVertices(uint8_t **objp, uint8_t **outp, uint8_t *s)
 	{
 		uint8_t *p = *objp;
@@ -385,7 +328,6 @@ namespace flare124
 		F<uint32_t>(s, off + 4) = *(const uint32_t *)(v + 4);
 	}
 
-	// sub_6BCB50: the object's textured triangles and quads, flat in the colour
 	static uint32_t RipplePolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -474,7 +416,6 @@ namespace flare124
 		return (uint32_t)pk;
 	}
 
-	// sub_6BC9F0: every object of a model the mask shows (bone groups of vertices, then polygons)
 	static uint32_t RippleModel(const uint8_t *model, uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint8_t *table = *(uint8_t *const *)(model + 4);
@@ -512,8 +453,6 @@ namespace flare124
 		return cursor;
 	}
 
-	// sub_6BC8A0: shadow, then the body (+0x64) and the weapon (+0x78) of the target; returns the
-	// largest ripple offset (the next draw's radius)
 	static int32_t DrawSilhouette(uint8_t *entity, int16_t sx, int16_t sy, int16_t radius, int32_t step, int32_t amplitude, int32_t phase)
 	{
 		uint8_t *c = (uint8_t *)FieldAlloc(0x84);
@@ -549,7 +488,6 @@ namespace flare124
 		return F<int16_t>(c, 0x7E);
 	}
 
-	// entity +0x00 bit 2 (hidden: the effect draws it) and bit 3 on every entity of its +0x8C ring
 	static void HideTarget(uint8_t *entity)
 	{
 		entity[0] |= 4;
@@ -572,11 +510,6 @@ namespace flare124
 		} while (e && e != entity);
 	}
 
-	// ------------------------------------------------------------------
-	// Particle (0x6BD020)
-	// ------------------------------------------------------------------
-	// the tick's size / brightness steps before the draw: returns the sprite mode (4 = coloured by
-	// alpha, 0 = plain), -1 = nothing drawn, -2 = finished
 	static int ParticlePrepare(ParticleNode *p)
 	{
 		const int32_t age = p->age;
@@ -658,7 +591,6 @@ namespace flare124
 		if (mode == -2) return TASK_END;
 		if (mode >= 0)
 		{
-			// 30 fps layer: see mag124_flare_held.inc
 			FX_HELD(held_note_particle(p, mode);)
 			ParticleDraw(p, mode);
 		}
@@ -666,9 +598,6 @@ namespace flare124
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Target (0x6BC040)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -693,7 +622,6 @@ namespace flare124
 			ScreenFadeTask(0, 1, 1, 0xC0);
 		}
 		*(uint16_t *)t->entity |= 0x800;
-		// the target's colour: to red over 4..35, red, back over 72..80
 		const int32_t cc = t->counter;
 		if ((uint32_t)(cc - 4) < 0x20)
 		{
@@ -707,7 +635,6 @@ namespace flare124
 		}
 		else if (cc >= 4 && cc <= 0x48) *(uint32_t *)(t->entity + 0x28) = *(const uint32_t *)COLOUR_Red;
 		else *(uint32_t *)(t->entity + 0x28) = t->colour;
-		// burst at the anchor (scaled by the target's size), ring at its feet
 		PrimArg arg;
 		arg.morph = TexBase() + 0x2CCC;
 		const int32_t size = *(const int16_t *)(t->entity + 0x26);
@@ -719,22 +646,18 @@ namespace flare124
 		arg.scale[0] = scale;
 		*(uint32_t *)&arg.pos[0] = *(const uint32_t *)&t->pos[0];
 		arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)size) >> 3;
-		// 30 fps layer: see mag124_flare_held.inc
 		FX_HELD(held_note_play(t, t->burst, &arg);)
 		int alive = prim::play((prim::Layout *)t->burst, PrimPart, (int)&arg, 0);
 		arg.pos[2] = t->pos[2];
 		arg.pos[0] = t->pos[0];
 		arg.pos[1] = *(const int16_t *)(t->entity + 0x24);
 		arg.depth = 0;
-		// 30 fps layer: see mag124_flare_held.inc
 		FX_HELD(held_note_play(t, t->ring, &arg);)
 		alive |= prim::play((prim::Layout *)t->ring, PrimPart, (int)&arg, 0);
-		// silhouette over 40..79 while the anchor is in front of the camera
 		const int32_t e = (int32_t)t->counter - 0x28;
 		if (e == 0x28) ShowTarget(t->entity);
 		else if ((uint32_t)e < 0x28)
 		{
-			// 30 fps layer: see mag124_flare_held.inc
 			FX_HELD(held_note_silhouette(t, e);)
 			GteSetRotMatrix(&Camera());
 			GteSetTransVector(&Camera());
@@ -748,7 +671,6 @@ namespace flare124
 			sxy[1] = (int16_t)(sxy[1] >> 3);
 			if ((uint16_t)otz != 0)
 			{
-				// ripple step 0..19..0, amplitude sin(0..180 degrees) over the 40 ticks
 				uint32_t step = (uint32_t)(e * 20) / 20u;
 				if ((int32_t)step >= 0x14) step = 0x27 - step;
 				const int32_t amplitude = ComputeSin((int32_t)((uint32_t)(e << 11) / 40u));
@@ -799,13 +721,9 @@ namespace flare124
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6BBE40)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag124_flare_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -831,8 +749,6 @@ namespace flare124
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
 				uint32_t colour = *(const uint32_t *)(entity + 0x28);
-				// wait while a target task of 60 ticks or less runs on this target; an older one
-				// hands over the colour the target had before it
 				TargetNode *pool = (TargetNode *)TexBase();
 				bool busy = false;
 				for (int k = 0; k < 3; k++)
@@ -886,7 +802,6 @@ namespace flare124
 		register_port(flare124::ORIG_RootTask, (void *)flare124::RootTask, "F124 RootTask", 124);
 		register_port(flare124::ORIG_TargetTask, (void *)flare124::TargetTask, "F124 TargetTask", 124);
 		register_port(flare124::ORIG_ParticleTask, (void *)flare124::ParticleTask, "F124 ParticleTask", 124);
-		// 30 fps layer: see mag124_flare_held.inc
 		FX_HELD(register_mag124_held();)
 	}
 }

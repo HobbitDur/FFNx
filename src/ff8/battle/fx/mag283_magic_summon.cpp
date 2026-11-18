@@ -14,45 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 283: Magic Summon (enemy attack 261 of kernel.bin; Sphinxara c0m012; MAG_283_*).
-//
-// Structure (setup 0x67C400 -> _Init 0x67C430, file loader 0x67C410 = mag282.tim (name at 0x109EAAC) into 0x2507E20; _Init
-// queues the TIM, keeps the context (0x2507E24) and the CASTER's entity (0x2507E28, never read again), sets up the master queue
-// 0x2507E40 (pool 0x2507E50, 1 x 0x14) and starts camera animation 0x1094FC0):
-//   MasterTask (0x67C4B0) - alternates the packet arena (magic buffer + 0x650 / + 0x10650); on counter 1 (once) sets up the
-//     main pool (1 x 0x648 at the magic buffer) and starts the main task: target = action 0's first target (its entity word +0
-//     gets bit 2), layouts 0x1095178 (A) / 0x1098A18 (B), its default effect position, the anchor of A (the position's x / z at
-//     the target's height +0x24), its colour +0x2C and its size +0x26. Then the main queue; when it is empty: screen flash 0
-//     and the effect ends.
-//   MainTask (0x67C610) - screen flash: level counter x 275 until 8, (60 - counter) x 275 from 52, else 0x898 in the colour
-//     blended along the 8-entry table 0x109968C (counter x 7 / 60; black at both ends). Counters 0..59: layout A at its anchor
-//     (block scale = the target's size, depth -0x200, texture scroll (counter & 15) x 8 of object 1). Counters 24..43 (e =
-//     counter - 24): the target's colour +0x2C = its kept colour faded by 0x1000 - sin((20 - e) x 0x400 / 20) (byte +0x2F =
-//     0x32); while the position projects in front of the camera, the target is redrawn warped (0x67CC10, weight row 20 - e,
-//     radius = the previous draw's largest offset). Counter 44: the target's bit 2 cleared and its colour put back. Counters
-//     24..59: layout B at the position. Sound 0x1099688 at counter 10; ends after counter 59.
-//   PrimCallback (0x67C8A0) - one layout object drawn by 0x701DD0 (header 0x6C): offset and object scaled by the block's scale;
-//     flag 0x1000: the block's point through the camera + the offset through the matrix 0x2507E70 (composed with it unless flag
-//     0x8000), else point + offset through the camera (composed with it unless flag 0x8000); + the camera's translation,
-//     scale3DMatrix, fade, the texture scroll of object 1 (the block's +0x1A), depth = the block's +0x18.
-//   Warp (0x67CC10 -> 0x67CD80 -> 0x67D250 / 0x67CEA0): the target's shadow, then its body (+0x64) and weapon (+0x78) drawn
-//     with their own textures (each triangle / quad followed by a subtractive flat copy in the faded colour and a draw-mode
-//     packet, same bucket), every vertex pushed away from the projected position by the weight row's factor of its distance
-//     (u8 [128][128] 0x109AAAC) to the radius; into the frame arena (0x1D8E054) with the bone workspace (0x1D98B3C).
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update).
-// ENTITY WRITES: the target's word +0 bit 2 (set at the start, cleared at counter 44), its colour +0x2C / +0x2F (counters
-//   24..44), its bone matrices (world matrices 0x5095B0 / from its pose 0x508C90 by the warp). No position word is written.
-// CAMERA: the setup's camera animation 0x1094FC0 (engine); no camera word is written by the tasks.
-// Module globals: 0x2507E20..0x2507E90 (texture file 0x2507E20, context 0x2507E24, caster 0x2507E28, the queues 0x2507E30 main
-// / 0x2507E40 master, master pool 0x2507E50, packet cursor 0x2507E64, magic buffer base 0x2507E68, the matrix 0x2507E70 the
-// callback's flag 0x1000 reads (never written by the module)).
-// STACK WORDS: the flash colour is blended (3 bytes, 0x56CC00) over the main task's own argument slot: its 4th byte is the
-// node pointer's high byte. The 4th words of the vectors loaded into GTE V0 (the callback's record offset) reach the GTE's
-// VZ0 high half (0x1CA8A16) only. The warp keeps its counters / bucket in its argument slots (not re-read by the callers).
-// SCREEN UNITS (PC): the warp's centre (0x67C7B8) and its vertices (0x67D297) are the GTE's SXY in eighths of a pixel, used as
-// pixels (distance clamp 0x80, the distance table, the radius): the warp reaches ~16 px (the clip window is already x 8).
-// PC screen units fix (FFNx PR 1088): WarpVertices takes the offset in pixels and pushes it back in eighths.
+// Effect 283: Magic Summon
 
 #include "mag_common.h"
 
@@ -63,43 +25,38 @@ namespace magicsummon283
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2507E24); }
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507E30; }           // pool: magic buffer, 1 x 0x648
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2507E30; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507E64); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507E68); }        // Magic_TextureOFF (magic buffer)
-	static const Mat4x3 *const MATRIX_Flag1000 = (const Mat4x3 *)0x2507E70; // the callback's flag 0x1000 frame (never written)
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // warp vertex buffer
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2507E68); }
+	static const Mat4x3 *const MATRIX_Flag1000 = (const Mat4x3 *)0x2507E70;
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_MasterTask = 0x67C4B0;
 	static const uint32_t ORIG_MainTask = 0x67C610;
-	static const uint32_t ORIG_PrimCallback = 0x67C8A0;   // not a task: the layouts' callback
-	static const uint32_t MORPH = 0x648;                 // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x650, ARENA_B = 0x10650; // magic buffer: packet arenas
-	static const uint32_t MODEL_A = 0x1095178;           // prim-model layouts
+	static const uint32_t ORIG_PrimCallback = 0x67C8A0;
+	static const uint32_t MORPH = 0x648;
+	static const uint32_t ARENA_A = 0x650, ARENA_B = 0x10650;
+	static const uint32_t MODEL_A = 0x1095178;
 	static const uint32_t MODEL_B = 0x1098A18;
-	static const uint32_t FLASH_Colours = 0x109968C;     // 8 + 1 colours (3 bytes used)
-	static const uint32_t WARP_Weights = 0x10996AC;      // u16 [20][128]: the offset's weight by distance (4.12), per step
-	static const uint32_t WARP_Distance = 0x109AAAC;     // u8 [128][128]: the distance of (|dy|, |dx|) (row 20 of the weights)
+	static const uint32_t FLASH_Colours = 0x109968C;
+	static const uint32_t WARP_Weights = 0x10996AC;
+	static const uint32_t WARP_Distance = 0x109AAAC;
 	static const void *const SOUND_Summon = (const void *)0x1099688;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply: b.rot = a.rot x b.rot
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); } // MAG_063_RenderPrimSet
-	// ColourLerp 0x56CC00: out (3 bytes) = a x wa + b x wb (4.12 weights, per channel)
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, mode, cursor); }
 	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
-	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }   // IR1..3 = 3 x u8
-	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }        // IR1..3 low bytes
-	// sub_5088A0: an entity's ground shadow (returns the packet cursor)
+	inline void GteLoadIRBytes(const void *src) { fn<void (__cdecl *)(const void *)>(0x45E0E0)(src); }
+	inline void GteStoreIRBytes(void *dst) { fn<void (__cdecl *)(void *)>(0x45E410)(dst); }
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	// software GTE
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0: V0 = 3 x u16
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E1B0)(a, b, c); }
 	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
@@ -107,42 +64,38 @@ namespace magicsummon283
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }    // GTE_ReadOTZ (dword)
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2507E50)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pool set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x648 bytes (magic buffer)
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..59
-		int16_t radius;    // +0x0E warp: the largest offset of the last draw (at most 0x80)
-		int32_t size;      // +0x10 the target's size (entity +0x26): the blocks' scale
-		uint32_t colour;   // +0x14 the target's colour (entity +0x2C) as it was
-		int16_t anchor[4]; // +0x18 layout A: the position's x, the target's height (+0x24), the position's z, 0
-		int16_t pos[4];    // +0x20 the target's default effect position
-		uint8_t *ent;      // +0x28 target entity (action 0's first target)
-		uint8_t layoutA[0x4BC]; // +0x2C
-		uint8_t layoutB[0x160]; // +0x4E8
+		int16_t counter;
+		int16_t radius;
+		int32_t size;
+		uint32_t colour;
+		int16_t anchor[4];
+		int16_t pos[4];
+		uint8_t *ent;
+		uint8_t layoutA[0x4BC];
+		uint8_t layoutB[0x160];
 	};
-	// the prim-player callback's parameter block (a stack block of the main task)
 	struct PrimArg
 	{
-		int16_t anchor[4]; // +0x00 point (4th word: GTE V0 pad only)
-		int32_t scale[3];  // +0x08 the record offsets and the object scaled by it (4.12)
-		int32_t scaled;    // +0x14 (always 1)
-		int16_t depth;     // +0x18 the header's +0x18
-		int16_t scroll;    // +0x1A texture scroll of object 1 (0: none)
-		uint32_t morph;    // +0x1C blended vertex frames
+		int16_t anchor[4];
+		int32_t scale[3];
+		int32_t scaled;
+		int16_t depth;
+		int16_t scroll;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0x648, "Magic Summon nodes");
@@ -150,16 +103,6 @@ namespace magicsummon283
 
 	template<typename T> static inline T &F(uint8_t *s, uint32_t off) { return *(T *)(s + off); }
 
-	// ------------------------------------------------------------------
-	// Warp (0x67CC10 -> 0x67CD80 -> 0x67D250 / 0x67CEA0): the target model, its vertices pushed away from a point on screen
-	// ------------------------------------------------------------------
-	// Work block (Field_Alloc 0x7C): +0x00 camera x entity matrix, then S = +0x20:
-	//   S+0x00 polygon cursor, +0x04 vertex buffer, +0x08 triangle / quad counts, +0x0C clip rectangle (x0, y0, x1, y1: x 8
-	//   in the test), +0x14 colour (code byte 2 when faded), +0x18 object mask, +0x1C..+0x3B four vertices (sx, sy, otz, clip
-	//   flags), +0x3C NCLIP, +0x44 OTZ, +0x4C weight row, +0x50 radius, +0x52 / +0x54 the point on screen (SXY), +0x56 largest
-	//   offset, +0x58 the fade.
-
-	// sub_67D250: one bone group of vertices, projected, pushed, clip-flagged
 	static void WarpVertices(uint8_t **objp, uint8_t **outp, uint8_t *s)
 	{
 		uint8_t *p = *objp;
@@ -186,7 +129,6 @@ namespace magicsummon283
 			{
 				const int16_t cx = F<int16_t>(s, 0x52);
 				const int16_t cy = F<int16_t>(s, 0x54);
-				// PC screen units fix: the offset from the centre in pixels, the pushed offset back in eighths
 				const int32_t dx = (int32_t)(int16_t)(F<int16_t>(s, 0x1C) - cx) >> 3;
 				const int32_t dy = (int32_t)(int16_t)(F<int16_t>(s, 0x1E) - cy) >> 3;
 				int32_t adx = dx;
@@ -231,8 +173,6 @@ namespace magicsummon283
 		F<uint32_t>(s, off + 4) = *(const uint32_t *)(v + 4);
 	}
 
-	// sub_67CEA0: the object's textured triangles and quads (each polygon's own semi-transparency bit kept, the code byte of the
-	// colour or'ed in), each followed by a flat subtractive copy in the colour and a draw-mode packet, in the same bucket
 	static uint32_t WarpPolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -346,7 +286,6 @@ namespace magicsummon283
 		return (uint32_t)pk;
 	}
 
-	// the bone groups of one object, warped into out; returns the end of out
 	static uint8_t *WarpGroups(const uint8_t *bones, uint8_t **objp, uint8_t *out, uint8_t *s)
 	{
 		uint8_t *obj = *objp;
@@ -368,7 +307,6 @@ namespace magicsummon283
 		return out;
 	}
 
-	// the object's two polygon counts (after its vertex groups, 4-aligned; 4 more words skipped) and its polygon list
 	static void WarpCounts(uint8_t *obj, uint8_t *s)
 	{
 		obj = (uint8_t *)(((uintptr_t)obj + 3) & ~(uintptr_t)3);
@@ -377,7 +315,6 @@ namespace magicsummon283
 		F<uint8_t *>(s, 0) = obj + 0xC;
 	}
 
-	// sub_67CD80: every object of a model the mask shows (bone groups of vertices, then polygons)
 	static uint32_t WarpModel(const uint8_t *model, uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint8_t *table = *(uint8_t *const *)(model + 4);
@@ -395,8 +332,6 @@ namespace magicsummon283
 		return cursor;
 	}
 
-	// sub_67CC10 (head / tail): the work block for the target at (sx, sy) on screen; the colour = the entity's +0x28 faded by
-	// 0x1000 - fade
 	static uint8_t *WarpBegin(uint8_t *entity, int16_t sx, int16_t sy, int16_t radius, int32_t step, int32_t fade)
 	{
 		uint8_t *c = (uint8_t *)FieldAlloc(0x7C);
@@ -424,8 +359,6 @@ namespace magicsummon283
 		return c;
 	}
 
-	// sub_67CC10: the shadow, then the body (+0x64) and the weapon (+0x78) of the entity, into the frame arena; returns the
-	// largest offset (the next draw's radius)
 	static int32_t DrawWarped(uint8_t *entity, int16_t sx, int16_t sy, int16_t radius, int32_t step, int32_t fade)
 	{
 		uint8_t *c = WarpBegin(entity, sx, sy, radius, step, fade);
@@ -444,10 +377,8 @@ namespace magicsummon283
 		return F<int16_t>(c, 0x76);
 	}
 
-	// the main task's fade of counter e (24..43 -> 0..19): sin((20 - e) x 0x400 / 20)
 	static int32_t WarpFade(int32_t step) { return ComputeSin(shl32(step, 10) / 20); }
 
-	// the warp's centre: the position through the camera (SXY); false when it is not in front of the camera
 	static bool WarpCentre(const int16_t *pos, int16_t sxy[2])
 	{
 		GteSetRotMatrix(&Camera());
@@ -460,7 +391,6 @@ namespace magicsummon283
 		return (uint16_t)otz != 0;
 	}
 
-	// the layout block (A: at the anchor with the texture scroll, B: at the position)
 	static void SetBlock(PrimArg *arg, const MainNode *m, const int16_t *point, int16_t scroll)
 	{
 		ff8fx::copy<(sizeof(arg->anchor))>(arg->anchor, point);
@@ -483,13 +413,6 @@ namespace ff8fx
 {
 namespace magicsummon283
 {
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x67C8A0): one object of a layout. Vertex frame (or blend into the block's morph buffer), rotation
-	// from the record's angles; the record's offset and the object scaled by the block's scale; flag 0x1000: the block's point
-	// through the camera + the offset through the matrix 0x2507E70, composed with it (unless flag 0x8000); else point + offset
-	// through the camera, composed with it (unless flag 0x8000); + the camera's translation, scale (scale3DMatrix), fade, the
-	// texture scroll of object 1, depth, drawn by 0x701DD0 (header 0x6C; the fields it does not set keep the Field_Alloc scratch)
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -527,7 +450,6 @@ namespace magicsummon283
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset, scaled (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (arg->scaled)
 		{
@@ -599,13 +521,9 @@ namespace magicsummon283
 		FieldFree(0x6C);
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x67C610)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
-		// the flash colour: blended (3 bytes) over the task's argument slot, its 4th byte = the node pointer's high byte
 		uint32_t colour = (uint32_t)(uintptr_t)n;
 		const int32_t t = shl32(m->counter * 7, 12) / 60;
 		const int32_t i = t >> 12, frac = t & 0xFFF;
@@ -623,7 +541,6 @@ namespace magicsummon283
 		if ((uint32_t)(int32_t)m->counter < 0x3C)
 		{
 			SetBlock(&arg, m, m->anchor, (int16_t)((m->counter & 0xF) << 3));
-			// 30 fps layer: see mag283_magic_summon_held.inc
 			FX_HELD(held_note_play(m, PLAY_A, &arg);)
 			prim::play((prim::Layout *)m->layoutA, PrimCallback, (int)&arg, 0);
 		}
@@ -642,7 +559,6 @@ namespace magicsummon283
 				int16_t sxy[2];
 				if (WarpCentre(m->pos, sxy))
 				{
-					// 30 fps layer: see mag283_magic_summon_held.inc
 					FX_HELD(held_note_warp(m, e);)
 					m->radius = (int16_t)DrawWarped(m->ent, sxy[0], sxy[1], m->radius, step, fade);
 				}
@@ -653,7 +569,6 @@ namespace magicsummon283
 				*(uint32_t *)(m->ent + 0x2C) = m->colour;
 			}
 			SetBlock(&arg, m, m->pos, 0);
-			// 30 fps layer: see mag283_magic_summon_held.inc
 			FX_HELD(held_note_play(m, PLAY_B, &arg);)
 			prim::play((prim::Layout *)m->layoutB, PrimCallback, (int)&arg, 0);
 		}
@@ -662,13 +577,9 @@ namespace magicsummon283
 		return m->counter < 0x3C ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x67C4B0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *mn = (MasterNode *)n;
-		// 30 fps layer: see mag283_magic_summon_held.inc
 		FX_HELD(held_note_master();)
 		if (mn->arena)
 		{
@@ -712,7 +623,6 @@ namespace magicsummon283
 	{
 		register_port(magicsummon283::ORIG_MasterTask, (void *)magicsummon283::MasterTask, "283 MasterTask", 283);
 		register_port(magicsummon283::ORIG_MainTask, (void *)magicsummon283::MainTask, "283 MainTask", 283);
-		// 30 fps layer: see mag283_magic_summon_held.inc
 		FX_HELD(register_mag283_held();)
 	}
 }

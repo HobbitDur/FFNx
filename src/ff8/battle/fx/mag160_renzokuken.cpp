@@ -13,62 +13,8 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// Effect 160: Renzokuken (Squall's limit break, the generic version: MAG_160_RENZOKUKEN__4_HITS). Effects 159
-// (vs X-ATM092) and 161 (vs Elvoret / Elnoyle) are variants of the same source; 141 / 259 / 332..343 share most of
-// the code (the tasks 0x5FF4E0 / 0x5FF770 / 0x5FFEE0 / 0x600980 hash-match theirs).
-//
-// Structure (file loader 0x5FF060 = the texture file named at 0xDAC2B0; setup MAG_160 0x5FF080, not a task: keeps the
-// cast context 0x23D5598, the caster slot 0x23D559C and the first target 0x23D3528, starts the master in its 1-node pool
-// 0x23D4220 (queue 0x23D4230) and the controller in the main pool 0x23D4788 (100 x 0x24, queue 0x23D4778), the total
-// length 0x23D5634 = 4 for now, the finisher flag 0x23D5638 = (action 0 word +4 == 0xFFFE: a finisher follows), the three
-// particle pools free, the camera animation 0xEA1168 and the TIM upload):
-//   MasterTask (0x600930) - packet arena parity (texture base 0x23D563C, + 0x8000 on odd ticks; cursor 0x23D5640), the
-//     main queue, then the three particle pools (ParticleDraws 0x600980); ends with the main queue.
-//   ControllerTask (0x5FF180) - the choreography of the caster (Squall):
-//     tick 0: sets the caster's entity flag 0x800 (its old value kept in the node);
-//     tick 1: binds the module's own animation set (com data 0xEA1BA0: 10 body animations, the AnimSeq sequences,
-//       the weapon animations) to the caster (BS_BindEntityModelFromComData 0x5022C0, out block 0x24FEBC8) and starts its
-//       sequence 1 (2 when a finisher follows) on the whole chain (QueueChainTransformation 0x505C00);
-//     tick 2: the stage durations the sequence's opcode AB computed (0x1D98214 = n, 0x1D98215.. = n + 1 frame counts)
-//       give the length (sum of the n + 1 stages); starts the trail, the spark spawner and the hit scheduler;
-//     tick = length with a finisher: the hit-spark task in the hit-effect queue (0x209FAA8);
-//     tick 0x2D: the closing ring (FinalTask) under the trail's end;
-//     screen flash up over ticks 0..0x10 (counter << 7), down over the last 8 (no finisher);
-//     the caster's model tint (entity +0x28) fades to the far colour (0xF0, 0x60, 0x40) over ticks 0..8, back over the
-//       last 8 (GTE DPCS from the stage colour 0xB8B7D8); sound 0xEA0FCC at tick 1;
-//     after the last tick: flash off (no finisher), tint back to 0xB8B7D8, entity flag 0x800 restored; ends.
-//   TrailTask (0x5FFAA0) - the gunblade's trail: every tick the weapon's bone 1 (its root and direction through the
-//     caster's matrix, WeaponBone 0x5FFEE0 / BoneFrame 0x5FFF60) gives a base point and a tip 666 along the blade, kept
-//     in a 7-entry ring (0x23D55A8, slot counter % 7); the newest min(7, length - counter) entries are splined
-//     (Effect_SplineSetup / Eval, 32 points each into 0x23D4560 / 0x23D4660) and drawn as 30 gouraud quad pairs
-//     (opaque far-colour fade 0x3A903030, semi-transparent 0x3A000000 edge); the tip spline's second point (0x23D4760)
-//     and the direction from it to the first (0x23D4768, unit) are where the hits land; ends at length - 1.
-//   SparkSpawnTask (0x5FFFE0) - up to length - 8: 3 sparks per tick in pool B (0x23D3710, 40 of 60 used) at random bones
-//     of the caster, falling, flipbook frame (+0xE) % 24 from the 24 sequences at 0xDAC20C.
-//   HitTask (0x600110) - per hit b (< n): at counter = (stage sums up to b) - 0xDAC280[b]: a slash (SlashTask) with
-//     record b (0x23D3AD0 + 0x9C b: the hit point and direction, 16 streaks), 3 flashes in pool A (0x23D3530) and 12
-//     debris in pool C (0x23D4240) thrown along the direction (the other way for hit 3); ends at length - 1.
-//   SlashTask (0x6004A0) - the slash flash (model 0xDAACB8) along the hit direction growing for 8 ticks (fading from
-//     tick 2) and its 16 streaks (model 0xDAB6A0) turning about the direction, sliding out and slowing.
-//   FinalTask (0x600780) - at tick 0x2D: the ring (model 0xDAB970) under the trail's end on the ground, facing as the
-//     caster, 850 in front of it, growing for 12 ticks (fading from tick 6).
-//   HitSparkTask (0x5FF4E0, hit-effect queue, only with a finisher) - the caster's AnimSeq task type 3 at tick 1
-//     (AddTaskToQueueAnimSeq_99_B0_B1_B4_A5 0x571840: au_re_BdLinkTask_8 0x574260), ticks 4..8: 6 sparkles each
-//     (SparkleTask, hit-effect queue) around random bones of the caster; ends at tick 30.
-//   SparkleTask (0x5FF770, hit-effect queue) - after its delay: model 0xEA0FD0 at its point, turned to face the camera
-//     and spinning, stretched toward the bone it came from, 8 ticks (frame-arena packets).
-// Every task but the master tests the draw-only flags (battle_to_update_flags 0x1D96A9C & 0x201).
-// ENTITY WRITES (the caster, entity 0x1D972C0 + 0x9C slot): +0 bit 0x800 (set on tick 0, put back at the end), +0x28
-// model tint (ticks 0..8, the last 8, the end), BS_BindEntityModelFromComData (+2 |= 8, the animation / sequence / weapon
-// animation pointers via setComFileData, its state block +0x12 = +2, +2 = 1), the AnimSeq chain start (0x505C00) and the
-// hit-effect AnimSeq task (0x571840). The module never writes a position: Squall's dash is his sequence (AnimSeq VM,
-// E5 0F = the forward offset, see the 30 fps notes). CAMERA: the camera animation 0xEA1168 started by the setup (engine
-// camera player); the module only reads the eye x / z (0xB8B7F0 / 0xB8B7F4) and the camera matrix 0x1D97778.
-// Module globals: 0x23D3528..0x23D5644 (target 0x23D3528, pool A 0x23D3530 (40 x 0xC), pool B 0x23D3710 (60 x 0x10),
-// hit records 0x23D3AD0 (0x9C each), gathered points 0x23D34A8 / 0x23D34E8 (7 x 8), master pool / queue 0x23D4220 /
-// 0x23D4230, pool C 0x23D4240 (40 x 0x14), splines 0x23D4560 / 0x23D4660, hit point 0x23D4760, direction 0x23D4768,
-// main queue / pool 0x23D4778 / 0x23D4788, context 0x23D5598, caster slot 0x23D559C, file 0x23D55A0, trail ring
-// 0x23D55A8 (7 x 0x14), length 0x23D5634, finisher flag 0x23D5638, texture base 0x23D563C, packet cursor 0x23D5640).
+
+// Effect 160: Renzokuken
 
 #include "mag_common.h"
 
@@ -79,24 +25,22 @@ namespace renzo160
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline int32_t &CasterSlot() { return var<int32_t>(0x23D559C); }
-	inline int32_t &Length() { return var<int32_t>(0x23D5634); }      // sum of the stage durations (4 until tick 2)
-	inline int32_t &Finisher() { return var<int32_t>(0x23D5638); }    // a finisher follows (action 0 word +4 == 0xFFFE)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23D563C); }   // Magic_TextureOFF
+	inline int32_t &Length() { return var<int32_t>(0x23D5634); }
+	inline int32_t &Finisher() { return var<int32_t>(0x23D5638); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x23D563C); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23D5640); }
 	inline TaskQueue *QMain() { return (TaskQueue *)0x23D4778; }
-	inline TaskQueue *QHit() { return (TaskQueue *)0x209FAA8; }      // the battle's hit-effect queue
-	static const uint32_t POOL_A = 0x23D3530, POOL_A_END = 0x23D3710;  // flashes, 0xC bytes
-	static const uint32_t POOL_B = 0x23D3710, POOL_B_SPAWN_END = 0x23D3990, POOL_B_END = 0x23D3AD0; // sparks, 0x10 bytes
-	static const uint32_t POOL_C = 0x23D4240, POOL_C_END = 0x23D4560;  // debris, 0x14 bytes
-	static const uint32_t HIT_REC = 0x23D3AD0;     // per hit, 0x9C bytes
-	static const uint32_t PTS_A = 0x23D34A8, PTS_B = 0x23D34E8;  // gathered trail points (8 bytes each)
-	static const uint32_t SPL_A = 0x23D4560, SPL_B = 0x23D4660;  // 32 spline points each (8 bytes)
-	static const uint32_t HIT_POS = 0x23D4760;     // the tip spline's 2nd point (x, y, z, pad)
-	static const uint32_t HIT_DIR = 0x23D4768;     // unit direction from it to the first (3 x int32 + one word never written)
-	static const uint32_t RING = 0x23D55A8, RING_END = 0x23D5634; // 7 x 0x14: alive, base (8 bytes), tip (8 bytes)
-	// stage durations of the caster's sequence (AnimSeq opcode AB: 0x1D98214 = n, n + 1 frame counts from 0x1D98215)
+	inline TaskQueue *QHit() { return (TaskQueue *)0x209FAA8; }
+	static const uint32_t POOL_A = 0x23D3530, POOL_A_END = 0x23D3710;
+	static const uint32_t POOL_B = 0x23D3710, POOL_B_SPAWN_END = 0x23D3990, POOL_B_END = 0x23D3AD0;
+	static const uint32_t POOL_C = 0x23D4240, POOL_C_END = 0x23D4560;
+	static const uint32_t HIT_REC = 0x23D3AD0;
+	static const uint32_t PTS_A = 0x23D34A8, PTS_B = 0x23D34E8;
+	static const uint32_t SPL_A = 0x23D4560, SPL_B = 0x23D4660;
+	static const uint32_t HIT_POS = 0x23D4760;
+	static const uint32_t HIT_DIR = 0x23D4768;
+	static const uint32_t RING = 0x23D55A8, RING_END = 0x23D5634;
 	inline uint8_t StageCount() { return var<uint8_t>(0x1D98214); }
 	inline uint8_t StageLen(int i) { return var<uint8_t>(0x1D98215 + i); }
 
@@ -104,25 +48,23 @@ namespace renzo160
 		ORIG_Trail = 0x5FFAA0, ORIG_SparkSpawn = 0x5FFFE0, ORIG_Hit = 0x600110, ORIG_Slash = 0x6004A0,
 		ORIG_Final = 0x600780, ORIG_Master = 0x600930;
 
-	// data (FF8_EN.exe)
 	static const void *const SOUND = (const void *)0xEA0FCC;
 	static const uint32_t MODEL_SPARKLE = 0xEA0FD0, SPARKLE_FADE = 0xEA1158, SPARKLE_DEPTH = 0xEA1148;
 	static const uint32_t ANIM_DATA = 0xEA1BA0, BIND_OUT = 0x24FEBC8;
 	static const uint32_t MODEL_SLASH = 0xDAACB8, MODEL_STREAK = 0xDAB6A0, MODEL_RING = 0xDAB970;
 	static const uint32_t SEQ_FLASH = 0xDAA718, SEQ_DEBRIS = 0xDAA9E8, SEQ_SPARK = 0xDAA8C4, SPARK_FRAMES = 0xDAC20C;
-	static const uint32_t SLASH_REF = 0xDAC270;   // reference direction of the slash model
-	static const uint32_t HIT_LEAD = 0xDAC280;    // per hit: ticks before its stage end
+	static const uint32_t SLASH_REF = 0xDAC270;
+	static const uint32_t HIT_LEAD = 0xDAC280;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); } // NormalizeVectorToFixedPoint
-	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }                                       // Math_SqrtInt
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
+	inline int32_t SqrtInt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }       // Effect_SplineSetup
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); } // Effect_SplineEval
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }   // GTE_SetFarColor
-	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); } // pre_someCameraWork_45DD60 (calls 0x45DD60)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
+	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
@@ -131,84 +73,81 @@ namespace renzo160
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }   // GTE_ReadOTZ
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }                    // IR = MAC = R * V0
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); } // BS_BindEntityModelFromComData
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline void AddAnimSeqTask(uint8_t *entity, int32_t type) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x571840)(entity, type); }          // AddTaskToQueueAnimSeq_99_B0_B1_B4_A5
+	inline void AddAnimSeqTask(uint8_t *entity, int32_t type) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x571840)(entity, type); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // master pool, 1 x 0x10 (0x23D4220)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
 	};
-	struct Node24 // main pool (0x23D4788) and the hit-effect queue pool (0x209D078), 0x24 bytes
+	struct Node24
 	{
 		TaskNode hdr;
-		int16_t c;         // +0x0C counter
-		int16_t e;         // +0x0E controller: saved flag 0x800 / spawner: frame phase / slash: hit / sparkle: delay
-		int16_t w10, w12, w14; // +0x10 position (final, sparkle)
+		int16_t c;
+		int16_t e;
+		int16_t w10, w12, w14;
 		int16_t w16;
-		int16_t w18;       // +0x18 final: facing / sparkle: bone
-		int16_t w1A;       // +0x1A hit spark / sparkle: entity slot
-		int16_t w1C;       // +0x1C slash: scale / sparkle: depth frame
-		int16_t w1E;       // +0x1E slash: scale rate
-		int16_t w20;       // +0x20 final / sparkle: scale
-		int16_t w22;       // +0x22 final: scale rate
+		int16_t w18;
+		int16_t w1A;
+		int16_t w1C;
+		int16_t w1E;
+		int16_t w20;
+		int16_t w22;
 	};
-	struct FlashP  // pool A
+	struct FlashP
 	{
 		int16_t life, scale;
-		int16_t pos[4];    // x, y, z, the 4th word of the hit point
+		int16_t pos[4];
 	};
-	struct SparkP  // pool B
+	struct SparkP
 	{
 		int16_t life, scale;
 		int16_t pos[3];
-		int16_t vy;        // +0x0A
-		int16_t frame;     // +0x0C 0..23
+		int16_t vy;
+		int16_t frame;
 		int16_t pad0E;
 	};
-	struct DebrisP // pool C
+	struct DebrisP
 	{
 		int16_t life, scale;
-		int16_t pos[4];    // x, y, z, the 4th word of the hit point
-		int16_t vel[3];    // +0x0C
+		int16_t pos[4];
+		int16_t vel[3];
 		int16_t pad12;
 	};
-	struct HitRec  // 0x9C bytes per hit
+	struct HitRec
 	{
-		int16_t pos[4];    // +0x00 the hit point (0x23D4760)
-		int32_t dir[4];    // +0x08 the direction (0x23D4768, 16 bytes)
-		int32_t count;     // +0x18 streaks (16)
-		int16_t angle[16]; // +0x1C streak angle about the direction
-		int16_t width[16]; // +0x3C streak width (the length * 1.5 across, the length along)
-		int16_t off[16];   // +0x5C streak offset along its axis
-		int16_t speed[16]; // +0x7C added to the offset each tick, slowing
+		int16_t pos[4];
+		int32_t dir[4];
+		int32_t count;
+		int16_t angle[16];
+		int16_t width[16];
+		int16_t off[16];
+		int16_t speed[16];
 	};
-	struct RingEntry   // trail ring, 0x14 bytes
+	struct RingEntry
 	{
 		int32_t alive;
-		uint32_t base[2];  // x, y, z, pad
+		uint32_t base[2];
 		uint32_t tip[2];
 	};
-	struct TrailWork   // the trail's Field_Alloc block (0x40 bytes)
+	struct TrailWork
 	{
 		uint8_t pad00[8];
-		int32_t otz;       // +0x08
-		uint32_t flag;     // +0x0C GTE FLAG
-		uint32_t col0;     // +0x10 the previous quad's colour
-		uint32_t col1;     // +0x14 the colour of this quad
+		int32_t otz;
+		uint32_t flag;
+		uint32_t col0;
+		uint32_t col1;
 		uint32_t pad18;
-		uint32_t base_col; // +0x1C
-		int16_t base[4];   // +0x20 the weapon point (4th word: the scratch's)
-		int16_t tip[4];    // +0x28 666 along the blade (4th word: the scratch's)
-		int32_t dir[4];    // +0x30 the blade direction (unit), 4th word unused
+		uint32_t base_col;
+		int16_t base[4];
+		int16_t tip[4];
+		int32_t dir[4];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node24) == 0x24, "Renzokuken nodes");
@@ -217,11 +156,6 @@ namespace renzo160
 
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 
-	// ------------------------------------------------------------------
-	// Weapon bone (0x5FFF60 / 0x5FFEE0)
-	// ------------------------------------------------------------------
-	// BoneFrame (0x5FFF60): bone `bone` of a model (0xF0 / 0xF1: the skeleton's effect bone selectors): its z axis
-	// (0, 0, -0x1000) through the bone's rotation, normalized, and its translation (3 words)
 	static void BoneFrame(uint8_t *anim_header, int32_t bone, int32_t *dir, int16_t *pos)
 	{
 		const uint8_t *sk = *(uint8_t **)*(uint8_t **)(anim_header + 4);
@@ -237,14 +171,12 @@ namespace renzo160
 		pos[2] = *(const int16_t *)(b + 0x2C);
 	}
 
-	// WeaponBone (0x5FFEE0): the weapon model's bone (entity +0x78) in the world: through its attach transform
-	// (+0x24) and the entity's matrix (+0x40); nothing when the entity has no weapon model
 	static void WeaponBone(uint8_t *entity, int32_t bone, int32_t *dir, int16_t *pos)
 	{
 		uint8_t *w = *(uint8_t **)(entity + 0x78);
 		if (!w) return;
 		BoneFrame(w, bone, dir, pos);
-		Mat4x3 m; // (pad +0x12: ComposeAffineTransform's)
+		Mat4x3 m;
 		ComposeAffineTransform((const Mat4x3 *)(entity + 0x40), (const Mat4x3 *)(w + 0x24), &m);
 		TransformVectorBy3x3Matrix(&m, dir, dir);
 		Normalize(dir, dir);
@@ -264,9 +196,6 @@ namespace ff8fx
 {
 namespace renzo160
 {
-	// ------------------------------------------------------------------
-	// Controller (0x5FF180): the caster's choreography, flash, tint, the other tasks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ControllerTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -285,7 +214,6 @@ namespace renzo160
 		}
 		if (n->c == 2)
 		{
-			// the length: the n + 1 stage durations of the sequence's opcode AB
 			const int32_t last = (int32_t)StageCount() + 1;
 			Length() = 0;
 			for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(0x1D98214 + i);
@@ -315,12 +243,10 @@ namespace renzo160
 			t->w22 = 0x333;
 			t->w18 = *(const int16_t *)(Caster() + 0xE);
 		}
-		// screen flash: up over ticks 0..0x10, down over the last 8 (not before a finisher)
 		if (n->c <= 0x10)
 			SetScreenFlash((uint32_t)shl32(n->c, 7), 0);
 		else if ((int32_t)n->c >= Length() - 8 && n->c > 4 && Finisher() == 0)
 			SetScreenFlash((uint32_t)shl32(Length() - n->c, 8), 0);
-		// the caster's model tint: toward the far colour over ticks 0..8, back over the last 8
 		bool tint = false;
 		int32_t k = 0;
 		if (n->c <= 8)
@@ -337,7 +263,7 @@ namespace renzo160
 		}
 		if (tint)
 		{
-			uint32_t colour = var<uint32_t>(0xB8B7D8); // (the original keeps it in its own argument slot)
+			uint32_t colour = var<uint32_t>(0xB8B7D8);
 			GteLoadRGBC(&colour);
 			GteSetIR0(shl32(k, 9));
 			GteDPCS();
@@ -353,16 +279,12 @@ namespace renzo160
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Hit sparks (0x5FF4E0, hit-effect queue): 6 sparkles per tick on ticks 4..8
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl HitSparkTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
 		Node24 *n = (Node24 *)tn;
 		if (n->c >= 4 && n->c <= 8)
 		{
-			// the entity's default effect position with its height and y swapped: x, height, z, y
 			int16_t p[4];
 			GetDefaultEffectPosition(Entity(n->w1A), p);
 			const int16_t h = p[3];
@@ -407,9 +329,6 @@ namespace renzo160
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sparkle (0x5FF770, hit-effect queue): one model facing the camera, spinning, stretched toward its point
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkleTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -427,7 +346,7 @@ namespace renzo160
 		int32_t axis[3];
 		int32_t angle = RotationBetweenVectors(u, d, axis);
 		int16_t ang[3] = { 0, 0, 0 };
-		Mat4x3 m1; // (pad +0x12 never written in the original: GTE R33 high half only)
+		Mat4x3 m1;
 		BuildRotationMatrixFromAngles(ang, &m1);
 		Mat4x3 m2;
 		m1.t[0] = 0xF0;
@@ -435,12 +354,10 @@ namespace renzo160
 		m1.t[2] = 0;
 		BuildAxisAngleRotationMatrix(angle, &m2, axis);
 		MatrixMultiply(&m2, &m1);
-		// spin about the view direction, 0x40 per tick, its sense from the turn's axis
 		int32_t spin = -shl32(n->c, 6);
 		if (axis[1] < 0) spin = -spin;
 		BuildAxisAngleRotationMatrix(spin, &m2, d);
 		MatrixMultiply(&m2, &m1);
-		// stretched toward the sparkle's point: up (0, -0x1000, 0) turned onto it, length * 0x1000 / 2000
 		int32_t e[3] = { (int32_t)n->w10 - q[0], (int32_t)n->w12 - q[1], (int32_t)n->w14 - q[2] };
 		u[0] = 0;
 		u[1] = -0x1000;
@@ -475,10 +392,6 @@ namespace renzo160
 		return n->c >= 8 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Trail (0x5FFAA0)
-	// ------------------------------------------------------------------
-	// the weapon point and the tip 666 along the blade into the work block
 	static void TrailPoints(TrailWork *w)
 	{
 		WeaponBone(Caster(), 1, w->dir, w->base);
@@ -487,7 +400,6 @@ namespace renzo160
 		w->tip[2] = (int16_t)((int16_t)(mul32(w->dir[2], 666) >> 12) + w->base[2]);
 	}
 
-	// newest-first gather of at most `want` ring entries from slot idx into the two point lists; returns the count
 	static int32_t TrailGather(const uint8_t *ring, int32_t idx, int32_t want, uint8_t *pa, uint8_t *pb)
 	{
 		int32_t cnt = 0;
@@ -517,7 +429,6 @@ namespace renzo160
 		FieldFree(0x190);
 	}
 
-	// the hit point (the tip spline's 2nd point) and the unit direction from it to the 1st
 	static void TrailHitPoint(const uint8_t *sb, uint8_t *pos, int32_t *dir)
 	{
 		*(uint32_t *)pos = *(const uint32_t *)(sb + 8);
@@ -528,8 +439,6 @@ namespace renzo160
 		Normalize(dir, dir);
 	}
 
-	// 30 quad pairs between the two splines: gouraud from the base colour 0x3A903030 fading toward the far colour
-	// (black) along the trail, and a copy whose leading edge is 0x3A000000
 	static void TrailDraw(const uint8_t *sa, const uint8_t *sb, TrailWork *w)
 	{
 		GteSetRotMatrix(&Camera());
@@ -595,7 +504,6 @@ namespace renzo160
 		{
 			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
 			TrailHitPoint((const uint8_t *)SPL_B, (uint8_t *)HIT_POS, (int32_t *)HIT_DIR);
-			// 30 fps layer: see mag160_renzokuken_held.inc
 			FX_HELD(held_note_trail(n);)
 			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
 		}
@@ -605,10 +513,6 @@ namespace renzo160
 		return (int32_t)n->c >= Length() - 1 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark spawner (0x5FFFE0): 3 sparks per tick at random bones of the caster
-	// ------------------------------------------------------------------
-	// first free entry (life < 0) of a pool, or -1 (none in the scanned part / index >= 0x28)
 	static int32_t FreeSlot(uint32_t pool, uint32_t end, uint32_t stride)
 	{
 		int32_t i = 0;
@@ -646,9 +550,6 @@ namespace renzo160
 		return (int32_t)n->c >= Length() - 1 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Hits (0x600110): per hit, a slash, 3 flashes and 12 debris at the trail's hit point
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl HitTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -677,7 +578,6 @@ namespace renzo160
 				r->off[k] = (int16_t)((mul32(wv, 1000) - 300) >> 12);
 				r->speed[k] = (int16_t)(CrtRand() % 200 + 0x78);
 			}
-			// 3 flashes at the hit point
 			for (int32_t j = 0; j < 3; j++)
 			{
 				const int32_t i = FreeSlot(POOL_A, POOL_A_END, 0xC);
@@ -690,7 +590,6 @@ namespace renzo160
 				p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x15E - 0xAF));
 			}
-			// 12 debris thrown along the direction (back the other way on hit 3)
 			for (int32_t j = 0; j < 0xC; j++)
 			{
 				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x14);
@@ -719,18 +618,14 @@ namespace renzo160
 		return (int32_t)n->c >= Length() - 1 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Slash (0x6004A0): the flash along the hit direction and its 16 streaks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		HitRec *r = (HitRec *)(HIT_REC + 0x9C * n->e);
-		// 30 fps layer: see mag160_renzokuken_held.inc
 		FX_HELD(held_note_slash(n, r);)
 		int32_t axis[3];
 		const int32_t angle = RotationBetweenVectors((const int32_t *)SLASH_REF, r->dir, axis);
-		Mat4x3 m; // the hit frame through the camera
+		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[0] = r->pos[0];
 		m.t[1] = r->pos[1];
@@ -768,7 +663,7 @@ namespace renzo160
 		{
 			ang[2] = r->angle[k];
 			BuildRotationMatrixFromAngles(ang, &m3);
-			int16_t v[4]; // (4th word never written in the original: GTE VZ0 high half only)
+			int16_t v[4];
 			v[3] = 0;
 			v[2] = 0;
 			v[0] = 0;
@@ -800,15 +695,11 @@ namespace renzo160
 		return n->c >= 8 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Final ring (0x600780): under the trail's end on the ground, 850 in front of the caster, 12 ticks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FinalTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag160_renzokuken_held.inc
 		FX_HELD(held_note_final(n);)
-		int16_t a[4]; // the facing angles, then the offset (4th word never written in the original)
+		int16_t a[4];
 		a[0] = 0;
 		a[1] = n->w18;
 		a[2] = 0;
@@ -854,12 +745,8 @@ namespace renzo160
 		return n->c >= 0xC ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Particles (0x600980): flashes (pool A), debris (pool C), sparks (pool B)
-	// ------------------------------------------------------------------
 	static void ParticleDraws()
 	{
-		// 30 fps layer: see mag160_renzokuken_held.inc
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_FLASH;
@@ -922,15 +809,11 @@ namespace renzo160
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x600930)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MasterTask(TaskNode *tn)
 	{
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
-		// 30 fps layer: see mag160_renzokuken_held.inc
 		FX_HELD(held_note_master();)
 		const int alive = ExecuteTaskQueue(QMain());
 		ParticleDraws();
@@ -950,7 +833,6 @@ namespace renzo160
 		register_port(renzo160::ORIG_Final, (void *)renzo160::FinalTask, "160 Final", 160);
 		register_port(renzo160::ORIG_HitSpark, (void *)renzo160::HitSparkTask, "160 HitSpark", 160);
 		register_port(renzo160::ORIG_Sparkle, (void *)renzo160::SparkleTask, "160 Sparkle", 160);
-		// 30 fps layer: see mag160_renzokuken_held.inc
 		FX_HELD(register_mag160_held();)
 	}
 }

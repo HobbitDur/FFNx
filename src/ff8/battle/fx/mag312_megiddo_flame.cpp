@@ -14,10 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 312: Megiddo Flame (enemy attack 285 of kernel.bin, Mobile Type 8 c0m105) (MAG_312_*): file loader 0x59CB70 (texture mag311.tim), setup 0x59CB90.
-// The module is one compile of the Megiddo Flame code shared with effect 166 (fx_megiddo.h: structure,
-// tasks and globals, written with 166's addresses); this file gives its descriptor and registers its tasks.
-
 #include "fx_megiddo.h"
 
 namespace ff8fx
@@ -26,10 +22,10 @@ namespace megiddo
 {
 	struct D312
 	{
-		static constexpr uint32_t CODE = 0x48300, GLOB = 0x182398, DATA = 0x989F0; // 166 address - this module's
-		static constexpr uint32_t CAMERA = 0xCD8D90;                     // camera track (setup)
-		static constexpr int32_t BONE = 0xA;                            // the caster's bone of the effect point
-		static constexpr int32_t RMODE = 2;                              // OT shift of the glow / spin / ring prim models
+		static constexpr uint32_t CODE = 0x48300, GLOB = 0x182398, DATA = 0x989F0;
+		static constexpr uint32_t CAMERA = 0xCD8D90;
+		static constexpr int32_t BONE = 0xA;
+		static constexpr int32_t RMODE = 2;
 		static constexpr int EFFECT = 312;
 	};
 }
@@ -47,7 +43,6 @@ namespace ff8fx
 			"312 Arc", "312 Sheet", "312 Ribbon", "312 Column", "312 ColumnFlash", "312 Pillar", "312 Flame", "312 Sparks", "312 Debris",
 			"312 KnockDown", "312 Throw", "312 Ring2" };
 		megiddo::Megiddo<megiddo::D312>::Register(names);
-		// 30 fps layer: see mag312_megiddo_flame_held.inc
 		FX_HELD(register_mag312_held();)
 	}
 }

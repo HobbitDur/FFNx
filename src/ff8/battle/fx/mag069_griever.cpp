@@ -14,26 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 69: Griever (timeline-family "aoy" shell, MAG_069_*; the boss summon).
-//
-// Structure (see gf_study/gf_inventory_timeline.md):
-//   SetupSummon (0x6FE050, not a task) - flags the attacker entity (|= 0xC, +0x20 = -2000),
-//     queues the master into the root queue 0x2556660, starts camera animation 0x14D0858.
-//   SequenceTask (master, 0x6FE0D0) - flips the module packet arena, at counter 1 spawns the
-//     timeline (spark / shard pools, per-face distance tables of the two battle models
-//     stru_1D9898C[1] / [2]), then runs the timeline queue 0x2556650.
-//   TimelineTask (0x6FE5D0) - 127 ticks (0..126): an intro prim model at the attacker (0..91),
-//     the attacker redrawn by a private rasteriser (55..84), the two battle models shattered
-//     face by face into flying shards by growing distance from the attacker (73..107), rising
-//     sparks (spawned 0..29, drawn 0..47), shards (drawn/updated every tick), a white fade
-//     (94..125) while the attacker sinks (+0x20), a BS model swap (50 load, 110 swap).
-//   There are no other tasks: sparks and shards are pools updated inside the timeline.
-// Module globals: 0x2556628..0x2556F98 (gf_study/gf_global_ranges.md).
-//
-// Engine helpers and the module's pure helpers are called through their original addresses
-// (namespace w). Ported natively: the shattering
-// rasteriser 0x6FF6E0 (+0x6FF770, 0x700030, 0x6FF880, the shard allocator 0x6FFFE0 and the
-// module LCG 0x6FFFC0), the shard draw 0x6FF2F0, the spark draw 0x7001E0 and the fade 0x700150.
+// Effect 69: Griever
 
 #include "fx_port.h"
 
@@ -43,65 +24,54 @@ namespace g069
 {
 	using namespace eng;
 
-	// ------------------------------------------------------------------
-	// module globals
-	// ------------------------------------------------------------------
-	inline uint8_t *&SparkHint() { return var<uint8_t *>(0x2556628); }    // next spark slot to try
-	inline uint8_t *&ShardHint() { return var<uint8_t *>(0x255662C); }    // next shard slot to try
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556630); }  // module packet arena cursor
-	inline uint8_t *&Attacker() { return var<uint8_t *>(0x2556638); }     // &BattleEntitySlotData[attacker]
+	inline uint8_t *&SparkHint() { return var<uint8_t *>(0x2556628); }
+	inline uint8_t *&ShardHint() { return var<uint8_t *>(0x255662C); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2556630); }
+	inline uint8_t *&Attacker() { return var<uint8_t *>(0x2556638); }
 	inline TaskQueue &QueueTimeline() { return var<TaskQueue>(0x2556650); }
 	inline uint32_t &LcgSeed() { return var<uint32_t>(0x2556F70); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2556F74); }  // = MAGIC_TEXTURE_BUFFER_BASE
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2556F74); }
 	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2556F78); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }   // battle_texture_data_ptr_1D8E054
-	inline uint32_t RenderList() { return var<uint32_t>(0x1D8E04C); }     // g_Battle_FrameRenderListBase
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t RenderList() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_SequenceTask = 0x6FE0D0;
 	static const uint32_t ORIG_TimelineTask = 0x6FE5D0;
-	static const uint32_t CB_PrimObject = 0x6FE9D0; // MAG_069_sub_6FE9D0, prim-player callback (pure draw)
+	static const uint32_t CB_PrimObject = 0x6FE9D0;
 
-	// the two battle models (stru_1D9898C[1] / [2], 44-byte entries: +5 currentBsId, +0x18
-	// BattleAnimHeader, +0x24 BattleAnimCmd); the module passes &entry.battle_file_id (+4)
 	static uint8_t *const MODEL_1 = (uint8_t *)0x1D989BC;
 	static uint8_t *const MODEL_2 = (uint8_t *)0x1D989E8;
-	static uint8_t *const MODEL_1_FLAGS = (uint8_t *)0x1D989BD; // currentBsId, bit 1
+	static uint8_t *const MODEL_1_FLAGS = (uint8_t *)0x1D989BD;
 	static uint8_t *const MODEL_2_FLAGS = (uint8_t *)0x1D989E9;
 
-	// model buffer layout (offsets from ModelBuffer())
-	static const uint32_t MB_SHARDS = 0x0;        // 0x16C shards x 0x3C
-	static const uint32_t MB_SPIN = 0x5550;       // 0x40 spin matrices x 0x14 (rotation + scale, random)
-	static const uint32_t MB_FACE_DIST = 0x5A50;  // int32 per face of both models (-1 = shattered)
-	static const uint32_t MB_SCRATCH = 0x6000;    // projected vertices (16 bytes each) / prim morph scratch
-	static const uint32_t MB_SPARKS = 0x8020;     // 0x80 sparks x 0x10 (later the BS model load target)
+	static const uint32_t MB_SHARDS = 0x0;
+	static const uint32_t MB_SPIN = 0x5550;
+	static const uint32_t MB_FACE_DIST = 0x5A50;
+	static const uint32_t MB_SCRATCH = 0x6000;
+	static const uint32_t MB_SPARKS = 0x8020;
 	static const uint32_t MB_ARENA_A = 0x3F020, MB_ARENA_B = 0x47020;
 
-	// ------------------------------------------------------------------
-	// engine / module helpers (original addresses)
-	// ------------------------------------------------------------------
 	namespace w
 	{
-		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }                  // CRT rand()
-		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }   // computeCosine
+		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
+		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(0x7016B0)(src, layout, n); }
 		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(0x501330)(se, a, b); }
 		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(0x4A2940)(slot); }
-		inline int32_t Sub508500() { return fn<int32_t (__cdecl *)()>(0x508500)(); }            // BATTLE_FILE_LOADING_STATE poll
-		inline void LoadBS(int a, void *dst) { fn<void (__cdecl *)(int, void *)>(0x512AA0)(a, dst); } // loadBS_36Or37
-		inline void SwapBS(int a, uint32_t src) { fn<void (__cdecl *)(int, uint32_t)>(0x512AC0)(a, src); } // sub_512AC0
+		inline int32_t Sub508500() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
+		inline void LoadBS(int a, void *dst) { fn<void (__cdecl *)(int, void *)>(0x512AA0)(a, dst); }
+		inline void SwapBS(int a, uint32_t src) { fn<void (__cdecl *)(int, uint32_t)>(0x512AC0)(a, src); }
 		inline uint32_t Tile(int r, int g, int b, int level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-		inline uint32_t Flipbook(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); } // MAG_065_sub_6FC9E0
-		// module helpers, pure or one-shot (called as the original does)
-		inline void InitSparks() { fn<void (__cdecl *)()>(0x6FE5A0)(); }                         // clear spark lives, hint = pool
-		inline void InitShards() { fn<void (__cdecl *)()>(0x6FE250)(); }                         // clear shard types, 64 random spin matrices (rand)
+		inline uint32_t Flipbook(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x6FC9E0)(h, ot, mode, cursor); }
+		inline void InitSparks() { fn<void (__cdecl *)()>(0x6FE5A0)(); }
+		inline void InitShards() { fn<void (__cdecl *)()>(0x6FE250)(); }
 		inline uint8_t *FaceDistances(void *model, const Mat4x3 *m, void *out) { return fn<uint8_t *(__cdecl *)(void *, const Mat4x3 *, void *)>(0x6FE300)(model, m, out); }
 		inline uint8_t *SparkAlloc() { return fn<uint8_t *(__cdecl *)()>(0x700310)(); }
-		inline void SparkUpdate() { fn<void (__cdecl *)()>(0x700370)(); }                        // life--, pos += 4 vel
-		inline void ShardUpdate() { fn<void (__cdecl *)()>(0x6FF5F0)(); }                        // life--, spin, pos += vel, vel.y
+		inline void SparkUpdate() { fn<void (__cdecl *)()>(0x700370)(); }
+		inline void ShardUpdate() { fn<void (__cdecl *)()>(0x6FF5F0)(); }
 		inline void AttackerDraw(void *ent, int32_t y, uint32_t verts) { fn<void (__cdecl *)(void *, int32_t, uint32_t)>(0x6FECF0)(ent, y, verts); }
-		// software GTE entry points the rasteriser uses
-		inline void LoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }   // V0 = 3 x u16 (zero-extended)
-		inline void StoreIRm8(void *p) { fn<void (__cdecl *)(void *)>(0x703EF0)(p); }             // (s16 *)(p - 8) = IR1..3
+		inline void LoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
+		inline void StoreIRm8(void *p) { fn<void (__cdecl *)(void *)>(0x703EF0)(p); }
 		inline void SetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E160)(a, b, c); }
 		inline void NCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
 		inline void ReadMAC0(void *p) { fn<void (__cdecl *)(void *)>(0x45E3C0)(p); }
@@ -109,7 +79,7 @@ namespace g069
 		inline void SetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x45E1D0)(a, b, c, d); }
 		inline void AVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 		inline void AVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-		inline void ReadOTZ(void *p) { fn<void (__cdecl *)(void *)>(0x45E3D0)(p); }               // GTE_ReadOTZ (after AVSZ)
+		inline void ReadOTZ(void *p) { fn<void (__cdecl *)(void *)>(0x45E3D0)(p); }
 		inline void LoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFA0)(v); }
 		inline void LoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFC0)(v); }
 		inline void RTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -121,55 +91,52 @@ namespace g069
 	inline int32_t &S32(uint8_t *p, int o) { return *(int32_t *)(p + o); }
 	inline uint32_t &U32(uint8_t *p, int o) { return *(uint32_t *)(p + o); }
 
-	// ------------------------------------------------------------------
-	// Pools (inside the model buffer)
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct Shard // 0x3C, pool of 0x16C at ModelBuffer() + 0
+	struct Shard
 	{
-		int16_t pos[3];    // +0x00 world position
-		int16_t type;      // +0x06 0 free, 1 triangle, 2 quad
-		int16_t vel[3];    // +0x08 y: -(4m + 4 rand) then += 30 per tick, capped at -100
-		int16_t life;      // +0x0E 12..19 ticks
-		const void *spin;  // +0x10 one of the 64 random rotation+scale matrices (applied each tick)
-		int16_t v[4][3];   // +0x14 corners relative to pos
-		uint32_t uv0;      // +0x2C uv0 + CLUT
-		uint32_t uv1;      // +0x30 uv1 + texture page
-		uint16_t uv2, uv3; // +0x34, +0x36
-		uint32_t color;    // +0x38 (unused by the draw, copied from the face)
+		int16_t pos[3];
+		int16_t type;
+		int16_t vel[3];
+		int16_t life;
+		const void *spin;
+		int16_t v[4][3];
+		uint32_t uv0;
+		uint32_t uv1;
+		uint16_t uv2, uv3;
+		uint32_t color;
 	};
-	struct Spark // 0x10, pool of 0x80 at ModelBuffer() + 0x8020
+	struct Spark
 	{
-		const uint8_t *seq; // +0x00 sprite sequence (0x14D0A4C)
-		int16_t pos[3];     // +0x04 (y = 0 at spawn)
-		int16_t scale;      // +0x0A 0x800
-		int8_t vel[3];      // +0x0C added x4 per tick
-		uint8_t life;       // +0x0F 18 at spawn, 0 = free
+		const uint8_t *seq;
+		int16_t pos[3];
+		int16_t scale;
+		int8_t vel[3];
+		uint8_t life;
 	};
-	struct PrimCtx // the prim-player callback's argument (stack local of the timeline)
+	struct PrimCtx
 	{
-		int16_t pos[3];     // +0x00 attacker x, 0, attacker +0x20
-		int16_t pad06;      // +0x06 never written by the original (uninitialised stack word)
-		uint32_t modes;     // +0x08 0x14D71E0 (per-object mode bytes)
-		int16_t bias;       // +0x0C -128 depth bias
-		int16_t scroll;     // +0x0E tick * 16 (uv scroll of the mode 0x31/0x32 objects)
-		uint32_t scratch;   // +0x10 ModelBuffer() + 0x6000
+		int16_t pos[3];
+		int16_t pad06;
+		uint32_t modes;
+		int16_t bias;
+		int16_t scroll;
+		uint32_t scratch;
 	};
-	struct MasterNode // 0x10 (pool stru_2556670)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		uint16_t counter; // +0x0C
-		uint8_t parity;   // +0x0E packet arena
-		uint8_t spawned;  // +0x0F
+		uint16_t counter;
+		uint8_t parity;
+		uint8_t spawned;
 	};
-	struct TimelineNode // 0x8F0 (pool word_2556680)
+	struct TimelineNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C 0..126
+		int16_t counter;
 		int16_t pad0E;
-		uint32_t voice;      // +0x10 claimed voice slot (released at 122)
+		uint32_t voice;
 		uint8_t pad14[8];
-		uint8_t prim[0x8D4]; // +0x1C prim-player layout (0x14D0C2C)
+		uint8_t prim[0x8D4];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(Shard) == 0x3C, "shard is 0x3C bytes");
@@ -191,7 +158,6 @@ namespace ff8fx
 namespace g069
 {
 
-	// 0x6FFFC0: module LCG, 15 bits
 	static int32_t Lcg()
 	{
 		uint32_t s = (LcgSeed() * 125 + 14) & 0x7FFF;
@@ -199,7 +165,6 @@ namespace g069
 		return (int32_t)s;
 	}
 
-	// 0x6FFFE0: free shard (hint first, then a scan from the start); hint = the next slot
 	static uint8_t *ShardAlloc()
 	{
 		uint8_t *mb = ModelBuffer();
@@ -222,20 +187,6 @@ namespace g069
 		return e;
 	}
 
-	// ------------------------------------------------------------------
-	// Shattering rasteriser (0x6FF6E0 -> 0x6FF770 -> 0x700030 / 0x6FF880). Draws a battle
-	// model in its bone space (no root matrix) with flat textured polygons; every face whose
-	// distance from the attacker (table built at spawn) is below the threshold is turned into
-	// a shard instead (marked -1, never drawn again).
-	// Work block (Field_Alloc 0x70, same offsets as the original):
-	//   +0x00 face cursor  +0x04 vertex scratch  +0x08 s16 triangles  +0x0A s16 quads
-	//   +0x0C..0x12 s16 clip x0, y0, x1, y1 (0, 0, 320, 216)  +0x14 u16 threshold
-	//   +0x16 u16 velocity mask  +0x18 face-distance cursor  +0x1C spin matrices
-	//   +0x20/+0x30/+0x40/+0x50 the face's projected vertices (16 bytes: sxy, otz, outcode,
-	//   bone-space xyz)  +0x60 NCLIP  +0x68 OTZ
-	// ------------------------------------------------------------------
-
-	// 0x700030: one vertex group (bone): bone space, then projection with the camera
 	static void VertexGroup(uint8_t **pobj, uint8_t **pvcur, uint8_t *sc)
 	{
 		uint8_t *src = *pobj, *dst = *pvcur;
@@ -266,7 +217,7 @@ namespace g069
 				GteRTPS();
 				GteReadSXY2(sc + 0x20);
 				GteReadOTZ(sc + 0x24);
-				if (U16(sc, 0x24) == 0) U16(dst, 6) = 0x10; // behind the eye
+				if (U16(sc, 0x24) == 0) U16(dst, 6) = 0x10;
 				else
 				{
 					int32_t sx = S16(sc, 0x20);
@@ -290,7 +241,6 @@ namespace g069
 		ff8fx::copy<(16)>(sc + o, verts + 16 * (uint32_t)(idx & 0xFFF));
 	}
 
-	// shard velocity: (rand & m) - (m >> 1) on x and z, -(4m + 4 (rand & m)) on y
 	static void ShardVelocity(uint8_t *s, uint16_t m)
 	{
 		int32_t r = Lcg();
@@ -302,7 +252,6 @@ namespace g069
 		S16(s, 0x0E) = (int16_t)((Lcg() & 7) + 0xC);
 	}
 
-	// 0x6FF880: the faces of one object
 	static uint32_t Faces(uint8_t *sc, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *f = *(uint8_t **)sc;
@@ -310,7 +259,6 @@ namespace g069
 		uint8_t *pkt = (uint8_t *)cursor;
 		uint32_t thr = U16(sc, 0x14);
 
-		// triangles, 0x14 bytes: u16 v0, v1, v2, uv2; u32 uv0, uv1, colour
 		for (;;)
 		{
 			int16_t c = S16(sc, 8);
@@ -382,7 +330,6 @@ namespace g069
 			f += 0x14;
 		}
 
-		// quads, 0x18 bytes: u16 v0..v3; u32 uv0, uv1; u16 uv2, uv3; u32 colour
 		for (;;)
 		{
 			int16_t c = S16(sc, 0xA);
@@ -460,7 +407,6 @@ namespace g069
 		return (uint32_t)pkt;
 	}
 
-	// 0x6FF770: every object of the model (vertex groups per bone, then its faces)
 	static uint32_t Objects(uint8_t *com, uint8_t *sc, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *bones = *(uint8_t **)com + 0x10;
@@ -497,7 +443,6 @@ namespace g069
 		return cursor;
 	}
 
-	// 0x6FF6E0: returns the face-distance cursor after the model
 	static uint8_t *ShatterDraw(uint8_t *model, uint8_t *dist, int32_t thr, int32_t mask, uint8_t *scratch,
 		uint32_t ot, int32_t shift)
 	{
@@ -505,7 +450,7 @@ namespace g069
 		U16(sc, 0x14) = (uint16_t)thr;
 		*(uint8_t **)(sc + 0x18) = dist;
 		U16(sc, 0x16) = (uint16_t)mask;
-		uint8_t *hdr = model + 0x14; // BattleAnimHeader (entry + 0x18)
+		uint8_t *hdr = model + 0x14;
 		*(uint8_t **)(sc + 0x1C) = ModelBuffer() + MB_SPIN;
 		BuildBoneMatricesFromPose(hdr);
 		*(uint8_t **)(sc + 4) = scratch;
@@ -519,16 +464,12 @@ namespace g069
 		return r;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x6FF2F0: shards, flat textured triangles / quads (grey 0xF0) into the frame arena,
-	// depth-sorted from the base of the render list (not +0x44)
-	// ------------------------------------------------------------------
 	static void ShardsDraw(const uint8_t *pool)
 	{
 		uint8_t *pkt = (uint8_t *)FrameCursor();
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
-		int16_t *tmp = (int16_t *)FieldAlloc(8); // tmp[3] is never written (stale scratch word)
+		int16_t *tmp = (int16_t *)FieldAlloc(8);
 		const uint8_t *e = pool;
 		for (int n = SHARD_COUNT; n; n--, e += 0x3C)
 		{
@@ -591,7 +532,7 @@ namespace g069
 			{
 				w::AVSZ3();
 				if ((out & 7) == 7 || (out & 0x70) == 0x70) continue;
-				U32(pkt, 0) = 0x07000000; // written before the depth test, as the original
+				U32(pkt, 0) = 0x07000000;
 				U32(pkt, 4) = 0x24F0F0F0;
 				w::ReadOTZ(tmp);
 				if (tmp[0] <= 0) continue;
@@ -604,9 +545,6 @@ namespace g069
 		FrameCursor() = (uint32_t)pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x7001E0: sparks, one flipbook frame each (frame = sequence counted down by life), scaled
-	// ------------------------------------------------------------------
 	static void SparksDraw(const uint8_t *pool)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -638,7 +576,7 @@ namespace g069
 			S32(h, 0x30) = word;
 			if (word < 0)
 			{
-				h[0x25] |= 1; // sticky in the scratch block, as the original
+				h[0x25] |= 1;
 				U32(h, 0x30) = (uint32_t)word & 0x7FFFFFFF;
 			}
 			*(const uint8_t **)(h + 0x2C) = frame + 4;
@@ -647,8 +585,6 @@ namespace g069
 		FieldFree(0xB4);
 	}
 
-	// 0x700150 (MAG_064_sub_700150), with the timeline's arguments: white tile, fade in over 14
-	// ticks, hold 4, fade out over 14
 	static int32_t FadeLevel(int32_t t, int32_t in = 0xE, int32_t hold = 4, int32_t out = 0xE)
 	{
 		if (t < in) return shl32(t + 1, 12) / in;
@@ -656,13 +592,9 @@ namespace g069
 		return (shl32(in - t + hold, 12) - 0x1000) / out + 0x1000;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6FE0D0). Node 0x10: +0x0C u16 counter, +0x0E u8 arena parity, +0x0F u8 spawned.
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		// 30 fps layer: see mag069_griever_held.inc
 		FX_HELD(held_note_master();)
 		if (node->parity)
 		{
@@ -684,13 +616,12 @@ namespace g069
 			TaskNode *t = AddTaskToQueue(&QueueTimeline(), ORIG_TimelineTask);
 			Memset32((uint8_t *)t + 0xC, 0, 0x239);
 			*(uint32_t *)((uint8_t *)t + 0x10) = ClaimVoiceSlot((const void *)0x14D0740, 1, 0x80);
-			// per-face distance from the attacker, in a frame scaled (1/4, 1/2, 1/4) about it
 			uint8_t *a = Attacker();
 			Mat4x3 m;
 			m.m[0][0] = 0x400; m.m[0][1] = 0; m.m[0][2] = 0;
 			m.m[1][0] = 0; m.m[1][1] = 0x800; m.m[1][2] = 0;
 			m.m[2][0] = 0; m.m[2][1] = 0; m.m[2][2] = 0x400;
-			m.pad = 0; // never written by the original (stack word at 0x6FE1xx esp+0x4E)
+			m.pad = 0;
 			m.t[0] = -((int32_t)*(int16_t *)(a + 0x1C) / 4);
 			m.t[1] = 0;
 			m.t[2] = -((int32_t)*(int16_t *)(a + 0x20) / 4);
@@ -698,7 +629,7 @@ namespace g069
 			w::FaceDistances(MODEL_2, &m, r);
 		}
 
-		int left = 1; // the original keeps the node pointer here: non-zero
+		int left = 1;
 		if (node->spawned)
 		{
 			EffectCameraMatrix(&Camera(), &EffectCamera());
@@ -709,23 +640,14 @@ namespace g069
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Timeline (0x6FE5D0). One node 0x8F0: +0x0C s16 tick, +0x10 voice slot, +0x1C prim layout.
-	// Order of a tick: prim model (0..91) -> attacker (55..84) -> shattering models (73..107)
-	// -> sparks draw (0..47) -> shards draw -> fade (94..125) -> SE (0) / voice release (122)
-	// -> sparks update (0..46) -> shards update -> [load / pause test] -> BS load (50) / swap
-	// (110) -> attacker sink (94..125) -> spark spawns (0..29) -> tick++ (end after 126).
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TimelineTask(TaskNode *n)
 	{
 		TimelineNode *node = (TimelineNode *)n;
 		uint8_t *MB = ModelBuffer();
 		int32_t c = node->counter;
 
-		// 30 fps layer: see mag069_griever_held.inc
 		FX_HELD(held_note_timeline(node, c);)
 
-		// 0..91: intro prim model at the attacker's feet
 		if ((uint32_t)c < 0x5C)
 		{
 			if (c == 0) w::Decode(0x14D0C2C, node->prim, 0x8D4);
@@ -734,7 +656,7 @@ namespace g069
 			ctx.pos[0] = *(int16_t *)(a + 0x1C);
 			ctx.pos[1] = 0;
 			ctx.pos[2] = *(int16_t *)(a + 0x20);
-			ctx.pad06 = 0; // uninitialised stack word in the original (loaded into VZ0's high half only)
+			ctx.pad06 = 0;
 			ctx.modes = 0x14D71E0;
 			ctx.bias = -128;
 			ctx.scratch = (uint32_t)(MB + MB_SCRATCH);
@@ -743,7 +665,6 @@ namespace g069
 			prim::play((prim::Layout *)node->prim, (prim::Callback)CB_PrimObject, (int)&ctx, 0);
 		}
 
-		// 55..84: the attacker, drawn by the module (hidden from the normal pass, bit 4)
 		{
 			int32_t d = (int32_t)node->counter - 0x37;
 			bool draw = false;
@@ -762,7 +683,6 @@ namespace g069
 			}
 		}
 
-		// 73..107: the two battle models break into shards (threshold = distance^2 / 4096)
 		{
 			uint32_t v = (uint32_t)((int32_t)node->counter - 0x49);
 			if (v < 0x23)
@@ -783,7 +703,6 @@ namespace g069
 			}
 		}
 
-		// sparks (drawn while the tick is below 48), then every shard
 		if (node->counter < 0x30)
 		{
 			FX_HELD(held_note_sparks();)
@@ -792,7 +711,6 @@ namespace g069
 		FX_HELD(held_note_shards();)
 		ShardsDraw(MB + MB_SHARDS);
 
-		// 94..125: white fade into the module arena
 		{
 			uint32_t t = (uint32_t)((int32_t)node->counter - 0x5E);
 			if (t < 0x20)
@@ -807,7 +725,6 @@ namespace g069
 		if (node->counter < 0x2F) w::SparkUpdate();
 		w::ShardUpdate();
 
-		// battle file loading / pause: the tick stalls here (after the draws and updates)
 		uint32_t flags = var<uint32_t>(0x1D96A9C);
 		if (flags & 0x201)
 		{
@@ -821,11 +738,10 @@ namespace g069
 			if (w::Sub508500() < 0) return 0;
 			w::SwapBS(0, (uint32_t)(ModelBuffer() + MB_SPARKS));
 			*Attacker() |= 0x20;
-			uint32_t pal = var<uint32_t>(0xB8B9A8); // CURRENT_BS_SHADOW_PALETTE
+			uint32_t pal = var<uint32_t>(0xB8B9A8);
 			for (uint32_t a = 0x1D972EC; a < 0x1D97730; a += 0x9C) var<uint32_t>(a) = pal;
 		}
 
-		// 94..125: the attacker sinks
 		{
 			uint32_t t = (uint32_t)((int32_t)node->counter - 0x5E);
 			if (t < 0x20)
@@ -835,7 +751,6 @@ namespace g069
 			}
 		}
 
-		// 0..29: four sparks around the attacker per tick, a quarter turn apart
 		if ((uint16_t)node->counter < 0x1E)
 		{
 			int k = 4;
@@ -873,7 +788,6 @@ namespace g069
 	{
 		register_port(g069::ORIG_SequenceTask, (void *)g069::SequenceTask, "G069 SequenceTask", 69);
 		register_port(g069::ORIG_TimelineTask, (void *)g069::TimelineTask, "G069 TimelineTask", 69);
-		// 30 fps layer: see mag069_griever_held.inc
 		FX_HELD(register_mag069_held();)
 	}
 }

@@ -14,42 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 217: Energy Bomber (enemy attack 316 of kernel.bin, "Engery Bomber"; Adel c0m112; MAG_217_*). No other
-// kernel.bin entry uses effect 217.
-//
-// Structure (setup MAG_217 0x694E60 -> _Init 0x694E90, file loader 0x694E70 = the TIM named at 0x113C19C into
-// 0x25087F0; the setup keeps the CASTER's entity and the entity of target 0 of action 0, starts camera animation
-// 0x11355D4 and queues the TIM):
-//   RootTask (0x694F30) - alternates the packet arena (magic buffer + 0x1244 / + 0x13244); on counter 1 sets up the
-//     pools once (main 1 x 0x684 at + 0x800, sparks 0x40 x 0x20 at + 0) and the main task (layout 0x1135CDC decoded
-//     into its +0x44, the target's default effect position 0x571400 into its +0x28); then the main and spark queues;
-//     ends when the main queue is empty (sparks still alive are dropped).
-//   MainTask (0x695050) - node 0x684, 0x57 ticks:
-//     screen flash 0x5713E0 every tick: 0x8FC c / 12 up to 0xB, 0x8FC, (0x56 - c) 0x8FC / 12 from 0x4A (0 at 0x56);
-//     counters 0..0x42 the energy ball, layout 0x1135CDC played at its point P (depth -0x80, blended frames at magic
-//     buffer + 0xE84): 0..0x2E at the caster's bone 0x27 (0x502170) 0x200 higher (0x2E: its velocity = the last
-//     step), 0x2F..0x36 thrown along that velocity, 0x37..0x42 three eased hops (four nested sines of the step: a
-//     random point 0x800 around the target 2000 above it (x) and 3/4 of the way back in z, then the point mirrored
-//     in x, then the target; 0x56CB90 from the last point); from 0x37 a two-point trail of the ball (prim model
-//     0x1135A6C at each point through the camera, faded 0xC00 / 0xE00, the engine's renderer 0x572200);
-//     counters 0x3F..0x55 the burst layout 0x113A5DC (decoded at 0x3F into +0x3DC) at the target's position, 0x40..0x43
-//     sixteen sparks a tick from it (random direction 0x6A6020 x 0x200..0x3FF, drag -v / 16);
-//     sound 0x11355D0 at 0, the target's action result at 0x4E; ends at 0x56 (the flash off).
-//   SparkTask (0x695930) - node 0x20, 0xC ticks, DRAWS THEN UPDATES: sprite sequence 0x1135900 through the
-//     shadow-rotation camera (0x800, -0x200), flipbook frame = its counter; velocity += drag, position += velocity.
-//   PrimCallback (0x695690, Holy Water 296's 0x673BD0 on this module's cursor; record flags 0x40000 and 0x200) draws
-//     every layout object.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: the main task updates the ball, then draws the layout, the trail, the burst; the sparks draw then update.
-// ENTITY / CAMERA: no task writes an entity or the camera words (the camera animation is the engine's); the screen
-// flash (engine state 0x5713E0); the target's action result (0x506690).
-// Module globals: 0x25087F0..0x2508870 (texture file 0x25087F0, context 0x25087F4, caster entity 0x25087F8, target
-// entity 0x25087FC, queues 0x2508800 sparks / 0x2508810 main / 0x2508820 root, root pool 0x2508830, packet cursor
-// 0x2508844, magic buffer base 0x250886C).
-// NEVER-WRITTEN STACK WORDS: the ball point's 4th word (MainTask's local P +6: 0x502170 and 0x56CB90 store 3 words)
-// is copied into the node (+0x16 on 0..0x2E, the trail points' +6) and the callback block (GTE V0 pad only); read by
-// nothing that draws - modelled by PointPad: on counter 0 (the root's setup tick) the high half of the entity pointer the
-// setup's GetDefaultEffectPosition 0x571400 call left there (0x01D9), later 0 (verified under the game executor, oe).
+// Effect 217: Energy Bomber
 
 #include "mag_common.h"
 
@@ -60,104 +25,88 @@ namespace bomber217
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x25087F0); }               // the effect's file (its TIM)
+	inline uint32_t &TexFile() { return var<uint32_t>(0x25087F0); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25087F4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25087F8); }               // caster entity (setup)
-	inline uint8_t *&Target() { return var<uint8_t *>(0x25087FC); }               // target 0 of action 0 (setup)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508800; }                // pool: + 0, 0x40 x 0x20
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2508810; }                  // pool: + 0x800, 1 x 0x684
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x25087F8); }
+	inline uint8_t *&Target() { return var<uint8_t *>(0x25087FC); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x2508800; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2508810; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2508844); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x250886C); }               // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x250886C); }
 
 	static const uint32_t ORIG_RootTask = 0x694F30;
 	static const uint32_t ORIG_MainTask = 0x695050;
 	static const uint32_t ORIG_SparkTask = 0x695930;
-	static const uint32_t ORIG_PrimCallback = 0x695690; // not a task: the layouts' prim callback
+	static const uint32_t ORIG_PrimCallback = 0x695690;
 	static const uint32_t POOL_Main = 0x800;
-	static const uint32_t MORPH = 0xE84;                 // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x1244;              // magic buffer: packet arenas
+	static const uint32_t MORPH = 0xE84;
+	static const uint32_t ARENA_A = 0x1244;
 	static const uint32_t ARENA_B = 0x13244;
-	static const uint32_t LAYOUT_Ball = 0x1135CDC;       // prim-model layouts
+	static const uint32_t LAYOUT_Ball = 0x1135CDC;
 	static const uint32_t LAYOUT_Burst = 0x113A5DC;
-	static const uint32_t MODEL_Trail = 0x1135A6C;       // prim model
-	static const uint32_t SEQ_Spark = 0x1135900;         // sprite sequence
+	static const uint32_t MODEL_Trail = 0x1135A6C;
+	static const uint32_t SEQ_Spark = 0x1135900;
 	static const void *const SOUND_Start = (const void *)0x11355D0;
-	static const uint32_t FLASH = 0x8FC;                 // screen flash level
+	static const uint32_t FLASH = 0x8FC;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply: b = a x b
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_RenderPrimModel
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); } // (a wa + b wb) >> 12, 3 words
-	inline void Apply3D(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); } // apply3DTransform (rotation only)
-	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); } // MAG_063_sub_6A6020
-	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C); }                    // g_Battle_FrameRenderListBase
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesYXZ(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
+	inline void Apply3D(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(0x56C3D0)(m, in, out); }
+	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); }
+	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2508830)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x684 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];    // +0x10 the ball's last point (0..0x36) / the hop's start (0x37..)
-		int16_t vel[3];    // +0x18 its throw velocity (0x2E)
+		int16_t pos[4];
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t hop[4];    // +0x20 the hop's end
-		int16_t target[4]; // +0x28 the target's default effect position
-		int16_t trail[2][4]; // +0x30 the trail points (newest first)
-		int16_t count;     // +0x40 trail points
-		int16_t index;     // +0x42 first trail point drawn
-		uint8_t layout_ball[0x398];  // +0x44
-		uint8_t layout_burst[0x2A8]; // +0x3DC
+		int16_t hop[4];
+		int16_t target[4];
+		int16_t trail[2][4];
+		int16_t count;
+		int16_t index;
+		uint8_t layout_ball[0x398];
+		uint8_t layout_burst[0x2A8];
 	};
-	struct SparkNode // pool of 0x40 nodes of 0x20 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t counter;   // +0x12 flipbook frame
-		int16_t vel[3];    // +0x14
-		int16_t drag[3];   // +0x1A -velocity / 16, added to the velocity every tick
+		int16_t pos[3];
+		int16_t counter;
+		int16_t vel[3];
+		int16_t drag[3];
 	};
-	// the prim-player callback's parameter block (a stack block of the main task)
 	struct PrimArg
 	{
-		int16_t anchor[4]; // +0x00 the point (8 bytes)
-		int32_t depth;     // +0x08 the prim header's +0x18
-		uint32_t morph;    // +0x0C blended vertex frames
+		int16_t anchor[4];
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MainNode) == 0x684 && sizeof(SparkNode) == 0x20, "217 nodes");
 	static_assert(sizeof(PrimArg) == 0x10, "217 prim block");
 
-	// the ball point's 4th word: never written (stack residue in the original). Counter 0 runs in the root's setup tick: the
-	// word holds what that setup's calls left there, the high half of a battle-entity pointer (0x1D972C0 + slot x 0x9C: 0x01D9,
-	// the target pushed for GetDefaultEffectPosition 0x571400); later counters: the tick-start residue, 0 (game executor)
 	static int16_t PointPad(int32_t c) { return c == 0 ? (int16_t)((uint32_t)Target() >> 16) : 0; }
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x695690, Holy Water 296's 0x673BD0): one object of a layout. Vertex frame (or blend into the
-	// block's morph buffer), rotation from the record's angles (flag 0x40000: 0x7015B0, else 0x701310); flag 0x200: the
-	// block's point through the camera rotation + the record's offset as the translation (rotation as is); else the
-	// record's offset + the point through the camera rotation, the camera composed with the rotation; + the camera
-	// translation; scale (scale3DMatrix), fade, drawn by 0x7043B0 at the block's depth on the module's cursor.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -193,12 +142,11 @@ namespace bomber217
 				*(uint32_t *)(h + 4) = arg->morph;
 			}
 		}
-		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 word only)
+		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesYXZ(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
 		if (r->flags & 0x200)
 		{
-			// the point through the camera (its 4th word goes to the GTE V0 pad only) + the record's offset
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->anchor);
 			GteMVMVA_RotV0();
@@ -209,7 +157,6 @@ namespace bomber217
 		}
 		else
 		{
-			// the record's offset + the point (4th word never written: only loaded into the GTE V0 pad)
 			const int16_t off[4] = { (int16_t)(r->pos[0] + arg->anchor[0]), (int16_t)(r->pos[1] + arg->anchor[1]), (int16_t)(r->pos[2] + arg->anchor[2]), 0 };
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(off);
@@ -239,7 +186,6 @@ namespace bomber217
 		FieldFree(0x58);
 	}
 
-	// the play of a layout at a point (the callback block: point, depth -0x80, blended frames)
 	static void Play(uint8_t *layout, const int16_t *point)
 	{
 		PrimArg arg;
@@ -249,7 +195,6 @@ namespace bomber217
 		prim::play((prim::Layout *)layout, PrimCallback, (int)&arg, 0);
 	}
 
-	// the hop weight of step k: four nested sines
 	static int32_t HopWeight(int32_t k)
 	{
 		int32_t s = ComputeSin((int32_t)((((uint32_t)k << 12) >> 2) + 0x200) >> 2);
@@ -258,9 +203,6 @@ namespace bomber217
 		return ComputeSin(s >> 2);
 	}
 
-	// the ball's point on counter c (< 0x43): the node's state stepped as that tick does (P: 4 words). rand_hop
-	// = the random hop end of 0x37 (the real tick draws it: CRT rand); without it that counter is not computed
-	// (false)
 	static bool BallPoint(MainNode *m, int32_t c, int16_t *P, bool rand_hop)
 	{
 		if (c < 0x2F)
@@ -323,7 +265,6 @@ namespace bomber217
 		return true;
 	}
 
-	// the trail point i (prim model through the camera, faded 0xC00 + i x 0x200) with the header h
 	static void TrailDraw(uint8_t *h, const int16_t *point, int32_t i)
 	{
 		Mat4x3 *m = (Mat4x3 *)(h + 0x58);
@@ -349,7 +290,6 @@ namespace bomber217
 		PacketCursor() = RenderPrimModel(h, OT() + 0x44, 2, PacketCursor());
 	}
 
-	// the spark (0x695930..0x69598F): sequence frame at pos through the shadow-rotation camera
 	static void SparkDraw(int16_t *pos, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, 0x800, -0x200);
@@ -378,13 +318,9 @@ namespace ff8fx
 {
 namespace bomber217
 {
-	// ------------------------------------------------------------------
-	// Spark (0x695930)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		// 30 fps layer: see mag217_energy_bomber_held.inc
 		FX_HELD(held_note_spark(n);)
 		SparkDraw(s->pos, s->counter);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
@@ -397,9 +333,6 @@ namespace bomber217
 		return s->counter < 0xC ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x695050)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
@@ -410,12 +343,10 @@ namespace bomber217
 			int16_t P[4];
 			P[3] = PointPad(c);
 			BallPoint(m, c, P, true);
-			// 30 fps layer: see mag217_energy_bomber_held.inc
 			FX_HELD(held_note_ball(m, P);)
 			Play(m->layout_ball, P);
 			if (m->count > 0)
 			{
-				// 30 fps layer: see mag217_energy_bomber_held.inc
 				FX_HELD(held_note_trail(m);)
 				uint8_t *h = (uint8_t *)FieldAlloc(0x78);
 				for (int32_t i = m->index; i < m->count; i++) TrailDraw(h, m->trail[i], i);
@@ -459,7 +390,6 @@ namespace bomber217
 					s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
 				}
 			}
-			// 30 fps layer: see mag217_energy_bomber_held.inc
 			FX_HELD(held_note_burst(m);)
 			Play(m->layout_burst, m->target);
 		}
@@ -478,13 +408,9 @@ namespace bomber217
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x694F30)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *rt = (RootNode *)n;
-		// 30 fps layer: see mag217_energy_bomber_held.inc
 		FX_HELD(held_note_root();)
 		if (rt->arena)
 		{
@@ -514,7 +440,6 @@ namespace bomber217
 		}
 		if (rt->started && main == 0)
 		{
-			// 30 fps layer: see mag217_energy_bomber_held.inc
 			FX_HELD(held_note_end();)
 			return TASK_END;
 		}
@@ -528,7 +453,6 @@ namespace bomber217
 		register_port(bomber217::ORIG_RootTask, (void *)bomber217::RootTask, "217 RootTask", 217);
 		register_port(bomber217::ORIG_MainTask, (void *)bomber217::MainTask, "217 MainTask", 217);
 		register_port(bomber217::ORIG_SparkTask, (void *)bomber217::SparkTask, "217 SparkTask", 217);
-		// 30 fps layer: see mag217_energy_bomber_held.inc
 		FX_HELD(register_mag217_held();)
 	}
 }

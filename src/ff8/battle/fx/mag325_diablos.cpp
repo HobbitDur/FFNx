@@ -14,23 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 325: Diablos - Dark Messenger (timeline-A GF family, MAG_325_*).
-//
-// Structure (see gf_study/gf_inventory_timeline.md 3.1):
-//   SetupSummon (0x654210, not a task) - root queue 0x25051B0 (pool 0x25051C0, 1 x 0x10) with
-//     the master; targets' mean position into 0x25051D4 (z) / 0x25051D8 (x).
-//   SequenceTask (master, 0x654350) - flips the packet arena, spawns the timeline at tick 2,
-//     runs the timeline queue (0x25051A0) then, when it has nodes, the prim-model particle
-//     queue (0x2505190); screen flash (hides the battle entities at full flash).
-//   TimelineTask (0x6545F0) - 530-tick timeline: two battle models (Diablos E1 at node+0x10C,
-//     second model E2 at node+0x1A8), three prim-model players, prim models, target squash,
-//     two particle systems in the model buffer (bolts: 0x6583E0 advance / 0x657F00 draw,
-//     puffs: 0x658970 draw + 0x658C80/0x658CE0/0x658D30 moves), camera, streams, sounds,
-//     damage (499), voice release (526).
-//   RisingTask (0x659960) - prim-model player rising 0x18 per tick (spawned by 0x659900).
-//   BurstTask (0x659860) - scaled prim-model player at a bone of Diablos (ticks 466..473).
-//   prim-model callback 0x656B70 (drawn through the shared player, fx_primplayer.cpp).
-// Module globals: 0x250517C..0x2505230 (gf_study/gf_global_ranges.md).
+// Effect 325: Diablos - Dark Messenger
 
 #include "fx_port.h"
 
@@ -40,69 +24,53 @@ namespace d325
 {
 	using namespace eng;
 
-	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x2505180); }            // debug pause, zeroed by the setup, never set
+	inline uint32_t &Pause() { return var<uint32_t>(0x2505180); }
 	inline uint8_t *&CastCtx() { return var<uint8_t *>(0x2505184); }
-	inline TaskQueuePair &QueueMain() { return var<TaskQueuePair>(0x2505190); } // .first = prim particles, .second = timeline
+	inline TaskQueuePair &QueueMain() { return var<TaskQueuePair>(0x2505190); }
 	inline TaskQueue &QueueParticles() { return QueueMain().first; }
-	inline TaskQueue &QueueTimeline() { return QueueMain().second; }            // 0x25051A0
+	inline TaskQueue &QueueTimeline() { return QueueMain().second; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25051D0); }
-	inline int32_t &CenterZ() { return var<int32_t>(0x25051D4); }             // targets' mean BattleEntitySlotData +0x20
-	inline int32_t &CenterX() { return var<int32_t>(0x25051D8); }             // targets' mean +0x1C
-	inline int32_t &FarZ() { return var<int32_t>(0x25051DC); }                // CenterZ + 0xFA0
-	inline int32_t &MidZ() { return var<int32_t>(0x25051E0); }                // CenterZ + 0x7D0
+	inline int32_t &CenterZ() { return var<int32_t>(0x25051D4); }
+	inline int32_t &CenterX() { return var<int32_t>(0x25051D8); }
+	inline int32_t &FarZ() { return var<int32_t>(0x25051DC); }
+	inline int32_t &MidZ() { return var<int32_t>(0x25051E0); }
 	inline uint32_t &Flash() { return var<uint32_t>(0x25051E8); }
 	inline uint32_t &FlashPrev() { return var<uint32_t>(0x25051EC); }
-	inline uint8_t &Mode() { return var<uint8_t>(0x25051F0); }                // particle system: 2 = bolts, 3 = puffs
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2505208); }      // = Magic_TextureOFF_ToEAX1()
+	inline uint8_t &Mode() { return var<uint8_t>(0x25051F0); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(0x2505208); }
 	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2505210); }
-	// engine
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }       // battle_texture_data_ptr_1D8E054
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }             // g_Battle_FrameRenderListBase
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t ModelDrawMode() { return var<uint32_t>(0x1D969A8); }
-	inline int16_t &CamWorld(int k) { return var<int16_t>(0xB8B7F0 + 2 * k); }  // Battle_Camera_world x, y, z
-	inline int16_t &CamLookAt(int k) { return var<int16_t>(0xB8B7F8 + 2 * k); } // Battle_Camera_LookAt x, y, z
+	inline int16_t &CamWorld(int k) { return var<int16_t>(0xB8B7F0 + 2 * k); }
+	inline int16_t &CamLookAt(int k) { return var<int16_t>(0xB8B7F8 + 2 * k); }
 
 	static const uint32_t ORIG_SequenceTask = 0x654350;
 	static const uint32_t ORIG_TimelineTask = 0x6545F0;
 	static const uint32_t ORIG_BurstTask = 0x659860;
 	static const uint32_t ORIG_RisingTask = 0x659960;
-	static const uint32_t CB_PrimObject = 0x656B70; // prim-model object callback (pure draw)
+	static const uint32_t CB_PrimObject = 0x656B70;
 
-	// --- engine and module functions called through their original addresses ---
 	namespace x
 	{
 		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x55CBD2)(); }
 		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-		// MAG_063_sub_701DD0: prim-model set draw (header 0x6C bytes)
 		inline uint32_t RenderPrimSet(void *hdr, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x701DD0)(hdr, ot, mode, cursor); }
-		// MAG_063_sub_701220: rotation matrix about X (3x3 + pad)
 		inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(0x701220)(angle, out); }
 		inline void Decode(uint32_t src, void *layout, int size) { fn<void (__cdecl *)(uint32_t, void *, int)>(0x7016B0)(src, layout, size); }
-		// MAG_325_sub_658FC0: two morphed prim models (keyframe tables a / b, t 4.12) at (x, y, z)
 		inline void MorphPair(int x, int y, int z, uint32_t hdr, void *tab_a, int na, int ta, void *tab_b, int nb, int tb)
 		{ fn<void (__cdecl *)(int, int, int, uint32_t, void *, int, int, void *, int, int)>(0x658FC0)(x, y, z, hdr, tab_a, na, ta, tab_b, nb, tb); }
-		// MAG_325_sub_659680: prim model at (x, y, z) relative to the camera (pure draw)
 		inline void DrawPrimAt(int x, int y, int z, uint32_t model) { fn<void (__cdecl *)(int, int, int, uint32_t)>(0x659680)(x, y, z, model); }
-		// MAG_325_sub_659900: new RisingTask
 		inline void SpawnRising(int x, int y, int z, int shade, uint32_t model) { fn<void (__cdecl *)(int, int, int, int, uint32_t)>(0x659900)(x, y, z, shade, model); }
-		// MAG_325_sub_657CB0: a battle entity (and its weapon) drawn with a scale vector
 		inline void DrawEntityScaled(void *entity, const int32_t *scale) { fn<void (__cdecl *)(void *, const int32_t *)>(0x657CB0)(entity, scale); }
-		// MAG_325_sub_659730: three prim sets (gravity well) at (x, y, z), texture scroll
 		inline void DrawWell(int x, int y, int z, int scroll) { fn<void (__cdecl *)(int, int, int, int)>(0x659730)(x, y, z, scroll); }
-		// MAG_314_sub_659A10: white-out tile, i-th tick of up + down ticks
 		inline uint32_t FlashTile(int i, int r, int g, int b, int up, int down, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, int, int, uint32_t)>(0x659A10)(i, r, g, b, up, down, cursor); }
-		// MAG_063_sub_7040B0: full-screen tile, colour * level (4.12)
 		inline uint32_t Tile(int r, int g, int b, int level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, uint32_t)>(0x7040B0)(r, g, b, level, cursor); }
-		// models
 		inline void SetAnim(void *e, int id) { fn<void (__cdecl *)(void *, int)>(0x6574D0)(e, id); }
 		inline void AdvanceAnim(void *e) { fn<void (__cdecl *)(void *)>(0x6FBDB0)(e); }
 		inline void BindModel(void *e, void *sections, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(0x6EC060)(e, sections, data); }
-		// MAG_325_sub_6574F0: stylised model draw (private rasteriser, root not camera-composed)
 		inline void DrawStylised(void *e, int y, int a, int mode, void *buf) { fn<void (__cdecl *)(void *, int, int, int, void *)>(0x6574F0)(e, y, a, mode, buf); }
-		// MAG_089_sub_6A79B0: standard model draw
 		inline uint32_t DrawModel(void *e, void *buf, uint32_t cursor, uint32_t mode) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(0x6A79B0)(e, buf, cursor, mode); }
-		// particle systems in the model buffer
 		inline void ResetPuffs() { fn<void (__cdecl *)()>(0x6545B0)(); }
 		inline void BoltAdvance() { fn<void (__cdecl *)()>(0x6583E0)(); }
 		inline void BoltDraw() { fn<void (__cdecl *)()>(0x657F00)(); }
@@ -115,12 +83,10 @@ namespace d325
 		inline void PuffsFromModel(void *e) { fn<void (__cdecl *)(void *)>(0x658D90)(e); }
 		inline void BoltParams(int a, int b, int c) { fn<void (__cdecl *)(int, int, int)>(0x657E70)(a, b, c); }
 		inline void BoltSpawn(void *s) { fn<void (__cdecl *)(void *)>(0x658890)(s); }
-		// MAG_070_sub_657DF0: look-at = a[0..2] -> b[0..2], eye = a[3..5] -> b[3..5] at t (GTE)
 		inline void CamLerp(const void *a, const void *b, int t) { fn<void (__cdecl *)(const void *, const void *, int)>(0x657DF0)(a, b, t); }
 		inline void TargetHeights(void *entity, void *out) { fn<void (__cdecl *)(void *, void *)>(0x6DFD90)(entity, out); }
 		inline void VertexPos(void *e, uint32_t vertex, void *out) { fn<void (__cdecl *)(void *, uint32_t, void *)>(0x6F0CC0)(e, vertex, out); }
 		inline void SpawnPosition(void *e, int bone, int a, void *out) { fn<void (__cdecl *)(void *, int, int, void *)>(0x502170)(e, bone, a, out); }
-		// streams / sound / battle
 		inline void Load(int id, uint32_t dst, int n) { fn<void (__cdecl *)(int, uint32_t, int)>(0x5341D0)(id, dst, n); }
 		inline int LoadBusy() { return fn<int (__cdecl *)()>(0x534270)(); }
 		inline int PreLoad0(int a) { return fn<int (__cdecl *)(int)>(0x5342C0)(a); }
@@ -135,93 +101,89 @@ namespace d325
 	}
 
 #pragma pack(push, 1)
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
-	struct MasterNode // root pool 0x25051C0, 0x10 bytes
+	struct MasterNode
 	{
 		TaskNode hdr;
-		uint16_t counter; // +0x0C
-		uint8_t parity;   // +0x0E packet arena
-		uint8_t spawned;  // +0x0F timeline spawned
+		uint16_t counter;
+		uint8_t parity;
+		uint8_t spawned;
 	};
 
-	struct Target // 12 bytes, node+0x94 (one per target)
+	struct Target
 	{
-		uint8_t *entity;  // BattleEntitySlotData (0x1D972C0 + 0x9C * id)
-		int16_t h0, h1;   // +4 model height range (MAG_070_sub_6DFD90 at tick 368)
-		int16_t z0, one;  // +8 = 0, 0x1000 (set by the master, unused)
+		uint8_t *entity;
+		int16_t h0, h1;
+		int16_t z0, one;
 	};
 
-	struct TimelineNode // the single node of the timeline queue = ModelBuffer + 0, 0x994 bytes
+	struct TimelineNode
 	{
 		TaskNode hdr;
-		int16_t counter;          // +0x0C timeline tick
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t stream_ready;     // +0x0F BdTransSummonStream done flag
-		uint32_t voice;           // +0x10 BdSound_ClaimVoiceSlot
-		uint32_t flip[16];        // +0x14 prim model flipbook / morph table A (13 used)
-		uint32_t morph_b[16];     // +0x54 morph table B (3 used)
-		Target targets[10];       // +0x94
-		uint8_t e1[0x9C];         // +0x10C Diablos: E+0x28 colour, E+0x40 root Mat4x3, E+0x60 BattleAnimHeader,
-		                          //   E+0x64 sections, E+0x6C BattleAnimCmd, E+0x7C object mask
-		uint8_t e2[0x9C];         // +0x1A8 second model (ticks 298..367)
-		uint8_t sections1[0x10];  // +0x244
-		uint8_t sections2[0x10];  // +0x254
-		uint8_t prim_a[0xE0];     // +0x264 prim-model player (ticks 16..520)
-		uint8_t prim_b[0x468];    // +0x344 player (298..327, 406..455)
-		uint8_t prim_c[0x1E8];    // +0x7AC player (268..327, restarted when done)
+		uint8_t stream_ready;
+		uint32_t voice;
+		uint32_t flip[16];
+		uint32_t morph_b[16];
+		Target targets[10];
+		uint8_t e1[0x9C];
+		uint8_t e2[0x9C];
+		uint8_t sections1[0x10];
+		uint8_t sections2[0x10];
+		uint8_t prim_a[0xE0];
+		uint8_t prim_b[0x468];
+		uint8_t prim_c[0x1E8];
 	};
 
-	struct PrimCtx // callback context of 0x656B70 (arg of the player), 0x30 bytes
+	struct PrimCtx
 	{
-		int16_t pos[3];           // +0x00 placement (GTE V0)
+		int16_t pos[3];
 		int16_t pad06;
-		int32_t scale[3];         // +0x08 read only when use_scale
-		int32_t use_scale;        // +0x14
-		uint32_t cursor;          // +0x18 frame arena cursor in / out
-		uint32_t scroll_sel;      // +0x1C char per object: '1' = texture scroll
-		uint32_t draw_sel;        // +0x20 char per object: '0' = MAG_063_sub_701DD0, else MAG_325_sub_657030
-		int16_t shade;            // +0x24
-		int16_t scroll;           // +0x26 (low byte & 0x7F)
-		int16_t fade;             // +0x28 non-zero: overrides the record's channel A
+		int32_t scale[3];
+		int32_t use_scale;
+		uint32_t cursor;
+		uint32_t scroll_sel;
+		uint32_t draw_sel;
+		int16_t shade;
+		int16_t scroll;
+		int16_t fade;
 		int16_t pad2A;
-		uint8_t *morph;           // +0x2C morph output buffer (ModelBuffer + 0xD94)
+		uint8_t *morph;
 	};
 
-	struct RisingNode // queue 0x2505190 (16 x 0xE8)
+	struct RisingNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];           // +0x0C
-		int16_t shade;            // +0x12
+		int16_t pos[3];
+		int16_t shade;
 		int32_t unused14;
-		uint8_t layout[0xD0];     // +0x18 prim-model player
+		uint8_t layout[0xD0];
 	};
 
-	struct BurstNode // queue 0x2505190 (16 x 0xE8)
+	struct BurstNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];           // +0x0C GetEffectSpawnPosition
-		int16_t shade;            // +0x12 = -0x100
-		int32_t scale;            // +0x14 0x800..0xFFF, all three axes
-		uint8_t layout[0xD0];     // +0x18 prim-model player (0xB8 decoded)
+		int16_t pos[3];
+		int16_t shade;
+		int32_t scale;
+		uint8_t layout[0xD0];
 	};
 
-	struct BoltSpawnRec // argument of MAG_325_sub_658890 (the timeline's stack local), 0x30 bytes
+	struct BoltSpawnRec
 	{
 		uint8_t pad0[8];
-		int16_t pos[3];           // +0x08 leader start
-		int16_t width;            // +0x0E
-		int16_t target[3];        // +0x10
-		int16_t t;                // +0x16
-		int16_t vel[3];           // +0x18
-		int16_t dt;               // +0x1E
-		int16_t shape[3];         // +0x20
-		int16_t budget;           // +0x26
-		int16_t intensity;        // +0x28
-		int16_t decay;            // +0x2A
+		int16_t pos[3];
+		int16_t width;
+		int16_t target[3];
+		int16_t t;
+		int16_t vel[3];
+		int16_t dt;
+		int16_t shape[3];
+		int16_t budget;
+		int16_t intensity;
+		int16_t decay;
 		int16_t unused2C;
-		int16_t fade;             // +0x2E
+		int16_t fade;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x10, "master node is 0x10 bytes");
@@ -232,14 +194,13 @@ namespace d325
 	static_assert(sizeof(BurstNode) == 0xE8, "burst node is 0xE8 bytes");
 	static_assert(sizeof(BoltSpawnRec) == 0x30, "bolt spawn record is 0x30 bytes");
 
-	// --- model buffer regions ---
-	static const uint32_t MB_MORPH = 0xD94;       // morph / skinning scratch (prim callback, model draws)
+	static const uint32_t MB_MORPH = 0xD94;
 	static const uint32_t MB_STREAM_STATE = 0x4C14;
-	static const uint32_t MB_PARTICLES = 0x4C5C;  // puffs: 160 x 0x10 / bolts: 0x200 vertices x 0x18
+	static const uint32_t MB_PARTICLES = 0x4C5C;
 	static const uint32_t MB_PUFFS_END = 0x565C;
-	static const uint32_t MB_CHAINS = 0x7C5C;     // bolts: 64 chains x 0x30
+	static const uint32_t MB_CHAINS = 0x7C5C;
 	static const uint32_t MB_CHAINS_END = 0x882C;
-	static const uint32_t MB_ARENA_A = 0x885C, MB_ARENA_B = 0xF85C; // packet arenas (0x7000 each)
+	static const uint32_t MB_ARENA_A = 0x885C, MB_ARENA_B = 0xF85C;
 	static const uint32_t MB_STREAM = 0x1685C;
 
 	inline uint8_t *E1(TimelineNode *t) { return t->e1; }
@@ -261,13 +222,9 @@ namespace d325
 {
 	using namespace eng;
 
-	// ------------------------------------------------------------------
-	// Master task (0x654350)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		// 30 fps layer: see mag325_diablos_held.inc
 		FX_HELD(held_note_master();)
 		if (node->parity)
 		{
@@ -298,7 +255,6 @@ namespace d325
 				t->targets[k].entity = (uint8_t *)(0x1D972C0 + 0x9C * id);
 			}
 			StreamStateInit(ModelBuffer() + MB_STREAM_STATE);
-			// sin / cos table (256 x {s16 sin, s16 cos}) for the puffs' rotation (0x658AB0)
 			int16_t *tab = (int16_t *)(ModelBuffer() + 0x994);
 			for (int32_t a = 0; a < 0x1000; a += 0x10)
 			{
@@ -307,7 +263,7 @@ namespace d325
 			}
 		}
 
-		uint32_t left = (uint32_t)n; // the original keeps the node pointer here: non-zero
+		uint32_t left = (uint32_t)n;
 		if (node->spawned)
 		{
 			left = (uint32_t)ExecuteTaskQueue(&QueueTimeline());
@@ -318,7 +274,6 @@ namespace d325
 			}
 		}
 
-		// screen flash; at full flash the battle entities (stru_1D9898C[0..3].currentBsId bit 1) show
 		uint32_t f = Flash();
 		if (f != FlashPrev())
 		{
@@ -345,11 +300,6 @@ namespace d325
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Timeline draw pieces
-	// ------------------------------------------------------------------
-
-	// screen flash level / prim player A fade for counter c (v = c - 1 < 0x211)
 	static int16_t FadeA(uint32_t v)
 	{
 		if (v < 0x10) return (int16_t)(((0x10000u - (v << 12)) >> 3) + 0x100);
@@ -362,8 +312,8 @@ namespace d325
 		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[2] = (int16_t)MidZ();
 		c.morph = Morph();
-		c.scroll_sel = 0xFE0FC0; // "0000"
-		c.draw_sel = 0xFE0FB8;   // "0010"
+		c.scroll_sel = 0xFE0FC0;
+		c.draw_sel = 0xFE0FB8;
 		c.shade = 0x200;
 		c.fade = fade;
 	}
@@ -375,7 +325,7 @@ namespace d325
 		c.pos[1] = (int16_t)0xDC7C;
 		c.pos[2] = (int16_t)(FarZ() - 0xA0);
 		c.morph = Morph();
-		c.scroll_sel = c.draw_sel = 0xFE0FB4; // "0"
+		c.scroll_sel = c.draw_sel = 0xFE0FB4;
 		c.shade = -0x40;
 	}
 
@@ -386,8 +336,8 @@ namespace d325
 		c.pos[1] = (int16_t)0xD736;
 		c.pos[2] = (int16_t)(FarZ() - 0xF2);
 		c.morph = Morph();
-		c.scroll_sel = 0xFE0FAC; // "00000"
-		c.draw_sel = 0xFE0FA4;   // "01000"
+		c.scroll_sel = 0xFE0FAC;
+		c.draw_sel = 0xFE0FA4;
 	}
 
 	static void CtxB406(PrimCtx &c, int16_t scroll)
@@ -397,8 +347,8 @@ namespace d325
 		c.pos[2] = (int16_t)CenterZ();
 		c.morph = Morph();
 		c.scroll = scroll;
-		c.scroll_sel = 0xFE0F94; // "0010000000000"
-		c.draw_sel = 0xFE0F84;   // "1000000100000"
+		c.scroll_sel = 0xFE0F94;
+		c.draw_sel = 0xFE0F84;
 	}
 
 	static int Play(void *layout, PrimCtx &c)
@@ -409,7 +359,6 @@ namespace d325
 		return r;
 	}
 
-	// 0x65473A: growing prim model (0xFD6B6C) at the targets, uniform scale diag (ticks 31..90)
 	static void DrawGrowing(int32_t diag, int32_t ty)
 	{
 		uint8_t *w = (uint8_t *)FieldAlloc(0x8C);
@@ -437,8 +386,6 @@ namespace d325
 	}
 	static int32_t GrowDiag(uint32_t e) { return (int32_t)((e << 12) / 60u) + 0x22; }
 
-	// 0x654DDC: sinking prim model (ModelBuffer + 0x35F7C), tilted about X (ticks 360..367);
-	// k = 0..7, sub = extra offset along the sink path (0 for the tick itself)
 	static void DrawSinking(int32_t k, int32_t sub)
 	{
 		uint8_t *w = (uint8_t *)FieldAlloc(0x78);
@@ -455,7 +402,6 @@ namespace d325
 		FieldFree(0x78);
 	}
 
-	// ease curve of the gravity well (0x654E7E.., 0x655DD0.., 0x656899..): x = 0..0x1000
 	static int32_t Ease(int32_t x)
 	{
 		if (x >= 0x555) return ((x - 0x555) * 426 >> 11) + 0xE56;
@@ -463,11 +409,8 @@ namespace d325
 		s = ComputeSin(s >> 2);
 		return ComputeSin(s >> 2);
 	}
-	// target squash depth of well tick e (0..0x25)
 	static int32_t WellDepth(uint32_t e) { return Ease((int32_t)((e << 12) / 38u)) * 4 - 0x4100; }
 
-	// 0x654F4D: a target squashed towards the ground: y scale and root y so that its height
-	// (h1 - h0 seen at its distance from the well) stays above depth
 	static void SquashTarget(Target &t, int32_t depth, int32_t scale[3])
 	{
 		uint8_t *ent = t.entity;
@@ -494,12 +437,6 @@ namespace d325
 
 	static int32_t FlashTileLevel(int32_t i) { return i < 4 ? shl32(i + 1, 12) / 4 : shl32(4 - i - 1, 12) / 8 + 0x1000; }
 
-	// ------------------------------------------------------------------
-	// Camera (0x656208..0x656AE0): cuts and GTE lerps between fixed key cameras
-	// (a / b = look-at xyz then eye xyz). real = the timeline tick (also runs the puff
-	// operations interleaved with the camera code); else only the camera words are written.
-	// Returns: bit 0 = the camera was written, bit 1 = it was a cut.
-	// ------------------------------------------------------------------
 	static void SetCam(int16_t lx, int16_t ly, int16_t lz, int16_t wx, int16_t wy, int16_t wz)
 	{
 		CamLookAt(0) = lx; CamLookAt(1) = ly; CamLookAt(2) = lz;
@@ -525,7 +462,7 @@ namespace d325
 				{
 					x::ResetPuffs();
 					var<int16_t>(0x1D8E038) = 0x120;
-					var<int16_t>(0x1D977A2) = 0; // g_BattleCam_Roll
+					var<int16_t>(0x1D977A2) = 0;
 				}
 				SetCam(0, (int16_t)0xF3A2, (int16_t)(D4 - 0x4BF), 0, (int16_t)0xF8FC, (int16_t)(D4 + 0x1E57));
 				r = 3;
@@ -710,22 +647,16 @@ namespace d325
 		return r;
 	}
 
-	// ------------------------------------------------------------------
-	// Timeline task (0x6545F0): one node at ModelBuffer + 0, 530 ticks (0x212), then waits for
-	// the last stream (counter parked at 0x222) and ends.
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TimelineTask(TaskNode *n)
 	{
 		TimelineNode *t = (TimelineNode *)n;
 		uint8_t *MB = ModelBuffer();
 		uint8_t *e1 = E1(t), *e2 = E2(t);
 
-		// 30 fps layer: see mag325_diablos_held.inc
 		FX_HELD(held_note_timeline(t);)
 
 		int32_t c = t->counter;
 
-		// screen flash; prim player A (ticks 9..520)
 		{
 			uint32_t v = (uint32_t)(c - 1);
 			if (v < 0x211)
@@ -737,25 +668,21 @@ namespace d325
 					Flash() = 0x1000;
 					PrimCtx ctx;
 					CtxA(ctx, FadeA(v));
-					// 30 fps layer: see mag325_diablos_held.inc
 					FX_HELD(held_note_play_a(ctx);)
 					Play(t->prim_a, ctx);
 				}
 			}
 		}
 
-		// 31..90: growing prim model
 		{
 			uint32_t e = (uint32_t)(c - 0x1F);
 			if (e < 0x3C)
 			{
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_grow(e);)
 				DrawGrowing(GrowDiag(e), e < 0x1E ? -0x4000 : -0x2000);
 			}
 		}
 
-		// 91..102: morphing prim models
 		{
 			uint32_t e = (uint32_t)(c - 0x5B);
 			if (e < 0xC)
@@ -770,13 +697,11 @@ namespace d325
 					t->morph_b[1] = (uint32_t)(MB + 0x3704C);
 					t->morph_b[2] = (uint32_t)(MB + 0x3505C);
 				}
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_morph(e);)
 				x::MorphPair(0, -0x2000, (int16_t)FarZ(), (uint32_t)(ModelBuffer() + 0x4C244), t->flip, 2, tt, t->morph_b, 2, tt);
 			}
 		}
 
-		// 103..202: prim-model flipbook (and the five rising prims at 103)
 		{
 			uint32_t e = (uint32_t)(c - 0x67);
 			if (e < 0x64)
@@ -798,13 +723,11 @@ namespace d325
 				}
 				else if (e < 0x46) model = t->flip[e % 9];
 				else model = t->flip[0];
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_flip(0, -0x2000, (int16_t)FarZ(), model);)
 				x::DrawPrimAt(0, -0x2000, (int16_t)FarZ(), model);
 			}
 		}
 
-		// 173..202: anims 1, 2
 		{
 			uint32_t e = (uint32_t)(c - 0xAD);
 			if (e < 0x1E)
@@ -815,7 +738,6 @@ namespace d325
 		}
 		if (t->counter == 0xCB && !Pause()) Root(e1).t[1] = -0x1880;
 
-		// 238..297: anims 3, 4; second flipbook
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0xEE);
 			if (e < 0x3C)
@@ -830,13 +752,11 @@ namespace d325
 				}
 				else if (e == 8 && !Pause()) x::SetAnim(e1, 4);
 				uint32_t model = t->flip[e % 13];
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_flip(0x5A, -0x2258, FarZ() - 0xA0, model);)
 				x::DrawPrimAt(0x5A, -0x2258, FarZ() - 0xA0, model);
 			}
 		}
 
-		// 268..327: Diablos sinks (268..297); prim player C, restarted when done
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x10C);
 			if (e < 0x1E && !Pause()) Root(e1).t[1] += -10;
@@ -845,19 +765,16 @@ namespace d325
 				if (e == 0) x::Decode((uint32_t)(ModelBuffer() + 0x51D40), t->prim_c, 0x1E8);
 				PrimCtx ctx;
 				CtxC(ctx);
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_play_c(ctx);)
 				int r = Play(t->prim_c, ctx);
 				if (r == 0)
 				{
-					// 30 fps layer: see mag325_diablos_held.inc
 					FX_HELD(held_note_restart_c(t);)
 					x::Decode((uint32_t)(ModelBuffer() + 0x51D40), t->prim_c, 0x1E8);
 				}
 			}
 		}
 
-		// 298..327: prim player B
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x12A);
 			if (e < 0x1E)
@@ -865,13 +782,11 @@ namespace d325
 				if (e == 0) x::Decode((uint32_t)(ModelBuffer() + 0x4EF8C), t->prim_b, 0x3C8);
 				PrimCtx ctx;
 				CtxB298(ctx);
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_play_b(ctx, false);)
 				Play(t->prim_b, ctx);
 			}
 		}
 
-		// 328..367: anims 5 / 1; sinking prim model (360..367)
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x148);
 			if (e < 0x28)
@@ -883,14 +798,12 @@ namespace d325
 				}
 				else if (e >= 0x20)
 				{
-					// 30 fps layer: see mag325_diablos_held.inc
 					FX_HELD(held_note_sink((int32_t)e - 0x20);)
 					DrawSinking((int32_t)e - 0x20, 0);
 				}
 			}
 		}
 
-		// 368..405: gravity well, the targets are squashed
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x170);
 			if (e < 0x26)
@@ -910,24 +823,20 @@ namespace d325
 					x::DrawEntityScaled(t->targets[k].entity, scale);
 					t->targets[k].entity[0] |= 4;
 				}
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_well(e);)
 				x::DrawWell(CenterX(), depth - 0x1000, CenterZ(), (int32_t)(e << 4));
 			}
 		}
 
-		// 402..413: white-out tile
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x192);
 			if (e < 0xC)
 			{
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_tile((int32_t)e);)
 				PacketCursor() = x::FlashTile((int32_t)e, 0xFF, 0xFF, 0xFF, 4, 8, PacketCursor());
 			}
 		}
 
-		// 406..455: prim player B again (scrolling)
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x196);
 			if (e < 0x32)
@@ -935,14 +844,12 @@ namespace d325
 				if (e == 0) x::Decode((uint32_t)(ModelBuffer() + 0x3B4E4), t->prim_b, 0x468);
 				PrimCtx ctx;
 				CtxB406(ctx, (int16_t)(e * 4));
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_play_b(ctx, true);)
 				Play(t->prim_b, ctx);
 			}
 		}
 		if (t->counter == 0x1C8) x::SetAnim(e1, 6);
 
-		// 92..621: Diablos (E1)
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x5C);
 			if (e < 0x212)
@@ -971,7 +878,6 @@ namespace d325
 				if (e < 0x4B) kind = 1;
 				else if (e >= 0xB0 && e < 0xEC) kind = 2;
 				else if (e <= 0x114 || (e >= 0x16C && e < 0x17A)) kind = 3;
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_e1(e1, kind);)
 				if (kind == 1) x::DrawStylised(e1, -0x2000, 0x80, 2, ModelBuffer() + MB_MORPH);
 				else if (kind == 2) x::DrawStylised(e1, -0x22BC, 0x80, 0, ModelBuffer() + MB_MORPH);
@@ -979,7 +885,6 @@ namespace d325
 			}
 		}
 
-		// 298..367: second model (E2), same root as Diablos
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x12A);
 			if (e < 0x46)
@@ -991,13 +896,11 @@ namespace d325
 					x::SetAnim(e2, 0);
 				}
 				if (!Pause()) x::AdvanceAnim(e2);
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_e2();)
 				FrameCursor() = x::DrawModel(e2, ModelBuffer() + MB_MORPH, FrameCursor(), ModelDrawMode());
 			}
 		}
 
-		// particle systems: bolts advance then draw, puffs draw (their moves come later)
 		{
 			uint8_t m;
 			bool bolts = false;
@@ -1019,18 +922,15 @@ namespace d325
 			if (bolts)
 			{
 				x::BoltDraw();
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_particles(2);)
 			}
 			else if (m == 3)
 			{
-				// 30 fps layer: see mag325_diablos_held.inc
 				FX_HELD(held_note_particles(3);)
 				x::PuffDraw();
 			}
 		}
 
-		// streams: the timeline waits (repeats the tick) while a load is busy
 		{
 			switch ((uint16_t)t->counter)
 			{
@@ -1104,7 +1004,6 @@ namespace d325
 		}
 		x::PreLoad();
 
-		// sound effects
 		switch ((uint16_t)t->counter)
 		{
 		case 0: x::PlaySE(0xFD6640, 1, 0x80); break;
@@ -1116,7 +1015,6 @@ namespace d325
 		default: break;
 		}
 
-		// 92..166: Diablos rises 0x20 per tick; every 8th tick a rising prim at a random vertex
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x5C);
 			if (e < 0x4B && !Pause())
@@ -1139,7 +1037,6 @@ namespace d325
 			}
 		}
 
-		// 173..202: burst of 32 puffs (177, 178), puffs move
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0xAD);
 			if (e < 0x1E)
@@ -1176,7 +1073,6 @@ namespace d325
 			}
 		}
 
-		// 238..297: bolts from Diablos' bone 0x21 down to the ground
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0xEE);
 			if (e < 0x3C)
@@ -1221,7 +1117,6 @@ namespace d325
 			}
 		}
 
-		// 298..317: bolts rising around Diablos
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x12A);
 			if (e < 0x14)
@@ -1270,7 +1165,6 @@ namespace d325
 			}
 		}
 
-		// 376..405: bolts shooting out of the well
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x178);
 			if (e < 0x1E)
@@ -1314,7 +1208,6 @@ namespace d325
 			}
 		}
 
-		// 406..421: bolts rising in a widening ring
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x196);
 			if (e < 0x10)
@@ -1356,7 +1249,6 @@ namespace d325
 			}
 		}
 
-		// 466..473: bursts at random bones, Diablos darkens
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x1D2);
 			if (e < 8)
@@ -1367,7 +1259,7 @@ namespace d325
 					BurstNode *b = (BurstNode *)AddTaskToQueue(&QueueParticles(), ORIG_BurstTask);
 					if (!b) continue;
 					int32_t r = x::Rand();
-					uint32_t nb = ***(uint8_t ***)(e1 + 0x64); // bone count: comFileData -> skeleton -> byte 0
+					uint32_t nb = ***(uint8_t ***)(e1 + 0x64);
 					x::SpawnPosition(e1, (r * (int32_t)nb) >> 15, 0, b->pos);
 					b->shade = -0x100;
 					b->scale = (x::Rand() & 0x7FF) + 0x800;
@@ -1380,7 +1272,6 @@ namespace d325
 			}
 		}
 
-		// 469..498: Diablos dissolves into puffs
 		{
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x1D5);
 			if (e < 0x1E)
@@ -1394,7 +1285,6 @@ namespace d325
 			}
 		}
 
-		// 499: damage, the targets' effect flags are cleared
 		if (t->counter == 0x1F3)
 		{
 			for (int k = 0; k < TargetCount(); k++) *(uint16_t *)t->targets[k].entity &= 0xFFF3;
@@ -1415,29 +1305,24 @@ namespace d325
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim particles
-	// ------------------------------------------------------------------
 	static void CtxRising(PrimCtx &c, const int16_t pos[3], int16_t shade)
 	{
 		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[0] = pos[0];
 		c.pos[1] = pos[1];
 		c.pos[2] = pos[2];
-		c.pad06 = shade; // the dword copy of +0x10 (z, shade); never read
+		c.pad06 = shade;
 		c.morph = Morph();
 		c.shade = shade;
-		c.scroll_sel = 0xFE0FB4; // "0"
-		c.draw_sel = 0xFE0FC8;   // "1"
+		c.scroll_sel = 0xFE0FB4;
+		c.draw_sel = 0xFE0FC8;
 	}
 
-	// 0x659960: prim-model player that rises 0x18 per tick, ends with its animation
 	static uint32_t __cdecl RisingTask(TaskNode *n)
 	{
 		RisingNode *p = (RisingNode *)n;
 		PrimCtx c;
 		CtxRising(c, p->pos, p->shade);
-		// 30 fps layer: see mag325_diablos_held.inc
 		FX_HELD(held_note_rising(p);)
 		if (!Play(p->layout, c)) return TASK_END;
 		if (!Pause()) p->pos[1] += 0x18;
@@ -1455,10 +1340,9 @@ namespace d325
 		c.use_scale = 1;
 		c.morph = Morph();
 		c.shade = p->shade;
-		c.scroll_sel = c.draw_sel = 0xFE0FB4; // "0"
+		c.scroll_sel = c.draw_sel = 0xFE0FB4;
 	}
 
-	// 0x659860: scaled prim-model player at a bone of Diablos, ends with its animation
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		BurstNode *p = (BurstNode *)n;
@@ -1474,7 +1358,6 @@ namespace d325
 		register_port(d325::ORIG_TimelineTask, (void *)d325::TimelineTask, "D325 TimelineTask", 325);
 		register_port(d325::ORIG_RisingTask, (void *)d325::RisingTask, "D325 RisingTask", 325);
 		register_port(d325::ORIG_BurstTask, (void *)d325::BurstTask, "D325 BurstTask", 325);
-		// 30 fps layer: see mag325_diablos_held.inc
 		FX_HELD(register_mag325_held();)
 	}
 }

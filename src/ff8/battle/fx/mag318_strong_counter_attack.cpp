@@ -14,55 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 318: Strong counter-attack (Krysta c0m038; MAG_318_*). Counter-attack 319's big twin (the module right before it):
-// the spike layouts, a burst of particles along the spike, flying sprites at the target, then the caster's arm bones grown
-// back from nothing (the bone scale task 0x65F2B0, which 319 queues too).
-//
-// Structure (setup MAG_318 0x65E510 -> _Init 0x65E540 (not ported), file loader 0x65E520 = the texture file named at
-// 0xFFE6A0 ("mag317.tim") -> [0x2505418]; the setup queues the TIM, keeps the CASTER's entity (0x2505424), starts camera
-// animation 0xFF77AC and the root in its 1-node pool 0x2505468):
-//   RootTask (0x65E5C0) - alternates the packet arena (magic buffer + 0x1DE0 / + 0x11DE0); on counter 1 sets up the pools
-//     once (main 1 x 0x1304 at + 0, bone scales 5 x 0x1C at + 0x1304, sprites 0x20 x 0x30 at + 0x1390), starts the main task
-//     at the first target of action 0 (its default effect position, the layouts 0xFFD9B8 / 0xFF8DB8 / 0xFFB4CC decoded, its
-//     particle cursor) and the stream state at + 0x1990. Then the main, bone-scale and sprite queues; once set up its
-//     counter is pinned at 2; it ends when the three queues are empty.
-//   MainTask (0x65E790) - counters 0..0x32 (then waits for the stream, 0x5342C0):
-//     counter 2: S = the caster's bone 0x1D (0x502170, flag 0x800), T = the target's position; the basis M of (T - S)
-//       (0x50CBA0, y the other way), three offsets 0xFFE688 / 0xFFE690 / 0xFFE698 through M (0x56C4F0), M2 = the same
-//       basis, M3 = the basis of the mirrored direction;
-//     counters 2..0x17: layout A (+0xE4) in M2 at S - offset 0, composed with the camera (depth 0);
-//     counters 4..0x13: the caster's object 3 shown (entity +0x7C bit 3 cleared at 4); the point L = T e + S (1 - e),
-//       e = ((c - 4) / 16)^4 (0x56CB90); layout B (+0x1D0) in M at offset 0 + L (depth -0x80), the prim model 0xFF7CB0
-//       in M at L;
-//     counters 4..0x14: four steps i (e of (c - 4) / 16 - i / 64): the point L, two particles at offset 1 + L, and from
-//       counter 8 on two more at offset 2 + L (0x65F710: a free cell of the 0x80-cell table at + 0xB00, 11 ticks, size
-//       rand, velocity = the direction of (0x400, rand + 0x800 k) through M, / 256);
-//     counters 0x13..0x32: layout C (+0x7B8) in M3 at T, composed with the camera (depth -0x80); on counters 0x13..0x16:
-//       8 flying sprites at T (directions rand / + 0x200 k (0x65F0A0), speed rand, drag velocity / -12);
-//     every tick: the particle table drawn and moved (0x65F340: frame of sequence 0xFF7B6C by the life left, the custom
-//       quad renderer 0x65F4B0, position + velocity x 4), the stream pumped;
-//     sound 0xFF77A8 at counter 8, the stream load of file 0x168 into magic buffer + 0x21DE0 at 0x29, the damage of action
-//     0's first target record at 0x18; at 0x27 the caster's object 3 hidden (+0x7C bit 3) and five bone scales queued
-//     (0x65F250): bones 0x16 / 0x1D / 0x21 / 0x22 / 0x23 after 0 / 8 / 16 / 16 / 16 ticks.
-//   BoneScaleTask (0x65F2B0): a bone matrix of the caster's skeleton (skeleton record + 0x10, scale3DMatrix) scaled (x, x, y)
-//     from 0 after its delay, x += 0x200 / y += 0x400 per tick up to 0x1000; ends (unscaled) once both reach 0x1000.
-//   SpriteTask (0x65F100) - sprite sequence 0xFF7A00 through the shadow-rotation camera (0x400, -0x100), turned along its
-//     screen direction (0x56D160 of its start velocity seen from there), flipbook frame = its counter; then velocity +=
-//     drag, position += velocity; 12 ticks.
-//   PrimCallback (0x65EE00) = Counter-attack 319's 0x65E190 (Funguar laser 277's without the 0x40000 rotation variant), on
-//     this module's cursor.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update; the main draws its particle table after the
-// tick's spawns).
-// ENTITY / CAMERA: the CASTER's entity is written: +0x7C bit 3 (object 3 visibility) at main counters 4 / 0x27, and its
-// skeleton's bone matrices (the bone scales); the camera animation is the engine's.
-// Module globals: 0x2505418..0x2505490 (texture file 0x2505418, packet cursor 0x250541C, context 0x2505420, caster entity
-// 0x2505424, the queues 0x2505428 sprites / 0x2505438 bone scales / 0x2505448 main / 0x2505458 root, root pool 0x2505468,
-// the sprite task's zero vector 0x2505480 (read only), magic buffer base 0x2505488).
-// NEVER-WRITTEN STACK WORDS: as 319's; the particle spawn's angle word [1] and the 4th words of the vectors loaded into GTE V0
-// (sprite offsets, the start velocity's +0x2E copy of the pool word +0x1E) reach nothing but the GTE VZ0 high half; the main
-// task's loop counter and the quad renderer's u width live in their caller's argument slots (written, never read back).
-
 #include "mag_common.h"
 #include <stddef.h>
 
@@ -73,52 +24,48 @@ namespace strong318
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250541C); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2505420); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505424); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505488); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2505428; }        // pool: + 0x1390, 0x20 x 0x30
-	inline TaskQueue *QBones() { return (TaskQueue *)0x2505438; }          // pool: + 0x1304, 5 x 0x1C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505448; }           // pool: magic buffer, 1 x 0x1304
-	static const int16_t *const ZERO_VEC = (const int16_t *)0x2505480;    // a module word quad the sprite task only reads
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505424); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2505488); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)0x2505428; }
+	inline TaskQueue *QBones() { return (TaskQueue *)0x2505438; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2505448; }
+	static const int16_t *const ZERO_VEC = (const int16_t *)0x2505480;
 
 	static const uint32_t ORIG_RootTask = 0x65E5C0;
 	static const uint32_t ORIG_MainTask = 0x65E790;
 	static const uint32_t ORIG_SpriteTask = 0x65F100;
 	static const uint32_t ORIG_BoneScaleTask = 0x65F2B0;
 	static const uint32_t POOL_Bones = 0x1304, POOL_Sprites = 0x1390;
-	static const uint32_t STREAM_STATE = 0x1990;         // magic buffer: stream state
-	static const uint32_t MORPH = 0x19D8;                // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x1DE0;              // magic buffer: packet arenas
+	static const uint32_t STREAM_STATE = 0x1990;
+	static const uint32_t MORPH = 0x19D8;
+	static const uint32_t ARENA_A = 0x1DE0;
 	static const uint32_t ARENA_B = 0x11DE0;
-	static const uint32_t STREAM_DEST = 0x21DE0;         // magic buffer: file 0x168 (loaded at counter 0x29)
-	static const uint32_t MODEL_A = 0xFFD9B8;            // prim-model layouts
+	static const uint32_t STREAM_DEST = 0x21DE0;
+	static const uint32_t MODEL_A = 0xFFD9B8;
 	static const uint32_t MODEL_B = 0xFF8DB8;
 	static const uint32_t MODEL_C = 0xFFB4CC;
-	static const uint32_t PRIM_Spike = 0xFF7CB0;         // prim model (0x572200)
-	static const uint32_t SEQ_Sprite = 0xFF7A00;         // sprite sequence (flying sprites)
-	static const uint32_t SEQ_Particle = 0xFF7B6C;       // particle quads: +8 frame count, +8 + 2 i frame offsets
+	static const uint32_t PRIM_Spike = 0xFF7CB0;
+	static const uint32_t SEQ_Sprite = 0xFF7A00;
+	static const uint32_t SEQ_Particle = 0xFF7B6C;
 	static const void *const SOUND = (const void *)0xFF77A8;
-	static const int16_t *const OFFSETS = (const int16_t *)0xFFE688; // three vectors of 4 words (through M)
+	static const int16_t *const OFFSETS = (const int16_t *)0xFFE688;
 	static const int PARTICLES = 0x80;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }             // sub_56C220: a = a x b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
-	// BuildOrthonormalBasis (0x50CBA0): 3x3 basis of the direction v (int32 x3), returns |v|
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); } // matrixMultiplyVector (rotation only)
-	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); } // (a wa + b wb) >> 12 (GTE GPF / GPL)
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
+	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(x, y); }
-	// GTE (software PSX geometry engine)
 	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(0x45E180)(m); }
 	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(0x460820)(); }
 	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(0x45E470)(m); }
@@ -127,91 +74,80 @@ namespace strong318
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
 	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
-	// battle file streaming (0x5341D0 load a file, 0x534210 pump, 0x5342C0 done)
 	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
 	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2505468)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C pinned at 2 once set up
-		uint8_t started;   // +0x0E pools set up
+		int16_t counter;
+		uint8_t started;
 		uint8_t pad0F;
-		uint32_t arena;    // +0x10 packet arena parity
+		uint32_t arena;
 	};
-	struct Particle // 0x80 cells of 0x10 bytes in the main node
+	struct Particle
 	{
-		int16_t pos[3];    // +0x00
-		int16_t life;      // +0x06 ticks left (0 = free); the frame of the quad sequence
-		int16_t size;      // +0x08 scale (rand / 16 + 0x800)
+		int16_t pos[3];
+		int16_t life;
+		int16_t size;
 		int16_t pad0A;
-		int8_t vel[3];     // +0x0C x 4 per tick
+		int8_t vel[3];
 		uint8_t pad0F;
 	};
-	struct MainNode // pool of 1 node of 0x1304 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E[0x4A];
-		uint8_t *ent;      // +0x58 target entity (first target of action 0)
-		int16_t S[4];      // +0x5C the caster's bone 0x1D (counter 2)
-		int16_t T[4];      // +0x64 the target's default effect position
-		int16_t off[3][4]; // +0x6C the offsets through M
-		Mat4x3 M;          // +0x84 basis of T - S; translation rewritten per draw
-		Mat4x3 M2;         // +0xA4 the same basis; translation S - offset 0
-		Mat4x3 M3;         // +0xC4 basis of the mirrored direction; translation T
-		uint8_t layout_a[0xEC];  // +0xE4
-		uint8_t layout_b[0x5E8]; // +0x1D0
-		uint8_t layout_c[0x348]; // +0x7B8
-		Particle parts[PARTICLES]; // +0xB00
-		Particle *cursor;  // +0x1300 the next cell to try
+		uint8_t *ent;
+		int16_t S[4];
+		int16_t T[4];
+		int16_t off[3][4];
+		Mat4x3 M;
+		Mat4x3 M2;
+		Mat4x3 M3;
+		uint8_t layout_a[0xEC];
+		uint8_t layout_b[0x5E8];
+		uint8_t layout_c[0x348];
+		Particle parts[PARTICLES];
+		Particle *cursor;
 	};
-	struct BoneNode // pool of 5 nodes of 0x1C bytes
+	struct BoneNode
 	{
 		TaskNode hdr;
-		uint8_t *bone;     // +0x0C skeleton record (the matrix at + 0x10)
-		int16_t delay;     // +0x10 ticks before the growth
-		int16_t sy;        // +0x12 scale z (y step +0x14)
-		int16_t dy;        // +0x14
-		int16_t sx;        // +0x16 scale x / y (x step +0x18)
-		int16_t dx;        // +0x18
+		uint8_t *bone;
+		int16_t delay;
+		int16_t sy;
+		int16_t dy;
+		int16_t sx;
+		int16_t dx;
 		int16_t pad1A;
 	};
-	struct SpriteNode // pool of 0x20 nodes of 0x30 bytes
+	struct SpriteNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C flipbook frame
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];    // +0x10 (the 4th word: T's)
-		int16_t vel[3];    // +0x18
+		int16_t pos[4];
+		int16_t vel[3];
 		int16_t pad1E;
-		int16_t drag[3];   // +0x20 start velocity / -12
+		int16_t drag[3];
 		int16_t pad26;
-		int16_t vel0[4];   // +0x28 start velocity (direction on screen; the 4th word: the pool's +0x1E)
+		int16_t vel0[4];
 	};
-	// the prim-player callback's parameter block (a stack block of the drawing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 object frame (camera composed in)
-		int32_t depth;     // +0x20 the prim header's +0x18
-		uint32_t morph;    // +0x24 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MainNode) == 0x1304 && sizeof(BoneNode) == 0x1C && sizeof(Particle) == 0x10, "Strong counter-attack nodes");
 	static_assert(sizeof(SpriteNode) == 0x30 && sizeof(PrimArg) == 0x28, "Strong counter-attack nodes");
 	static_assert(offsetof(MainNode, ent) == 0x58 && offsetof(MainNode, M3) == 0xC4 && offsetof(MainNode, layout_c) == 0x7B8 && offsetof(MainNode, parts) == 0xB00, "Strong counter-attack main node");
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x65EE00): one object of a layout. Vertex frame (or blend into the
-	// parameter block's morph buffer), rotation from the record's angles, the record's offset
-	// through the parameter matrix (flag 0x200: as is), the matrix composed with it (unless flag
-	// 0x200 or 0x8000), scale (flag 0x100: 3x3 product, else scale3DMatrix), fade, drawn by 0x7043B0.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -249,7 +185,6 @@ namespace strong318
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x200)
 		{
@@ -295,20 +230,17 @@ namespace strong318
 		FieldFree(0x58);
 	}
 
-	// e = (x / 4096)^4 (0x65E90C / 0x65EA6C), x = (c - 4) x 256 (- 0x40 per particle step)
 	static int32_t Ease4(int32_t x)
 	{
 		int32_t e = mul32(x, x) >> 12;
 		return mul32(e, e) >> 12;
 	}
 
-	// the spike point (0x65E918..0x65E92E): weight e of T, 0x1000 - e of S
 	static void SpikePoint(const MainNode *m, int32_t e, int16_t *L)
 	{
 		VecLerp(m->T, m->S, e, 0x1000 - e, L);
 	}
 
-	// the spike model (0x65E9B0..0x65EA2C): M at L composed with the camera, model 0xFF7CB0 (no fade)
 	static void SpikeDraw(Mat4x3 *M, const int16_t *L, PrimArg *arg)
 	{
 		M->t[0] = L[0];
@@ -324,7 +256,6 @@ namespace strong318
 		FieldFree(0x58);
 	}
 
-	// 0x65F7E0: the direction of (a[0], -, a[2]): (sin a2 x -sin a0, -(cos a2 x -sin a0), cos a0)
 	static void AngleToDir(const int16_t *a, int16_t *out)
 	{
 		out[2] = (int16_t)ComputeCos(a[0]);
@@ -333,7 +264,6 @@ namespace strong318
 		out[1] = (int16_t)((0 - mul32(ComputeCos(a[2]), s)) >> 12);
 	}
 
-	// 0x65F0A0 (AngleToUnitVector): (sin a1 x cos a0, -sin a0, -(cos a1 x cos a0))
 	static void AngleToUnitVector(const int16_t *a, int16_t *out)
 	{
 		const int32_t c = ComputeCos(a[0]);
@@ -342,9 +272,6 @@ namespace strong318
 		out[2] = (int16_t)((0 - mul32(ComputeCos(a[1]), c)) >> 12);
 	}
 
-	// 0x65F710: a particle at pos (2 x u32: pos[3] lands in the life word, rewritten) in the next free cell from the cursor
-	// (the cursor's own cell first, else the first free one; none: nothing), 11 ticks, size rand / 16 + 0x800, velocity =
-	// the direction of ang through the GTE rotation (M) / 256
 	static void SpawnParticle(MainNode *m, const int16_t *pos, const int16_t *ang)
 	{
 		Particle *p = m->cursor;
@@ -378,9 +305,6 @@ namespace strong318
 		p->vel[2] = (int8_t)(d[2] >> 8);
 	}
 
-	// 0x65F4B0 (no IDB start): the particle quads of the frame h+0x2C (h+0x30 quads of 0x14 bytes: u width, grey, v height,
-	// code, u0, v1, clut / uv word +4, x / y offset +8 / +0xA, tpage +0xE, scale x / y +0x10 / +0x12) as POLY_FT4 packets at
-	// cursor, in the frame of h (scale +0x84, camera-space position +0x98), inserted at ot + 4 mode unless the GTE clips them
 	static uint32_t RenderQuads(uint8_t *h, uint32_t ot, int mode, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -459,8 +383,6 @@ namespace strong318
 		return (uint32_t)pk;
 	}
 
-	// 0x65F3D0 (= Red Giant 316's 0x6627B0): one particle: its camera-space position, its scale, the frame of the quad
-	// sequence its life selects, drawn; then its life steps down and it moves by its velocity x 4
 	static void ParticleDraw(uint8_t *h, Particle *p)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -483,7 +405,6 @@ namespace strong318
 		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] << 2));
 	}
 
-	// 0x65F340: every live cell of the table drawn (one header for all)
 	static void ParticleWalk(Particle *cells)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -502,7 +423,6 @@ namespace strong318
 		FieldFree(0xB4);
 	}
 
-	// the flying sprite's draw (0x65F100..0x65F1F3): turned along the screen direction of its start velocity
 	static void SpriteDraw(const int16_t *pos, const int16_t *vel0, int16_t frame)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -510,7 +430,7 @@ namespace strong318
 		d[0] = (int16_t)(pos[0] - vel0[0]);
 		d[1] = (int16_t)(pos[1] - vel0[1]);
 		d[2] = (int16_t)(pos[2] - vel0[2]);
-		d[3] = 0; // (never written: only the GTE VZ0 high half would see it; TransformCameraByShadowRotation reads 3 words)
+		d[3] = 0;
 		TransformCameraByShadowRotation(d, 0x400, -0x100);
 		GteLoadV0(ZERO_VEC);
 		GteMVMVA_RotV0Tr();
@@ -538,13 +458,9 @@ namespace ff8fx
 {
 namespace strong318
 {
-	// ------------------------------------------------------------------
-	// Sprite (0x65F100)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		// 30 fps layer: see mag318_strong_counter_attack_held.inc
 		FX_HELD(held_note_sprite(n);)
 		SpriteDraw(s->pos, s->vel0, s->counter);
 		s->counter++;
@@ -558,9 +474,6 @@ namespace strong318
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Bone scale (0x65F2B0): delay, then the scales grow to 0x1000
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl BoneScaleTask(TaskNode *n)
 	{
 		BoneNode *b = (BoneNode *)n;
@@ -579,7 +492,6 @@ namespace strong318
 		return 0;
 	}
 
-	// 0x65F250: a bone scale task on the caster's skeleton bone `bone` (no pool check: 5 nodes for the 5 calls)
 	static void StartBoneScale(int32_t bone, int16_t delay, int16_t dx, int16_t dy)
 	{
 		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), ORIG_BoneScaleTask);
@@ -591,9 +503,6 @@ namespace strong318
 		b->sx = 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x65E790)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
@@ -619,7 +528,6 @@ namespace strong318
 			ComposeAffineTransform(&Camera(), &m->M2, &arg.m);
 			arg.morph = TexBase() + MORPH;
 			arg.depth = 0;
-			// 30 fps layer: see mag318_strong_counter_attack_held.inc
 			FX_HELD(held_note_main(PLAY_A, n);)
 			prim::play((prim::Layout *)m->layout_a, PrimCallback, (int)&arg, 0);
 		}
@@ -655,7 +563,7 @@ namespace strong318
 				pos[0] = (int16_t)(m->off[1][0] + L[0]);
 				pos[1] = (int16_t)(m->off[1][1] + L[1]);
 				pos[2] = (int16_t)(m->off[1][2] + L[2]);
-				pos[3] = 0; // (never written: copied into the particle's life word, rewritten there)
+				pos[3] = 0;
 				for (int j = 2; j != 0; j--)
 				{
 					SpawnParticle(m, pos, ang);
@@ -739,13 +647,9 @@ namespace strong318
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x65E5C0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag318_strong_counter_attack_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -801,7 +705,6 @@ namespace strong318
 		register_port(strong318::ORIG_MainTask, (void *)strong318::MainTask, "318 MainTask", 318);
 		register_port(strong318::ORIG_SpriteTask, (void *)strong318::SpriteTask, "318 SpriteTask", 318);
 		register_port(strong318::ORIG_BoneScaleTask, (void *)strong318::BoneScaleTask, "318 BoneScaleTask", 318);
-		// 30 fps layer: see mag318_strong_counter_attack_held.inc
 		FX_HELD(register_mag318_held();)
 	}
 }

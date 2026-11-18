@@ -14,41 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 181: Kamikaze (command ability "Kamikaze", the Bomb-type self-destruct of a party member; MAG_181_KAMIKAZE*).
-//
-// The module 0x5CB530..0x5CC820 adapts Suicide 180 (mag180_suicide.cpp, the Bomb's self-destruct; near4 w\p181_180.txt,
-// w\amap_181.txt: exe data -0x3FC8 (camera animation 0xD3D3F0), -0x32D4 (smoke / spark flipbooks), -0x3210 (ring models,
-// sound, texture name), module globals -0x17C0). Identical up to addresses: the caster model draw (0x5CBA80) and its
-// glow renderer (0x5CBB90 / 0x5CBCE0), Ring (0x5CC000), Ring2 (0x5CC160), Sparks (0x5CC2A0), Smoke (0x5CC560), Root
-// (0x5CC7D0). No explosion task, no fuse sparks; what differs:
-//   Director (0x5CB610) - counter 0: the effect position = the caster's effect point 0xF0 (flag 0xA00); 1: the caster
-//     glow; 4 / 5: the caster's effect point again and, per tick, +0x0E (5, then 4) flare tasks 0x5CC720 at it (y = the
-//     position's y + 0..9 - 5) flying horizontally away from the caster's origin (unit vector times 0x19..0x63 / 4096),
-//     scale 0x800..0x8FF, then +0x0E - 1; 0xE: a screen fade (0x5712C0: 0, 1, 4, 0xFF); 0xF: the caster's default effect
-//     position, the second ring and the sparks; 0x10: two rings (random spin / speed) + the smoke; 0x26 damage; sound
-//     0xD413A4 at 1; ends after 0x32 (Suicide: fuse 1, explosion 0xF, glow 0x10, ring2 + sparks 0x1B, rings + smoke 0x1C).
-//   CasterGlow (0x5CB9B0) - counters 0..0xE: the caster's model with the overlay colour (0xF0, 0x60, 0x60) faded in by
-//     IR0 = counter x 0x124 (full from 0xE), entity flag word |= 0x804; ends after 0xF; the caster is NOT hidden
-//     (Suicide: 0xC0C0C0, counter << 8 up to 0x10, flag byte |= 4, 0..0x17, flags |= 0x10 at the end).
-//   Flare (0x5CC720, new) - draws THEN updates: flipbook 0xD3E500 (frame = counter) at its position through the shadow
-//     camera (0x571BC0, scale / -scale >> 3); position += (vx, 2, vz) per tick; ends when the flipbook ends.
-//
-// Structure (setup MAG_181_KAMIKAZE_Init 0x5CB550, file loader MAG_181_KAMIKAZE_FL 0x5CB530 = the texture file named at
-// 0xD413AC "mag180.tim" into 0x2307D88; the setup keeps the cast context and the CASTER's slot, sets up the root queue
-// 0x23065F0 (1 node) and the effect queue 0x2306F60 (0x64 nodes of 0x24 bytes; the director's +0x0E = 5), clears the
-// particle pool, starts camera animation 0xD3D3F0 and queues the TIM):
-//   RootTask (0x5CC7D0) - alternates the packet arena (magic buffer / + 0xC000) on the counter's parity, runs the effect
-//     queue, ends when it is empty. No draw-only test.
-//   Ring (0x5CC000) / Ring2 (0x5CC160) - prim models 0xD3E5C4 / 0xD405FC at the effect position, spun about y (Ring
-//     only, slowing 1/16 per tick) and growing (speed - speed / 7 per tick), fading from tick 8 / 10; end at 0x10 / 0x12.
-//   Sparks (0x5CC2A0) - particles of type 2, flipbook 0xD3E3A0, 7 per tick 0..7 flying outwards.
-//   Smoke (0x5CC560) - particles of type 4, flipbook 0xD3E1F4, 2 per tick 0..0xD around the effect position, fixed.
-// Particle pool 0x2306600: 0x64 entries of 0x18 bytes shared by the two particle tasks (type bits 2 / 4); each task
-// draws then updates its own entries (in the draw-only mode it only draws) and spawns into free entries; the particle
-// tasks end at counter >= 4 once no entry of their type is left. The glow, rings, sparks, smoke and flares draw in the
-// draw-only mode and do not update; the director does nothing.
-// Module globals: 0x23065D8..0x2307D94 (target slot, root pool / queue, particle pool, effect queue / pool, context
-// 0x2307D80, caster slot 0x2307D84, texture file 0x2307D88, magic buffer base 0x2307D8C, packet cursor 0x2307D90).
+// Effect 181: Kamikaze
 
 #include "mag_common.h"
 
@@ -59,23 +25,21 @@ namespace kamikaze181
 	using namespace eng;
 	using namespace magc;
 
-	// raw memory access (the model renderer follows the listing offset by offset)
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline int16_t &S16(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 	inline uint16_t &U16(uint32_t p, int32_t o) { return AT<uint16_t>(p, o); }
 	inline int32_t &S32(uint32_t p, int32_t o) { return AT<int32_t>(p, o); }
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2307D80); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2307D84); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2307D8C); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2307D8C); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2307D90); }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2306F60; }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }       // frame packet arena cursor
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }     // transformed model vertices
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
-	static const uint32_t POOL = 0x2306600, POOL_END = 0x2306F60;             // 0x64 particles of 0x18 bytes
+	static const uint32_t POOL = 0x2306600, POOL_END = 0x2306F60;
 
 	static const uint32_t ORIG_RootTask = 0x5CC7D0;
 	static const uint32_t ORIG_Director = 0x5CB610;
@@ -87,13 +51,12 @@ namespace kamikaze181
 	static const uint32_t ORIG_Flare = 0x5CC720;
 	static const uint32_t MODEL_Ring = 0xD3E5C4, MODEL_Ring2 = 0xD405FC;
 	static const uint32_t SEQ_Spark = 0xD3E3A0, SEQ_Smoke = 0xD3E1F4, SEQ_Flare = 0xD3E500;
-	static const void *const SOUND_Start = (const void *)0xD413A4;    // at the director's counter 1
+	static const void *const SOUND_Start = (const void *)0xD413A4;
 
-	// ---- engine functions (original addresses)
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
-	inline void GteLoadRGBC(void *c) { fn<void (__cdecl *)(void *)>(0x45E110)(c); }          // set_unk_1CA8A28
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteLoadRGBC(void *c) { fn<void (__cdecl *)(void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }         // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
@@ -105,55 +68,49 @@ namespace kamikaze181
 	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C7A0)(bucket, pkt); }
-	// GTE helpers of the Tornado module
-	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }    // MAG_146_sub_64DEE0: V0 = 3 words
-	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); } // MAG_146_sub_64DF10: IR1..3 -> 4 words (4th 0)
-	// battle model helpers
+	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }
+	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); }
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect bone
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 
-	// ------------------------------------------------------------------
-	// Node / particle layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad;
 	};
-	struct EffectNode // pool of 0x64 nodes of 0x24 bytes
+	struct EffectNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C
-		int16_t zero;        // +0x0E (rings: 0)
-		int16_t pos[4];      // +0x10 effect position (x, y, z, pad)
-		int16_t spin;        // +0x18 ring y rotation
-		int16_t spin_speed;  // +0x1A
-		int16_t scale;       // +0x1C ring scale
-		int16_t scale_speed; // +0x1E
+		int16_t counter;
+		int16_t zero;
+		int16_t pos[4];
+		int16_t spin;
+		int16_t spin_speed;
+		int16_t scale;
+		int16_t scale_speed;
 		uint32_t pad20;
 	};
-	struct FlareNode // a flare task (0x5CC720), same pool
+	struct FlareNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C flipbook frame
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];      // +0x10 x, y, z, pad
-		int16_t vel_x;       // +0x18
-		int16_t vel_z;       // +0x1A
-		int16_t scale;       // +0x1C sprite size (shadow camera)
+		int16_t pos[4];
+		int16_t vel_x;
+		int16_t vel_z;
+		int16_t scale;
 		int16_t pad1E;
 		uint32_t pad20;
 	};
-	struct Particle // 0x18 bytes
+	struct Particle
 	{
-		uint32_t type;       // +0x00 2 sparks, 4 smoke (0 = free)
-		int16_t frame;       // +0x04 age / flipbook frame
-		int16_t scale;       // +0x06
-		int16_t pos[4];      // +0x08 x, y, z, pad (copied with the effect position)
-		int16_t vel[3];      // +0x10
+		uint32_t type;
+		int16_t frame;
+		int16_t scale;
+		int16_t pos[4];
+		int16_t vel[3];
 		int16_t pad16;
 	};
 #pragma pack(pop)
@@ -164,7 +121,6 @@ namespace kamikaze181
 	static const int POOL_COUNT = 0x64;
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 
-	// a free pool entry (the scan stops at the pool's end), or -1
 	static int FreeParticle()
 	{
 		int i = 0;
@@ -177,13 +133,6 @@ namespace kamikaze181
 		return i;
 	}
 
-	// ------------------------------------------------------------------
-	// Caster model renderer (copies of the battle model renderer)
-	// ------------------------------------------------------------------
-	// MAG_181_sub_5CBCE0: the polygons of one object (h: +0 primitives, +4 vertices, +8 / +0A
-	// triangle / quad counts, +1C colour / mode bits, +2C MAC0, +34 OTZ, +38 FLAG, +5C overlay
-	// colour); every visible textured polygon is followed by a flat semi-transparent copy one
-	// bucket nearer
 	static uint32_t RenderObjectPrims(uint32_t h, uint32_t ot, uint32_t shift, uint32_t pkt)
 	{
 		const uint32_t verts = U32(h, 4);
@@ -263,9 +212,6 @@ namespace kamikaze181
 		return pkt;
 	}
 
-	// MAG_181_sub_5CBB90: one battle model (the objects of the visibility mask h +0x20): the
-	// vertices of every bone group through the bone's matrix into h +4, then the polygons through
-	// the camera
 	static uint32_t RenderModel(uint32_t model, uint32_t h, uint32_t ot, uint32_t shift, uint32_t pkt)
 	{
 		const uint32_t bones = U32(model, 0) + 0x10;
@@ -276,7 +222,7 @@ namespace kamikaze181
 		{
 			uint32_t obj = U32(model, 4) + U32(table, 0);
 			table += 4;
-			if (!(U32(h, 0x20) & (1u << (i & 31)))) continue; // shl by cl (count mod 32)
+			if (!(U32(h, 0x20) & (1u << (i & 31)))) continue;
 			int32_t groups = S16(obj, 0);
 			uint32_t out = U32(h, 4);
 			obj += 2;
@@ -310,7 +256,6 @@ namespace kamikaze181
 		return pkt;
 	}
 
-	// MAG_181_sub_5CBA80: the caster's shadow and battle model(s) with the overlay colour h +0x5C
 	static void DrawCasterModel(uint32_t h, uint8_t *entity)
 	{
 		const uint32_t e = (uint32_t)entity;
@@ -342,10 +287,8 @@ namespace kamikaze181
 		}
 	}
 
-	// the glow's IR0 at a counter (fade in over 14 ticks)
 	static int32_t GlowLevel(int16_t counter) { return counter < 0xE ? (int32_t)counter * 0x124 : 0x1000; }
 
-	// the glow's draw (0x5CB9B0 before its update): overlay colour (0xF0, 0x60, 0x60) * level, the caster model
 	static void DrawGlow(uint8_t *entity, int32_t level)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x80);
@@ -361,8 +304,6 @@ namespace kamikaze181
 		FieldFree(0x80);
 	}
 
-	// flare (0x5CC720): its flipbook frame (= counter) at its position, its size through the shadow camera; returns the
-	// sequence player's next-frame word (h +0x28: < 0 = the flipbook ended)
 	static int16_t DrawFlare(const FlareNode *f)
 	{
 		TransformCameraByShadowRotation(f->pos, (uint16_t)f->scale, -((int32_t)f->scale >> 3));
@@ -374,10 +315,6 @@ namespace kamikaze181
 		FieldFree(0xB4);
 		return *(const int16_t *)(h + 0x28);
 	}
-	// ------------------------------------------------------------------
-	// Particle draws (one entry of the pool, with the task's draw header)
-	// ------------------------------------------------------------------
-	// sparks / smoke: flipbook frame at the particle, its size through the shadow camera
 	static void DrawSpriteParticle(uint8_t *h, const Particle *p)
 	{
 		*(int16_t *)(h + 4) = p->frame;
@@ -385,15 +322,13 @@ namespace kamikaze181
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
 	}
 
-	// ring: prim model spun about y, scaled, at the node's position; from counter fade_start the
-	// header fades (fade = (counter - fade_start) << 9)
 	static void DrawRing(const EffectNode *t, uint32_t model, int16_t fade_start, int32_t fade)
 	{
 		int16_t angles[4];
 		angles[0] = 0;
 		angles[1] = t->spin;
 		angles[2] = 0;
-		angles[3] = 0; // never written by the original (stack word)
+		angles[3] = 0;
 		Mat4x3 m = {};
 		ComposeZYXRotationMatrix(angles, &m);
 		m.t[0] = t->pos[0];
@@ -420,7 +355,6 @@ namespace kamikaze181
 		FieldFree(0x58);
 	}
 
-	// ring updates (pure)
 	static void RingUpdate(EffectNode *t)
 	{
 		const int16_t ss = t->scale_speed;
@@ -448,15 +382,11 @@ namespace ff8fx
 {
 namespace kamikaze181
 {
-	// ------------------------------------------------------------------
-	// Caster glow (0x5CB9B0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl CasterGlowTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
 		if (t->counter < 0xF)
 		{
-			// 30 fps layer: see mag181_kamikaze_held.inc
 			FX_HELD(held_note_glow(t);)
 			DrawGlow(Caster(), GlowLevel(t->counter));
 		}
@@ -464,13 +394,9 @@ namespace kamikaze181
 		t->counter++;
 		return t->counter > 0xF ? TASK_END : 0;
 	}
-	// ------------------------------------------------------------------
-	// Rings (0x5CC000 / 0x5CC160)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_ring(ORIG_Ring, t);)
 		DrawRing(t, MODEL_Ring, 8, shl32(t->counter - 8, 9));
 		if (DrawOnly()) return 0;
@@ -481,7 +407,6 @@ namespace kamikaze181
 	static uint32_t __cdecl Ring2Task(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_ring(ORIG_Ring2, t);)
 		DrawRing(t, MODEL_Ring2, 0xA, shl32(t->counter - 0xA, 9));
 		if (DrawOnly()) return 0;
@@ -489,7 +414,6 @@ namespace kamikaze181
 		return t->counter >= 0x12 ? TASK_END : 0;
 	}
 
-	// sprite particle header (0xB4 block): sequence, +0x24 = 0
 	static uint8_t *SpriteHeader(uint32_t seq)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
@@ -498,13 +422,9 @@ namespace kamikaze181
 		return h;
 	}
 
-	// ------------------------------------------------------------------
-	// Sparks (0x5CC2A0): particles of type 2
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_pool(ORIG_Sparks, t);)
 		uint8_t *h = SpriteHeader(SEQ_Spark);
 		int alive = 0;
@@ -561,13 +481,9 @@ namespace kamikaze181
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Smoke (0x5CC560): particles of type 4
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SmokeTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_pool(ORIG_Smoke, t);)
 		uint8_t *h = SpriteHeader(SEQ_Smoke);
 		int alive = 0;
@@ -603,16 +519,11 @@ namespace kamikaze181
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Flare (0x5CC720): one flipbook, drifting
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FlareTask(TaskNode *n)
 	{
 		FlareNode *f = (FlareNode *)n;
-		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_flare(f);)
 		const int16_t next = DrawFlare(f);
-		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_flare_end(next);)
 		if (DrawOnly()) return 0;
 		f->pos[2] = (int16_t)(f->pos[2] + f->vel_z);
@@ -621,9 +532,6 @@ namespace kamikaze181
 		f->counter++;
 		return next < 0 ? TASK_END : 0;
 	}
-	// ------------------------------------------------------------------
-	// Director (0x5CB610)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		if (DrawOnly()) return 0;
@@ -636,7 +544,6 @@ namespace kamikaze181
 		}
 		if (t->counter >= 4 && t->counter <= 5)
 		{
-			// +0x0E flares at the caster's effect point, flying horizontally away from the caster's origin
 			int16_t p[4];
 			GetEffectSpawnPosition(Caster(), 0xF0, 0xA00, p);
 			int32_t v[3];
@@ -708,13 +615,9 @@ namespace kamikaze181
 		t->counter++;
 		return t->counter > 0x32 ? TASK_END : 0;
 	}
-	// ------------------------------------------------------------------
-	// Root task (0x5CC7D0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
@@ -734,7 +637,6 @@ namespace kamikaze181
 		register_port(kamikaze181::ORIG_Sparks, (void *)kamikaze181::SparksTask, "K181 Sparks", 181);
 		register_port(kamikaze181::ORIG_Smoke, (void *)kamikaze181::SmokeTask, "K181 Smoke", 181);
 		register_port(kamikaze181::ORIG_Flare, (void *)kamikaze181::FlareTask, "K181 Flare", 181);
-		// 30 fps layer: see mag181_kamikaze_held.inc
 		FX_HELD(register_mag181_held();)
 	}
 }

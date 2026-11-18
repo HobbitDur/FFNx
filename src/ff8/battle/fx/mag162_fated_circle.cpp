@@ -13,62 +13,8 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// Effect 162: Fated Circle (Squall's Renzokuken finisher, MAG_162_FATED_CIRCLE). It follows Renzokuken (160) when the
-// action's word +4 is 0xFFFE and starts on its own.
-//
-// Structure (file loader 0x5F90D0 = the texture file named at 0xDA8D18 into 0x23D0CE0; setup MAG_162 0x5F90F0, not a
-// task: the texture base 0x23D0D84, the cast context 0x23D0250, the first target 0x23CE608, the caster slot 0x23D0798, the
-// master in its 2-node pool 0x23CE620 (queue 0x23CE640), the director in the main pool 0x23CF440 (100 x 0x24, queue
-// 0x23CF430), the trail length 0x23D0D74 = 0xAA, pools A / B free, the camera animation 0xDA1788, the TIM upload):
-//   MasterTask (0x5FD090) - packet arena parity (texture base, + 0x8000 on odd ticks; cursor 0x23D0D88), the main queue;
-//     ends with it.
-//   DirectorTask (0x5F91D0) - draw-only ticks: nothing when bit 0 of the update flags is set, else the logic still runs
-//     when no battle file load is pending (sub_508500 >= 0);
-//     tick 1: binds the module's animation set (com data 0xDA0100) to the caster (BS_BindEntityModelFromComData, out block
-//       0x23CEA20), its sequence 1 (animations 0..5 one after the other, then AC: no move of its own), sound 0xDA8C68;
-//     tick 2: the trail; tick 6: at the caster's default effect position (height and y swapped): the swipe, the dust ring
-//       (pool B type 1) and the shock ring; tick 0x12: 444 along the base direction from the base point: the glow, the
-//       shards (pool B type 2) and the orbit sparks (pool A type 1), kept in the director's node;
-//     tick 0x1F: the burst (pool B type 4) there; tick 0x28: the rain (pool B type 8) from the caster's effect bone 0xF0
-//       + his matrix x (0, 0, 0xA28);
-//     tick 0x39: sound 0xDA8C6C, the morph shell at the caster's default position (facing as him) and the dome, delayed
-//       0x16 ticks, at the targets' centre + (0, -1400, 3000);
-//     tick 0x47: the targets' centre - 800 z into the node; the stage captured into the texture area (CaptureStage) and
-//       battle file 0x219 loaded into the texture base + 0x10000;
-//     tick 0x5D: the swirl (pool B type 2 sprites) at the node, its flag 0x23D0D80 set; tick 0x6C: waits for the file
-//       (the counter does not move), then its TIM upload and the restore task in the master's queue; tick 0x6E: a screen
-//       fade task (0, 1, 10, 0xFF);
-//     tick 0x6F: the circle (custom render of model 0xDA2348, its vertices morphing from 0xDA2350 to 0xDA3770 over 0x18
-//       ticks: deltas by MorphDeltas 0x5FD030), the swirl's flag cleared, 8 pillars (custom per-face renderer) and 8 rings
-//       (models from the table 0xDA8C74), the embers (pool A type 1 sprites);
-//     tick 0x74: per target a spark cloud (pool B type 1 sprites) at its default position, scaled by its size;
-//     tick 0x96: the action results (ApplyActionResultToTargets); ticks 0xA2..0xAA: screen flash (0xAA - tick) << 8;
-//     after tick 0xAA: flash off; ends.
-//   TrailTask (0x5F99C0) - Renzokuken's gunblade trail for the length 0x23D0D74 (ring 0x23D0CE8, splines 0x23CF1C0 /
-//     0x23CF2C0, hit point 0x23CF3C0 = the tip spline's first point, direction 0x23CF408, base point 0x23CF418, base
-//     direction 0x23CF420); ends at length - 1.
-//   The other tasks are listed with their functions below.
-// Every task but the master / restore tests the draw-only flags (battle_to_update_flags 0x1D96A9C & 0x201).
-// ENTITY WRITES: the caster: BS_BindEntityModelFromComData and the AnimSeq chain start of sequence 1 (tick 1); nothing
-// else (no position, rotation, flag or tint). Squall's motion is his sequence: animations 0..5 of the bound set (their
-// own root motion), then AC (base model back, the next sequence chained). CAMERA: the camera animation 0xDA1788 started
-// by the setup (engine camera player); CaptureStage sets and puts back the GTE screen offset (OFX / OFY) around its stage
-// render; the rain reads the camera eye / look-at words 0xB8B7F0..0xB8B7FC.
-// THE NEVER-WRITTEN STACK WORD: the swirl's draw scales its matrix by (scale, scale, [entry esp - 0x28]): the third
-// component is what the task before it in the main queue left there (its last write to that stack word; the game's
-// executor 0x508420 calls every task from one esp). Modelled (g_slot28): the dome (DomeTask, drawing) and the shell leave
-// their own scale vector's third word (their scale w1C); the trail leaves the argument of the last call of its last quad
-// (0x23CF2C8 + 0xE8 when that quad was drawn, its work block + 0xC when it was clipped), or 1 (its weapon-bone call's bone)
-// when it drew no quad; every other task makes the model unknown (the swirl then reads the stack word itself). Read under
-// the game executor at the swirl's use: 0x2B95 / 0x5B37 (the dome's scale) on ticks 94 / 100, 0x23CF3B0 on tick 106. It
-// only reaches the GTE rotation's third column (the sprite's packets do not depend on it).
-// Module globals: 0x23CE588..0x23D0D8C (gathered trail points 0x23CE588 / 0x23CE5C8, target 0x23CE608, draw-area prim
-// 0x23CE610, master pool / queue 0x23CE620 / 0x23CE640, pool A 0x23CE650 (40 x 0x18), draw-offset prim 0x23CEA10, bind
-// block 0x23CEA20, pool B 0x23CEA40 (80 x 0x18), splines 0x23CF1C0 / 0x23CF2C0, hit point 0x23CF3C0, draw-env prim
-// 0x23CF3C8, hit direction 0x23CF408, base point / direction 0x23CF418 / 0x23CF420, main queue / pool 0x23CF430 /
-// 0x23CF440, context 0x23D0250, morph deltas 0x23D0258, caster slot 0x23D0798, morph vertices 0x23D07A0 (168 x 8),
-// texture file 0x23D0CE0, trail ring 0x23D0CE8, trail length 0x23D0D74, draw offset words 0x23D0D78, 0x23D0D7C and
-// 0x23CE61C (cleared by the setup, never read), swirl flag 0x23D0D80, texture base 0x23D0D84, packet cursor 0x23D0D88).
+
+// Effect 162: Fated Circle
 
 #include "mag_common.h"
 #include <intrin.h>
@@ -80,7 +26,6 @@ namespace circle162
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline int32_t &CasterSlot() { return var<int32_t>(0x23D0798); }
 	inline CastContext *&Context() { return var<CastContext *>(0x23D0250); }
 	inline uint32_t &TexBase() { return var<uint32_t>(0x23D0D84); }
@@ -89,8 +34,8 @@ namespace circle162
 	inline int32_t &SwirlFlag() { return var<int32_t>(0x23D0D80); }
 	inline TaskQueue *QMaster() { return (TaskQueue *)0x23CE640; }
 	inline TaskQueue *QMain() { return (TaskQueue *)0x23CF430; }
-	static const uint32_t POOL_A = 0x23CE650, POOL_A_END = 0x23CEA10;  // 40 x 0x18
-	static const uint32_t POOL_B = 0x23CEA40, POOL_B_END = 0x23CF1C0;  // 80 x 0x18
+	static const uint32_t POOL_A = 0x23CE650, POOL_A_END = 0x23CEA10;
+	static const uint32_t POOL_B = 0x23CEA40, POOL_B_END = 0x23CF1C0;
 	static const uint32_t BIND_OUT = 0x23CEA20;
 	static const uint32_t PTS_A = 0x23CE588, PTS_B = 0x23CE5C8;
 	static const uint32_t SPL_A = 0x23CF1C0, SPL_B = 0x23CF2C0;
@@ -105,27 +50,25 @@ namespace circle162
 		ORIG_Ring = 0x5FC480, ORIG_Ember = 0x5FC850, ORIG_Spark = 0x5FCB00, ORIG_Swirl = 0x5FCD60, ORIG_Restore = 0x5FCFF0,
 		ORIG_Master = 0x5FD090;
 
-	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xDA0100;
 	static const void *const SOUND_A = (const void *)0xDA8C68, *const SOUND_B = (const void *)0xDA8C6C;
 	static const uint32_t MODEL_SWIPE = 0xDA6700, MODEL_SHOCK = 0xDA4488, MODEL_GLOW = 0xDA3A58, MODEL_SHARD = 0xDA3E48,
 		MODEL_BURST = 0xDA4118, MODEL_RAIN = 0xDA4308, MODEL_SHELL = 0xDA7198, MODEL_CIRCLE = 0xDA2348;
 	static const uint32_t SEQ_DUST = 0xDA1D74, SEQ_ORBIT = 0xDA1F20, SEQ_EMBER = 0xDA19B4, SEQ_SPARK = 0xDA219C, SEQ_SWIRL = 0xDA1B60;
-	static const uint32_t SHELL_FROM = 0xDA71A0, SHELL_TO = 0xDA8728;  // 168 vertices (8 bytes) each
-	static const uint32_t CIRCLE_FROM = 0xDA2350, CIRCLE_TO = 0xDA3770; // 0x5D vertices each
-	static const uint32_t PILLAR_MODEL = 0xDA8C74, PILLAR_OFFX = 0xDA8C94, PILLAR_OFFZ = 0xDA8CB4; // 8 entries (4 bytes) each
+	static const uint32_t SHELL_FROM = 0xDA71A0, SHELL_TO = 0xDA8728;
+	static const uint32_t CIRCLE_FROM = 0xDA2350, CIRCLE_TO = 0xDA3770;
+	static const uint32_t PILLAR_MODEL = 0xDA8C74, PILLAR_OFFX = 0xDA8C94, PILLAR_OFFZ = 0xDA8CB4;
 	static const uint32_t ALT_VIEWPORT = 0xDA8D00;
-	static const int32_t TRAIL_LAST_QUAD_V3 = 0x23CF2C8 + 0xE8; // the trail's last quad: the argument of its GTE_LoadV0 call
+	static const int32_t TRAIL_LAST_QUAD_V3 = 0x23CF2C8 + 0xE8;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); } // NormalizeVectorToFixedPoint
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
 	inline void VectorNormalS16(int16_t *in, int16_t *out) { fn<void (__cdecl *)(int16_t *, int16_t *)>(0x56BDE0)(in, out); }
 	inline void GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { fn<void (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, frac, out); }
 	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }       // GTE_MatrixMultiply
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }       // Effect_SplineSetup
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); } // Effect_SplineEval
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
 	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
 	inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
@@ -140,107 +83,102 @@ namespace circle162
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }   // GTE_ReadOTZ
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteNCLIP() { fn<void (__cdecl *)()>(0x45EE10)(); }
 	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3C0)(dst); }
-	inline void GteSetRotMatrixC(const Mat4x3 *m) { fn<void (__cdecl *)(const Mat4x3 *)>(0x45DE00)(m); }   // GTE_SetRotMatrix
-	inline void GteSetTransVectorC(const Mat4x3 *m) { fn<void (__cdecl *)(const Mat4x3 *)>(0x45DEF0)(m); } // GTE_SetTransVector
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); } // BS_BindEntityModelFromComData
+	inline void GteSetRotMatrixC(const Mat4x3 *m) { fn<void (__cdecl *)(const Mat4x3 *)>(0x45DE00)(m); }
+	inline void GteSetTransVectorC(const Mat4x3 *m) { fn<void (__cdecl *)(const Mat4x3 *)>(0x45DEF0)(m); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline int32_t BattleFileLoadStatus() { return fn<int32_t (__cdecl *)()>(0x508500)(); }   // sub_508500: < 0 while a battle file load is pending
-	inline void BattleFileLoad(int32_t file, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(file, dst); } // BattleFile_CharacterLoad
-	inline void QueueTIMUpload(uint32_t file) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(file); }                     // Battle_QueueTIMUpload_GetEOF
-	inline void SetDrawEnv(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(prim, env); }   // SSIGPU_SetDrawEnv
-	inline void InsertPrimAltViewport(uint32_t ot, uint32_t viewport) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(ot, viewport); } // SSIGPU_InsertPrimAltViewport
-	inline void SetDrawArea(uint32_t prim, const void *rect) { fn<void (__cdecl *)(uint32_t, const void *)>(0x45C940)(prim, rect); }      // sub_45C940
-	inline void SetDrawOffset(uint32_t prim, const void *xy) { fn<void (__cdecl *)(uint32_t, const void *)>(0x45C9B0)(prim, xy); }        // sub_45C9B0
-	inline void GteReadScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }               // sub_56CD10: OFX / OFY >> 16
-	inline void GteSetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }                       // Call_Bs_ParseCamera
+	inline int32_t BattleFileLoadStatus() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
+	inline void BattleFileLoad(int32_t file, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(file, dst); }
+	inline void QueueTIMUpload(uint32_t file) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(file); }
+	inline void SetDrawEnv(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(prim, env); }
+	inline void InsertPrimAltViewport(uint32_t ot, uint32_t viewport) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(ot, viewport); }
+	inline void SetDrawArea(uint32_t prim, const void *rect) { fn<void (__cdecl *)(uint32_t, const void *)>(0x45C940)(prim, rect); }
+	inline void SetDrawOffset(uint32_t prim, const void *xy) { fn<void (__cdecl *)(uint32_t, const void *)>(0x45C9B0)(prim, xy); }
+	inline void GteReadScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
+	inline void GteSetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
 	inline uint32_t RenderGeometry(uint32_t model, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(model, h, ot, mode, cursor); }
-	inline void ComputeBonesWorldMatricesM(uint32_t anim_header, const Mat4x3 *root) { fn<void (__cdecl *)(uint32_t, const Mat4x3 *)>(0x5095B0)(anim_header, root); } // BS_ComputeBonesWorldMatrices
+	inline void ComputeBonesWorldMatricesM(uint32_t anim_header, const Mat4x3 *root) { fn<void (__cdecl *)(uint32_t, const Mat4x3 *)>(0x5095B0)(anim_header, root); }
 
-	// ------------------------------------------------------------------
-	// Node / record layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // master pool, 2 x 0x10 (0x23CE620): the master, then the restore task
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t done;      // +0x0E restore: set by Battle_RestoreDefaultEffectTexture's task
+		int16_t counter;
+		int16_t done;
 	};
-	struct Node24 // main pool (0x23CF440), 0x24 bytes
+	struct Node24
 	{
 		TaskNode hdr;
-		int16_t c;         // +0x0C counter
-		int16_t e;         // +0x0E delay (dome) / index (pillar, ring)
-		int16_t w10, w12, w14, w16; // +0x10 position (+0x16: pillar: y speed)
-		int16_t w18;       // +0x18 angle / pillar: z speed
-		int16_t w1A;       // +0x1A angle rate / delay (pillar, ring)
-		int16_t w1C;       // +0x1C scale / pillar: x angle
-		int16_t w1E;       // +0x1E scale rate / pillar: x angle rate
-		int16_t w20;       // +0x20 pillar: y angle
-		int16_t w22;       // +0x22 pillar: y angle rate
+		int16_t c;
+		int16_t e;
+		int16_t w10, w12, w14, w16;
+		int16_t w18;
+		int16_t w1A;
+		int16_t w1C;
+		int16_t w1E;
+		int16_t w20;
+		int16_t w22;
 	};
-	struct Part // pools A / B, 0x18 bytes
+	struct Part
 	{
-		uint32_t flags;    // type bits, 0 = free
-		int16_t life;      // +0x04
-		int16_t scale;     // +0x06
-		int16_t pos[3];    // +0x08 (orbit: the axis, unit)
-		int16_t w0E;       // +0x0E orbit: the angle
-		int16_t v[3];      // +0x10 velocity (orbit: radius, radius step; swirl: +0x14 the spin)
-		int16_t w16;       // +0x16 orbit / burst: the angle rate
+		uint32_t flags;
+		int16_t life;
+		int16_t scale;
+		int16_t pos[3];
+		int16_t w0E;
+		int16_t v[3];
+		int16_t w16;
 	};
-	struct RingEntry   // trail ring, 0x14 bytes
+	struct RingEntry
 	{
 		int32_t alive;
 		uint32_t base[2];
 		uint32_t tip[2];
 	};
-	struct TrailWork   // the trail's Field_Alloc block (0x40 bytes)
+	struct TrailWork
 	{
 		uint8_t pad00[8];
-		int32_t otz;       // +0x08
-		uint32_t flag;     // +0x0C GTE FLAG
-		uint32_t col0;     // +0x10
-		uint32_t col1;     // +0x14
+		int32_t otz;
+		uint32_t flag;
+		uint32_t col0;
+		uint32_t col1;
 		uint32_t pad18;
-		uint32_t base_col; // +0x1C
-		int16_t base[4];   // +0x20
-		int16_t tip[4];    // +0x28
-		int32_t dir[4];    // +0x30
+		uint32_t base_col;
+		int16_t base[4];
+		int16_t tip[4];
+		int32_t dir[4];
 	};
-	// header of the custom renderers (0xCC bytes: CircleRender 0x5FB980 / PillarRender 0x5FBEB0)
 	struct MeshHeader
 	{
-		uint32_t model;    // +0x00
-		uint32_t verts;    // +0x04 vertex list (8 bytes each; default model + 8)
-		uint8_t far[3];    // +0x08 far colour
+		uint32_t model;
+		uint32_t verts;
+		uint8_t far[3];
 		uint8_t pad0B;
-		int32_t fade;      // +0x0C DPCS / DPCT IR0
-		int32_t scroll;    // +0x10 (unused here)
-		int32_t vscroll;   // +0x14 circle: v scroll (counter * 10)
-		int16_t tpage[4];  // +0x18 circle: page x / y, texture size w / h (the texpage / clut word)
-		uint32_t mode;     // +0x20 bits: 1 / 2 semi-transparency of the flat / gouraud lists, 0x20 double sided, 0x40 / 0x80
-		                   //       fade of the flat / gouraud lists, 0x2000 own vertex list
-		uint32_t faces;    // +0x24 face list cursor
-		int32_t mac0;      // +0x28
+		int32_t fade;
+		int32_t scroll;
+		int32_t vscroll;
+		int16_t tpage[4];
+		uint32_t mode;
+		uint32_t faces;
+		int32_t mac0;
 		uint32_t pad2C;
-		int32_t otz;       // +0x30
-		uint32_t flag;     // +0x34
-		int16_t v0[4], v1[4], v2[4]; // +0x38 pillar: the face's vertices less the offset
+		int32_t otz;
+		uint32_t flag;
+		int16_t v0[4], v1[4], v2[4];
 		int16_t pad50[4];
-		int16_t off[3];    // +0x58 pillar: the model's offset (x, -, z)
+		int16_t off[3];
 		int16_t pad5E;
-		int16_t ang[4];    // +0x60 pillar: angles (x, y, counter * 2)
+		int16_t ang[4];
 		int16_t pad68[2];
-		int16_t win[4];    // +0x6C circle: the second texture window (0, 0, 0xFF, 0xFF)
-		int32_t uv[3];     // +0x74 circle: the scrolled v of the face
+		int16_t win[4];
+		int32_t uv[3];
 		uint32_t pad80[2];
-		int32_t vmod;      // +0x88 circle: v scroll modulo the texture height
-		Mat4x3 cam;        // +0x8C pillar: camera x the pillar's matrix
-		Mat4x3 face;       // +0xAC pillar: the face's matrix
+		int32_t vmod;
+		Mat4x3 cam;
+		Mat4x3 face;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node24) == 0x24 && sizeof(Part) == 0x18, "Fated Circle nodes");
@@ -249,7 +187,6 @@ namespace circle162
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), fn); }
 
-	// first free entry (flags 0) of a pool, or -1 (none / index >= max)
 	static int32_t FreeSlot(uint32_t pool, uint32_t end, int32_t max)
 	{
 		int32_t i = 0;
@@ -262,7 +199,6 @@ namespace circle162
 	}
 	inline Part *PartAt(uint32_t pool, int32_t i) { return (Part *)(pool + 0x18 * i); }
 
-	// the word the task before the swirl in the main queue leaves at [entry esp - 0x28] (see the file comment)
 	static uint32_t g_slot28 = 0;
 	static bool g_slot28_known = false;
 }
@@ -276,9 +212,6 @@ namespace ff8fx
 {
 namespace circle162
 {
-	// ------------------------------------------------------------------
-	// Weapon bone (0x5F9EF0 / 0x5F9E70: Renzokuken's 0x5FFF60 / 0x5FFEE0)
-	// ------------------------------------------------------------------
 	static void BoneFrame(uint8_t *anim_header, int32_t bone, int32_t *dir, int16_t *pos)
 	{
 		const uint8_t *sk = *(uint8_t **)*(uint8_t **)(anim_header + 4);
@@ -309,7 +242,6 @@ namespace circle162
 		pos[2] = (int16_t)(pos[2] + (int16_t)m.t[2]);
 	}
 
-	// 0x5FD030: per-vertex steps from one vertex list to another (x, y, z each / steps) into 0x23D0258
 	static void MorphDeltas(const int16_t *from, const int16_t *to, int32_t n, int32_t steps)
 	{
 		int16_t *d = (int16_t *)MORPH_DELTA;
@@ -323,9 +255,6 @@ namespace circle162
 
 	static void CaptureStage(int16_t *pos);
 
-	// ------------------------------------------------------------------
-	// Director (0x5F91D0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		g_slot28_known = false;
@@ -347,7 +276,6 @@ namespace circle162
 		}
 		if (n->c == 6)
 		{
-			// the caster's default effect position with its height and y swapped: x, height, z, y
 			int16_t q[4];
 			GetDefaultEffectPosition(Caster(), q);
 			const int16_t h = q[3];
@@ -371,7 +299,6 @@ namespace circle162
 		}
 		if (n->c == 0x12)
 		{
-			// 444 along the base direction from the base point (its 4th word kept)
 			int16_t q[4];
 			ff8fx::copy<(8)>(q, (const void *)BASE_POS);
 			const int32_t *d = (const int32_t *)BASE_DIR;
@@ -400,7 +327,6 @@ namespace circle162
 		}
 		if (n->c == 0x28)
 		{
-			// the rain: the caster's effect bone 0xF0 + his matrix x (0, 0, 0xA28)
 			Node24 *t = AddMain(ORIG_Rain);
 			t->c = 0;
 			GetEffectSpawnPosition(Caster(), 0xF0, 0, &t->w10);
@@ -449,7 +375,7 @@ namespace circle162
 		if (n->c == 0x6E) ScreenFadeTask(0, 1, 0xA, 0xFF);
 		if (n->c == 0x6C)
 		{
-			if (BattleFileLoadStatus() < 0) return 0;   // waits for the file (the counter does not move)
+			if (BattleFileLoadStatus() < 0) return 0;
 			QueueTIMUpload(TexBase() + 0x10000);
 			((RootNode *)AddTaskToQueue(QMaster(), ORIG_Restore))->counter = 0;
 		}
@@ -498,7 +424,6 @@ namespace circle162
 		}
 		if (n->c == 0x74)
 		{
-			// per target: a spark cloud at its default position, its scale by the target's size
 			ActionData *a = Context()->actions;
 			for (int32_t i = 0; i < a->target_count; i++)
 			{
@@ -519,9 +444,6 @@ namespace circle162
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Trail (0x5F99C0: Renzokuken's trail for the length 0x23D0D74)
-	// ------------------------------------------------------------------
 	static void TrailPoints(TrailWork *w)
 	{
 		WeaponBone(Caster(), 1, w->dir, w->base);
@@ -577,7 +499,6 @@ namespace circle162
 		Normalize(b, b);
 	}
 
-	// 30 quad pairs between the two splines (as Renzokuken's trail); returns true when the last quad was clipped
 	static bool TrailDraw(const uint8_t *sa, const uint8_t *sb, TrailWork *w)
 	{
 		GteSetRotMatrix(&Camera());
@@ -642,14 +563,12 @@ namespace circle162
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c >= Length() - 7 ? Length() - c : 7;
 		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
-		g_slot28 = 1; // the last write of the original to [entry esp - 0x28]: its weapon-bone call's bone argument
+		g_slot28 = 1;
 		if (cnt > 1)
 		{
 			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
 			TrailHitPoint((const uint8_t *)SPL_A, (const uint8_t *)SPL_B);
-			// 30 fps layer: see mag162_fated_circle_held.inc
 			FX_HELD(held_note_trail(n);)
-			// (then: the argument of the last quad's GTE_ReadFLAG call when it was clipped, of its GTE_LoadV0 call when drawn)
 			g_slot28 = TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w) ? (uint32_t)&w->flag : (uint32_t)TRAIL_LAST_QUAD_V3;
 		}
 		g_slot28_known = true;
@@ -659,10 +578,6 @@ namespace circle162
 		return n->c >= Length() - 1 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Swipe (0x5F9F70, model 0xDA6700): turned about y, its y scale from the caster's entity +0x3C, 13 ticks
-	// ------------------------------------------------------------------
-	// -(v) / 2000 as the original's multiply by 0xEF9DB22D (shift 39, rounded toward zero)
 	static inline int32_t DivNeg2000(int32_t v)
 	{
 		const int32_t q = (int32_t)(((int64_t)v * (int32_t)0xEF9DB22D) >> 39);
@@ -707,7 +622,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Swipe, n);)
 		SwipeDraw(n, n->w18, n->c, mul32(n->c - 3, 409));
 		if (DrawOnly()) return 0;
@@ -718,9 +632,6 @@ namespace circle162
 		return n->c >= 0xD ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Shock ring (0x5FA340, model 0xDA4488): flat (y scale 0x1000), growing and slowing, 12 ticks
-	// ------------------------------------------------------------------
 	static void ShockDraw(const Node24 *n, int16_t s, int32_t c, int32_t fade)
 	{
 		int16_t ang[3];
@@ -759,7 +670,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Shock, n);)
 		ShockDraw(n, n->w1C, n->c, shl32(n->c - 4, 9));
 		if (DrawOnly()) return 0;
@@ -770,10 +680,6 @@ namespace circle162
 		return n->c >= 0xC ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Glow (0x5FA480): a camera-facing frame at its point (TransformCameraByShadowRotation, scale w1C) and model 0xDA3A58
-	// in it, growing faster and faster, fading from tick 0x1C, 0x24 ticks
-	// ------------------------------------------------------------------
 	static void GlowDraw(const Node24 *n, int16_t s, int32_t c, int32_t fade)
 	{
 		TransformCameraByShadowRotation(&n->w10, s, -0x100);
@@ -794,7 +700,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Glow, n);)
 		GlowDraw(n, n->w1C, n->c, shl32(n->c - 0x1C, 9));
 		if (DrawOnly()) return 0;
@@ -805,10 +710,6 @@ namespace circle162
 		return n->c >= 0x24 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Particle pools (every particle task draws its pool first, then updates it, then spawns)
-	// ------------------------------------------------------------------
-	// a camera-facing sprite (TransformCameraByShadowRotation at the particle, its scale)
 	static void ShadowSprite(uint8_t *h, const int16_t *pos, int16_t scale, int16_t life)
 	{
 		*(int16_t *)(h + 4) = life;
@@ -816,13 +717,10 @@ namespace circle162
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// DustTask (0x5FA0E0, pool B type 1, sequence 0xDA1D74): the dust ring of tick 6, sliding out and slowing; 10 per tick
-	// on its counters 1 and 2 around its point, away from it; ends from counter 0x10 when none is left
 	static uint32_t __cdecl DustTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Dust, n);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_DUST;
@@ -877,12 +775,9 @@ namespace circle162
 		return n->c >= 0x10 && count == 0 ? TASK_END : 0;
 	}
 
-	// ShardTask (0x5FA540, pool B type 2, model 0xDA3E48): turned along its velocity, scaled (0x400, scale, 0x400), flying;
-	// the header's mode keeps 0xC0 once a shard reached life 4 (the same header for every shard); 3 per tick on counters
-	// 0..0xE from its point; 8 ticks each; ends from counter 8 when none is left
-	struct ShardWork // ShardTask's stack locals the draw uses
+	struct ShardWork
 	{
-		int32_t ref[3];    // (0, -0x1000, 0)
+		int32_t ref[3];
 		int32_t v[3];
 		int32_t axis[3];
 		Mat4x3 m1, m2;
@@ -925,7 +820,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Shard, n);)
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)h = MODEL_SHARD;
@@ -988,8 +882,6 @@ namespace circle162
 		return n->c >= 8 && count == 0 ? TASK_END : 0;
 	}
 
-	// OrbitTask (0x5FA8F0, pool A type 1, sequence 0xDA1F20): sparks on circles about the point (radius along z turned by
-	// the angle about its axis), closing in; 6 per tick on counters 0..4; ends at counter 0x17 (every type-1 spark freed)
 	static void OrbitSprite(uint8_t *h, const Node24 *n, const Part *p, int16_t angle, int16_t radius)
 	{
 		*(int16_t *)(h + 4) = p->life;
@@ -1015,7 +907,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Orbit, n);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_ORBIT;
@@ -1065,11 +956,9 @@ namespace circle162
 		return TASK_END;
 	}
 
-	// BurstTask (0x5FABD0, pool B type 4, model 0xDA4118): at the point, turned onto the shard's direction then about the
-	// swapped axis (z, y, x) by its spin; growing; 10 per tick on counters 0..1; 8 ticks; ends from 8 when none is left
 	struct BurstWork
 	{
-		int32_t ref[3];    // (0, -0x1000, 0)
+		int32_t ref[3];
 		int32_t v[3];
 		int32_t axis[3];
 		Mat4x3 m1, m2;
@@ -1117,7 +1006,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Burst, n);)
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)h = MODEL_BURST;
@@ -1170,17 +1058,14 @@ namespace circle162
 		return n->c >= 8 && count == 0 ? TASK_END : 0;
 	}
 
-	// RainTask (0x5FAF50, pool B type 8, model 0xDA4308): 800 toward the camera's look direction from the particle, turned
-	// from (-0x1000, 0, 0) onto its velocity, scaled (scale, 0x580, 0x580), speeding up; 8 per tick on counters 0..10
-	// around the point + the caster's matrix x (0, 0, -2400), falling toward the point; 3 ticks; ends from 3 when none left
 	struct RainWork
 	{
-		int32_t ref[3];    // (-0x1000, 0, 0)
-		int32_t look[3];   // the camera's unit look direction
+		int32_t ref[3];
+		int32_t look[3];
 		int32_t v[3];
 		int32_t axis[3];
 		Mat4x3 m1, m2;
-		int32_t sv[3];     // (scale, 0x580, 0x580)
+		int32_t sv[3];
 	};
 
 	static void RainDraw(RainWork *w, uint8_t *h, const Part *p, const int16_t *pos, int32_t fade)
@@ -1225,7 +1110,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Rain, n);)
 		uint8_t *h = AllocHeader(0x58);
 		RainWork w;
@@ -1299,13 +1183,10 @@ namespace circle162
 		return n->c >= 3 && count == 0 ? TASK_END : 0;
 	}
 
-	// EmberTask (0x5FC850, pool A type 1, sequence 0xDA19B4): 2 per tick on counters 0..0x16 around the point, flying out
-	// and slowing (z slower); 16 ticks each; ends from counter 0x10 when none is left
 	static uint32_t __cdecl EmberTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Ember, n);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_EMBER;
@@ -1362,13 +1243,10 @@ namespace circle162
 		return n->c >= 0x10 && count == 0 ? TASK_END : 0;
 	}
 
-	// SparkTask (0x5FCB00, pool B type 1, sequence 0xDA219C): 5 per tick on counters 0..6 around the point (a target's
-	// default position), flying out; the sprite shrinking; ends from counter 0x10 when none is left
 	static uint32_t __cdecl SparkTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_pool(ORIG_Spark, n);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_SPARK;
@@ -1420,10 +1298,6 @@ namespace circle162
 		return n->c >= 0x10 && count == 0 ? TASK_END : 0;
 	}
 
-	// SwirlTask (0x5FCD60, pool B type 2, sequence 0xDA1B60): sprites turned (0x400, 0, spin) at their point, scaled
-	// (scale, scale, the never-written stack word), life counting down by 2 from 0x13; spawned in a column under the point
-	// (c / 7 + 2 per tick on counters 0..12, spread growing with the counter); the point sinks 0x244 a tick; ends when the
-	// director clears 0x23D0D80
 	static void SwirlSprite(uint8_t *h, const Part *p, int16_t life, int32_t sz)
 	{
 		*(int16_t *)(h + 4) = life;
@@ -1449,7 +1323,6 @@ namespace circle162
 
 	static uint32_t SwirlBody(Node24 *n, uint32_t residue)
 	{
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_swirl(n, residue);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_SWIRL;
@@ -1493,17 +1366,10 @@ namespace circle162
 
 	static uint32_t __cdecl SwirlTask(TaskNode *tn)
 	{
-		// the original reads [entry esp - 0x28] as its scale vector's third word, never written by itself: what the task
-		// before it in the queue left there (modelled by that task's port: g_slot28); the stack word itself when not known
 		const uint32_t stack_word = *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x28);
 		return SwirlBody((Node24 *)tn, g_slot28_known ? g_slot28 : stack_word);
 	}
 
-	// ------------------------------------------------------------------
-	// Morph shell (0x5FB3F0, model 0xDA7198): turned (0x1F4, the caster's facing, 0) at the caster's default position,
-	// growing (w1E >> 3 a tick) until counter 8, fading in (8 ticks), then its vertices morphing from 0xDA71A0 toward
-	// 0xDA8728 by sin((counter - 8) * 56) into 0x23D07A0 and fading out from 0xC; 0x12 ticks
-	// ------------------------------------------------------------------
 	static void ShellMatrix(const Node24 *n, int16_t yaw, int16_t pitch, int16_t s)
 	{
 		int16_t ang[3];
@@ -1525,7 +1391,6 @@ namespace circle162
 		GteSetTransVector(&m);
 	}
 
-	// the shell's vertices at the morph angle (168 x 8 bytes; the 4th word kept)
 	static void ShellMorph(int16_t *dst, int32_t angle)
 	{
 		const int32_t s = ComputeSin(angle);
@@ -1538,7 +1403,6 @@ namespace circle162
 		}
 	}
 
-	// fade: (8 - c) << 9 before 8, 682 * (c - 0xC) from 0xC; vtx: where the morphed vertices go (counter 8 on)
 	static void ShellDraw(const Node24 *n, int16_t s, int32_t c, int32_t fade, int32_t angle, int16_t *vtx)
 	{
 		ShellMatrix(n, n->w18, 0x1F4, s);
@@ -1568,11 +1432,10 @@ namespace circle162
 	static uint32_t __cdecl ShellTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Shell, n);)
 		const int32_t c = n->c;
 		ShellDraw(n, n->w1C, c, ShellFade(c), mul32(c - 8, 56), (int16_t *)MORPH_VTX);
-		g_slot28 = (uint32_t)(int32_t)n->w1C; // its scale vector's third word ([entry esp - 0x28])
+		g_slot28 = (uint32_t)(int32_t)n->w1C;
 		g_slot28_known = true;
 		if (DrawOnly()) return 0;
 		if (n->c < 8) n->w1C = (int16_t)(n->w1C + (int16_t)(n->w1E >> 3));
@@ -1580,10 +1443,6 @@ namespace circle162
 		return n->c >= 0x12 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Dome (0x5FB630, model 0xDA7198 with the morph target 0xDA8728 as its vertices): after its delay, turned (0x29, its
-	// angle, 0) at the targets' centre + (0, -1400, 3000), growing faster and faster, fading from 0xE; 0x16 ticks
-	// ------------------------------------------------------------------
 	static void DomeDraw(const Node24 *n, int16_t s, int32_t c, int32_t fade)
 	{
 		ShellMatrix(n, n->w18, 0x29, s);
@@ -1608,15 +1467,13 @@ namespace circle162
 		Node24 *n = (Node24 *)tn;
 		if (n->e > 0)
 		{
-			// (the delayed ticks write nothing at [entry esp - 0x28]: the word stays the task before's)
 			if (DrawOnly()) return 0;
 			n->e--;
 			return 0;
 		}
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Dome, n);)
 		DomeDraw(n, n->w1C, n->c, shl32(n->c - 0xE, 9));
-		g_slot28 = (uint32_t)(int32_t)n->w1C; // its scale vector's third word ([entry esp - 0x28])
+		g_slot28 = (uint32_t)(int32_t)n->w1C;
 		g_slot28_known = true;
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
@@ -1626,13 +1483,9 @@ namespace circle162
 		return n->c >= 0x16 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Custom face-list renderers (MeshHeader)
-	// ------------------------------------------------------------------
 	static inline uint32_t &P32(uint8_t *p, int o) { return *(uint32_t *)(p + o); }
 	static inline uint16_t U16(const uint8_t *p, int o) { return *(const uint16_t *)(p + o); }
 
-	// GP0 0xE2 texture window word from (offset x, offset y, mask w, mask h) as the renderers build it
 	static uint32_t TexWindow(uint8_t ox, uint8_t oy, uint16_t w, uint16_t hgt)
 	{
 		uint32_t v = ((uint32_t)oy & 0xF8) | 0xFFFE2000u;
@@ -1645,7 +1498,6 @@ namespace circle162
 		return v;
 	}
 
-	// screen clip of a triangle's three xy words: true when all three are off one side
 	static bool ClipOut(const uint8_t *xy0, const uint8_t *xy1, const uint8_t *xy2)
 	{
 		uint32_t f = U16(xy0, 0) > 0xA00 ? 1 : 0;
@@ -1657,7 +1509,6 @@ namespace circle162
 		return (f & 7) == 7 || (f & 0x70) == 0x70;
 	}
 
-	// 0x5FBA00: the circle's gouraud textured triangles (0x1C-byte faces) with the v scroll and the texture windows
 	static uint32_t CircleFaces(MeshHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *faces = (uint8_t *)h->faces;
@@ -1733,7 +1584,6 @@ namespace circle162
 		return (uint32_t)pk;
 	}
 
-	// 0x5FB980
 	static uint32_t CircleRender(MeshHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		if (!(h->mode & 0x2000)) h->verts = h->model + 8;
@@ -1749,11 +1599,6 @@ namespace circle162
 		return CircleFaces(h, ot, shift, cursor);
 	}
 
-	// ------------------------------------------------------------------
-	// Circle (0x5FB7A0, model 0xDA2348, custom renderer): turned 0x800 about y at the point, growing and slowing, its
-	// texture scrolled by 10 v a tick (mod 0x80), its vertices morphing (counter 0x10..0x27: 0xDA2350 + deltas x (counter
-	// - 0x10) into 0x23D07A0), fading from 0x20; 0x28 ticks
-	// ------------------------------------------------------------------
 	static void CircleMorph(int16_t *dst, int32_t k)
 	{
 		const int16_t *d = (const int16_t *)MORPH_DELTA, *from = (const int16_t *)CIRCLE_FROM;
@@ -1765,7 +1610,6 @@ namespace circle162
 		}
 	}
 
-	// vtx: the morphed vertices (counter 0x10 on): nullptr = computed into 0x23D07A0 as the original
 	static void CircleDraw(const Node24 *n, int16_t s, int32_t c, int32_t vscroll, int32_t fade, const int16_t *vtx)
 	{
 		int16_t ang[3];
@@ -1819,7 +1663,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Circle, n);)
 		const int32_t c = n->c;
 		CircleDraw(n, n->w1C, c, mul32(c, 10), shl32(c - 0x20, 9), nullptr);
@@ -1831,12 +1674,6 @@ namespace circle162
 		return n->c >= 0x28 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Pillars (0x5FBD00: one of the 8 models of the table 0xDA8C74 by its index, custom per-face renderer 0x5FBEB0): each
-	// face turned about the model's offset (0xDA8C94 x / 0xDA8CB4 z) by (x angle, y angle, counter * 2); rising and
-	// slowing, sliding along z, spinning faster; after a delay; 0x1E ticks
-	// ------------------------------------------------------------------
-	// the face's vertices less the model's offset, turned about it by the angles, through the camera x pillar matrix
 	static void PillarFace(MeshHeader *h, const uint8_t *verts, const uint8_t *face)
 	{
 		ff8fx::copy<(8)>(h->v0, verts + 4 * U16(face, 4));
@@ -1861,7 +1698,6 @@ namespace circle162
 		GteRTPT();
 	}
 
-	// 0x5FBF40: flat textured triangles (0x14-byte faces)
 	static uint32_t PillarFlat(MeshHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint8_t *verts = (const uint8_t *)h->verts;
@@ -1904,7 +1740,6 @@ namespace circle162
 		return (uint32_t)pk;
 	}
 
-	// 0x5FC1E0: gouraud textured triangles (0x1C-byte faces)
 	static uint32_t PillarGouraud(MeshHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -1952,7 +1787,6 @@ namespace circle162
 		return (uint32_t)pk;
 	}
 
-	// 0x5FBEB0
 	static uint32_t PillarRender(MeshHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		h->verts = h->model + 8;
@@ -1967,7 +1801,6 @@ namespace circle162
 		return cursor;
 	}
 
-	// ang2: the z angle (counter * 2)
 	static void PillarDraw(const Node24 *n, int16_t ang2)
 	{
 		int16_t ang[3];
@@ -2009,7 +1842,6 @@ namespace circle162
 			n->w1A--;
 			return 0;
 		}
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Pillar, n);)
 		PillarDraw(n, (int16_t)(n->c << 1));
 		if (DrawOnly()) return 0;
@@ -2029,10 +1861,6 @@ namespace circle162
 		return n->c >= 0x1E ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Rings (0x5FC480): the pillar's model flattened (y scale 0) at height 0x29 under it, mode 0xC0 fade 0xC00, fading out
-	// from 0xC ((0x14 - counter) * 384), in the OT bucket +0x4068 (depth shift 0xD); after the pillar's delay; 0x15 ticks
-	// ------------------------------------------------------------------
 	static void RingDraw(const Node24 *n, int32_t c, int32_t fade)
 	{
 		int16_t ang[3];
@@ -2074,7 +1902,6 @@ namespace circle162
 			n->w1A--;
 			return 0;
 		}
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_node(ORIG_Ring, n);)
 		RingDraw(n, n->c, mul32(0x14 - n->c, 384));
 		if (DrawOnly()) return 0;
@@ -2082,12 +1909,6 @@ namespace circle162
 		return n->c > 0x14 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// CaptureStage (0x5FC5E0): the stage (battle model 0x1D989C0) drawn from above into the texture area (0x200, 0x100,
-	// 0x80 x 0x100): draw env 0x23CF3C8 (the other buffer's), the GTE screen offset set to the area's centre and put back,
-	// the area's draw area / draw offset prims and the alternative viewport 0xDA8D00
-	// ------------------------------------------------------------------
-	// x / 39 and x / 18 as the original's multiplies (0xD20D20D3 + x, shift 5; 0x38E38E39, shift 2; rounded toward zero)
 	static inline int32_t Div39(int32_t x)
 	{
 		int32_t q = (int32_t)(((int64_t)x * (int32_t)0xD20D20D3) >> 32) + x;
@@ -2155,10 +1976,6 @@ namespace circle162
 		InsertPrimAutoDepth(RenderOT(), (void *)PRIM_OFFSET);
 	}
 
-	// ------------------------------------------------------------------
-	// Restore (0x5FCFF0): Battle_RestoreDefaultEffectTexture of the texture base + 0x10000 on its tick 2; ends when it
-	// reports done. Master (0x5FD090): packet arena parity (+ 0x8000 on odd ticks), the main queue; ends with it.
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RestoreTask(TaskNode *tn)
 	{
 		RootNode *r = (RootNode *)tn;
@@ -2176,7 +1993,6 @@ namespace circle162
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(held_note_master();)
 		const int alive = ExecuteTaskQueue(QMain());
 		r->counter++;
@@ -2206,7 +2022,6 @@ namespace circle162
 		register_port(circle162::ORIG_Ember, (void *)circle162::EmberTask, "162 Ember", 162);
 		register_port(circle162::ORIG_Spark, (void *)circle162::SparkTask, "162 Spark", 162);
 		register_port(circle162::ORIG_Swirl, (void *)circle162::SwirlTask, "162 Swirl", 162);
-		// 30 fps layer: see mag162_fated_circle_held.inc
 		FX_HELD(register_mag162_held();)
 	}
 }

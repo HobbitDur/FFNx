@@ -14,52 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 176: Sand Storm (enemy attack 80 of kernel.bin, used by Adamantoise c0m046; MAG_176_*).
-// Not a copy of effect 155 (Fastitocalon's Sand Storm): its funnels are Tornado's (146) ring funnel
-// (0x617460 / 0x617720 shapes with 8 instead of 16 vertices per ring and their own parameters).
-//
-// Structure (setup MAG_176_SAND_STORM_Init 0x5D00F0, file loader 0x5D00D0 = the texture file named at
-// 0xD45178; code 0x5D00D0..0x5D1AB0). The setup keeps the packet arena base (Magic_TextureOFF_ToEAX1,
-// 0x237456C), the cast context, the caster's slot and the first target's slot, builds the root queue
-// 0x2368598 (pool 0x2368588, 1 x 0x10) with the root task and the effect queue 0x23733E8 (pool
-// 0x23733F8, 100 x 0x24) with the director, clears the sand pool, starts camera animation 0xD44EB0
-// and queues the TIM.
-//   Root (0x5D1A60) - parity 0x2374568 = counter & 1 picks the packet arena half (base / base +
-//     0xC000, cursor 0x2374570) and the funnel packet copy, runs the effect queue, ends when it is
-//     empty.
-//   Director (0x5D01B0) - tick 0: the caster's default effect position (0x2374558, its y and w words
-//     swapped, unused), the targets' centre (0x2374298), both funnels reset (0x5D0550); tick 12: the
-//     two funnels (bones 0x15 / 0x16 of the caster, mirrored sway) and the two sand emitters; tick
-//     14: the wind sound; tick 57: one lift task per target of action 0 (random delay 0..5 ticks,
-//     drawn towards the farther funnel when the nearer is funnel A); ends after 120.
-//   Funnel init (0x5D0550) - the funnel's 512 POLY_FT4 packets (16 rings x 8 quads x 2 parity
-//     copies: two texture pages, v from the ring) and its 17 rings (0x14 bytes: x, y, z, -, tilt
-//     angles x / y / z, -, radius) stacked 6.25 apart, radius 300; the wander point cleared.
-//   Funnel (0x5D0740) - parameters from five counter phases (grow 0..25, rise 26..45, pulse 46..55,
-//     hold 56..71, widen 72..87); stands at its bone position until 25, then walks to the targets'
-//     centre over 38 ticks with a sway through the caster's matrix; publishes its base (x, 0, z,
-//     radius) for the sand and the lifts (A 0x23685A8, B 0x23685B0); updates the rings (0x5D0F30,
-//     also on draw-only ticks) and draws them (0x5D0C80) at spin +-100 per tick, fading in over 16
-//     and out over the last 8 ticks; ends at 88.
-//   Rings (0x5D0F30) - rings 16..1 take the previous ring's tilt with a random jitter (-64..63),
-//     ring 0 the wander offset, which moves along random-walk angles; each ring is placed by its
-//     tilt (sway vector), height and radius (sin(sin) wave).
-//   Funnel draw (0x5D0C80) - 8 vertices per ring (+0x40 twist per ring), quad j of ring r between
-//     rings r and r - 1 into packet 32 (r - 1) + 2 j + parity, colour = fade.
-//   Sand (0x5D11F0) - two emitters (mask 1 = funnel A, 2 = funnel B) of sprites 0xD44FA0 in the
-//     shared pool 0x23685B8 (150 x 0x18) thrown outwards around the funnel base and rising (1..3
-//     per tick over ticks 0..80), sliding and slowing down.
-//   Lift (0x5D14B0) - one per target: saves its entity (flags, rotation, position: 0x2374208, 7 x
-//     0x14), spins it up into the funnel (entity rotation / position written directly), holds it,
-//     drops it at 44, restores the entity at 52 and starts the landing dust (+ sound).
-//   Landing dust (0x5D1820) - 6 sprites per tick (ticks 0..2, mask 0x100 << target index) sliding
-//     outwards from the landing point; tick 2: the target's damage.
-// Every task but the root tests battle_to_update_flags (0x1D96A9C) & 0x201: the funnels still
-// update their rings and draw, the sand draws, the lifts write the entity of their phase (from
-// tick 44: the drop again), nothing advances, the director does nothing.
-// Module globals: 0x2368580..0x2374574 (selectors, queues, bases, sand pool, funnel packets, rings,
-// wander points, entity saves, cast context, arena base / parity / cursor); exe data written: the
-// funnel matrix translation 0xD4516C..0xD45177.
+// Effect 176: Sand Storm
 
 #include "mag_common.h"
 
@@ -70,9 +25,6 @@ namespace sandstorm176
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// raw memory access (layouts follow the listings offset by offset)
-	// ------------------------------------------------------------------
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline int16_t &S16(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
@@ -80,42 +32,36 @@ namespace sandstorm176
 	inline int32_t &S32(uint32_t p, int32_t o) { return AT<int32_t>(p, o); }
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
-	// ------------------------------------------------------------------
-	// module globals
-	// ------------------------------------------------------------------
-	inline uint32_t &RingSel() { return var<uint32_t>(0x2368580); }      // rings of the funnel being updated / drawn
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2368584); }   // first target's slot (setup, unused)
-	inline uint32_t &PacketSel() { return var<uint32_t>(0x2374560); }    // packets of the funnel being drawn
-	inline uint32_t &HeadSel() { return var<uint32_t>(0x2374564); }      // wander point of the funnel being updated
+	inline uint32_t &RingSel() { return var<uint32_t>(0x2368580); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(0x2368584); }
+	inline uint32_t &PacketSel() { return var<uint32_t>(0x2374560); }
+	inline uint32_t &HeadSel() { return var<uint32_t>(0x2374564); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x237454C); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x2374550); }
 	inline uint32_t &TexFile() { return var<uint32_t>(0x2374554); }
-	inline uint32_t &Parity() { return var<uint32_t>(0x2374568); }       // root counter & 1
-	inline uint32_t &ArenaBase() { return var<uint32_t>(0x237456C); }    // Magic_TextureOFF_ToEAX1 (setup)
+	inline uint32_t &Parity() { return var<uint32_t>(0x2374568); }
+	inline uint32_t &ArenaBase() { return var<uint32_t>(0x237456C); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2374570); }
 	static const uint32_t Q_ROOT = 0x2368598, Q_FX = 0x23733E8;
-	static const uint32_t POINT_A = 0x23685A8, POINT_B = 0x23685B0;     // funnel base: x, y (0), z, radius
-	static const uint32_t POOL = 0x23685B8, POOL_END = 0x23693C8;       // 150 x 0x18 sprites
-	static const uint32_t PACKETS_A = 0x23693C8, PACKETS_B = 0x236E3C8; // 512 x 0x28 (POLY_FT4) each
-	static const uint32_t HEAD_A = 0x23733C8, HEAD_B = 0x23733D8;       // wander offset x, y, z, -, angles x, y, z, -
-	static const uint32_t SAVE = 0x2374208, SAVE_SIZE = 0x14;           // per slot: flags, rotation (8), position (8)
-	static const uint32_t CENTRE = 0x2374298;                           // targets' centre
-	static const uint32_t CASTER_POS = 0x2374558;                       // caster's default position (y / w swapped)
-	static const uint32_t RINGS_A = 0x23742A0, RINGS_B = 0x23743F8, RING_SIZE = 0x14; // 17 rings each
+	static const uint32_t POINT_A = 0x23685A8, POINT_B = 0x23685B0;
+	static const uint32_t POOL = 0x23685B8, POOL_END = 0x23693C8;
+	static const uint32_t PACKETS_A = 0x23693C8, PACKETS_B = 0x236E3C8;
+	static const uint32_t HEAD_A = 0x23733C8, HEAD_B = 0x23733D8;
+	static const uint32_t SAVE = 0x2374208, SAVE_SIZE = 0x14;
+	static const uint32_t CENTRE = 0x2374298;
+	static const uint32_t CASTER_POS = 0x2374558;
+	static const uint32_t RINGS_A = 0x23742A0, RINGS_B = 0x23743F8, RING_SIZE = 0x14;
 	static const uint32_t ARENA_HALF = 0xC000;
 
-	// exe data
-	static const uint32_t FUNNEL_Matrix = 0xD45158;   // its translation 0xD4516C = the funnel position
+	static const uint32_t FUNNEL_Matrix = 0xD45158;
 	static const uint32_t SEQ_Sand = 0xD44FA0;
 	static const void *const SOUND_Wind = (const void *)0xD4514C;
 	static const void *const SOUND_Land = (const void *)0xD45150;
 
-	// battle
 	static const uint32_t ENTITY0 = 0x1D972C0, ENTITY_SIZE = 0x9C;
 	static const uint32_t CAMERA = 0x1D97778;
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
-	// task functions
 	static const uint32_t ORIG_Root = 0x5D1A60;
 	static const uint32_t ORIG_Director = 0x5D01B0;
 	static const uint32_t ORIG_Funnel = 0x5D0740;
@@ -123,18 +69,17 @@ namespace sandstorm176
 	static const uint32_t ORIG_Lift = 0x5D14B0;
 	static const uint32_t ORIG_Landing = 0x5D1820;
 
-	// engine functions (original addresses)
 	inline uint32_t Add(uint32_t q, uint32_t task) { return (uint32_t)AddTaskToQueue((TaskQueue *)q, task); }
 	inline uint32_t Alloc(int size) { return (uint32_t)FieldAlloc(size); }
 	inline uint32_t Entity(int slot) { return ENTITY0 + ENTITY_SIZE * slot; }
-	inline int32_t Sin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D130)(a); }   // computeSin
-	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }   // computeCosine
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }  // sqrt: (int)sqrt((double)v)
+	inline int32_t Sin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D130)(a); }
+	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline void ComposeZYX(uint32_t angles, uint32_t m) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x56CE30)(angles, m); }
 	inline void Compose(uint32_t a, uint32_t b, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C2F0)(a, b, out); }
-	inline void MatVec(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void SetRotW(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x56BAE0)(m); }        // GTE_SetRotMatrix_W
-	inline void SetTransW(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x56BB30)(m); }      // GTE_SetTransVector_W
+	inline void MatVec(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x56C4F0)(m, in, out); }
+	inline void SetRotW(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x56BAE0)(m); }
+	inline void SetTransW(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(0x56BB30)(m); }
 	inline void LoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void LoadV0(uint32_t a) { fn<void (__cdecl *)(uint32_t)>(0x45DF80)(a); }
 	inline void RTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -142,19 +87,14 @@ namespace sandstorm176
 	inline void AVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void ReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
 	inline void ReadOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void ReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); } // GTE_ReadSXY012_Split
+	inline void ReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E270)(a, b, c); }
 	inline void ReadSXY2(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E260)(dst); }
-	inline void Insert(uint32_t slot, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C7A0)(slot, packet); } // SSIGPU_InsertPrimAutoDepth
-	inline void ShadowRotation(uint32_t pos, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x571BC0)(pos, a, b); } // TransformCameraByShadowRotation
-	inline uint32_t SpriteSeq(uint32_t hdr, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x571C80)(hdr, ot, mode, cursor); } // InitEffectSequenceFromData
-	inline void SpawnPosition(uint32_t entity, int32_t bone, int32_t frac, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(0x502170)(entity, bone, frac, out); } // GetEffectSpawnPosition
-	// CalculateCenterPosition (0x5020A0): centre of the entities of a slot mask (low 16 bits)
+	inline void Insert(uint32_t slot, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C7A0)(slot, packet); }
+	inline void ShadowRotation(uint32_t pos, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(0x571BC0)(pos, a, b); }
+	inline uint32_t SpriteSeq(uint32_t hdr, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(0x571C80)(hdr, ot, mode, cursor); }
+	inline void SpawnPosition(uint32_t entity, int32_t bone, int32_t frac, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(0x502170)(entity, bone, frac, out); }
 	inline void CalculateCenterPosition(uint32_t mask, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x5020A0)(mask, out); }
 
-	// ------------------------------------------------------------------
-	// Funnel parameters (0x5D0740): a1 height, a2 radius, a3 sway, a4 radius wave depth, a5 wave
-	// frequency, a6 wave phase (the arguments of 0x5D0F30)
-	// ------------------------------------------------------------------
 	struct FunnelParams { int32_t p[6]; };
 
 	static FunnelParams FunnelPhase(int32_t c, uint32_t node)
@@ -214,15 +154,11 @@ namespace sandstorm176
 		}
 		else
 		{
-			// never reached (the task ends at 88): the original passes its node pointer for the first four
-			// and two never-written locals for the last two
 			for (int k = 0; k < 6; k++) P.p[k] = (int32_t)node;
 		}
 		return P;
 	}
 
-	// the funnel's position on a counter (from 26: towards the targets' centre with the sway through
-	// the caster's matrix)
 	static void FunnelPosition(uint32_t f, int16_t *x, int16_t *z)
 	{
 		const int16_t c = S16(f, 0xC);
@@ -244,12 +180,8 @@ namespace sandstorm176
 		*z = (int16_t)(*z + v[2]);
 	}
 
-	// fade: in over 16 ticks, out over the last 8
 	inline int32_t FunnelAlpha(int32_t c) { return c < 0x10 ? c * 8 : (c >= 0x50 ? (0x58 - c) << 4 : 0x80); }
 
-	// 0x5D0F30 (second half): ring k from its tilt angles: the sway vector (0x200 + 7/8 * 256 k) * a3
-	// tilted, height -(256 k * a1) >> 12, radius a2 * (1 - (1 - a4) * sin(sin(256 k * a5 + a6) / 4)).
-	// h = 0x28 bytes of scratch (angles, matrix).
 	static void RingPlace(uint32_t ring, int32_t k, const FunnelParams &P, uint32_t h)
 	{
 		const int32_t t = shl32(k, 12) / 16;
@@ -272,8 +204,6 @@ namespace sandstorm176
 		S32(ring, 0x10) = mul32(w, P.p[1]) >> 12;
 	}
 
-	// 0x5D0C80: the funnel from the 17 rings: 8 vertices per ring at angle + 512 j (+ 0x40 per ring),
-	// quad j of ring r between rings r and r - 1, into packet 32 (r - 1) + 2 j + parity
 	static void FunnelDraw(uint32_t rings, uint32_t packets, int32_t angle, int32_t alpha)
 	{
 		const uint32_t h = Alloc(0xA0);
@@ -334,8 +264,6 @@ namespace sandstorm176
 		FieldFree(0xA0);
 	}
 
-	// one sand / dust sprite (pool entry e: +0 owner mask, +4 frame, +6 scale, +8 position, +0x10
-	// speed x, y, z) with the task's sequence header
 	static void SandDraw(uint32_t h, uint32_t e)
 	{
 		const uint16_t scale = U16(e, 6);
@@ -354,12 +282,8 @@ namespace ff8fx
 {
 namespace sandstorm176
 {
-	// ------------------------------------------------------------------
-	// Funnel init (0x5D0550): packets and rings of the selected funnel
-	// ------------------------------------------------------------------
 	static void FunnelInit()
 	{
-		// rings 0..7: texture page 0xB9, CLUT 0x3F54
 		for (int32_t i = 0; i < 8; i++)
 		{
 			const uint8_t al = (uint8_t)(i * 31);
@@ -389,7 +313,6 @@ namespace sandstorm176
 				}
 			}
 		}
-		// rings 8..15: texture page 0xB8, CLUT 0x3F94
 		for (int32_t i = 0; i < 8; i++)
 		{
 			const uint8_t al = (uint8_t)(i * 31);
@@ -436,10 +359,6 @@ namespace sandstorm176
 		S16(w, 8) = 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Rings (0x5D0F30): rings 16..1 take the previous ring's tilt with a random jitter (-64..63);
-	// ring 0 takes the wander offset, which moves along random-walk angles
-	// ------------------------------------------------------------------
 	static void FunnelRings(const FunnelParams &P)
 	{
 		const uint32_t h = Alloc(0x28);
@@ -473,10 +392,6 @@ namespace sandstorm176
 		FieldFree(0x28);
 	}
 
-	// ------------------------------------------------------------------
-	// Funnel (0x5D0740): node +0x0C counter, +0x0E funnel (0 = A, 1 = B), +0x10 bone position,
-	// +0x1C sway amplitude, +0x1E its growth, +0x20 sway phase, +0x22 its speed
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FunnelTask(TaskNode *n)
 	{
 		const uint32_t f = (uint32_t)n;
@@ -532,7 +447,6 @@ namespace sandstorm176
 			PacketSel() = PACKETS_A;
 			HeadSel() = HEAD_A;
 		}
-		// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
 		FX_HELD(held_note_funnel(f, x, z);)
 		FunnelDraw(RingSel(), PacketSel(), angle, alpha);
 		if (DrawOnly()) return 0;
@@ -540,7 +454,6 @@ namespace sandstorm176
 		return S16(f, 0xC) >= 0x58 ? TASK_END : 0;
 	}
 
-	// first free pool entry (nullptr when the pool is full)
 	static uint32_t FreeSand()
 	{
 		int32_t i = 0;
@@ -554,9 +467,6 @@ namespace sandstorm176
 		return i < 0x96 ? POOL + (uint32_t)i * 0x18 : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sand (0x5D11F0): node +0x0C counter, +0x0E emitter mask (1 = funnel A, 2 = funnel B)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SandTask(TaskNode *n)
 	{
 		const uint32_t t = (uint32_t)n;
@@ -567,7 +477,6 @@ namespace sandstorm176
 		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
 		{
 			if (!(U32(e, 0) & (uint32_t)(int32_t)S16(t, 0xE))) continue;
-			// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
 			FX_HELD(held_note_sand(t, h, e);)
 			SandDraw(h, e);
 			if (DrawOnly()) continue;
@@ -617,11 +526,6 @@ namespace sandstorm176
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Lift (0x5D14B0): node +0x0C counter, +0x0E target slot, +0x10 its bone 0xF1 position, +0x18
-	// spin (0x1000 / 0x2000), +0x1A target index, +0x1C 1 = drawn towards funnel B, +0x1E delay,
-	// +0x20 lift height, +0x22 its speed
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LiftTask(TaskNode *n)
 	{
 		const uint32_t l = (uint32_t)n;
@@ -701,10 +605,6 @@ namespace sandstorm176
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Landing dust (0x5D1820): node +0x0C counter, +0x0E sprite mask (0x100 << target index), +0x10
-	// landing position, +0x1A target index
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LandingTask(TaskNode *n)
 	{
 		const uint32_t t = (uint32_t)n;
@@ -715,7 +615,6 @@ namespace sandstorm176
 		for (uint32_t e = POOL; e < POOL_END; e += 0x18)
 		{
 			if (!(U32(e, 0) & (uint32_t)(int32_t)S16(t, 0xE))) continue;
-			// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
 			FX_HELD(held_note_sand(t, h, e);)
 			SandDraw(h, e);
 			if (DrawOnly()) continue;
@@ -757,9 +656,6 @@ namespace sandstorm176
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5D01B0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		if (DrawOnly()) return 0;
@@ -843,13 +739,9 @@ namespace sandstorm176
 		return S16(d, 0xC) > 0x78 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x5D1A60)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		const uint32_t r = (uint32_t)n;
-		// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
 		FX_HELD(held_note_root();)
 		Parity() = U8(r, 0xC) & 1;
 		PacketCursor() = Parity() ? ArenaBase() + ARENA_HALF : ArenaBase();
@@ -867,7 +759,6 @@ namespace sandstorm176
 		register_port(sandstorm176::ORIG_Sand, (void *)sandstorm176::SandTask, "176 SandTask", 176);
 		register_port(sandstorm176::ORIG_Lift, (void *)sandstorm176::LiftTask, "176 LiftTask", 176);
 		register_port(sandstorm176::ORIG_Landing, (void *)sandstorm176::LandingTask, "176 LandingTask", 176);
-		// 30 fps layer: see mag176_sand_storm_adamantoise_held.inc
 		FX_HELD(register_mag176_held();)
 	}
 }

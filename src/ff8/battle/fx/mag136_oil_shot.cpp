@@ -14,68 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 136: Oil Shot (enemy attack 180 of kernel.bin, Oilboyle c0m099; MAG_136_*). No other
-// kernel.bin entry uses effect 136.
-//
-// Structure (setup MAG_136_OIL_SHOT 0x6AD1A0 -> _Init 0x6AD1D0, file loader 0x6AD1B0 = the
-// texture file named at 0x11FA1FC; the setup keeps the CASTER's entity (0x2520D28), starts camera
-// animation 0x11F7EDC and queues the TIM; setup / loader / _Init are the copies of effects 126..135):
-//   MasterTask (0x6AD250) - alternates the packet arena (magic buffer + 0x416C / + 0x1C16C); on
-//     counter 1 sets up the pools (falling drops 0x10 x 0x2BC at + 0, splats 8 x 0x14 at + 0x2BC0,
-//     stream drops 0x10 x 0xC4 at + 0x2C60, sprays 8 x 0x20 at + 0x38A0, shot 1 x 0x46C at + 0x39A0),
-//     starts the shot (the first target of action 0, its default effect position, layouts
-//     0x11F40F4 / 0x11F5A90 / 0x11F4E1C) and normalises the oil mesh 0x11F2684 (0x6AD430: w of every
-//     vertex = (z - min) * 4096 / (max - min) over the vertices 2..count, one past the end; this
-//     static exe table is rewritten on EVERY cast, with the same values). Then the shot, spray,
-//     stream-drop, splat and falling-drop queues; ends when the SHOT queue is empty (the other
-//     queues are abandoned).
-//   ShotTask (0x6AD480) - counters 0..0x52. Screen flash 0xF0F0F0 from counter 0x1E (rise over 4
-//     ticks to 0x708, hold, fall from counter 0x46). Counters 0x1E..0x25: M (the caster's mouth:
-//     its bone 27 through 0x11F81F0, 0x6AEE20), a spray sprite task (CRT rand: angle, spin,
-//     scale, direction RotX(-0x200) x RotY(caster facing) applied to a random unit vector, its
-//     length scaled by IR0 = rand & 0x7F + 0x80), layout +0x2C at M (depth -0x80). Counter 0x1E:
-//     the shot's start = M. Counters 0x1F..0x2A (k = counter - 0x1E, s = k * 4096 / 12): the oil
-//     mesh: its vertices through RotZ(k << 8) (no translation) into magic buffer + 0x3E0C, each y
-//     lowered by table[w / 2] x sin(s / 2) >> 17 (0x6ADFF0); P = the start blended to the target by
-//     s, y - sin(s / 2) / 8; the basis of (P - prev, with y and z the other way and z - 100), prev
-//     = the last P (node +0x24); a stream-drop task (CRT rand: a point on a circle of radius 0x40 in
-//     that basis, velocity on a circle of radius 0x10 + 0x32 forward); the basis scaled in z by
-//     sin(s / 2) - sin(0x400 - s / 4) / 2 + 0x800 (word 0x11F81E0 of the exe matrix 0x11F81D0,
-//     rewritten every tick) at P, composed with the camera; the mesh drawn by 0x6AE9B0 (U scrolled
-//     by (k & 7) << 4). Counters 0x26..0x3F: layout +0xF4 at the target (depth -0x80, objects drawn
-//     by the module renderer 0x6AE3B0); on even counters up to 0x34 a falling drop (CRT rand:
-//     direction, speed, rise), on counters 0x2A..0x39 a splat sprite (random offset). Counters
-//     0x2C..0x51: layout +0x2E8 at the target - 0xFA in y (depth 0, module renderer). Sound at
-//     counter 0x1E, damage at counter 0x3E (ApplyActionResultToTarget of the action's targets).
-//   SprayTask (0x6AE300) - sprite sequence 0x11F2390 (rotation +0x0C, scale +0x16) through the
-//     shadow-rotation camera, 9 frames; position += velocity, rotation += spin.
-//   StreamTask (0x6AE210) - layout +0x1C at its position (depth 0, objects 0 by the module
-//     renderer); position += velocity; ends with the layout.
-//   SplatTask (0x6AE190) - sprite sequence 0x11F24D8 at its position, 16 frames.
-//   FallTask (0x6AE050) - layout 0x11F7D84 falling (gravity 0x10) until y >= 0, then the splash
-//     layout 0x11F74FC at y = 0 (objects by the module renderer); ends with the splash layout.
-//   PrimCallback (0x6ADC50, Quezacotl's 0x6C53A0 with the block's renderer choice) draws every
-//     layout object: flag 0x1000 relative to the never-written module matrix 0x2520DB0 (zero),
-//     0x200 absolute, else relative to the block's matrix; block mode 1 (or 2 for object 0): the
-//     module renderer 0x6AE3B0 (flat textured quads 0x6AE420 with a depth-cue fade, Gouraud quads
-//     0x6AE700 with the fade added to the OTZ), else 0x7043B0 at the block's depth.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws THEN updates (the shot's counter after its draws, a layout in its
-// play, a sprite after its draw).
-// ENTITY / CAMERA: no task writes an entity position (+0x1C..+0x20 only read) or the camera words
-// (the camera animation is the engine's); the shot's mouth point rebuilds the caster's bone
-// matrices from its pose (0x508C90). The screen flash level is the engine's (0x5713E0).
-// EXE DATA WRITES: the oil mesh 0x11F2684 (vertex w words, every cast) and the word 0x11F81E0
-// (counters 0x1F..0x2A).
-// Module globals: 0x2520D28..0x2520DD0 (caster entity 0x2520D28, texture file 0x2520D2C, magic
-// buffer base 0x2520D30, context 0x2520D34, master pool 0x2520D38, packet cursor 0x2520D4C, the
-// queues 0x2520D50 falling drops / 0x2520D60 splats / 0x2520D70 stream drops / 0x2520D80 sprays /
-// 0x2520D90 shot / 0x2520DA0 master, the matrix 0x2520DB0 (never written)).
-// NEVER-WRITTEN STACK WORDS: ShotTask's P word +6 (entry esp - 0x3E; 0x56CB90 writes 3 words) is
-// copied into the node's previous-point word +0x2A on counters 0x1F..0x2A (0x6AD75B); it is never
-// read afterwards (see ShotResidue). The 4th words of the vectors loaded into GTE V0 (the target
-// point - 0xFA, the callback's record offset, the mesh output) reach the GTE's VZ0 high half
-// (0x1CA8A16) only; the block matrices' pad words only reach the GTE R33 pad (0x1CA928E).
+// Effect 136: Oil Shot
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
@@ -88,17 +27,16 @@ namespace oil136
 	using namespace magc;
 	using namespace icec;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520D28); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520D30); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520D28); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2520D30); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2520D34); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520D4C); }
-	inline Mat4x3 &ZeroMatrix() { return var<Mat4x3>(0x2520DB0); }        // never written
-	inline TaskQueue *QFalls() { return (TaskQueue *)0x2520D50; }          // pool: magic buffer, 0x10 x 0x2BC
-	inline TaskQueue *QSplats() { return (TaskQueue *)0x2520D60; }         // pool: + 0x2BC0, 8 x 0x14
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x2520D70; }        // pool: + 0x2C60, 0x10 x 0xC4
-	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520D80; }         // pool: + 0x38A0, 8 x 0x20
-	inline TaskQueue *QShot() { return (TaskQueue *)0x2520D90; }           // pool: + 0x39A0, 1 x 0x46C
+	inline Mat4x3 &ZeroMatrix() { return var<Mat4x3>(0x2520DB0); }
+	inline TaskQueue *QFalls() { return (TaskQueue *)0x2520D50; }
+	inline TaskQueue *QSplats() { return (TaskQueue *)0x2520D60; }
+	inline TaskQueue *QStreams() { return (TaskQueue *)0x2520D70; }
+	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520D80; }
+	inline TaskQueue *QShot() { return (TaskQueue *)0x2520D90; }
 
 	static const uint32_t ORIG_MasterTask = 0x6AD250;
 	static const uint32_t ORIG_ShotTask = 0x6AD480;
@@ -106,111 +44,106 @@ namespace oil136
 	static const uint32_t ORIG_SplatTask = 0x6AE190;
 	static const uint32_t ORIG_StreamTask = 0x6AE210;
 	static const uint32_t ORIG_SprayTask = 0x6AE300;
-	static const uint32_t VERTS = 0x3E0C;                // magic buffer: mesh vertices / blended vertex frames
-	static const uint32_t ARENA_A = 0x416C;              // magic buffer: packet arenas
+	static const uint32_t VERTS = 0x3E0C;
+	static const uint32_t ARENA_A = 0x416C;
 	static const uint32_t ARENA_B = 0x1C16C;
-	static uint8_t *const MESH = (uint8_t *)0x11F2684;   // oil mesh: size, count, vertices (w rewritten), lists
-	static const uint32_t MODEL_Mouth = 0x11F40F4;       // prim-model layouts
+	static uint8_t *const MESH = (uint8_t *)0x11F2684;
+	static const uint32_t MODEL_Mouth = 0x11F40F4;
 	static const uint32_t MODEL_Hit = 0x11F5A90;
 	static const uint32_t MODEL_Pool = 0x11F4E1C;
 	static const uint32_t MODEL_Stream = 0x11F342C;
 	static const uint32_t MODEL_Fall = 0x11F7D84;
 	static const uint32_t MODEL_Splash = 0x11F74FC;
-	static const uint32_t SEQ_Spray = 0x11F2390;         // sprite sequences
+	static const uint32_t SEQ_Spray = 0x11F2390;
 	static const uint32_t SEQ_Splat = 0x11F24D8;
-	static const int16_t *const MOUTH = (const int16_t *)0x11F81F0;  // caster bone point (x, y, z, bone 27)
-	static const void *const SCALE_Z = (const void *)0x11F81D0;       // exe matrix, its m[2][2] (0x11F81E0) rewritten
+	static const int16_t *const MOUTH = (const int16_t *)0x11F81F0;
+	static const void *const SCALE_Z = (const void *)0x11F81D0;
 	static int16_t &ScaleZ() { return *(int16_t *)0x11F81E0; }
-	static const int32_t *const WOBBLE = (const int32_t *)0x11F81F8;  // 0x801 x s32, by vertex w / 2
+	static const int32_t *const WOBBLE = (const int32_t *)0x11F81F8;
 	static const void *const SOUND_Shot = (const void *)0x11F81CC;
 
-	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }             // sub_56C220: a = a x b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }   // MAG_063_sub_701220
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }   // MAG_063_sub_701270
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }   // MAG_065_sub_7012C0
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701220)(angle, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
 	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(0x56C090)(a, b, out); }
 	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
 	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void GteZeroTrans() { fn<void (__cdecl *)()>(0x704070)(); }      // MAG_129_sub_704070: TRX = TRY = TRZ = 0
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }     // set_unk_1CA8A28
-	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }                                    // sub_45F270
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }             // set_param_with_dword_1CA8A68
-	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); } // scale3DMatrix
+	inline void GteZeroTrans() { fn<void (__cdecl *)()>(0x704070)(); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
+	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2520D38)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t started;   // +0x0E pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		int16_t started;
+		uint32_t arena;
 	};
-	struct ShotNode // pool of 1 node of 0x46C bytes
+	struct ShotNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint8_t *target;   // +0x10 first target of action 0
-		int16_t start[4];  // +0x14 the mouth at counter 0x1E (+0x1A: 0 from the clear)
-		int16_t pos[4];    // +0x1C the target's default effect position
-		int16_t prev[4];   // +0x24 the stream's last point (+0x2A: a stack word, see ShotResidue)
-		uint8_t mouth[0xC8];  // +0x2C layout 0x11F40F4
-		uint8_t hit[0x1F4];   // +0xF4 layout 0x11F5A90
-		uint8_t pool[0x184];  // +0x2E8 layout 0x11F4E1C
+		uint8_t *target;
+		int16_t start[4];
+		int16_t pos[4];
+		int16_t prev[4];
+		uint8_t mouth[0xC8];
+		uint8_t hit[0x1F4];
+		uint8_t pool[0x184];
 	};
-	struct FallNode // pool of 0x10 nodes of 0x2BC bytes
+	struct FallNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t landed;    // +0x12 (also the 4th word of pos)
-		int16_t vel[3];    // +0x14
-		int16_t pad1A;     // never written (pool residue)
-		uint8_t layout[0x2A0]; // +0x1C falling 0x50 / splash 0xA8 bytes used
+		int16_t pos[3];
+		int16_t landed;
+		int16_t vel[3];
+		int16_t pad1A;
+		uint8_t layout[0x2A0];
 	};
-	struct SplatNode // pool of 8 nodes of 0x14 bytes
+	struct SplatNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t frame;     // +0x12 (also the 4th word of pos)
+		int16_t pos[3];
+		int16_t frame;
 	};
-	struct StreamNode // pool of 0x10 nodes of 0xC4 bytes
+	struct StreamNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t zero;      // +0x12
-		int16_t vel[3];    // +0x14
-		int16_t pad1A;     // never written (pool residue)
-		uint8_t layout[0xA8]; // +0x1C
+		int16_t pos[3];
+		int16_t zero;
+		int16_t vel[3];
+		int16_t pad1A;
+		uint8_t layout[0xA8];
 	};
-	struct SprayNode // pool of 8 nodes of 0x20 bytes
+	struct SprayNode
 	{
 		TaskNode hdr;
-		int16_t angle;     // +0x0C sprite rotation
-		int16_t spin;      // +0x0E
-		int16_t pos[3];    // +0x10
-		int16_t scale;     // +0x16
-		int16_t vel[3];    // +0x18
-		int16_t frame;     // +0x1E
+		int16_t angle;
+		int16_t spin;
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
+		int16_t frame;
 	};
-	// the prim-player callback's parameter block (a stack block of the playing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 rotation (pad word +0x12 never written) and anchor
-		int32_t depth;     // +0x20 prim header +0x18 (renderer 0x7043B0)
-		int32_t mode;      // +0x24 1: module renderer, 2: module renderer for object 0, else 0x7043B0
-		uint32_t morph;    // +0x28 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		int32_t mode;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(ShotNode) == 0x46C && sizeof(FallNode) == 0x2BC, "Oil Shot nodes");
@@ -221,14 +154,6 @@ namespace oil136
 	static bool OffX(int16_t x) { return x < 0 || x > 0xA00; }
 	static bool OffY(int16_t y) { return y < 0 || y > 0x6C0; }
 
-	// ------------------------------------------------------------------
-	// Module renderer (0x6AE3B0 -> 0x6AE420 / 0x6AE700): the model's list 1 (flat textured quads,
-	// 0x18-byte records) and list 3 (Gouraud quads, 0x18-byte records); list 2 is skipped. Header
-	// (0x58, the callback's): +0x00 model, +0x04 vertices, +0x08 fade colour, +0x0C fade, +0x20 list
-	// cursor, +0x2C OTZ, +0x30 FLAG.
-	// ------------------------------------------------------------------
-	// MAG_136_sub_6AE420: textured quads (0x28-byte packets) behind a draw mode 0xE1000220; a fade
-	// (+0x0C) depth-cues the colour towards +0x08 (GTE DPCS)
 	static uint32_t FlatQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x20);
@@ -287,8 +212,6 @@ namespace oil136
 		return (uint32_t)p;
 	}
 
-	// MAG_136_sub_6AE700: Gouraud quads (0x24-byte packets) between draw modes 0xE1000220 /
-	// 0xE1000240; the fade (+0x0C) is added to the OTZ (a negative depth is not drawn)
 	static uint32_t GouraudQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x20);
@@ -344,7 +267,6 @@ namespace oil136
 		return (uint32_t)p;
 	}
 
-	// MAG_136_sub_6AE3B0: list 1 (count at model + size + 0xC), list 2 skipped, list 3
 	static uint32_t ObjectDraw(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *m = Cursor(h, 0);
@@ -358,12 +280,6 @@ namespace oil136
 		return r;
 	}
 
-	// ------------------------------------------------------------------
-	// Oil mesh renderer (0x6AE9B0 -> 0x6AE9E0): Gouraud textured quads (0x24-byte records at model +
-	// size + 0x1C, 0x34-byte packets), U scrolled by +0x10 (wrapping by the byte +0x20), each
-	// between the texture windows +0x14 / +0x1C with a draw mode 0xE1000220. Header (0x5C, the
-	// shot's): +0x00 mesh, +0x04 vertices, +0x24 list cursor, +0x30 OTZ, +0x34 FLAG.
-	// ------------------------------------------------------------------
 	static void ScrollU(uint8_t *p, const int *off, int n, uint16_t add, uint8_t wrap)
 	{
 		uint32_t v[4], o = 0;
@@ -445,7 +361,6 @@ namespace oil136
 		return (uint32_t)p;
 	}
 
-	// MAG_136_sub_6AE9B0
 	static uint32_t MeshDraw(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *m = Cursor(h, 0);
@@ -453,15 +368,6 @@ namespace oil136
 		return MeshQuads(h, ot, shift, cursor);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6ADC50, Quezacotl's 0x6C53A0 with the block's renderer choice): one
-	// object of a layout. Vertex frame (or blend into the block's morph buffer), rotation from the
-	// record's angles (flag 0x40000: 0x7015B0); flag 0x1000: the offset through the module matrix
-	// 0x2520DB0, composed with it; 0x200: the offset as the translation; else the offset through the
-	// block's matrix, composed with it; + the block's translation; scale (flag 0x100: 3x3 product,
-	// else scale3DMatrix), fade; drawn by the module renderer (block mode 1, or mode 2 for object 0)
-	// or 0x7043B0 at the block's depth.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -500,7 +406,6 @@ namespace oil136
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		const int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x1000)
 		{
@@ -562,11 +467,6 @@ namespace oil136
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Helpers
-	// ------------------------------------------------------------------
-	// MAG_136_sub_6AD430: w of every vertex = (z - min) * 4096 / (max - min), the z range over the
-	// vertices 2..count (one past the end)
 	static void NormalizeMesh(uint8_t *model)
 	{
 		const int32_t count = *(const int32_t *)(model + 4);
@@ -584,7 +484,6 @@ namespace oil136
 			*(int16_t *)p = (int16_t)(shl32(*(const int16_t *)(p - 2) - mn, 12) / range);
 	}
 
-	// MAG_136_sub_6AEE20: a caster bone point (x, y, z, bone) through its pose (IR, 16 bits)
 	static void BonePoint(const int16_t *v, int16_t *out)
 	{
 		uint8_t *c = Caster();
@@ -600,7 +499,6 @@ namespace oil136
 		GteStoreIR123(out);
 	}
 
-	// MAG_136_sub_6ADF60: RotX(b) x RotY(a) (3x3)
 	static void RotXY(int32_t a, int32_t b, Mat4x3 *out)
 	{
 		Mat4x3 x, y;
@@ -609,7 +507,6 @@ namespace oil136
 		Matrix3x3MultiplyPSX(&x, &y, out);
 	}
 
-	// MAG_136_sub_6ADFA0: unit vector of (a, b): (-sin a sin b, sin a cos b, cos a) (z negated by the caller)
 	static void AngleVector(int32_t a, int32_t b, int16_t *out)
 	{
 		out[2] = (int16_t)ComputeCos(a);
@@ -618,8 +515,6 @@ namespace oil136
 		out[1] = (int16_t)((int32_t)(0u - (uint32_t)mul32(ComputeCos(b), s)) >> 12);
 	}
 
-	// MAG_136_sub_6ADFF0: the mesh vertices through the GTE (rotation + translation) into the magic
-	// buffer, each y lowered by WOBBLE[w / 2] x amp >> 17
 	static void WobbleMesh(const uint8_t *model, int32_t amp, int16_t *out)
 	{
 		int32_t count = *(const int32_t *)(model + 4);
@@ -636,10 +531,6 @@ namespace oil136
 		} while (--count);
 	}
 
-	// ShotTask's P word +6 (entry esp - 0x3E, never written: 0x56CB90 stores 3 words), copied into the
-	// node's previous-point word +0x2A on counters 0x1F..0x2A. ShotTask is the first module task of every
-	// tick and nothing of the tick reaches that word before it: it holds what the battle loop left there
-	// (0 under the game's task executor when the stack starts clear). Never read afterwards.
 	static int16_t ShotResidue()
 	{
 		return 0;
@@ -650,8 +541,6 @@ namespace oil136
 		prim::play((prim::Layout *)layout, PrimCallback, (int)arg, 0);
 	}
 
-	// the block at a point through the camera: the camera rotation, the point through it + the
-	// camera translation
 	static void BlockAt(PrimArg *arg, const int16_t *p4)
 	{
 		ff8fx::copy<(sizeof(arg->m.m))>(arg->m.m, Camera().m);
@@ -674,10 +563,6 @@ namespace ff8fx
 {
 namespace oil136
 {
-	// ------------------------------------------------------------------
-	// Sprites
-	// ------------------------------------------------------------------
-	// 0x6AE300: sprite sequence 0x11F2390 (rotation, scale) through the shadow-rotation camera, 9 frames
 	static void SprayDraw(const int16_t *pos, int16_t scale, int16_t frame, int16_t angle)
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
@@ -693,7 +578,6 @@ namespace oil136
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		SprayNode *s = (SprayNode *)n;
-		// 30 fps layer: see mag136_oil_shot_held.inc
 		FX_HELD(held_note_sprite(SPR_SPRAY, n);)
 		SprayDraw(s->pos, s->scale, s->frame, s->angle);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
@@ -704,7 +588,6 @@ namespace oil136
 		return s->frame < 9 ? 0 : TASK_END;
 	}
 
-	// 0x6AE190: sprite sequence 0x11F24D8 through the shadow-rotation camera, 16 frames
 	static void SplatDraw(const int16_t *pos, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
@@ -719,18 +602,12 @@ namespace oil136
 	static uint32_t __cdecl SplatTask(TaskNode *n)
 	{
 		SplatNode *s = (SplatNode *)n;
-		// 30 fps layer: see mag136_oil_shot_held.inc
 		FX_HELD(held_note_sprite(SPR_SPLAT, n);)
 		SplatDraw(s->pos, s->frame);
 		s->frame++;
 		return s->frame < 0x10 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Drops
-	// ------------------------------------------------------------------
-	// 0x6AE210: layout +0x1C at the drop (depth 0, object 0 by the module renderer), then
-	// position += velocity; ends with the layout
 	static uint32_t __cdecl StreamTask(TaskNode *n)
 	{
 		StreamNode *d = (StreamNode *)n;
@@ -739,7 +616,6 @@ namespace oil136
 		arg.depth = 0;
 		arg.mode = 2;
 		arg.morph = TexBase() + VERTS;
-		// 30 fps layer: see mag136_oil_shot_held.inc
 		FX_HELD(held_note_play(PLAY_STREAM, n, (prim::Layout *)d->layout, d->pos);)
 		if (prim::play((prim::Layout *)d->layout, PrimCallback, (int)&arg, 0) == 0) return TASK_END;
 		d->pos[0] = (int16_t)(d->pos[0] + d->vel[0]);
@@ -748,8 +624,6 @@ namespace oil136
 		return 0;
 	}
 
-	// 0x6AE050: layout +0x1C falling (gravity 0x10, object 0 by the module renderer) until y >= 0,
-	// then the splash layout at y = 0 (every object by the module renderer); ends with the splash
 	static uint32_t __cdecl FallTask(TaskNode *n)
 	{
 		FallNode *d = (FallNode *)n;
@@ -758,7 +632,6 @@ namespace oil136
 		arg.depth = 0;
 		arg.mode = d->landed != 0 ? 1 : 2;
 		arg.morph = TexBase() + VERTS;
-		// 30 fps layer: see mag136_oil_shot_held.inc
 		FX_HELD(held_note_play(PLAY_FALL, n, (prim::Layout *)d->layout, d->pos);)
 		if (prim::play((prim::Layout *)d->layout, PrimCallback, (int)&arg, 0) == 0 && d->landed == 1) return TASK_END;
 		if (d->landed == 0)
@@ -771,7 +644,6 @@ namespace oil136
 			{
 				d->pos[1] = 0;
 				d->landed = 1;
-				// 30 fps layer: see mag136_oil_shot_held.inc
 				FX_HELD(held_note_landing(n);)
 				DecodeModelPrimLayout(MODEL_Splash, d->layout, 0xA8);
 			}
@@ -779,10 +651,6 @@ namespace oil136
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Shot (0x6AD480)
-	// ------------------------------------------------------------------
-	// the flash level at counter c (0x1E..0x51)
 	static int32_t FlashLevel(int32_t c)
 	{
 		if (c < 0x22) return (int32_t)mul32(c - 0x1E, 1800) / 4;
@@ -790,31 +658,26 @@ namespace oil136
 		return (int32_t)mul32(0x52 - c, 1800) / 12;
 	}
 
-	// the stream's progress at k = counter - 0x1E (1..12): s = k * 4096 / 12
 	static int32_t StreamS(int32_t k) { return (int32_t)(((uint64_t)(uint32_t)shl32(k, 12) * 0xAAAAAAABu) >> 35); }
 
-	// the stream point at progress s: the start blended to the target, y - sin(s / 2) / 8
 	static void StreamPoint(const ShotNode *w, int32_t s, int32_t sine, int16_t *P)
 	{
 		BlendVectors(w->start, w->pos, 0x1000 - s, s, P);
 		P[1] = (int16_t)(P[1] - (int16_t)(sine >> 3));
 	}
 
-	// the stream basis at P from prev
 	static int32_t StreamBasis(const int16_t *P, const int16_t *prev, Mat4x3 *M)
 	{
 		const int32_t v[3] = { (int32_t)P[0] - prev[0], (int32_t)prev[1] - P[1], (int32_t)prev[2] - P[2] - 100 };
 		return BuildOrthonormalBasis(v, M);
 	}
 
-	// the mesh z scale at progress s
 	static int16_t MeshScaleZ(int32_t s, int32_t sine)
 	{
 		const int32_t q = ComputeSin(0x400 - s / 4);
 		return (int16_t)(sine - q / 2 + 0x800);
 	}
 
-	// the mesh: the basis scaled in z at P, composed with the camera, drawn by 0x6AE9B0 (U scroll u)
 	static void MeshRender(Mat4x3 *M, uint16_t u, uint32_t verts)
 	{
 		ComposeAffineTransform(&Camera(), M, M);
@@ -842,9 +705,9 @@ namespace oil136
 		ShotNode *w = (ShotNode *)n;
 		const int16_t c0 = w->counter;
 		if (c0 >= 0x1E) SetScreenFlash((uint32_t)FlashLevel(c0), 0xF0F0F0);
-		int16_t P[4];      // entry esp - 0x44: the mouth (counters 0x1E..0x25), then the stream point
+		int16_t P[4];
 		P[3] = ShotResidue();
-		Mat4x3 M;          // entry esp - 0x2C
+		Mat4x3 M;
 		if ((uint32_t)(w->counter - 0x1E) < 8)
 		{
 			BonePoint(MOUTH, P);
@@ -876,7 +739,6 @@ namespace oil136
 			arg.depth = -0x80;
 			arg.mode = 0;
 			arg.morph = TexBase() + VERTS;
-			// 30 fps layer: see mag136_oil_shot_held.inc
 			FX_HELD(held_note_play(PLAY_MOUTH, n, (prim::Layout *)w->mouth, P);)
 			Play(w->mouth, &arg);
 		}
@@ -922,7 +784,6 @@ namespace oil136
 				M.t[0] = P[0];
 				M.t[1] = P[1];
 				M.t[2] = P[2];
-				// 30 fps layer: see mag136_oil_shot_held.inc
 				FX_HELD(held_note_mesh(n);)
 				MeshRender(&M, (uint16_t)((k & 7) << 4), TexBase() + VERTS);
 			}
@@ -935,7 +796,6 @@ namespace oil136
 			arg.depth = -0x80;
 			arg.mode = 1;
 			arg.morph = TexBase() + VERTS;
-			// 30 fps layer: see mag136_oil_shot_held.inc
 			FX_HELD(held_note_play(PLAY_HIT, n, (prim::Layout *)w->hit, w->pos);)
 			Play(w->hit, &arg);
 			if ((uint32_t)h < 0x10 && !(h & 1))
@@ -969,14 +829,12 @@ namespace oil136
 		}
 		if ((uint32_t)(w->counter - 0x2C) < 0x26)
 		{
-			// the target point - 0xFA in y (4th word never written: only loaded into the GTE V0 pad)
 			const int16_t p[4] = { w->pos[0], (int16_t)(w->pos[1] - 0xFA), w->pos[2], 0 };
 			PrimArg arg;
 			BlockAt(&arg, p);
 			arg.depth = 0;
 			arg.mode = 1;
 			arg.morph = TexBase() + VERTS;
-			// 30 fps layer: see mag136_oil_shot_held.inc
 			FX_HELD(held_note_play(PLAY_POOL, n, (prim::Layout *)w->pool, w->pos);)
 			Play(w->pool, &arg);
 		}
@@ -991,9 +849,6 @@ namespace oil136
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6AD250)
-	// ------------------------------------------------------------------
 	static void StartShot()
 	{
 		uint8_t *target = Entity(Ctx()->actions->targets[0]);
@@ -1015,7 +870,6 @@ namespace oil136
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag136_oil_shot_held.inc
 		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
@@ -1056,7 +910,6 @@ namespace oil136
 		register_port(oil136::ORIG_StreamTask, (void *)oil136::StreamTask, "136 StreamTask", 136);
 		register_port(oil136::ORIG_SplatTask, (void *)oil136::SplatTask, "136 SplatTask", 136);
 		register_port(oil136::ORIG_FallTask, (void *)oil136::FallTask, "136 FallTask", 136);
-		// 30 fps layer: see mag136_oil_shot_held.inc
 		FX_HELD(register_mag136_held();)
 	}
 }

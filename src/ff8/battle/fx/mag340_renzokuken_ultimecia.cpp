@@ -13,40 +13,6 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// Effect 340: Renzokuken vs Ultimecia (final form) (MAG_340_UNKNOWN in IDA). Squall's Renzokuken command takes the effect id
-// from the TARGET's info +0x150 table (computeCommandAction 0x48DE0B): c0m126 (Ultimecia, final form) has 340. The common
-// part of the boss Renzokuken modules (renzo_boss_defs.inc / renzo_boss.inc; its hit offsets 0xC9DC70 are a real table here)
-// with its own start and events:
-//   tick 1: the boss's sequence 1 started (StartBoss 0x57E2F0); tick 2: Bind2 (0x57E300): the container 0xE510FC's two
-//     com-data blocks bound to the caster and the boss, only the caster's sequence 1 (2 with a finisher) started; the
-//     trail, the spark spawner and the hit scheduler start on tick 2 too, with the setup's length 4; tick 3: the length;
-//   tick 0x1C: a slot model (RingA 0x57D6B0, model 0xC99D2C, reference 0xC9DC30) at the hit point onto the hit direction,
-//     scale (rand % 0x900 + 0x1400) / 3; tick 0x23: a second RingA at the hit point + (600, 100, -400) through the caster's
-//     matrix (matrixMultiplyVector in the node +0x10);
-//   tick 0x3B: a caster model (CasterModel 0x57D840, model 0xC9B9EC) at the boss's bone 0x1D, scale (rand % 0x800 + 0x2000)
-//     / 3, and a bone emitter (BoneEmitter 0x57DC60: bone 0x1D, until tick 0xE, sequence 0xC96E80);
-//   tick 0x43: a slot model (RingB 0x57D980, model 0xC98C04, reference 0xC9DCD0) at the hit point onto the hit direction,
-//     scale (rand % 0x500 + 0xD00) / 3, and the node emitter (NodeEmitter 0x57DF60) at the hit point - 300 in y;
-//   tick 0x44: a turned model (AngleModel 0x57DB10, model 0xC9CF24) at the hit point's x / z, y 0x226, y angle
-//     rand % 0x1000, x / z scale 0x3200, y scale (rand % 0xC00 + 0x1400) / 3 growing (- rate / 4), 18 ticks, fading from
-//     tick 8 (step 409).
-//   Slot models: render mode 3, 16 ticks, fading from tick 6 (step 409); CasterModel: rate - rate / 4, 16 ticks, fading
-//   from tick 6 (step 409).
-//   NodeEmitter (0x57DF60) - ticks 0..0x10: 3 particles of kind 4 per tick at its point, direction (-0x100..0xFF,
-//     -0x900..-0xDFF, 0x400..0x9FF) normalized through the caster's rotation, speed 0x28..0xB3 (x + 0..0x27 - 0x14), scale
-//     0x700..0xF7F; the kind-4 particles drawn every tick (EmitterDraw, sequence 0xC96E80); ends on the first tick with
-//     none left.
-// File loader 0x57BBE0 (IO_GetFile_MAGIC of the name at 0xC9DCE0, kept at 0x21EB808); setup MAG_340 0x57BC00 (not a task:
-// context 0x21EB800, caster 0x21EB804, first target 0x21E8AF8, master 0x57E340 in its pool 0x21E97F0 (queue 0x21E9800),
-// controller 0x57BD20 in the main pool 0x21EA9D8 (100 x 0x24, queue 0x21EA9C8), length 0x21EB89C = 4, finisher flag
-// 0x21EB8A0, pools A / C / B and SLOTS freed, camera animation 0xE50D14, TIM upload).
-// ENTITY WRITES: as every Renzokuken (caster +0 bit 0x800, +0x28 tint, the binds, chain starts (the caster's and the
-// boss's), the hit-effect AnimSeq task); no position write. CAMERA: the setup's camera animation only.
-// Module globals 0x21E8A78..0x21EB8AC: gathered points 0x21E8A78 / 0x21E8AB8, target 0x21E8AF8, pool A 0x21E8B00, pool B
-// 0x21E8CE0, hit records 0x21E90A0, master pool / queue 0x21E97F0 / 0x21E9800, SLOTS 0x21E9810 (100 x 0x20), pool C
-// 0x21EA490, splines 0x21EA7B0 / 0x21EA8B0, hit point / direction 0x21EA9B0 / 0x21EA9B8, main queue / pool 0x21EA9C8 /
-// 0x21EA9D8, previous hit point / direction 0x21EB7E8, context 0x21EB800, caster 0x21EB804, file 0x21EB808, trail ring
-// 0x21EB810, length 0x21EB89C, finisher 0x21EB8A0, texture base 0x21EB8A4, packet cursor 0x21EB8A8.
 
 #include "mag_common.h"
 
@@ -54,7 +20,6 @@ namespace ff8fx
 {
 namespace renzo340
 {
-	// module globals
 	static const uint32_t PTS_A = 0x21E8A78, PTS_B = 0x21E8AB8, TARGET_SLOT = 0x21E8AF8;
 	static const uint32_t POOL_A = 0x21E8B00, POOL_A_END = 0x21E8CE0;
 	static const uint32_t POOL_B = 0x21E8CE0, POOL_B_SPAWN_END = 0x21E8F60, POOL_B_END = 0x21E90A0;
@@ -67,7 +32,6 @@ namespace renzo340
 	static const uint32_t RING = 0x21EB810, RING_END = 0x21EB89C, LENGTH = 0x21EB89C, FINISHER = 0x21EB8A0;
 	static const uint32_t TEX_BASE = 0x21EB8A4, PACKET_CURSOR = 0x21EB8A8;
 	static const uint32_t PARITY = 0xC000;
-	// data (FF8_EN.exe)
 	static const void *const SOUND = (const void *)0xE50B78;
 	static const uint32_t TEXTURE_NAME = 0xC9DCE0, CAMERA = 0xE50D14, ANIM_SETS = 0xE510FC, BIND_OUT = 0x24FE9D8;
 	static const uint32_t MODEL_SPARKLE = 0xE50B7C, SPARKLE_FADE = 0xE50D04, SPARKLE_DEPTH = 0xE50CF4;
@@ -75,7 +39,6 @@ namespace renzo340
 	static const uint32_t SEQ_FLASH = 0xC9702C, SEQ_DEBRIS = 0xC972FC, SEQ_SPARK = 0xC971D8, SPARK_FRAMES = 0xC9DBD0;
 	static const uint32_t SLASH_REF = 0xC9DC30, HIT_LEAD = 0xC9DC40, HIT_OFFS = 0xC9DC70;
 	static const uint32_t SEQ_EMIT = 0xC96E80;
-	// tasks
 	static const uint32_t ORIG_FileLoader = 0x57BBE0, ORIG_Setup = 0x57BC00;
 	static const uint32_t ORIG_Controller = 0x57BD20, ORIG_HitSpark = 0x57C390, ORIG_Sparkle = 0x57C620,
 		ORIG_Trail = 0x57C950, ORIG_SparkSpawn = 0x57CED0, ORIG_Hit = 0x57D000, ORIG_Slash = 0x57D3D0,
@@ -114,15 +77,12 @@ namespace renzo340
 	};
 	static const BoneEmitDef BONE_EMIT = { 0xE, 0x1D, 0, 0x880, 0x700, 0x64, 0x19, SEQ_EMIT };
 
-	// StartBoss (0x57E2F0): the boss's sequence 1
 	static void StartBoss(uint8_t *caster, uint8_t *boss, uint32_t out, uint32_t sets, int32_t seq)
 	{
 		(void)caster; (void)out; (void)sets; (void)seq;
 		QueueChainTransformation(boss, 1);
 	}
 
-	// Bind2 (0x57E300): the container's two com-data blocks bound to the caster and to the boss; only the caster's
-	// sequence `seq` started
 	static void Bind2(uint8_t *caster, uint8_t *boss, uint32_t out, uint32_t sets, int32_t seq)
 	{
 		const uint32_t next = BindEntityModelFromComData(caster, out, sets + *(const uint32_t *)(sets + 4));
@@ -150,7 +110,6 @@ namespace renzo340
 		}
 		if (n->c == 0x23)
 		{
-			// at the hit point + (600, 100, -400) through the caster's matrix
 			Node24 *t = AddSlotTask(ORIG_RingA);
 			t->w10 = 0x258;
 			t->w12 = 0x64;
@@ -205,9 +164,6 @@ namespace renzo340
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// NodeEmitter (0x57DF60): kind-4 particles at the node's point
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl NodeEmitterTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -259,7 +215,6 @@ namespace renzo340
 		register_port(renzo340::ORIG_AngleModel, (void *)renzo340::AngleModelTask, "340 AngleModel", 340);
 		register_port(renzo340::ORIG_BoneEmitter, (void *)renzo340::BoneEmitterTask, "340 BoneEmitter", 340);
 		register_port(renzo340::ORIG_NodeEmitter, (void *)renzo340::NodeEmitterTask, "340 NodeEmitter", 340);
-		// 30 fps layer: see mag340_renzokuken_ultimecia_held.inc
 		FX_HELD(register_mag340_held();)
 	}
 }

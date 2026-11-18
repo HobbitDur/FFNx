@@ -14,48 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 184: Ultra Waves (Quistis' Blue Magic, kernel.bin section 19 "Ultra Waves", magic +4 = 184;
-// MAG_184_ULTRA_WAVES_QUISTIS*), cast by a party member (Quistis, her whip) on the enemies.
-//
-// The module 0x5C7FA0..0x5C9A30 is a copy of Ultra Waves 154 (mag154_ultra_waves.cpp, Caterchipillar's
-// attack), function for function: 17 of its 19 functions are identical up to addresses (exe data
-// -0x86678, module globals -0x147110; the setup, the root / texture tasks, the grid, the capture, the
-// warp and the private prim-model renderer). The two that differ:
-//   Controller (0x5C8070) - counter 1 binds the module's animation set (com data 0xD328B4, out block
-//     0x22BD140) to the caster (BS_BindEntityModelFromComData 0x5022C0) and starts its chain
-//     transformation 1 (QueueChainTransformation 0x505C00: Quistis' casting animation); the four
-//     emitters and the sound come at counter 6 (spawn position of the caster's effect anchor 0xF1 with
-//     flag 0x800 instead of 0x1000), the ScreenWarp at 0xE, the damage at 0x29, the task ends after 0x2D
-//     (154: 1 / 8 / 0x24 / 0x28).
-//   Emitter (0x5C8930) - a particle grows by 1/7 per tick (154: 1/6) from spawn scale 0x300 (154: 0x400).
-//
-// Structure (setup MAG_184_ULTRA_WAVES_QUISTIS 0x5C7FC0, file loader MAG_184_ULTRA_WAVES_QUISTIS_FL
-// 0x5C7FA0 = the texture file named at 0xD348B8 (mag153.tim, the same file as 154) into 0x22D7DE8; code
-// 0x5C7FA0..0x5C9A30). The setup keeps the context, the caster slot and the first target slot of action
-// 0, sets up the root queue 0x22BD130 (2 x 0x10) with RootTask and the effect queue 0x22BDAC0
-// (0x64 x 0x24) with the Controller, frees the 100 ring particles, starts camera animation 0xD32750
-// and queues the TIM.
-//   RootTask (0x5C99A0) - alternates the packet arena (0x22DB3C4 / 0x22E73C4, cursor 0x22F33C4),
-//     runs the effect queue; when it is empty queues WaitTexRestore in the root queue and ends.
-//   WaitTexRestore (0x5C9A00) - at counter 1 starts the engine texture restore task (on the even
-//     packet arena 0x22DB3C4), ends when its done flag is set.
-//   Controller (0x5C8070) - see above; nothing in the draw-only mode.
-//   Emitter (0x5C8930) - draws every ring particle of its mask (pool 0x22BD160, 100 x 0x18) with the
-//     module's prim-model renderer (ring 0xD34450, colour from the 16-entry cycle 0xD347B8, from life 6
-//     faded), then advances it (freed at life 12). Counters 0..20 spawn one particle at the emitter.
-//     Ends from counter 12 once none of its particles is left.
-//   ScreenWarp (0x5C8440) - counters 0..34: re-renders the four stage groups into the capture area of
-//     VRAM, displaces the 41 x 28 grid in depth by a travelling sine wave and draws it as 27 x 40
-//     textured quads of the capture (colour 0xD346C8[counter]); counter 0 hides the stage groups from
-//     the battle's own draw (bit 1 of 0x1D98991 + 0x2C k), 35 shows them again and ends.
-// Every task but RootTask / WaitTexRestore tests the draw-only flags (battle_to_update_flags & 0x201).
-// Entity writes: the caster's animation set and chain transformation (Controller counter 1, through the
-// engine); camera: the setup's camera animation 0xD32750 (engine).
-// Module globals: 0x22BD108..0x22F33C8 (target slot, root pool / queue, the bind block 0x22BD140,
-// particle pool, effect queue and node pool, context, caster slot, grid quad records 0x22BE8E8, texture
-// file, grid 0x22D7DF0, the draw offset 0x22DB3C0, the packet arenas and cursor 0x22F33C4).
-// Exe data written: the OT links of the static capture packets 0xD34868 (2 x 0x18).
-
 #include "mag_common.h"
 
 namespace ff8fx
@@ -65,28 +23,27 @@ namespace ultra184
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x22BD108); }       // first target of action 0 (written by the setup)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x22BD130; }            // pool 0x22BD110, 2 x 0x10
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x22BDAC0; }         // pool 0x22BDAD0, 0x64 x 0x24
+	inline int32_t &TargetSlot() { return var<int32_t>(0x22BD108); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)0x22BD130; }
+	inline TaskQueue *QEffects() { return (TaskQueue *)0x22BDAC0; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x22BE8E0); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x22BE8E4); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x22F33C4); }
-	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }     // battle frame packet arena
+	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint8_t DisplayBuffer() { return var<uint8_t>(0x1D96A80); }
 
 	static const uint32_t ARENA_EVEN = 0x22DB3C4, ARENA_ODD = 0x22E73C4;
-	static const uint32_t GRID = 0x22D7DF0;        // 28 rows x 41 vertices of 0xC bytes
+	static const uint32_t GRID = 0x22D7DF0;
 	static const uint32_t GRID_END = 0x22DB3C0;
 	static const uint32_t GRID_BYTES = GRID_END - GRID;
-	static const uint32_t QUADS = 0x22BE8E8;       // 27 rows x 40 quads of 0x60 bytes
+	static const uint32_t QUADS = 0x22BE8E8;
 	static const uint32_t QUADS_BYTES = 27 * 40 * 0x60;
-	static const uint32_t OFFSET_XY = 0x22DB3C0;   // draw offset of the capture's offset packet
-	static const uint32_t PKT_Capture = 0xD34868;  // 2 x 0x18 (per display buffer), alternate viewport
-	static const uint32_t DRAWENV = 0x1D969C8;     // 2 x 0x5C
-	static const uint32_t STAGE_Anim0 = 0x1D989A4; // stage group k: animation header 0x1D989A4 + 0x2C k (group = -0x10, flags byte -0x13)
-	static const uint32_t PARTS = 0x22BD160;       // 100 x 0x18
+	static const uint32_t OFFSET_XY = 0x22DB3C0;
+	static const uint32_t PKT_Capture = 0xD34868;
+	static const uint32_t DRAWENV = 0x1D969C8;
+	static const uint32_t STAGE_Anim0 = 0x1D989A4;
+	static const uint32_t PARTS = 0x22BD160;
 	static const int PART_COUNT = 100;
 	static const int32_t WARP_TICKS = 0x23;
 
@@ -96,32 +53,30 @@ namespace ultra184
 	static const uint32_t ORIG_Emitter = 0x5C8930;
 	static const uint32_t ORIG_ScreenWarp = 0x5C8440;
 	static const uint32_t MODEL_Ring = 0xD34450;
-	static const uint32_t *const WarpColours = (const uint32_t *)0xD346C8;  // 0x23 quad colours
-	static const uint32_t EMITTER_Vectors = 0xD34778;                       // 4 x (offset SVECTOR, direction SVECTOR)
-	static const uint32_t *const RingColours = (const uint32_t *)0xD347B8;  // 16 x (code / rgb)
-	static const int32_t *const StageDraw = (const int32_t *)0xD347F8;      // 4 x (OT word offset, RenderGeometry mode)
+	static const uint32_t *const WarpColours = (const uint32_t *)0xD346C8;
+	static const uint32_t EMITTER_Vectors = 0xD34778;
+	static const uint32_t *const RingColours = (const uint32_t *)0xD347B8;
+	static const int32_t *const StageDraw = (const int32_t *)0xD347F8;
 	static const void *const SOUND_Waves = (const void *)0xD346C0;
-	static const void *const CAMERA_Anim = (const void *)0xD32750;          // (setup)
-	static const uint32_t BIND_Block = 0x22BD140;                          // 0x20-byte block BS_BindEntityModelFromComData fills
-	static const uint32_t COM_Anim = 0xD328B4;                             // the module's animation set (com data)
+	static const void *const CAMERA_Anim = (const void *)0xD32750;
+	static const uint32_t BIND_Block = 0x22BD140;
+	static const uint32_t COM_Anim = 0xD328B4;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); } // BS_BindEntityModelFromComData
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }   // matrixMultiplyVector (rotation only)
-	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }      // sub_56BDE0
-	inline void MulMatrixInPlace(Mat4x3 *m, const Mat4x3 *n) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(m, n); }               // sub_56C220
-	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }                                                   // computeCosine
-	inline void BuildDrawEnvPacket(uint32_t packet, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(packet, env); }        // sub_45C0F0
-	inline void BuildDrawAreaPacket(uint32_t packet, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(0x45C940)(packet, rect); } // sub_45C940
-	inline void BuildDrawOffsetPacket(uint32_t packet, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C9B0)(packet, xy); }      // sub_45C9B0
+	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
+	inline void MulMatrixInPlace(Mat4x3 *m, const Mat4x3 *n) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(0x56C220)(m, n); }
+	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
+	inline void BuildDrawEnvPacket(uint32_t packet, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(packet, env); }
+	inline void BuildDrawAreaPacket(uint32_t packet, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(0x45C940)(packet, rect); }
+	inline void BuildDrawOffsetPacket(uint32_t packet, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C9B0)(packet, xy); }
 	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(bucket, packet); }
-	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }                    // sub_56CD10
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }                          // Call_Bs_ParseCamera
+	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
 	inline uint32_t RenderGeometry(uint32_t group, uint32_t header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, int32_t, uint32_t)>(0x5099D0)(group, header, ot, mode, cursor); }
-	// software GTE (the prim-model renderer)
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
@@ -130,94 +85,89 @@ namespace ultra184
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }      // GTE_ReadOTZ
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); } // set_unk_1CA8A28
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }         // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
 	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // root pool: 2 nodes of 0x10 bytes (RootTask, WaitTexRestore)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t done;      // +0x0E WaitTexRestore: texture restore finished
+		int16_t counter;
+		int16_t done;
 	};
-	struct ControllerNode // effect pool: 0x64 nodes of 0x24 bytes
+	struct ControllerNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t anchor[4]; // +0x10 caster's effect anchor 0xF1 (4th word: the spawn position's)
+		int16_t anchor[4];
 		uint8_t pad18[0xC];
 	};
 	struct EmitterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		uint16_t mask;     // +0x0E particle owner bit (1 / 4 / 0x10 / 0x40)
-		int16_t pos[3];    // +0x10
-		int16_t pad16;     // +0x16 never written (copied along into the particle's +0x0E, overwritten)
-		int16_t dir[3];    // +0x18 unit flight direction
+		int16_t counter;
+		uint16_t mask;
+		int16_t pos[3];
+		int16_t pad16;
+		int16_t dir[3];
 		int16_t pad1E;
-		int16_t angle;     // +0x20 spin of the next particle
-		int16_t colour;    // +0x22 colour cycle index of the next particle
+		int16_t angle;
+		int16_t colour;
 	};
 	struct WarpNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E[0x16];
 	};
-	struct Particle // pool 0x22BD160, 100 x 0x18
+	struct Particle
 	{
-		uint16_t mask;     // +0x00 owner emitter bit, 0 = free
-		int16_t colour;    // +0x02 colour cycle index (0..15)
-		int16_t life;      // +0x04
-		int16_t scale;     // +0x06
-		int16_t pos[3];    // +0x08
-		int16_t angle;     // +0x0E spin about the emitter direction
-		int16_t vel[3];    // +0x10
-		int16_t radius;    // +0x16 distance from the axis
+		uint16_t mask;
+		int16_t colour;
+		int16_t life;
+		int16_t scale;
+		int16_t pos[3];
+		int16_t angle;
+		int16_t vel[3];
+		int16_t radius;
 	};
-	// render header of the private prim-model renderer (0x6C bytes on the scratch stack)
 	struct RenderHeader
 	{
-		uint32_t model;    // +0x00
-		uint32_t verts;    // +0x04 vertex base (model + 8 unless flag 0x2000)
-		uint8_t far_rgb[4];// +0x08 GTE far colour
-		int32_t fade;      // +0x0C depth-cue level (IR0) with flag 0x40 / 0x80
-		uint16_t u_off;    // +0x10 flags 0x400 (add) / 0x100 (set): packet word after uv1 / uv0
+		uint32_t model;
+		uint32_t verts;
+		uint8_t far_rgb[4];
+		int32_t fade;
+		uint16_t u_off;
 		uint16_t pad12;
-		uint16_t v_off;    // +0x14 flags 0x800 (add) / 0x200 (set): packet word after uv0
+		uint16_t v_off;
 		uint16_t pad16;
-		int32_t depth;     // +0x18 added to the uv words (0 unless flag 0x1000)
-		uint32_t flags;    // +0x1C
-		uint32_t colour;   // +0x20 code / colour of the flat lists, colour scale of the gouraud lists
-		uint32_t list;     // +0x24 current primitive list
-		int32_t mac0;      // +0x28
+		int32_t depth;
+		uint32_t flags;
+		uint32_t colour;
+		uint32_t list;
+		int32_t mac0;
 		uint32_t pad2C;
-		int32_t otz;       // +0x30
-		uint32_t gte_flag; // +0x34
+		int32_t otz;
+		uint32_t gte_flag;
 		uint8_t pad38[0x20];
-		uint32_t scale_rgb;// +0x58 copy of +0x20 (gouraud lists)
-		uint32_t c[4];     // +0x5C vertex colours (gouraud lists)
+		uint32_t scale_rgb;
+		uint32_t c[4];
 	};
-	// the Emitter's matrix work area (0x88 bytes on the scratch stack)
 	struct EmitterWork
 	{
-		int16_t offs[4];   // +0x00 radius vector (4th word never written)
-		Mat4x3 m;          // +0x08 flight direction, then camera
-		Mat4x3 spin;       // +0x28 spin about the direction (translation never written)
-		int32_t scale[4];  // +0x48 (4th never written)
-		int32_t from[4];   // +0x58 (0, 0, -1)
-		int32_t to[4];     // +0x68 emitter direction
-		int32_t axis[4];   // +0x78 (4th never written)
+		int16_t offs[4];
+		Mat4x3 m;
+		Mat4x3 spin;
+		int32_t scale[4];
+		int32_t from[4];
+		int32_t to[4];
+		int32_t axis[4];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10, "Ultra Waves (Quistis) root nodes");
@@ -238,11 +188,9 @@ namespace ultra184
 {
 	template<typename T> static inline T &At(uint32_t base, uint32_t off) { return *(T *)(base + off); }
 
-	// screen clip flags of one vertex (x out of 0..0xA00 -> bit, y out of 0..0x6C0 -> bit << 4)
 	static inline bool OutX(uint32_t xy) { int16_t v = *(const int16_t *)xy; return v < 0 || v > 0xA00; }
 	static inline bool OutY(uint32_t xy) { int16_t v = *(const int16_t *)(xy + 2); return v < 0 || v > 0x6C0; }
 
-	// packet uv word offsets (flags 0x400 / 0x100 on `u_word`, 0x800 / 0x200 on `v_word`)
 	static inline void UvOffsets(const RenderHeader *h, uint32_t pkt, uint32_t u_word, uint32_t v_word)
 	{
 		const uint32_t fl = h->flags;
@@ -252,7 +200,6 @@ namespace ultra184
 		else if (fl & 0x200) At<uint16_t>(pkt, v_word) = h->v_off;
 	}
 
-	// the gouraud lists scale their vertex colours by the header colour (x * c >> 7, bytes)
 	static inline void ScaleColours(RenderHeader *h, int n)
 	{
 		h->scale_rgb = h->colour;
@@ -268,10 +215,6 @@ namespace ultra184
 
 	static inline uint32_t Bucket(uint32_t ot, const RenderHeader *h, int32_t shift) { return ot + (uint32_t)(h->otz >> shift) * 4; }
 
-	// ------------------------------------------------------------------
-	// Flat textured triangles (0x5C8D80): 0x14-byte records (code/rgb unused, vertex indices
-	// +4/+6/+8, uv0/clut +0xC, uv1/tpage +0x10, uv2 = high half of +8) -> 0x20-byte packets
-	// ------------------------------------------------------------------
 	static uint32_t ListFT3(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -336,10 +279,6 @@ namespace ultra184
 		return pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// Flat textured quads (0x5C8FE0): 0x18-byte records (vertex indices +4/+6/+8/+0xA, uv0/clut
-	// +0xC, uv1/tpage +0x10, uv2 / uv3 +0x14) -> 0x28-byte packets
-	// ------------------------------------------------------------------
 	static uint32_t ListFT4(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -411,12 +350,6 @@ namespace ultra184
 		return pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// Gouraud textured triangles (0x5C9290): 0x1C-byte records (code + colour 0, vertex indices
-	// +4/+6/+8, uv0/clut +0xC, uv1/tpage +0x10, colours 1 / 2 +0x14 / +0x18; uv2 = high half of +8)
-	// -> 0x28-byte packets; semi-transparency from header flags 2 / 8, double-sided flag 0x20,
-	// depth cue of the three colours with flag 0x80
-	// ------------------------------------------------------------------
 	static uint32_t ListGT3(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -490,11 +423,6 @@ namespace ultra184
 		return pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// Gouraud textured quads (0x5C95B0): 0x24-byte records (code + colour 0, vertex indices
-	// +4/+6/+8/+0xA, uv0/clut +0xC, uv1/tpage +0x10, uv2 / uv3 +0x14, colours 1..3 +0x18..+0x20)
-	// -> 0x34-byte packets (flags as the gouraud triangles)
-	// ------------------------------------------------------------------
 	static uint32_t ListGT4(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t list = h->list;
@@ -580,12 +508,6 @@ namespace ultra184
 		return pkt;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-model renderer (0x5C8CA0, the same code as Ultrasonic Waves' 0x60B6C0 and Ultra Waves 154's 0x608890): header h (0x6C
-	// bytes), OT, OT shift, packet cursor; the model's list block starts with two skipped words, a
-	// third list type between the flat and the gouraud lists is skipped too (2 words); an empty
-	// list is one zero word
-	// ------------------------------------------------------------------
 	static uint32_t RenderModel(RenderHeader *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t fl = h->flags;
@@ -606,13 +528,9 @@ namespace ultra184
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x5C99A0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag184_ultra_waves_quistis_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = ARENA_ODD;
 		if (!(r->counter & 1)) PacketCursor() = ARENA_EVEN;
@@ -627,9 +545,6 @@ namespace ultra184
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Texture restore wait (0x5C9A00)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl WaitTexRestore(TaskNode *n)
 	{
 		RootNode *w = (RootNode *)n;
@@ -639,12 +554,6 @@ namespace ultra184
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x5C82B0: the 41 x 28 screen grid (x -164..156, y -112..104 in steps of 8, z 0; flags 1 on
-	// the top / bottom rows, 2 on the left / right columns) and its 27 x 40 quad records: vertex
-	// pointers and, per display buffer, a POLY_FT4 of the capture (tpage 0x120 | (0x16 + x / 64),
-	// u = x % 64, v = y; the last column / row samples 7 texels instead of 8)
-	// ------------------------------------------------------------------
 	static void GridInit()
 	{
 		uint32_t v = GRID;
@@ -695,7 +604,6 @@ namespace ultra184
 		}
 	}
 
-	// 0x5C84E0 / 0x5C84C0: the stage groups' "drawn by the stage task" bit off / on
 	static void StageHide()
 	{
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) At<uint8_t>(a, 0) &= 0xFD;
@@ -705,12 +613,6 @@ namespace ultra184
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) At<uint8_t>(a, 0) |= 2;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x5C8500: renders the four stage groups into the capture area (0x180, 0x100, 320 x 216)
-	// through the other buffer's draw environment with the screen offset at the area centre, then
-	// the per-buffer static packet `capture_packets` (alternate viewport) and the draw area / offset
-	// packets of the area (`offset_xy`: the offset packet's position words)
-	// ------------------------------------------------------------------
 	static void Capture(uint32_t capture_packets, uint32_t offset_xy)
 	{
 		int16_t rect[4] = { 0x180, 0x100, 0x140, 0xD8 };
@@ -757,14 +659,9 @@ namespace ultra184
 		PacketCursor() = pkt;
 	}
 
-	// x / 41 and x / 5 with the compiler's magic numbers (truncating)
 	static inline int32_t Div41(int32_t x) { int32_t h = (int32_t)(((int64_t)x * 0x63E7063F) >> 32) >> 4; return h + (int32_t)((uint32_t)h >> 31); }
 	static inline int32_t Div5(int32_t x) { int32_t h = (int32_t)(((int64_t)x * 0x66666667) >> 32) >> 1; return h + (int32_t)((uint32_t)h >> 31); }
 
-	// ------------------------------------------------------------------
-	// 0x5C86E0: depth of every inner grid vertex for counter c of n ticks: a sine wave travelling
-	// with c (phase c * (c / 2 + 208)), its amplitude sin(sin(c / n)) * 48 / 4096, bent per column
-	// ------------------------------------------------------------------
 	static void GridWave(int32_t c, int32_t n)
 	{
 		const int32_t phase = c * ((c >> 1) + 0xD0);
@@ -786,7 +683,6 @@ namespace ultra184
 			}
 	}
 
-	// 0x5C8900: identity rotation (translation left as it is)
 	static void IdentityRotation(Mat4x3 *m)
 	{
 		uint32_t *w = (uint32_t *)m;
@@ -799,10 +695,6 @@ namespace ultra184
 		m->m[0][0] = 0x1000;
 	}
 
-	// ------------------------------------------------------------------
-	// 0x5C8800: projects the grid (identity rotation, translation (4, 4, H)) and inserts its quads
-	// (packet of display buffer `buffer`, colour `colour`) from the records `quads`
-	// ------------------------------------------------------------------
 	static void GridDraw(uint32_t quads, uint32_t buffer, uint32_t colour)
 	{
 		Mat4x3 m;
@@ -834,12 +726,8 @@ namespace ultra184
 			}
 	}
 
-	// ------------------------------------------------------------------
-	// Controller (0x5C8070)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl Controller(TaskNode *n)
 	{
-		// 30 fps layer: see mag184_ultra_waves_quistis_held.inc
 		FX_HELD(held_note_controller(n);)
 		if (DrawOnly()) return 0;
 		ControllerNode *c = (ControllerNode *)n;
@@ -883,11 +771,6 @@ namespace ultra184
 		return c->counter > 0x2D ? TASK_END : 0;
 	}
 
-
-	// ------------------------------------------------------------------
-	// Emitter (0x5C8930)
-	// ------------------------------------------------------------------
-	// the draw header / work area set-up before the particle loop
 	static void EmitterBegin(RenderHeader *h, EmitterWork *w, const EmitterNode *e)
 	{
 		h->far_rgb[0] = h->far_rgb[1] = h->far_rgb[2] = h->far_rgb[3] = 0;
@@ -901,8 +784,6 @@ namespace ultra184
 		w->to[2] = e->dir[2];
 	}
 
-	// one particle: `colour` = RingColours[colour index], `fade` = (life - 6) * 682 (used from
-	// life 6; the flags stay 0xF3 for the following particles of the loop)
 	static void ParticleDraw(RenderHeader *h, EmitterWork *w, const Particle &p, uint32_t colour, int32_t fade)
 	{
 		w->m.t[2] = p.pos[2];
@@ -937,7 +818,6 @@ namespace ultra184
 
 	static inline int32_t ParticleFade(int32_t life) { return (life - 6) * 682; }
 
-	// the update of a drawn particle; false = freed (life 12)
 	static bool ParticleUpdate(Particle &p)
 	{
 		p.life++;
@@ -956,7 +836,6 @@ namespace ultra184
 		return true;
 	}
 
-	// counters 0..20: one particle at the emitter (first free slot of the pool)
 	static void EmitterSpawn(EmitterNode *e, Particle *parts)
 	{
 		if (e->counter < 0 || e->counter > 0x14) return;
@@ -988,7 +867,6 @@ namespace ultra184
 	static uint32_t __cdecl Emitter(TaskNode *n)
 	{
 		EmitterNode *e = (EmitterNode *)n;
-		// 30 fps layer: see mag184_ultra_waves_quistis_held.inc
 		FX_HELD(held_note_emitter(e);)
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
 		EmitterWork *w = (EmitterWork *)FieldAlloc(0x88);
@@ -1012,9 +890,6 @@ namespace ultra184
 		return alive == 0 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// ScreenWarp (0x5C8440)
-	// ------------------------------------------------------------------
 	static void WarpDraw(int32_t c, uint32_t capture_packets, uint32_t offset_xy, uint32_t quads)
 	{
 		Capture(capture_packets, offset_xy);
@@ -1027,7 +902,6 @@ namespace ultra184
 		WarpNode *w = (WarpNode *)n;
 		if (w->counter < WARP_TICKS)
 		{
-			// 30 fps layer: see mag184_ultra_waves_quistis_held.inc
 			FX_HELD(held_note_warp(w);)
 			WarpDraw(w->counter, PKT_Capture, OFFSET_XY, QUADS);
 		}
@@ -1046,7 +920,6 @@ namespace ultra184
 		register_port(ultra184::ORIG_Controller, (void *)ultra184::Controller, "U184 Controller", 184);
 		register_port(ultra184::ORIG_Emitter, (void *)ultra184::Emitter, "U184 Emitter", 184);
 		register_port(ultra184::ORIG_ScreenWarp, (void *)ultra184::ScreenWarp, "U184 ScreenWarp", 184);
-		// 30 fps layer: see mag184_ultra_waves_quistis_held.inc
 		FX_HELD(register_mag184_held();)
 	}
 }

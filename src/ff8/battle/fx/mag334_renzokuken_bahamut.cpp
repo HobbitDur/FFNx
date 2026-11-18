@@ -13,35 +13,6 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// Effect 334: Renzokuken vs Bahamut (MAG_334_UNKNOWN in IDA). Squall's Renzokuken command takes the effect id from the
-// TARGET's info +0x150 table (computeCommandAction 0x48DE0B): Bahamut c0m067 has 334. The common part of the boss Renzokuken
-// modules (renzo_boss_defs.inc / renzo_boss.inc) and its own events:
-//   tick 0x39: the ring pool (RingPool 0x588FC0);
-//   tick 0x65: a turned model with its own SLOTS record (AngleModel 0x5892B0, model 0xCBB374 at the hit point, y angle
-//     rand % 0x1000, uniform scale (rand % 0x300 + 0xA00) / 3, rate - rate / 4, 14 ticks, fading from tick 6 (step 512))
-//     and a bone emitter (BoneEmitter 0x589400: the boss's effect bone 0xF0, until tick 0x20, scale 0x800..0xDFF, speed
-//     0x1E..0x77, sequence 0xCB95F0);
-//   tick 0x8E: a caster model (CasterModel 0x589710, model 0xCBE15C: the caster's matrix at the hit point (+ a zero offset
-//     through it), uniform scale (rand % 0x800 + 0x2400) / 3, rate - rate / 4, 16 ticks, fading from tick 4 (step 341)).
-//   RingPool (0x588FC0) - ticks 0..8: two rings per tick in SLOTS (alive 1): at the hit point and half way between the
-//     previous tick's hit point and this one (the second one in the record after the first, taken or not), y + 600,
-//     scale 0x800 (+0x12) growing by +0x16 (0x800, - rate / 4), facing the hit direction / the previous one flattened
-//     (x, 0, z; VectorNormalS16); every tick it draws every SLOTS record whose alive word has bit 0 (also the slot tasks'
-//     -1 records): model 0xCBD48C turned from 0xCC03E0 onto (x, 0, z) of its +0x18 / +0x1C, at its point, scaled by
-//     (that vector's x, its scale, its z), fading from life 4 (step 512), freed at life 12; ends on the first tick
-//     with none left.
-// File loader 0x587770 (IO_GetFile_MAGIC of the name at 0xCC0400, kept at 0x21F9FE0); setup MAG_334 0x587790 (not a task:
-// context 0x21F9FD8, caster 0x21F9FDC, first target 0x21F72D0, master 0x589940 in its pool 0x21F7FC8 (queue 0x21F7FD8),
-// controller 0x5878B0 in the main pool 0x21F91B0 (100 x 0x24, queue 0x21F91A0), length 0x21FA074 = 4, finisher flag
-// 0x21FA078, pools A / C / B and SLOTS freed, camera animation 0xE70EF4, TIM upload).
-// ENTITY WRITES: as every Renzokuken (caster +0 bit 0x800, +0x28 tint, both binds, chain starts, the hit-effect AnimSeq
-// task); no position write. CAMERA: the setup's camera animation only.
-// Module globals 0x21F7250..0x21FA0C8: gathered points 0x21F7250 / 0x21F7290, target 0x21F72D0, pool A 0x21F72D8, pool B
-// 0x21F74B8, hit records 0x21F7878, master pool / queue 0x21F7FC8 / 0x21F7FD8, SLOTS 0x21F7FE8 (100 x 0x20), pool C
-// 0x21F8C68, splines 0x21F8F88 / 0x21F9088, hit point / direction 0x21F9188 / 0x21F9190, main queue / pool 0x21F91A0 /
-// 0x21F91B0, previous hit point / direction 0x21F9FC0, context 0x21F9FD8, caster 0x21F9FDC, file 0x21F9FE0, trail ring
-// 0x21F9FE8, length 0x21FA074, finisher 0x21FA078, texture base 0x21FA07C, packet cursor 0x21FA080, hit offsets 0x21FA088
-// (8 x 8 bytes, zero).
 
 #include "mag_common.h"
 
@@ -49,7 +20,6 @@ namespace ff8fx
 {
 namespace renzo334
 {
-	// module globals
 	static const uint32_t PTS_A = 0x21F7250, PTS_B = 0x21F7290, TARGET_SLOT = 0x21F72D0;
 	static const uint32_t POOL_A = 0x21F72D8, POOL_A_END = 0x21F74B8;
 	static const uint32_t POOL_B = 0x21F74B8, POOL_B_SPAWN_END = 0x21F7738, POOL_B_END = 0x21F7878;
@@ -62,7 +32,6 @@ namespace renzo334
 	static const uint32_t RING = 0x21F9FE8, RING_END = 0x21FA074, LENGTH = 0x21FA074, FINISHER = 0x21FA078;
 	static const uint32_t TEX_BASE = 0x21FA07C, PACKET_CURSOR = 0x21FA080, HIT_OFFS = 0x21FA088;
 	static const uint32_t PARITY = 0x8000;
-	// data (FF8_EN.exe)
 	static const void *const SOUND = (const void *)0xE70D58;
 	static const uint32_t TEXTURE_NAME = 0xCC0400, CAMERA = 0xE70EF4, ANIM_SETS = 0xE71854, BIND_OUT = 0x24FEAD8;
 	static const uint32_t MODEL_SPARKLE = 0xE70D5C, SPARKLE_FADE = 0xE70EE4, SPARKLE_DEPTH = 0xE70ED4;
@@ -70,7 +39,6 @@ namespace renzo334
 	static const uint32_t SEQ_FLASH = 0xCB979C, SEQ_DEBRIS = 0xCB9A6C, SEQ_SPARK = 0xCB9948, SPARK_FRAMES = 0xCC0340;
 	static const uint32_t SLASH_REF = 0xCC03A0, HIT_LEAD = 0xCC03B0;
 	static const uint32_t MODEL_POOL_RING = 0xCBD48C, POOL_RING_REF = 0xCC03E0;
-	// tasks
 	static const uint32_t ORIG_FileLoader = 0x587770, ORIG_Setup = 0x587790;
 	static const uint32_t ORIG_Controller = 0x5878B0, ORIG_HitSpark = 0x587CA0, ORIG_Sparkle = 0x587F30,
 		ORIG_Trail = 0x588260, ORIG_SparkSpawn = 0x5887E0, ORIG_Hit = 0x588910, ORIG_Slash = 0x588CE0,
@@ -126,22 +94,18 @@ namespace renzo334
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// RingPool (0x588FC0): rings in SLOTS at the hit point and half way from the previous one
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct PoolWork    // its Field_Alloc block (0x68 bytes)
+	struct PoolWork
 	{
 		uint8_t pad00[8];
-		Mat4x3 cam;        // +0x08 the camera matrix
-		Mat4x3 m;          // +0x28 the ring's matrix
-		int32_t v[4];      // +0x48 the turn's target vector / the scale vector (x, scale, z)
-		int32_t axis[4];   // +0x58
+		Mat4x3 cam;
+		Mat4x3 m;
+		int32_t v[4];
+		int32_t axis[4];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(PoolWork) == 0x68, "Renzokuken 334 ring pool block");
 
-	// a pool ring: alive 1, life 0, at p (y + 600), scale 0x800 growing by 0x800, facing (dx, 0, dz) (VectorNormalS16)
 	static void PoolRing(SlotRec *r, const int16_t *p, int16_t dx, int16_t dz)
 	{
 		r->alive = 1;
@@ -159,7 +123,6 @@ namespace renzo334
 		NormalizeS16(&r->w18, &r->w18);
 	}
 
-	// the draw of one pool ring (the header holds the model) at its scale / life
 	static void PoolRingDraw(PoolWork *w, uint8_t *h, const SlotRec *r, int32_t scale, int32_t fade)
 	{
 		w->v[1] = 0;
@@ -195,7 +158,6 @@ namespace renzo334
 			if (i >= 0)
 			{
 				PoolRing(Slot(i), (const int16_t *)HIT_POS, var<int16_t>(HIT_DIR), var<int16_t>(HIT_DIR + 8));
-				// the second one in the next record (taken or not), half way from the previous hit point
 				int16_t mid[4];
 				mid[0] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT) + var<int16_t>(HIT_POS)) >> 1);
 				mid[1] = (int16_t)(((int32_t)var<int16_t>(PREV_HIT + 2) + var<int16_t>(HIT_POS + 2)) >> 1);
@@ -205,7 +167,6 @@ namespace renzo334
 				PoolRing(r, mid, var<int16_t>(PREV_HIT + 8), var<int16_t>(PREV_HIT + 0x10));
 			}
 		}
-		// 30 fps layer: see mag334_renzokuken_bahamut_held.inc
 		FX_HELD(held_note_ringpool(n);)
 		uint8_t *h = AllocHeader(0x58);
 		ff8fx::copy<(sizeof(Mat4x3))>(&w->cam, &Camera());
@@ -249,7 +210,6 @@ namespace renzo334
 		register_port(renzo334::ORIG_AngleModel, (void *)renzo334::AngleModelTask, "334 AngleModel", 334);
 		register_port(renzo334::ORIG_BoneEmitter, (void *)renzo334::BoneEmitterTask, "334 BoneEmitter", 334);
 		register_port(renzo334::ORIG_CasterModel, (void *)renzo334::CasterModelTask, "334 CasterModel", 334);
-		// 30 fps layer: see mag334_renzokuken_bahamut_held.inc
 		FX_HELD(register_mag334_held();)
 	}
 }

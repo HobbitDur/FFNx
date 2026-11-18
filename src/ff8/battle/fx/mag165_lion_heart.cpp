@@ -13,98 +13,8 @@
 //    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
-// Effect 165: Lion Heart (Squall's Renzokuken finisher, MAG_165_LION_HEART). It follows Renzokuken (160) like the other
-// finishers (163 Rough Divide, 162 Fated Circle, 164 Blasting Zone).
-//
-// Structure (file loader 0x5E9450 = the texture file named at 0xD88A94 into 0x23C6874; setup MAG_165 0x5E9470, not a task:
-// the texture base 0x23C6944 (Magic_TextureOFF_ToEAX1, also the base of pool C 0x23C5680), the packet arena 0x23C694C
-// (sub_571B70), the cast context 0x23C6860, the caster slot 0x23C6870, the first target 0x23C32EC, the node id counter
-// 0x23C6940 = 1, the hit result index 0x23C6920 = 0, the root task in its 1-node pool 0x23C34A0 (queue 0x23C34B0), the
-// director in the main pool 0x23C5920 (100 x 0x24, queue 0x23C5910), pools A / B free, the TIM upload, the caster's rotation
-// words (+0x0C / +0x10 dwords) kept in 0x23C58B0 (never read), the caster's effect bone 0xF1 (0x23C6928), the target centre
-// (0x23C6910), the effect frame 0x23C58E0 = the rotation from 0xD886E8 to the horizontal direction caster -> centre at (bone x,
-// 0, bone z), and the caster's yaw (entity +0x0E) = that angle (negated when the axis points down): Squall faces the targets):
-//   RootTask (0x5F01F0) - packet arena parity (0x23C694C, + 0x8000 on odd ticks; cursor 0x23C6948), the main queue; ends
-//     with it.
-//   DirectorTask (0x5E9650) - every tick, before the draw-only test: 0x23C6878 = camera x effect frame (never read). When the
-//     tick is draw-only it stops there (with only flag 0x200 set it asks the pause query 0x508500 and goes on if >= 0).
-//     The choreography (counter):
-//     0     sound channels stopped (sub_46B450(-1, 0)), the camera script 0xD88930 on the effect frame (shared camera-script
-//           task 0x63E9C0 in the main queue), camera return armed, the animation set 0xD780C8 bound to the caster (out block
-//           0x23C5688), the first target's / the caster's / all 7 entities' based positions (+0x1C / +0x20 dwords) kept
-//           (0x23C6938 / 0x23C6868 / 0x23C6744 + 0x28 i), the target's anchor 0x23C32F0, his sequence 1
-//     1     Trail; 2 character file 0x21C into the texture base; 8 GroundRing; 0xA sound 0xD886D4, RockBurst + Debris +
-//           BoneSparks; 0xE texture upload (pause query first); 0xF character file 0x21D; 0x14 TipFlash; 0x18 TipShards; 0x1A
-//           TipSmoke; 0x43 screen fade task (0, 1, 8, 0xFF); 0x44 2 TipRings
-//     0x4E  sequence 2, BladeSparks; 0x5A the effect frame's translation = the caster's anchor
-//     0x5B  HitDirector (15 hits); 0x64 FlatRing at the target
-//     0x67  the caster shown (flags &= ~8); 0x6F FlatRing at the caster (bone 0xF0); 0x70..0x74 the caster's y -= 800;
-//           0x77 sound 0xD886D8
-//     0x8D  Flash (screen flash ramp); 0xA1 WaveSpawner; 0xA2 texture upload (pause query first)
-//     0xC9  character file 0x21E, TipFlash2; 0xCA sound 0xD886DC; 0xCF TipRocks; 0xD3 texture upload (pause query first);
-//           0xF1 screen fade task (0, 4, 8, 0xFF); 0xF2 the effect frame's x / z = the target centre's
-//     0xF3  sequence 3, the caster's and the target's anchors (0x23C58C0 / 0x23C57A8); z step = (2 dz + 0x1130) / 16 when the
-//           target is more than 2200 in front (dz < -2200), else 0; 0xF3..0x102 the caster's z += step; 0xF5 Streak;
-//           0x120 Final (the last hit); 0x14C the effect frame's translation = the kept caster position
-//     0x14D sequence 4, the caster's based position put back (+0x1C / +0x20 from 0x23C6868), screen flash off, stage
-//           groups hidden (0x1D98991 + 0x2C k |= 2); 0x14F TargetSink + texture restore task; 0x157 sound 0xD886E0
-//     0x173 ends: stage groups hidden, screen flash off.
-//   Trail (0x5E9E00, 0x12D ticks) - Renzokuken's blade trail: a 6-entry ring 0x23C6898 (x 0x14) of the weapon point (bone 1)
-//     and the tip 666 along the blade; the newest min(6, 0x12E - counter) entries (0x23C3278 / 0x23C32B0) splined by the
-//     module's own float cubic spline (0x5EA210: natural spline 0x5EA4B0, segment sampling 0x5EA630, x87 at the game's
-//     precision control) into 32 points (0x23C56A8 / 0x23C57B0); the first tip (0x23C58B8), the unit direction tip 1 -> tip 0
-//     (0x23C58C8), the first point (0x23C58D8), the unit blade direction (0x23C5900, the hit sparks' normal); 30 gouraud quad
-//     pairs fading toward black (Renzokuken's draw, cursor + 0x24 left unused).
-//   HitDirector (0x5EC140, draws nothing, 0x6E ticks) - at the counters of table 0xD88718 (8, 0x1C, ..., 0x61) the hit i: its
-//     point = caster matrix x offset 0xD88758 + 8 i + the first tip (averaged with the previous hit's from the 5th), kept with
-//     the trail direction at 0x23C32F8 + 28 i; HitSparkA, HitSparkB, HitSlashA, HitSlashB, HitShards; before the last hit
-//     the first target and its linked entities (+0x8C chain, flag +0 bit 1) get flag 0x1000 and a TargetBounce (duration =
-//     the gap to the next hit, 8 for the first; height table 0xD887D0 - 4000); ApplyActionResultToTarget per hit.
-//   TargetBounce (0x5ED1A0, draws nothing): the entity's y (+0x1E) = its y at the start + (going up: -70 counter; else
-//     sin(counter * 0x400 / duration) x height >> 12).
-//   Final (0x5EDE90, called at 0x120): FinalRing, FinalSparkA, FinalShards, FinalFlash, FinalRingSparks; pool C cleared;
-//     flag 0x20 set on the caster, the target and its linked entities (each one's old bit kept at 0x23C6738 + 0x28 slot);
-//     ApplyActionResultToTarget.
-//   TargetSink (0x5EECD0, one per target entity, 16 ticks): the entity hidden (flags |= 4) and drawn by the effect upside
-//     down (rotation z word +0x10 = 0x800) through the clipping renderer 0x5EF0C0 (only above the floor plane y = 0: the
-//     light matrix row = the plane, its back colour = the distance), its shadow first; y = its anchor y - counter x y / 8
-//     (counters 0..8); counter 9: Shake, TargetSparks and TargetRing at the kept target position, flag 0x20 put back; counter
-//     16: the based position and rotation put back, flag 0x1000 cleared, the result applied (first target); then shown.
-//   Single models (prim-model renderer 0x572200 unless noted): GroundRing (0x5EA8E0, model 0xD879EC through MAG_066's scroll
-//     renderer 0x650720, v scroll), TipFlash / TipFlash2 (0x5EB790 / 0x5ED760, models 0xD7F960 / 0xD813B0, camera-facing),
-//     TipRing (0x5EBFC0, model 0xD8392C in the effect frame, two), HitSlashA / HitSlashB (0x5ECB40 / 0x5ECCD0, models
-//     0xD823E4 / 0xD82B5C turned onto the hit direction), FlatRing (0x5ED300, model 0xD84BE4 on the floor), ScreenWave
-//     (0x5ED590, model 0xD7B668 through 0x650720 in view space, OT + 0x4068, colour table 0xD88808), Streak (0x5EDC10, model
-//     0xD81B34 in screen space from the tip toward its point), FinalRing (0x5EE0F0, 0xD7D9A0), FinalFlash (0x5EE850, 0xD83E3C,
-//     camera-facing, its size gives the radius word 0x23C6936), TargetRing (0x5EFFF0, 0xD83244).
-//   Pool A (0x23C34C0, 200 x 0x18, entries tagged with their task's node id +0x0E, 0x23C6940 counting): RockBurst (0x5EAAF0,
-//     model 0xD83244), Debris (0x5EAD50, model 0xD85D74), BoneSparks / BladeSparks / TargetSparks (0x5EB070 / 0x5EB410 /
-//     0x5EFCE0, sequence 0xD7B1C8), TipShards (0x5EB8D0, model 0xD818A0), TipSmoke (0x5EBBD0, sequence 0xD7B4D4), HitSparkA /
-//     FinalSparkA (0x5EC550 / 0x5EE240, sequence 0xD7AFE0), HitSparkB (0x5EC7D0, sequence 0xD7B340); pool B (0x23C4780, 120 x
-//     0x20): HitShards (0x5ECE60, model 0xD81620), TipRocks (0x5ED8E0, model 0xD80230), FinalShards (0x5EE4C0, model 0xD81620:
-//     its draw loop walks 200 entries, past the pool into the module globals); pool C (at the texture base, 500 x 0x18):
-//     FinalRingSparks (0x5EE980, sequence 0xD7B340).
-//   Flash (0x5E9D50): screen flash 0x800 + counter x 0x80 for 16 ticks, then the stage groups shown. WaveSpawner (0x5ED4E0):
-//     a ScreenWave every 12 ticks. Shake (0x5F0130, 12 ticks): the camera shake word 0x1D97712 = +-(sin(counter * 0x400 / 12 +
-//     0x400) x 200 >> 12). RestoreTask (0x5F01B0) - Battle_RestoreDefaultEffectTexture on its tick 1.
-// Every task but the root / restore tests the draw-only flags (battle_to_update_flags 0x1D96A9C & 0x201).
-// ENTITY WRITES: the caster (entity 0x1D972C0 + 0x9C slot): yaw +0x0E (setup), BS_BindEntityModelFromComData (counter 0), the
-// AnimSeq chain starts 1 / 2 / 3 / 4 (counters 0 / 0x4E / 0xF3 / 0x14D), flags +0 &= ~8 (0x67), y +0x1E -= 800 (0x70..0x74),
-// z +0x20 += step (0xF3..0x102), +0x1C / +0x20 dwords put back (0x14D), flags |= 0x20 (Final) / bit 0x20 put back
-// (TargetSink start); the targets (first target and its linked entities): flags |= 0x1000 (hits), y +0x1E (TargetBounce,
-// TargetSink), flags |= 0x20 (Final), flags |= 4 / rotation +0x10 = 0x800 (TargetSink), +0x0C / +0x10 / +0x1C / +0x20 put
-// back, flags &= ~0x1000, ~4 (TargetSink end). Stage groups 0x1D98991 (+0x2C x 4) bit 1: cleared by Flash's end, set at
-// 0x14D and at the end. Squall's own motion is his sequences (AnimSeq VM, the bound set's 4 sequences, section 1 at +0x2894):
-// 1 = animation 0 then animation 1 looping; 2 = animation 2, then animation 3 without pausing while the dash runs (the
-// forward offset E5 0F = var2 x frame / frames of animation 3 each frame until var 7F reaches 0, var2 = 3100 - var 0x11:
-// Rough Divide's dash), then animation 4, animation 5 looping; 3 = animation 6, animation 7 looping; 4 = animation 8, E5 0F
-// = 0, AC 00 (the base model back, chain to the automatic sequence).
-// CAMERA: the camera script 0xD88930 (task 0x63E9C0, eye / look-at 0xB8B7F0 / 0xB8B7F8) relative to the effect frame (its
-// translation moves at 0x5A, 0xF2, 0x14C); the shake word 0x1D97712 (Shake); the module reads the camera matrix 0x1D97778 and
-// the projection word 0x1D8E038.
-// Module globals: 0x23C3278..0x23C6950 (see the addresses above; hit records 0x23C32F8 (15 x 28), entity keep blocks
-// 0x23C6738 (7 x 0x28: +0 flag bit 0x20, +4 rotation, +0xC based position), the tip point 0x23C6930 (+6 = FinalRingSparks'
-// radius), the previous hit point 0x23C6730, the last hit's record copy 0x23C6850, the renderer's camera pointer 0x23C32E8).
+
+// Effect 165: Lion Heart
 
 #include "mag_common.h"
 #include <intrin.h>
@@ -116,7 +26,6 @@ namespace lion165
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline int32_t &TargetSlot() { return var<int32_t>(0x23C32EC); }
 	inline int32_t &CasterSlot() { return var<int32_t>(0x23C6870); }
 	inline CastContext *&Context() { return var<CastContext *>(0x23C6860); }
@@ -129,25 +38,25 @@ namespace lion165
 	inline uint32_t &FrameArena() { return var<uint32_t>(0x1D8E054); }
 	inline TaskQueue *QRoot() { return (TaskQueue *)0x23C34B0; }
 	inline TaskQueue *QMain() { return (TaskQueue *)0x23C5910; }
-	static const uint32_t POOL_A = 0x23C34C0, POOL_A_END = 0x23C4780;  // 200 x 0x18
-	static const uint32_t POOL_B = 0x23C4780, POOL_B_END = 0x23C5680;  // 120 x 0x20
-	static const uint32_t FINAL_SHARDS_END = 0x23C6080;                 // FinalShards' draw loop: 200 x 0x20
-	static const uint32_t PTS_BASE = 0x23C3278, PTS_TIP = 0x23C32B0;   // trail spline input (6 x 8 each)
-	static const uint32_t SPL_BASE = 0x23C56A8, SPL_TIP = 0x23C57B0;   // trail splines (32 x 8 each)
+	static const uint32_t POOL_A = 0x23C34C0, POOL_A_END = 0x23C4780;
+	static const uint32_t POOL_B = 0x23C4780, POOL_B_END = 0x23C5680;
+	static const uint32_t FINAL_SHARDS_END = 0x23C6080;
+	static const uint32_t PTS_BASE = 0x23C3278, PTS_TIP = 0x23C32B0;
+	static const uint32_t SPL_BASE = 0x23C56A8, SPL_TIP = 0x23C57B0;
 	static const uint32_t TIP0 = 0x23C58B8, TRAIL_DIR = 0x23C58C8, BASE0 = 0x23C58D8, BLADE_DIR = 0x23C5900;
-	static const uint32_t RING = 0x23C6898;                             // trail ring (6 x 0x14)
-	static const uint32_t FRAME = 0x23C58E0;                            // effect frame (setup; translation moved by the director)
-	static const uint32_t CAM_FRAME = 0x23C6878;                        // camera x effect frame (director, every tick)
+	static const uint32_t RING = 0x23C6898;
+	static const uint32_t FRAME = 0x23C58E0;
+	static const uint32_t CAM_FRAME = 0x23C6878;
 	static const uint32_t BIND_OUT = 0x23C5688;
-	static const uint32_t HITS = 0x23C32F8;                             // hit records (15 x 28)
+	static const uint32_t HITS = 0x23C32F8;
 	static const uint32_t PREV_HIT = 0x23C6730, LAST_HIT = 0x23C6850;
-	static const uint32_t KEEP = 0x23C6738;                             // entity keep blocks (7 x 0x28)
-	static const uint32_t TIP = 0x23C6930;                              // blade tip point (x, y, z, radius)
-	static const uint32_t BONE_F1 = 0x23C6918;                          // the caster's effect bone 0xF1 (GroundRing / RockBurst / Debris)
+	static const uint32_t KEEP = 0x23C6738;
+	static const uint32_t TIP = 0x23C6930;
+	static const uint32_t BONE_F1 = 0x23C6918;
 	static const uint32_t TARGET_KEPT = 0x23C6938, CASTER_KEPT = 0x23C6868;
 	static const uint32_t TARGET_ANCHOR = 0x23C32F0, TARGET_CENTRE = 0x23C6910;
-	static const uint32_t CASTER_POS = 0x23C58C0, TARGET_POS = 0x23C57A8; // anchors at counter 0xF3
-	static const uint32_t CAM_PTR = 0x23C32E8;                          // the clipping renderer's camera pointer
+	static const uint32_t CASTER_POS = 0x23C58C0, TARGET_POS = 0x23C57A8;
+	static const uint32_t CAM_PTR = 0x23C32E8;
 
 	static const uint32_t ORIG_Root = 0x5F01F0, ORIG_Director = 0x5E9650, ORIG_Flash = 0x5E9D50, ORIG_Trail = 0x5E9E00,
 		ORIG_GroundRing = 0x5EA8E0, ORIG_RockBurst = 0x5EAAF0, ORIG_Debris = 0x5EAD50, ORIG_BoneSparks = 0x5EB070,
@@ -159,40 +68,38 @@ namespace lion165
 		ORIG_FinalShards = 0x5EE4C0, ORIG_FinalFlash = 0x5EE850, ORIG_FinalRingSparks = 0x5EE980, ORIG_TargetSink = 0x5EECD0,
 		ORIG_TargetSparks = 0x5EFCE0, ORIG_TargetRing = 0x5EFFF0, ORIG_Shake = 0x5F0130, ORIG_Restore = 0x5F01B0;
 
-	// data (FF8_EN.exe)
 	static const uint32_t ANIM_DATA = 0xD780C8, CAMERA_SCRIPT = 0xD88930;
 	static const void *const SOUND_A = (const void *)0xD886D4, *const SOUND_B = (const void *)0xD886D8,
 		*const SOUND_C = (const void *)0xD886DC, *const SOUND_D = (const void *)0xD886E0;
-	static const uint32_t REF_BACK = 0xD886E8;   // (0, 0, -0x1000): the models' reference direction
-	static const uint32_t REF_RIGHT = 0xD886F8;  // (0x1000, 0, 0): Streak's
-	static const uint32_t REF_UP = 0xD88708;     // (0, -0x1000, 0): FinalShards'
-	static const uint32_t HIT_TIMES = 0xD88718;  // 15 (+1) counters of the hits
-	static const uint32_t HIT_OFFSETS = 0xD88758;// 15 x SVECTOR offsets in the caster's frame
-	static const uint32_t HIT_HEIGHTS = 0xD887D0;// 14 bounce heights (+ 4000)
-	static const uint32_t WAVE_COLOURS = 0xD88808;// 18 colour words of ScreenWave
-	static const uint32_t CLIP_SLOTS = 0xD88850; // 7 x 8 vertex slots of the clipped triangle's cases
+	static const uint32_t REF_BACK = 0xD886E8;
+	static const uint32_t REF_RIGHT = 0xD886F8;
+	static const uint32_t REF_UP = 0xD88708;
+	static const uint32_t HIT_TIMES = 0xD88718;
+	static const uint32_t HIT_OFFSETS = 0xD88758;
+	static const uint32_t HIT_HEIGHTS = 0xD887D0;
+	static const uint32_t WAVE_COLOURS = 0xD88808;
+	static const uint32_t CLIP_SLOTS = 0xD88850;
 	static const uint32_t SEQ_SPARK = 0xD7B1C8, SEQ_SMOKE = 0xD7B4D4, SEQ_HITA = 0xD7AFE0, SEQ_HITB = 0xD7B340;
 	static const uint32_t MODEL_GROUNDRING = 0xD879EC, MODEL_ROCK = 0xD83244, MODEL_DEBRIS = 0xD85D74, MODEL_TIPFLASH = 0xD7F960,
 		MODEL_TIPSHARD = 0xD818A0, MODEL_TIPRING = 0xD8392C, MODEL_SLASHA = 0xD823E4, MODEL_SLASHB = 0xD82B5C,
 		MODEL_SHARD = 0xD81620, MODEL_FLATRING = 0xD84BE4, MODEL_WAVE = 0xD7B668, MODEL_TIPFLASH2 = 0xD813B0,
 		MODEL_TIPROCK = 0xD80230, MODEL_STREAK = 0xD81B34, MODEL_FINALRING = 0xD7D9A0, MODEL_FINALFLASH = 0xD83E3C;
-	static const float SPLINE_THREE = 3.0f, SPLINE_SIX = 6.0f; // 0xB6995C / 0xB6B988
+	static const float SPLINE_THREE = 3.0f, SPLINE_SIX = 6.0f;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(0x508500)(); }                                          // sub_508500
-	inline void StopSounds(int32_t a, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t)>(0x46B450)(a, b); }              // sub_46B450
-	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); } // MAG066_CamScript_Start
-	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(0x50A730)(); }                                                  // BS_Camera_ArmReturnAfterEffect
+	inline int32_t PauseQuery() { return fn<int32_t (__cdecl *)()>(0x508500)(); }
+	inline void StopSounds(int32_t a, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t)>(0x46B450)(a, b); }
+	inline void CameraScriptStart(uint32_t script, uint32_t frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, uint32_t, void *, TaskQueue *, int32_t)>(0x63E960)(script, frame, entity, q, n); }
+	inline void ArmCameraReturn() { fn<void (__cdecl *)()>(0x50A730)(); }
 	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
-	inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }    // BattleFile_CharacterLoad
-	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }                           // Battle_QueueTIMUpload_GetEOF
+	inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(0x508480)(id, dst); }
+	inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(0x505E30)(tim); }
 	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t a, void *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(0x502170)(entity, bone, a, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); } // NormalizeVectorToFixedPoint
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }                                    // computeCosine
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }    // GTE_MatrixMultiply (b = a x b)
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); } // pre_someCameraWork_45DD60
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); }
 	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
@@ -204,129 +111,124 @@ namespace lion165
 	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }   // GTE_ReadOTZ
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }             // MAC = LLM * V0 + BK
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
 	inline void GteMVMVA_LightV1Bk() { fn<void (__cdecl *)()>(0x4607F0)(); }
 	inline void GteMVMVA_LightV2Bk() { fn<void (__cdecl *)()>(0x460800)(); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }               // GTE_MVMVA_RotV0_Tr_2
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // BK = m.t
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }   // R = s * I
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); } // TR = v
-	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }                   // TR = MAC1..3
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DE00)(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(0x64DD70)(v); }
+	inline void GteTransFromMAC() { fn<void (__cdecl *)()>(0x64DE40)(); }
 	inline void GteWriteControlReg(int32_t value, int32_t reg) { fn<void (__cdecl *)(int32_t, int32_t)>(0x45D7F0)(value, reg); }
 	inline void GteWriteDataReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x45D7C0)(value, reg); }
-	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); } // MAG_066_RenderScrollPrimModel
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); } // BattleEntity_DrawShadow
+	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x650720)(h, ot, mode, cursor); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline uint32_t OT0() { return var<uint32_t>(0x1D8E04C); }
 	inline int16_t ProjectionH() { return var<int16_t>(0x1D8E038); }
 
-	// ------------------------------------------------------------------
-	// Node / record layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // root pool, 1 x 0x10 (0x23C34A0)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t c;         // +0x0C
+		int16_t c;
 		int16_t pad0E;
 	};
-	struct Node24 // main pool (0x23C5920), 0x24 bytes
+	struct Node24
 	{
 		TaskNode hdr;
-		int16_t c;         // +0x0C counter
-		int16_t e;         // +0x0E node id (pool tasks) / hit index / entity slot / delay / restore: done
-		int16_t w10, w12, w14, w16; // +0x10 position
-		int16_t w18;       // +0x18 angle
-		int16_t w1A;       // +0x1A angle rate / duration / hit index
-		int16_t w1C;       // +0x1C scale
-		int16_t w1E;       // +0x1E scale rate
-		int16_t w20;       // +0x20 y scale / y
-		int16_t w22;       // +0x22 y scale rate / step
+		int16_t c;
+		int16_t e;
+		int16_t w10, w12, w14, w16;
+		int16_t w18;
+		int16_t w1A;
+		int16_t w1C;
+		int16_t w1E;
+		int16_t w20;
+		int16_t w22;
 	};
-	struct PoolE // pools A / C, 0x18 bytes
+	struct PoolE
 	{
-		int32_t id;        // +0x00 the task's node id, 0 = free
-		int16_t life;      // +0x04
-		int16_t scale;     // +0x06
-		int16_t a[8];      // +0x08..+0x16: per task (see the tasks)
+		int32_t id;
+		int16_t life;
+		int16_t scale;
+		int16_t a[8];
 	};
-	struct PoolE2 // pool B, 0x20 bytes
+	struct PoolE2
 	{
-		int32_t id;        // +0x00
-		int16_t life;      // +0x04
-		int16_t scale;     // +0x06
-		int16_t a[12];     // +0x08..+0x1E
+		int32_t id;
+		int16_t life;
+		int16_t scale;
+		int16_t a[12];
 	};
-	struct RingEntry // trail ring, 0x14 bytes
+	struct RingEntry
 	{
 		uint32_t alive;
-		uint32_t base[2];  // weapon point (x, y | z, 4th word)
-		uint32_t tip[2];   // tip
+		uint32_t base[2];
+		uint32_t tip[2];
 	};
-	struct HitRec // hit records, 28 bytes
+	struct HitRec
 	{
-		int16_t pos[4];    // +0x00
-		int32_t dir[4];    // +0x08 the trail direction at the hit (+0x14: 0x23C58D4)
+		int16_t pos[4];
+		int32_t dir[4];
 		uint32_t pad18;
 	};
-	struct KeepBlock // entity keep blocks, 0x28 bytes
+	struct KeepBlock
 	{
-		uint16_t flag20;   // +0x00 the flag bit 0x20 before Final
+		uint16_t flag20;
 		uint16_t pad02;
-		uint32_t rot[2];   // +0x04 rotation dwords (+0x0C / +0x10) before TargetSink
-		uint32_t pos[2];   // +0x0C based position dwords (+0x1C / +0x20) at counter 0
+		uint32_t rot[2];
+		uint32_t pos[2];
 		uint8_t pad14[0x14];
 	};
-	struct TrailWork   // Trail's Field_Alloc block (0x40)
+	struct TrailWork
 	{
 		uint8_t pad00[8];
-		int32_t otz;       // +0x08
-		uint32_t flag;     // +0x0C
-		uint32_t col0;     // +0x10 the segment's leading colour
-		uint32_t col1;     // +0x14 its trailing colour (DPCS)
+		int32_t otz;
+		uint32_t flag;
+		uint32_t col0;
+		uint32_t col1;
 		uint8_t pad18[4];
-		uint32_t base_col; // +0x1C
-		int16_t base[4];   // +0x20 the weapon point (4th word never written)
-		int16_t tip[4];    // +0x28 the tip (4th word never written)
-		int32_t dir[4];    // +0x30 the blade direction (4th word never written)
+		uint32_t base_col;
+		int16_t base[4];
+		int16_t tip[4];
+		int32_t dir[4];
 	};
-	struct ModelWork   // the pool tasks' Field_Alloc blocks (0x48 .. 0x78)
+	struct ModelWork
 	{
-		int16_t ang[4];    // +0x00 angles (TipSmoke: +0x08 the sprite's position)
-		Mat4x3 m1;         // +0x08 (camera copy / frame)
-		Mat4x3 m2;         // +0x28 (sprites: +0x28 direction, +0x38 camera-space position)
-		int32_t v[4];      // +0x48 scale vector / axis
-		int32_t w[4];      // +0x58
-		int32_t x[4];      // +0x68 (FinalShards' scale vector)
+		int16_t ang[4];
+		Mat4x3 m1;
+		Mat4x3 m2;
+		int32_t v[4];
+		int32_t w[4];
+		int32_t x[4];
 	};
-	// the clipping renderer's header (TargetSink's 0x1A8-byte block)
 	struct ClipHeader
 	{
-		uint32_t prims;    // +0x00 current primitive list
-		uint32_t verts;    // +0x04 transformed vertex buffer (0x1D98B3C)
-		uint16_t ntri;     // +0x08
-		uint16_t nquad;    // +0x0A
-		uint16_t w0C, w0E; // +0x0C
-		uint32_t code;     // +0x10 the entity's +0x28 (code / colour word of the packets)
-		uint32_t mask;     // +0x14 the parts drawn (entity +0x7C; weapon: all)
+		uint32_t prims;
+		uint32_t verts;
+		uint16_t ntri;
+		uint16_t nquad;
+		uint16_t w0C, w0E;
+		uint32_t code;
+		uint32_t mask;
 		uint8_t pad18[0x14];
-		uint32_t clip;     // +0x2C the triangle's crossing edges (1 / 2 / 4)
-		uint32_t col;      // +0x30 copy of +0x10
-		uint32_t uv0;      // +0x34 the triangle's first uv / clut word
-		uint32_t uv1;      // +0x38 its second uv / tpage word
-		uint32_t ot;       // +0x3C
-		uint32_t shift;    // +0x40
-		uint32_t cursor;   // +0x44
-		int32_t mac0;      // +0x48
+		uint32_t clip;
+		uint32_t col;
+		uint32_t uv0;
+		uint32_t uv1;
+		uint32_t ot;
+		uint32_t shift;
+		uint32_t cursor;
+		int32_t mac0;
 		uint32_t pad4C;
-		int32_t otz;       // +0x50
-		uint32_t flag;     // +0x54
-		uint8_t slot[6][0x10]; // +0x58 vertices v0 / v1 / v2, the edge points 01 / 12 / 20 (+0x0C of slots 3..5: +0x90 /
-		                       //       +0xA0 / +0xB0 the crossing flags, +0x94 / +0xA4 / +0xB4 the vertices' plane distances)
-		int16_t plane[4];  // +0xB8 the plane normal, +0xBE its distance
+		int32_t otz;
+		uint32_t flag;
+		uint8_t slot[6][0x10];
+		int16_t plane[4];
 		uint8_t padC0[8];
-		uint32_t ptr[7][8];// +0xC8 vertex slot pointers of the 7 cases (also the start of the entity matrix copy)
+		uint32_t ptr[7][8];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node24) == 0x24 && sizeof(PoolE) == 0x18 && sizeof(PoolE2) == 0x20, "Lion Heart nodes");
@@ -341,7 +243,6 @@ namespace lion165
 	inline HitRec *Hit(int32_t i) { return (HitRec *)(HITS + 28 * i); }
 	inline KeepBlock *Keep(int32_t slot) { return (KeepBlock *)(KEEP + 0x28 * slot); }
 
-	// first free entry (id 0) of a pool, or -1 (none / index >= max)
 	static int32_t FreeSlot(uint32_t pool, uint32_t end, uint32_t stride, int32_t max)
 	{
 		int32_t i = 0;
@@ -355,14 +256,12 @@ namespace lion165
 	static int32_t FreeA() { return FreeSlot(POOL_A, POOL_A_END, 0x18, 0xC8); }
 	static int32_t FreeB() { return FreeSlot(POOL_B, POOL_B_END, 0x20, 0x78); }
 
-	// the entries of a node id freed (a pool task's end)
 	static void ClearIdA(int32_t id)
 	{
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 			if (*(const int32_t *)a == id) *(int32_t *)a = 0;
 	}
 
-	// node id of a new pool task (post-increment of 0x23C6940)
 	static inline int16_t TakeId()
 	{
 		const int32_t id = NextId();
@@ -370,11 +269,9 @@ namespace lion165
 		return (int16_t)id;
 	}
 
-	// task end tests of the counters
 	static inline uint32_t EndAt(int16_t c, int16_t limit) { return c >= limit ? TASK_END : 0; }
 	static inline uint32_t EndIfNone(int32_t count) { return count != 0 ? 0 : TASK_END; }
 
-	// the index of an entity in the 7 battle entity slots, or 7
 	static int32_t EntityIndex(const uint8_t *e)
 	{
 		int32_t i = 0;
@@ -396,9 +293,6 @@ namespace ff8fx
 {
 namespace lion165
 {
-	// ------------------------------------------------------------------
-	// Weapon bone (0x5EA7D0 / 0x5EA750: Renzokuken's 0x5FFF60 / 0x5FFEE0, Blasting Zone's 0x5F0A90 / 0x5F0A10)
-	// ------------------------------------------------------------------
 	static void BoneFrame(uint8_t *anim_header, int32_t bone, int32_t *dir, int16_t *pos)
 	{
 		const uint8_t *sk = *(uint8_t **)*(uint8_t **)(anim_header + 4);
@@ -419,7 +313,7 @@ namespace lion165
 		uint8_t *w = *(uint8_t **)(entity + 0x78);
 		if (!w) return;
 		BoneFrame(w, bone, dir, pos);
-		Mat4x3 m; // (pad +0x12: ComposeAffineTransform's)
+		Mat4x3 m;
 		ComposeAffineTransform((const Mat4x3 *)(entity + 0x40), (const Mat4x3 *)(w + 0x24), &m);
 		TransformVectorBy3x3Matrix(&m, dir, dir);
 		Normalize(dir, dir);
@@ -429,17 +323,15 @@ namespace lion165
 		pos[2] = (int16_t)(pos[2] + (int16_t)m.t[2]);
 	}
 
-	// 0x5EB710: the blade tip point 0x23C6930 = the weapon's bone 1 + 380 along the blade (= Blasting Zone's 0x5F0990)
 	static void SetTipPoint()
 	{
-		int32_t dir[4]; // (4th word never written)
+		int32_t dir[4];
 		WeaponBone(Caster(), 1, dir, (int16_t *)TIP);
 		var<int16_t>(TIP) = (int16_t)(var<int16_t>(TIP) + (int16_t)(mul32(dir[0], 380) >> 12));
 		var<int16_t>(TIP + 2) = (int16_t)(var<int16_t>(TIP + 2) + (int16_t)(mul32(dir[1], 380) >> 12));
 		var<int16_t>(TIP + 4) = (int16_t)(var<int16_t>(TIP + 4) + (int16_t)(mul32(dir[2], 380) >> 12));
 	}
 
-	// 0x5E9D00 / 0x5E9DB0: the four stage groups' flag bit 1 set / cleared (= Blasting Zone's 0x5F0950 / 0x5F0970)
 	static void StageGroupsHide()
 	{
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) |= 2;
@@ -449,20 +341,12 @@ namespace lion165
 		for (uint32_t a = 0x1D98991; a < 0x1D98A41; a += 0x2C) var<uint8_t>(a) &= 0xFD;
 	}
 
-	// ------------------------------------------------------------------
-	// Trail spline (0x5EA210 / 0x5EA4B0 / 0x5EA630): float maths on the x87 FPU. The game runs with the precision control
-	// its CRT sets (_controlfp(_PC_53): 53-bit significands, __setdefaultprecision 0x55F8AE), so each x87 operation rounds
-	// to a double exactly like the same IEEE double operation; values kept in x87 registers are doubles here, values the
-	// original stores (fstp dword) are floats. __ftol truncates (an out-of-range value gives the integer indefinite, low
-	// word 0).
-	// ------------------------------------------------------------------
 	static inline int16_t Ftol16(double v)
 	{
 		if (!(v >= -9223372036854775808.0 && v < 9223372036854775808.0)) return 0;
 		return (int16_t)(uint16_t)(uint64_t)(int64_t)v;
 	}
 
-	// 0x5EA4B0: natural cubic spline second derivatives M of (X, Y), n points (H, D: its 0x44-byte scratch block)
 	static void SplineSolve(int32_t n, const float *X, const float *Y, float *M)
 	{
 		float *H = (float *)FieldAlloc(0x44);
@@ -489,7 +373,6 @@ namespace lion165
 		FieldFree(0x44);
 	}
 
-	// 0x5EA630: the steps points of segment seg (forward differences of its cubic); out[0] = Y[seg], out[steps - 1] first Y[seg + 1]
 	static void SplineEval(const float *X, const float *Y, const float *M, int32_t seg, int32_t steps, float *out)
 	{
 		const int32_t s = (int16_t)seg;
@@ -520,7 +403,6 @@ namespace lion165
 		}
 	}
 
-	// 0x5EA210: total points (stride 8, x / y / z words) of the spline through the n points src into dst
 	static void SplineCurve(int32_t n, const int16_t *src, int32_t total, int16_t *dst)
 	{
 		uint8_t *a = (uint8_t *)FieldAlloc(0x190);
@@ -545,13 +427,6 @@ namespace lion165
 		FieldFree(0x190);
 	}
 
-	// ------------------------------------------------------------------
-	// Clipping model renderer (0x5EF0C0 and its list / clip functions 0x5EF3C0 / 0x5EF910 / 0x5EF9B0 / 0x5EFAF0 / 0x5EFC10;
-	// = Shiva's 0x5C50D0 family): a battle model's parts through their bone matrices into the vertex buffer, then the
-	// textured triangles / quads above the plane (light matrix row 1 = the plane normal, RBK = its distance: MVMVA LV x BK =
-	// the vertices' plane distances): wholly above drawn, crossing ones clipped at the plane.
-	// ------------------------------------------------------------------
-	// 0x5EFAF0: the point where the edge a -> b crosses the plane, its uv word interpolated
 	static void ClipEdge(const int16_t *a, const int16_t *b, const int16_t *plane, int16_t *out)
 	{
 		const int32_t dx = (int32_t)b[0] - a[0];
@@ -571,7 +446,6 @@ namespace lion165
 		out[3] = (int16_t)((uint16_t)u | (uint16_t)(v & 0xFF00));
 	}
 
-	// 0x5EF910: a POLY_FT3 of three vertex slots (uv words from the slots' 4th words)
 	static void ClipTriFT3(ClipHeader *h, const int16_t *a, const int16_t *b, const int16_t *c)
 	{
 		const uint32_t pkt = h->cursor;
@@ -591,7 +465,6 @@ namespace lion165
 		h->cursor = pkt + 0x20;
 	}
 
-	// 0x5EFC10: a POLY_FT4 of four vertex slots
 	static void ClipQuadFT4(ClipHeader *h, const int16_t *a, const int16_t *b, const int16_t *c, const int16_t *d)
 	{
 		const uint32_t pkt = h->cursor;
@@ -619,7 +492,6 @@ namespace lion165
 	static inline int32_t &SlotWord(ClipHeader *h, int32_t k, int32_t off) { return *(int32_t *)(h->slot[k] + off); }
 	static inline const int16_t *SlotPtr(const ClipHeader *h, int32_t f, int32_t i) { return (const int16_t *)h->ptr[f][i]; }
 
-	// 0x5EF9B0: a triangle crossing the plane: the crossing edges' points, then the case's triangle or quad above it
 	static void ClipTriangle(ClipHeader *h)
 	{
 		if (SlotWord(h, 3, 8)) ClipEdge(Slot(h, 0), Slot(h, 1), h->plane, Slot(h, 3));
@@ -641,8 +513,6 @@ namespace lion165
 		}
 	}
 
-	// the three loaded vertices' plane distances (+0x94 / +0xA4 / +0xB4) and crossing flags (+0x90 / +0xA0 / +0xB0); the
-	// triangle drawn whole (all >= 0, not all 0), clipped (a sign change) or not at all
 	static void ClipPlaneTest(ClipHeader *h)
 	{
 		GteMVMVA_LightV0Bk();
@@ -670,8 +540,6 @@ namespace lion165
 		*(uint32_t *)(h->slot[k] + 4) = At<uint32_t>(v, 4);
 	}
 
-	// 0x5EF3C0: the part's triangles (0x10-byte records) and quads (0x14-byte records, two triangles: the second one without
-	// the screen flag / backface tests of the first)
 	static uint32_t ClipRenderPrims(ClipHeader *h, uint32_t ot, uint32_t shift, uint32_t cursor)
 	{
 		h->col = h->code;
@@ -717,7 +585,6 @@ namespace lion165
 			GteReadMAC0(&h->mac0);
 			if (h->mac0 <= 0) continue;
 			ClipPlaneTest(h);
-			// the second triangle (v3, v1, v2)
 			LoadSlot(h, 0, At<uint16_t>(p, 6));
 			LoadSlot(h, 1, At<uint16_t>(p, 2));
 			LoadSlot(h, 2, At<uint16_t>(p, 4));
@@ -732,8 +599,6 @@ namespace lion165
 		return h->cursor;
 	}
 
-	// 0x5EF0C0: the model's parts in the mask (+0x14) through their bones (vertex groups: bone, count, x / y / z words) into
-	// the vertex buffer (+0x04), each part's primitives with the camera
 	static uint32_t ClipRenderModel(uint32_t model, ClipHeader *h, uint32_t ot, uint32_t shift, uint32_t cursor)
 	{
 		GteWriteControlReg(*(const int32_t *)&h->plane[0], 8);
@@ -789,15 +654,11 @@ namespace lion165
 		return cursor;
 	}
 
-	// 0x5EEF80: the plane's distance word (b + 6) = -(b . a) >> 12
 	static void PlaneDistance(const int16_t *a, int16_t *b)
 	{
 		b[3] = (int16_t)-((mul32(a[2], b[2]) + mul32(a[1], b[1]) + mul32(a[0], b[0])) >> 12);
 	}
 
-	// 0x5EEFC0: an entity drawn through the clipping renderer: its shadow (unless flag 0x20), its body (parts of +0x7C) at its
-	// pose, then its weapon (all parts; its matrix = the renderer's slot pointers composed with the weapon's: the 0xC8 block
-	// was overwritten by the body's draw)
 	static void DrawClipped(ClipHeader *h, uint8_t *ent)
 	{
 		uint8_t *b = (uint8_t *)h;
@@ -821,10 +682,6 @@ namespace lion165
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Trail (0x5E9E00)
-	// ------------------------------------------------------------------
-	// the weapon point and the tip 666 along the blade into the work block
 	static void TrailPoints(TrailWork *w)
 	{
 		WeaponBone(Caster(), 1, w->dir, w->base);
@@ -833,7 +690,6 @@ namespace lion165
 		w->tip[2] = (int16_t)((int16_t)(mul32(w->dir[2], 666) >> 12) + w->base[2]);
 	}
 
-	// newest-first gather of at most `want` ring entries from slot idx into the two point lists; returns the count
 	static int32_t TrailGather(const uint8_t *ring, int32_t idx, int32_t want, uint8_t *pa, uint8_t *pb)
 	{
 		int32_t cnt = 0;
@@ -853,7 +709,6 @@ namespace lion165
 		return cnt;
 	}
 
-	// the trail's derived globals: the first tip, the unit direction tip 1 -> tip 0, the first point, the unit blade direction
 	static void TrailDirections(const uint8_t *sa, const uint8_t *sb)
 	{
 		var<uint32_t>(TIP0) = *(const uint32_t *)sb;
@@ -872,9 +727,6 @@ namespace lion165
 		Normalize(b, b);
 	}
 
-	// 30 quad pairs between the two splines: gouraud from the base colour 0x3A903030 fading toward the far colour (black)
-	// along the trail, and a copy whose leading edge is 0x3A000000 (Renzokuken's 0x5FFAA0 draw); the cursor ends at the
-	// second packet (0x24 past the last pair)
 	static void TrailDraw(const uint8_t *sa, const uint8_t *sb, TrailWork *w)
 	{
 		GteSetRotMatrix(&Camera());
@@ -923,8 +775,6 @@ namespace lion165
 
 	static int32_t TrailWant(int32_t c) { return c >= 0x128 ? 0x12E - c : 6; }
 
-	// what the original Trail leaves at [entry esp - 4] (its colour accumulator local, 30 x 0x1000 after its draw): HitDirector's
-	// never-written stack word (see HitDirector)
 	static uint32_t g_trail_slot4 = 0;
 	static bool g_trail_slot4_known = false;
 
@@ -947,7 +797,6 @@ namespace lion165
 			SplineCurve(cnt, (const int16_t *)PTS_BASE, 0x20, (int16_t *)SPL_BASE);
 			SplineCurve(cnt, (const int16_t *)PTS_TIP, 0x20, (int16_t *)SPL_TIP);
 			TrailDirections((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP);
-			// 30 fps layer: see mag165_lion_heart_held.inc
 			FX_HELD(held_note_trail(n);)
 			TrailDraw((const uint8_t *)SPL_BASE, (const uint8_t *)SPL_TIP, w);
 			g_trail_slot4 = 0x1E000;
@@ -960,12 +809,8 @@ namespace lion165
 		return EndAt(n->c, 0x12D);
 	}
 
-	// ------------------------------------------------------------------
-	// Spawners (called by the director)
-	// ------------------------------------------------------------------
 	static Node24 *AddMain(uint32_t fn) { return (Node24 *)AddTaskToQueue(QMain(), fn); }
 
-	// 0x5E9CE0: a task with counter / word +0xE cleared
 	static void AddCleared(uint32_t fn)
 	{
 		Node24 *t = AddMain(fn);
@@ -973,7 +818,6 @@ namespace lion165
 		t->e = 0;
 	}
 
-	// 0x5E9D20: the screen flash ramp (16 ticks, 0x800 more, then the stage groups shown)
 	static void AddFlash()
 	{
 		Node24 *t = AddMain(ORIG_Flash);
@@ -983,7 +827,6 @@ namespace lion165
 		t->w1A = 1;
 	}
 
-	// 0x5E9DD0: the trail, its ring cleared
 	static void AddTrail()
 	{
 		Node24 *t = AddMain(ORIG_Trail);
@@ -991,7 +834,6 @@ namespace lion165
 		for (uint32_t a = RING; a < RING + 6 * 0x14; a += 0x14) *(uint32_t *)a = 0;
 	}
 
-	// 0x5EA850: the ground ring at the caster's effect bone 0xF1 (y 0)
 	static void AddGroundRing()
 	{
 		GetEffectSpawnPosition(Caster(), 0xF1, 0, (void *)BONE_F1);
@@ -1006,7 +848,6 @@ namespace lion165
 		t->w20 = 0x100;
 	}
 
-	// 0x5EAA50: RockBurst (at the bone, y 0), Debris (at the bone), BoneSparks, each with a new node id
 	static void AddRockTrio()
 	{
 		Node24 *t = AddMain(ORIG_RockBurst);
@@ -1025,7 +866,6 @@ namespace lion165
 		t->c = 0;
 	}
 
-	// 0x5EB3E0
 	static void AddBladeSparks()
 	{
 		Node24 *t = AddMain(ORIG_BladeSparks);
@@ -1033,14 +873,12 @@ namespace lion165
 		t->c = 0;
 	}
 
-	// the tip point copied into a new node
 	static void AtTip(Node24 *t)
 	{
 		*(uint32_t *)&t->w10 = var<uint32_t>(TIP);
 		*(uint32_t *)&t->w14 = var<uint32_t>(TIP + 4);
 	}
 
-	// 0x5EB6D0
 	static void AddTipFlash()
 	{
 		SetTipPoint();
@@ -1051,7 +889,6 @@ namespace lion165
 		t->w1C = 0x95;
 	}
 
-	// 0x5EB890 / 0x5EBB90 / 0x5ED8A0: a pool task at the tip with a new node id
 	static void AddAtTipWithId(uint32_t fn)
 	{
 		Node24 *t = AddMain(fn);
@@ -1060,7 +897,6 @@ namespace lion165
 		AtTip(t);
 	}
 
-	// 0x5EBEF0: two rings at the tip (+0xE = 0 / 1: the y angle -0x300 / 0x300)
 	static void AddTipRings()
 	{
 		for (int16_t k = 0; k < 2; k++)
@@ -1077,7 +913,6 @@ namespace lion165
 		}
 	}
 
-	// 0x5ED270: the flat ring at the first target's anchor
 	static void AddTargetFlatRing()
 	{
 		Node24 *t = AddMain(ORIG_FlatRing);
@@ -1090,7 +925,6 @@ namespace lion165
 		t->w20 = s;
 	}
 
-	// 0x5ED440: the flat ring at the caster's bone 0xF0
 	static void AddCasterFlatRing()
 	{
 		Node24 *t = AddMain(ORIG_FlatRing);
@@ -1103,7 +937,6 @@ namespace lion165
 		t->w20 = s;
 	}
 
-	// 0x5ED700
 	static void AddTipFlash2()
 	{
 		SetTipPoint();
@@ -1116,7 +949,6 @@ namespace lion165
 		t->w1C = 0x95;
 	}
 
-	// 0x5EDBC0: the streak from the tip, 2 ticks delayed
 	static void AddStreak()
 	{
 		SetTipPoint();
@@ -1128,8 +960,6 @@ namespace lion165
 		t->w20 = 0x2000;
 	}
 
-	// 0x5EDE90: the last hit at the first target's anchor: FinalRing, FinalSparkA, FinalShards, FinalFlash, FinalRingSparks;
-	// pool C cleared; flag 0x20 on the caster, the target and its linked entities (old bits kept); the result
 	static void AddFinal()
 	{
 		Node24 *a = AddMain(ORIG_FinalRing);
@@ -1195,7 +1025,6 @@ namespace lion165
 		ApplyActionResultToTarget(Context()->actions->targets + TARGET_STRIDE * k);
 	}
 
-	// 0x5EEC00: TargetSink for the first target and its linked entities; the caster's flag bit 0x20 put back
 	static void AddTargetSink()
 	{
 		Node24 *t = AddMain(ORIG_TargetSink);
@@ -1224,9 +1053,6 @@ namespace lion165
 		*(uint16_t *)cs = (uint16_t)(Keep(CasterSlot())->flag20 | (*(const uint16_t *)cs & 0xFFDF));
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5E9650)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -1388,10 +1214,6 @@ namespace lion165
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Single models
-	// ------------------------------------------------------------------
-	// prim-model header (0x58) of the single models: model, far colour 0, mode 0x33 / 0xF3 with the fade
 	static uint8_t *ModelHeader(uint32_t model, bool fade_on, int32_t fade)
 	{
 		uint8_t *h = AllocHeader(0x58);
@@ -1409,10 +1231,9 @@ namespace lion165
 	static void RenderToCursor(uint8_t *h) { PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor()); }
 	static void RenderToArena(uint8_t *h) { FrameArena() = RenderPrimModel(h, RenderOT(), 2, FrameArena()); }
 
-	// model matrix: angles, translation, scale, composed with `view`; GTE rotation / translation set
 	static void WorldMatrix(Mat4x3 *m, int16_t ax, int16_t ay, int16_t az, int32_t tx, int32_t ty, int32_t tz, int32_t sx, int32_t sy, int32_t sz, const Mat4x3 *view)
 	{
-		int16_t ang[4]; // (4th word never written)
+		int16_t ang[4];
 		ang[0] = ax;
 		ang[1] = ay;
 		ang[2] = az;
@@ -1430,7 +1251,6 @@ namespace lion165
 		GteSetTransVector(m);
 	}
 
-	// camera-facing models: rotation (0, 0, roll) scaled by s, TransformCameraByShadowRotation at pos (scale, offset)
 	static void FacingMatrix(Mat4x3 *m, int16_t roll, int32_t s, const int16_t *pos, int32_t scale, int32_t off)
 	{
 		int16_t ang[4];
@@ -1447,11 +1267,10 @@ namespace lion165
 		GteSetRotMatrix(m);
 	}
 
-	// GroundRing (0x5EA8E0): turned about y, scaled (w1C, w20, w1C) at the bone (y 0), v scroll counter << 4, fading in up to 8
 	static int32_t GroundRingFade(int32_t c) { return shl32(8 - c, 9); }
 	static void GroundRingDraw(const Node24 *n, int16_t sy, int32_t scroll, int32_t c, int32_t fade)
 	{
-		Mat4x3 m = {}; // (pad +0x12 never written in the original: GTE R33 high half only)
+		Mat4x3 m = {};
 		WorldMatrix(&m, 0, n->w18, 0, n->w10, n->w12, n->w14, n->w1C, sy, n->w1C, &Camera());
 		uint8_t *h = AllocHeader(0x90);
 		*(uint32_t *)(h + 8) = 0;
@@ -1476,7 +1295,6 @@ namespace lion165
 	static uint32_t __cdecl GroundRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_GroundRing, n);)
 		GroundRingDraw(n, n->w20, shl32(n->c, 4), n->c, GroundRingFade(n->c));
 		if (DrawOnly()) return 0;
@@ -1487,7 +1305,6 @@ namespace lion165
 		return EndAt(n->c, 0x3C);
 	}
 
-	// TipFlash (0x5EB790): camera-facing at the tip, growing (up to counter 0x10)
 	static void TipFlashDraw(const Node24 *n, int16_t s)
 	{
 		Mat4x3 m = {};
@@ -1500,7 +1317,6 @@ namespace lion165
 	static uint32_t __cdecl TipFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_TipFlash, n);)
 		TipFlashDraw(n, n->w1C);
 		if (DrawOnly()) return 0;
@@ -1515,7 +1331,6 @@ namespace lion165
 		return EndAt(n->c, 0x30);
 	}
 
-	// TipRing (0x5EBFC0): angles (0x200, -+0x300, w18) in the effect frame at the tip, scaled; fading from 4
 	static void TipRingDraw(const Node24 *n, int16_t roll, int16_t s, int32_t c, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1544,7 +1359,6 @@ namespace lion165
 	static uint32_t __cdecl TipRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_TipRing, n);)
 		TipRingDraw(n, n->w18, n->w1C, n->c, mul32(n->c - 4, 682));
 		if (DrawOnly()) return 0;
@@ -1556,8 +1370,6 @@ namespace lion165
 		return EndAt(n->c, 0xA);
 	}
 
-	// HitSlashA / HitSlashB (0x5ECB40 / 0x5ECCD0): turned about z by w18, then onto the hit's trail direction, at the hit
-	// point, scaled
 	static void HitSlashDraw(const Node24 *n, uint32_t model, int16_t s, bool fade_on, int32_t fade)
 	{
 		const HitRec *r = Hit(n->e);
@@ -1590,7 +1402,6 @@ namespace lion165
 	static uint32_t __cdecl HitSlashATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_HitSlashA, n);)
 		HitSlashDraw(n, MODEL_SLASHA, n->w1C, n->c >= 4, mul32(n->c - 4, 682));
 		if (DrawOnly()) return 0;
@@ -1604,7 +1415,6 @@ namespace lion165
 	static uint32_t __cdecl HitSlashBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_HitSlashB, n);)
 		HitSlashDraw(n, MODEL_SLASHB, n->w1C, n->c >= 2, shl32(n->c - 2, 9));
 		if (DrawOnly()) return 0;
@@ -1615,7 +1425,6 @@ namespace lion165
 		return EndAt(n->c, 0xA);
 	}
 
-	// FlatRing (0x5ED300): turned about y, scaled (w1C, w20, w1C) on the floor (y 0) into the frame arena; fading from 2
 	static void FlatRingDraw(const Node24 *n, int16_t sy, int32_t c, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1628,7 +1437,6 @@ namespace lion165
 	static uint32_t __cdecl FlatRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_FlatRing, n);)
 		FlatRingDraw(n, n->w20, n->c, shl32(n->c - 2, 9));
 		if (DrawOnly()) return 0;
@@ -1639,7 +1447,6 @@ namespace lion165
 		return EndAt(n->c, 0xA);
 	}
 
-	// WaveSpawner (0x5ED4E0, draws nothing): a ScreenWave on every 12th tick (counter % 12 == 1) up to 0x63
 	static uint32_t __cdecl WaveSpawnerTask(TaskNode *tn)
 	{
 		if (DrawOnly()) return 0;
@@ -1657,9 +1464,6 @@ namespace lion165
 		return EndAt(n->c, 0x63);
 	}
 
-	// ScreenWave (0x5ED590): view space (no camera) at (0, 0, projection distance), angles (w18, 0, w1A), scaled w1C; MAG_066's
-	// scroll renderer into OT + 0x4068 (mode 6), v scroll w20 x counter, fade 0x1000 - 0x180 c (up to 8) / 0x400 / 0x180 c -
-	// 0x1A00 (from 0x14), colour 0xD88808[counter % 18]
 	static int32_t ScreenWaveFade(int32_t c) { return c < 8 ? 0x1000 - mul32(c, 0x180) : c >= 0x14 ? mul32(c, 0x180) - 0x1A00 : 0x400; }
 	static uint32_t ScreenWaveColour(int32_t c) { return var<uint32_t>(WAVE_COLOURS + 4 * (c % 0x12)); }
 	static void ScreenWaveDraw(const Node24 *n, int32_t scroll, int32_t fade, uint32_t colour)
@@ -1699,7 +1503,6 @@ namespace lion165
 	static uint32_t __cdecl ScreenWaveTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_ScreenWave, n);)
 		ScreenWaveDraw(n, mul32(n->w20, n->c), ScreenWaveFade(n->c), ScreenWaveColour(n->c));
 		if (DrawOnly()) return 0;
@@ -1707,7 +1510,6 @@ namespace lion165
 		return EndAt(n->c, 0x1C);
 	}
 
-	// TipFlash2 (0x5ED760): camera-facing at the tip (scale 0x1000), turned about z, growing; fading in up to 8, out from 0x20
 	static int32_t TipFlash2Fade(int32_t c) { return c < 8 ? shl32(8 - c, 9) : shl32(c - 0x20, 9); }
 	static void TipFlash2Draw(const Node24 *n, int16_t roll, int16_t s, int32_t c, int32_t fade)
 	{
@@ -1721,7 +1523,6 @@ namespace lion165
 	static uint32_t __cdecl TipFlash2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_TipFlash2, n);)
 		TipFlash2Draw(n, n->w18, n->w1C, n->c, TipFlash2Fade(n->c));
 		if (DrawOnly()) return 0;
@@ -1733,10 +1534,6 @@ namespace lion165
 		return EndAt(n->c, 0x28);
 	}
 
-	// Streak (0x5EDC10): 2 ticks delayed; on its first draw the tip point is taken again. In screen space: from the tip's
-	// screen point toward the node point's (screen coordinates / 8, made a unit direction), model 0xD81B34 turned from
-	// (0x1000, 0, 0) onto it at the tip's screen point - (0xA0, 0x6C), depth the projection distance, scaled (w1C, w20, w20);
-	// fading from 0x20; w20 = 2 sin(c x 0x400 / 15 + 0x400) + 0x80 up to 0xF, then 0x80
 	static void StreakDraw(const Node24 *n, const int16_t *tip, int16_t sy, int32_t c, int32_t fade)
 	{
 		GteSetRotMatrix(&Camera());
@@ -1788,7 +1585,6 @@ namespace lion165
 			return 0;
 		}
 		if (n->c == 0) SetTipPoint();
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_Streak, n);)
 		StreakDraw(n, (const int16_t *)TIP, n->w20, n->c, shl32(n->c - 0x20, 9));
 		if (DrawOnly()) return 0;
@@ -1797,7 +1593,6 @@ namespace lion165
 		return EndAt(n->c, 0x28);
 	}
 
-	// FinalRing (0x5EE0F0): turned about y at the target's anchor, scaled; fading from 0xC
 	static void FinalRingDraw(const Node24 *n, int16_t s, int32_t c, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1810,7 +1605,6 @@ namespace lion165
 	static uint32_t __cdecl FinalRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_FinalRing, n);)
 		FinalRingDraw(n, n->w1C, n->c, mul32(n->c - 0xC, 682));
 		if (DrawOnly()) return 0;
@@ -1821,8 +1615,6 @@ namespace lion165
 		return EndAt(n->c, 0x12);
 	}
 
-	// FinalFlash (0x5EE850): camera-facing (shadow rotation scale 0x1000) at the target's anchor, angles (0x100, 0, 0x100),
-	// scaled, mode 1 into the frame arena; fading from 0x10. Its size gives FinalRingSparks' radius (0x23C6936 = 850 w1C >> 12).
 	static void FinalFlashDraw(const Node24 *n, int16_t s, int32_t c, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1847,7 +1639,6 @@ namespace lion165
 	{
 		Node24 *n = (Node24 *)tn;
 		var<int16_t>(TIP + 6) = (int16_t)(mul32(n->w1C, 850) >> 12);
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_FinalFlash, n);)
 		FinalFlashDraw(n, n->w1C, n->c, shl32(n->c - 0x10, 9));
 		if (DrawOnly()) return 0;
@@ -1858,7 +1649,6 @@ namespace lion165
 		return EndAt(n->c, 0x18);
 	}
 
-	// TargetRing (0x5EFFF0): at the kept target position (y 0), scaled; fading from 6
 	static void TargetRingDraw(const Node24 *n, int16_t s, int32_t c, int32_t fade)
 	{
 		Mat4x3 m = {};
@@ -1871,7 +1661,6 @@ namespace lion165
 	static uint32_t __cdecl TargetRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_node(ORIG_TargetRing, n);)
 		TargetRingDraw(n, n->w1C, n->c, mul32(n->c - 6, 409));
 		if (DrawOnly()) return 0;
@@ -1882,11 +1671,6 @@ namespace lion165
 		return EndAt(n->c, 0x10);
 	}
 
-	// ------------------------------------------------------------------
-	// Pool A model tasks: RockBurst (0x5EAAF0), Debris (0x5EAD50), TipShards (0x5EB8D0); pool B: HitShards (0x5ECE60), TipRocks
-	// (0x5ED8E0), FinalShards (0x5EE4C0)
-	// ------------------------------------------------------------------
-	// RockBurst entry: +0x08 position, +0x10 scale, +0x12 its rate (shrinking by 1/5); fading from life 4; freed at 0xE
 	static int32_t RockFade(int32_t life) { return mul32(life - 4, 409); }
 	static void RockDraw(ModelWork *w, uint8_t *h, const PoolE *p, int16_t s, int32_t life, int32_t fade)
 	{
@@ -1941,7 +1725,6 @@ namespace lion165
 		w->ang[2] = 0;
 		w->ang[1] = 0;
 		w->ang[0] = 0;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_RockBurst, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -1967,8 +1750,6 @@ namespace lion165
 		return TASK_END;
 	}
 
-	// Debris entry: +0x08 position, +0x0E y angle, +0x10 x / z scale, +0x12 y scale, +0x14 scale rate (1/24), +0x16 angle rate;
-	// fading in up to life 6, out from 8; freed at 0x12
 	static int32_t DebrisFade(int32_t life) { return life < 6 ? 0x1000 - mul32(life, 682) : mul32(life - 8, 409); }
 	static void DebrisDraw(ModelWork *w, uint8_t *h, const PoolE *p, int16_t yaw, int16_t s, int32_t life, int32_t fade)
 	{
@@ -2028,7 +1809,6 @@ namespace lion165
 		*(uint32_t *)(h + 8) = 0;
 		w->ang[2] = 0;
 		w->ang[0] = 0;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_Debris, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -2055,9 +1835,6 @@ namespace lion165
 		return TASK_END;
 	}
 
-	// TipShards entry: +0x0C phase (x scale = sin(phase) x scale), +0x0E its rate 0x80, +0x14 z angle, +0x16 its rate; screen
-	// facing (view rotation only) at the tip's view position, scale (x, 0x3000, 0); fading in up to life 4, out from 10; freed
-	// at 0x10
 	static int32_t TipShardFade(int32_t life) { return life < 4 ? shl32(4 - life, 10) : mul32(life - 10, 682); }
 	static void TipShardDraw(ModelWork *w, uint8_t *h, int16_t scale, int16_t phase, int16_t roll, int32_t life, int32_t fade)
 	{
@@ -2080,7 +1857,6 @@ namespace lion165
 		RenderToArena(h);
 	}
 
-	// the shards' frame: camera x (identity at the node's tip position): its translation into the GTE
 	static void TipShardFrame(ModelWork *w, const Node24 *n, const Mat4x3 *view)
 	{
 		w->ang[0] = 0;
@@ -2124,7 +1900,6 @@ namespace lion165
 		w->ang[0] = 0;
 		w->v[1] = 0x3000;
 		w->v[2] = 0;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_TipShards, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -2149,7 +1924,6 @@ namespace lion165
 		return TASK_END;
 	}
 
-	// pool B shard entry (HitShards / FinalShards): +0x08 position, +0x10 velocity (x / y; FinalShards: + z), decaying by 1/8
 	static void ShardMove(PoolE2 *p, int k)
 	{
 		for (int i = 0; i < k; i++) p->a[i] = (int16_t)(p->a[i] + p->a[4 + i]);
@@ -2160,8 +1934,6 @@ namespace lion165
 		}
 	}
 
-	// HitShards entry: +0x08 position in the hit's frame (z 0), +0x10 velocity, +0x14 z angle; scale (0xC00, scale, 0) through
-	// the hit's frame (w18 about z, onto the hit direction, at the hit point); fading from life 4; freed at 0xC
 	static void HitShardDraw(ModelWork *w, uint8_t *h, const PoolE2 *p, const int16_t *pos, int32_t life, int32_t fade)
 	{
 		w->ang[2] = p->a[6];
@@ -2183,7 +1955,6 @@ namespace lion165
 		RenderToArena(h);
 	}
 
-	// the hit's frame: (0, 0, w18) turned onto the hit direction, at the hit point, through the camera
 	static void HitShardFrame(ModelWork *w, const Node24 *n, const HitRec *r, const Mat4x3 *view)
 	{
 		w->ang[0] = 0;
@@ -2237,7 +2008,6 @@ namespace lion165
 		*(uint32_t *)h = MODEL_SHARD;
 		HitShardFrame(w, n, r, &Camera());
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_HitShards, n, h);)
 		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
 		{
@@ -2260,8 +2030,6 @@ namespace lion165
 		return EndIfNone(count);
 	}
 
-	// TipRocks entry: +0x06 scale, +0x0E its rate (shrinking 1/18), +0x10 x angle, +0x12 its rate, +0x14 z angle, +0x16 its
-	// rate; at the tip; fading from life 0x10; freed at 0x18
 	static void TipRockDraw(ModelWork *w, uint8_t *h, const PoolE2 *p, int16_t s, int16_t ax, int16_t az, int32_t life, int32_t fade)
 	{
 		w->ang[0] = ax;
@@ -2320,7 +2088,6 @@ namespace lion165
 		*(uint32_t *)h = MODEL_TIPROCK;
 		w->ang[1] = 0;
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_TipRocks, n, h);)
 		for (uint32_t a = POOL_B; a < POOL_B_END; a += 0x20)
 		{
@@ -2347,9 +2114,6 @@ namespace lion165
 		return EndIfNone(count);
 	}
 
-	// FinalShards entry: +0x08 position, +0x10 velocity (decaying 1/8), +0x18 direction (the model's up (0, -0x1000, 0) turned
-	// onto it); scale (0x2000, scale, 0) through the frame (camera x the target's anchor); fading from life 6; freed at 0xC.
-	// The draw loop walks 200 entries of 0x20 from pool B (past its 120 into the module globals)
 	static void FinalShardDraw(ModelWork *w, uint8_t *h, const PoolE2 *p, const int16_t *pos, int32_t life, int32_t fade)
 	{
 		w->v[0] = p->a[8];
@@ -2425,7 +2189,6 @@ namespace lion165
 		int32_t count = 0;
 		FinalShardFrame(w, n, &Camera());
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_FinalShards, n, h);)
 		for (uint32_t a = POOL_B; a < FINAL_SHARDS_END; a += 0x20)
 		{
@@ -2448,23 +2211,15 @@ namespace lion165
 		return EndIfNone(count);
 	}
 
-	// ------------------------------------------------------------------
-	// Pool A / C sprite tasks: BoneSparks (0x5EB070), BladeSparks (0x5EB410), TargetSparks (0x5EFCE0), TipSmoke (0x5EBBD0),
-	// HitSparkA (0x5EC550), HitSparkB (0x5EC7D0), FinalSparkA (0x5EE240), FinalRingSparks (0x5EE980)
-	// ------------------------------------------------------------------
-	// the sprite tasks' light matrix: `m` (a camera copy or the frame), BK its translation
 	static void SpriteLight(const Mat4x3 *m)
 	{
 		GteSetLightMatrix(m);
 		GteSetBackColorFromTrans(m);
 	}
 
-	// the sprite tasks' view position / its unit direction words in their work block (+0x38 / +0x28)
 	static inline int32_t *Mac(ModelWork *w) { return (int32_t *)((uint8_t *)w + 0x38); }
 	static inline int32_t *Dir(ModelWork *w) { return (int32_t *)((uint8_t *)w + 0x28); }
 
-	// a sprite at pos (through the light matrix), moved toward the camera by scale / 8 (mac: the view position, dir: its unit
-	// direction): sequence frame = life
 	static void SmokeSprite(uint8_t *h, int32_t *mac, int32_t *dir, const int16_t *pos, int16_t scale, int16_t life)
 	{
 		GteLoadV0(pos);
@@ -2481,7 +2236,6 @@ namespace lion165
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
 
-	// a sprite at pos through the light matrix (no move toward the camera)
 	static void PlainSprite(uint8_t *h, const int16_t *pos, int16_t scale, int16_t frame)
 	{
 		GteLoadV0(pos);
@@ -2499,7 +2253,6 @@ namespace lion165
 		return h;
 	}
 
-	// BoneSparks: two sparks every 6 ticks at the caster's bones 0x13 / 0x14 (+-0x50), scale 0x380..0x5C0, static
 	static void BoneSpark(PoolE *p, int16_t id, int32_t bone)
 	{
 		p->id = id;
@@ -2530,7 +2283,6 @@ namespace lion165
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_BoneSparks, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -2550,7 +2302,6 @@ namespace lion165
 		return TASK_END;
 	}
 
-	// BladeSparks: one spark per tick up to 0x0D at the caster's bone 0x13 (length 0xE00) while it is above y -50
 	static uint32_t __cdecl BladeSparksTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2587,7 +2338,6 @@ namespace lion165
 		*cam = Camera();
 		SpriteLight(cam);
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_BladeSparks, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -2605,9 +2355,6 @@ namespace lion165
 		return n->c > 0xD ? TASK_END : 0;
 	}
 
-	// TipSmoke entry: +0x08 radius, +0x0A y, +0x0C angle, +0x10 radius step (until life 0x10), +0x12 y step, +0x14 angle rate
-	// (growing by 1/8); the sprite at (cos x radius, y, sin x radius) through the frame (angles (0, -0x80, 0x200), at the tip,
-	// camera x), sequence 0xD7B4D4 (mode 8) frame life / 2, into the frame arena
 	static void TipSmokeSprite(ModelWork *w, uint8_t *h, int16_t r, int16_t y, int16_t ang, int16_t scale, int16_t life)
 	{
 		int16_t *q = (int16_t *)((uint8_t *)w + 8);
@@ -2660,7 +2407,6 @@ namespace lion165
 		uint8_t *h = SequenceHeader(SEQ_SMOKE, 8);
 		TipSmokeFrame(w, n, &Camera());
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_TipSmoke, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -2689,14 +2435,11 @@ namespace lion165
 		return TASK_END;
 	}
 
-	// HitSparkA / FinalSparkA: static sparks (sequence 0xD7AFE0, mode 8) moved toward the camera; the task ends when no spark
-	// is left
 	static uint32_t SparkAPass(Node24 *n, ModelWork *w, uint8_t *h, uint32_t fn)
 	{
 		const int32_t id = n->e;
 		int32_t count = 0;
 		(void)fn;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(fn, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -2776,7 +2519,6 @@ namespace lion165
 		return SparkAPass(n, w, h, ORIG_FinalSparkA);
 	}
 
-	// HitSparkB entry: +0x08 position, +0x10 velocity (decaying 1/8); 12 at the hit point (sequence 0xD7B340, mode 8)
 	static uint32_t __cdecl HitSparkBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2815,7 +2557,6 @@ namespace lion165
 		int32_t count = 0;
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_HitSparkB, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -2844,8 +2585,6 @@ namespace lion165
 		return EndIfNone(count);
 	}
 
-	// TargetSparks entry: +0x08 x, +0x0A y, +0x0C z, +0x10 / +0x14 x / z velocity (decaying 1/8); 8 around the kept target
-	// position (frame: camera x (x, 0, z)), sequence 0xD7B1C8 (mode 8), moved toward the camera
 	static uint32_t __cdecl TargetSparksTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2861,7 +2600,7 @@ namespace lion165
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0xA00 + 0x800);
 				const int32_t a = CrtRand() % 0x1000;
-				int32_t *sc = (int32_t *)&w->m2; // (+0x28 / +0x30: the sine / cosine)
+				int32_t *sc = (int32_t *)&w->m2;
 				sc[0] = ComputeSin(a);
 				sc[2] = ComputeCos(a);
 				const int32_t r = CrtRand() % 0xC8 + 0x190;
@@ -2886,7 +2625,6 @@ namespace lion165
 		ComposeAffineTransform(&Camera(), &w->m1, &w->m1);
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_TargetSparks, n, h);)
 		for (uint32_t a = POOL_A; a < POOL_A_END; a += 0x18)
 		{
@@ -2915,9 +2653,6 @@ namespace lion165
 		return EndIfNone(count);
 	}
 
-	// FinalRingSparks (pool C at the texture base, 500 x 0x18): 20 per tick up to 0x18 on a ring of FinalFlash's radius around
-	// the target's anchor (light matrix: angles (0x100, 0, 0x100), translation the anchor in view space), sequence 0xD7B340
-	// (mode 8)
 	static uint32_t __cdecl FinalRingSparksTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -2962,7 +2697,6 @@ namespace lion165
 		w->m1.t[2] += Camera().t[2];
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_pool(ORIG_FinalRingSparks, n, h);)
 		for (uint32_t a = base, k = 0; k < 0x1F4; k++, a += 0x18)
 		{
@@ -2984,17 +2718,6 @@ namespace lion165
 		n->c++;
 		return EndIfNone(count);
 	}
-
-	// ------------------------------------------------------------------
-	// Hits: HitDirector (0x5EC140), TargetBounce (0x5ED1A0)
-	// ------------------------------------------------------------------
-	// THE NEVER-WRITTEN STACK WORD: the hit point is a 4-word local whose 4th word ([entry esp - 2]) matrixMultiplyVector
-	// does not write; it goes with the point into the previous hit point 0x23C6736, the hit record (+6) and the hit spark
-	// nodes (+0x16, then their sparks' +0x0E). The game's executor 0x508420 calls every task from one esp: the word is the
-	// high half of what the task before HitDirector in the main queue left at [entry esp - 4]. That task is the Trail (alive
-	// from tick 1 to 0x12E, HitDirector from 0x5B to 0xC9, everything else is queued after them): its colour accumulator
-	// local, 30 x 0x1000 = 0x1E000 after its draw (word 0x0001). Modelled: the Trail port notes it when it drew; HitDirector
-	// takes it when its predecessor in the queue is the Trail, else the stack word itself.
 
 	static bool PredecessorIsTrail(const TaskNode *self)
 	{
@@ -3110,8 +2833,6 @@ namespace lion165
 		return HitDirectorBody((Node24 *)tn, modelled ? g_trail_slot4 : stack_word);
 	}
 
-	// TargetBounce: the entity's y = its y at the start + (rising: -70 counter; else sin(counter x 0x400 / duration) x height
-	// >> 12; height = the table's - 4000 - the anchor's y)
 	static int32_t BounceOffset(const Node24 *n, int32_t c)
 	{
 		if (n->w22 > 0) return -70 * c;
@@ -3136,10 +2857,6 @@ namespace lion165
 		return n->c >= n->w1A ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// TargetSink (0x5EECD0)
-	// ------------------------------------------------------------------
-	// the clipping renderer's block: the floor plane (0, -0x1000, 0) through (0, 0, 0)
 	static void SinkPlane(ClipHeader *h)
 	{
 		int16_t *p = Slot(h, 0);
@@ -3171,7 +2888,6 @@ namespace lion165
 			ClipHeader *h = (ClipHeader *)FieldAlloc(0x1A8);
 			SinkPlane(h);
 			*ent |= 4;
-			// 30 fps layer: see mag165_lion_heart_held.inc
 			FX_HELD(held_note_sink(n, (const uint8_t *)h);)
 			DrawClipped(h, ent);
 			FieldFree(0x1A8);
@@ -3224,9 +2940,6 @@ namespace lion165
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Flash (0x5E9D50), Shake (0x5F0130), Restore (0x5F01B0), Root (0x5F01F0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
@@ -3263,7 +2976,6 @@ namespace lion165
 		RootNode *r = (RootNode *)tn;
 		if (r->c & 1) PacketCursor() = PacketArena() + 0x8000;
 		else PacketCursor() = PacketArena();
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(held_note_root();)
 		const int alive = ExecuteTaskQueue(QMain());
 		r->c++;
@@ -3310,7 +3022,6 @@ namespace lion165
 		register_port(ORIG_TargetRing, (void *)TargetRingTask, "165 TargetRing", 165);
 		register_port(ORIG_Shake, (void *)ShakeTask, "165 Shake", 165);
 		register_port(ORIG_Restore, (void *)RestoreTask, "165 Restore", 165);
-		// 30 fps layer: see mag165_lion_heart_held.inc
 		FX_HELD(register_mag165_held();)
 	}
 }

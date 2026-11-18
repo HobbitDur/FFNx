@@ -14,33 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 172: Morph (enemy attack 53 of kernel.bin; Jelleye c0m029; MAG_172_*).
-//
-// Structure (file loader 0x5D9CB0 = the texture file 0xD65634 -> 0x239D6F8; _Init 0x5D9CD0 keeps the context 0x239D4F0, the first
-// target's slot 0x239A8E0 and the caster's slot 0x239D4F4, queues the root (one 0x10-byte node, pool 0x239A8E8, queue 0x239A8F8)
-// and the director in the effect queue 0x239BEA8 (100 x 0x24, pool 0x239C6E0), frees the 100 sparkles (0x239A908, 0x18 bytes,
-// word +0 = owner mask), plays the camera animation 0xD61E28 and queues the TIM; both run original):
-//   Root (0x5DB210) - packet cursor 0x23AD6FC = 0x239D6FC / 0x23A56FC on its counter's parity, the effect queue; ends when it
-//     is empty.
-//   Director (0x5D9D80) - nothing on draw-only ticks. Tick 0: the caster's default effect position (its +0x10); tick 1: two
-//     rings (0x5D9F20 / 0x5DA0F0, sizes 0xC00 / 0x1600, spin -10), the ring mesh's vertex radii (0x5D9EE0: 0x239BA90, from the
-//     261 vertices of 0xD629A4), the sparkles (0x5DA2C0), the sound 0xD655DC at the caster; tick 8: the tinted caster; ends
-//     after tick 0x3C.
-//   Rings (0x5D9F20 / 0x5DA0F0) - prim model 0xD6299C with its vertices waved into 0x239BEB8 / 0x239B268 (0x5DA050 / 0x5DA220:
-//     each vertex turned in xy by sin(radius * 3) * 0 = unchanged), through the shadow-rotation camera at the caster (R = size,
-//     pull size >> 3) turned by z angle -2 / -3 x its angle; fade (0x20 - tick) << 7 to tick 8, 0xC00, (tick - 0x18) << 7 from
-//     tick 0x30; angle + spin; 0x38 ticks.
-//   Sparkles (0x5DA2C0) - sequence 0xD61F8C (frame base 2, scale x / y +-0x1000) of mask 1 at its point (R = size, pull -size
-//     >> 4), still; ticks 0..0x2A: one new one at a random bone of the caster (rand % bone count, flag rand & 0xFFF) +-180
-//     (size 0x140..0x7BF, flips from the point's low bits); ends from tick 4 once none is left.
-//   Tinted caster (0x5DA520 -> 0x5DA660 -> 0x5DA770 -> 0x5DAA30 = Gastric Juice 169's 0x5DF170 / 0x5DF280 / its glow faces
-//     with the record's code bits kept) - ticks 0..0x37: the caster hidden (entity flag 4) and its model redrawn with a Gouraud
-//     overlay of every face with a corner within 1000 of its position (colour 0xD655E4[tick % 20]: a 20-step cycle, idiv remainder;
-//     depth-cued to black by the fade (8 - tick) << 9 to tick 8, 0, (tick - 0x30) << 9 from tick 0x30); at tick 0x38 the flag 4 is
-//     cleared.
-// Every drawing task draws first and updates afterwards; on draw-only ticks it returns after drawing.
-// ENTITY WRITES: the caster's flag word +0 bit 2 (hidden while it is redrawn; cleared at the end). CAMERA: the camera animation
-// 0xD61E28 (engine). Module globals: 0x239A8E0..0x23AD700.
+// Effect 172: Morph
 
 #include "mag_common.h"
 
@@ -59,7 +33,6 @@ namespace morph172
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	// --- module globals ---
 	inline TaskQueue *QRoot() { return (TaskQueue *)0x239A8F8; }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x239BEA8; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x239D4F0); }
@@ -67,10 +40,10 @@ namespace morph172
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23AD6FC); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint8_t *TintEntity() { return Entity(CasterSlot()); }
-	static const uint32_t SPARKS = 0x239A908, SPARKS_END = 0x239B268;   // 100 x 0x18 bytes
-	static const uint32_t RING_VERTS_A = 0x239BEB8, RING_VERTS_B = 0x239B268; // 261 x 8 bytes
-	static const uint32_t RADII = 0x239BA90, RADII_END = 0x239BEA4;        // 261 vertex radii
-	static const uint32_t MESH = 0xD629A4;                                // the ring mesh's 261 vertices (8 bytes)
+	static const uint32_t SPARKS = 0x239A908, SPARKS_END = 0x239B268;
+	static const uint32_t RING_VERTS_A = 0x239BEB8, RING_VERTS_B = 0x239B268;
+	static const uint32_t RADII = 0x239BA90, RADII_END = 0x239BEA4;
+	static const uint32_t MESH = 0xD629A4;
 	static const uint32_t ARENA_A = 0x239D6FC, ARENA_B = 0x23A56FC;
 
 	static const uint32_t ORIG_Root = 0x5DB210, ORIG_Director = 0x5D9D80, ORIG_Ring = 0x5D9F20, ORIG_Ring2 = 0x5DA0F0,
@@ -80,14 +53,11 @@ namespace morph172
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, mode, out); }
 	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(model, hdr, ot, mode, cursor); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	// sub_571620 / sub_571690: Bezier curve of n control points (int16 x 4): set-up into a work
-	// block, then the point at t (4.12)
 	inline void BezierInit(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(0x571620)(n, points, work); }
 	inline void BezierPoint(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(0x571690)(n, work, out, t); }
 
@@ -104,22 +74,22 @@ namespace morph172
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }     // someCameraWork_45DD60
-	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DDA0)(r, g, b); }    // pre_someCameraWork_45DD60
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }        // set_unk_1CA8A28
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DDA0)(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }       // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
 	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E120)(a, b, c); }
 	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45E370)(a, b, c); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
-	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x64DF80)(p); }  // sub_64DF80: IR0 = *(int16 *)p
+	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(0x64DF80)(p); }
 	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x45DE50)(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }                    // MAC = L * V0 + BK
-	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); } // MAG_148_sub_64DDA0: BK = matrix translation
-	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }     // MAG_148_sub_64DDD0: R11 / R22 / R33 = s
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(0x4607E0)(); }
+	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(0x64DDA0)(m); }
+	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(0x64DDD0)(s); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // b = a x b (3x3)
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	inline const Mat4x3 *ShadowCamera(const void *pos, int32_t r, int32_t pull) { return fn<const Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(0x571BC0)(pos, r, pull); }
 }
 }
@@ -132,16 +102,7 @@ namespace ff8fx
 {
 namespace morph172
 {
-	// ==================================================================
-	// Tinted target model
-	// Header (0xDC bytes on the scratch): +0x00 primitive list, +0x04 vertex buffer, +0x08..+0x0E
-	// primitive counts, +0x10 / +0x14..+0x1A as RenderGeometry's, +0x1C code bits (entity +0x28),
-	// +0x20 visible objects, +0x28..+0x2A depth cue, +0x48 NCLIP, +0x50 OTZ, +0x58 / +0x60 / +0x68 /
-	// +0x70 corner copies (+6 of each: its overlay fade), +0xA8 centre (3 dwords), +0xB4 radius,
-	// +0xB8 colour, +0xBC camera x entity matrix
-	// ==================================================================
 
-	// the corner at hdr + off made relative to the centre; below the radius: fade word at off + 6
 	static bool CornerNear(uint32_t hdr, int32_t off)
 	{
 		S16(hdr, off + 2) = (int16_t)(S16(hdr, off + 2) - U16(hdr, 0xAC));
@@ -158,10 +119,6 @@ namespace morph172
 		return true;
 	}
 
-	// 0x5DF540: the object's flat textured triangles (0x10-byte records) and quads (0x14-byte
-	// records); a visible face with a corner within the radius gets a Gouraud overlay (G3 / G4) one
-	// bucket closer: corner colour = the far colour depth-cued by 1 - distance / radius (corners out
-	// of range keep the vertex buffer's pad word as their fade)
 	static uint32_t GlowPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
@@ -281,9 +238,6 @@ namespace morph172
 		return pk;
 	}
 
-	// 0x5DF280: the far colour = the header's colour; every visible object: its vertices through
-	// their bone matrices (world space) into the vertex buffer (+4), then its faces through the
-	// camera (GlowPrims)
 	static uint32_t ModelObjects(uint32_t model, uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t bones = U32(model, 0) + 0x10;
@@ -341,12 +295,9 @@ namespace morph172
 		return cursor;
 	}
 
-	// 0x5DF170: the entity's shadow, its model (ModelObjects), its weapon (+0x78) through
-	// RenderGeometry; the bone matrices are rebuilt from the pose afterwards
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
-		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(0x1D8E04C) + 0x4064, 0x10, FrameCursor());
@@ -376,7 +327,6 @@ namespace morph172
 		}
 	}
 
-	// the caster hidden and redrawn tinted around its position (colour of the tick's cycle, depth-cued to black by the fade)
 	static uint32_t TintColour(int32_t c) { return TINT_COLOURS[c % 0x14]; }
 	static void TintDraw(uint32_t n, int32_t fade, uint32_t colour)
 	{
@@ -397,7 +347,6 @@ namespace morph172
 		FieldFree(0xDC);
 	}
 
-	// fade of the tinted caster: in over ticks 0..8, none, out from 0x30
 	static int32_t TintFade(int32_t c) { return c < 8 ? shl32(8 - c, 9) : (c >= 0x30 ? shl32(c - 0x30, 9) : 0); }
 
 	static uint32_t __cdecl TintTask(TaskNode *tn)
@@ -405,7 +354,6 @@ namespace morph172
 		const uint32_t n = P(tn);
 		if (S16(n, 0xC) < 0x38)
 		{
-			// 30 fps layer: see mag172_morph_held.inc
 			FX_HELD(held_note_node(REC_TINT, n);)
 			TintDraw(n, TintFade(S16(n, 0xC)), TintColour(S16(n, 0xC)));
 		}
@@ -416,10 +364,6 @@ namespace morph172
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Rings (0x5D9F20 / 0x5DA0F0)
-	// ------------------------------------------------------------------
-	// 0x5D9EE0: every mesh vertex's radius in xy
 	static void MeshRadii()
 	{
 		uint32_t v = MESH;
@@ -430,7 +374,6 @@ namespace morph172
 		}
 	}
 
-	// 0x5DA050 / 0x5DA220: every mesh vertex turned in xy by sin(radius * 3) * amp into out
 	static void WaveVerts(uint32_t out, int32_t amp)
 	{
 		uint32_t v = MESH + 2, r = RADII, o = out + 2;
@@ -447,7 +390,6 @@ namespace morph172
 
 	static int32_t RingFade(int32_t c) { return c < 8 ? shl32(0x20 - c, 7) : (c >= 0x30 ? shl32(c - 0x18, 7) : 0xC00); }
 
-	// the ring through the shadow-rotation camera at its point, turned by z angle mul x its angle; its vertices waved into verts
 	static void RingDraw(uint32_t n, int32_t mul, uint32_t verts, int32_t fade)
 	{
 		const int16_t r = S16(n, 0x1C);
@@ -471,7 +413,6 @@ namespace morph172
 
 	static uint32_t RingTaskImpl(uint32_t n, bool second)
 	{
-		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(held_note_node(second ? REC_RING2 : REC_RING, n);)
 		RingDraw(n, second ? -3 : -2, second ? RING_VERTS_B : RING_VERTS_A, RingFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
@@ -483,10 +424,6 @@ namespace morph172
 	static uint32_t __cdecl RingTask(TaskNode *tn) { return RingTaskImpl(P(tn), false); }
 	static uint32_t __cdecl Ring2Task(TaskNode *tn) { return RingTaskImpl(P(tn), true); }
 
-	// ------------------------------------------------------------------
-	// Sparkles (0x5DA2C0)
-	// ------------------------------------------------------------------
-	// a sparkle (0x18 bytes): +0 owner mask, +4 frame, +6 size, +8 point (4 words), +0x10 / +0x12 scale x / y
 	static void SparkDraw(uint32_t h, uint32_t p)
 	{
 		const int16_t size = S16(p, 6);
@@ -500,7 +437,6 @@ namespace morph172
 	static uint32_t __cdecl SparksTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(held_note_parts(REC_SPARKS, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
@@ -510,7 +446,6 @@ namespace morph172
 		for (uint32_t p = SPARKS; p < SPARKS_END; p += 0x18)
 		{
 			if (!(U8(p, 0) & 1)) continue;
-			// 30 fps layer: see mag172_morph_held.inc
 			FX_HELD(held_note_particle(p);)
 			SparkDraw(h, p);
 			if (DrawOnly()) continue;
@@ -551,9 +486,6 @@ namespace morph172
 		return S16(n, 0xC) >= 4 && !alive ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5D9D80) and root (0x5DB210)
-	// ------------------------------------------------------------------
 	static uint32_t NewTask(uint32_t f)
 	{
 		const uint32_t t = P(AddTaskToQueue(EffectQueue(), f));
@@ -602,7 +534,6 @@ namespace morph172
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? ARENA_B : ARENA_A;
 		const int running = ExecuteTaskQueue(EffectQueue());
@@ -618,7 +549,6 @@ namespace morph172
 		register_port(ORIG_Ring2, (void *)Ring2Task, "172 Ring2Task", 172);
 		register_port(ORIG_Sparks, (void *)SparksTask, "172 SparksTask", 172);
 		register_port(ORIG_Tint, (void *)TintTask, "172 TintTask", 172);
-		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(register_mag172_held();)
 	}
 }

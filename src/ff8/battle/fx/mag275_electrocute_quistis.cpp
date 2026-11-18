@@ -14,56 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 275: Electrocute (Quistis' Blue Magic, kernel.bin blue magic +4; MAG_275_*): Electric Discharge 126
-// (mag126_electric_discharge.cpp, the Cockatrice attack) adapted, cast by Quistis on the action's targets. Map: work\fx275\
-// (w317\w275\pair_275_126.txt, w275\cmp275.txt): the loader, PartCallback 0x688380, SpawnArc 0x688620, the spark task
-// 0x688C60, the arc ribbon edge 0x688EC0 and the crawler ribbon edge 0x689650 are 126's up to addresses; AllocArcPoint 0x688740,
-// AllocCrawlerPoint 0x6891A0, SpawnCrawlerScript 0x6890D0, SpawnCrawler 0x689050 and the crawler task 0x689280 differ only in the
-// magic-buffer offsets / the relocated jump table; the module CALLS 126's own AnglesToDir 0x6BA190 (it has no copy of it); and:
-//   _Init 0x687B70 (not ported: the setup): seeds the effect LCG with rand() (126: 0), saves no party tint, camera animation
-//     0x10DC0E8
-//   root 0x687C00: the magic buffer layout moved by 0x20 (arc points + 0x22D4, crawler points + 0x72D4, free cells + 0xC2D4 /
-//     + 0xC2D8, blended vertex frames + 0xC2DC, packet arenas + 0xC474 / + 0x1C474); every tick it clears the flag 0x800 of the
-//     ACTION'S TARGETS (126: the party); on counter 1 the main node is 0x34 bytes (the action's target count +0x0E, the next
-//     target tried +0x10, the caster's bind block +0x14), it saves the targets' tints (+0x28, by entity slot), binds the module's
-//     animation set to the caster (BattleEntity_BindExternalAnimSet 0x5022C0, com data 0x10DA574, block main node + 0x14) and
-//     queues her chain 1 (QueueChainTransformation)
-//   main 0x687F20: 64 ticks; flash ramp 0..3 up, 61..64 down; counters 0..7 (even): one crawler (script counter % count);
-//     counters 8..71 (even): one random crawler; counters 8..19: a free arc from the caster's centre (pitch 0x100..0x4FF, yaw
-//     0x600 + (counter - 8) * 1024 / 12); even counters 14..42: an arc from a random effect bone of the caster (6 bones,
-//     0x10DC2DC) to a random bone of the next living TARGET (cycling over the action's targets); every 4th of them a glow layout
-//     (0x10D9B64); damage at 44; ends after 64
-//   arc 0x6887B0: a fork's end point goes DOWN (z - 0x400 - rand & 0x3FF; 126: up)
-//   arc ribbon quads 0x688D50 / crawler draw 0x689450: the OT bucket = (sum of the two depths) >> 3 / >> 4 (126: >> 5 both)
-//
-// Structure (setup MAG_275 0x687B40 -> _Init 0x687B70, file loader 0x687B50 = the texture file named at 0x10E298C (mag125.tim,
-// 126's); the setup keeps the CASTER's entity, starts camera animation 0x10DC0E8, queues the TIM):
-//   RootTask (0x687C00) - alternates the packet arena; clears the screen-flash level and the flag 0x800 of the action's targets;
-//     on counter 1 sets up the pools (main 1 x 0x34, arcs 0x40 x 0x3C, crawlers 0x40 x 0x28, sparks 0x20 x 0x18, glow layouts
-//     8 x 0xD4, two point pools of 0x200 x 0x28 in the magic buffer), starts the main task, saves the targets' tints and binds
-//     Quistis' cast animation; runs the main and arc queues, the caster's bone world matrices (0x5095B0), the crawler queue, the
-//     caster's pose matrices (0x508C90), the spark and layout queues; screen flash; ends when all five queues are empty.
-//   Main (0x687F20) - see above. Sound at 0.
-//   Arc (0x6887B0) - a lightning arc: 8 steps per tick (random walk of the source, blended toward the end by the progress t, a
-//     point appended, maybe a fork); at t = 0x1000 a spark (0x688C60) and sometimes a screen fade; then the points fade, the
-//     chain is projected and drawn as a textured ribbon (0x688D50 / 0x688EC0), the points drift by their velocity and the faded
-//     tail points are freed. UPDATE THEN DRAW.
-//   Crawler (0x689280) - a ribbon crawling over the CASTER's model: script words (bone, vertex, forks) append points on model
-//     vertices; every draw (0x689450) places every point through her bone world matrices (her ANIMATED pose: the root builds
-//     them before the crawler queue); offsets drift, fade; ribbon 0x689650; faded tail points are freed. UPDATE THEN DRAW.
-//   Spark (0x688C60) - 8-frame sprite sequence (0x10D9934 / 0x10D9A88) at a fixed place; the spark of an arc that hit a target
-//     tints that entity (0x56CC00) for 5 frames. DRAW THEN UPDATE.
-//   GlowLayout (0x688320) - prim-model layout 0x10D9B64 played by the shared player at the caster's default effect position (200
-//     below it; GetDefaultEffectPosition reads her bone matrices: it follows her animation), callback PartCallback (0x688380).
-//     DRAW THEN UPDATE.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// Writes to battle entities: the targets' flags (+0x00 bit 0x800 cleared every tick), a hit target's +0x01 bit 8 and tint +0x28
-// (spark task), the caster's animation set / chain (0x5022C0 / 0x505C00, root counter 1), the caster's bone matrices (world
-// matrices before the crawlers, rebuilt from her pose after them, every tick), damage (0x506BA0, main counter 44). Camera: no
-// camera word is written (the camera animation 0x10DC0E8 is the engine's); every draw reads the battle view 0x1D97778 itself.
-// Module globals: 0x2508348..0x2508410 (flash level, caster entity, texture file, magic buffer base, context, root pool, target
-// tints by entity slot 0x2508374, packet cursor 0x25083A4, queues 0x25083A8..0x25083F8, a never-written zero vector 0x2508408).
-// Exe data written: the screen-fade chance 0x10DC2D4.
+// Effect 275: Electrocute: Electric Discharge 126
 
 #include "mag_common.h"
 #include <intrin.h>
@@ -75,24 +26,21 @@ namespace elec275
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint32_t &FlashLevel() { return var<uint32_t>(0x2508348); }       // screen flash level
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x250834C); }          // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2508354); }          // Magic_TextureOFF (magic buffer)
+	inline uint32_t &FlashLevel() { return var<uint32_t>(0x2508348); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x250834C); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2508354); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2508358); }
-	inline uint32_t *SavedTints() { return (uint32_t *)0x2508374; }          // the targets' +0x28 by entity slot (root counter 1)
+	inline uint32_t *SavedTints() { return (uint32_t *)0x2508374; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25083A4); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x25083A8; }          // pool: magic buffer, 8 x 0xD4
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x25083B8; }           // + 0x6A0, 0x20 x 0x18
-	inline TaskQueue *QCrawlers() { return (TaskQueue *)0x25083C8; }         // + 0x9A0, 0x40 x 0x28
-	inline TaskQueue *QArcs() { return (TaskQueue *)0x25083D8; }             // + 0x13A0, 0x40 x 0x3C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25083E8; }             // + 0x22A0, 1 x 0x34
-	static const uint32_t ZERO_VEC = 0x2508408;                             // 8 bytes, never written
-	inline int32_t &FadeChance() { return var<int32_t>(0x10DC2D4); }         // exe data: screen fade threshold
+	inline TaskQueue *QLayouts() { return (TaskQueue *)0x25083A8; }
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x25083B8; }
+	inline TaskQueue *QCrawlers() { return (TaskQueue *)0x25083C8; }
+	inline TaskQueue *QArcs() { return (TaskQueue *)0x25083D8; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x25083E8; }
+	static const uint32_t ZERO_VEC = 0x2508408;
+	inline int32_t &FadeChance() { return var<int32_t>(0x10DC2D4); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
-	// magic buffer: arc points + 0x22D4 and crawler points + 0x72D4 (0x200 x 0x28 each), one freed
-	// point kept per pool (+ 0xC2D4 / + 0xC2D8), blended vertex frames + 0xC2DC
 	static const uint32_t ARC_POINTS = 0x22D4, CRAWL_POINTS = 0x72D4, ARC_FREE = 0xC2D4, CRAWL_FREE = 0xC2D8, MORPH = 0xC2DC;
 
 	static const uint32_t ORIG_RootTask = 0x687C00;
@@ -101,125 +49,115 @@ namespace elec275
 	static const uint32_t ORIG_ArcTask = 0x6887B0;
 	static const uint32_t ORIG_SparkTask = 0x688C60;
 	static const uint32_t ORIG_CrawlerTask = 0x689280;
-	static const uint32_t SEQ_Spark = 0x10D9934;      // sprite sequence of the arc end sparks
-	static const uint32_t SEQ_SparkB = 0x10D9A88;     // ... of the free arcs' ground sparks
-	static const uint32_t MODEL_Glow = 0x10D9B64;     // prim-model layout data (0xC8-byte layout)
+	static const uint32_t SEQ_Spark = 0x10D9934;
+	static const uint32_t SEQ_SparkB = 0x10D9A88;
+	static const uint32_t MODEL_Glow = 0x10D9B64;
 	static const void *const SOUND_Discharge = (const void *)0x10DC2D0;
 	static const void *const TINT_Colour = (const void *)0x10DC2D8;
-	static const uint8_t *const BONES_Caster = (const uint8_t *)0x10DC2DC;   // 6 effect bones
-	static const uint32_t COM_Anim = 0x10DA574;      // com data of the module's animation set (bound to the caster)
-	static const int16_t *const CRAWL_Scripts = (const int16_t *)0x10DC2E4;  // [0] = count, [1 + i] = script offset (words)
-	static const uint8_t *const LEN_Table = (const uint8_t *)0x10DC98C;      // 128 x 128 |(dx, dy)|
-	static const int16_t *const BLEND_Table = (const int16_t *)0x10E098C;    // point velocity blend by t / 2
+	static const uint8_t *const BONES_Caster = (const uint8_t *)0x10DC2DC;
+	static const uint32_t COM_Anim = 0x10DA574;
+	static const int16_t *const CRAWL_Scripts = (const int16_t *)0x10DC2E4;
+	static const uint8_t *const LEN_Table = (const uint8_t *)0x10DC98C;
+	static const int16_t *const BLEND_Table = (const int16_t *)0x10E098C;
 
-	// engine functions not in fx_port.h / mag_common.h
-	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }  // MAG_106_sub_7059E0: (125 s + 14) & 0x7FFF
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone` (x, y, z)
+	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(0x7059E0)(); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	// sub_56CC00: out colour = a * wa + b * wb (4.12 weights)
 	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CC00)(a, b, wa, wb, out); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_sub_7015B0
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0: V0 = 3 x u16
-	// MAG_126_ElectricDischarge_AnglesToDir (0x6BA190, Electric Discharge's own function: this module calls it, it has no copy):
-	// unit direction of the angles (pitch, yaw)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void AnglesToDir(const int16_t *ang, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(0x6BA190)(ang, out); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); } // BattleEntity_BindExternalAnimSet
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(0x5022C0)(entity, out, data); }
 	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(0x505C00)(entity, id); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0e;
-		uint8_t started;   // +0x0F pools set up (counter 1)
-		uint32_t arena;    // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x34 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..64
-		int16_t targets;   // +0x0E the action's target count
-		int16_t next;      // +0x10 next target tried
+		int16_t counter;
+		int16_t targets;
+		int16_t next;
 		int16_t pad12;
-		uint8_t bind[0x20]; // +0x14 the caster's bind block (BattleEntity_BindExternalAnimSet)
+		uint8_t bind[0x20];
 	};
-	struct Point // both point pools (0x28 bytes); the ribbon code shares +0x10..+0x27
+	struct Point
 	{
-		int16_t a[3];      // +0x00 arc: position; crawler: [0] model vertex, [1] width, [2] offset x
-		int16_t b;         // +0x06 arc: width (-1 = free slot); crawler: offset y
-		int16_t c[3];      // +0x08 arc: velocity; crawler: [0] offset z, [1..2] drift (3 x s8) + bone (s8)
-		int16_t d;         // +0x0E arc: fade hold ticks
-		int16_t sxy[2];    // +0x10 projected position, then the ribbon's first edge vertex
-		int16_t otz;       // +0x14 (read as a dword by the GTE)
+		int16_t a[3];
+		int16_t b;
+		int16_t c[3];
+		int16_t d;
+		int16_t sxy[2];
+		int16_t otz;
 		int16_t pad16;
-		int16_t edge[2];   // +0x18 the ribbon's second edge vertex
+		int16_t edge[2];
 		int16_t pad1c[2];
-		int16_t fade;      // +0x20
-		int16_t step;      // +0x22
-		Point *next;       // +0x24
+		int16_t fade;
+		int16_t step;
+		Point *next;
 	};
-	struct ArcNode // pool of 0x40 nodes of 0x3C bytes
+	struct ArcNode
 	{
 		TaskNode hdr;
-		int16_t pad0c;     // +0x0C cleared, unused
-		int16_t count;     // +0x0E points
-		Point *tail;       // +0x10 oldest point
-		Point *head;       // +0x14 newest point
-		int16_t pos[3];    // +0x18 random-walking source
-		int16_t t;         // +0x1E progress (0x1000 = reached)
-		int16_t end[3];    // +0x20
-		int16_t speed;     // +0x26 progress per step
-		int16_t vel[3];    // +0x28 source velocity
-		int16_t forks;     // +0x2E fork chances left
-		int16_t dir[3];    // +0x30 point velocity at t = 0
-		int16_t slot;      // +0x36 entity slot hit (-1 = none)
-		int16_t width;     // +0x38
-		int16_t style;     // +0x3A texture row (0 / 1)
+		int16_t pad0c;
+		int16_t count;
+		Point *tail;
+		Point *head;
+		int16_t pos[3];
+		int16_t t;
+		int16_t end[3];
+		int16_t speed;
+		int16_t vel[3];
+		int16_t forks;
+		int16_t dir[3];
+		int16_t slot;
+		int16_t width;
+		int16_t style;
 	};
-	struct SparkNode // pool of 0x20 nodes of 0x18 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t frame;     // +0x0C 0..7
-		uint8_t kind;      // +0x0E 0 = arc end, 1 = ground
-		int8_t slot;       // +0x0F entity slot tinted (-1 = none)
-		int16_t pos[3];    // +0x10
-		int16_t scale;     // +0x16
+		int16_t frame;
+		uint8_t kind;
+		int8_t slot;
+		int16_t pos[3];
+		int16_t scale;
 	};
-	struct CrawlerNode // pool of 0x40 nodes of 0x28 bytes
+	struct CrawlerNode
 	{
 		TaskNode hdr;
-		int16_t steps;     // +0x0C script steps per tick
-		int16_t count;     // +0x0E points
-		int16_t width;     // +0x10
-		int16_t fade;      // +0x12 new points' fade
-		int16_t step;      // +0x14 new points' fade step
+		int16_t steps;
+		int16_t count;
+		int16_t width;
+		int16_t fade;
+		int16_t step;
 		int16_t pad16;
-		const int16_t *script; // +0x18 (null = finished)
-		Point *tail;       // +0x1C
-		Point *head;       // +0x20
-		uint8_t *model;    // +0x24 caster entity +0x64 (her bone matrices / vertices)
+		const int16_t *script;
+		Point *tail;
+		Point *head;
+		uint8_t *model;
 	};
-	struct LayoutNode // pool of 8 nodes of 0xD4 bytes
+	struct LayoutNode
 	{
 		TaskNode hdr;
-		uint8_t layout[0xC8]; // +0x0C prim-model layout (prim::Layout)
+		uint8_t layout[0xC8];
 	};
-	// the prim-player callback's parameter block (a stack block of the layout task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 anchor x, y, z, height
-		uint32_t morph;    // +0x08 blended vertex frames
+		int16_t pos[4];
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MainNode) == 0x34, "Electrocute nodes");
@@ -229,11 +167,6 @@ namespace elec275
 	inline int8_t CrawlDrift(const Point *p, int i) { return ((const int8_t *)p)[0xC + i]; }
 	inline int8_t CrawlBone(const Point *p) { return ((const int8_t *)p)[0xF]; }
 
-	// ------------------------------------------------------------------
-	// Ribbon (0x688EC0 arcs / 0x689650 crawlers): the two edge vertices of point p from the
-	// screen direction towards `next` (averaged with the previous one), half width = next's
-	// width * 32 / (p's depth + bias); a point without next has no width
-	// ------------------------------------------------------------------
 	static void RibbonEdge(Point *p, const Point *next, const int16_t *prev, int16_t *out, int32_t width, int32_t bias)
 	{
 		if (p->otz < 0) return;
@@ -304,8 +237,6 @@ namespace elec275
 		p->sxy[1] = (int16_t)(y - oy);
 	}
 
-	// one textured quad (0x3E) per pair of visible points, gouraud by the points' fades; OT bucket = the
-	// two depths' sum >> shift (arcs 0x688D50: 3, crawlers 0x689450: 4)
 	static void RibbonQuads(Point *tail, int32_t count, uint32_t uv0, uint32_t uv1, uint16_t uv2, uint16_t uv3, int32_t shift)
 	{
 		Point *a = tail;
@@ -340,10 +271,6 @@ namespace elec275
 		}
 	}
 
-	// the edges of every point (first, middle, last) then the quads. The direction local starts
-	// with what its stack slot held (dir0, see ArcRibbon / CrawlerTask): the first point leaves it
-	// unwritten when it projects onto the second one (it is hidden), the second point then reads it.
-	// Returns what the local holds at the end.
 	static uint32_t Ribbon(Point *tail, int32_t count, int32_t width_word, int32_t bias, uint32_t uv0, uint32_t uv1, uint16_t uv2, uint16_t uv3, int32_t shift, uint32_t dir0)
 	{
 		int16_t dir[2] = { (int16_t)dir0, (int16_t)(dir0 >> 16) };
@@ -360,9 +287,6 @@ namespace elec275
 		return (uint16_t)dir[0] | (uint32_t)(uint16_t)dir[1] << 16;
 	}
 
-	// Arc ribbon (0x688D50): texture row by style. UNINIT 0x688D62 / 0x688D83: its direction local
-	// [esp] is the slot where the last projection's GTE_RTPS (0x45FAA0) kept its depth divisor
-	// ([esp+0x10] of its frame: SZ3 when above H / 2, else H / 2)
 	static void ArcRibbon(Point *tail, int32_t count, int32_t style)
 	{
 		const int32_t sz = (int32_t)var<uint32_t>(0x1CA8A5C);
@@ -371,7 +295,6 @@ namespace elec275
 		Ribbon(tail, count, 3, 0x200, v | 0x3D140008, v | 0xB70038, (uint16_t)(v | 8), (uint16_t)(v | 0x38), 3, (uint32_t)(sz > h2 ? sz : h2));
 	}
 
-	// projection of every point of a chain (arc task)
 	static void ArcProject(Point *p)
 	{
 		do
@@ -384,8 +307,6 @@ namespace elec275
 		} while (p);
 	}
 
-	// crawler point on the caster's model (0x689450 loop): vertex through its bone's matrix, plus
-	// the point's offset, projected with the camera
 	static void CrawlerPointWorld(const uint8_t *model, const Point *p, int16_t w[4])
 	{
 		const Mat4x3 *m = (const Mat4x3 *)(*(uint8_t *const *)model + 0x20 + CrawlBone(p) * 0x30);
@@ -422,18 +343,13 @@ namespace ff8fx
 {
 namespace elec275
 {
-	// ------------------------------------------------------------------
-	// Crawler draw (0x689450)
-	// ------------------------------------------------------------------
 	static uint32_t CrawlerDraw(uint8_t *model, Point *tail, int32_t count, uint32_t dir0, uint16_t pad)
 	{
 		Point *p = tail;
 		do
 		{
-			// the 4th word is never written: the stack word under it (pad, see CrawlerTask) goes into the GTE V0 pad
 			int16_t w[4] = { 0, 0, 0, (int16_t)pad };
 			CrawlerPointWorld(model, p, w);
-			// 30 fps layer: see mag275_electrocute_quistis_held.inc
 			FX_HELD(held_note_crawler_point(w);)
 			CrawlerPointProject(p, w);
 			p = p->next;
@@ -441,9 +357,6 @@ namespace elec275
 		return CrawlerRibbon(tail, count, dir0);
 	}
 
-	// ------------------------------------------------------------------
-	// Point pools (0x688740 arcs, 0x6891A0 crawlers)
-	// ------------------------------------------------------------------
 	static Point *AllocArcPoint(const int16_t *pos, int16_t width)
 	{
 		const uint32_t base = TexBase();
@@ -512,11 +425,6 @@ namespace elec275
 		return p;
 	}
 
-	// ------------------------------------------------------------------
-	// Spawns
-	// ------------------------------------------------------------------
-	// 0x688620: an arc from `from` (first point) toward `to`, source velocity `vel`, point
-	// velocity dir (or random), progress t0 advancing by speed; returns the first point
 	static Point *SpawnArc(const int16_t *vel, const int16_t *from, const int16_t *to, const int16_t *dir, int32_t slot, int32_t t0, int32_t speed, int32_t width, int32_t style, int32_t forks)
 	{
 		Point *pt = AllocArcPoint(from, (int16_t)width);
@@ -551,7 +459,6 @@ namespace elec275
 		return pt;
 	}
 
-	// 0x6890D0: a crawler running `script` (words after the bone word), `steps` script steps per tick
 	static void SpawnCrawlerScript(uint8_t *model, const int16_t *script, int32_t steps, int32_t width)
 	{
 		const int32_t r0 = Rand() & 0x3FF;
@@ -581,7 +488,6 @@ namespace elec275
 		c->count = 1;
 	}
 
-	// 0x689050: crawler script `index` of the table, random width scaled by scale (4.12)
 	static void SpawnCrawler(uint8_t *model, const int16_t *table, int32_t index, int32_t steps, int32_t scale)
 	{
 		const int16_t *script = table + table[index + 1];
@@ -591,9 +497,6 @@ namespace elec275
 		SpawnCrawlerScript(model, script, steps, w);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x688380): one object of the glow layout
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -632,11 +535,9 @@ namespace elec275
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x200)
 		{
-			// the anchor through the camera, the offset added in screen axes
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -647,7 +548,6 @@ namespace elec275
 		}
 		else
 		{
-			// anchor + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -678,9 +578,6 @@ namespace elec275
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Glow layout (0x688320)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *g = (LayoutNode *)n;
@@ -688,14 +585,10 @@ namespace elec275
 		GetDefaultEffectPosition(Caster(), arg.pos);
 		arg.pos[1] = (int16_t)(arg.pos[1] + 0xC8);
 		arg.morph = TexBase() + MORPH;
-		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(held_note_play((prim::Layout *)g->layout, &arg);)
 		return prim::play((prim::Layout *)g->layout, PartCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x688C60)
-	// ------------------------------------------------------------------
 	static void SparkDraw(SparkNode *s)
 	{
 		TransformCameraByShadowRotation(s->pos, s->scale, -(s->scale >> 2));
@@ -717,16 +610,12 @@ namespace elec275
 			const int32_t sn = ComputeSin(shl32(s->frame, 8));
 			BlendColour(&SavedTints()[s->slot], TINT_Colour, 0x1000 - sn, sn, e + 0x28);
 		}
-		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->frame++;
 		return s->frame < 8 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Arc (0x6887B0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ArcTask(TaskNode *n)
 	{
 		ArcNode *a = (ArcNode *)n;
@@ -746,7 +635,6 @@ namespace elec275
 				a->pos[1] = (int16_t)(a->pos[1] + ((Rand() & 0x1FF) - 0x100));
 				a->pos[2] = (int16_t)(a->pos[2] + ((Rand() & 0x1FF) - 0x100));
 			}
-			// the new point: source and end blended by t
 			int16_t p[4] = { 0, 0, 0, 0 };
 			GteSetIR0(0x1000 - a->t);
 			GteLoadIR123(a->pos);
@@ -798,7 +686,6 @@ namespace elec275
 			a->count++;
 			const int32_t blend = BLEND_Table[((uint16_t)a->t >> 1) & 0xFFF];
 			a->head = pt;
-			// the point's velocity: dir blended toward the zero vector (the hold word kept)
 			const int16_t hold = pt->d;
 			GteSetIR0(blend);
 			GteLoadIR123(a->dir);
@@ -810,7 +697,6 @@ namespace elec275
 			pt->d = hold;
 			if (a->t >= 0xC00) continue;
 			if (Rand() >= shl32(a->forks, 13)) continue;
-			// a fork from the new point
 			int16_t to[4] = { 0, 0, 0, 0 }, vel[4] = { 0, 0, 0, 0 };
 			int32_t d;
 			if (Rand() > 0x4000) d = -0x200 - (Rand() & 0x1FF);
@@ -827,7 +713,6 @@ namespace elec275
 			if (f) ff8fx::copy<(8)>(f->c, pt->c);
 			a->forks--;
 		}
-		// fades
 		Point *q = a->tail;
 		do
 		{
@@ -840,7 +725,6 @@ namespace elec275
 			}
 			q = q->next;
 		} while (q);
-		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(held_note_arc(a);)
 		ArcProject(a->tail);
 		if (a->count >= 2) ArcRibbon(a->tail, a->count, a->style);
@@ -852,7 +736,6 @@ namespace elec275
 			q->a[2] = (int16_t)(q->a[2] + q->c[2]);
 			q = q->next;
 		} while (q);
-		// free the faded tail
 		q = a->tail;
 		while (q->fade == 0 && q->next->fade == 0)
 		{
@@ -867,33 +750,12 @@ namespace elec275
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Crawler (0x689280)
-	// UNINIT 0x6894D1 (GTE_LoadV0 of the point vector, 4th word never written): the V0 pad word = the
-	// high half of the task's stack dword [entry esp - 0x30], last written by the task's last call on this
-	// tick: 0x6891A0 (its return address 0x00689350: 0x0068), a fork 0x6890D0 (its saved ebp = the
-	// executor's queue address: 0x0250), else carried from the previous crawler like the word below
-	// (g_crawl_pad).
-	// UNINIT 0x689505 / 0x689535: the draw's direction local (0x689450 [esp+0x18]) is the task's
-	// stack slot [entry esp - 0x2C], never written by the draw itself. It holds the first argument
-	// of the task's last 0x6891A0 call (edi: the bone word, high half = edi's), else the ebx (2) a
-	// fork call (0x6890D0) saved there, else what the stack held when the task started (slot).
-	// edi starts as the executor's (the queue node before this one, 0 for the first) and takes the
-	// script pointer's high half at a fork.
-	// The crawler tasks run one after the other at the same stack depth (0x508420 on QCrawlers), so a
-	// crawler's task-start value is what the PREVIOUS crawler left in that slot: its draw's final
-	// direction (0x689650 out-dir), or its own last slot value when it did not draw (checked with the
-	// game's executor: every entry word of 0x6BB150 [esp-0x2C] equals the previous crawler's word at
-	// 0x6BB510 [esp+0x18]: Electric Discharge 126, the same code). The port carries it (g_crawl_slot); only the first crawler the queue
-	// run calls reads the stack word that code outside the queue left there (g_crawl_first: NOT the queue
-	// head test of 126's port, see CrawlerTask).
-	// ------------------------------------------------------------------
 	static uint32_t g_crawl_slot;
 	static uint16_t g_crawl_pad;
-	static const uint16_t ALLOC_RET_HI = 0x0068; // high half of 0x00689350, the original's return address after its 0x6891A0 call
+	static const uint16_t ALLOC_RET_HI = 0x0068;
 	static __declspec(noinline) uint32_t CrawlerTaskBody(CrawlerNode *c, uint32_t slot, uint16_t pad)
 	{
-		uint16_t vpad = pad; // the draw's V0 pad word (the task's stack dword [entry - 0x30] high half, see CrawlerTask)
+		uint16_t vpad = pad;
 		const uint32_t slot0 = slot;
 		uint32_t edi = 0;
 		for (TaskNode *q = QCrawlers()->head; q && q != &c->hdr; q = q->next) edi = (uint32_t)q;
@@ -905,10 +767,9 @@ namespace elec275
 			int32_t drift = 1;
 			while (bone < 0)
 			{
-				// a fork: a new crawler runs the words that follow, this one skips them
 				SpawnCrawlerScript(c->model, c->script, c->steps, c->width);
 				slot = 2;
-				vpad = (uint16_t)((uint32_t)QCrawlers() >> 16); // (the fork call's saved ebp: the executor's, the queue address)
+				vpad = (uint16_t)((uint32_t)QCrawlers() >> 16);
 				c->script += -1 - bone;
 				edi = (uint32_t)c->script;
 				bone = *c->script++;
@@ -953,7 +814,6 @@ namespace elec275
 				q = q->next;
 			} while (q);
 		}
-		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(held_note_crawler(c, slot, slot0);)
 		g_crawl_slot = slot;
 		g_crawl_pad = vpad;
@@ -985,13 +845,9 @@ namespace elec275
 		}
 		return TASK_END;
 	}
-	static bool g_crawl_first; // the root's crawler queue run starts (set right before ExecuteTaskQueue(QCrawlers()))
+	static bool g_crawl_first;
 	static uint32_t __cdecl CrawlerTask(TaskNode *n)
 	{
-		// the original's stack slot: the first crawler the queue run calls reads the stack word (read before
-		// this function writes below its frame), every later one what the previous crawler left there
-		// (g_crawl_slot), also when the crawlers before it ended on this tick (the executor unlinks an ended
-		// node: the next one is then the queue head, yet its slot holds the carry)
 		const uint32_t stack_word = *(const uint32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2C);
 		const uint16_t stack_pad = *(const uint16_t *)((const uint8_t *)_AddressOfReturnAddress() - 0x2E);
 		const bool first = g_crawl_first;
@@ -999,9 +855,6 @@ namespace elec275
 		return CrawlerTaskBody((CrawlerNode *)n, first ? stack_word : g_crawl_slot, first ? stack_pad : g_crawl_pad);
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x687F20)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
@@ -1014,7 +867,6 @@ namespace elec275
 		else if ((int32_t)FlashLevel() < 0x800) FlashLevel() = 0x800;
 		if ((uint32_t)(int32_t)c < 8 && !(c & 1))
 		{
-			// one crawler per even tick, script counter % count
 			SpawnCrawler(*(uint8_t **)(Caster() + 0x64), CRAWL_Scripts, (int32_t)((uint32_t)(int32_t)c % (uint32_t)(int32_t)CRAWL_Scripts[0]), 3, 0x1000);
 		}
 		if (m->counter == 0)
@@ -1031,7 +883,6 @@ namespace elec275
 		}
 		if ((uint32_t)c8 < 0xC)
 		{
-			// a free arc from the caster's centre in a direction turning with the counter
 			int16_t from[4], dir[4], vel[4];
 			GetDefaultEffectPosition(Caster(), from);
 			int16_t ang[2];
@@ -1041,7 +892,6 @@ namespace elec275
 			from[0] = (int16_t)(from[0] + (dir[0] >> 8));
 			from[1] = (int16_t)(from[1] + (dir[1] >> 8));
 			from[2] = (int16_t)(from[2] + (dir[2] >> 8));
-			// (the 4th words of to / vel are never written: SpawnArc copies them into words it overwrites)
 			int16_t to[4] = { (int16_t)(dir[0] + from[0]), (int16_t)(dir[1] + from[1]), (int16_t)(dir[2] + from[2]), 0 };
 			vel[0] = (int16_t)((Rand() & 0x7F) - 0x40);
 			vel[1] = (int16_t)((Rand() & 0x7F) - 0x40);
@@ -1056,7 +906,6 @@ namespace elec275
 		{
 			if (!(c14 & 1))
 			{
-				// an arc from a caster bone to a bone of the next living target of the action
 				int16_t from[4], centre[4], to[4];
 				const int32_t r = Rand();
 				GetEffectSpawnPosition(Caster(), BONES_Caster[(uint32_t)(r * 6) >> 15], 0, from);
@@ -1100,13 +949,9 @@ namespace elec275
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x687C00)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -1176,7 +1021,6 @@ namespace elec275
 		register_port(elec275::ORIG_CrawlerTask, (void *)elec275::CrawlerTask, "275 CrawlerTask", 275);
 		register_port(elec275::ORIG_SparkTask, (void *)elec275::SparkTask, "275 SparkTask", 275);
 		register_port(elec275::ORIG_LayoutTask, (void *)elec275::LayoutTask, "275 LayoutTask", 275);
-		// 30 fps layer: see mag275_electrocute_quistis_held.inc
 		FX_HELD(register_mag275_held();)
 	}
 }

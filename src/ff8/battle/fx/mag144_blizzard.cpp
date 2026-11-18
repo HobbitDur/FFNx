@@ -14,22 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 144: Blizzard (spell, MAG_144_*).
-//
-// Structure (setup MAG_144_BLIZZARD 0x61ABA0, file loader 0x61AB80 = mag143.tim):
-//   RootTask (0x61BF70) - alternates the packet arena (magic buffer + 0 / + 0xC000), runs the
-//     effect queue, ends when it is empty.
-//   Director, one per action (0x61AC70), on the action's first target: 0 anchor + the crystal's
-//     80 shards (ShatterPrep), 1 crystal + sound, mist puffs every other tick 3..27, falling ice
-//     18..32, 28 next action's director, 37..39 debris, 37 shock ring + damage, ends after 44.
-//   Crystal (0x61B740) - ice crystal mesh (CrystalRender 0x61B900): its 80 shards fly in and
-//     assemble (each draw moves them one step), the crystal spins, rises, slams down, fades.
-//   Shockwave (0x61B3A0) - prim model ring growing on the ground, fading out.
-//   Debris (0x61B4F0), FallingIce (0x61B5B0), MistPuff (0x61B660) - sprite sequences.
-// Module globals: 0x24BB960..0x24BECC4 (first target slot, per-action shard buffers 0x24BB968
-// (3 x 0xA00), queues, node pool, context, texture pointers, packet cursor 0x24BECC0); packets
-// go to the magic buffer (0x20DFAB8 + 0 / + 0xC000). The crystal's slam adds 0x20 to the battle
-// camera word 0x1D97712.
+// Effect 144: Blizzard
 
 #include "mag_common.h"
 
@@ -40,12 +25,11 @@ namespace blizzard144
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BD778); } // .first = root, .second = effect queue
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(0x24BD778); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x24BECB0); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24BECBC); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&TexBase() { return var<uint8_t *>(0x24BECBC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x24BECC0); }
-	inline uint8_t *ShardBuffer(int action) { return (uint8_t *)(0x24BB968 + 0xA00 * action); } // 80 shards x 0x20
+	inline uint8_t *ShardBuffer(int action) { return (uint8_t *)(0x24BB968 + 0xA00 * action); }
 	inline int16_t &CameraShake() { return var<int16_t>(0x1D97712); }
 
 	static const uint32_t ORIG_RootTask = 0x61BF70;
@@ -55,18 +39,17 @@ namespace blizzard144
 	static const uint32_t ORIG_FallingIceTask = 0x61B5B0;
 	static const uint32_t ORIG_MistPuffTask = 0x61B660;
 	static const uint32_t ORIG_CrystalTask = 0x61B740;
-	static const uint8_t *const MODEL_Crystal = (const uint8_t *)0xDD8590;   // vertices + faces
-	static const uint8_t *const MODEL_CrystalUV = (const uint8_t *)0xDD9280; // per-face glint texture words
+	static const uint8_t *const MODEL_Crystal = (const uint8_t *)0xDD8590;
+	static const uint8_t *const MODEL_CrystalUV = (const uint8_t *)0xDD9280;
 	static const void *const MODEL_Shockwave = (const void *)0xDD8D48;
-	static const void *const SEQ_Ice = (const void *)0xDD83E4;              // debris and falling ice
+	static const void *const SEQ_Ice = (const void *)0xDD83E4;
 	static const void *const SEQ_Mist = (const void *)0xDD82F0;
 	static const void *const SOUND_Blizzard = (const void *)0xDD9A38;
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
-	// engine functions used by this module only
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline int32_t NormalizeVector16(int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(int16_t *, int16_t *)>(0x56BDE0)(in, out); } // sub_56BDE0
+	inline int32_t NormalizeVector16(int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(int16_t *, int16_t *)>(0x56BDE0)(in, out); }
 	inline int32_t ISqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
@@ -80,135 +63,128 @@ namespace blizzard144
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts (pool of 0x96 nodes of 0x24 bytes)
-	// ------------------------------------------------------------------
 	struct RootNode { TaskNode hdr; uint16_t counter; };
 	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t action;   // +0x0E action index
-		int16_t pos[3];   // +0x10 target effect anchor (bone 0xF0)
-		int16_t height;   // +0x16 target height (ground)
+		int16_t counter;
+		int16_t action;
+		int16_t pos[3];
+		int16_t height;
 		uint8_t pad18[8];
-		int16_t slot;     // +0x20 target slot
+		int16_t slot;
 		int16_t pad22;
 	};
 	struct CrystalNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t action;   // +0x0E (shard buffer)
-		int16_t pos[3];   // +0x10
-		int16_t slam;     // +0x16 y step of the slam
-		int16_t yaw;      // +0x18
-		int16_t yaw_vel;  // +0x1A
-		int16_t scale;    // +0x1C
+		int16_t counter;
+		int16_t action;
+		int16_t pos[3];
+		int16_t slam;
+		int16_t yaw;
+		int16_t yaw_vel;
+		int16_t scale;
 		int16_t pad1E;
-		int16_t lift;     // +0x20 rise velocity
+		int16_t lift;
 		int16_t pad22;
 	};
 	struct ShockwaveNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];   // +0x10
+		int16_t pos[3];
 		uint8_t pad16[6];
-		int16_t scale;    // +0x1C
-		int16_t scale_vel;// +0x1E
+		int16_t scale;
+		int16_t scale_vel;
 		uint8_t pad20[4];
 	};
 	struct DebrisNode
 	{
 		TaskNode hdr;
-		int16_t frame;    // +0x0C
+		int16_t frame;
 		int16_t pad0E;
-		int16_t pos[3];   // +0x10
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t vel_x;    // +0x18
+		int16_t vel_x;
 		int16_t pad1A;
-		int16_t vel_z;    // +0x1C
+		int16_t vel_z;
 		int16_t pad1E;
-		int16_t scale;    // +0x20
+		int16_t scale;
 		int16_t pad22;
 	};
 	struct FallingIceNode
 	{
 		TaskNode hdr;
-		int16_t frame;    // +0x0C
+		int16_t frame;
 		int16_t pad0E;
-		int16_t pos[3];   // +0x10
-		int16_t vel_y;    // +0x16
+		int16_t pos[3];
+		int16_t vel_y;
 		uint8_t pad18[4];
-		int16_t scale;    // +0x1C
+		int16_t scale;
 		uint8_t pad1E[6];
 	};
 	struct MistNode
 	{
 		TaskNode hdr;
-		int16_t frame;    // +0x0C
-		int16_t delay;    // +0x0E
-		int16_t pos[3];   // +0x10
+		int16_t frame;
+		int16_t delay;
+		int16_t pos[3];
 		int16_t pad16;
 		uint8_t pad18[4];
-		int16_t scale;    // +0x1C
+		int16_t scale;
 		uint8_t pad1E[6];
 	};
 	static_assert(sizeof(DirectorNode) == 0x24 && sizeof(CrystalNode) == 0x24 && sizeof(ShockwaveNode) == 0x24 && sizeof(DebrisNode) == 0x24
 		&& sizeof(FallingIceNode) == 0x24 && sizeof(MistNode) == 0x24, "Blizzard nodes are 0x24 bytes");
 
-	// A crystal shard (0x20 bytes): one face of the crystal mesh, flying in from `radius` along
-	// its direction with its angles winding down to 0 in `steps` steps; appears when the
-	// crystal's counter reaches `delay`
 #pragma pack(push, 1)
 	struct Shard
 	{
-		int16_t center[3]; // +0x00 face centre
-		int16_t delay;     // +0x06
-		int16_t angle[3];  // +0x08
-		int16_t step;      // +0x0E
-		int16_t angle_vel[3]; // +0x10
-		int16_t steps;     // +0x16
-		int16_t dir_x;     // +0x18 unit direction (x, 0, z)
-		int16_t radius_vel;// +0x1A
-		int16_t dir_z;     // +0x1C
-		int16_t radius;    // +0x1E
+		int16_t center[3];
+		int16_t delay;
+		int16_t angle[3];
+		int16_t step;
+		int16_t angle_vel[3];
+		int16_t steps;
+		int16_t dir_x;
+		int16_t radius_vel;
+		int16_t dir_z;
+		int16_t radius;
 	};
-	// Crystal draw header (0xD0 bytes on the scratch stack)
 	struct CrystalHeader
 	{
-		const uint8_t *model;   // +0x00 vertices / faces
-		const uint8_t *uvmodel; // +0x04 glint texture words per face
-		uint8_t far_rgb[3];     // +0x08 fade colour
+		const uint8_t *model;
+		const uint8_t *uvmodel;
+		uint8_t far_rgb[3];
 		uint8_t pad0B;
-		int32_t ir0;            // +0x0C fade level
-		int32_t limit;          // +0x10 crystal counter: shards with a greater delay are not drawn
+		int32_t ir0;
+		int32_t limit;
 		uint32_t pad14;
-		uint32_t flags;         // +0x18 bit0 semi-transparent, bit6 fade
-		const uint8_t *verts;   // +0x1C
-		const uint8_t *faces;   // +0x20 face cursor (0x14 bytes each)
-		const uint8_t *uvs;     // +0x24 glint cursor (0x14 bytes each)
-		uint8_t *shards;        // +0x28 shard cursor
-		int32_t cos_a;          // +0x2C
+		uint32_t flags;
+		const uint8_t *verts;
+		const uint8_t *faces;
+		const uint8_t *uvs;
+		uint8_t *shards;
+		int32_t cos_a;
 		uint32_t pad30;
-		int32_t sin_otz;        // +0x34 sin, then the face OTZ
-		uint32_t gte_flag;      // +0x38
-		int16_t v0[4];          // +0x3C
-		int16_t v1[4];          // +0x44
-		int16_t v2[4];          // +0x4C
+		int32_t sin_otz;
+		uint32_t gte_flag;
+		int16_t v0[4];
+		int16_t v1[4];
+		int16_t v2[4];
 		uint32_t pad54;
-		int16_t center[4];      // +0x58
-		int16_t rx, pad62;      // +0x60
-		int16_t rz, pad66;      // +0x64
-		Mat4x3 base;            // +0x68 camera * crystal
-		Mat4x3 shard;           // +0x88
-		uint16_t tw1[4];        // +0xA8 texture window of the glint's second word
-		uint16_t tw0[4];        // +0xB0 texture window of the glint's first word
-		int32_t v_scroll[3];    // +0xB8
+		int16_t center[4];
+		int16_t rx, pad62;
+		int16_t rz, pad66;
+		Mat4x3 base;
+		Mat4x3 shard;
+		uint16_t tw1[4];
+		uint16_t tw0[4];
+		int32_t v_scroll[3];
 		uint32_t padC4, padC8;
-		int32_t scroll;         // +0xCC glint scroll (crystal counter * 8)
+		int32_t scroll;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(Shard) == 0x20 && sizeof(CrystalHeader) == 0xD0, "Blizzard shard / crystal header layouts");
@@ -223,13 +199,9 @@ namespace ff8fx
 {
 namespace blizzard144
 {
-	// ------------------------------------------------------------------
-	// Root task (0x61BF70): node +0x0C counter
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag144_blizzard_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = (uint32_t)(TexBase() + 0xC000);
 		else PacketCursor() = (uint32_t)TexBase();
@@ -238,10 +210,6 @@ namespace blizzard144
 		return alive ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Shatter prep (0x61B160 / 0x61B190): the 80 shards of the crystal mesh, from its faces
-	// ------------------------------------------------------------------
-	// (x << 3) + 0x4780 over the 0x84767DFF reciprocal: the face's height -> its appearance delay
 	static int32_t ShardDelayDiv(int32_t sum_y)
 	{
 		int32_t x = shl32(sum_y, 3) + 0x4780;
@@ -313,9 +281,6 @@ namespace blizzard144
 		BuildShards(h, model + 8);
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x61AC70)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
@@ -429,9 +394,6 @@ namespace blizzard144
 		return d->counter > 0x2C ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Shockwave (0x61B3A0): flat ring (x / z scaled) on the ground; fades out from 8
-	// ------------------------------------------------------------------
 	static void ShockwaveMatrix(const ShockwaveNode *p)
 	{
 		int16_t angles[4] = { 0, 0, 0, 0 };
@@ -461,7 +423,6 @@ namespace blizzard144
 		}
 	}
 
-	// grows by a velocity decaying by 1/8
 	static void ShockwaveUpdate(ShockwaveNode *p)
 	{
 		int16_t v = p->scale_vel;
@@ -473,7 +434,6 @@ namespace blizzard144
 	static uint32_t __cdecl ShockwaveTask(TaskNode *n)
 	{
 		ShockwaveNode *p = (ShockwaveNode *)n;
-		// 30 fps layer: see mag144_blizzard_held.inc
 		FX_HELD(held_note_draw(ORIG_ShockwaveTask, p);)
 		ShockwaveMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
@@ -485,9 +445,6 @@ namespace blizzard144
 		return p->counter >= 0xE ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Debris (0x61B4F0): ice sequence frame `frame`, sliding out on the ground
-	// ------------------------------------------------------------------
 	static void DebrisDraw(const DebrisNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -499,7 +456,6 @@ namespace blizzard144
 		FieldFree(0xB4);
 	}
 
-	// x and z decelerate by 1/16
 	static void DebrisUpdate(DebrisNode *p)
 	{
 		int16_t vx = p->vel_x, vz = p->vel_z;
@@ -513,7 +469,6 @@ namespace blizzard144
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *p = (DebrisNode *)n;
-		// 30 fps layer: see mag144_blizzard_held.inc
 		FX_HELD(held_note_draw(ORIG_DebrisTask, p);)
 		DebrisDraw(p);
 		if (DrawOnly()) return 0;
@@ -521,9 +476,6 @@ namespace blizzard144
 		return p->frame >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Falling ice (0x61B5B0): ice sequence frame `frame`, falling faster and faster
-	// ------------------------------------------------------------------
 	static void FallingIceDraw(const FallingIceNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -535,7 +487,6 @@ namespace blizzard144
 		FieldFree(0xB4);
 	}
 
-	// y += vel_y, vel_y grows by 1/64
 	static void FallingIceUpdate(FallingIceNode *p)
 	{
 		int16_t v = p->vel_y;
@@ -547,7 +498,6 @@ namespace blizzard144
 	static uint32_t __cdecl FallingIceTask(TaskNode *n)
 	{
 		FallingIceNode *p = (FallingIceNode *)n;
-		// 30 fps layer: see mag144_blizzard_held.inc
 		FX_HELD(held_note_draw(ORIG_FallingIceTask, p);)
 		FallingIceDraw(p);
 		if (DrawOnly()) return 0;
@@ -555,9 +505,6 @@ namespace blizzard144
 		return p->frame >= 0x10 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Mist puff (0x61B660): sequence 0xDD82F0 frames 0..4 (4 held), fading out over 4..7
-	// ------------------------------------------------------------------
 	static void MistHeader(uint8_t *h, int16_t frame)
 	{
 		*(const void **)h = SEQ_Mist;
@@ -582,7 +529,6 @@ namespace blizzard144
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag144_blizzard_held.inc
 		FX_HELD(held_note_draw(ORIG_MistPuffTask, p);)
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 5));
 		uint8_t *h = AllocHeader(0xB4);
@@ -594,14 +540,6 @@ namespace blizzard144
 		return p->frame >= 8 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Crystal render (0x61B900 / 0x61B9A0): per face, a flat-textured triangle (0x20 bytes). A
-	// shard still flying in is drawn around its centre, rotated by its angles, pushed out along
-	// its direction by its radius, brighter step by step; each draw moves it one step (not in the
-	// draw-only mode). An assembled shard is drawn in place plus a glint triangle (0x28 bytes,
-	// texture window words, glint texture scrolled by the crystal's counter * 8).
-	// ------------------------------------------------------------------
-	// PSX texture window command (0xE2) from the header words at w (+0, +2, +4, +6)
 	static uint32_t TextureWindow(const uint16_t *w)
 	{
 		uint32_t c = ((uint32_t)(uint8_t)w[1] & 0xF8) | 0xFFFE2000;
@@ -711,7 +649,6 @@ namespace blizzard144
 				p += 0x20;
 				continue;
 			}
-			// glint over an assembled shard, one depth step nearer
 			if (z > 0) z--;
 			uint8_t *q = p + 0x20;
 			*(uint32_t *)(q + 0xC) = *(const uint32_t *)(p + 8);
@@ -773,10 +710,6 @@ namespace blizzard144
 		return CrystalRenderCore(h, ot, shift, cursor);
 	}
 
-	// ------------------------------------------------------------------
-	// Crystal (0x61B740): spins (decelerating by 1/5) until 27, rises (decelerating) 28..32,
-	// slams down 35..36 (camera shake at 37), fades out from 40, ends after 47
-	// ------------------------------------------------------------------
 	static void CrystalMatrix(const CrystalNode *p, Mat4x3 *m)
 	{
 		int16_t angles[4] = { 0, p->yaw, 0, 0 };
@@ -807,7 +740,6 @@ namespace blizzard144
 		}
 	}
 
-	// x / 5 (0x66666667, >> 2)
 	static int16_t Div5(int16_t v)
 	{
 		int32_t x = v;
@@ -838,7 +770,6 @@ namespace blizzard144
 	static uint32_t __cdecl CrystalTask(TaskNode *n)
 	{
 		CrystalNode *p = (CrystalNode *)n;
-		// 30 fps layer: see mag144_blizzard_held.inc
 		FX_HELD(held_note_crystal(p);)
 		Mat4x3 m = {};
 		CrystalMatrix(p, &m);
@@ -863,7 +794,6 @@ namespace blizzard144
 		register_port(blizzard144::ORIG_FallingIceTask, (void *)blizzard144::FallingIceTask, "B144 FallingIceTask", 144);
 		register_port(blizzard144::ORIG_MistPuffTask, (void *)blizzard144::MistPuffTask, "B144 MistPuffTask", 144);
 		register_port(blizzard144::ORIG_CrystalTask, (void *)blizzard144::CrystalTask, "B144 CrystalTask", 144);
-		// 30 fps layer: see mag144_blizzard_held.inc
 		FX_HELD(register_mag144_held();)
 	}
 }

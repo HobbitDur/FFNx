@@ -14,39 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 179: Bomb glow (enemy attacks 82 and 83 of kernel.bin, both unnamed, used by the Bomb
-// c0m043; MAG_179_*). The Bomb glows: its body is redrawn with a scrolling additive texture
-// overlay in a cycling colour while fuse sparks fly off its bones.
-//
-// Structure (setup MAG_179_UNK7 0x5CDF40, file loader 0x5CDF20 = the texture file named at
-// 0xD44990 (mag178.tim); the setup keeps the cast context 0x230AD00, the target slot 0x2309558 and
-// the CASTER's slot 0x230AD04, sets up the root queue 0x2309570 (1 node) and the effect queue
-// 0x2309EE0 (0x64 nodes of 0x24 bytes) with the director, clears the particle pool, starts camera
-// animation 0xD445C8 and queues the TIM):
-//   RootTask (0x5CED70) - alternates the module packet arena (0x230AD0C / 0x2312D0C, 0x8000 each)
-//     on the counter's parity (cursor 0x231AD0C), runs the effect queue, ends when it is empty.
-//   Director (0x5CDFF0) - one node, counter 0..0x28 (nothing in the draw-only mode): 1 = the
-//     caster glow task (keeping the caster's entity flag bit 2 in its node +0x1A), the fuse sparks
-//     task and sound 0xD44968 at the caster's default effect position, 0x23 = damage (action 0's
-//     targets).
-//   CasterGlow (0x5CE0F0) - counters 0..0x1D: the caster's battle model drawn by the module
-//     (entity flags |= 4: the battle renderer skips it) with every visible polygon followed by an
-//     additive copy textured through a texture window (x 0, y 0x80, 0x40 x 0x80) whose v
-//     coordinates scroll with the counter (v = (vertex y + counter * 72) / 3, u = vertex x); the
-//     overlay colour is the GTE depth cue (DPCS, far colour 0) of the colour table 0xD44970
-//     (8 entries, cycled by the counter) by IR0 = (4 - counter) << 10 below 4 (fade in) and
-//     (counter - 0x16) << 9 from 0x16 (fade out). After counter 0x1E the entity flag bit is put back.
-//     Model draw = shadow + a copy of the battle model renderer (0x5CE3B0 / 0x5CE520) that adds the
-//     overlay polygons; the second model (+0x78) through the engine renderer 0x5099D0 (mode 4).
-//   FuseSparks (0x5CEB10) - particles of type 1, flipbook 0xD44700 randomly mirrored, 3 per tick
-//     0..0x16 at random effect bones of the caster.
-// Particle pool 0x2309580: 0x64 entries of 0x18 bytes (only the fuse sparks use it); the task
-// draws then updates its entries (in the draw-only mode it only draws), spawns into free entries
-// and ends at counter >= 4 once no entry is left.
-// Module globals: 0x2309558..0x231AD10 (target slot, root pool / queue, particle pool, effect
-// queue / pool, context 0x230AD00, caster slot 0x230AD04, texture file 0x230AD08, the two packet
-// arenas, packet cursor 0x231AD0C).
-
 #include "mag_common.h"
 
 namespace ff8fx
@@ -56,37 +23,34 @@ namespace bombglow179
 	using namespace eng;
 	using namespace magc;
 
-	// raw memory access (the model renderer follows the listing offset by offset)
 	template<typename T> inline T &AT(uint32_t p, int32_t o) { return *(T *)(p + o); }
 	inline int16_t &S16(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 	inline uint16_t &U16(uint32_t p, int32_t o) { return AT<uint16_t>(p, o); }
 	inline int32_t &S32(uint32_t p, int32_t o) { return AT<int32_t>(p, o); }
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
-	// --- module globals ---
 	inline CastContext *&Ctx() { return var<CastContext *>(0x230AD00); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x230AD04); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x231AD0C); }
 	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x2309EE0; }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }       // frame packet arena cursor
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }     // transformed model vertices
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 	static const uint32_t ARENA0 = 0x230AD0C, ARENA1 = 0x2312D0C, ARENA_SIZE = 0x8000;
-	static const uint32_t POOL = 0x2309580, POOL_END = 0x2309EE0;             // 0x64 particles of 0x18 bytes
+	static const uint32_t POOL = 0x2309580, POOL_END = 0x2309EE0;
 
 	static const uint32_t ORIG_RootTask = 0x5CED70;
 	static const uint32_t ORIG_Director = 0x5CDFF0;
 	static const uint32_t ORIG_CasterGlow = 0x5CE0F0;
 	static const uint32_t ORIG_FuseSparks = 0x5CEB10;
 	static const uint32_t SEQ_Spark = 0xD44700;
-	static const uint32_t GLOW_COLOURS = 0xD44970;                             // 8 GTE RGBC words
+	static const uint32_t GLOW_COLOURS = 0xD44970;
 	static const void *const SOUND_Glow = (const void *)0xD44968;
 
-	// ---- engine functions (original addresses)
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); } // someCameraWork_45DD60
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }      // set_unk_1CA8A28
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DD60)(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E110)(c); }
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }     // set_param_with_dword_1CA8A68
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(0x45E360)(c); }
 	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E210)(dst); }
@@ -98,40 +62,34 @@ namespace bombglow179
 	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(0x45E3D0)(dst); }
 	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(0x460830)(); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C7A0)(bucket, pkt); }
-	// GTE helpers of the Tornado module
-	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }    // MAG_146_sub_64DEE0: V0 = 3 words
-	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); } // MAG_146_sub_64DF10: IR1..3 -> 4 words (4th 0)
-	// battle model helpers
+	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(0x64DEE0)(v); }
+	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(0x64DF10)(out); }
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
 	inline uint32_t RenderGeometry(uint32_t model, uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(0x5099D0)(model, h, ot, mode, cursor); }
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect bone
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 
-	// ------------------------------------------------------------------
-	// Node / particle layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad;
 	};
-	struct EffectNode // pool of 0x64 nodes of 0x24 bytes
+	struct EffectNode
 	{
 		TaskNode hdr;
-		int16_t counter;     // +0x0C
+		int16_t counter;
 		uint8_t pad0E[0xC];
-		uint16_t hidden;     // +0x1A glow: the caster's entity flag bit 2 before the glow
+		uint16_t hidden;
 		uint8_t pad1C[8];
 	};
-	struct Particle // 0x18 bytes
+	struct Particle
 	{
-		uint32_t type;       // +0x00 1 = fuse spark (0 = free)
-		int16_t frame;       // +0x04 flipbook frame
-		int16_t scale;       // +0x06
-		int16_t pos[4];      // +0x08 x, y, z (+ the 4th word of GetEffectSpawnPosition)
-		int16_t mirror[2];   // +0x10 x / y mirror (0x1000 / -0x1000)
+		uint32_t type;
+		int16_t frame;
+		int16_t scale;
+		int16_t pos[4];
+		int16_t mirror[2];
 		uint32_t pad14;
 	};
 #pragma pack(pop)
@@ -142,7 +100,6 @@ namespace bombglow179
 	static const int POOL_COUNT = 0x64;
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 
-	// a free pool entry (the scan stops at the pool's end), or -1
 	static int FreeParticle()
 	{
 		int i = 0;
@@ -155,26 +112,12 @@ namespace bombglow179
 		return i;
 	}
 
-	// ------------------------------------------------------------------
-	// Caster model renderer (copies of the battle model renderer)
-	// ------------------------------------------------------------------
-	// draw block h (0xB0 bytes of Field_Alloc scratch): +0 primitives, +4 vertices, +8 / +0A
-	// triangle / quad counts, +1C colour / mode bits, +20 object mask, +30 v scroll, +34 texture
-	// window (x, y bytes, w, h words), +3C MAC0, +44 OTZ, +48 FLAG, +4C..+6B the polygon's vertices,
-	// +6C overlay colour, +70..+7F the v of each vertex, +88 / +8C texture window commands, +90
-	// matrix
-
-	// the v of a vertex: its y plus the scroll, / 3
 	static int32_t ScrollV(int16_t y, int32_t scroll) { return (y + scroll) / 3; }
-	// the overlay uv word of a vertex when the polygon spans two v pages: v re-based on h +3A
 	static uint16_t RebaseUV(uint32_t h, int32_t o, int32_t q, int32_t base)
 	{
 		return (uint16_t)(((uint32_t)(q - base) << 8) ^ AT<uint8_t>(h, o));
 	}
 
-	// MAG_179_sub_5CE520: the polygons of one object; every visible textured polygon is followed
-	// by its overlay copy one bucket nearer (POLY_FT3 / FT4 0x26 / 0x2E, clut 0x3F54, tpage 0xBA,
-	// texture window h +88, reset h +8C)
 	static uint32_t RenderObjectPrims(uint32_t h, uint32_t ot, uint32_t shift, uint32_t pkt)
 	{
 		const int32_t base = S16(h, 0x3A);
@@ -321,9 +264,6 @@ namespace bombglow179
 		return pkt;
 	}
 
-	// MAG_179_sub_5CE3B0: one battle model (the objects of the visibility mask h +0x20): the
-	// vertices of every bone group through the bone's matrix into h +4 (4th word = u: the x low
-	// byte, v: the scrolled y), then the polygons through the camera
 	static uint32_t RenderModel(uint32_t model, uint32_t h, uint32_t ot, uint32_t shift, uint32_t pkt)
 	{
 		const uint32_t bones = U32(model, 0) + 0x10;
@@ -334,7 +274,7 @@ namespace bombglow179
 		{
 			uint32_t obj = U32(model, 4) + U32(table, 0);
 			table += 4;
-			if (!(U32(h, 0x20) & (1u << (i & 31)))) continue; // shl by cl (count mod 32)
+			if (!(U32(h, 0x20) & (1u << (i & 31)))) continue;
 			int32_t groups = S16(obj, 0);
 			uint32_t out = U32(h, 4);
 			obj += 2;
@@ -370,8 +310,6 @@ namespace bombglow179
 		return pkt;
 	}
 
-	// MAG_179_sub_5CE230: the caster's shadow and battle model(s) with the overlay (texture window
-	// commands from h +34..+3B)
 	static void DrawCasterModel(uint32_t h, uint8_t *entity)
 	{
 		const uint32_t e = (uint32_t)entity;
@@ -411,7 +349,6 @@ namespace bombglow179
 		}
 	}
 
-	// the glow's depth-cue IR0 at a counter (fade in below 4, fade out from 0x16)
 	static int32_t GlowLevel(int16_t counter)
 	{
 		if (counter < 4) return shl32(4 - counter, 10);
@@ -419,7 +356,6 @@ namespace bombglow179
 		return 0;
 	}
 
-	// the overlay colour into h +6C: colour table entry counter % 8 depth-cued (far colour 0) by IR0
 	static void GlowColour(uint32_t h, int16_t counter, int32_t level)
 	{
 		GteSetFarColor(0, 0, 0);
@@ -429,7 +365,6 @@ namespace bombglow179
 		GteStoreRGB2(h + 0x6C);
 	}
 
-	// the rest of the glow's block: texture window (0, 0x80, 0x40 x 0x80), v scroll counter * 72
 	static void GlowBlock(uint32_t h, int32_t scroll)
 	{
 		U16(h, 0x34) = 0;
@@ -441,9 +376,6 @@ namespace bombglow179
 	}
 	static int32_t GlowScroll(int16_t counter) { return (int32_t)counter * 72; }
 
-	// ------------------------------------------------------------------
-	// Particle draw (one entry of the pool, with the task's draw header)
-	// ------------------------------------------------------------------
 	static void DrawFuseParticle(uint8_t *h, const Particle *p)
 	{
 		*(int16_t *)(h + 4) = p->frame;
@@ -471,16 +403,12 @@ namespace ff8fx
 {
 namespace bombglow179
 {
-	// ------------------------------------------------------------------
-	// Caster glow (0x5CE0F0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl CasterGlowTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
 		if (t->counter < 0x1E)
 		{
 			const int32_t level = GlowLevel(t->counter);
-			// 30 fps layer: see mag179_bomb_glow_held.inc
 			FX_HELD(held_note_glow(t);)
 			const uint32_t h = (uint32_t)FieldAlloc(0xB0);
 			GlowColour(h, t->counter, level);
@@ -498,13 +426,9 @@ namespace bombglow179
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Fuse sparks (0x5CEB10): particles of type 1
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FuseSparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		// 30 fps layer: see mag179_bomb_glow_held.inc
 		FX_HELD(held_note_pool(t);)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
@@ -521,7 +445,6 @@ namespace bombglow179
 		if (DrawOnly()) return 0;
 		if (t->counter >= 0 && t->counter <= 0x16)
 		{
-			// number of effect bones of the caster's model
 			const int32_t bones = **(const uint8_t *const *)*(const uint32_t *)(Caster() + 0x64);
 			for (int k = 0; k < 3; k++)
 			{
@@ -547,9 +470,6 @@ namespace bombglow179
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x5CDFF0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		if (DrawOnly()) return 0;
@@ -576,13 +496,9 @@ namespace bombglow179
 		return t->counter > 0x28 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x5CED70)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag179_bomb_glow_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = ARENA1;
 		else PacketCursor() = ARENA0;
@@ -598,7 +514,6 @@ namespace bombglow179
 		register_port(bombglow179::ORIG_Director, (void *)bombglow179::DirectorTask, "B179 Director", 179);
 		register_port(bombglow179::ORIG_CasterGlow, (void *)bombglow179::CasterGlowTask, "B179 CasterGlow", 179);
 		register_port(bombglow179::ORIG_FuseSparks, (void *)bombglow179::FuseSparksTask, "B179 FuseSparks", 179);
-		// 30 fps layer: see mag179_bomb_glow_held.inc
 		FX_HELD(register_mag179_held();)
 	}
 }

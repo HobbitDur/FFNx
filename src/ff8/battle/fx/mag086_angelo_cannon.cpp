@@ -14,38 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 86: Angelo Cannon (kernel.bin Rinoa limit break part 2 {Combine} Angelo Cannon, section 25 entry 0, effect id +2 = 86;
-// MAG_086_ANGELO_CANNON*): a copy of the actor/heal effect library (see act_engine.h) with its own parts: Rinoa loads Angelo
-// into her launcher, a muzzle glow flares, Angelo is fired at the enemies (dash, glow, two prim plays), strikes them (a third
-// prim play at the monsters' centre) and jumps back, raising dust rings and puffs. Module 0x77F230..0x784480 (117 functions in
-// IDA; 120 with the four starts the IDB lacks: 0x77F780 / 0x77F7E0 / 0x77F980 / 0x77FA60 inside 0x77F680 / 0x77FA20, and without
-// the bogus start 0x77F852 inside 0x77F7E0's switch: 55 served by engine ports, 25 the relocated text of a ported library
-// function (Angelo Search 92 / Rush 91 / Reverse 94, Invincible Moon 88, Doom 8, Siren 95, Tonberry 90, The End 85), 38
-// hand-ported, the loader and the setup not ported).
-//
-// Setup MAG_086_ANGELO_CANNON_Init 0x77F250 (runs once, not ported; loader 0x77F230) creates the root queue with the master and
-// the module's task pools and starts the engine camera animation 0x1565C90.
-//   Master (0x77F3E0) - camera copy 0x2793E58 (pointers 0x25BC1F4 / 0x25B4DD0), packet arenas by tick parity (module cursor
-//     0x25B4CCC / 0x25B4DCC), target bone follow, 11 states (0x77F630: the director block 0x77FAE0, the module data block
-//     0x77F680, the load script task 0x77F780 (a_73A380 / a_73A3E0, script 0x1565EB0) and the DIRECTOR 0x77FBF0), the eight
-//     module queues.
-//   Director (0x77FBF0, 14 states) - Angelo's TIM 0x170CDCC, sync points 1..4, cues 1..4, the load script step, done flag +0x48
-//     at frame 0x32.
-//   Phase 1 (0x77FF50) - ANGELO 0x77FF90 (node 0x160, model container 0x1565EF4), drawn by the creature renderer 0x780130 =
-//     a_746C10 (state block 0x25BB240) into the module packet pool. He binds Rinoa's animation set (com data 0x156AA60) and
-//     queues her chain transformations 1, 2 and 3, sets bit 0x200 of her entity word +0 (put back after the dash); dust rings
-//     0x782930 (prim sequence drawn by 0x782990) and dust puffs 0x780640 (model drawn by 0x7806A0) on his foot-down frames
-//     (0x780310 / 0x783150); the muzzle glow 0x783350 (at cue 2, placed in front of the camera eye) and the dash glow 0x783DC0
-//     (models drawn by 0x7833D0); three prim plays (0x783690: node 0x450, callback 0x7838C0): 0x7836E0 (layout 0x1706398) and
-//     0x783C90 (layout 0x1706CC0) at his point 0xF1, paused while he waits for cue 3 (a_73BB60), 0x783F80 (layout 0x1709404) at
-//     the monsters' centre with a texture scroll (+0x8C).
-//   Damage state 0x7842F0.. (the library's finish states): ApplyActionResultToTarget at the director's done flag.
-// Writes outside the module: Rinoa's entity record (BS_BindEntityModelFromComData 0x5022C0 binds the animation set,
-// QueueChainTransformation 0x505C00 chain transformations 1, 2 and 3, entity word +0 bit 0x200 set by Angelo's state 0 and put
-// back by his state 5), the root-matrix slot 0x1D99AB0 (Angelo), the camera copy 0x2793E58, action results (0x506690). No
-// camera word is written (the setup's engine camera animation; the muzzle glow reads the eye's z 0xB8B7F4).
-// Module globals: 0x25B4CC8..0x25BC38C (+ camera copy 0x2793E58, 0x20 bytes).
-
 #include "act_engine.h"
 
 namespace ff8fx
@@ -54,28 +22,23 @@ namespace act
 {
 namespace cannon86
 {
-	// ---- generated (desc86.py): the module descriptor of this copy of the library ----
 	static const Mod MOD_086 = { "angelocannon", 86, 0x77F230, 0x784480,
 		{ 0x0, 0x0, 0x1561770, 0x0, 0x0, 0x25B4DCC, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25B4CC8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25B7080, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25BB0C0, 0x0, 0x0, 0x25BB238, 0x25BBD2C, 0x0, 0x0, 0x0, 0x25BBF60, 0x0, 0x0, 0x0, 0x25BC218, 0x0 },
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x77F5B0, 0x77F630, 0x0, 0x77F980, 0x77F9B0, 0x77F9E0, 0x77F9F0, 0x77FA00, 0x77FA10, 0x77FA20, 0x0, 0x0, 0x77FDB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x77FD20, 0x0, 0x77FD70, 0x7838C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x782BF0, 0x0, 0x7842F0, 0x784360, 0x784380, 0x7843A0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
 
-	// --- module globals ---
-	static const uint32_t DIR_PTR = 0x1561770;        // pointer to the director block (phase +0x40 / requested +0x42 / next +0x44, frame +0x46, done +0x48)
-	static const uint32_t PHASE_DATA = DIR_PTR;       // (the library's name of the director pointer)
-	static const uint32_t PACKET_CURSOR = 0x25B4CCC;  // module packet cursor (tick parity: [0x25BB234] / [0x25BB230])
-	static const uint32_t PLAY_PAUSE = 0x25B7080;     // the plays' pause word (a_73BB60, with the switch word 0x25BC218)
-	static const uint32_t CREATURE_ARG = 0x25BB240;   // the creature renderer's state block (Angelo)
-	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; } // battle entity record of a slot
+	static const uint32_t DIR_PTR = 0x1561770;
+	static const uint32_t PHASE_DATA = DIR_PTR;
+	static const uint32_t PACKET_CURSOR = 0x25B4CCC;
+	static const uint32_t PLAY_PAUSE = 0x25B7080;
+	static const uint32_t CREATURE_ARG = 0x25BB240;
+	static inline uint32_t ENT(uint32_t slot) { return 0x1D972C0 + slot * 0x9C; }
 
-	// engine functions not in act::x
 	namespace gx
 	{
-		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x5022C0)(a1, a2, a3); } // BS_BindEntityModelFromComData (entity, 0x20-byte block, com data)
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505C00)(a1, a2); } // (entity, chain transformation id)
+		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x5022C0)(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(0x505C00)(a1, a2); }
 	}
 
-
-	// helpers of the library code (as in act_engine.cpp / mag097_boko.cpp)
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
 	{
 		U32(dst, 0) = U32(src, 0);
@@ -117,15 +80,12 @@ namespace cannon86
 	static inline bool b1_out(int16_t v, int16_t hi) { return v < 0 || v > hi; }
 	static inline bool b2_out_x(int16_t v) { return v < 0 || v > 0xA00; }
 	static inline bool b2_out_y(int16_t v) { return v < 0 || v > 0x6C0; }
-	// cdq; and edx, 0xFFFF; add eax, edx; sar eax, 16  (= signed 16.16 -> integer, toward zero)
 	static inline int32_t b2_fx(uint32_t v)
 	{
 		int32_t s = (int32_t)v;
 		return add32(s, (s >> 31) & 0xFFFF) >> 16;
 	}
 
-	// common task tail (frame counter already incremented): end (release the linked task, return 2)
-	// when finished (status read before the increment) and no children are alive
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
 	{
 		if ((status & 1) != 0 && U8(node, 0x28) == 0)
@@ -136,7 +96,6 @@ namespace cannon86
 		return 0;
 	}
 
-	// C truncating divisions as compiled (magic-number multiplications)
 	static inline int32_t div3(int32_t v)
 	{
 		const int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
@@ -148,32 +107,26 @@ namespace cannon86
 		return add32(hi, (int32_t)((uint32_t)hi >> 31));
 	}
 
-	// the prim-model renderer helpers (as in mag014_death.cpp / mag090_tonberry.cpp)
-	// screen-space clip tests of the flat-triangle list (x 0..0xA00, y 0..0x6C0)
 	static inline bool t1_out_x(int16_t v) { return v < 0 || v > 0xA00; }
 	static inline bool t1_out_y(int16_t v) { return v < 0 || v > 0x6C0; }
-	// GP0 0xE2 texture-window word from a RECT {x,y,w,h} (u16 each) at ctx+b
-	// (0x764E3D-0x764E7C / 0x764EDF-0x764F1E; 0x76540C-0x76544A / 0x7654B3-0x7654F1)
 	static uint32_t t2_twin(uint32_t ctx, int32_t b)
 	{
-		uint32_t ecx = (uint32_t)(U8(ctx, b + 2) & 0xF8) | 0xFFFE2000u;  // y
-		uint32_t edx = (uint32_t)(U8(ctx, b) & 0xF8);                     // x
+		uint32_t ecx = (uint32_t)(U8(ctx, b + 2) & 0xF8) | 0xFFFE2000u;
+		uint32_t edx = (uint32_t)(U8(ctx, b) & 0xF8);
 		ecx <<= 5;
 		ecx |= edx;
-		edx = U16(ctx, b + 6);                                            // h
+		edx = U16(ctx, b + 6);
 		ecx <<= 5;
 		edx = ~(edx - 1) & 0xF8;
 		ecx |= edx;
-		edx = U16(ctx, b + 4);                                            // w
+		edx = U16(ctx, b + 4);
 		ecx <<= 2;
 		edx = (uint32_t)((int32_t)~(edx - 1) >> 3) & 0x1F;
 		ecx |= edx;
 		return ecx;
 	}
-	// screen x outside [0, 0xA00] / y outside [0, 0x6C0] (signed 16-bit SXY halves)
 	static inline bool t2_outx(uint32_t p) { const int16_t v = S16(p, 0); return v < 0 || v > 0xA00; }
 	static inline bool t2_outy(uint32_t p) { const int16_t v = S16(p, 0); return v < 0 || v > 0x6C0; }
-	// depth cue of the packet colour word at pCode towards the far colour ctx+0x0C
 	static inline void t2_depth_cue(uint32_t ctx, uint32_t pCode)
 	{
 		x::set_unk_1CA8A28(pCode);
@@ -181,7 +134,6 @@ namespace cannon86
 		x::sub_45F270();
 		x::set_param_with_dword_1CA8A68(pCode);
 	}
-	// OTZ += bias (clamped to 0 when negative); returns the OT entry a2 + (OTZ >> a3) * 4
 	static inline uint32_t t2_ot(uint32_t ctx, uint32_t a2, uint32_t a3)
 	{
 		const int32_t z = add32(S32(ctx, 0x38), S32(ctx, 0x10));
@@ -190,12 +142,8 @@ namespace cannon86
 			S32(ctx, 0x38) = 0;
 		return a2 + (uint32_t)(S32(ctx, 0x38) >> (a3 & 31)) * 4u;
 	}
-	// screen bounds test of a projected coordinate (x: 0..0xA00, y: 0..0x6C0, signed 16-bit)
 	static inline bool t3_out_x(int16_t v) { return v < 0 || v > 0xA00; }
 	static inline bool t3_out_y(int16_t v) { return v < 0 || v > 0x6C0; }
-	// E2 texture-window command word from a {u16 x, u16 y, u16 w, u16 h} block at p
-	// (0x765E84 / 0x765F39 / 0x766527 / 0x7665EC): offsets = low byte & 0xF8, masks from
-	// ~(w-1) / ~(h-1); 0xFFFE2000 << 12 = 0xE2000000
 	static inline uint32_t t3_texwin(uint32_t p)
 	{
 		uint32_t t = ((uint32_t)U8(p, 2) & 0xF8) | 0xFFFE2000u;
@@ -204,8 +152,6 @@ namespace cannon86
 		t = (t << 2) | ((~((uint32_t)U16(p, 4) - 1) >> 3) & 0x1F);
 		return t;
 	}
-	// adds d to the n (3 or 4) texture bytes pkt+off[i]; when any sum exceeds 0xFF, every sum
-	// is wrapped by subtracting the byte `wrap` (8-bit stores)
 	static inline void t3_scroll(uint32_t pkt, const int32_t *off, int n, uint16_t d, uint8_t wrap)
 	{
 		uint32_t s[4];
@@ -220,22 +166,19 @@ namespace cannon86
 			U8(pkt, off[i]) = over ? (uint8_t)(s[i] - wrap) : (uint8_t)s[i];
 	}
 
-	// the Siren renderer helpers (as in mag095_siren.cpp)
 	namespace
 	{
-		// GP0 0xE2 texture-window word built from a RECT {x,y,w,h} (u16 each) at ctx+b
-		// (0x73D082-0x73D0C1 / 0x73D124-0x73D163; same sequence at 0x73D5EA / 0x73D696)
 		uint32_t s2_twin(uint32_t ctx, int32_t b)
 		{
-			uint32_t ecx = (uint32_t)(U8(ctx, b + 2) & 0xF8) | 0xFFFE2000u;  // y
-			uint32_t edx = (uint32_t)(U8(ctx, b) & 0xF8);                     // x
+			uint32_t ecx = (uint32_t)(U8(ctx, b + 2) & 0xF8) | 0xFFFE2000u;
+			uint32_t edx = (uint32_t)(U8(ctx, b) & 0xF8);
 			ecx <<= 5;
 			ecx |= edx;
-			edx = U16(ctx, b + 6);                                            // h
+			edx = U16(ctx, b + 6);
 			ecx <<= 5;
 			edx = ~(edx - 1) & 0xF8;
 			ecx |= edx;
-			edx = U16(ctx, b + 4);                                            // w
+			edx = U16(ctx, b + 4);
 			ecx <<= 2;
 			edx = (uint32_t)((int32_t)~(edx - 1) >> 3) & 0x1F;
 			ecx |= edx;
@@ -244,8 +187,6 @@ namespace cannon86
 	}
 	namespace
 	{
-		// PSX texture-window word (GP0 0xE2) built from a {u8 x, pad, u8 y, pad, u16 w, u16 h}
-		// block at ctx+o, exactly as 0x73E625..0x73E664 / 0x73E6EF..0x73E72E compute it
 		uint32_t s3_texwin(uint32_t ctx, int32_t o)
 		{
 			uint32_t c = ((uint32_t)U8(ctx, o + 2) & 0xF8) | 0xFFFE2000u;
@@ -255,9 +196,6 @@ namespace cannon86
 			return c;
 		}
 
-		// 0x73E4A0..0x73E50B / 0x73E517..0x73E582: add d to the 4 texcoord bytes pkt+o, +o+0xC,
-		// +o+0x18, +o+0x24 (u or v of the 4 corners); when any sum exceeds 0xFF all four are
-		// wrapped back by the window size byte at ctx+wo
 		void s3_scroll_uv(uint32_t pkt, int32_t o, uint32_t d, uint32_t ctx, int32_t wo)
 		{
 			int32_t a = (int32_t)(U8(pkt, o) + d);
@@ -283,30 +221,28 @@ namespace cannon86
 
 		inline bool s3_off(int16_t v, int16_t lim) { return v < 0 || v > lim; }
 
-		// one iteration of the 0x73E20F loop: projects one quad record (0x24 bytes at data) into the
-		// POLY_GT4 at pkt; returns the packet cursor after what it emitted (pkt itself when culled)
 		uint32_t s3_quad(uint32_t ctx, uint32_t data, uint32_t vbase, uint32_t ot_base, uint32_t shift, uint32_t pkt)
 		{
 			x::GTE_LoadV012(vbase + ((uint32_t)U16(data, 4) << 2), vbase + ((uint32_t)U16(data, 6) << 2), vbase + ((uint32_t)U16(data, 8) << 2));
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x14);
 			uint32_t col0 = U32(data, 0);
-			U32(pkt, 0) = 0x0C000000;  // tag: 12 words
-			U32(pkt, 4) = col0;        // rgb0 + code
+			U32(pkt, 0) = 0x0C000000;
+			U32(pkt, 4) = col0;
 			if (flags & 2)
 			{
-				col0 |= 0x2000000;     // semi-transparent
+				col0 |= 0x2000000;
 				U32(pkt, 4) = col0;
 			}
 			if (flags & 8)
 				U32(pkt, 4) &= 0xFDFFFFFF;
 			uint32_t uv0 = U32(data, 0xC);
 			uint32_t uv1 = U32(data, 0x10);
-			U32(pkt, 0xC) = uv0;           // uv0 + clut
+			U32(pkt, 0xC) = uv0;
 			uint32_t uv23 = U32(data, 0x14);
-			U32(pkt, 0x24) = uv23;         // uv2 (the pad half gets the uv3 bits)
-			U32(pkt, 0x18) = uv1;          // uv1 + tpage
-			U32(pkt, 0x30) = uv23 >> 16;   // uv3
+			U32(pkt, 0x24) = uv23;
+			U32(pkt, 0x18) = uv1;
+			U32(pkt, 0x30) = uv23 >> 16;
 			x::GTE_ReadFLAG(ctx + 0x3C);
 			if (U32(ctx, 0x3C) & 0x60000)
 				return pkt;
@@ -314,7 +250,7 @@ namespace cannon86
 			uint32_t clip = 0;
 			x::GTE_ReadMAC0(ctx + 0x30);
 			if (S32(ctx, 0x30) < 0 && !(U8(ctx, 0x14) & 0x20))
-				return pkt;  // back face, not double-sided
+				return pkt;
 			x::GTE_ReadSXY012_Split(pkt + 8, pkt + 0x14, pkt + 0x20);
 			x::GTE_LoadV0(vbase + ((uint32_t)U16(data, 0xA) << 2));
 			x::GTE_RTPS();
@@ -330,13 +266,12 @@ namespace cannon86
 			if (s3_off(S16(pkt, 0x2C), 0xA00)) c |= 8;
 			if (s3_off(S16(pkt, 0x2E), 0x6C0)) c |= 0x80;
 			if ((c & 0xF) == 0xF)
-				return pkt;  // all 4 x off screen
+				return pkt;
 			if ((c & 0xF0) == 0xF0)
-				return pkt;  // all 4 y off screen
+				return pkt;
 			x::GTE_ReadOTZ(ctx + 0x38);
 			if (U8(ctx, 0x14) & 0x80)
 			{
-				// depth-cued colours: rgb1..3 from the record's 3 colours, rgb0 from the packet
 				x::sub_45E120(data + 0x18, data + 0x1C, data + 0x20);
 				x::set_dword_1CA8A30(U32(ctx, 0xC));
 				x::sub_45F4C0();
@@ -354,7 +289,7 @@ namespace cannon86
 				U32(pkt, 0x1C) = c2;
 				U32(pkt, 0x28) = c3;
 			}
-			int32_t z = add32(S32(ctx, 0x38), S32(ctx, 0x10));  // OTZ + bias
+			int32_t z = add32(S32(ctx, 0x38), S32(ctx, 0x10));
 			S32(ctx, 0x38) = z;
 			if (z < 0)
 				S32(ctx, 0x38) = 0;
@@ -371,8 +306,6 @@ namespace cannon86
 			uint16_t dv2 = U16(ctx, 0x1A);
 			if (dv2 != 0)
 				s3_scroll_uv(pkt, 0xD, dv2, ctx, 0x2A);
-			// scrolling quad: texture window A, the quad, texture window B (OT prepends, so
-			// the GPU sees B, quad, A)
 			uint32_t prim = pkt;
 			uint32_t twa = pkt + 0x34;
 			U32(twa, 0) = 0x2000000;
@@ -390,7 +323,6 @@ namespace cannon86
 			return pkt + 0x4C;
 		}
 
-		// common task epilogue of the four model tasks (after the state call)
 		inline uint32_t s3_task_end(uint32_t n, uint8_t status)
 		{
 			if ((status & 1) && U8(n, 0x28) == 0)
@@ -402,16 +334,13 @@ namespace cannon86
 		}
 	}
 
-	// director block and state helpers of the Tonberry / Death copies (the module's director block [0x1597358])
 	static inline uint32_t t1_data() { return MEM<uint32_t>(DIR_PTR); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
-	// the one-argument task tail of the Boko text (status read here)
 	static inline uint32_t task_end(uint32_t node) { const uint8_t st = U8(node, 0x26); U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1); return task_end(node, st); }
 
-	// module ports of this file (32-bit words in and out, cdecl, like the originals)
 	uint32_t __cdecl ac_77F3E0(uint32_t a1);
 	uint32_t __cdecl ac_77F570(uint32_t a1);
 	uint32_t __cdecl ac_77F630(uint32_t a1);
@@ -489,25 +418,14 @@ namespace act
 {
 namespace cannon86
 {
-	// ====================================================================================
-	// the module's functions (by address): hand ports, and the library functions whose code matches a
-	// Angelo Search / Rush / Reverse / Invincible Moon / Doom / Siren / Tonberry / The End port up to the module
-	// addresses and callees (the port's text with the module's addresses; their comments describe the source)
-	// ====================================================================================
 
-	// 0x77F3E0 (MAG_086_sub_77F3E0): MASTER task - snapshots the camera matrix into 0x2793E58 (pointers 0x25BC1F4 / 0x25B4DD0),
-	// picks the double-buffered packet arenas by tick parity (module cursor 0x25B4CCC = [0x25BB234] / [0x25BB230], second cursor
-	// 0x25B4DCC = [0x25BAE2C] / [0x25BAE28]), follows the target's bones, runs the 11-state master table {0x77F550 / 0x77F560
-	// (a_73A0D0), 0x77F570 (wait for the children), 0x77F580 (a_73A170: starts the emitter), the library's finish states
-	// 0x7843B0.., ret}, then executes the eight module queues (live task count -> node +0x5E)
 	uint32_t __cdecl ac_77F3E0(uint32_t a1)
 	{
 		g_mod = &MOD_086;
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);  // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
 		const uint32_t node = a1;
 		MEM<uint32_t>(0x25BC1F4) = 0x2793E58;
 		MEM<uint32_t>(0x25B4DD0) = 0x2793E58;
@@ -521,7 +439,7 @@ namespace cannon86
 		states[7] = 0x784410;
 		states[8] = 0x784440;
 		states[9] = 0x784450;
-		states[10] = 0x784470; // nullsub (ret)
+		states[10] = 0x784470;
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
 			MEM<uint32_t>(0x25B4CCC) = MEM<uint32_t>(0x25BB234);
@@ -534,14 +452,13 @@ namespace cannon86
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = 0;               // live task count of this tick
+		U16(node, 0x5E) = 0;
 		static const uint32_t queues[8] = { 0x25BB0C0, 0x25B4DA8, 0x25BC1E0, 0x25BBEE8, 0x25B4EB0, 0x25B7088, 0x25BAE18, 0x25BB0B0 };
 		for (int i = 0; i < 8; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
@@ -549,18 +466,13 @@ namespace cannon86
 		return task_end(node, status);
 	}
 
-	// 0x762650 (module 090 MAG_090_sub_762650): master state - waits until no child task is alive
-	// (+0x28 == 0), then next state.
 	uint32_t __cdecl ac_77F570(uint32_t a1)
 	{
 		if (U8(a1, 0x28) == 0)
 			t1_next_state(a1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x8C4E10 (copy of t_762710 0x762710: module 090 MAG_090_sub_762710): master state - init director data (t_762BB0 +
-	// a_7322A0), spawns task 0x762850 (0x30 B, queue 0x25A4BF0) and the director task 0x762C60
-	// (0x48 B, queue 0x259EF90), next state.
 	uint32_t __cdecl ac_77F630(uint32_t a1)
 	{
 		ac_77FAE0(a1);
@@ -568,12 +480,9 @@ namespace cannon86
 		x::Effect_AddTaskAndInitFromCtx(0x25BC1E0, 0x77F780, 0x30, a1);
 		x::Effect_AddTaskAndInitFromCtx(0x25B4DA8, 0x77FBF0, 0x48, a1);
 		t1_next_state(a1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x784960 (MAG_085_sub_784960): the file loader block (0x25C21E0, 0x16C bytes; pointer 0x25C1C58) and the load script
-	// cursor 0x25C1B60 = 0x1571E70: +0x100 = an arena of 0xA000 bytes from the file arena cursor, +0x104.. the load
-	// destinations (0x19CF018, +0x114 0x19EB018, +0x12C 0x19D2560), +0x164 / +0x166 loading / script-done words cleared
 	uint32_t __cdecl ac_77F680()
 	{
 		MEM<uint32_t>(0x25BB238) = 0x1565EB0;
@@ -593,9 +502,6 @@ namespace cannon86
 		return b;
 	}
 
-	// 0x77FAE0 (MAG_086_sub_77FAE0): director data set-up - clears the director block [DIR_PTR] (0x54 bytes), +8.. = the centre
-	// of the visible monsters (0x77FB60 = a_73A720), its y +0xA = 0, +0.. = the caster's (+0x2C) position (entity +0x1C / +0x20),
-	// facing +0x4A = the angle from the caster to that centre - 0x800 (12 bits)
 	uint32_t __cdecl ac_77FAE0(uint32_t a1)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(DIR_PTR), 0x54);
@@ -613,11 +519,6 @@ namespace cannon86
 		return r;
 	}
 
-	// 0x77FBF0 (MAG_086_sub_77FBF0): TASK director (node 0x48) - phase bookkeeping (0x77FCB0) every tick, then its 14 states
-	// {0x77FD00 TIM 0x170CDCC + sync point 1, 0x77FD50 cue 1, 0x77FD90 (a_73A930: the next load-script step), 0x77FDF0 frame 0xF,
-	// 0x77FE10 (a_73B8A0: sync point 2), 0x77FE30 (a_73B8C0: cue 2), 0x77FE50 (a_733AC0: loads done), 0x77FE70 (a_733B70: sync
-	// point 3), 0x77FE90 cue 3, 0x77FEB0 done flag at frame 0x32, 0x77FED0 frame 0x3C, 0x77FEF0 sync point 4, 0x77FF10 cue 4 ->
-	// finished, ret}; frame +0x24; released once finished with no child alive
 	uint32_t __cdecl ac_77FBF0(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -635,7 +536,7 @@ namespace cannon86
 		states[10] = 0x77FED0;
 		states[11] = 0x77FEF0;
 		states[12] = 0x77FF10;
-		states[13] = 0x77FF30; // nullsub (ret)
+		states[13] = 0x77FF30;
 		ac_77FCB0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -643,9 +544,6 @@ namespace cannon86
 		return task_end(node, status);
 	}
 
-	// 0x8C5410 (copy of t_762D10 0x762D10: module 090 sub_762D10): director phase bookkeeping - ++ticks in phase; a new
-	// requested phase becomes current (ticks = 0, spawns its tasks via t_763D60); the next
-	// requested phase becomes requested (a_73A6D0).
 	uint32_t __cdecl ac_77FCB0(uint32_t a1)
 	{
 		uint32_t d = t1_data();
@@ -664,45 +562,38 @@ namespace cannon86
 			U16(d, 0x42) = nxt;
 			a_73A6D0();
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x77FD00 (MAG_086_UploadAngeloTIM): director state 0 - queues Angelo's TIM 0x170CDCC (Battle_QueueTIMUpload_GetEOF); next
-	// state at director sync point 1 (a_73B640)
 	uint32_t __cdecl ac_77FD00(uint32_t a1)
 	{
 		x::Battle_QueueTIMUpload_GetEOF(0x170CDCC);
 		if (a_73B640(1) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x763B90 (module 090 sub_763B90): director state - next state at director cue 1 (a_73B7E0).
 	uint32_t __cdecl ac_77FD50(uint32_t a1)
 	{
 		if (a_73B7E0(1) != 0)
 			t1_next_state(a1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x77FDF0 (sub_77FDF0): director state 3 - next state from the director's frame +0x46 = 0xF
 	uint32_t __cdecl ac_77FDF0(uint32_t a1)
 	{
 		if (S16(MEM<uint32_t>(DIR_PTR), 0x46) >= 0xF)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x763BD0 (module 090 sub_763BD0): director state - next state at director cue 3 (a_73B7E0).
 	uint32_t __cdecl ac_77FE90(uint32_t a1)
 	{
 		if (a_73B7E0(3) != 0)
 			t1_next_state(a1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x77FEB0 (sub_77FEB0): director state 9 - from the director's frame +0x46 = 0x32: done flag +0x48 = 1 (the damage of the
-	// library's finish states), next state
 	uint32_t __cdecl ac_77FEB0(uint32_t a1)
 	{
 		const uint32_t d = MEM<uint32_t>(DIR_PTR);
@@ -711,18 +602,16 @@ namespace cannon86
 			U16(d, 0x48) = 1;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x785230 (sub_785230): director state 11 - next state from frame 0x3C
 	uint32_t __cdecl ac_77FED0(uint32_t a1)
 	{
 		if (S16(MEM<uint32_t>(0x1561770), 0x46) >= 0x3C)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x73BA50 (module; Siren sub_73BA50): director state: asks for cut 4, advances when accepted
 	uint32_t __cdecl ac_77FEF0(uint32_t a1)
 	{
 		uint32_t r = a_73B640(4);
@@ -731,7 +620,6 @@ namespace cannon86
 		return a1;
 	}
 
-	// 0x77FF10 (sub_77FF10): director state 12 - at director cue 4 (a_73B7E0): finished (+0x26 |= 1), next state
 	uint32_t __cdecl ac_77FF10(uint32_t a1)
 	{
 		if (a_73B7E0(4) != 0)
@@ -739,11 +627,9 @@ namespace cannon86
 			U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) | 1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x77FF50 (MAG_086_SpawnAngeloCreature): the tasks of a new director phase ([DIR_PTR] +0x40): phase 1 = the ANGELO actor
-	// 0x77FF90 (queue 0x25BBEE8, node 0x160) bound to the model container 0x1565EF4 animation 3
 	uint32_t __cdecl ac_77FF50(uint32_t a1)
 	{
 		if (S16(MEM<uint32_t>(DIR_PTR), 0x40) == 1)
@@ -751,18 +637,9 @@ namespace cannon86
 			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BBEE8, 0x77FF90, 0x160, a1);
 			x::Effect_BindModelContainerSetAnim(t, 0x1565EF4, 3);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x77FF90 (sub_77FF90): ANGELO actor task (node 0x160) - states {0x783230 place (binds Rinoa's animation set), 0x7832D0
-	// (sound, waits for cue 2: shown, the muzzle glow 0x783350), 0x7835E0 (Rinoa's chain transformation 2), 0x783640 (the first
-	// play 0x7836E0), 0x783BA0 (waits for cue 3 / the plays' pause: the second play 0x783C90 and the glow 0x783DC0), 0x783F00
-	// (dash to the target, the third play 0x783F80), 0x784150, 0x7841E0 (jump back, chain transformation 3), 0x784270, 0x7842B0
-	// (hidden + finished), ret}; then velocity: z +0x50 += +0x128, y +0x4E += +0x126; unless hidden (+0x26 bit 2) the model is
-	// drawn by the creature renderer 0x780130 (a_746C10, state block 0x25BB240) into the module packet pool; then, on the
-	// animation frames that put a foot down (animation +0x9C / frame +0xA2), the bursts of 0x780310 at the foot points (and
-	// 0x783150 at his point 0xF1); frame +0x24; root matrix (+0x70) published to 0x1D99AB0, position to +0x84/+0x88/+0x8C (s32);
-	// released once finished with no child alive
 	uint32_t __cdecl ac_77FF90(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -777,7 +654,7 @@ namespace cannon86
 		states[7] = 0x7841E0;
 		states[8] = 0x784270;
 		states[9] = 0x7842B0;
-		states[10] = 0x7842E0; // nullsub (ret)
+		states[10] = 0x7842E0;
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t vz = U16(node, 0x128);
 		const uint16_t vy = U16(node, 0x126);
@@ -786,7 +663,6 @@ namespace cannon86
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + vy);
 		if ((st & 4) == 0)
 		{
-			// 30 fps layer: see mag086_angelo_cannon_held.inc
 			FX_HELD(held_note_draw(HK_ANGELO, node);)
 			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, CREATURE_ARG, MEM<uint32_t>(PACKET_CURSOR));
 			if ((U8(node, 0x26) & 4) == 0)
@@ -822,7 +698,7 @@ namespace cannon86
 		const int32_t pz = S16(node, 0x50);
 		const int32_t py = S16(node, 0x4E);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		ff8fx::copy<(8 * 4)>((void *)0x1D99AB0, (const void *)(node + 0x70)); // rep movsd
+		ff8fx::copy<(8 * 4)>((void *)0x1D99AB0, (const void *)(node + 0x70));
 		const int32_t px = S16(node, 0x4C);
 		S32(node, 0x8C) = pz;
 		const uint8_t status = U8(node, 0x26);
@@ -836,12 +712,6 @@ namespace cannon86
 		return 0;
 	}
 
-	// 0x780310 (sub_780310): a burst at foot point a2 (0..3 -> spawn points 0x1E / 0x21 / 0x1C / 0x1D of Angelo's model +0x30; 4 /
-	// 5 -> 0x1C / 0x1D): a2 0..3 = four ring particles 0x782930 (queue 0x25B4EB0, node 0x90: on the ground, +-0x80 x / z, velocity
-	// +0x78.. = the vector (0, 0, 0x200..0x11FF) turned by a random yaw +-0x200, rise -(0..0x5F) per tick +0x82) and two dust puffs
-	// 0x780640 (queue 0x25B7088, node 0x98: velocity +0x7C.. = (0, 0, 0x200..0x9FF) turned by a random yaw +-0x100 and pitch
-	// 0x100..0x27F); a2 4 / 5 = two ring particles at the point (+-0x40 x / z, height scaled by 0xC0..0xFF / 256, velocity 0 turned,
-	// rise -(0..0x5F))
 	uint32_t __cdecl ac_780310(uint32_t a1, uint32_t a2)
 	{
 		static const uint32_t PTS[6] = { 0x1E, 0x21, 0x1C, 0x1D, 0x1C, 0x1D };
@@ -893,7 +763,7 @@ namespace cannon86
 			x::matrixMultiplyVector(M, t + 0x78, t + 0x78);
 		}
 		if (k > 3)
-			return 0; // void
+			return 0;
 		for (int i = 0; i < 2; i++)
 		{
 			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25B7088, 0x780640, 0x98, a1);
@@ -911,11 +781,9 @@ namespace cannon86
 			U16(t, 0x80) = (uint16_t)((r3 % 0x800) + 0x200);
 			x::matrixMultiplyVector(M, t + 0x7C, t + 0x7C);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x7211D0 (module 099 sub_7211D0): TASK - state machine {721320, 721360, nop}, then
-	// ac_7806A0 (model draw), task tail.
 	uint32_t __cdecl ac_780640(uint32_t a1)
 	{
 		const uint32_t states[3] = { 0x782810, 0x782850, 0x782920 };
@@ -924,15 +792,10 @@ namespace cannon86
 		return task_end(a1);
 	}
 
-	// 0x788700 (sub_788700): a model of the module (definition +0x4C) drawn unless hidden (+0x26 bit 2): the camera rotation
-	// (UnpackRotationMatrix 0x1D97778) turned by +0x48 (z), at +0x1C.., scaled by +0x30.., through the camera; header 0x68
-	// (+8 colour +0x40, +0xC fade +0x50, +0x10 depth +0x52, flags 0xF0, both windows 256 x 256) through the module renderer
-	// 0x785A90 into the frame arena 0x1D8E054
 	uint32_t __cdecl ac_7806A0(uint32_t a1)
 	{
 		if (U8(a1, 0x26) & 4)
-			return 0; // void
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
+			return 0;
 		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
@@ -963,15 +826,9 @@ namespace cannon86
 		U32(h, 0x14) = 0xF0;
 		MEM<uint32_t>(0x1D8E054) = ac_7807B0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 		x::Field_Free(0x68);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x73C790 (module 095): primitive-list dispatcher of render context a1: resets the frame
-	// vertex pointer unless flag 0x2000, sets the primitive-list cursor (+0x2C), calls
-	// someCameraWork_45DD60 with the far colour bytes +8/+9/+0xA, then for each of the 8 list kinds
-	// draws it (count != 0) with its renderer (0x73C8C0, 0x73CAE0, FT3 ac_780D90, FT4 ac_781210,
-	// a_73D770, a_73D9C0, 0x73DCA0, ac_7821C0) into OT a2 (depth shift a3) or skips the empty count;
-	// returns the new packet cursor (starting from a4).
 	uint32_t __cdecl ac_7807B0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -981,7 +838,7 @@ namespace cannon86
 		const uint32_t fb = U8(ctx, 0xA);
 		const uint32_t lists = U32(model, 0) + model;
 		const uint32_t fg = U8(ctx, 9);
-		U32(ctx, 0x2C) = lists;  // +0x2C cursor in the primitive lists
+		U32(ctx, 0x2C) = lists;
 		const uint32_t fr = U8(ctx, 8);
 		x::someCameraWork_45DD60(fr, fg, fb);
 
@@ -1020,33 +877,28 @@ namespace cannon86
 		return cur;
 	}
 
-	// 0x8C5F00 (copy of t_764670 0x764670: module 090 sub_764670): prim-list block "flat triangles" (12-byte records:
-	// code+rgb, 3 vertex indices at +4/+6/+8) -> POLY_F3 packets (0x14 B): RTPT, semi-transparency
-	// from header flags 1/4, GTE flag / backface (flag 0x10 = double-sided) / screen clip rejects,
-	// optional depth-cued colour (flag 0x40, level header +0xC), OT z = (OTZ + header +0x10) >> a3,
-	// InsertPrimAutoDepth; advances the list pointer header +0x2C, returns the cursor.
 	uint32_t __cdecl ac_7808E0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
-		uint32_t cursor = a4;                 // (the original keeps it in its a1 slot)
+		uint32_t cursor = a4;
 		const uint32_t list = U32(ctx, 0x2C);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // ebp / [esp+0xc]
+		uint32_t rec = list + 4;
 		U32(ctx, 0x2C) = rec;
-		const uint32_t vbase = U32(ctx, 4);   // (the original stores it into its a4 slot)
+		const uint32_t vbase = U32(ctx, 4);
 		if ((int32_t)count <= 0)
 		{
 			U32(ctx, 0x2C) = rec;
 			return a4;
 		}
-		uint32_t pkt = cursor + 0xC;          // edi (advances with the cursor)
+		uint32_t pkt = cursor + 0xC;
 		do
 		{
 			x::GTE_LoadV012(vbase + (uint32_t)U16(rec, 4) * 4, vbase + (uint32_t)U16(rec, 6) * 4, vbase + (uint32_t)U16(rec, 8) * 4);
 			x::GTE_RTPT();
 			const uint32_t flags = U32(ctx, 0x14);
 			uint32_t code = U32(rec, 0);
-			U32(cursor, 0) = 0x4000000;       // tag: 4 words
+			U32(cursor, 0) = 0x4000000;
 			U32(pkt, -8) = code;
 			if (flags & 1)
 			{
@@ -1059,7 +911,7 @@ namespace cannon86
 			if (!(U32(ctx, 0x3C) & 0x60000))
 			{
 				x::GTE_NCLIP();
-				uint32_t clip = 0;            // [esp+0x18]
+				uint32_t clip = 0;
 				x::GTE_ReadMAC0(ctx + 0x30);
 				if (S32(ctx, 0x30) >= 0 || (U8(ctx, 0x14) & 0x10))
 				{
@@ -1098,10 +950,6 @@ namespace cannon86
 		return cursor;
 	}
 
-	// 0x8C6120 (copy of t_764890 0x764890: module 090 sub_764890): draws the flat-quad list of render context a1 (count, then
-	// records of 0xC bytes: code/colour, 4 vertex indices): RTPT + RTPS, rejects on GTE FLAG /
-	// back-face (unless ctx+0x14 bit 0x10) / fully off-screen, optional depth cue (bit 0x40), emits
-	// one POLY_F4 (0x18 B) per face into OT a2 at (OTZ(AVSZ4) + bias) >> a3. Returns the new cursor.
 	uint32_t __cdecl ac_780B00(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -1124,12 +972,12 @@ namespace cannon86
 			{
 				const uint32_t flags = U32(ctx, 0x14);
 				const uint32_t code = U32(rec, 0);
-				U32(pkt, 0) = 0x5000000;  // tag: 5 words
+				U32(pkt, 0) = 0x5000000;
 				U32(pkt, 4) = code;
 				if (flags & 1)
-					U32(pkt, 4) = code | 0x2000000;  // semi-transparent on
+					U32(pkt, 4) = code | 0x2000000;
 				if (flags & 4)
-					U32(pkt, 4) = U32(pkt, 4) & 0xFDFFFFFFu;  // semi-transparent off
+					U32(pkt, 4) = U32(pkt, 4) & 0xFDFFFFFFu;
 			}
 			x::GTE_ReadFLAG(ctx + 0x3C);
 			if ((U32(ctx, 0x3C) & 0x60000) != 0)
@@ -1182,12 +1030,6 @@ namespace cannon86
 		return pkt;
 	}
 
-	// 0x73CD70 (module 095): draws the textured-triangle list of render context a1 (count, then
-	// records of 0x14 bytes: code/colour, 3 vertex indices, uv0+clut, uv1+tpage | uv2): RTPT, rejects
-	// on GTE FLAG / back-face (unless ctx+0x14 bit 0x10) / fully off-screen, optional depth cue (bit
-	// 0x40), emits one POLY_FT3 (0x20 B) per face into OT a2 at (OTZ + bias) >> a3; with a UV scroll
-	// (+0x18/+0x1A) the poly is bracketed by two 0xE2 texture-window prims (0xC B each).
-	// Returns the new packet cursor (starting from a4).
 	uint32_t __cdecl ac_780D90(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -1202,7 +1044,6 @@ namespace cannon86
 			U32(ctx, 0x2C) = rec;
 			return pkt;
 		}
-		// field pointers of the current packet (the original keeps them in stack slots; always pkt + const)
 		uint32_t pSXY2 = pkt + 0x18;
 		uint32_t pSXY1 = pkt + 0x10;
 		uint32_t pCode = pkt + 4;
@@ -1215,16 +1056,16 @@ namespace cannon86
 			{
 				const uint32_t flags = U32(ctx, 0x14);
 				const uint32_t code = U32(rec, 0);
-				U32(pkt, 0) = 0x7000000;  // tag: 7 words
+				U32(pkt, 0) = 0x7000000;
 				U32(pCode, 0) = code;
 				if (flags & 1)
-					U32(pCode, 0) = code | 0x2000000;  // semi-transparent on
+					U32(pCode, 0) = code | 0x2000000;
 				if (flags & 4)
-					U32(pCode, 0) = U32(pCode, 0) & 0xFDFFFFFFu;  // semi-transparent off
+					U32(pCode, 0) = U32(pCode, 0) & 0xFDFFFFFFu;
 				const uint32_t uv2 = U32(rec, 8) >> 16;
-				U32(pkt, 0xC) = U32(rec, 0xC);   // uv0 + clut
-				U32(pkt, 0x14) = U32(rec, 0x10); // uv1 + tpage
-				U32(pkt, 0x1C) = uv2;            // uv2
+				U32(pkt, 0xC) = U32(rec, 0xC);
+				U32(pkt, 0x14) = U32(rec, 0x10);
+				U32(pkt, 0x1C) = uv2;
 			}
 			x::GTE_ReadFLAG(ctx + 0x3C);
 			if ((U32(ctx, 0x3C) & 0x60000) != 0)
@@ -1263,7 +1104,6 @@ namespace cannon86
 			x::GTE_ReadOTZ(ctx + 0x38);
 			if (U8(ctx, 0x14) & 0x40)
 			{
-				// depth cue of the packet colour towards the far colour
 				x::set_unk_1CA8A28(pCode);
 				x::set_dword_1CA8A30(U32(ctx, 0xC));
 				x::sub_45F270();
@@ -1308,7 +1148,7 @@ namespace cannon86
 							U8(pkt, 0x1C) = (uint8_t)c2;
 						}
 					}
-					const uint16_t add1b = U16(ctx, 0x1A);  // re-read (0x73CFDF)
+					const uint16_t add1b = U16(ctx, 0x1A);
 					if (add1b != 0)
 					{
 						const uint32_t a = add1b;
@@ -1367,12 +1207,6 @@ namespace cannon86
 		return pkt;
 	}
 
-	// 0x73D1F0 (module 095): draws the textured-quad list of render context a1 (count, then records
-	// of 0x18 bytes: code/colour, 4 vertex indices, uv0+clut, uv1+tpage, uv2|uv3<<16): RTPT + RTPS,
-	// rejects on GTE FLAG / back-face (unless ctx+0x14 bit 0x10) / fully off-screen, optional depth
-	// cue (bit 0x40), emits one POLY_FT4 (0x28 B) per face into OT a2 at (OTZ(AVSZ4) + bias) >> a3;
-	// with a UV scroll (+0x18 = du, +0x1A = dv) the poly is bracketed by two 0xE2 texture-window prims.
-	// Returns the new packet cursor (starting from a4).
 	uint32_t __cdecl ac_781210(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -1400,18 +1234,18 @@ namespace cannon86
 			{
 				const uint32_t flags = U32(ctx, 0x14);
 				const uint32_t code = U32(rec, 0);
-				U32(pkt, 0) = 0x9000000;  // tag: 9 words
+				U32(pkt, 0) = 0x9000000;
 				U32(pCode, 0) = code;
 				if (flags & 1)
 					U32(pCode, 0) = code | 0x2000000;
 				if (flags & 4)
 					U32(pCode, 0) = U32(pCode, 0) & 0xFDFFFFFFu;
-				U32(pkt, 0xC) = U32(rec, 0xC);    // uv0 + clut
+				U32(pkt, 0xC) = U32(rec, 0xC);
 				const uint32_t uv1 = U32(rec, 0x10);
 				const uint32_t uv23 = U32(rec, 0x14);
-				U32(pkt, 0x1C) = uv23;             // uv2 (+ uv3 in the pad half)
-				U32(pkt, 0x14) = uv1;              // uv1 + tpage
-				U32(pkt, 0x24) = uv23 >> 16;       // uv3
+				U32(pkt, 0x1C) = uv23;
+				U32(pkt, 0x14) = uv1;
+				U32(pkt, 0x24) = uv23 >> 16;
 			}
 			x::GTE_ReadFLAG(ctx + 0x3C);
 			if ((U32(ctx, 0x3C) & 0x60000) != 0)
@@ -1507,7 +1341,7 @@ namespace cannon86
 							U8(pkt, 0x24) = (uint8_t)c3;
 						}
 					}
-					const uint16_t add1b = U16(ctx, 0x1A);  // re-read (0x73D508)
+					const uint16_t add1b = U16(ctx, 0x1A);
 					if (add1b != 0)
 					{
 						const uint32_t a = add1b;
@@ -1571,27 +1405,16 @@ namespace cannon86
 		return pkt;
 	}
 
-	// 0x8A5D40 (sub_8A5D40; same code as Siren's 0x73DCA0 / Drink Magic's 0x85D990): prim-list block
-	// "Gouraud-textured triangles, UV scroll" of the module renderer 0x8A4830: 0x1C-byte records
-	// (code/rgb0 +0, vertex indices +4/+6/+8, uv2 +0x0A, uv0+clut +0x0C, uv1+tpage +0x10, rgb1
-	// +0x14, rgb2 +0x18) -> POLY_GT3 (tag 0x09000000) with RTPT, back-face (NCLIP, unless ctx+0x14
-	// bit 0x20) and off-screen culling, optional lighting (bit 0x80), z = OTZ + ctx+0x10 (>= 0) >>
-	// a3 into OT a2. When the scroll ctx+0x18/+0x1A (u/v) is set, the UVs are scrolled (wrapped by
-	// ctx+0x28/+0x2A) and the poly is framed by two E2 texture-window packets (ctx+0x1C set, ctx+0x24
-	// restore): 0x40 bytes; else the poly alone (0x28 bytes; unlike Tonberry's 0x765B30, no
-	// draw-mode packet). The original keeps seven packet-field pointers apart from the cursor and
-	// advances them together (always cursor + fixed offsets). Returns the new packet cursor; ctx+0x2C
-	// advances past the block.
 	uint32_t __cdecl ac_781CC0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		static const int32_t U_OFF[3] = { 0x0C, 0x18, 0x24 };
 		static const int32_t V_OFF[3] = { 0x0D, 0x19, 0x25 };
 		const uint32_t ctx = a1;
-		uint32_t pkt = a4;                              // esi
+		uint32_t pkt = a4;
 		const uint32_t list = U32(ctx, 0x2C);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;                        // ebp / [esp+0x28]
-		const uint32_t vbase = U32(ctx, 4);             // (in the a4 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x2C) = rec;
 		if ((int32_t)count <= 0)
 		{
@@ -1604,11 +1427,11 @@ namespace cannon86
 			x::GTE_RTPT();
 			const uint32_t flags = U32(ctx, 0x14);
 			uint32_t code = U32(rec, 0);
-			U32(pkt, 0) = 0x9000000;                    // tag: 9 words
+			U32(pkt, 0) = 0x9000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
-				code |= 0x2000000;                      // semi-transparent
+				code |= 0x2000000;
 				U32(pkt, 4) = code;
 			}
 			if (flags & 8)
@@ -1618,12 +1441,12 @@ namespace cannon86
 			const uint32_t uv1 = U32(rec, 0x10);
 			U32(pkt, 0x0C) = uv0;
 			U32(pkt, 0x18) = uv1;
-			U32(pkt, 0x24) = w8 >> 16;                  // uv2 (record +0x0A)
+			U32(pkt, 0x24) = w8 >> 16;
 			x::GTE_ReadFLAG(ctx + 0x3C);
 			if (!(U32(ctx, 0x3C) & 0x60000))
 			{
 				x::GTE_NCLIP();
-				uint32_t clip = 0;                      // [esp+0x24]
+				uint32_t clip = 0;
 				x::GTE_ReadMAC0(ctx + 0x30);
 				if (S32(ctx, 0x30) >= 0 || (U8(ctx, 0x14) & 0x20))
 				{
@@ -1640,7 +1463,6 @@ namespace cannon86
 						x::GTE_ReadOTZ(ctx + 0x38);
 						if (U8(ctx, 0x14) & 0x80)
 						{
-							// lit: colours rgb1, rgb2 and the packet's rgb0
 							x::sub_45E120(rec + 0x14, rec + 0x18, pkt + 4);
 							x::set_dword_1CA8A30(U32(ctx, 0x0C));
 							x::sub_45F4C0();
@@ -1657,7 +1479,7 @@ namespace cannon86
 						if (z < 0)
 							S32(ctx, 0x38) = 0;
 						z = S32(ctx, 0x38) >> (a3 & 31);
-						const uint32_t ot = a2 + (uint32_t)z * 4;   // [esp+0x24]
+						const uint32_t ot = a2 + (uint32_t)z * 4;
 						const uint16_t du = U16(ctx, 0x18);
 						const uint16_t dv = U16(ctx, 0x1A);
 						if ((uint16_t)(du | dv) != 0)
@@ -1667,7 +1489,6 @@ namespace cannon86
 							const uint16_t dv2 = U16(ctx, 0x1A);
 							if (dv2 != 0)
 								t3_scroll(pkt, V_OFF, 3, dv2, U8(ctx, 0x2A));
-							// OT is LIFO: texture window set (ctx+0x1C), poly, window restore (ctx+0x24)
 							const uint32_t w1 = pkt + 0x28;
 							U32(w1, 0) = 0x2000000;
 							const uint32_t t1 = (ctx + 0x1C) != 0 ? t3_texwin(ctx + 0x1C) : 0;
@@ -1697,11 +1518,6 @@ namespace cannon86
 		return pkt;
 	}
 
-	// 0x73E1A0 (module 095): quad-list emitter (prim player object callback): for each 0x24-byte quad
-	// record at ctx+0x2C (count first) RTPT/RTPS-projects its 4 vertices (ctx+4 vertex table), culls
-	// (GTE FLAG, NCLIP unless ctx+0x14 bit 0x20, all-off-screen), writes a POLY_GT4 at a4 with
-	// optional depth-cued colours, inserts it in OT a2 at ((OTZ + ctx+0x10) >> a3); with UV scroll
-	// (ctx+0x18/0x1A) the quad is wrapped in two texture-window prims. Returns the new packet cursor.
 	uint32_t __cdecl ac_7821C0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -1709,8 +1525,6 @@ namespace cannon86
 		uint32_t data = U32(ctx, 0x2C);
 		int32_t count = S32(data, 0);
 		data += 4;
-		// quirk 0x73E1C2: the vertex base overwrites the caller's a4 argument slot and 0x73E299
-		// reuses the a1 slot as the clip-flag local (caller stack only, not reproducible/needed)
 		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x2C) = data;
 		if (count <= 0)
@@ -1727,7 +1541,6 @@ namespace cannon86
 		return pkt;
 	}
 
-	// 0x761090 (sub_761090): dust puff state 0 - model 0x154322C, scale 0x1000^3, random roll +0x48, next state
 	uint32_t __cdecl ac_782810(uint32_t a1)
 	{
 		U32(a1, 0x4C) = 0x15618C0;
@@ -1736,12 +1549,9 @@ namespace cannon86
 		S32(a1, 0x30) = 0x1000;
 		U16(a1, 0x48) = (uint16_t)(x::CrtRand() & 0xFFF);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x782850 (sub_782850): dust puff state 1 - roll +0x48 += 0x40, y kept on / above the ground; from frame 0xA the scale shrinks
-	// by 0x400 a tick (at 0: finished, scale 0x10, next state); velocity +0x7C.. damped by 1/16 (y pulled up by 0x80), position
-	// += velocity / 16
 	uint32_t __cdecl ac_782850(uint32_t a1)
 	{
 		const uint32_t c = a1;
@@ -1773,18 +1583,16 @@ namespace cannon86
 		U16(c, 0x1C) = (uint16_t)(U16(c, 0x1C) + (uint16_t)(vx / 16));
 		U16(c, 0x1E) = (uint16_t)(U16(c, 0x1E) + (uint16_t)(vy / 16));
 		U16(c, 0x20) = (uint16_t)(U16(c, 0x20) + (uint16_t)(vz / 16));
-		return 0; // void
+		return 0;
 	}
 
-	// 0x767290 (module 090 sub_767290): ring particle task (states 0x767410/0x767430) drawn by
-	// ac_782990; ends when finished and no child alive.
 	uint32_t __cdecl ac_782930(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
 		states[0] = 0x783060;
 		states[1] = 0x783080;
-		states[2] = 0x783140;  // nullsub (ret)
+		states[2] = 0x783140;
 		callp(states[S8(node, 0x29)], node);
 		ac_782990(node);
 		const uint8_t status = U8(node, 0x26);
@@ -1792,16 +1600,11 @@ namespace cannon86
 		return task_end(node, status);
 	}
 
-	// 0x8CD770 (copy of t_7672F0 0x7672F0: module 090 sub_7672F0): prim draw of a particle node (unless hidden, +0x26 bit2):
-	// builds camera rotation * position in a 0xD8-byte scratch block, fills the prim parameter block
-	// (layout +0x4C, frame +0x50, colour +0x56) and emits it with a_7435E0 into the effect OT
-	// (OT base +0x44) from the module packet pool [0x259EEA8].
 	uint32_t __cdecl ac_782990(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		if ((U8(node, 0x26) & 4) != 0)
-			return 0; // void
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
+			return 0;
 		FX_HELD(held_note_draw(HK_RING, node);)
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
@@ -1839,21 +1642,18 @@ namespace cannon86
 		U16(blk, 0xB4) = colour;
 		MEM<uint32_t>(0x25B4CCC) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x7618E0 (sub_7618E0): ring particle state 0 - prim sequence 0x15430E8, colour +0x56 = 0xFFC0, +0x52 = 7, next state
 	uint32_t __cdecl ac_783060(uint32_t a1)
 	{
 		U32(a1, 0x4C) = 0x156177C;
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x761900 (sub_761900): ring particle state 1 - sequence step (0x761990 = a_743C20; at its end hidden + finished, next
-	// state); y velocity +0x7A += +0x82, x / z velocity damped by 1/8, position += velocity / 16
 	uint32_t __cdecl ac_783080(uint32_t a1)
 	{
 		const uint32_t n = a1;
@@ -1873,11 +1673,9 @@ namespace cannon86
 		U16(n, 0x1C) = (uint16_t)(U16(n, 0x1C) + (uint16_t)(vx / 16));
 		U16(n, 0x1E) = (uint16_t)(U16(n, 0x1E) + (uint16_t)(vy / 16));
 		U16(n, 0x20) = (uint16_t)(U16(n, 0x20) + (uint16_t)(vz / 16));
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783150 (sub_783150): two ring particles 0x782930 (queue 0x25B4EB0, node 0x90) at Angelo's point 0xF1 on the ground, +-0x80
-	// x / z, velocity +0x78.. = the vector (0, 0, 0x200..0x11FF) turned by a random yaw, rise -(0..0x5F) per tick +0x82
 	uint32_t __cdecl ac_783150(uint32_t a1)
 	{
 		alignas(4) uint8_t m[0x20];
@@ -1902,13 +1700,9 @@ namespace cannon86
 			U16(t, 0x7C) = (uint16_t)((r5 & 0xFFF) + 0x200);
 			x::matrixMultiplyVector(M, t + 0x78, t + 0x78);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783230 (sub_783230): Angelo state 0 - binds Rinoa's animation set (com data 0x156AA60, 0x20-byte block 0x25BC1F8) to the
-	// caster (+0x2C, BS_BindEntityModelFromComData 0x5022C0) and queues her chain transformation 1 (QueueChainTransformation
-	// 0x505C00); hidden; at the caster's position (director +0..) z + 0x1200 on the ground, scale 0x1000^3, animation 0; Rinoa's
-	// entity word +0 gets bit 0x200 (its old value kept in +0x150), counter +0x134 = 0, next state
 	uint32_t __cdecl ac_783230(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -1930,11 +1724,9 @@ namespace cannon86
 		U32(node, 0x150) = w;
 		U16(node, 0x134) = 0;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x7832D0 (sub_7832D0): Angelo state 1 - counter +0x134; at 4 the sound 0x1561774; at director cue 2 (a_73B7E0): the muzzle
-	// glow 0x783350 (queue 0x25B7088, node 0x98, +0x8C = Angelo's model), shown, velocity z +0x128 = -0x100, next state
 	uint32_t __cdecl ac_7832D0(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -1949,19 +1741,16 @@ namespace cannon86
 			U16(node, 0x128) = 0xFF00;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783350 (sub_783350): muzzle glow task (node 0x98) - states {0x783500 set-up, 0x783590 fade, ret}; then its texture scroll
-	// +0x92 -= 0x10 (7 bits) and the draw 0x7833D0 (node, block +0x54, scroll u +0x90, v +0x92); frame +0x24; released once
-	// finished with no child alive
 	uint32_t __cdecl ac_783350(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
 		states[0] = 0x783500;
 		states[1] = 0x783590;
-		states[2] = 0x7835D0; // nullsub (ret)
+		states[2] = 0x7835D0;
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t v = (uint32_t)(uint8_t)(U8(node, 0x92) - 0x10) & 0x7F;
 		const uint32_t u = U16(node, 0x90);
@@ -1972,15 +1761,10 @@ namespace cannon86
 		return task_end(node, status);
 	}
 
-	// 0x7833D0 (sub_7833D0): a glow model (definition +0x4C) drawn unless hidden (+0x26 bit 2): rotation y +0x46, x +0x44, z +0x48,
-	// at +0x1C.., scaled by +0x30.., through the camera; header 0x68 (+8 colour +0x40, +0xC fade +0x50, +0x10 depth +0x52, texture
-	// scroll a3 / a4, the four words of block a2, flags 0xF0, both windows 256 x 256) through the module renderer 0x7807B0 into the
-	// frame arena 0x1D8E054
 	uint32_t __cdecl ac_7833D0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		if ((U8(a1, 0x26) & 4) != 0)
-			return 0; // void
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
+			return 0;
 		FX_HELD(held_note_draw(HK_GLOW, a1);)
 		alignas(4) uint8_t m[0x20];
 		const uint32_t M = P(m);
@@ -2011,11 +1795,9 @@ namespace cannon86
 		S32(h, 0x10) = S16(a1, 0x52);
 		MEM<uint32_t>(0x1D8E054) = ac_7807B0(h, MEM<uint32_t>(0x1D8E04C) + 0x44, 2, MEM<uint32_t>(0x1D8E054));
 		x::Field_Free(0x68);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783500 (sub_783500): muzzle glow state 0 - placed (0x783550), block +0x54.. = (0, 0, 0x80, 0x80), model 0x1561920, scale
-	// 0x1000^3, fade +0x50 = 0x1000, next state
 	uint32_t __cdecl ac_783500(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2030,11 +1812,9 @@ namespace cannon86
 		S32(node, 0x30) = 0x1000;
 		U16(node, 0x50) = 0x1000;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783550 (sub_783550): the muzzle glow placed at Angelo's point 0xF1 (model +0x8C, GetEffectSpawnPosition), y = -0x100, z =
-	// the camera eye's z (0xB8B7F4) + 0x600
 	uint32_t __cdecl ac_783550(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2045,8 +1825,6 @@ namespace cannon86
 		return z;
 	}
 
-	// 0x783590 (sub_783590): muzzle glow state 1 - fade +0x50 -= 0x100 down to 0x800; placed (0x783550); from frame 0x10
-	// finished, next state
 	uint32_t __cdecl ac_783590(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2059,11 +1837,9 @@ namespace cannon86
 			U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 1);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x7835E0 (sub_7835E0): Angelo state 2 - animation step (0x8DD1C0); from animation frame +0x136 = 0x12: animation 1, Rinoa's
-	// chain transformation 2, velocity z 0, next state
 	uint32_t __cdecl ac_7835E0(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2076,11 +1852,9 @@ namespace cannon86
 			U16(node, 0x128) = 0;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783640 (sub_783640): Angelo state 3 - animation step (0x8DD220); at animation frame +0x136 = 0xC the first play 0x7836E0
-	// (layout 0x1706398 / 0x38, 0x783690) at his point 0xF1, next state
 	uint32_t __cdecl ac_783640(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2091,11 +1865,9 @@ namespace cannon86
 			x::GetEffectSpawnPosition(node + 0x30, 0xF1, 0, t + 0x1C);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783690 (sub_783690): spawns the play task a2 (queue 0x25BAE18, node 0x450) from context a1: +0x74 = a3 (prim layout),
-	// +0x78 = (s16) a4 (its count), +0x80 = a5 (the callback's mode word), +0x82 = a6; returns the node
 	uint32_t __cdecl ac_783690(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
 		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(0x25BAE18, a2, 0x450, a1);
@@ -2106,8 +1878,6 @@ namespace cannon86
 		return t;
 	}
 
-	// 0x783740 (sub_783740): first play state 0 (task 0x7836E0 = a_73A380) - decodes the prim layout (+0x74, count +0x78) into
-	// +0x94, scale 0x1000^3, +0x88 = 0xFF00, plays the first frame (0x783790 = a_73C280), next state
 	uint32_t __cdecl ac_783740(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2116,22 +1886,14 @@ namespace cannon86
 		S32(node, 0x54) = 0x1000;
 		S32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xFF00;
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_draw(HK_PLAY, node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x7838C0 (sub_7838C0): prim-model player draw callback of the module's plays (layout a1, record a2, block a3) - as Angelo
-	// Search's 0x758EA0 (vertex frame lerped by MAG_017_sub_701390 into the block's +0x48 buffer; flags 0x2030, 0x20F0 with alpha +
-	// colour; depth offset block +0x58; scale words 0x100) with: record flag 0x200 = the position as is (no parent rotation, no
-	// matrix product); else the parent-rotated position, and the parent's rotation applied unless record flag 0x8000; the third
-	// play (block +0x56 = node +0x80 = 2) draws its model 3 with the texture scroll u = block +0x4C (node +0x8C) and the v window
-	// word +0x28 = 0x80; drawn with 0x7807B0 into OT base+0x44 (shift 2) at the module packet cursor 0x25B4CCC
 	uint32_t __cdecl ac_7838C0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		// stack: +0 SVECTOR position (+6 pad unwritten), +8 scale (3 x int32), +0x18 Mat4x3 object matrix (+0x2C translation)
 		alignas(4) uint8_t loc[0x38] = {};
 		const uint32_t L = P(loc);
 		const uint32_t V = L;
@@ -2139,19 +1901,18 @@ namespace cannon86
 		const uint32_t M = L + 0x18;
 		const uint32_t rec = a2;
 		if (((uint32_t)(int32_t)S16(rec, 0x1C) | U32(rec, 0x18)) == 0)
-			return 0; // void (zero scale: nothing drawn)
+			return 0;
 		if (S16(rec, 0x24) >= 0x1000 && U32(rec, 0x20) == 0)
-			return 0; // void
+			return 0;
 
 		const uint32_t hdr = x::Field_Alloc(0x68);
 		const int32_t model = S16(rec, 2);
 		const uint32_t data = U32(a1, 0);
 		const uint32_t blk = a3;
 		const uint32_t base = data + U32(data, model * 4 + 8);
-		const int16_t f1 = S16(rec, 0x2A);   // second vertex frame
-		const int16_t f0 = S16(rec, 0x28);   // first vertex frame
+		const int16_t f1 = S16(rec, 0x2A);
+		const int16_t f0 = S16(rec, 0x28);
 		U32(hdr, 0) = base;
-		// vertex frame f: base + 0xC + f * vertex_count * 8
 		auto frame_ptr = [base](int16_t f) -> uint32_t {
 			if (f == 0)
 				return base + 0xC;
@@ -2162,7 +1923,7 @@ namespace cannon86
 			U32(hdr, 4) = frame_ptr(f0);
 		else
 		{
-			const int16_t t = S16(rec, 0x26);   // blend factor 0..0x1000
+			const int16_t t = S16(rec, 0x26);
 			if (t == 0)
 				U32(hdr, 4) = frame_ptr(f0);
 			else if (t == 0x1000)
@@ -2183,7 +1944,6 @@ namespace cannon86
 		U16(V, 4) = vz;
 		if ((U8(rec, 5) & 2) != 0)
 		{
-			// record flag 0x200: the position as is (no parent rotation, no matrix product)
 			S32(M, 0x14) = (int16_t)vx;
 			S32(M, 0x18) = (int16_t)vy;
 			S32(M, 0x1C) = (int16_t)vz;
@@ -2215,14 +1975,13 @@ namespace cannon86
 		if (alpha != 0)
 		{
 			U32(hdr, 0x14) = 0x20F0;
-			U32(hdr, 8) = U32(rec, 0x20);   // colour
+			U32(hdr, 8) = U32(rec, 0x20);
 		}
 		if (U16(blk, 0x56) == 2 && U16(rec, 2) == 3)
 		{
-			// the third play's model 3: texture scroll u = block +0x4C, v window 0x80
 			U16(hdr, 0x1A) = 0;
 			U16(hdr, 0x18) = U16(blk, 0x4C);
-			U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);   // depth offset
+			U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 			U16(hdr, 0x1E) = 0;
 			U16(hdr, 0x1C) = 0;
 			U16(hdr, 0x22) = 0x100;
@@ -2234,7 +1993,7 @@ namespace cannon86
 		}
 		else
 		{
-			U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);   // depth offset
+			U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 			U16(hdr, 0x18) = 0;
 			U16(hdr, 0x1A) = 0;
 			U16(hdr, 0x1E) = 0;
@@ -2250,13 +2009,11 @@ namespace cannon86
 		const uint32_t ot = MEM<uint32_t>(0x1D8E04C) + 0x44;
 		MEM<uint32_t>(PACKET_CURSOR) = ac_7807B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
-		return 0; // void (prim player callback)
+		return 0;
 	}
 
-	// 0x8C8840 (copy of s_73F220 0x73F220: module 095): state of task 0x73F110: draws; finished when the model ended
 	uint32_t __cdecl ac_783B70(uint32_t a1)
 	{
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
@@ -2264,24 +2021,19 @@ namespace cannon86
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29)++;
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783BA0 (sub_783BA0): Angelo state 4 - animation step (0x8DD220); when the animation ends: before director cue 3 the
-	// plays pause (0x783D70 = a_73BB60(1)); at cue 3 they resume (a_73BB60(0)), the sound 0x1561778, animation 2, the dash from
-	// his position (+0x140..) to the director's point +8.. (+0x148..) at +0x156 = 0x201 a tick (+0x154 = 0), the second play
-	// 0x783C90 (layout 0x1706CC0 / 0x1A0, mode 1) at his point 0xF1 and the glow 0x783DC0 (queue 0x25B7088, node 0x98, +0x8C =
-	// his model), next state
 	uint32_t __cdecl ac_783BA0(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		const uint32_t mdl = node + 0x30;
 		if (x::au_re_Battle_ReadAnimation_8(node) != 1)
-			return 0; // void
+			return 0;
 		if (a_73B7E0(3) == 0)
 		{
 			a_73BB60(1);
-			return 0; // void
+			return 0;
 		}
 		a_73BB60(0);
 		x::BdPlaySE(0x1561778, 1, 0x80);
@@ -2298,11 +2050,9 @@ namespace cannon86
 		const uint32_t g = x::Effect_AddTaskAndInitFromCtx(0x25B7088, 0x783DC0, 0x98, node);
 		U32(g, 0x8C) = mdl;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783CF0 (sub_783CF0; Doom 0x8C87F0's code): second play state 0 (task 0x783C90 = a_73A380) - decodes the prim layout,
-	// scale 0x1000^3, +0x88 = 0xFE00, plays the first frame (0x783790 = a_73C280), next state
 	uint32_t __cdecl ac_783CF0(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2311,17 +2061,14 @@ namespace cannon86
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xFE00;
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_draw(HK_PLAY, node);)
 		a_73C280(node);
 		next_state(node);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x8C8840 (copy of s_73F220 0x73F220: module 095): state of task 0x73F110: draws; finished when the model ended
 	uint32_t __cdecl ac_783D40(uint32_t a1)
 	{
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
@@ -2329,19 +2076,16 @@ namespace cannon86
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29)++;
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783DC0 (sub_783DC0): dash glow task (node 0x98) - states {0x783E40 set-up, 0x783EC0 follow, ret}; then its texture scroll
-	// +0x92 -= 0x10 (7 bits) and the draw 0x7833D0 (node, block +0x54, scroll u +0x90, v +0x92); frame +0x24; released once
-	// finished with no child alive
 	uint32_t __cdecl ac_783DC0(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
 		states[0] = 0x783E40;
 		states[1] = 0x783EC0;
-		states[2] = 0x783EF0; // nullsub (ret)
+		states[2] = 0x783EF0;
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t v = (uint32_t)(uint8_t)(U8(node, 0x92) - 0x10) & 0x7F;
 		const uint32_t u = U16(node, 0x90);
@@ -2352,8 +2096,6 @@ namespace cannon86
 		return task_end(node, status);
 	}
 
-	// 0x783E40 (sub_783E40): dash glow state 0 - placed (0x783E90), block +0x56.. = 0x80, scale 0x1000^3, model 0x15638C8, yaw
-	// +0x46 = 0x800, +0x54 = 0, next state
 	uint32_t __cdecl ac_783E40(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2368,18 +2110,16 @@ namespace cannon86
 		U16(node, 0x46) = 0x800;
 		U16(node, 0x54) = 0;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783E90 (sub_783E90): the dash glow placed at Angelo's point 0xF1 (model +0x8C), y + 0x40
 	uint32_t __cdecl ac_783E90(uint32_t a1)
 	{
 		x::GetEffectSpawnPosition(U32(a1, 0x8C), 0xF1, 0, a1 + 0x1C);
 		U16(a1, 0x1E) = (uint16_t)(U16(a1, 0x1E) + 0x40);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783EC0 (sub_783EC0): dash glow state 1 - placed (0x783E90); from frame 0x10 finished, next state
 	uint32_t __cdecl ac_783EC0(uint32_t a1)
 	{
 		ac_783E90(a1);
@@ -2388,12 +2128,9 @@ namespace cannon86
 			U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) | 1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783F00 (sub_783F00): Angelo state 5 - animation step (0x8DD1C0) and the dash (0x784070); at its end (+0x154 = 0x1000):
-	// animation 3, the third play 0x783F80 (layout 0x1709404 / 0x3A4, mode 2), Rinoa's entity word +0 bit 0x200 put back (from
-	// +0x150), next state
 	uint32_t __cdecl ac_783F00(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2408,18 +2145,16 @@ namespace cannon86
 			U16(e, 0) = (uint16_t)(U16(e, 0) ^ d);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x783F80 (sub_783F80): third play task (node 0x450) - states {0x783FF0 set-up, 0x784040 play, ret}; then its texture scroll
-	// +0x8C += 0x10 (7 bits); frame +0x24; released once finished with no child alive
 	uint32_t __cdecl ac_783F80(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
 		states[0] = 0x783FF0;
 		states[1] = 0x784040;
-		states[2] = 0x784060; // nullsub (ret)
+		states[2] = 0x784060;
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t s = (uint32_t)(uint8_t)(U8(node, 0x8C) + 0x10) & 0x7F;
 		const uint8_t status = U8(node, 0x26);
@@ -2428,9 +2163,6 @@ namespace cannon86
 		return task_end(node, status);
 	}
 
-	// 0x783FF0 (sub_783FF0; Boko 0x731520's code with the module's director): third play state 0 - decodes the prim layout of
-	// +0x74 (count +0x78) into +0x94, at the director's point +8.., scale 0x1000^3, plays the first frame (0x783790 = a_73C280),
-	// next state
 	uint32_t __cdecl ac_783FF0(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2441,17 +2173,14 @@ namespace cannon86
 		U32(node, 0x58) = 0x1000;
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_draw(HK_PLAY, node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x8C8840 (copy of s_73F220 0x73F220: module 095): state of task 0x73F110: draws; finished when the model ended
 	uint32_t __cdecl ac_784040(uint32_t a1)
 	{
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
@@ -2459,11 +2188,9 @@ namespace cannon86
 			U8(a1, 0x26) |= 1;
 			U8(a1, 0x29)++;
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x784070 (sub_784070): Angelo's dash - +0x154 += +0x156; position +0x4C.. = from (+0x140..) + (to (+0x148..) - from) * t /
-	// 4096 (each axis, s16, t = +0x154; at 0x1000 the end point, t clamped), then y += +0x158
 	uint32_t __cdecl ac_784070(uint32_t a1)
 	{
 		const uint32_t c = a1;
@@ -2475,7 +2202,7 @@ namespace cannon86
 			U32(c, 0x50) = U32(c, 0x14C);
 			U16(c, 0x154) = 0x1000;
 			U16(c, 0x4E) = (uint16_t)(U16(c, 0x4E) + U16(c, 0x158));
-			return 0; // void
+			return 0;
 		}
 		for (uint32_t k = 0; k < 6; k += 2)
 		{
@@ -2483,16 +2210,14 @@ namespace cannon86
 			U16(c, 0x4C + k) = (uint16_t)((int32_t)(S16(c, 0x148 + k) - a) * (int32_t)t / 4096 + a);
 		}
 		U16(c, 0x4E) = (uint16_t)(U16(c, 0x4E) + U16(c, 0x158));
-		return 0; // void
+		return 0;
 	}
 
-	// 0x784150 (sub_784150): Angelo state 6 - when the animation ends (0x8DD220): animation 4, the jump back (from and to swapped,
-	// +0x154 = 0 at +0x156 = 0x112 a tick, height +0x158 = 0, its velocity +0x15A = -0x200, gravity +0x15C = 0x40), next state
 	uint32_t __cdecl ac_784150(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		if (x::au_re_Battle_ReadAnimation_8(node) != 1)
-			return 0; // void
+			return 0;
 		x::au_re_Battle_ReadAnimation_7(node, 4);
 		const uint32_t to0 = U32(node, 0x148), from0 = U32(node, 0x140), from1 = U32(node, 0x144), to1 = U32(node, 0x14C);
 		U32(node, 0x140) = to0;
@@ -2505,11 +2230,9 @@ namespace cannon86
 		U16(node, 0x15A) = 0xFE00;
 		U16(node, 0x15C) = 0x40;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-	// 0x7841E0 (sub_7841E0): Angelo state 7 - height velocity +0x15A += +0x15C, height +0x158 += it (kept <= 0); animation step
-	// (0x8DD1C0) and the jump (0x784070); at its end: animation 5, Rinoa's chain transformation 3, next state
 	uint32_t __cdecl ac_7841E0(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2526,11 +2249,9 @@ namespace cannon86
 			gx::QueueChainTransformation(e, 3);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x784270 (sub_784270): Angelo state 8 - when the animation ends (0x8DD220): animation 6, velocity z +0x128 = 0x100, next
-	// state
 	uint32_t __cdecl ac_784270(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2540,11 +2261,9 @@ namespace cannon86
 			U16(node, 0x128) = 0x100;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x7842B0 (sub_7842B0): Angelo state 9 - animation step (0x8DD1C0); from animation frame +0x136 = 0x12 hidden + finished, next
-	// state
 	uint32_t __cdecl ac_7842B0(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2554,10 +2273,9 @@ namespace cannon86
 			U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 5);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// ---- generated (desc86.py / cls86.py): the module's functions served by engine ports ----
 	struct ModPort { uint32_t addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x77F550, (void *)a_73A0D0, "086 MAG_086_sub_77F550" },
@@ -2617,7 +2335,6 @@ namespace cannon86
 		{ 0x784470, (void *)a_73A6D0, "086 nullsub_1298" },
 		{ 0, nullptr, nullptr }
 	};
-	// the module's own ports (this file)
 	static const ModPort PORTS[] = {
 		{ 0x77F3E0, (void *)ac_77F3E0, "086 ac_77F3E0" },
 		{ 0x77F570, (void *)ac_77F570, "086 ac_77F570" },
@@ -2694,7 +2411,6 @@ namespace cannon86
 			act::register_module_port(86, p->addr, p->port, p->name);
 		for (const act::cannon86::ModPort *p = act::cannon86::PORTS; p->addr; p++)
 			act::register_module_port(86, p->addr, p->port, p->name);
-		// 30 fps layer: see mag086_angelo_cannon_held.inc
 		FX_HELD(register_mag086_held();)
 	}
 }

@@ -14,62 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 137: Oil Blast (enemy attack 181 of kernel.bin, Oilboyle c0m099; MAG_137_*). No other
-// kernel.bin entry uses effect 137.
-//
-// Structure (setup MAG_137_OIL_BLAST 0x6AB850 -> _Init 0x6AB880, file loader 0x6AB860 = the
-// texture file named at 0x11F2384; the setup keeps the CASTER's entity (0x2520CC0), starts camera
-// animation 0x11F0108 and queues the TIM; setup / loader / _Init are the copies of effects 126..139):
-//   MasterTask (0x6AB900) - alternates the packet arena (magic buffer + 0x1658 / + 0x11658); on
-//     counter 1 sets up the pools (sprays 0x3C x 0x24 at + 0, chunks 0x20 x 0x2C at + 0x870, blast
-//     1 x 0x5A0 at + 0xDF0) and starts the blast (the first target of action 0, its effect point
-//     0xF1). Then the blast, chunk and spray queues (each executor call one queue argument deeper:
-//     the queue words are popped after the third); ends when the BLAST queue is empty.
-//   BlastTask (0x6ABA50) - counters 0..0x3C.
-//     Counters 0x12..0x1A: two layouts (0x11EAE10, at +0x84 / +0xC4) at the caster's effect points
-//       0x1E / 0x1C on the floor (y = 0), camera-aligned (mode 0: objects by 0x572200).
-//     Counters 0x15..0x28: layout 0x11EB4D8 (+0x104) at the caster's effect point 0x13 on the floor,
-//       turned by the caster's facing (RotY), mode 0.
-//     Counters 0x15..0x1C (k = counter - 0x15, s = k << 9): on k = 0 the basis C of (target -
-//       point 0x13) on the floor and its start point P = point 0x13 + C's z column / 16; the oil
-//       mesh 0x11E92F8 (static vertices, model + 8): C (z the other way) scaled by sin(s / 4) + 0x400 (the diagonal
-//       0x11F0360 / 0x11F0368 / 0x11F0370 of an exe matrix, rewritten every tick) at P blended to
-//       the target point (on the floor) by s, composed with the camera, drawn by 0x6AC320 (U scrolled
-//       by (k & 3) << 5); then two chunk tasks at that point (CRT rand: a direction through C,
-//       length scaled by IR0 = rand & 0x7F + 0x80, three angles, three spins).
-//     Counters 0x1C..0x35: on the first the basis D of (point 0x13 - target, z the other way) on the floor and layout
-//       0x11ECDC0 (+0x2A4); D's translation = the target - D's z column / 4 (y = 0); on the first 6
-//       counters 10 spray tasks there (CRT rand: a direction through C, length scaled by IR0 = rand &
-//       0xFF + 0x100, scale, deceleration = -velocity / 16); the layout at D through the camera (mode
-//       1, depth -0x100: objects 3 / 4 by 0x7043B0, the others by 0x572200).
-//     Sound at counter 0xA, damage at counter 0x2D (ApplyActionResultToTarget of the action's
-//     targets), ends at counter 0x3C.
-//   ChunkTask (0x6AC1F0) - model 0x11EACC0 by 0x572200, rotation from its angles, shrinking over its
-//     last 3 frames (scale (0x1E - frame) << 10 from frame 0x1B); gravity 0x10, bounces on y >= 0
-//     (velocity y negated), angles += spins; 0x1E frames.
-//   SprayTask (0x6AC140) - sprite sequence 0x11E91A0 at its position (scale +0x1A), 12 frames;
-//     velocity += deceleration, position += velocity.
-//   PrimCallback (0x6ACF40) draws every layout object: rotation from the record's angles (flag
-//     0x40000: 0x7015B0), its offset through the block's matrix, composed with it unless flag 0x8000;
-//     + the block's translation; scale3DMatrix; fade; block mode 1 objects 3 / 4: 0x7043B0 at the
-//     block's depth, else Effect_RenderPrimModel 0x572200.
-//   Mesh renderer (0x6AC320): list 1 flat textured quads (0x6AC380), list 2 Gouraud triangles
-//     (0x6AC770), list 3 Gouraud quads (0x6AC910), a skipped word, list 4 Gouraud textured quads
-//     (0x6ACB30); the textured ones with the U scroll between two texture windows.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws THEN updates (the blast's counter after its draws, a layout in its
-// play, a chunk / spray after its draw).
-// ENTITY / CAMERA: no task writes an entity position (+0x1C..+0x20 only read, through 0x502170) or
-// the camera words (the camera animation is the engine's).
-// EXE DATA WRITES: the scale matrix diagonal 0x11F0360 / 0x11F0368 / 0x11F0370 (counters 0x15..0x1C).
-// Module globals: 0x2520CC0..0x2520D28 (caster entity 0x2520CC0, texture file 0x2520CC4, magic
-// buffer base 0x2520CC8, context 0x2520CCC, master pool 0x2520CD0, packet cursor 0x2520CE4, the
-// queues 0x2520CE8 sprays / 0x2520CF8 chunks / 0x2520D08 blast / 0x2520D18 master).
-// NEVER-WRITTEN STACK WORDS (none reaches the output): the play block's depth (entry esp - 0xC) on
-// counters 0x12..0x1B (mode 0: the callback reads it for mode 1 only); the blend point's 4th word
-// (entry esp - 0x3E: copied into a chunk's +0x12, then overwritten by 0); the block / chunk matrix
-// pad words (GTE R33 pad 0x1CA928E only); the callback's offset 4th word (GTE VZ0 high half
-// 0x1CA8A16 only).
+// Effect 137: Oil Blast
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
@@ -82,107 +27,101 @@ namespace oil137
 	using namespace magc;
 	using namespace icec;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520CC0); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520CC8); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520CC0); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2520CC8); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2520CCC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520CE4); }
-	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520CE8; }         // pool: magic buffer, 0x3C x 0x24
-	inline TaskQueue *QChunks() { return (TaskQueue *)0x2520CF8; }         // pool: + 0x870, 0x20 x 0x2C
-	inline TaskQueue *QBlast() { return (TaskQueue *)0x2520D08; }          // pool: + 0xDF0, 1 x 0x5A0
+	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520CE8; }
+	inline TaskQueue *QChunks() { return (TaskQueue *)0x2520CF8; }
+	inline TaskQueue *QBlast() { return (TaskQueue *)0x2520D08; }
 
 	static const uint32_t ORIG_MasterTask = 0x6AB900;
 	static const uint32_t ORIG_BlastTask = 0x6ABA50;
 	static const uint32_t ORIG_SprayTask = 0x6AC140;
 	static const uint32_t ORIG_ChunkTask = 0x6AC1F0;
-	static const uint32_t VERTS = 0x1390;                // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x1658;              // magic buffer: packet arenas
+	static const uint32_t VERTS = 0x1390;
+	static const uint32_t ARENA_A = 0x1658;
 	static const uint32_t ARENA_B = 0x11658;
-	static const uint32_t MESH = 0x11E92F8;              // oil mesh (vertices at + 8)
-	static const uint32_t MODEL_Puddle = 0x11EAE10;      // prim-model layouts
+	static const uint32_t MESH = 0x11E92F8;
+	static const uint32_t MODEL_Puddle = 0x11EAE10;
 	static const uint32_t MODEL_Spout = 0x11EB4D8;
 	static const uint32_t MODEL_Blast = 0x11ECDC0;
-	static const uint32_t MODEL_Chunk = 0x11EACC0;       // chunk model (Effect_RenderPrimModel)
-	static const uint32_t SEQ_Spray = 0x11E91A0;         // sprite sequence
-	static const void *const SCALE_MAT = (const void *)0x11F0360;   // exe matrix, its diagonal rewritten
-	static int16_t *const SCALE_DIAG = (int16_t *)0x11F0360;        // words 0 / 4 / 8
+	static const uint32_t MODEL_Chunk = 0x11EACC0;
+	static const uint32_t SEQ_Spray = 0x11E91A0;
+	static const void *const SCALE_MAT = (const void *)0x11F0360;
+	static int16_t *const SCALE_DIAG = (int16_t *)0x11F0360;
 	static const void *const SOUND_Blast = (const void *)0x11F035C;
 
-	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }   // MAG_063_sub_701270
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
 	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const void *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const void *, Mat4x3 *)>(0x56C090)(a, b, out); }
 	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
 	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); } // scale3DMatrix
-	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); } // MAG_063_sub_6A6020
+	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(0x56BEF0)(m, v); }
+	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(0x6A6020)(pitch, yaw, out); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2520CD0)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t started;   // +0x0E pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		int16_t started;
+		uint32_t arena;
 	};
-	struct BlastNode // pool of 1 node of 0x5A0 bytes
+	struct BlastNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint8_t *target;   // +0x10 first target of action 0
-		int16_t start[4];  // +0x14 the mesh's start point (k = 0; y and +0x1A: 0 from the clear)
-		int16_t aim[4];    // +0x1C the target's effect point 0xF1
+		uint8_t *target;
+		int16_t start[4];
+		int16_t aim[4];
 		uint8_t pad24[8];
-		int16_t puddle1[4]; // +0x2C the caster's point 0x1E (y = 0)
-		int16_t puddle2[4]; // +0x34 the caster's point 0x1C (y = 0)
-		int16_t spout[4];  // +0x3C the caster's point 0x13 (y = 0)
-		Mat4x3 basisC;     // +0x44 towards the target (translation unused)
-		Mat4x3 basisD;     // +0x64 from the target, its translation (+0x78) rewritten every tick
-		uint8_t lay1[0x40];   // +0x84 layout 0x11EAE10
-		uint8_t lay2[0x40];   // +0xC4 layout 0x11EAE10
-		uint8_t layS[0x1A0];  // +0x104 layout 0x11EB4D8
-		uint8_t layB[0x2FC];  // +0x2A4 layout 0x11ECDC0
+		int16_t puddle1[4];
+		int16_t puddle2[4];
+		int16_t spout[4];
+		Mat4x3 basisC;
+		Mat4x3 basisD;
+		uint8_t lay1[0x40];
+		uint8_t lay2[0x40];
+		uint8_t layS[0x1A0];
+		uint8_t layB[0x2FC];
 	};
-	struct ChunkNode // pool of 0x20 nodes of 0x2C bytes
+	struct ChunkNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t frame;     // +0x12
-		int16_t vel[3];    // +0x14
-		int16_t pad1A;     // never written (pool residue)
-		int16_t angle[3];  // +0x1C
+		int16_t pos[3];
+		int16_t frame;
+		int16_t vel[3];
+		int16_t pad1A;
+		int16_t angle[3];
 		int16_t pad22;
-		int16_t spin[3];   // +0x24
+		int16_t spin[3];
 		int16_t pad2A;
 	};
-	struct SprayNode // pool of 0x3C nodes of 0x24 bytes
+	struct SprayNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t frame;     // +0x12 (also the 4th word of pos)
-		int16_t vel[3];    // +0x14
-		int16_t scale;     // +0x1A
-		int16_t accel[3];  // +0x1C
+		int16_t pos[3];
+		int16_t frame;
+		int16_t vel[3];
+		int16_t scale;
+		int16_t accel[3];
 		int16_t pad22;
 	};
-	// the prim-player callback's parameter block (a stack block of the playing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 rotation (pad word +0x12 never written) and anchor
-		int32_t depth;     // +0x20 prim header +0x18 (renderer 0x7043B0; never written in mode 0)
-		int32_t mode;      // +0x24 1: 0x7043B0 for objects 3 / 4
-		uint32_t morph;    // +0x28 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		int32_t mode;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(BlastNode) == 0x5A0, "Oil Blast nodes");
@@ -193,11 +132,6 @@ namespace oil137
 	static bool OffX(int16_t x) { return x < 0 || x > 0xA00; }
 	static bool OffY(int16_t y) { return y < 0 || y > 0x6C0; }
 
-	// ------------------------------------------------------------------
-	// Mesh renderer (0x6AC320). Header (0x54, the blast's): +0x00 mesh, +0x04 U scroll, +0x08 /
-	// +0x10 texture windows, +0x14 U wrap byte, +0x18 vertices, +0x1C list cursor, +0x28 OTZ,
-	// +0x2C FLAG.
-	// ------------------------------------------------------------------
 	static void ScrollU(uint8_t *p, const int *off, uint16_t add, uint8_t wrap)
 	{
 		uint32_t v[4], o = 0;
@@ -209,7 +143,6 @@ namespace oil137
 		for (int k = 0; k < 4; k++) p[off[k]] = (uint8_t)(o > 0xFF ? v[k] - wrap : v[k]);
 	}
 
-	// the main packet between the texture windows +0x08 / +0x10 (no draw mode)
 	static uint8_t *Windowed(const uint8_t *h, uint32_t otp, uint8_t *main, uint8_t *p)
 	{
 		uint8_t *t1 = p;
@@ -226,8 +159,6 @@ namespace oil137
 		return p + 0x18;
 	}
 
-	// a quad's screen clip bits (x 1 / 2 / 4 / 8, y 0x10 / 0x20 / 0x40 / 0x80): drawn unless all four off
-	// one side
 	static bool QuadClipped(const uint8_t *x0, const uint8_t *x1, const uint8_t *x2, uint32_t clip3, const uint8_t *x3)
 	{
 		uint32_t clip = clip3;
@@ -248,7 +179,6 @@ namespace oil137
 		return clip;
 	}
 
-	// MAG_137_sub_6AC380: list 1, flat textured quads (0x18-byte records, 0x28-byte packets)
 	static uint32_t FlatTexQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x1C);
@@ -288,7 +218,6 @@ namespace oil137
 		return (uint32_t)p;
 	}
 
-	// MAG_137_sub_6AC770: list 2, Gouraud triangles (0x14-byte records, 0x1C-byte packets)
 	static uint32_t GouraudTris(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x1C);
@@ -320,7 +249,6 @@ namespace oil137
 		return (uint32_t)p;
 	}
 
-	// MAG_137_sub_6AC910: list 3, Gouraud quads (0x18-byte records, 0x24-byte packets)
 	static uint32_t GouraudQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x1C);
@@ -356,7 +284,6 @@ namespace oil137
 		return (uint32_t)p;
 	}
 
-	// MAG_137_sub_6ACB30: list 4, Gouraud textured quads (0x24-byte records, 0x34-byte packets)
 	static uint32_t GouraudTexQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x1C);
@@ -399,7 +326,6 @@ namespace oil137
 		return (uint32_t)p;
 	}
 
-	// MAG_137_sub_6AC320
 	static uint32_t MeshDraw(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *m = Cursor(h, 0);
@@ -412,12 +338,6 @@ namespace oil137
 		return GouraudTexQuads(h, ot, shift, r);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6ACF40): one object of a layout. Vertex frame (or blend into the
-	// block's morph buffer), rotation from the record's angles (flag 0x40000: 0x7015B0); the offset
-	// through the block's matrix, composed with it unless flag 0x8000; + the block's translation;
-	// scale3DMatrix, fade; block mode 1 objects 3 / 4: 0x7043B0 at the block's depth, else 0x572200.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -456,7 +376,6 @@ namespace oil137
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		const int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		GteSetRotMatrixCtrl(&arg->m);
 		GteLoadV0(off);
@@ -489,16 +408,11 @@ namespace oil137
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Helpers
-	// ------------------------------------------------------------------
 	static void Play(void *layout, const PrimArg *arg)
 	{
 		prim::play((prim::Layout *)layout, PrimCallback, (int)arg, 0);
 	}
 
-	// the block at a point through the camera: the camera rotation, the point through it + the
-	// camera translation
 	static void BlockAt(PrimArg *arg, const int16_t *p4)
 	{
 		ff8fx::copy<(sizeof(arg->m.m))>(arg->m.m, Camera().m);
@@ -511,7 +425,6 @@ namespace oil137
 		arg->m.t[2] = (int32_t)((uint32_t)arg->m.t[2] + (uint32_t)Camera().t[2]);
 	}
 
-	// the spout layout's block: RotY(caster facing) at the point, composed with the camera
 	static void SpoutBlock(PrimArg *arg, const int16_t *p)
 	{
 		RotY(*(const int16_t *)(Caster() + 0xE), &arg->m);
@@ -521,8 +434,6 @@ namespace oil137
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 	}
 
-	// the oil mesh at progress s (k << 9): C scaled by sin(s / 4) + 0x400 (the exe matrix diagonal), at
-	// the start point blended to the target point (on the floor) by s
 	static void MeshAt(const BlastNode *w, int32_t s, Mat4x3 *M, int16_t *Q)
 	{
 		const int16_t sc = (int16_t)(ComputeSin(s >> 2) + 0x400);
@@ -539,7 +450,6 @@ namespace oil137
 		M->t[2] = Q[2];
 	}
 
-	// the mesh composed with the camera, drawn by 0x6AC320 (U scroll u)
 	static void MeshRender(Mat4x3 *M, uint16_t u)
 	{
 		ComposeAffineTransform(&Camera(), M, M);
@@ -560,7 +470,6 @@ namespace oil137
 		FieldFree(0x54);
 	}
 
-	// a direction through C (CRT rand: yaw first, then pitch), its length scaled by IR0 = ir0
 	static void RandomVelocity(const BlastNode *w, int16_t *vel, int32_t mask, int32_t base)
 	{
 		const int32_t yaw = (CrtRand() * 2000 >> 15) - 1000;
@@ -573,7 +482,6 @@ namespace oil137
 		GteStoreIR123(vel);
 	}
 
-	// the floor basis of (a - b) with z the other way (y = 0)
 	static void FloorBasis(const int16_t *a, const int16_t *b, Mat4x3 *M)
 	{
 		const int32_t v[3] = { (int32_t)a[0] - b[0], 0, (int32_t)b[2] - a[2] };
@@ -590,9 +498,6 @@ namespace ff8fx
 {
 namespace oil137
 {
-	// ------------------------------------------------------------------
-	// Sprays (0x6AC140)
-	// ------------------------------------------------------------------
 	static void SprayDraw(const int16_t *pos, int16_t scale, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
@@ -607,7 +512,6 @@ namespace oil137
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		SprayNode *s = (SprayNode *)n;
-		// 30 fps layer: see mag137_oil_blast_held.inc
 		FX_HELD(held_note_spray(n);)
 		SprayDraw(s->pos, s->scale, s->frame);
 		s->vel[0] = (int16_t)(s->vel[0] + s->accel[0]);
@@ -620,10 +524,6 @@ namespace oil137
 		return s->frame < 0xC ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Chunks (0x6AC1F0)
-	// ------------------------------------------------------------------
-	// the chunk model at pos, rotation from angles, scaled by scale (when scaled)
 	static void ChunkDraw(const int16_t *angle, bool scaled, int32_t scale, const int16_t *pos)
 	{
 		Mat4x3 M;
@@ -649,7 +549,6 @@ namespace oil137
 	static uint32_t __cdecl ChunkTask(TaskNode *n)
 	{
 		ChunkNode *c = (ChunkNode *)n;
-		// 30 fps layer: see mag137_oil_blast_held.inc
 		FX_HELD(held_note_chunk(n);)
 		ChunkDraw(c->angle, c->frame > 0x1A, shl32(0x1E - c->frame, 0xA), c->pos);
 		c->vel[1] = (int16_t)(c->vel[1] + 0x10);
@@ -665,13 +564,10 @@ namespace oil137
 		return c->frame < 0x1E ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Blast (0x6ABA50)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl BlastTask(TaskNode *n)
 	{
 		BlastNode *w = (BlastNode *)n;
-		PrimArg arg;      // entry esp - 0x2C (depth: never written on counters 0x12..0x1B)
+		PrimArg arg;
 		arg.depth = 0;
 		const int32_t ka = w->counter - 0x12;
 		if ((uint32_t)ka < 9)
@@ -688,11 +584,9 @@ namespace oil137
 			BlockAt(&arg, w->puddle1);
 			arg.mode = 0;
 			arg.morph = TexBase() + VERTS;
-			// 30 fps layer: see mag137_oil_blast_held.inc
 			FX_HELD(held_note_play(PLAY_PUDDLE1, n, (prim::Layout *)w->lay1);)
 			Play(w->lay1, &arg);
 			BlockAt(&arg, w->puddle2);
-			// 30 fps layer: see mag137_oil_blast_held.inc
 			FX_HELD(held_note_play(PLAY_PUDDLE2, n, (prim::Layout *)w->lay2);)
 			Play(w->lay2, &arg);
 		}
@@ -708,7 +602,6 @@ namespace oil137
 			SpoutBlock(&arg, w->spout);
 			arg.mode = 0;
 			arg.morph = TexBase() + VERTS;
-			// 30 fps layer: see mag137_oil_blast_held.inc
 			FX_HELD(held_note_play(PLAY_SPOUT, n, (prim::Layout *)w->layS);)
 			Play(w->layS, &arg);
 		}
@@ -723,10 +616,9 @@ namespace oil137
 				w->start[2] = (int16_t)((w->basisC.m[2][2] >> 4) + w->spout[2]);
 			}
 			Mat4x3 M;
-			int16_t Q[4];  // entry esp - 0x44 (the 4th word never written)
+			int16_t Q[4];
 			Q[3] = 0;
 			MeshAt(w, shl32(k & 0xFFFFF, 9), &M, Q);
-			// 30 fps layer: see mag137_oil_blast_held.inc
 			FX_HELD(held_note_mesh(n);)
 			MeshRender(&M, (uint16_t)((k & 3) << 5));
 			for (int i = 2; i; i--)
@@ -775,7 +667,6 @@ namespace oil137
 			arg.morph = TexBase() + VERTS;
 			arg.depth = -0x100;
 			arg.mode = 1;
-			// 30 fps layer: see mag137_oil_blast_held.inc
 			FX_HELD(held_note_play(PLAY_BLAST, n, (prim::Layout *)w->layB);)
 			Play(w->layB, &arg);
 		}
@@ -786,9 +677,6 @@ namespace oil137
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6AB900)
-	// ------------------------------------------------------------------
 	static void StartBlast()
 	{
 		uint8_t *target = Entity(Ctx()->actions->targets[0]);
@@ -804,7 +692,6 @@ namespace oil137
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag137_oil_blast_held.inc
 		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
@@ -841,7 +728,6 @@ namespace oil137
 		register_port(oil137::ORIG_BlastTask, (void *)oil137::BlastTask, "137 BlastTask", 137);
 		register_port(oil137::ORIG_ChunkTask, (void *)oil137::ChunkTask, "137 ChunkTask", 137);
 		register_port(oil137::ORIG_SprayTask, (void *)oil137::SprayTask, "137 SprayTask", 137);
-		// 30 fps layer: see mag137_oil_blast_held.inc
 		FX_HELD(register_mag137_held();)
 	}
 }

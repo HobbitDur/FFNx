@@ -14,32 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// The magic-cast glow (engine code 0x574C80..0x575520, outside every effect module): the rings, the glow and the
-// sparkles that rise around a character while it casts. AddTaskToQueueAnimSeq_99_B0_B1_B4_A5 (0x571840) spawns the
-// task of its kind 0 (table 0xC816A4[0] = 0x574C80) into the hit-effect queue (TASK_QUEUE 0x209FAA8, 0x24-byte nodes,
-// ticked once per battle frame by the battle loop at 0x500923) with the casting entity in node +0x20; the battle
-// action sequence (AnimSeq opcodes 99 / B0 / B1 / B4 / A5) and a few spell modules call it. The kind's tasks are only
-// reached from this spawner: no other effect runs them.
-//
-//   Spawner 0x574C80 - first tick: the entity's default effect position (0x571400), two 3D system sounds (5 and 6,
-//     BdPlaySystemSE3D 0x5017A0), then 5 rings, 1 glow and 6 sparkles into the same queue (sizes from the entity's
-//     size +0x26, positions from its height +0x24, angles / delays / speeds from rand()); then it counts 31 ticks.
-//   Ring 0x5753A0 - prim model 1 (scale x / z fixed, y growing, turned by a random y angle), after a delay of 3 ticks
-//     per ring; mode 0x230 for 5 ticks, then fading to black (mode 0x2F0, fade 409 per tick); 16 ticks.
-//   Glow 0x575250 - prim model 7 (scale x / z growing by a step that shrinks by 1/8 per tick), fading to black from
-//     its first tick (mode 0xF3, fade 292 per tick); 15 ticks.
-//   Sparkle 0x574F50 - shared sprite sequence 5 on a point that turns round the entity (radius growing by 1/64 per
-//     tick, y angle by its spin) and rises (speed growing by 1/32 per tick), after a random delay; ticks 1..12 spawn
-//     3 trails each, from tick 12 the sprite frame cycles 0..9; 19 ticks.
-//   Trail 0x5751A0 - shared sprite sequence 5 at its point (frame 9 - ticks left), rising (speed growing by 1/16
-//     per tick), shrinking by 0x40 per tick; 4..6 ticks.
-// Every drawing task draws THEN updates; with the effects-paused bit (battle_to_update_flags 0x1D96A9C bit 0) a task
-// draws and does not update (the spawner does nothing). The draws go into the battle render list's packet cursor
-// (0x1D8E054) and the render list's OT + 0x44.
-//
-// Quirks: the spawner keeps the entity pointer in its own argument slot ([esp+0x1C] = the executor's pushed node
-// pointer, not re-read by the caller: not reproduced). The sparkle's local position vector has a 4th word the code
-// never writes; it reaches the trail's +0x16 word, which is overwritten before the task returns (not observable).
+// Magic cast glow
 
 #include "mag_common.h"
 
@@ -55,65 +30,65 @@ namespace cast
 	static const uint32_t ORIG_Trail = 0x5751A0;
 	static const uint32_t ORIG_Glow = 0x575250;
 	static const uint32_t ORIG_Ring = 0x5753A0;
-	static TaskQueue *const QUEUE = (TaskQueue *)0x209FAA8; // TASK_QUEUE (hit-effect queue)
+	static TaskQueue *const QUEUE = (TaskQueue *)0x209FAA8;
 
 #pragma pack(push, 1)
 	struct SpawnerNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t pad0E;     // +0x0E (0, set by 0x571840)
-		int16_t pos[4];    // +0x10 the entity's default effect position (x, y, z, w)
+		int16_t counter;
+		int16_t pad0E;
+		int16_t pos[4];
 		uint8_t pad18[8];
-		uint8_t *ent;      // +0x20 the casting entity
+		uint8_t *ent;
 	};
 	struct RingNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t delay;     // +0x0E ticks before the first draw
-		int16_t pos[4];    // +0x10 x, y (the entity's height), z
-		int16_t angle;     // +0x18 y angle
+		int16_t counter;
+		int16_t delay;
+		int16_t pos[4];
+		int16_t angle;
 		int16_t pad1A;
-		int16_t scale_xz;  // +0x1C
+		int16_t scale_xz;
 		int16_t pad1E;
-		int16_t scale_y;   // +0x20
-		int16_t grow_y;    // +0x22 per tick, growing by 1/32 per tick
+		int16_t scale_y;
+		int16_t grow_y;
 	};
 	struct GlowNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[4];    // +0x10
+		int16_t pos[4];
 		uint8_t pad18[4];
-		int16_t scale;     // +0x1C x / z
-		int16_t grow;      // +0x1E per tick, shrinking by 1/8 per tick
+		int16_t scale;
+		int16_t grow;
 		uint8_t pad20[4];
 	};
 	struct SparkleNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t delay;     // +0x0E ticks before the first draw
-		int16_t pos[3];    // +0x10 centre x, y, z
-		int16_t speed_y;   // +0x16 per tick (negative = up), growing by 1/32 per tick
-		int16_t angle;     // +0x18 y angle
-		int16_t spin;      // +0x1A per tick
-		int16_t size;      // +0x1C sprite scale (0x1000)
+		int16_t counter;
+		int16_t delay;
+		int16_t pos[3];
+		int16_t speed_y;
+		int16_t angle;
+		int16_t spin;
+		int16_t size;
 		int16_t pad1E;
-		int16_t radius;    // +0x20 growing by 1/64 per tick
-		int16_t frame;     // +0x22 sprite frame
+		int16_t radius;
+		int16_t frame;
 	};
 	struct TrailNode
 	{
 		TaskNode hdr;
-		int16_t left;      // +0x0C ticks left
+		int16_t left;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
-		int16_t speed_y;   // +0x16 per tick, growing by 1/16 per tick
+		int16_t pos[3];
+		int16_t speed_y;
 		uint8_t pad18[4];
-		int16_t size;      // +0x1C sprite scale, -0x40 per tick
+		int16_t size;
 		int16_t pad1E;
 		uint8_t pad20[4];
 	};
@@ -121,22 +96,18 @@ namespace cast
 	static_assert(sizeof(SpawnerNode) == 0x24 && sizeof(RingNode) == 0x24 && sizeof(GlowNode) == 0x24, "cast nodes");
 	static_assert(sizeof(SparkleNode) == 0x24 && sizeof(TrailNode) == 0x24, "cast nodes");
 
-	// battle_to_update_flags bit 0: effects paused (draw, do not update)
 	inline bool Paused() { return (UpdateFlags() & 1) != 0; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x1D8E054); }
 	inline void BdPlaySystemSE3D(int32_t id, int32_t a, const int16_t *pos) { fn<void (__cdecl *)(int32_t, int32_t, const int16_t *)>(0x5017A0)(id, a, pos); }
-	inline uint32_t EffectPrimModel(int id) { return fn<uint32_t (__cdecl *)(int)>(0x571240)(id); } // sub_571240: table 0xC81678
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); } // matrixMultiplyVector
+	inline uint32_t EffectPrimModel(int id) { return fn<uint32_t (__cdecl *)(int)>(0x571240)(id); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
 
-	// (9011 * entity size) >> 12, at most 0x7FFF
 	static int32_t SizeScale(const uint8_t *ent)
 	{
 		int32_t s = (int32_t)*(const int16_t *)(ent + 0x26) * 9011 >> 12;
 		return s > 0x7FFF ? 0x7FFF : s;
 	}
 
-	// ------------------------------------------------------------------ draws (the part before the paused test)
-	// ring / glow: prim model with a y angle and a scale at the node's position, through the camera
 	static void ModelMatrix(int16_t angle_y, const int16_t *pos, int32_t sx, int32_t sy)
 	{
 		int16_t ang[4] = {};
@@ -191,7 +162,6 @@ namespace cast
 		FieldFree(0x58);
 	}
 
-	// sparkle: its point, R_y(angle) * (0, 0, -radius) + centre (v[3] is never written by the original)
 	static void SparklePoint(const SparkleNode *s, int16_t v[4])
 	{
 		int16_t ang[4] = {};
@@ -210,7 +180,6 @@ namespace cast
 		v[1] = (int16_t)(v[1] + s->pos[1]);
 	}
 
-	// shared sprite sequence 5, frame `frame`, scaled by `size` at `pos`
 	static void SpriteDraw(const int16_t *pos, int16_t size, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, size, -((int32_t)size >> 3));
@@ -222,7 +191,6 @@ namespace cast
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------ updates (after the paused test; pure on the node)
 	static uint32_t RingStep(RingNode *r)
 	{
 		const int16_t g = r->grow_y;
@@ -275,9 +243,6 @@ namespace ff8fx
 {
 namespace cast
 {
-	// ------------------------------------------------------------------
-	// Spawner (0x574C80)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SpawnerTask(TaskNode *n)
 	{
 		if (Paused()) return 0;
@@ -290,7 +255,6 @@ namespace cast
 			BdPlaySystemSE3D(6, 0, sp->pos);
 			if (sp->counter != 0) goto done;
 			{
-				// 5 rings: scale x / z from the entity's size, growing per ring; y grows from 0
 				const int32_t base = SizeScale(ent);
 				const int32_t step = base / 5;
 				int32_t div = 8;
@@ -314,7 +278,6 @@ namespace cast
 			}
 			if (sp->counter != 0) goto done;
 			{
-				// the glow: scale = 2 x the size scale, its first step a quarter of it
 				const int32_t s = SizeScale(ent);
 				GlowNode *g = (GlowNode *)AddTaskToQueue(QUEUE, ORIG_Glow);
 				*(uint32_t *)&g->pos[0] = *(const uint32_t *)&sp->pos[0];
@@ -327,7 +290,6 @@ namespace cast
 			}
 			if (sp->counter != 0) goto done;
 			{
-				// 6 sparkles: radius ((10012 * size) >> 12, at most 0x7FFF) * 900 >> 12
 				int32_t r0 = (int32_t)*(const int16_t *)(ent + 0x26) * 10012 >> 12;
 				if (r0 > 0x7FFF) r0 = 0x7FFF;
 				const int32_t radius = r0 * 900 >> 12;
@@ -355,9 +317,6 @@ namespace cast
 		return sp->counter > 0x1E ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sparkle (0x574F50)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
@@ -367,7 +326,6 @@ namespace cast
 			s->delay--;
 			return 0;
 		}
-		// 30 fps layer: see fx_cast_held.inc
 		FX_HELD(held_note_draw(ORIG_Sparkle, s);)
 		int16_t v[4];
 		SparklePoint(s, v);
@@ -377,7 +335,6 @@ namespace cast
 		const int16_t c = s->counter;
 		if (c >= 1 && c <= 0xC)
 		{
-			// 3 trails from the point
 			for (int k = 3; k != 0; k--)
 			{
 				TrailNode *t = (TrailNode *)AddTaskToQueue(QUEUE, ORIG_Trail);
@@ -396,13 +353,9 @@ namespace cast
 		return SparkleStep(s);
 	}
 
-	// ------------------------------------------------------------------
-	// Trail (0x5751A0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TrailTask(TaskNode *n)
 	{
 		TrailNode *t = (TrailNode *)n;
-		// 30 fps layer: see fx_cast_held.inc
 		FX_HELD(held_note_draw(ORIG_Trail, t);)
 		SpriteDraw(t->pos, t->size, (int16_t)(9 - t->left));
 		FX_HELD(held_note_drawn(t);)
@@ -410,13 +363,9 @@ namespace cast
 		return TrailStep(t);
 	}
 
-	// ------------------------------------------------------------------
-	// Glow (0x575250)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
-		// 30 fps layer: see fx_cast_held.inc
 		FX_HELD(held_note_draw(ORIG_Glow, g);)
 		ModelMatrix(0, g->pos, g->scale, 0x1000);
 		uint8_t *h = AllocHeader(0x58);
@@ -427,9 +376,6 @@ namespace cast
 		return GlowStep(g);
 	}
 
-	// ------------------------------------------------------------------
-	// Ring (0x5753A0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *r = (RingNode *)n;
@@ -439,7 +385,6 @@ namespace cast
 			r->delay--;
 			return 0;
 		}
-		// 30 fps layer: see fx_cast_held.inc
 		FX_HELD(held_note_draw(ORIG_Ring, r);)
 		ModelMatrix(r->angle, r->pos, r->scale_xz, r->scale_y);
 		uint8_t *h = AllocHeader(0x58);
@@ -458,7 +403,6 @@ namespace cast
 		register_port(cast::ORIG_Trail, (void *)cast::TrailTask, "cast 5751A0 CastGlow_SparkleTrail", 0);
 		register_port(cast::ORIG_Glow, (void *)cast::GlowTask, "cast 575250 CastGlow_Glow", 0);
 		register_port(cast::ORIG_Ring, (void *)cast::RingTask, "cast 5753A0 CastGlow_Ring", 0);
-		// 30 fps layer: see fx_cast_held.inc
 		FX_HELD(register_fx_cast_held();)
 	}
 }

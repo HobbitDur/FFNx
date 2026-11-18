@@ -14,15 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Code shared by Blizzara (effect 103, MAG_103_*) and Blizzaga (effect 104, MAG_104_*): the two
-// modules sit next to each other in the executable (0x6D62F0..0x6DC2B0) and call each other's
-// helpers: model copies with a private vertex buffer, their primitive-list walker and the
-// renderer of their Gouraud-textured triangles.
-//
-// A model here is the effect prim-model format: [size] [vertices...] then 8 primitive lists,
-// each [count] + count records: 0 and 1 = 12 bytes, 2 = 20, 3 = 24, 4 = 20, 5 = 24,
-// 6 = 28 (textured Gouraud triangle: colour+code, 3 vertex indices, UVs, 2 more colours),
-// 7 = 36. The ice modules only draw list 6.
+// Code shared by Blizzara and Blizzaga
 
 #pragma once
 
@@ -34,7 +26,6 @@ namespace icec
 {
 	using namespace eng;
 
-	// ---- engine functions (software GTE and matrices)
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
 	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(0x45E210)(dst); }
@@ -43,22 +34,20 @@ namespace icec
 	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E270)(a, b, c); }
 	inline void GteAVSZ3() { fn<void (__cdecl *)()>(0x45E5C0)(); }
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
-	inline void GteReadOTZReg(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }  // GTE_ReadOTZ (after AVSZ)
+	inline void GteReadOTZReg(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); } // sub_45E120
-	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }                  // sub_45F4C0
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); } // sub_45E370
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45E120)(a, b, c); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(0x45F4C0)(); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(angle); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
-	inline int32_t NormalizeVector16(int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(int16_t *, int16_t *)>(0x56BDE0)(in, out); } // sub_56BDE0
+	inline int32_t NormalizeVector16(int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(int16_t *, int16_t *)>(0x56BDE0)(in, out); }
 
-	// Thunder_InitBoltTask (0x6DA380, misnamed): fill `count` dwords with `value`
 	static inline void FillDwords(void *dst, uint32_t value, uint32_t count)
 	{
 		uint32_t *d = (uint32_t *)dst;
 		for (uint32_t i = 0; i < count; i++) d[i] = value;
 	}
-	// MAG_103_sub_6D67B0: copy `count` dwords
 	static inline void CopyDwords(void *dst, const void *src, uint32_t count)
 	{
 		uint32_t *d = (uint32_t *)dst;
@@ -66,8 +55,6 @@ namespace icec
 		for (uint32_t i = 0; i < count; i++) d[i] = s[i];
 	}
 
-	// MAG_103_sub_6DA980: records of primitive list `n` of a model (its count to *count);
-	// n > 7: nullptr, count 0
 	static uint8_t *ModelList(uint32_t n, uint8_t *model, uint32_t *count)
 	{
 		static const uint8_t size[7] = { 12, 12, 20, 24, 20, 24, 28 };
@@ -90,13 +77,8 @@ namespace icec
 		return nullptr;
 	}
 
-	// Draw / prepare headers of these models (on the scratch stack): +0 model, +4 second model
-	// (render) or vertices (prepare), +8 vertex buffer (render), +0x0C / +0x10 list cursors,
-	// +0x14 UV offset (flag 0x1000), +0x18 flags, +0x1C..+0x2E scroll + texture window words
-	// (render) / +0x1C flags (prepare), +0x20 list cursor (prepare), +0x30.. GTE results.
 	inline uint8_t *&Cursor(uint8_t *h, int off) { return *(uint8_t **)(h + off); }
 
-	// list skippers of the renderers and of the model preparation (they return `ret`)
 	static inline uint32_t SkipList(uint8_t *h, int off, uint32_t record, uint32_t ret)
 	{
 		uint8_t *p = Cursor(h, off);
@@ -104,10 +86,6 @@ namespace icec
 		return ret;
 	}
 
-	// MAG_103_sub_6DA860: list 6 of a model copy gets private vertices: each triangle's three
-	// vertices are copied to the buffer at `cursor` and its indices point there (index = byte
-	// offset from `base` / 4); flags +0x1C: bit0 / bit2 set / clear semi-transparency, bit7 fades
-	// the three colours towards the far colour +8 by +0x0C (GTE DPCT). Returns the buffer cursor.
 	static int16_t *PreparePolys(uint8_t *h, int16_t *base, int16_t *cursor)
 	{
 		uint8_t *prim = Cursor(h, 0x20);
@@ -141,8 +119,6 @@ namespace icec
 		return v;
 	}
 
-	// MAG_103_sub_6DA760 (Blizzara) / sub_6D7B30 (Blizzaga): walk the lists of the model at
-	// h[+0], list 6 through PreparePolys with vertices from `model` + 8
 	static int16_t *PrepareModel(uint8_t *h, uint8_t *model, int16_t *vbuf)
 	{
 		Cursor(h, 4) = model + 8;
@@ -164,7 +140,6 @@ namespace icec
 		return cur;
 	}
 
-	// PSX texture window command (0xE2) from the header words w (+0, +2, +4, +6)
 	static inline uint32_t TextureWindow(const uint8_t *w)
 	{
 		uint32_t c = ((uint32_t)w[2] & 0xF8) | 0xFFFE2000;
@@ -174,13 +149,6 @@ namespace icec
 		return c;
 	}
 
-	// ------------------------------------------------------------------
-	// MAG_103_sub_6DB5D0 (Blizzara) / sub_6D75F0 (Blizzaga): list 6 of a model copy, Gouraud-textured triangles (0x28-byte
-	// packets), culled when clipped / back-facing (unless header flag 0x20 or the triangle glows);
-	// flag 0x2000 + triangle byte +0x1B: a second triangle with the second model's UVs scrolled by
-	// +0x1C (Blizzara only, scroll_u) / +0x1E (wrapping by +0x2C / +0x2E, grey level +0x1B), framed by texture windows
-	// (+0x20 / +0x28) with flag 0x20000; flag 0x40 + byte +0x17: a flat glow triangle + draw mode.
-	// ------------------------------------------------------------------
 	static uint32_t RenderPolys(uint8_t *h, uint32_t ot, int shift, uint32_t cursor, bool scroll_u)
 	{
 		uint8_t *ext = Cursor(h, 0x10) + 4;
@@ -334,9 +302,6 @@ namespace icec
 
 	typedef uint32_t (*PolyRenderer)(uint8_t *h, uint32_t ot, int shift, uint32_t cursor);
 
-	// MAG_103_sub_6DB470 (Blizzara) / sub_6D7460 (Blizzaga): draw a model copy: list cursors
-	// +0x0C (model) and +0x10 (second model, starting at its list 2: per-triangle second UVs),
-	// lists 0..5 and 7 skipped, list 6 drawn by `polys`
 	static uint32_t RenderModel(uint8_t *h, uint32_t ot, int shift, uint32_t cursor, PolyRenderer polys)
 	{
 		uint8_t *m = Cursor(h, 0);

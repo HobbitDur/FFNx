@@ -14,36 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 153: Sticky Web (enemy attacks 100 / 169 of kernel.bin, Caterchipillar; MAG_153_*).
-//
-// Structure (setup MAG_153_STICKY_WEB 0x609640, file loader 0x609620 = the texture file named at
-// 0xDBE364; the setup keeps the context, the caster slot and the first target's slot, starts camera
-// animation 0xDBAF3C and queues the TIM). All tasks live in one queue 0x243AFC0 (pool 100 x 0x24):
-//   RootTask (0x60AF50) - alternates the packet arena (0x2443E6C on odd counters, else 0x243BE6C),
-//     runs the effect queue, ends when it is empty.
-//   MasterTask (0x6096F0) - every tick (also in draw-only mode) the caster's effect bone 0xE
-//     position (y - 100) into 0x243BDF8; counter 0: the target's default effect position into
-//     0x243BDE0 (y = middle of entity +0x36 / +0x3C); 1: sound 0xDBE27C; 10: particles 1; 13: the
-//     silk thread and the web; 48: particles 2; 50: the burst; 55: damage; ends after 60.
-//   ThreadTask (0x609930) - draws THEN updates: the thread's anchor (target position + the caster's
-//     facing vector scaled by sin(angle) * 600) into 0x243BE00 and a 5-entry history ring
-//     0x243BE08 (caster position, anchor); a G2 line caster -> anchor; from 2 history points on,
-//     two splines (0x571620 / 0x571690, 16 samples each) through the caster / anchor histories
-//     drawn as 14 pairs of Gouraud quads (depth-cued colour along the strand). Update: angle and
-//     anchor height move by +0x14 / +0x16 until counter 25; ends at 30.
-//   WebTask (0x609DF0) - draws THEN updates: prim model 0xDBB33C at the target (random yaw, scale
-//     0xC00); counters 0..29 through the module's own plane-clipped renderer (0x609FF0: the part
-//     of the model below the thread's anchor height), 30..44 whole (fade from 37); ends at 45.
-//   Particles1Task (0x60A990) / Particles2Task (0x60AC10) - draw THEN update the shared particle
-//     array 0x243A560 (100 x 0x18, type bit 1 / 2): flipbook 0xDBB190 at each particle
-//     (frame++, dies when the flipbook ends). Type 1 (counters 0..22, one per tick at the caster,
-//     flying towards the target), type 2 (counters 0..8, eight per tick around the target,
-//     rising with decaying speed). A task ends when it is past counter 3 and has no live particle.
-//   BurstTask (0x60AE10) - draws THEN updates: prim model 0xDBDBF4 at the target, scale growing
-//     by a decaying step, fade from counter 6; ends at 14.
-// Every task but the master tests the draw-only flags (battle_to_update_flags 0x201) after drawing.
-// Module globals: 0x243A4D8..0x244BE70 (spline points, slots, root pool/queue, particles, spline
-// samples, effect queue + pool, positions, context, ring, the two packet arenas, packet cursor).
+// Effect 153: Sticky Web
 
 #include "mag_common.h"
 
@@ -54,18 +25,17 @@ namespace web153
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline uint32_t &TargetSlot() { return var<uint32_t>(0x243A53C); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x243BDE8); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x243BDEC); }
-	inline int16_t *TargetPos() { return (int16_t *)0x243BDE0; }   // x, y, z (+ a word)
-	inline int16_t *CasterPos() { return (int16_t *)0x243BDF8; }   // caster's bone 0xE, y - 100
-	inline int16_t *Anchor() { return (int16_t *)0x243BE00; }      // thread anchor
+	inline int16_t *TargetPos() { return (int16_t *)0x243BDE0; }
+	inline int16_t *CasterPos() { return (int16_t *)0x243BDF8; }
+	inline int16_t *Anchor() { return (int16_t *)0x243BE00; }
 	inline uint32_t &Cursor() { return var<uint32_t>(0x244BE6C); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x243AFC0; } // pool 0x243AFD0, 100 x 0x24
-	static const uint32_t PTS_A = 0x243A4D8, PTS_B = 0x243A508;   // spline points (5 x 8 bytes)
-	static const uint32_t SPL_A = 0x243AEC0, SPL_B = 0x243AF40;   // spline samples (16 x 8 bytes)
-	static const uint32_t ARENA_A = 0x2443E6C, ARENA_B = 0x243BE6C; // 0x8000 bytes each
+	inline TaskQueue *QEffects() { return (TaskQueue *)0x243AFC0; }
+	static const uint32_t PTS_A = 0x243A4D8, PTS_B = 0x243A508;
+	static const uint32_t SPL_A = 0x243AEC0, SPL_B = 0x243AF40;
+	static const uint32_t ARENA_A = 0x2443E6C, ARENA_B = 0x243BE6C;
 
 	static const uint32_t ORIG_RootTask = 0x60AF50;
 	static const uint32_t ORIG_MasterTask = 0x6096F0;
@@ -77,14 +47,13 @@ namespace web153
 	static const uint32_t MODEL_Web = 0xDBB33C;
 	static const uint32_t MODEL_Burst = 0xDBDBF4;
 	static const uint32_t SEQ_Particle = 0xDBB190;
-	static const uint32_t CLIP_TABLE = 0xDBE284;   // 7 x 8 vertex-slot indices of the clipper
+	static const uint32_t CLIP_TABLE = 0xDBE284;
 	static const void *const SOUND_Web = (const void *)0xDBE27C;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	inline void SplineSetup(int32_t n, uint32_t points, void *work) { fn<void (__cdecl *)(int32_t, uint32_t, void *)>(0x571620)(n, points, work); }             // sub_571620
-	inline void SplineEval(int32_t n, void *work, uint32_t out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, uint32_t, int32_t)>(0x571690)(n, work, out, t); } // sub_571690
+	inline void SplineSetup(int32_t n, uint32_t points, void *work) { fn<void (__cdecl *)(int32_t, uint32_t, void *)>(0x571620)(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, uint32_t out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, uint32_t, int32_t)>(0x571690)(n, work, out, t); }
 	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(0x45DDA0)(r, g, b); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -97,77 +66,74 @@ namespace web153
 	inline void GteDPCS() { fn<void (__cdecl *)()>(0x45F270)(); }
 	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(0x45E360)(c); }
 	inline void GteWriteControlReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x45D7F0)(value, reg); }
-	inline void GteLightV0() { fn<void (__cdecl *)()>(0x4607E0)(); }   // GTE_MVMVA_LightV0_Bk
+	inline void GteLightV0() { fn<void (__cdecl *)()>(0x4607E0)(); }
 	inline void GteLightV1() { fn<void (__cdecl *)()>(0x4607F0)(); }
 	inline void GteLightV2() { fn<void (__cdecl *)()>(0x460800)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
 		int16_t counter;
 		int16_t pad;
 	};
-	struct Node // effect queue nodes (0x24 bytes)
+	struct Node
 	{
 		TaskNode hdr;
-		int16_t counter; // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t f10;     // +0x10 thread: angle / web, burst: x
-		int16_t f12;     // +0x12 thread: anchor height / y
-		int16_t f14;     // +0x14 thread: angle step / z
-		int16_t f16;     // +0x16 thread: height step / (target position word 3)
-		int16_t f18;     // +0x18 yaw
+		int16_t f10;
+		int16_t f12;
+		int16_t f14;
+		int16_t f16;
+		int16_t f18;
 		int16_t pad1A;
-		int16_t f1C;     // +0x1C scale
-		int16_t f1E;     // +0x1E burst: scale step
+		int16_t f1C;
+		int16_t f1E;
 		uint8_t pad20[4];
 	};
-	struct Particle // 0x243A560, 100 x 0x18
+	struct Particle
 	{
-		int32_t type;    // bit0 = particles 1, bit1 = particles 2, 0 = free
-		int16_t frame;   // flipbook frame
-		int16_t angle;   // TransformCameraByShadowRotation angle
+		int32_t type;
+		int16_t frame;
+		int16_t angle;
 		int16_t pos[4];
 		int16_t vel[3];
 		int16_t pad;
 	};
-	struct RingEntry // 0x243BE08, 5 x 0x14: thread history
+	struct RingEntry
 	{
 		int32_t valid;
-		uint32_t p0, p1; // caster position (x, y | z, w)
-		uint32_t q0, q1; // anchor
+		uint32_t p0, p1;
+		uint32_t q0, q1;
 	};
-	struct Slot // clipper vertex slot: x, y, z, uv; (intersections:) crossing flag, plane distance
+	struct Slot
 	{
 		int16_t v[4];
 		int32_t flag;
 		int32_t d;
 	};
-	struct ClipHeader // 0x609FF0 draw header (0x1A8 bytes on the scratch stack)
+	struct ClipHeader
 	{
 		uint8_t pad00[0x1C];
-		uint8_t *model;   // +0x1C
-		uint8_t *verts;   // +0x20
-		uint32_t flags;   // +0x24 bit 0x2000: +0x20 given
-		uint8_t *list;    // +0x28 primitive list cursor
-		uint32_t mask;    // +0x2C crossing edges (1, 2, 4)
-		uint32_t code;    // +0x30 colour + raw flags of the primitive
-		uint32_t uv0;     // +0x34 uv0 + clut
-		uint32_t uv1;     // +0x38 uv1 + tpage
-		uint32_t ot;      // +0x3C
-		int32_t shift;    // +0x40 OTZ shift
-		uint32_t cursor;  // +0x44 packet cursor
+		uint8_t *model;
+		uint8_t *verts;
+		uint32_t flags;
+		uint8_t *list;
+		uint32_t mask;
+		uint32_t code;
+		uint32_t uv0;
+		uint32_t uv1;
+		uint32_t ot;
+		int32_t shift;
+		uint32_t cursor;
 		uint8_t pad48[8];
-		int32_t otz;      // +0x50
-		int32_t flag;     // +0x54 GTE FLAG
-		Slot slot[6];     // +0x58 v0, v1, v2, v0v1, v1v2, v2v0
-		int16_t plane[4]; // +0xB8 normal (4.12) + distance
+		int32_t otz;
+		int32_t flag;
+		Slot slot[6];
+		int16_t plane[4];
 		uint8_t padC0[8];
-		Slot *ptr[56];    // +0xC8 the slots of each crossing case (table 0xDBE284)
+		Slot *ptr[56];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Sticky Web nodes");
@@ -189,10 +155,6 @@ namespace ff8fx
 {
 namespace web153
 {
-	// ------------------------------------------------------------------
-	// Plane-clipped prim model renderer (0x609FF0 and helpers)
-	// ------------------------------------------------------------------
-	// MAG_153_sub_609FB0: plane distance of point a: n[3] = -(a . n) >> 12
 	static void PlaneDistance(const int16_t *a, int16_t *n)
 	{
 		uint32_t s = (uint32_t)((int32_t)a[2] * n[2]);
@@ -201,7 +163,6 @@ namespace web153
 		n[3] = (int16_t)(-((int32_t)s >> 12));
 	}
 
-	// sub_60A470: crossing of edge a -> b with the plane (position and the uv bytes interpolated)
 	static void Intersect(const int16_t *a, const int16_t *b, const int16_t *n, int16_t *out)
 	{
 		const int32_t dx = (int32_t)b[0] - a[0];
@@ -220,7 +181,6 @@ namespace web153
 		out[3] = (int16_t)(uint16_t)((uint32_t)lo | ((uint32_t)hi & 0xFF00));
 	}
 
-	// MAG_153_sub_60A290: textured triangle (POLY_FT3)
 	static void EmitTri(ClipHeader *h, const Slot *a, const Slot *b, const Slot *c)
 	{
 		uint32_t *pk = (uint32_t *)h->cursor;
@@ -240,7 +200,6 @@ namespace web153
 		h->cursor = (uint32_t)pk + 0x20;
 	}
 
-	// sub_60A590: textured quad (POLY_FT4)
 	static void EmitQuad(ClipHeader *h, const Slot *a, const Slot *b, const Slot *c, const Slot *d)
 	{
 		uint32_t *pk = (uint32_t *)h->cursor;
@@ -264,7 +223,6 @@ namespace web153
 		h->cursor = (uint32_t)pk + 0x28;
 	}
 
-	// MAG_153_sub_60A330: a triangle crossing the plane: the crossings, then the kept part
 	static void ClipTri(ClipHeader *h)
 	{
 		if (h->slot[3].flag) Intersect(h->slot[0].v, h->slot[1].v, h->plane, h->slot[3].v);
@@ -287,8 +245,6 @@ namespace web153
 		}
 	}
 
-	// the plane distances of the three loaded vertices (GTE light matrix row 1 = plane normal,
-	// BK = distance), the crossing edges, then clipped / whole / culled
 	static void ClassifyAndDraw(ClipHeader *h)
 	{
 		GteLightV0();
@@ -317,7 +273,6 @@ namespace web153
 		s[1] = v[1];
 	}
 
-	// MAG_153_sub_60A0C0: triangle list (0x14-byte records)
 	static void TriList(ClipHeader *h)
 	{
 		const int32_t count0 = *(const int32_t *)h->list;
@@ -345,7 +300,6 @@ namespace web153
 		h->list = rec;
 	}
 
-	// MAG_153_sub_60A660: quad list (0x18-byte records), drawn as two triangles
 	static void QuadList(ClipHeader *h)
 	{
 		const int32_t count0 = *(const int32_t *)h->list;
@@ -373,7 +327,6 @@ namespace web153
 			if (!(h->flag & 0x60000))
 			{
 				ClassifyAndDraw(h);
-				// second triangle: v3, v1, v2 (its FLAG is read but not tested)
 				LoadVertex(h, 0, *(const uint16_t *)(rec + 0xA));
 				LoadVertex(h, 1, *(const uint16_t *)(rec + 6));
 				LoadVertex(h, 2, *(const uint16_t *)(rec + 8));
@@ -390,7 +343,6 @@ namespace web153
 		h->list = rec;
 	}
 
-	// MAG_153_sub_609FF0: the model's triangles and quads on the kept side of the plane +0xB8
 	static uint32_t ClipRender(ClipHeader *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		if (!(h->flags & 0x2000)) h->verts = h->model + 8;
@@ -415,10 +367,6 @@ namespace web153
 		return h->cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Draw helpers shared by the tasks
-	// ------------------------------------------------------------------
-	// MAG_153_sub_609D60: semi-transparent G2 line a -> b
 	static void DrawLine(const int16_t *a, const int16_t *b, uint32_t colour)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -438,8 +386,6 @@ namespace web153
 		Cursor() = (uint32_t)pk + 0x14;
 	}
 
-	// the thread strands: 14 segments between the samples A[k], A[k+1], B[k], B[k+1], each a
-	// Gouraud quad (colour depth-cued along the strand) and a quad black at the A side
 	static void DrawStrips(uint8_t *h, const uint8_t *a, const uint8_t *b)
 	{
 		GteSetRotMatrix(&Camera());
@@ -492,14 +438,13 @@ namespace web153
 		Cursor() = (uint32_t)p2;
 	}
 
-	// the matrix of the web / burst models: yaw, uniform scale, at +0x10, through the camera
 	static void ModelMatrix(const Node *n)
 	{
 		int16_t ang[4];
 		ang[0] = 0;
 		ang[1] = n->f18;
 		ang[2] = 0;
-		ang[3] = 0; // never written by the original (not read)
+		ang[3] = 0;
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		m.t[0] = n->f10;
@@ -513,7 +458,6 @@ namespace web153
 		GteSetTransVector(&m);
 	}
 
-	// the web model: clipped at the anchor height (counter < 30), then whole (fade from 37)
 	static void WebDraw(const Node *n, int32_t c, int16_t anchor_y, int32_t fade)
 	{
 		ModelMatrix(n);
@@ -553,7 +497,6 @@ namespace web153
 	}
 	static int32_t WebFade(int32_t c) { return shl32(c - 0x25, 9); }
 
-	// the burst model (fade from counter 6)
 	static void BurstDraw(const Node *n, int32_t c, int32_t fade)
 	{
 		ModelMatrix(n);
@@ -571,7 +514,6 @@ namespace web153
 	}
 	static int32_t BurstFade(int32_t c) { return shl32(c - 6, 9); }
 
-	// one particle: flipbook frame at pos (header allocated by the task, 0xB4 bytes)
 	static void ParticleDraw(uint8_t *h, int16_t frame, const int16_t *pos, int16_t angle)
 	{
 		*(int16_t *)(h + 4) = frame;
@@ -579,14 +521,9 @@ namespace web153
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 	}
 
-	// ------------------------------------------------------------------
-	// Tasks
-	// ------------------------------------------------------------------
-	// Particles type 1 (0x60A990)
 	static uint32_t __cdecl Particles1Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(held_begin(ORIG_Particles1Task, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
@@ -595,7 +532,6 @@ namespace web153
 		for (Particle *e = Parts(); e < Parts() + 100; e++)
 		{
 			if (!(*(const uint8_t *)&e->type & 1)) continue;
-			// 30 fps layer: see mag153_sticky_web_held.inc
 			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
@@ -610,7 +546,6 @@ namespace web153
 					alive++;
 				}
 			}
-			// 30 fps layer: see mag153_sticky_web_held.inc
 			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
@@ -648,11 +583,9 @@ namespace web153
 		return 0;
 	}
 
-	// Particles type 2 (0x60AC10)
 	static uint32_t __cdecl Particles2Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(held_begin(ORIG_Particles2Task, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
@@ -661,7 +594,6 @@ namespace web153
 		for (Particle *e = Parts(); e < Parts() + 100; e++)
 		{
 			if (!(*(const uint8_t *)&e->type & 2)) continue;
-			// 30 fps layer: see mag153_sticky_web_held.inc
 			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
@@ -675,7 +607,6 @@ namespace web153
 					alive++;
 				}
 			}
-			// 30 fps layer: see mag153_sticky_web_held.inc
 			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
@@ -704,11 +635,9 @@ namespace web153
 		return 0;
 	}
 
-	// Burst (0x60AE10)
 	static uint32_t __cdecl BurstTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(held_begin(ORIG_BurstTask, n);)
 		BurstDraw(n, n->counter, BurstFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
@@ -719,11 +648,9 @@ namespace web153
 		return n->counter >= 0xE ? TASK_END : 0;
 	}
 
-	// Web (0x609DF0)
 	static uint32_t __cdecl WebTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(held_begin(ORIG_WebTask, n);)
 		WebDraw(n, n->counter, Anchor()[1], WebFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
@@ -731,11 +658,9 @@ namespace web153
 		return n->counter >= 0x2D ? TASK_END : 0;
 	}
 
-	// Silk thread (0x609930)
 	static uint32_t __cdecl ThreadTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(held_begin(ORIG_ThreadTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x40);
 		int16_t *v = (int16_t *)(h + 0x20);
@@ -780,7 +705,6 @@ namespace web153
 			DrawStrips(h, (const uint8_t *)SPL_A, (const uint8_t *)SPL_B);
 		}
 		FieldFree(0x40);
-		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(held_note_thread(i);)
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter < 0x19)
@@ -792,7 +716,6 @@ namespace web153
 		return n->counter >= 0x1E ? TASK_END : 0;
 	}
 
-	// Master (0x6096F0)
 	static uint32_t __cdecl MasterTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -844,11 +767,9 @@ namespace web153
 		return n->counter > 0x3C ? TASK_END : 0;
 	}
 
-	// Root (0x60AF50, au_re_BdlinkTask_25)
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(held_note_root();)
 		Cursor() = ARENA_A;
 		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_B;
@@ -867,7 +788,6 @@ namespace web153
 		register_port(web153::ORIG_Particles1Task, (void *)web153::Particles1Task, "W153 Particles1Task", 153);
 		register_port(web153::ORIG_Particles2Task, (void *)web153::Particles2Task, "W153 Particles2Task", 153);
 		register_port(web153::ORIG_BurstTask, (void *)web153::BurstTask, "W153 BurstTask", 153);
-		// 30 fps layer: see mag153_sticky_web_held.inc
 		FX_HELD(register_mag153_held();)
 	}
 }

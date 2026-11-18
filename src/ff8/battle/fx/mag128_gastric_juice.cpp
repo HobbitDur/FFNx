@@ -14,49 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 128: Gastric Juice (enemy attack 77 of kernel.bin, Gayla c0m033; MAG_128_*). No other
-// kernel.bin entry uses effect 128 (the Grat's Gastric Juice is effect 169, its own module).
-//
-// Structure (setup MAG_128_GASTRIC_JUICE 0x6B7D00 -> _Init 0x6B7D30, file loader 0x6B7D10 = the
-// texture file named at 0x1005AD8 (mag127.tim); the setup keeps the CASTER's entity, starts camera
-// animation 0x1233630 and queues the TIM):
-//   RootTask (0x6B7DB0) - alternates the packet arena (magic buffer + 0x46E8 / + 0x146E8); on
-//     counter 1 of a 10-tick cycle sets up the pools (first time: target 1 x 0x268, streams
-//     8 x 0x50, particles 0x80 x 0x20, the 0x100 stream points freed) and starts the target task
-//     of the next action on its first target (the pool holds ONE node and the spawn is not
-//     checked: a second action 10 ticks later faults, as in the game; enemy attacks have one
-//     action); then the effect-relative camera (0x67AAE0 into 0x2521208) and the target, stream
-//     and particle queues; ends when all three are empty.
-//   Target (0x6B8140) - node 0x268, 70 ticks, DRAWS THEN UPDATES:
-//     counters 21..: the prim-model layout 0x12320B4 at the target's default effect position
-//       (taken at the spawn), callback PartCallback (0x6B84B0);
-//     counters 29..68: the target hidden (entity +0x00 bit 2) and redrawn "melting" (0x6B8760):
-//       every vertex lowered by its own random amount (bytes made at the spawn by 0x6B7FC0) x
-//       sin((counter - 29) * 2048 / 40) >> 10; the bit is cleared on every other counter;
-//     counter 10: sound; counter 14: three juice streams (0x6B8C60) from the caster's effect bone 3
-//       to random bones of the target; counters 14, 15: eight spray particles (0x6B8B20) from the
-//       caster's bone 0x14 around the caster->target direction; even counters 29..47: a drip
-//       particle (0x6B8BC0) at a random bone of the target; counter 53: damage; ends after 69.
-//   Stream (0x6B8DC0) - node 0x50, UPDATES THEN DRAWS: two steps per tick: the progress t (+0x100)
-//     moves along the caster->target line (0x56CB90), lifted by sin(t / 2) / 4 and swirled around
-//     it (a circle of radius sin(t / 2) / 16 through the line's basis, 0x50CBA0), a new point
-//     (0x6B8D60) drifting by 1/8 of the swirl; at the end a splash particle (0x6B9030); every
-//     point fades (0x800, -0x80 above 0x400, else -0x40). Then the chain projected and drawn as a
-//     textured ribbon (0x6B90B0 / 0x6B9210, Quezacotl's bolt ribbon on other texture words), the
-//     points drift, faded tail points are freed; ends when fewer than 2 are left.
-//   Particles - sprite sequences (frame = counter) through the shadow-rotation camera:
-//     spray (0x6B8B20, 0x1233538, 9 frames, linear), drip (0x6B8BC0, 0x123322C, 13 frames,
-//     falling), splash (0x6B9030, 0x123338C, 16 frames, fixed). DRAW THEN UPDATE.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// The tasks write no entity position and no camera words (the camera animation is the engine's);
-// the target entity's flags (+0x00 bit 2) and its bone matrices (the melting draw) are written.
-// Module globals: 0x25211E0..0x2521270 (caster entity, texture file, magic buffer base, context,
-// root pool, packet cursor 0x2521204, effect-relative camera 0x2521208, a never-written vector
-// 0x2521228, particle / stream / target / root queues). In the magic buffer: the particle pool,
-// the stream pool (+ 0x1000), the target pool (+ 0x1280), blended vertex frames (+ 0x14E8), the
-// stream points (+ 0x16E8, 0x100 x 0x28), the melt amounts (+ 0x3EE8, one byte per vertex) and the
-// packet arenas. The melting target draws into the frame arena (battle_texture_data_ptr
-// 0x1D8E054) with the battle's bone workspace as its vertex buffer.
+// Effect 128: Gastric Juice
 
 #include "mag_common.h"
 
@@ -67,17 +25,16 @@ namespace gastric128
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25211E0); }         // the caster's entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25211E8); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x25211E0); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25211E8); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x25211EC); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2521204); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2521208); }       // camera x effect frame (every tick)
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x2521230; }       // pool: magic buffer, 0x80 x 0x20
-	inline TaskQueue *QStreams() { return (TaskQueue *)0x2521240; }         // pool: + 0x1000, 8 x 0x50
-	inline TaskQueue *QTarget() { return (TaskQueue *)0x2521250; }          // pool: + 0x1280, 1 x 0x268
-	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // melting target's vertex buffer
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(0x2521208); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)0x2521230; }
+	inline TaskQueue *QStreams() { return (TaskQueue *)0x2521240; }
+	inline TaskQueue *QTarget() { return (TaskQueue *)0x2521250; }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
 	static const uint32_t ORIG_RootTask = 0x6B7DB0;
@@ -86,107 +43,95 @@ namespace gastric128
 	static const uint32_t ORIG_DripTask = 0x6B8BC0;
 	static const uint32_t ORIG_StreamTask = 0x6B8DC0;
 	static const uint32_t ORIG_SplashTask = 0x6B9030;
-	static const uint32_t MODEL_Layout = 0x12320B4;      // prim-model layout data (0x248-byte layout)
+	static const uint32_t MODEL_Layout = 0x12320B4;
 	static const uint32_t SEQ_Spray = 0x1233538;
 	static const uint32_t SEQ_Drip = 0x123322C;
 	static const uint32_t SEQ_Splash = 0x123338C;
-	static const uint32_t ZERO_Vector = 0x2521228;       // module global, never written (8 bytes)
+	static const uint32_t ZERO_Vector = 0x2521228;
 	static const void *const SOUND_Juice = (const void *)0x12337B8;
-	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x12337BC; // [|dy|][|dx|] -> length, 128 x 128
-	static const uint32_t POINTS = 0x16E8;               // magic buffer: stream points
-	static const uint32_t MELT = 0x3EE8;                 // magic buffer: melt amounts
+	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x12337BC;
+	static const uint32_t POINTS = 0x16E8;
+	static const uint32_t MELT = 0x3EE8;
 
-	// engine functions not in fx_port.h / mag_common.h
-	// GetEffectSpawnPosition (0x502170): position of an entity's effect anchor `bone` (x, y, z)
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(0x56D160)(dx, dz); }
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	// MAG_017_sub_701390: vertex frames f0 and f1 of a model blended by t (4.12) into out
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
 	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); } // MAG_069_sub_703FB0: V0 = 3 x u16
-	// sub_56CB90: out = (a * wa + b * wb) >> 12 (int16 x3)
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(0x703FB0)(v); }
 	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
 	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
-	// BuildOrthonormalBasis (0x50CBA0): 3x3 basis of the direction v (int32 x3), returns |v|
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	// sub_5088A0: an entity's ground shadow
 	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x5088A0)(entity, ot, mode, cursor); }
-	// sub_660540: the engine's battle-model polygons of one object (work block +0x00 polygons,
-	// +0x04 projected vertices, +0x14 counts, +0x28 colour)
 	inline uint32_t ModelPolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(0x660540)(s, ot, shift, cursor); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..9, a target spawn at 1
-		uint8_t action;    // +0x0E next action
-		uint8_t started;   // +0x0F pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		uint8_t action;
+		uint8_t started;
+		uint32_t arena;
 	};
-	struct TargetNode // pool of 1 node of 0x268 bytes
+	struct TargetNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C 0..69
-		int16_t action;    // +0x0E action index
-		uint8_t *entity;   // +0x10 the action's first target
-		int16_t angle;     // +0x14 caster -> target direction (game angle)
-		int16_t pos[4];    // +0x16 the target's default effect position (x, y, z, height)
+		int16_t counter;
+		int16_t action;
+		uint8_t *entity;
+		int16_t angle;
+		int16_t pos[4];
 		int16_t pad1E;
-		uint8_t layout[0x248]; // +0x20 prim-model layout (prim::Layout: data, frame, state)
+		uint8_t layout[0x248];
 	};
-	struct ParticleNode // pool of 0x80 nodes of 0x20 bytes (spray, drip, splash)
+	struct ParticleNode
 	{
 		TaskNode hdr;
-		int32_t counter;   // +0x0C sequence frame
-		int16_t pos[3];    // +0x10
-		int16_t size;      // +0x16
-		int16_t vel[3];    // +0x18
+		int32_t counter;
+		int16_t pos[3];
+		int16_t size;
+		int16_t vel[3];
 		int16_t pad1E;
 	};
-	struct Point // 0x28 bytes, 0x100 in the magic buffer (+ 0x16E8)
+	struct Point
 	{
-		int16_t pos[3];    // +0x00 world position (GTE V0)
-		int16_t width;     // +0x06 ribbon half-width at depth 0; -1 = free
-		int16_t vel[3];    // +0x08 drift per tick
-		int16_t hold;      // +0x0E 0xA (not read)
-		int16_t sx, sy;    // +0x10 projected position, then one edge of the ribbon
-		int16_t otz;       // +0x14
+		int16_t pos[3];
+		int16_t width;
+		int16_t vel[3];
+		int16_t hold;
+		int16_t sx, sy;
+		int16_t otz;
 		int16_t pad16;
-		int16_t sx2, sy2;  // +0x18 other edge
+		int16_t sx2, sy2;
 		int16_t pad1C[2];
-		int16_t fade;      // +0x20 brightness (0x800 down to 0)
+		int16_t fade;
 		int16_t pad22;
-		Point *next;       // +0x24
+		Point *next;
 	};
-	struct StreamNode // pool of 8 nodes of 0x50 bytes
+	struct StreamNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C always 0
-		int16_t count;     // +0x0E points in the chain
-		Point *head, *tail; // +0x10 oldest, +0x14 newest
-		int16_t from[3];   // +0x18 caster's effect bone 3
-		int16_t t;         // +0x1E progress 0..0x1000
-		int16_t to[3];     // +0x20 a random bone of the target
-		int16_t dt;        // +0x26 progress per step (0x100)
-		Mat4x3 basis;      // +0x28 basis of the from -> to direction
-		int16_t slot;      // +0x48 target slot (>= 0: a splash at the end)
-		int16_t angle;     // +0x4A swirl angle (+0x100 per step)
-		int16_t width;     // +0x4C ribbon width
+		int16_t counter;
+		int16_t count;
+		Point *head, *tail;
+		int16_t from[3];
+		int16_t t;
+		int16_t to[3];
+		int16_t dt;
+		Mat4x3 basis;
+		int16_t slot;
+		int16_t angle;
+		int16_t width;
 		int16_t pad4E;
 	};
-	// the prim-player callback's parameter block (a stack block of the target task)
 	struct PrimArg
 	{
-		int16_t pos[4];    // +0x00 the target's default effect position (x, y, z, height)
-		uint32_t morph;    // +0x08 blended vertex frames
+		int16_t pos[4];
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(TargetNode) == 0x268 && sizeof(ParticleNode) == 0x20, "Gastric Juice nodes");
@@ -196,12 +141,6 @@ namespace gastric128
 	inline Point *Points() { return (Point *)(TexBase() + POINTS); }
 	inline uint8_t BoneCount(const uint8_t *entity) { return **(uint8_t *const *)*(uint8_t *const *)(entity + 0x64); }
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6B84B0): one object of the layout. Record flag 0x1000 = the anchor
-	// through the camera, the record's offset through the effect-relative camera (0x2521208) and
-	// the rotation composed with it; else anchor + offset through the camera, rotation composed
-	// with the camera. Scale by scale3DMatrix.
-	// ------------------------------------------------------------------
 	static void __cdecl PartCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -239,11 +178,9 @@ namespace gastric128
 		}
 		Mat4x3 m = {};
 		RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		if (r->flags & 0x1000)
 		{
-			// the anchor through the camera, the offset through the effect-relative camera
 			GteSetRotMatrixCtrl(&Camera());
 			GteLoadV0(arg->pos);
 			GteMVMVA_RotV0();
@@ -260,7 +197,6 @@ namespace gastric128
 		}
 		else
 		{
-			// anchor + offset through the camera, rotation composed with the camera
 			off[0] = (int16_t)(off[0] + arg->pos[0]);
 			off[1] = (int16_t)(off[1] + arg->pos[1]);
 			off[2] = (int16_t)(off[2] + arg->pos[2]);
@@ -287,16 +223,10 @@ namespace gastric128
 			*(uint32_t *)(h + 0x1C) = 0x20F0;
 			*(uint32_t *)(h + 8) = *(const uint32_t *)r->rgb;
 		}
-		// header +0x18 (depth offset) is not set: the scratch's value
 		PacketCursor() = RenderPrimModel(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Melt amounts (0x6B7FC0 -> 0x6B8030 -> 0x6B80D0): one byte per vertex of the target's models,
-	// -((rand & 0x1F) + 0x10) * (the vertex's world y) >> 10, in model order
-	// ------------------------------------------------------------------
-	// MAG_128_sub_6B80D0: one bone group (header +0x04 vertex cursor, +0x08 byte cursor)
 	static void MeltGroup(uint8_t *h)
 	{
 		const uint8_t *v = F<const uint8_t *>(h, 4);
@@ -312,7 +242,7 @@ namespace gastric128
 				GteMVMVA_RotV0Tr();
 				v += 6;
 				int32_t y;
-				GteReadDataRegTo(&y, 10); // IR2
+				GteReadDataRegTo(&y, 10);
 				const int32_t r = CrtRand();
 				*out = (uint8_t)(0 - (uint8_t)(mul32((r & 0x1F) + 0x10, y) >> 10));
 				out++;
@@ -322,7 +252,6 @@ namespace gastric128
 		F<const uint8_t *>(h, 4) = v;
 	}
 
-	// MAG_128_sub_6B8030: every object's bone groups of a model (no object mask)
 	static void MeltModel(uint8_t *h, uint8_t *anim)
 	{
 		const uint8_t *model = *(const uint8_t *const *)(anim + 4);
@@ -353,7 +282,6 @@ namespace gastric128
 		} while (--count != 0);
 	}
 
-	// MAG_128_sub_6B7FC0: the target's melt amounts (body +0x60, then the second model +0x78)
 	static void InitMelt(uint8_t *entity)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xC);
@@ -371,17 +299,6 @@ namespace gastric128
 		FieldFree(0xC);
 	}
 
-	// ------------------------------------------------------------------
-	// Melting target (0x6B8760 -> 0x6B8870 -> 0x6B8AE0 / 0x6B89E0 / engine 0x660540)
-	// ------------------------------------------------------------------
-	// Work block (Field_Alloc 0x84), S = +0x20 (the engine's model-draw block for 0x660540):
-	//   S+0x00 polygon cursor, +0x04 vertex buffer (bone workspace), +0x08 vertex cursor,
-	//   +0x0C melt-amount cursor, +0x10 object cursor, +0x14 polygon counts (6 words),
-	//   +0x20 clip rectangle (x0, y0, x1, y1), +0x28 colour (entity +0x28), +0x2C object mask
-	//   (entity +0x7C, the second model -1), +0x30 screen xy, +0x34 OTZ / clip flags (+0x36),
-	//   +0x60 the melt amplitude (sin).
-	// sub_6B8AE0: one bone group of model vertices to world space (into the vertex cursor; the
-	// cursors are left for 0x6B89E0)
 	static void WorldVertices(uint8_t *s)
 	{
 		const uint8_t *v = F<const uint8_t *>(s, 0x10);
@@ -400,8 +317,6 @@ namespace gastric128
 		} while (--left != 0);
 	}
 
-	// sub_6B89E0: the same vertices lowered by their melt amounts, projected with the camera,
-	// clip-flagged against the rectangle (x 8)
 	static void MeltVertices(uint8_t *s)
 	{
 		const uint8_t *v = F<const uint8_t *>(s, 0x10);
@@ -444,8 +359,6 @@ namespace gastric128
 		F<const uint8_t *>(s, 0x10) = end;
 	}
 
-	// MAG_128_sub_6B8870: every object of a model the mask shows (bone groups of vertices, then
-	// the engine's polygons)
 	static uint32_t MeltModelDraw(const uint8_t *model, uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint8_t *bones = *(const uint8_t *const *)model + 0x10;
@@ -490,7 +403,6 @@ namespace gastric128
 		return cursor;
 	}
 
-	// MAG_128_sub_6B8760: shadow, then the body (+0x64) and the second model (+0x78) melted by sinv
 	static void DrawMeltingTarget(uint8_t *entity, int32_t sinv)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x84);
@@ -518,16 +430,11 @@ namespace gastric128
 		FieldFree(0x84);
 	}
 
-	// the melt amplitude at step e (0..39): sin(e * 2048 / 40)
 	static int32_t MeltSin(int32_t e)
 	{
 		return ComputeSin((int32_t)(uint32_t)(((uint64_t)((uint32_t)e << 11) * 0xCCCCCCCDu) >> 37));
 	}
 
-	// ------------------------------------------------------------------
-	// Particles (0x6B8B20 spray, 0x6B8BC0 drip, 0x6B9030 splash): a sprite sequence through the
-	// shadow-rotation camera (scale = size, roll = -size / 4), frame = counter
-	// ------------------------------------------------------------------
 	static void ParticleDraw(const ParticleNode *p, uint32_t seq)
 	{
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
@@ -538,14 +445,12 @@ namespace gastric128
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
-	// spray: linear
 	static void SprayStep(ParticleNode *p)
 	{
 		p->pos[0] = (int16_t)(p->pos[0] + p->vel[0]);
 		p->pos[1] = (int16_t)(p->pos[1] + p->vel[1]);
 		p->pos[2] = (int16_t)(p->pos[2] + p->vel[2]);
 	}
-	// drip: falling (y velocity + 1 per tick, applied first)
 	static void DripStep(ParticleNode *p)
 	{
 		p->pos[0] = (int16_t)(p->pos[0] + p->vel[0]);
@@ -554,10 +459,6 @@ namespace gastric128
 		p->pos[1] = (int16_t)(p->pos[1] + p->vel[1]);
 	}
 
-	// ------------------------------------------------------------------
-	// Streams
-	// ------------------------------------------------------------------
-	// MAG_128_sub_6B8D60: a free point (+0x06 == -1), at pos (8 bytes copied), fade 0x800
 	static Point *AllocPoint(const int16_t *pos, int16_t width)
 	{
 		Point *p = Points();
@@ -575,8 +476,6 @@ namespace gastric128
 		return p;
 	}
 
-	// MAG_128_sub_6B8C60: a stream task from `from` to `to` with its first point (the 4th words
-	// of both records are replaced: t, dt)
 	static Point *SpawnStream(const int16_t *from, const int16_t *to, int32_t slot, int32_t t, int32_t dt, int32_t width, int32_t angle)
 	{
 		Point *p = AllocPoint(from, (int16_t)width);
@@ -604,9 +503,6 @@ namespace gastric128
 		return p;
 	}
 
-	// sub_6B9210 (Quezacotl's 0x6C8620 on its own length table): the two edge vertices of point p
-	// from the screen direction towards n (averaged with the previous one: mitred joints),
-	// half width = n's width * 32 / (p's depth + 0x200); a point without n has no width
 	static void RibbonEdges(Point *p, const Point *n, const int16_t *prev, int16_t *dir)
 	{
 		if (p->otz < 0) return;
@@ -620,7 +516,7 @@ namespace gastric128
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
 			const int32_t len = DIST_TABLE[ady * 128 + adx];
-			int32_t px, py; // unit normal (4.12)
+			int32_t px, py;
 			if (prev)
 			{
 				if (len == 0)
@@ -641,8 +537,8 @@ namespace gastric128
 						sx = cx * 2;
 						sy = cy * 2;
 					}
-					const int32_t sq = (int32_t)((uint32_t)mul32(sx, sx) + (uint32_t)mul32(sy, sy)); // wraps, as the original
-					const int32_t k = 0x4000 - (sq >> 13); // one Newton step of 1/|v|
+					const int32_t sq = (int32_t)((uint32_t)mul32(sx, sx) + (uint32_t)mul32(sy, sy));
+					const int32_t k = 0x4000 - (sq >> 13);
 					px = mul32(k, sx) >> 13;
 					py = mul32(k, sy) >> 13;
 				}
@@ -670,13 +566,6 @@ namespace gastric128
 		p->sy = (int16_t)(y - oy);
 	}
 
-	// sub_6B90B0: the edges of the chain, then one GP0 0x3E quad (gouraud, textured,
-	// semi-transparent) per pair of visible points, grey level = fade / 16.
-	// UNINITIALISED READ 0x6B90B3: the joint direction is a stack local the function never
-	// initialises; when the first point is hidden (or its segment has no screen length) the second
-	// point reads it. Its slot (stream task entry esp - 0x38) is the high dword of the last double
-	// GTE_RTPS (0x45FAA0, fstp 0x45FB89) stored in its frame during the stream's projection loop,
-	// which always runs right before: 0x43300000 (the 2^52 + 2^31 rounding bias).
 	static const uint32_t RIBBON_DIR0 = 0x43300000;
 	static void DrawRibbon(Point *head, int32_t count)
 	{
@@ -699,10 +588,10 @@ namespace gastric128
 				PacketCursor() += 0x34;
 				pk[2] = *(const uint32_t *)&a->sx;
 				pk[5] = *(const uint32_t *)&a->sx2;
-				pk[3] = 0x3D14E048;  // uv0 + CLUT
-				pk[6] = 0x00BAE078;  // uv1 + texture page
-				*(uint16_t *)((uint8_t *)pk + 0x24) = 0xE048; // uv2
-				*(uint16_t *)((uint8_t *)pk + 0x30) = 0xE078; // uv3
+				pk[3] = 0x3D14E048;
+				pk[6] = 0x00BAE078;
+				*(uint16_t *)((uint8_t *)pk + 0x24) = 0xE048;
+				*(uint16_t *)((uint8_t *)pk + 0x30) = 0xE078;
 				pk[8] = *(const uint32_t *)&b->sx;
 				pk[11] = *(const uint32_t *)&b->sx2;
 				uint32_t ca = (uint32_t)(int32_t)(int16_t)(a->fade >> 4);
@@ -721,7 +610,6 @@ namespace gastric128
 		}
 	}
 
-	// the chain's projection (camera), then its ribbon (2 points or more)
 	static void StreamDraw(Point *head, int32_t count)
 	{
 		GteSetRotMatrix(&Camera());
@@ -738,7 +626,6 @@ namespace gastric128
 		if (count >= 2) DrawRibbon(head, count);
 	}
 
-	// one fade step of a point (two per tick)
 	static inline int16_t FadeStep(int16_t f)
 	{
 		if (f <= 0) return f;
@@ -756,13 +643,9 @@ namespace ff8fx
 {
 namespace gastric128
 {
-	// ------------------------------------------------------------------
-	// Particle tasks
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(held_note_particle(ORIG_SprayTask, p);)
 		ParticleDraw(p, SEQ_Spray);
 		SprayStep(p);
@@ -773,7 +656,6 @@ namespace gastric128
 	static uint32_t __cdecl DripTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(held_note_particle(ORIG_DripTask, p);)
 		ParticleDraw(p, SEQ_Drip);
 		DripStep(p);
@@ -784,16 +666,12 @@ namespace gastric128
 	static uint32_t __cdecl SplashTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(held_note_particle(ORIG_SplashTask, p);)
 		ParticleDraw(p, SEQ_Splash);
 		p->counter++;
 		return p->counter < 0x10 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Stream (0x6B8DC0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl StreamTask(TaskNode *n)
 	{
 		StreamNode *s = (StreamNode *)n;
@@ -802,13 +680,10 @@ namespace gastric128
 			if (s->t < 0x1000)
 			{
 				s->t = (int16_t)(s->dt + s->t);
-				// on the line, lifted by sin(t / 2) / 4 (4th word never written: copied into the
-				// point's width / the splash's size, both overwritten)
 				int16_t at[4] = { 0, 0, 0, 0 };
 				BlendVectors(s->from, s->to, 0x1000 - s->t, s->t, at);
 				const int32_t sn = ComputeSin(s->t >> 1);
 				at[1] = (int16_t)(at[1] - (int16_t)((int16_t)sn >> 2));
-				// swirl around the line, radius sin / 16
 				const int32_t radius = (int16_t)((int16_t)sn >> 4);
 				int16_t v[4];
 				v[0] = (int16_t)(mul32(ComputeSin(s->angle), radius) >> 12);
@@ -849,7 +724,6 @@ namespace gastric128
 				q = q->next;
 			} while (q);
 		}
-		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(held_note_stream(s);)
 		StreamDraw(s->head, s->count);
 		Point *q = s->head;
@@ -860,7 +734,6 @@ namespace gastric128
 			q->pos[2] = (int16_t)(q->pos[2] + q->vel[2]);
 			q = q->next;
 		} while (q);
-		// faded tail pairs are freed (the last point of an ended chain stays allocated)
 		Point *h = s->head;
 		if (h->fade != 0) return 0;
 		for (;;)
@@ -876,9 +749,6 @@ namespace gastric128
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Target (0x6B8140)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
@@ -887,7 +757,6 @@ namespace gastric128
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, t->pos);
 			arg.morph = TexBase() + 0x14E8;
-			// 30 fps layer: see mag128_gastric_juice_held.inc
 			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
 		}
@@ -896,7 +765,6 @@ namespace gastric128
 		{
 			t->entity[0] |= 4;
 			const int32_t sinv = MeltSin((int32_t)e);
-			// 30 fps layer: see mag128_gastric_juice_held.inc
 			FX_HELD(held_note_melt(t->entity, (int32_t)e);)
 			DrawMeltingTarget(t->entity, sinv);
 		}
@@ -904,7 +772,6 @@ namespace gastric128
 		if (t->counter == 0xA) BdPlaySE(SOUND_Juice, 0, 0x80);
 		if (t->counter == 0xE)
 		{
-			// three streams from the caster's effect bone 3 to random bones of the target
 			for (int32_t w = 0xFFF; w != 0; w -= 0x555)
 			{
 				int16_t from[4], anchor[4], to[4];
@@ -924,7 +791,6 @@ namespace gastric128
 		}
 		if ((uint32_t)((int32_t)t->counter - 0xE) < 2)
 		{
-			// eight spray particles from the caster's bone 0x14, +-1/8 turn around the direction
 			for (int k = 8; k != 0; k--)
 			{
 				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_SprayTask);
@@ -942,7 +808,6 @@ namespace gastric128
 		const uint32_t d = (uint32_t)((int32_t)t->counter - 0x1D);
 		if (d < 0x14 && !(d & 1))
 		{
-			// a drip at a random bone of the target (smaller from the 10th)
 			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_DripTask);
 			if (q)
 			{
@@ -965,13 +830,9 @@ namespace gastric128
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x6B7DB0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
@@ -996,7 +857,6 @@ namespace gastric128
 			}
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
-				// the pool's one node: a later action's spawn returns null and faults (not checked)
 				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), ORIG_TargetTask);
 				Memset32(&t->counter, 0, 0x97);
 				t->action = (int16_t)(uint16_t)r->action;
@@ -1035,7 +895,6 @@ namespace gastric128
 		register_port(gastric128::ORIG_SprayTask, (void *)gastric128::SprayTask, "128 SprayTask", 128);
 		register_port(gastric128::ORIG_DripTask, (void *)gastric128::DripTask, "128 DripTask", 128);
 		register_port(gastric128::ORIG_SplashTask, (void *)gastric128::SplashTask, "128 SplashTask", 128);
-		// 30 fps layer: see mag128_gastric_juice_held.inc
 		FX_HELD(register_mag128_held();)
 	}
 }

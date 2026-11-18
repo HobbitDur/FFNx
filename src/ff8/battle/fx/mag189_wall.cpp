@@ -14,52 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 189: Wall (kernel.bin magic Wall +4 = 189: Selphie's Slot; MAG_189_*). Module 0x5BC940..0x5BE320.
-//
-// Structure (setup MAG_189_WALL 0x5BC960, file loader MAG_189_WALL_FL 0x5BC940 = the texture file named at 0xD1B4A8 into
-// 0x2296A28; the setup keeps the cast context (0x2296A20), the first target's slot of action 0 (0x2293F4C) and the attacker
-// (0x2296A24, never read again), sets up the root queue 0x2293F80 (pool 0x2293F60, 2 x 0x10) with RootTask and the effect queue
-// 0x2295C00 (pool 0x2295C10, 100 x 0x24) with MainTask, frees the dust and debris pools, starts the camera animation 0xD19580
-// and queues the TIM):
-//   RootTask (0x5BE290) - alternates the packet arena (0x22A4A30 on odd counters, else 0x2296A30; cursor 0x22B2A30), runs the
-//     effect queue; when it is empty queues RestoreTask in the root queue and ends.
-//   RestoreTask (0x5BE2F0) - at counter 1 starts the engine texture restore task (on the even arena 0x2296A30), ends when its
-//     done flag (+0xE) is set.
-//   MainTask (0x5BCA20) - nothing in the draw-only mode. Counter 0: the wall point = the centre of the target mask's entities
-//     (CalculateCenterPosition) + (0, 0, -1500) through the first target's world matrix (entity +0x40), then the ONE-SHOT
-//     STAGE CAPTURE (0x5BCCC0); 1: 24 shard tasks on an ellipse around the point (random start angle, delays, sizes) and the
-//     sound 0xD1B3A4; 0xE: the dust and debris particle tasks; 0x10: the wall task; 0x41: the action results of action 0;
-//     ends after 0x46.
-//   Capture (0x5BCCC0) - renders the battle stage's draw entries 1 and 0 (0x1D98990 + 0x2C k, when bits 0 and 1 of +1 are
-//     set: their poses -> bone matrices through a fixed top-down matrix (rotation x 0x400, scale (235, 4096, 374), translation
-//     (-1 - x / 18, z / 8 + 1, 0x7FFF)), RenderGeometry mode 0x10) through the other display buffer's draw environment (DR_ENV
-//     0x2295BC0) into the capture area (0x180, 0x100, 256 x 256) with the screen offset at its centre and GTE H 0x7FFF (put
-//     back), then the alternate-viewport packet 0xD1B490 (exe data), the draw area 0x2293F50 and draw offset 0x2294DA0 packets.
-//   WallTask (0x5BCF40) - draws THEN updates: the wall model 0xD19B74 at its position (scale +0x1C); counters 0..0x13 through
-//     the module's plane-clipped renderer (0x5BD1C0, the text of Sticky Web's 0x609FF0 relocated: the part of the model below
-//     the model-space plane y = 2013 c / 20 - 2013, normal (0, -1, 0)) while it rises (y -= 100 a tick from 2013), from 0x14
-//     whole through MAG_166_sub_64F0A0 (y 0, fade from 0x30); counters < 0x1A shake the camera (the battle camera shake word
-//     0x1D97712 += +-40 sin(c * 0x800 / 26), the sign alternating); ends after 0x3B.
-//   ShardTask (0x5BDB60) - a delay (+0xE) first (nothing drawn); then draws THEN updates: prim model 0xD19804 at its point
-//     (yaw +0x18, scale x / z +0x1C, y +0x20 growing by +0x22 for counters < 6, fade from 0x10); ends after 0x17.
-//   DustTask (0x5BDCC0) - draws THEN updates the dust pool 0x2294DB0 (150 x 0x18): flipbook 0xD19658 at each particle
-//     (TransformCameraByShadowRotation, frame++, dies when the flipbook ends, x / z move by a decaying speed); counters 0..0x38
-//     spawn 4 a tick on a circle of radius 1800 around the wall point (z flattened), flying outwards; ends from counter 4
-//     once none is left.
-//   DebrisTask (0x5BDF60) - draws THEN updates the debris pool 0x2293F90 (100 x 0x18): prim model 0xD19ABC at each piece
-//     (angles x / z spinning, uniform scale shrinking from life 0xC, falling y with a decaying speed; dies at life 0x10);
-//     counters 0..0x18 spawn 3 a tick; ends from counter 4 once none is left.
-// Every task but RootTask / RestoreTask tests the draw-only flags (battle_to_update_flags 0x201); MainTask does nothing then.
-// ENTITY / CAMERA WRITES: the camera shake word 0x1D97712 (WallTask, counters < 0x1A); the stage draw entries 1 / 0: their
-// bone matrices rebuilt from their poses through the capture matrix (counter 0); the GTE screen offset / H (put back);
-// engine: the camera animation 0xD19580 (setup), ApplyActionResultToTargets (counter 0x41). Reads: the targets' positions,
-// the first target's world matrix (counter 0), the camera matrix 0x1D97778.
-// Module globals: 0x2293F4C..0x22B2A34 (first target slot 0x2293F4C, draw-area packet 0x2293F50, root pool / queue, debris
-// pool 0x2293F90, draw-offset packet 0x2294DA0, dust pool 0x2294DB0, DR_ENV packet 0x2295BC0, effect queue 0x2295C00 + pool,
-// context 0x2296A20, attacker 0x2296A24, texture file 0x2296A28, draw offset words 0x2296A2C, the packet arenas 0x2296A30 /
-// 0x22A4A30 and the cursor 0x22B2A30). Exe data written: the OT link of the alternate-viewport packet 0xD1B490.
-// NEVER-WRITTEN STACK WORDS: none read (the angle blocks' 4th words and the vector 4th word are not read by
-// ComposeZYXRotationMatrix / BuildRotationMatrixFromAngles / matrixMultiplyVector; every matrix is fully written).
+// Effect 189: Wall
 
 #include "mag_common.h"
 
@@ -70,23 +25,22 @@ namespace wall189
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
-	inline int32_t &FirstTarget() { return var<int32_t>(0x2293F4C); }      // first target slot of action 0 (setup)
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2293F80; }             // pool 0x2293F60, 2 x 0x10
-	inline TaskQueue *QEffects() { return (TaskQueue *)0x2295C00; }          // pool 0x2295C10, 100 x 0x24
+	inline int32_t &FirstTarget() { return var<int32_t>(0x2293F4C); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)0x2293F80; }
+	inline TaskQueue *QEffects() { return (TaskQueue *)0x2295C00; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2296A20); }
 	inline uint32_t &Cursor() { return var<uint32_t>(0x22B2A30); }
-	inline int16_t &CameraShakeY() { return var<int16_t>(0x1D97712); }      // battle camera shake word (y)
+	inline int16_t &CameraShakeY() { return var<int16_t>(0x1D97712); }
 	inline uint8_t DisplayBuffer() { return var<uint8_t>(0x1D96A80); }
 
-	static const uint32_t ARENA_ODD = 0x22A4A30, ARENA_EVEN = 0x2296A30;    // 0xE000 bytes each
-	static const uint32_t PKT_DrawEnv = 0x2295BC0;     // DR_ENV (0x40)
-	static const uint32_t PKT_DrawArea = 0x2293F50;    // draw area (0xC)
-	static const uint32_t PKT_DrawOffset = 0x2294DA0;  // draw offset (0xC)
-	static const uint32_t OFFSET_XY = 0x2296A2C;       // its position words
-	static const uint32_t PKT_AltViewport = 0xD1B490;  // static (exe data)
-	static const uint32_t DRAWENV = 0x1D969C8;         // 2 x 0x5C
-	static const uint32_t STAGE_Entry1 = 0x1D989BD;    // draw entry 1 flags byte (0x1D98990 + 0x2C + 1); entry 0 at -0x2C
+	static const uint32_t ARENA_ODD = 0x22A4A30, ARENA_EVEN = 0x2296A30;
+	static const uint32_t PKT_DrawEnv = 0x2295BC0;
+	static const uint32_t PKT_DrawArea = 0x2293F50;
+	static const uint32_t PKT_DrawOffset = 0x2294DA0;
+	static const uint32_t OFFSET_XY = 0x2296A2C;
+	static const uint32_t PKT_AltViewport = 0xD1B490;
+	static const uint32_t DRAWENV = 0x1D969C8;
+	static const uint32_t STAGE_Entry1 = 0x1D989BD;
 
 	static const uint32_t ORIG_RootTask = 0x5BE290;
 	static const uint32_t ORIG_RestoreTask = 0x5BE2F0;
@@ -99,27 +53,24 @@ namespace wall189
 	static const uint32_t MODEL_Shard = 0xD19804;
 	static const uint32_t MODEL_Debris = 0xD19ABC;
 	static const uint32_t SEQ_Dust = 0xD19658;
-	static const uint32_t CLIP_TABLE = 0xD1B3AC;       // 7 x 8 vertex-slot indices of the clipper
+	static const uint32_t CLIP_TABLE = 0xD1B3AC;
 	static const void *const SOUND_Wall = (const void *)0xD1B3A4;
 	static const int DUST_COUNT = 150, DEBRIS_COUNT = 100;
 	static const int32_t WALL_TICKS = 0x3C, WALL_CLIPPED = 0x14, WALL_SHAKE = 0x1A, WALL_FADE = 0x30;
 	static const int32_t SHARD_TICKS = 0x18, SHARD_GROW = 6, SHARD_FADE = 0x10;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }                    // computeCosine
-	inline void NormalizeVectorFixed(const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); } // NormalizeVectorToFixedPoint
-	inline void SetDrawEnvPrim(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(prim, env); }                 // SSIGPU_SetDrawEnv
-	inline void SetDrawAreaPrim(uint32_t prim, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(0x45C940)(prim, rect); } // sub_45C940
-	inline void SetDrawOffsetPrim(uint32_t prim, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C9B0)(prim, xy); }                // sub_45C9B0
-	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t prim) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(bucket, prim); }   // SSIGPU_InsertPrimAltViewport
-	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }                       // sub_56CD10
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }                             // Call_Bs_ParseCamera
-	inline void SetProjectionH(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }                                                     // Battle_SetProjectionH
+	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
+	inline void NormalizeVectorFixed(const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
+	inline void SetDrawEnvPrim(uint32_t prim, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C0F0)(prim, env); }
+	inline void SetDrawAreaPrim(uint32_t prim, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(0x45C940)(prim, rect); }
+	inline void SetDrawOffsetPrim(uint32_t prim, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C9B0)(prim, xy); }
+	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t prim) { fn<void (__cdecl *)(uint32_t, uint32_t)>(0x45C8E0)(bucket, prim); }
+	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(0x56CD10)(x, y); }
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(0x56CCE0)(x, y); }
+	inline void SetProjectionH(int32_t h) { fn<void (__cdecl *)(int32_t)>(0x56CD00)(h); }
 	inline uint32_t RenderGeometry(uint32_t group, void *header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(0x5099D0)(group, header, ot, mode, cursor); }
-	// MAG_166_sub_64F0A0: prim model renderer of effect 166 (header 0x60 bytes: +0 model, +8 colour, +0xC fade, +0x1C mode,
-	// +0x58 / +0x5C two draw-mode words)
 	inline uint32_t ColumnRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x64F0A0)(h, ot, mode, cursor); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -129,84 +80,81 @@ namespace wall189
 	inline void GteAVSZ4() { fn<void (__cdecl *)()>(0x45E610)(); }
 	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(0x45E3D0)(dst); }
 	inline void GteWriteControlReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(0x45D7F0)(value, reg); }
-	inline void GteLightV0() { fn<void (__cdecl *)()>(0x4607E0)(); }   // GTE_MVMVA_LightV0_Bk
+	inline void GteLightV0() { fn<void (__cdecl *)()>(0x4607E0)(); }
 	inline void GteLightV1() { fn<void (__cdecl *)()>(0x4607F0)(); }
 	inline void GteLightV2() { fn<void (__cdecl *)()>(0x460800)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // root queue nodes (pool 0x2293F60, 2 x 0x10): RootTask, RestoreTask
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t done;     // +0x0E RestoreTask: the texture restore's done flag
+		int16_t counter;
+		int16_t done;
 	};
-	struct Node // effect queue nodes (0x24 bytes)
+	struct Node
 	{
 		TaskNode hdr;
-		int16_t counter;  // +0x0C
-		int16_t delay;    // +0x0E shard: ticks before it shows
-		int16_t x;        // +0x10 position (main: the wall point)
-		int16_t y;        // +0x12
-		int16_t z;        // +0x14
-		int16_t w;        // +0x16 (CalculateCenterPosition leaves it: copied along with z)
-		int16_t yaw;      // +0x18 shard
+		int16_t counter;
+		int16_t delay;
+		int16_t x;
+		int16_t y;
+		int16_t z;
+		int16_t w;
+		int16_t yaw;
 		int16_t pad1A;
-		int16_t scale;    // +0x1C shard: x / z scale, wall: uniform scale
+		int16_t scale;
 		int16_t pad1E;
-		int16_t scale_y;  // +0x20 shard
-		int16_t step;     // +0x22 shard: scale_y step, wall: rise step
+		int16_t scale_y;
+		int16_t step;
 	};
-	struct Dust // 0x2294DB0, 150 x 0x18
+	struct Dust
 	{
-		int32_t flag;     // bit0 = live, 0 = free
-		int16_t frame;    // +0x04 flipbook frame
-		int16_t angle;    // +0x06 TransformCameraByShadowRotation angle
-		int16_t pos[4];   // +0x08 x, y, z, w
-		int16_t vel[3];   // +0x10 x, (y: -100, never used), z
+		int32_t flag;
+		int16_t frame;
+		int16_t angle;
+		int16_t pos[4];
+		int16_t vel[3];
 		int16_t pad16;
 	};
-	struct Debris // 0x2293F90, 100 x 0x18
+	struct Debris
 	{
-		int32_t flag;     // bit0 = live, 0 = free
-		int16_t life;     // +0x04
-		int16_t scale;    // +0x06
-		int16_t x, y, z;  // +0x08
-		int16_t vy;       // +0x0E
-		int16_t spin_x;   // +0x10
-		int16_t ang_x;    // +0x12
-		int16_t spin_z;   // +0x14
-		int16_t ang_z;    // +0x16
+		int32_t flag;
+		int16_t life;
+		int16_t scale;
+		int16_t x, y, z;
+		int16_t vy;
+		int16_t spin_x;
+		int16_t ang_x;
+		int16_t spin_z;
+		int16_t ang_z;
 	};
-	struct Slot // clipper vertex slot: x, y, z, uv; (intersections:) crossing flag, plane distance
+	struct Slot
 	{
 		int16_t v[4];
 		int32_t flag;
 		int32_t d;
 	};
-	struct ClipHeader // 0x5BD1C0 draw header (0x1A8 bytes on the Field_Alloc scratch)
+	struct ClipHeader
 	{
 		uint8_t pad00[0x1C];
-		uint8_t *model;   // +0x1C
-		uint8_t *verts;   // +0x20
-		uint32_t flags;   // +0x24 bit 0x2000: +0x20 given
-		uint8_t *list;    // +0x28 primitive list cursor
-		uint32_t mask;    // +0x2C crossing edges (1, 2, 4)
-		uint32_t code;    // +0x30 colour + raw flags of the primitive
-		uint32_t uv0;     // +0x34 uv0 + clut
-		uint32_t uv1;     // +0x38 uv1 + tpage
-		uint32_t ot;      // +0x3C
-		int32_t shift;    // +0x40 OTZ shift
-		uint32_t cursor;  // +0x44 packet cursor
+		uint8_t *model;
+		uint8_t *verts;
+		uint32_t flags;
+		uint8_t *list;
+		uint32_t mask;
+		uint32_t code;
+		uint32_t uv0;
+		uint32_t uv1;
+		uint32_t ot;
+		int32_t shift;
+		uint32_t cursor;
 		uint8_t pad48[8];
-		int32_t otz;      // +0x50
-		int32_t flag;     // +0x54 GTE FLAG
-		Slot slot[6];     // +0x58 v0, v1, v2, v0v1, v1v2, v2v0
-		int16_t plane[4]; // +0xB8 normal (4.12) + distance
+		int32_t otz;
+		int32_t flag;
+		Slot slot[6];
+		int16_t plane[4];
 		uint8_t padC0[8];
-		Slot *ptr[56];    // +0xC8 the slots of each crossing case (table 0xD1B3AC)
+		Slot *ptr[56];
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Wall nodes");
@@ -218,7 +166,6 @@ namespace wall189
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
 	inline Node *AddTask(uint32_t f) { return (Node *)AddTaskToQueue(QEffects(), f); }
 
-	// the wall: clip-plane height (model space) and fade of counter c
 	static int16_t WallPlane(int32_t c) { return (int16_t)(c * 2013 / 20 - 0x7DD); }
 	static int32_t WallFade(int32_t c) { return c * 341 - 0x30 * 341; }
 	static int32_t ShardFade(int32_t c) { return shl32(c - SHARD_FADE, 9); }
@@ -233,10 +180,6 @@ namespace ff8fx
 {
 namespace wall189
 {
-	// ------------------------------------------------------------------
-	// Plane-clipped prim model renderer (0x5BD1C0 and helpers: Sticky Web's 0x609FF0.. text relocated)
-	// ------------------------------------------------------------------
-	// 0x5BD180 (MAG_189_sub_5BD180): plane distance of point a: n[3] = -(a . n) >> 12
 	static void PlaneDistance(const int16_t *a, int16_t *n)
 	{
 		uint32_t s = (uint32_t)((int32_t)a[2] * n[2]);
@@ -245,7 +188,6 @@ namespace wall189
 		n[3] = (int16_t)(-((int32_t)s >> 12));
 	}
 
-	// 0x5BD640 (sub_5BD640): crossing of edge a -> b with the plane (position and the uv bytes interpolated)
 	static void Intersect(const int16_t *a, const int16_t *b, const int16_t *n, int16_t *out)
 	{
 		const int32_t dx = (int32_t)b[0] - a[0];
@@ -264,7 +206,6 @@ namespace wall189
 		out[3] = (int16_t)(uint16_t)((uint32_t)lo | ((uint32_t)hi & 0xFF00));
 	}
 
-	// 0x5BD460 (MAG_189_sub_5BD460): textured triangle (POLY_FT3)
 	static void EmitTri(ClipHeader *h, const Slot *a, const Slot *b, const Slot *c)
 	{
 		uint32_t *pk = (uint32_t *)h->cursor;
@@ -284,7 +225,6 @@ namespace wall189
 		h->cursor = (uint32_t)pk + 0x20;
 	}
 
-	// 0x5BD760 (sub_5BD760): textured quad (POLY_FT4)
 	static void EmitQuad(ClipHeader *h, const Slot *a, const Slot *b, const Slot *c, const Slot *d)
 	{
 		uint32_t *pk = (uint32_t *)h->cursor;
@@ -308,7 +248,6 @@ namespace wall189
 		h->cursor = (uint32_t)pk + 0x28;
 	}
 
-	// 0x5BD500 (MAG_189_sub_5BD500): a triangle crossing the plane: the crossings, then the kept part
 	static void ClipTri(ClipHeader *h)
 	{
 		if (h->slot[3].flag) Intersect(h->slot[0].v, h->slot[1].v, h->plane, h->slot[3].v);
@@ -316,7 +255,7 @@ namespace wall189
 		if (h->slot[5].flag) Intersect(h->slot[2].v, h->slot[0].v, h->plane, h->slot[5].v);
 		const uint32_t m = h->mask;
 		Slot **p = &h->ptr[m * 8];
-		switch (m) // (the original: jump table 0x5BD628, cases 1..6)
+		switch (m)
 		{
 		case 1: case 2: case 4:
 			if (p[3]->d > 0) EmitTri(h, p[0], p[1], p[2]);
@@ -331,8 +270,6 @@ namespace wall189
 		}
 	}
 
-	// the plane distances of the three loaded vertices (GTE light matrix row 1 = plane normal, BK = distance), the crossing
-	// edges, then clipped / whole / culled
 	static void ClassifyAndDraw(ClipHeader *h)
 	{
 		GteLightV0();
@@ -361,7 +298,6 @@ namespace wall189
 		s[1] = v[1];
 	}
 
-	// 0x5BD290 (MAG_189_sub_5BD290): triangle list (0x14-byte records)
 	static void TriList(ClipHeader *h)
 	{
 		const int32_t count0 = *(const int32_t *)h->list;
@@ -389,7 +325,6 @@ namespace wall189
 		h->list = rec;
 	}
 
-	// 0x5BD830 (MAG_189_sub_5BD830): quad list (0x18-byte records), drawn as two triangles
 	static void QuadList(ClipHeader *h)
 	{
 		const int32_t count0 = *(const int32_t *)h->list;
@@ -417,7 +352,6 @@ namespace wall189
 			if (!(h->flag & 0x60000))
 			{
 				ClassifyAndDraw(h);
-				// second triangle: v3, v1, v2 (its FLAG is read but not tested)
 				LoadVertex(h, 0, *(const uint16_t *)(rec + 0xA));
 				LoadVertex(h, 1, *(const uint16_t *)(rec + 6));
 				LoadVertex(h, 2, *(const uint16_t *)(rec + 8));
@@ -434,7 +368,6 @@ namespace wall189
 		h->list = rec;
 	}
 
-	// 0x5BD1C0 (MAG_189_sub_5BD1C0): the model's triangles and quads on the kept side of the plane +0xB8
 	static uint32_t ClipRender(ClipHeader *h, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
 		if (!(h->flags & 0x2000)) h->verts = h->model + 8;
@@ -459,17 +392,12 @@ namespace wall189
 		return h->cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Draws
-	// ------------------------------------------------------------------
-	// the wall model at the node's position (the draw of 0x5BCF40) (uniform scale +0x1C) through the camera: clipped at the model-space plane
-	// height plane_y (counter < 0x14), then whole (fade from 0x30)
 	static void WallDraw(const Node *n, int32_t c, int16_t plane_y, int32_t fade)
 	{
 		int16_t ang[4];
 		ang[0] = 0;
 		ang[1] = 0;
-		ang[2] = 0; // (4th word never written: not read)
+		ang[2] = 0;
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		m.t[1] = n->y;
@@ -514,13 +442,12 @@ namespace wall189
 		}
 	}
 
-	// a shard: the draw of 0x5BDB60, prim model 0xD19804 at its point, yaw, scale (x / z +0x1C, y +0x20), fade from counter 0x10
 	static void ShardDraw(const Node *n, int32_t c, int32_t fade)
 	{
 		int16_t ang[4];
 		ang[0] = 0;
 		ang[1] = n->yaw;
-		ang[2] = 0; // (4th word never written: not read)
+		ang[2] = 0;
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		m.t[0] = n->x;
@@ -544,7 +471,6 @@ namespace wall189
 		FieldFree(0x58);
 	}
 
-	// a dust particle (the draw of 0x5BDCC0): flipbook frame at pos (header allocated by the task, 0xB4 bytes)
 	static void DustDraw(uint8_t *h, int16_t frame, const int16_t *pos, int16_t angle)
 	{
 		*(int16_t *)(h + 4) = frame;
@@ -552,8 +478,6 @@ namespace wall189
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 	}
 
-	// a debris piece (the draw of 0x5BDF60): prim model 0xD19ABC (header h, 0x58 bytes) with the work block w (0x88 bytes: angles +0, matrix +8,
-	// the camera copy +0x28, the scale vector +0x48)
 	static void DebrisDraw(uint8_t *h, uint8_t *w, const Debris *p)
 	{
 		*(int16_t *)w = p->ang_x;
@@ -574,7 +498,6 @@ namespace wall189
 		Cursor() = RenderPrimModel(h, RenderOT(), 2, Cursor());
 	}
 
-	// 0x5BCCC0: the stage capture (see the module comment)
 	static void Capture(const int16_t *point)
 	{
 		int16_t rect[4] = { 0x180, 0x100, 0x100, 0x100 };
@@ -583,7 +506,7 @@ namespace wall189
 		int16_t ang[4];
 		ang[0] = 0x400;
 		ang[1] = 0;
-		ang[2] = 0; // (4th word never written: not read)
+		ang[2] = 0;
 		Mat4x3 m;
 		m.t[0] = tx;
 		m.t[1] = ty;
@@ -632,14 +555,9 @@ namespace wall189
 		InsertPrimAutoDepth(RenderOT(), (void *)PKT_DrawOffset);
 	}
 
-	// ------------------------------------------------------------------
-	// Tasks
-	// ------------------------------------------------------------------
-	// Debris (0x5BDF60)
 	static uint32_t __cdecl DebrisTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag189_wall_held.inc
 		FX_HELD(held_begin(ORIG_DebrisTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *w = (uint8_t *)FieldAlloc(0x88);
@@ -652,7 +570,6 @@ namespace wall189
 		for (Debris *p = Pieces(); p < Pieces() + DEBRIS_COUNT; p++)
 		{
 			if (!(*(const uint8_t *)&p->flag & 1)) continue;
-			// 30 fps layer: see mag189_wall_held.inc
 			FX_HELD(held_note_part(p);)
 			DebrisDraw(h, w, p);
 			if (!(UpdateFlags() & 0x201))
@@ -669,7 +586,6 @@ namespace wall189
 					alive++;
 				}
 			}
-			// 30 fps layer: see mag189_wall_held.inc
 			FX_HELD(held_note_part_next(p);)
 		}
 		FieldFree(0x88);
@@ -709,11 +625,9 @@ namespace wall189
 		return 0;
 	}
 
-	// Dust (0x5BDCC0)
 	static uint32_t __cdecl DustTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag189_wall_held.inc
 		FX_HELD(held_begin(ORIG_DustTask, n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
@@ -722,7 +636,6 @@ namespace wall189
 		for (Dust *p = Dusts(); p < Dusts() + DUST_COUNT; p++)
 		{
 			if (!(*(const uint8_t *)&p->flag & 1)) continue;
-			// 30 fps layer: see mag189_wall_held.inc
 			FX_HELD(held_note_part(p);)
 			DustDraw(h, p->frame, p->pos, p->angle);
 			if (!(UpdateFlags() & 0x201))
@@ -738,7 +651,6 @@ namespace wall189
 					alive++;
 				}
 			}
-			// 30 fps layer: see mag189_wall_held.inc
 			FX_HELD(held_note_part_next(p);)
 		}
 		FieldFree(0xB4);
@@ -776,7 +688,6 @@ namespace wall189
 		return 0;
 	}
 
-	// Shard (0x5BDB60)
 	static uint32_t __cdecl ShardTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -786,7 +697,6 @@ namespace wall189
 			n->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag189_wall_held.inc
 		FX_HELD(held_begin(ORIG_ShardTask, n);)
 		ShardDraw(n, n->counter, ShardFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
@@ -795,11 +705,9 @@ namespace wall189
 		return n->counter >= SHARD_TICKS ? TASK_END : 0;
 	}
 
-	// Wall (0x5BCF40)
 	static uint32_t __cdecl WallTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		// 30 fps layer: see mag189_wall_held.inc
 		FX_HELD(held_begin(ORIG_WallTask, n);)
 		WallDraw(n, n->counter, WallPlane(n->counter), WallFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
@@ -816,7 +724,6 @@ namespace wall189
 		return n->counter >= WALL_TICKS ? TASK_END : 0;
 	}
 
-	// Main (0x5BCA20)
 	static uint32_t __cdecl MainTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
@@ -827,7 +734,7 @@ namespace wall189
 			int16_t v[4];
 			v[0] = 0;
 			v[1] = 0;
-			v[2] = (int16_t)0xFA24; // -1500 (4th word never written: not read)
+			v[2] = (int16_t)0xFA24;
 			MatVec(Entity(FirstTarget()) + 0x40, v, v);
 			n->x = (int16_t)(n->x + v[0]);
 			n->y = (int16_t)(n->y + v[1]);
@@ -888,7 +795,6 @@ namespace wall189
 		return n->counter > 0x46 ? TASK_END : 0;
 	}
 
-	// RestoreTask (0x5BE2F0)
 	static uint32_t __cdecl RestoreTask(TaskNode *n_)
 	{
 		RootNode *t = (RootNode *)n_;
@@ -898,11 +804,9 @@ namespace wall189
 		return done ? TASK_END : 0;
 	}
 
-	// Root (0x5BE290)
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		// 30 fps layer: see mag189_wall_held.inc
 		FX_HELD(held_note_root();)
 		Cursor() = ARENA_ODD;
 		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = ARENA_EVEN;
@@ -927,7 +831,6 @@ namespace wall189
 		register_port(wall189::ORIG_ShardTask, (void *)wall189::ShardTask, "189 ShardTask", 189);
 		register_port(wall189::ORIG_DustTask, (void *)wall189::DustTask, "189 DustTask", 189);
 		register_port(wall189::ORIG_DebrisTask, (void *)wall189::DebrisTask, "189 DebrisTask", 189);
-		// 30 fps layer: see mag189_wall_held.inc
 		FX_HELD(register_mag189_held();)
 	}
 }

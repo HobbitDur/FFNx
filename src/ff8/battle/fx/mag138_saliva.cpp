@@ -14,70 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 138: Saliva (enemy attack 175 of kernel.bin, Abyss Worm c0m044; MAG_138_*). No other
-// kernel.bin entry uses effect 138.
-//
-// Structure (setup MAG_138_SALIVA 0x6A9F10 -> _Init 0x6A9F40, file loader 0x6A9F20 = the texture
-// file named at 0x11E9194; the setup keeps the CASTER's entity (0x2520C48), starts camera animation
-// 0x11E3024 and queues the TIM; setup / loader / _Init are the copies of effects 126..137):
-//   MasterTask (0x6A9FC0) - alternates the packet arena (magic buffer + 0x1510 / + 0x11510); on
-//     counter 1 sets up the pools (splats 8 x 0x14 at + 0, sprays 8 x 0x20 at + 0xA0, strings 3 x 0x30
-//     at + 0x1A0, main 1 x 0x380 at + 0x230), starts the main task (the first target of action 0, its
-//     effect point 0xF1 (0x502170), layouts 0x11E1034 / 0x11E0434 / 0x11E21CC), normalises the mesh
-//     0x11DF764 (Oil Shot's 0x6AD430: w of every vertex from its z; this static exe table is
-//     rewritten on EVERY cast, with the same values) and frees the 0x60 string points (0x20 bytes at
-//     + 0x5B0, word +6 = -1). Then the main, string, spray and splat queues; ends when the main AND
-//     the splat queues are empty (strings and sprays are abandoned).
-//   MainTask (0x6AA1A0) - counters 0..0x37. Counters 0x17..0x24: M = the caster's bone 13 point
-//     0x11E3188 (0x6AA7B0, the bone matrices as they are), RotY(-facing); counters 0x17..0x1D: two
-//     spray sprites per tick (CRT rand: angle, spin, scale, the direction (Oil Shot's 0x6ADFA0, z
-//     the other way) through RotY, its length scaled by IR0 = rand & 0x7F + 0x80); layouts +0x2C and
-//     +0xD4 at M (RotY composed with the camera, depth -0x80); counters 0x17..0x19: a string (CRT
-//     rand: amplitude). Counters 0x1D..0x36: layout +0x268 at the target point through the camera
-//     (depth 0); odd counters 0x21..0x27: a splat sprite (CRT rand offset). Sound at counter 0x19,
-//     damage at counter 0x28.
-//   StringTask (0x6AA940) - counter 0: its start = M (then its previous point). Counters 1..9, two
-//     sub-steps j: t = (2 counter + j) * 2048 / 10, s = sin(t / 2); the mesh 0x11DF764 through
-//     RotZ(counter << 8) into magic buffer + 0x11B0, each y lowered by table[w / 2] x (amp x s >> 13)
-//     >> 16 (0x6AAC80); P = the start blended to the target by t, y - (amp x s >> 14); the basis of
-//     P - prev (y and z the other way), scaled in z by s + 0x800 (word 0x11E3148 of the exe matrix
-//     0x11E3138, rewritten every sub-step) at P; on j = 1 composed with the camera and drawn by
-//     0x6AACE0 (flat textured quads 0x6AAD20 then Gouraud textured quads 0x6AB110, U scrolled by
-//     (counter & 7) << 4); prev = P; a chain point at P (0x6AB520: width 0xC8, fade 0x80, its index).
-//     Counters >= 10: every point drips (y + table 0x11E3158[index]). Then (2 points or more) every
-//     point fades by 4; the head pair is dropped while both are at 0x20 or less (the task ends below
-//     2 points); 3 points or more: projected through the camera (0x704090: depth = SZ3 / 4) and drawn
-//     as a ribbon (0x6AB570 / 0x6AB6C0, Gastric Juice's 0x6B90B0 / 0x6B9210 on this module's points).
-//   SprayTask (0x6AA890, Oil Shot's 0x6AE300) - sprite sequence 0x11DF4E0 (rotation, scale) through
-//     the shadow-rotation camera, 10 frames; position += velocity, rotation += spin.
-//   SplatTask (0x6AA810, Oil Shot's 0x6AE190) - sprite sequence 0x11DF604 (scale 0xC00), 13 frames.
-//   PrimCallback (0x6AA510, Carbuncle's 0x681FD0 / Eerie Sound Wave's 0x6B46C0 / Breath's 0x6B57B0 on
-//     this module's cursor) draws every layout object through 0x7043B0.
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws THEN updates (the main counter after its draws, a layout in its
-// play, a sprite after its draw, the string's points before their projection and ribbon).
-// ENTITY / CAMERA: no task writes an entity position (+0x1C..+0x20 only read) or the camera words
-// (the camera animation is the engine's).
-// EXE DATA WRITES: the mesh 0x11DF764 (vertex w words, every cast) and the word 0x11E3148 (string
-// counters 1..9).
-// Module globals: 0x2520C48..0x2520CC0 (caster entity 0x2520C48, texture file 0x2520C4C, magic
-// buffer base 0x2520C50, context 0x2520C54, master pool 0x2520C58, packet cursor 0x2520C6C, the
-// queues 0x2520C70 splats / 0x2520C80 sprays / 0x2520C90 strings / 0x2520CA0 main / 0x2520CB0 master).
-// NEVER-WRITTEN STACK WORDS (the game's executor 0x508420 calls every task of a queue at one esp; the
-// master pushes its four queue arguments without popping: main entry esp E, strings E - 4, sprays
-// E - 8, splats E - 0xC):
-//   - StringTask's P word +6 (string entry esp - 0x32; 0x56CB90 writes 3 words) is copied into the
-//     node's previous-point word +0x22 (counters 1..9; never read) and the point's width word (then
-//     overwritten). Its last writer is the main task, which runs right before the string queue on
-//     those ticks: its `push ebp` (0x6AA1A4) saved the executor's ebp there = the main queue
-//     0x2520CA0, high half 0x0252 (StringResidue).
-//   - The ribbon's joint direction (0x6AB570 local, string entry esp - 0x5C) is never initialised:
-//     the first edge call leaves it unwritten when the head point is hidden or has no screen length,
-//     and the next one reads it. Its last writer is 0x704090's local (the SZ3 dword of the last point
-//     projected right before): RIBBON residue = GTE SZ3 after the projection loop.
-//   - The main task's M word +6 (copied into a spray's scale word, then overwritten), the block
-//     matrices' pad words (GTE R33 pad 0x1CA928E only) and the callback's record offset word +6 (GTE
-//     VZ0 high half 0x1CA8A16 only) reach no output.
+// Effect 138: Saliva
 
 #include "mag_common.h"
 #include "mag_ice_common.h"
@@ -90,129 +27,123 @@ namespace saliva138
 	using namespace magc;
 	using namespace icec;
 
-	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520C48); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2520C50); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2520C48); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x2520C50); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2520C54); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2520C6C); }
-	inline TaskQueue *QSplats() { return (TaskQueue *)0x2520C70; }         // pool: magic buffer, 8 x 0x14
-	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520C80; }         // pool: + 0xA0, 8 x 0x20
-	inline TaskQueue *QStrings() { return (TaskQueue *)0x2520C90; }        // pool: + 0x1A0, 3 x 0x30
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2520CA0; }           // pool: + 0x230, 1 x 0x380
+	inline TaskQueue *QSplats() { return (TaskQueue *)0x2520C70; }
+	inline TaskQueue *QSprays() { return (TaskQueue *)0x2520C80; }
+	inline TaskQueue *QStrings() { return (TaskQueue *)0x2520C90; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2520CA0; }
 
 	static const uint32_t ORIG_MasterTask = 0x6A9FC0;
 	static const uint32_t ORIG_MainTask = 0x6AA1A0;
 	static const uint32_t ORIG_StringTask = 0x6AA940;
 	static const uint32_t ORIG_SplatTask = 0x6AA810;
 	static const uint32_t ORIG_SprayTask = 0x6AA890;
-	static const uint32_t POINTS = 0x5B0;                // magic buffer: 0x60 string points of 0x20 bytes
-	static const uint32_t VERTS = 0x11B0;                // magic buffer: mesh vertices / blended vertex frames
-	static const uint32_t ARENA_A = 0x1510;              // magic buffer: packet arenas
+	static const uint32_t POINTS = 0x5B0;
+	static const uint32_t VERTS = 0x11B0;
+	static const uint32_t ARENA_A = 0x1510;
 	static const uint32_t ARENA_B = 0x11510;
-	static uint8_t *const MESH = (uint8_t *)0x11DF764;   // string mesh: size, count, vertices (w rewritten), lists
-	static const uint32_t MODEL_A = 0x11E1034;           // prim-model layouts
+	static uint8_t *const MESH = (uint8_t *)0x11DF764;
+	static const uint32_t MODEL_A = 0x11E1034;
 	static const uint32_t MODEL_B = 0x11E0434;
 	static const uint32_t MODEL_C = 0x11E21CC;
-	static const uint32_t SEQ_Spray = 0x11DF4E0;         // sprite sequences
+	static const uint32_t SEQ_Spray = 0x11DF4E0;
 	static const uint32_t SEQ_Splat = 0x11DF604;
-	static const int16_t *const POINT = (const int16_t *)0x11E3188;   // caster bone point (x, y, z, bone 13)
-	static const void *const SCALE_Z = (const void *)0x11E3138;       // exe matrix, its m[2][2] (0x11E3148) rewritten
+	static const int16_t *const POINT = (const int16_t *)0x11E3188;
+	static const void *const SCALE_Z = (const void *)0x11E3138;
 	static int16_t &ScaleZ() { return *(int16_t *)0x11E3148; }
-	static const int16_t *const DRIP = (const int16_t *)0x11E3158;    // y step by point index
-	static const int32_t *const WOBBLE = (const int32_t *)0x11E3190;  // 0x801 x s32, by vertex w / 2
-	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x11E5194; // 128 x 128 screen lengths
+	static const int16_t *const DRIP = (const int16_t *)0x11E3158;
+	static const int32_t *const WOBBLE = (const int32_t *)0x11E3190;
+	static const uint8_t *const DIST_TABLE = (const uint8_t *)0x11E5194;
 	static const void *const SOUND_Spit = (const void *)0x11E3134;
 
-	// engine functions not in fx_port.h / mag_common.h / mag_ice_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }   // MAG_017_sub_701310
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }  // MAG_063_sub_7015B0
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }             // sub_56C220: a = a x b (3x3)
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); } // MAG_070_sub_7043B0
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(0x56C220)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(0x7043B0)(h, ot, mode, cursor); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }   // MAG_063_sub_701270
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }   // MAG_065_sub_7012C0
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x7012C0)(angle, out); }
 	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
 	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(0x56CB90)(a, b, wa, wb, out); }
-	inline void GteZeroTrans() { fn<void (__cdecl *)()>(0x704070)(); }      // MAG_129_sub_704070: TRX = TRY = TRZ = 0
-	inline void GteReadSZ3Quarter(void *dst) { fn<void (__cdecl *)(void *)>(0x704090)(dst); } // MAG_138_sub_704090: s16 = SZ3 >> 2
-	inline uint32_t GteSZ3() { return *(const uint32_t *)0x1CA8A5C; }       // GTE data register 0x13 (SZ3)
+	inline void GteZeroTrans() { fn<void (__cdecl *)()>(0x704070)(); }
+	inline void GteReadSZ3Quarter(void *dst) { fn<void (__cdecl *)(void *)>(0x704090)(dst); }
+	inline uint32_t GteSZ3() { return *(const uint32_t *)0x1CA8A5C; }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct MasterNode // pool of 1 node of 0x14 bytes (0x2520C58)
+	struct MasterNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t started;   // +0x0E pools set up
-		uint32_t arena;    // +0x10 packet arena parity
+		int16_t counter;
+		int16_t started;
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x380 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint8_t *target;   // +0x10 first target of action 0 (not read)
+		uint8_t *target;
 		uint8_t pad14[8];
-		int16_t pos[4];    // +0x1C the target's effect point 0xF1
+		int16_t pos[4];
 		uint8_t pad24[8];
-		uint8_t layA[0xA8];   // +0x2C layout 0x11E1034
-		uint8_t layB[0x194];  // +0xD4 layout 0x11E0434
-		uint8_t layC[0x118];  // +0x268 layout 0x11E21CC
+		uint8_t layA[0xA8];
+		uint8_t layB[0x194];
+		uint8_t layC[0x118];
 	};
-	struct Point // 0x60 points of 0x20 bytes at magic buffer + 0x5B0
+	struct Point
 	{
-		int16_t pos[3];    // +0x00
-		int16_t width;     // +0x06 0xC8; -1 = free
-		int16_t sx, sy;    // +0x08 screen point, then its edge vertex 1
-		int16_t otz;       // +0x0C SZ3 / 4 (-1: no screen length)
-		int16_t idx;       // +0x0E index in its string (drip table)
-		int16_t sx2, sy2;  // +0x10 edge vertex 2
+		int16_t pos[3];
+		int16_t width;
+		int16_t sx, sy;
+		int16_t otz;
+		int16_t idx;
+		int16_t sx2, sy2;
 		uint8_t pad14[4];
-		int16_t fade;      // +0x18 0x80 down to 0 (grey level)
-		int16_t zero;      // +0x1A
-		Point *next;       // +0x1C
+		int16_t fade;
+		int16_t zero;
+		Point *next;
 	};
-	struct StringNode // pool of 3 nodes of 0x30 bytes
+	struct StringNode
 	{
 		TaskNode hdr;
-		int16_t start[3];  // +0x0C the caster's bone point at counter 0
-		int16_t counter;   // +0x12
-		int16_t target[3]; // +0x14 the main task's target point
-		int16_t amp;       // +0x1A wave amplitude (CRT rand)
-		int16_t prev[4];   // +0x1C the last point (+0x22: a stack word, see StringResidue)
-		int16_t count;     // +0x24 chain points
+		int16_t start[3];
+		int16_t counter;
+		int16_t target[3];
+		int16_t amp;
+		int16_t prev[4];
+		int16_t count;
 		int16_t pad26;
-		Point *head;       // +0x28
-		Point *tail;       // +0x2C
+		Point *head;
+		Point *tail;
 	};
-	struct SplatNode // pool of 8 nodes of 0x14 bytes
+	struct SplatNode
 	{
 		TaskNode hdr;
-		int16_t pos[3];    // +0x0C
-		int16_t frame;     // +0x12 (also the 4th word of pos)
+		int16_t pos[3];
+		int16_t frame;
 	};
-	struct SprayNode // pool of 8 nodes of 0x20 bytes
+	struct SprayNode
 	{
 		TaskNode hdr;
-		int16_t angle;     // +0x0C sprite rotation
-		int16_t spin;      // +0x0E
-		int16_t pos[3];    // +0x10
-		int16_t scale;     // +0x16
-		int16_t vel[3];    // +0x18
-		int16_t frame;     // +0x1E
+		int16_t angle;
+		int16_t spin;
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
+		int16_t frame;
 	};
-	// the prim-player callback's parameter block (a stack block of the playing task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 rotation (pad word +0x12: R33 pad only) and anchor
-		int32_t depth;     // +0x20 the prim header's +0x18
-		uint32_t morph;    // +0x24 blended vertex frames
+		Mat4x3 m;
+		int32_t depth;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0x380 && sizeof(StringNode) == 0x30, "Saliva nodes");
@@ -223,11 +154,6 @@ namespace saliva138
 	static bool OffX(int16_t x) { return x < 0 || x > 0xA00; }
 	static bool OffY(int16_t y) { return y < 0 || y > 0x6C0; }
 
-	// ------------------------------------------------------------------
-	// Mesh renderer (0x6AACE0, Bad Breath's 0x6B3330 -> Oil Blast's list renderers on other header
-	// offsets). Header (0x5C, the string task's): +0x00 mesh, +0x04 vertices, +0x10 U scroll, +0x14 /
-	// +0x1C texture windows, +0x20 U wrap byte, +0x24 list cursor, +0x30 OTZ, +0x34 FLAG.
-	// ------------------------------------------------------------------
 	static void ScrollU(uint8_t *p, const int *off, uint16_t add, uint8_t wrap)
 	{
 		uint32_t v[4], o = 0;
@@ -239,7 +165,6 @@ namespace saliva138
 		for (int k = 0; k < 4; k++) p[off[k]] = (uint8_t)(o > 0xFF ? v[k] - wrap : v[k]);
 	}
 
-	// the main packet between the texture windows +0x14 / +0x1C (no draw mode)
 	static uint8_t *Windowed(const uint8_t *h, uint32_t otp, uint8_t *main, uint8_t *p)
 	{
 		uint8_t *t1 = p;
@@ -256,8 +181,6 @@ namespace saliva138
 		return p + 0x18;
 	}
 
-	// a quad's screen clip bits (x 1 / 2 / 4 / 8, y 0x10 / 0x20 / 0x40 / 0x80): drawn unless all four off
-	// one side
 	static uint32_t TriClip(const uint8_t *a, const uint8_t *b, const uint8_t *c)
 	{
 		uint32_t clip = 0;
@@ -277,7 +200,6 @@ namespace saliva138
 		return (clip & 0xF) == 0xF || (clip & 0xF0) == 0xF0;
 	}
 
-	// 0x6AAD20 (Oil Blast's 0x6AC380): flat textured quads (0x18-byte records, 0x28-byte packets)
 	static uint32_t FlatTexQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x24);
@@ -317,7 +239,6 @@ namespace saliva138
 		return (uint32_t)p;
 	}
 
-	// 0x6AB110 (Oil Blast's 0x6ACB30): Gouraud textured quads (0x24-byte records, 0x34-byte packets)
 	static uint32_t GouraudTexQuads(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *rec = Cursor(h, 0x24);
@@ -360,7 +281,6 @@ namespace saliva138
 		return (uint32_t)p;
 	}
 
-	// MAG_138_sub_6AACE0: the first list (flat textured quads), then the third (Gouraud textured quads)
 	static uint32_t MeshDraw(uint8_t *h, uint32_t ot, int shift, uint32_t cursor)
 	{
 		uint8_t *m = Cursor(h, 0);
@@ -370,12 +290,6 @@ namespace saliva138
 		return GouraudTexQuads(h, ot, shift, r);
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x6AA510, Eerie Sound Wave's 0x6B46C0 on this module's cursor): one object
-	// of a layout. Vertex frame (or blend into the parameter block's morph buffer), rotation from the
-	// record's angles, the record's offset through the parameter matrix (flag 0x200: as is), the
-	// matrix composed with it, scale (flag 0x100: 3x3 product, else scale3DMatrix), drawn by 0x7043B0.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -414,7 +328,6 @@ namespace saliva138
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAngles2(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		int32_t t[3];
 		if (r->flags & 0x200)
@@ -464,11 +377,6 @@ namespace saliva138
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Helpers
-	// ------------------------------------------------------------------
-	// Oil Shot's 0x6AD430 (MAG_136_sub_6AD430): w of every vertex = (z - min) * 4096 / (max - min), the z
-	// range over the vertices 2..count (one past the end)
 	static void NormalizeMesh(uint8_t *model)
 	{
 		const int32_t count = *(const int32_t *)(model + 4);
@@ -486,8 +394,6 @@ namespace saliva138
 			*(int16_t *)p = (int16_t)(shl32(*(const int16_t *)(p - 2) - mn, 12) / range);
 	}
 
-	// Oil Shot's 0x6ADFA0 (MAG_136_sub_6ADFA0): unit vector of (a, b): (-sin a sin b, sin a cos b,
-	// cos a) (z negated by the caller)
 	static void AngleVector(int32_t a, int32_t b, int16_t *out)
 	{
 		out[2] = (int16_t)ComputeCos(a);
@@ -496,8 +402,6 @@ namespace saliva138
 		out[1] = (int16_t)((int32_t)(0u - (uint32_t)mul32(ComputeCos(b), s)) >> 12);
 	}
 
-	// MAG_138_sub_6AA7B0 (= Hypnotize's 0x6B18A0): a point through the caster's bone (word +6)
-	// composed with its matrix (the bone matrices as they are)
 	static void BonePoint(const int16_t *v, int16_t *out)
 	{
 		uint8_t *c = Caster();
@@ -510,8 +414,6 @@ namespace saliva138
 		GteStoreIR123(out);
 	}
 
-	// MAG_138_sub_6AAC80 (Oil Shot's 0x6ADFF0 on this module's buffer / table): the mesh vertices
-	// through the GTE (rotation + translation) into out, each y lowered by WOBBLE[w / 2] x amp >> 16
 	static void WobbleMesh(const uint8_t *model, int32_t amp, int16_t *out)
 	{
 		int32_t count = *(const int32_t *)(model + 4);
@@ -528,24 +430,20 @@ namespace saliva138
 		} while (--count);
 	}
 
-	// the string's progress t at sub-step x (= 2 counter + j): x * 2048 / 10
 	static int32_t StringT(int32_t x) { return shl32(x, 11) / 10; }
 
-	// the string point at progress t: the start blended to the target, y - (amp x sin(t / 2) >> 14)
 	static void StringPoint(const StringNode *s, int32_t t, int32_t wave, int16_t *P)
 	{
 		BlendVectors(s->start, s->target, 0x1000 - t, t, P);
 		P[1] = (int16_t)(P[1] - (int16_t)(wave >> 14));
 	}
 
-	// the basis of P - prev (y and z the other way)
 	static int32_t StringBasis(const int16_t *P, const int16_t *prev, Mat4x3 *M)
 	{
 		const int32_t v[3] = { (int32_t)P[0] - prev[0], (int32_t)prev[1] - P[1], (int32_t)prev[2] - P[2] };
 		return BuildOrthonormalBasis(v, M);
 	}
 
-	// the mesh: the basis M (scaled, at P) composed with the camera, drawn by 0x6AACE0 (U scroll u)
 	static void MeshRender(Mat4x3 *M, uint16_t u, uint32_t verts)
 	{
 		ComposeAffineTransform(&Camera(), M, M);
@@ -567,7 +465,6 @@ namespace saliva138
 		FieldFree(0x5C);
 	}
 
-	// MAG_138_sub_6AB520: a free point (word +6 == -1) at pos (8 bytes copied), width w, fade 0x80
 	static Point *AllocPoint(int16_t w, const int16_t *pos)
 	{
 		Point *p = (Point *)(TexBase() + POINTS);
@@ -585,9 +482,6 @@ namespace saliva138
 		return p;
 	}
 
-	// MAG_138_sub_6AB6C0 (Gastric Juice's 0x6B9210 on this module's points): the two edge vertices of
-	// point p from the screen direction towards n (averaged with the previous one: mitred joints),
-	// half width = n's width * 32 / (p's depth + 0x1000); a point without n has no width
 	static void RibbonEdges(Point *p, const Point *n, const int16_t *prev, int16_t *dir)
 	{
 		if (p->otz < 0) return;
@@ -601,7 +495,7 @@ namespace saliva138
 			if (adx >= 0x80) adx = 0x7F;
 			if (ady >= 0x80) ady = 0x7F;
 			const int32_t len = DIST_TABLE[ady * 128 + adx];
-			int32_t px, py; // unit normal (4.12)
+			int32_t px, py;
 			if (prev)
 			{
 				if (len == 0)
@@ -622,8 +516,8 @@ namespace saliva138
 						sx = cx * 2;
 						sy = cy * 2;
 					}
-					const int32_t sq = (int32_t)((uint32_t)mul32(sx, sx) + (uint32_t)mul32(sy, sy)); // wraps, as the original
-					const int32_t k = 0x4000 - (sq >> 13); // one Newton step of 1/|v|
+					const int32_t sq = (int32_t)((uint32_t)mul32(sx, sx) + (uint32_t)mul32(sy, sy));
+					const int32_t k = 0x4000 - (sq >> 13);
 					px = mul32(k, sx) >> 13;
 					py = mul32(k, sy) >> 13;
 				}
@@ -651,12 +545,6 @@ namespace saliva138
 		p->sy = (int16_t)(y - oy);
 	}
 
-	// MAG_138_sub_6AB570 (Gastric Juice's 0x6B90B0): the edges of the chain, then one GP0 0x3E quad
-	// (gouraud, textured, semi-transparent) per pair of visible points, grey level = fade.
-	// UNINITIALISED READ: the joint direction is a stack local the function never initialises; when
-	// the first point is hidden or has no screen length the second point reads it. Its slot (string
-	// entry esp - 0x5C) is 0x704090's local of the last point projected right before: `residue` = that
-	// SZ3 dword (low word = x, high word = y).
 	static void DrawRibbon(Point *head, int32_t count, uint32_t residue)
 	{
 		int16_t dir[2] = { (int16_t)(residue & 0xFFFF), (int16_t)(residue >> 16) };
@@ -685,13 +573,13 @@ namespace saliva138
 				pk[4] = ca;
 				pk[1] = ca;
 				uint32_t cb = (uint32_t)(int32_t)b->fade;
-				pk[3] = 0x3C14C008;  // uv0 + CLUT
+				pk[3] = 0x3C14C008;
 				cb = (((cb << 8) | cb) << 8) | cb;
-				pk[6] = 0x00BAC038;  // uv1 + texture page
-				*(uint16_t *)((uint8_t *)pk + 0x24) = 0xC008; // uv2
+				pk[6] = 0x00BAC038;
+				*(uint16_t *)((uint8_t *)pk + 0x24) = 0xC008;
 				pk[10] = cb;
 				pk[7] = cb;
-				*(uint16_t *)((uint8_t *)pk + 0x30) = 0xC038; // uv3
+				*(uint16_t *)((uint8_t *)pk + 0x30) = 0xC038;
 				pk[0] = 0x0C000000;
 				((uint8_t *)pk)[7] = 0x3E;
 				InsertPrimAutoDepth(RenderOT() + 4 * ((a->otz + b->otz) >> 3), pk);
@@ -700,7 +588,6 @@ namespace saliva138
 		}
 	}
 
-	// the chain's projection (camera; depth = SZ3 / 4), then its ribbon from the projection's residue
 	static void StringDraw(Point *head, int32_t count)
 	{
 		GteSetRotMatrix(&Camera());
@@ -717,10 +604,6 @@ namespace saliva138
 		DrawRibbon(head, count, GteSZ3());
 	}
 
-	// StringTask's P word +6 (entry esp - 0x32, never written: 0x56CB90 stores 3 words), copied into
-	// the node's previous-point word +0x22 on counters 1..9 (never read afterwards). The main task runs
-	// right before the string queue on those ticks (main counters 0x18..0x22): its saved ebp sits
-	// there, the game executor's queue pointer 0x2520CA0 (high half).
 	static int16_t StringResidue()
 	{
 		return 0x0252;
@@ -731,8 +614,6 @@ namespace saliva138
 		prim::play((prim::Layout *)layout, PrimCallback, (int)arg, 0);
 	}
 
-	// the block at a point through the camera: the camera rotation, the point through it + the
-	// camera translation
 	static void BlockAt(PrimArg *arg, const int16_t *p4)
 	{
 		ff8fx::copy<(sizeof(arg->m.m))>(arg->m.m, Camera().m);
@@ -755,11 +636,6 @@ namespace ff8fx
 {
 namespace saliva138
 {
-	// ------------------------------------------------------------------
-	// Sprites
-	// ------------------------------------------------------------------
-	// 0x6AA890 (Oil Shot's 0x6AE300): sprite sequence 0x11DF4E0 (rotation, scale) through the
-	// shadow-rotation camera, 10 frames
 	static void SprayDraw(const int16_t *pos, int16_t scale, int16_t frame, int16_t angle)
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
@@ -775,7 +651,6 @@ namespace saliva138
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		SprayNode *s = (SprayNode *)n;
-		// 30 fps layer: see mag138_saliva_held.inc
 		FX_HELD(held_note_sprite(SPR_SPRAY, n);)
 		SprayDraw(s->pos, s->scale, s->frame, s->angle);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
@@ -786,8 +661,6 @@ namespace saliva138
 		return s->frame < 0xA ? 0 : TASK_END;
 	}
 
-	// 0x6AA810 (Oil Shot's 0x6AE190): sprite sequence 0x11DF604 through the shadow-rotation camera,
-	// 13 frames
 	static void SplatDraw(const int16_t *pos, int16_t frame)
 	{
 		TransformCameraByShadowRotation(pos, 0xC00, -0x300);
@@ -802,16 +675,12 @@ namespace saliva138
 	static uint32_t __cdecl SplatTask(TaskNode *n)
 	{
 		SplatNode *s = (SplatNode *)n;
-		// 30 fps layer: see mag138_saliva_held.inc
 		FX_HELD(held_note_sprite(SPR_SPLAT, n);)
 		SplatDraw(s->pos, s->frame);
 		s->frame++;
 		return s->frame < 0xD ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// String (0x6AA940)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl StringTask(TaskNode *n)
 	{
 		StringNode *s = (StringNode *)n;
@@ -830,13 +699,13 @@ namespace saliva138
 			{
 				const int32_t t = StringT(j + s->counter * 2);
 				const int32_t sine = ComputeSin(t >> 1);
-				Mat4x3 M;      // entry esp - 0x20: RotZ, then the string basis
+				Mat4x3 M;
 				RotZ((int16_t)((s->counter & 0xFF) << 8), &M);
 				GteSetRotMatrix(&M);
 				GteZeroTrans();
 				const int32_t wave = mul32(s->amp, sine);
 				WobbleMesh(MESH, wave >> 13, (int16_t *)(TexBase() + VERTS));
-				int16_t P[4];  // entry esp - 0x38
+				int16_t P[4];
 				P[3] = StringResidue();
 				StringPoint(s, t, wave, P);
 				StringBasis(P, s->prev, &M);
@@ -847,7 +716,6 @@ namespace saliva138
 				M.t[2] = P[2];
 				if (j == 1)
 				{
-					// 30 fps layer: see mag138_saliva_held.inc
 					FX_HELD(held_note_mesh(n);)
 					MeshRender(&M, (uint16_t)((s->counter & 7) << 4), TexBase() + VERTS);
 				}
@@ -903,7 +771,6 @@ namespace saliva138
 		}
 		if (s->count >= 3)
 		{
-			// 30 fps layer: see mag138_saliva_held.inc
 			FX_HELD(held_note_ribbon(n);)
 			StringDraw(s->head, s->count);
 		}
@@ -911,15 +778,12 @@ namespace saliva138
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x6AA1A0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *w = (MainNode *)n;
-		int16_t M4[4];     // entry esp - 0x30: the bone point (4th word: never written, see the module comment)
+		int16_t M4[4];
 		M4[3] = 0;
-		PrimArg arg;       // entry esp - 0x28
+		PrimArg arg;
 		arg.m.pad = 0;
 		const int32_t e = w->counter - 0x17;
 		if ((uint32_t)e < 0xE)
@@ -954,10 +818,8 @@ namespace saliva138
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = -0x80;
-			// 30 fps layer: see mag138_saliva_held.inc
 			FX_HELD(held_note_play(PLAY_A, n, (prim::Layout *)w->layA, M4);)
 			Play(w->layA, &arg);
-			// 30 fps layer: see mag138_saliva_held.inc
 			FX_HELD(held_note_play(PLAY_B, n, (prim::Layout *)w->layB, M4);)
 			Play(w->layB, &arg);
 			if ((uint32_t)e < 3)
@@ -976,7 +838,6 @@ namespace saliva138
 			BlockAt(&arg, w->pos);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = 0;
-			// 30 fps layer: see mag138_saliva_held.inc
 			FX_HELD(held_note_play(PLAY_C, n, (prim::Layout *)w->layC, w->pos);)
 			Play(w->layC, &arg);
 			if ((uint32_t)h >= 4 && (uint32_t)h < 0xC && !(h & 1))
@@ -1000,9 +861,6 @@ namespace saliva138
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Master (0x6A9FC0)
-	// ------------------------------------------------------------------
 	static void StartMain(MasterNode *m)
 	{
 		uint8_t *target = Entity(Ctx()->actions->targets[0]);
@@ -1026,7 +884,6 @@ namespace saliva138
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		// 30 fps layer: see mag138_saliva_held.inc
 		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
@@ -1061,7 +918,6 @@ namespace saliva138
 		register_port(saliva138::ORIG_StringTask, (void *)saliva138::StringTask, "138 StringTask", 138);
 		register_port(saliva138::ORIG_SprayTask, (void *)saliva138::SprayTask, "138 SprayTask", 138);
 		register_port(saliva138::ORIG_SplatTask, (void *)saliva138::SplatTask, "138 SplatTask", 138);
-		// 30 fps layer: see mag138_saliva_held.inc
 		FX_HELD(register_mag138_held();)
 	}
 }

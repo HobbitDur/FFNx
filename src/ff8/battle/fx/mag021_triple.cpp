@@ -14,59 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 21: Triple (spell, MAG_021_TRIPLE_*), the bigger sibling of Double (mag004_double.cpp).
-//
-// Structure (module code 0x89DED0..0x89FBA0: file loader MAG_021_TRIPLE_FL 0x89DED0 = the texture
-// file (pointer 0x2714F28); setup MAG_021_TRIPLE 0x89DEF0 sets up the queues and the root node,
-// starts camera animation 0x1629288, queues the TIM and takes the two packet arenas: texture
-// buffer + 0 (0x2720A1C) / + 0x8000 (0x2720A18)). Every node starts with the shared effect-library
-// header (Effect_AddTaskAndInitFromCtx 0x8DC540); every task runs its current phase function
-// (node +0x29) from a small table and ends when it is flagged done (+0x26 bit0) and has no live
-// children. Every task updates THEN draws; none tests the draw-only flags (battle_to_update_flags
-// 0x201).
-//   Root (0x89DFF0) - packet arena by tick parity (cursor 0x2714F2C), follows the caster's bones;
-//     phases: 0 advance, 1 spawns the emitter of the current action (marks the root busy), 2 waits
-//     while busy, then the next action (back to 1) or on, 3 waits until the five queues are empty.
-//     Queues run: emitters, sequencers, sprites, models, flashes.
-//   Emitter (0x89E110), one per action: target anchor and model bounds (effect library 0x8DC610 /
-//     0x8DC870); phase 0 spawns the rune sequencer, phase 1 at tick 24 releases the root and spawns
-//     the rising flash, phase 2 applies the action result. Sound at its first tick (after reading
-//     the middle anchor into an unused local). Its word +0x58 is a handshake with the last rune:
-//     set to 1 by the rune's column, the emitter then starts a screen fade (au_re_BdLinkTask_6) and
-//     the big rune and sets 2 (every column and glow reacts in that tick), then 0.
-//   Sequencer (0x89EA70) - two opposite runes every 3 ticks: angles 0 / 0x800, 0x200 / 0xA00,
-//     0x400 / 0xC00, 0x600 / 0xE00 (the last one flagged), then done.
-//   Rune (0x89EBD0, prim model 0x1626CF0) - on a circle of radius 0x400 around the target,
-//     spinning; fades in (0x1000 -> 0 in 8 ticks), then shrinks while fading out and ends hidden.
-//     While spawning a column (tick 3) and a light mote per tick (ticks 0..6).
-//   Column (0x89EDB0, prim model 0x1626F00, flash model 0x1627160) - grows in x/z, then in y, then
-//     settles; the flagged rune's column starts the handshake; flashes once when it settles and once
-//     on the emitter's signal, then fades out (hidden at the end) sending up rising sparks while its
-//     fade is <= 0xA00.
-//   Spark (0x89F5E0, flipbook 0x1626C18) - from the column's place, pushed out by a random turn
-//     (x, 2 y, z of a random length < 0x80), rises at a random speed until its flipbook ends.
-//   Glow (0x89F180, sprite 0x1626CC8 lying on the ground under the rune) - grey ramp up to 0x20,
-//     a 0x40 pulse on the emitter's signal, then out.
-//   Mote (0x89F410, flipbook 0x16269DC) - spirals in (radius -0x60, angle +0x60 per tick) and
-//     brightens up to 0x80, until its radius is gone.
-//   Big rune (0x89E250, prim models 0x1627380 and 0x1628218) - the first fades in, then both follow
-//     the fade tables 0x1629C2C / 0x1629C14 (11 ticks); while the first fades in, eight sprites
-//     (0x89E7D0: four around the rune, four between them) per tick for ticks 2..4 and a morphing ring
-//     (0x89E670) at tick 0.
-//   Morphing ring (0x89E670, prim model 0x1627970) - its vertices are blended between the vertex
-//     sets 0x16276E8 and 0x1629000 by the fade table 0x1629C2C (GTE GPF / GPL, written into the model
-//     in the exe data) before each draw.
-//   Sprite (0x89E7D0, flipbook 0x1626B3C) - random flipbook frame and X angle every tick, a grey
-//     ramp 0x18 / 0x30 / 0x40 / 0x40 / 0x30 / 0x18, then done.
-//   Flash (0x89F950) - a screen-space textured quad (tpage 0x240/0x120, CLUT 0x140/0xF4, 0x28 x 0x10
-//     texels) on the target's top anchor that jumps up and falls back, drawn straight into the
-//     render list (no +0x44), for 15 ticks. Not spawned when the target record's +3 bit 2 is set.
-// Module globals: 0x2714F28..0x2721580 (texture file pointer 0x2714F28, packet cursor 0x2714F2C,
-// pools / queues: models 0x2714F30 / 0x271B010 (200 x 0x7C), root 0x271B028 / 0x271B0F0 (2 x 0x64),
-// sprites 0x271B100 / 0x2720880 (200 x 0x70), emitters 0x27208A8 / 0x2720898 (4 x 0x5C), arenas
-// 0x2720A18 / 0x2720A1C, sequencers 0x2720A30 / 0x2720A20 (40 x 0x40), flashes 0x2721430 /
-// 0x2721570 (4 x 0x50)); the morphing ring's vertex block in the exe data 0x1627978..0x1627BF8;
-// the TransformCameraByShadowRotation scratch 0x21DFED0.
+// Effect 21: Triple
 
 #include "mag_common.h"
 
@@ -77,131 +25,124 @@ namespace triple021
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	// shared effect-library node header (0x30 bytes, Effect_AddTaskAndInitFromCtx 0x8DC540)
 	struct FxNode
 	{
-		TaskNode hdr;          // +0x00
-		CastContext *ctx;      // +0x0C
-		FxNode *root;          // +0x10
-		FxNode *emitter;       // +0x14 first node under the root on this node's line
-		FxNode *parent;        // +0x18 (its +0x28 counts the live children)
-		int16_t pos[4];        // +0x1C x, y, z (copied from the parent)
-		int16_t counter;       // +0x24
-		uint16_t flags;        // +0x26 bit0 done, bit1 spawning, bit2 hidden
-		uint8_t children;      // +0x28
-		int8_t phase;          // +0x29
-		int8_t action;         // +0x2A
-		int8_t target;         // +0x2B
-		uint8_t attacker;      // +0x2C
-		uint8_t slot;          // +0x2D target entity slot
-		uint8_t line;          // +0x2E
-		uint8_t last;          // +0x2F
+		TaskNode hdr;
+		CastContext *ctx;
+		FxNode *root;
+		FxNode *emitter;
+		FxNode *parent;
+		int16_t pos[4];
+		int16_t counter;
+		uint16_t flags;
+		uint8_t children;
+		int8_t phase;
+		int8_t action;
+		int8_t target;
+		uint8_t attacker;
+		uint8_t slot;
+		uint8_t line;
+		uint8_t last;
 	};
-	struct RootNode // pool of 2 nodes of 0x64 bytes
+	struct RootNode
 	{
 		FxNode h;
-		uint8_t bones[0x28];   // +0x30 caster bone anchor (Effect_UpdateTargetPosFromBones)
-		int16_t last_action;   // +0x58
-		int16_t target_count;  // +0x5A
-		int16_t tick;          // +0x5C arena parity
-		int16_t alive;         // +0x5E sum of the queue results
+		uint8_t bones[0x28];
+		int16_t last_action;
+		int16_t target_count;
+		int16_t tick;
+		int16_t alive;
 		uint8_t pad60[3];
-		uint8_t busy;          // +0x63 an action is running
+		uint8_t busy;
 	};
-	struct EmitterNode // pool of 4 nodes of 0x5C bytes
+	struct EmitterNode
 	{
 		FxNode h;
-		uint8_t anchor[0x18];  // +0x30 target anchors: +0x30 base, +0x38 middle, +0x40 top
-		int16_t bmin[4];       // +0x48 model bounds
-		int16_t bmax[4];       // +0x50
-		int16_t signal;        // +0x58 handshake with the last rune's column (1 -> 2 -> 0)
+		uint8_t anchor[0x18];
+		int16_t bmin[4];
+		int16_t bmax[4];
+		int16_t signal;
 		int16_t pad5A;
 	};
-	struct SeqNode // pool of 40 nodes of 0x40 bytes
+	struct SeqNode
 	{
 		FxNode h;
 		uint8_t pad30[0x10];
 	};
-	struct ModelNode // rune / column / big rune / morphing ring: pool of 200 nodes of 0x7C bytes
+	struct ModelNode
 	{
 		FxNode h;
-		int32_t scale[3];      // +0x30
+		int32_t scale[3];
 		uint32_t pad3C;
-		uint8_t rgb[4];        // +0x40 prim-model colour of the draw (dword)
-		int16_t angle[3];      // +0x44 rotation (y spins)
+		uint8_t rgb[4];
+		int16_t angle[3];
 		int16_t pad4A;
-		uint32_t model;        // +0x4C prim model of the draw
-		int16_t fade;          // +0x50 prim-model fade of the draw
+		uint32_t model;
+		int16_t fade;
 		int16_t pad52;
-		int16_t base[4];       // +0x54 rune / column: circle centre
-		uint8_t rgb1[4];       // +0x5C big rune: first model's colour
-		uint8_t rgb2[4];       // +0x60 big rune: second model's colour
-		int16_t fade1;         // +0x64 big rune: first model's fade
-		int16_t fade2;         // +0x66 big rune: second model's fade
-		int16_t orbit;         // +0x68 rune / column: angle on the circle
-		int16_t flagged;       // +0x6A the last rune (column: copied)
-		int16_t flash;         // +0x6C column: flash state (1 / 3 start, 2 / 4 fade)
-		int16_t radius;        // +0x6E column: circle radius (4.12 of 0x400)
-		int16_t flash_on;      // +0x70 column: flash model drawn
-		int16_t orbit_step;    // +0x72 column: angle step (never written: 0)
-		int16_t morph;         // +0x74 morphing ring: blend
-		int16_t arg;           // +0x76 rune spawn argument (0)
-		int16_t step;          // +0x78 big rune / morphing ring: fade table index
+		int16_t base[4];
+		uint8_t rgb1[4];
+		uint8_t rgb2[4];
+		int16_t fade1;
+		int16_t fade2;
+		int16_t orbit;
+		int16_t flagged;
+		int16_t flash;
+		int16_t radius;
+		int16_t flash_on;
+		int16_t orbit_step;
+		int16_t morph;
+		int16_t arg;
+		int16_t step;
 		int16_t pad7A;
 	};
-	struct SpriteNode // sprite / glow / mote / spark: pool of 200 nodes of 0x70 bytes
+	struct SpriteNode
 	{
 		FxNode h;
-		int32_t scale[3];      // +0x30
+		int32_t scale[3];
 		uint32_t pad3C;
-		int16_t ax;            // +0x40 sprite: X angle
-		int16_t ay;            // +0x42 sprite: Y angle; mote: spiral angle
+		int16_t ax;
+		int16_t ay;
 		uint32_t pad44;
-		uint8_t rgb[4];        // +0x48 colour (dword)
-		uint32_t seq;          // +0x4C flipbook
-		int16_t frame;         // +0x50
-		int16_t last;          // +0x52 last frame
-		int16_t shade;         // +0x54 TransformCameraByShadowRotation offset (0)
+		uint8_t rgb[4];
+		uint32_t seq;
+		int16_t frame;
+		int16_t last;
+		int16_t shade;
 		int16_t pad56;
-		int16_t base[4];       // +0x58 glow / mote: centre
+		int16_t base[4];
 		int16_t pad60;
-		int16_t vel;           // +0x62 spark: y velocity
+		int16_t vel;
 		uint32_t pad64;
-		int16_t radius;        // +0x68 mote: spiral radius
-		int16_t angle;         // +0x6A glow: angle on the circle
-		int16_t pulse;         // +0x6C glow: pulse state (1 / 3 start, 2 / 4 fade)
+		int16_t radius;
+		int16_t angle;
+		int16_t pulse;
 		int16_t pad6E;
 	};
-	struct FlashNode // pool of 4 nodes of 0x50 bytes
+	struct FlashNode
 	{
 		FxNode h;
 		int16_t pad30;
-		int16_t vel;           // +0x32 y velocity
+		int16_t vel;
 		uint32_t pad34;
-		int16_t target[4];     // +0x38 rest position (the target's top anchor)
-		int16_t tx, ty;        // +0x40 texture page (VRAM x, y)
-		int16_t cx, cy;        // +0x44 CLUT (VRAM x, y)
-		int16_t u, v;          // +0x48 texel origin
-		int16_t tw, th;        // +0x4C size
+		int16_t target[4];
+		int16_t tx, ty;
+		int16_t cx, cy;
+		int16_t u, v;
+		int16_t tw, th;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(FxNode) == 0x30 && sizeof(RootNode) == 0x64 && sizeof(EmitterNode) == 0x5C, "Triple nodes");
 	static_assert(sizeof(SeqNode) == 0x40 && sizeof(ModelNode) == 0x7C && sizeof(SpriteNode) == 0x70, "Triple nodes");
 	static_assert(sizeof(FlashNode) == 0x50, "Triple nodes");
 
-	// ------------------------------------------------------------------
-	// Module globals
-	// ------------------------------------------------------------------
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2714F2C); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2720898; }  // 4 x 0x5C
-	inline TaskQueue *QSequencers() { return (TaskQueue *)0x2720A20; }// 40 x 0x40
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2720880; }   // 200 x 0x70
-	inline TaskQueue *QModels() { return (TaskQueue *)0x271B010; }    // 200 x 0x7C
-	inline TaskQueue *QFlashes() { return (TaskQueue *)0x2721570; }   // 4 x 0x50
+	inline TaskQueue *QEmitters() { return (TaskQueue *)0x2720898; }
+	inline TaskQueue *QSequencers() { return (TaskQueue *)0x2720A20; }
+	inline TaskQueue *QSprites() { return (TaskQueue *)0x2720880; }
+	inline TaskQueue *QModels() { return (TaskQueue *)0x271B010; }
+	inline TaskQueue *QFlashes() { return (TaskQueue *)0x2721570; }
 
 	static const uint32_t ORIG_Root = 0x89DFF0;
 	static const uint32_t ORIG_Emitter = 0x89E110;
@@ -221,22 +162,17 @@ namespace triple021
 	static const uint32_t MODEL_Column = 0x1626F00, MODEL_ColumnFlash = 0x1627160, MODEL_Morph = 0x1627970;
 	static const uint32_t MORPH_A = 0x16276E8, MORPH_B = 0x1629000;
 	static const uint32_t SEQ_Sprite = 0x1626B3C, SEQ_Glow = 0x1626CC8, SEQ_Mote = 0x16269DC, SEQ_Spark = 0x1626C18;
-	static const uint32_t FADE_TABLE_A = 0x1629C2C, FADE_TABLE_B = 0x1629C14; // 12 words each (0..0x1000)
+	static const uint32_t FADE_TABLE_A = 0x1629C2C, FADE_TABLE_B = 0x1629C14;
 	static const uint32_t ARENA_A = 0x2720A1C, ARENA_B = 0x2720A18;
 
-	// ------------------------------------------------------------------
-	// Engine / effect-library functions (original addresses)
-	// ------------------------------------------------------------------
-	// Effect_AddTaskAndInitFromCtx (0x8DC540): new node of `size` bytes in `q`, zeroed, header
-	// inherited from `parent` (the parent's child count goes up)
 	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(0x8DC540)(q, task, size, parent); }
 	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(0x8DC530)(n); }
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }                  // MAG_001_CURE_Emitter_UpdatePos
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }                // MAG_001_CURE_Emitter_ComputeModelBounds
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(0x8DC610)(n); }
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(0x8DC870)(n); }
 	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(0x8DC740)(n); }
-	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC6E0)(n, out); }   // emitter +0x30
-	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC700)(n, out); }   // emitter +0x38
-	inline void CopyAnchorTopFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC720)(n, out); }  // emitter +0x40
+	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC6E0)(n, out); }
+	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC700)(n, out); }
+	inline void CopyAnchorTopFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(0x8DC720)(n, out); }
 	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(0x8DD770)(m); }
 	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD7E0)(m, a); }
 	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(0x8DD8A0)(m, a); }
@@ -246,7 +182,6 @@ namespace triple021
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 
-	// sub_89E620 / sub_89E5E0: fade table entry (index clamped to 0..11)
 	static int16_t FadeTable(uint32_t table, int16_t k)
 	{
 		if (k > 0xB) k = 0xB;
@@ -254,11 +189,6 @@ namespace triple021
 		return ((const int16_t *)table)[k];
 	}
 
-	// ------------------------------------------------------------------
-	// Drawing helpers
-	// ------------------------------------------------------------------
-	// sub_89E300 (= Double 0x8D5440): the node's prim model at its position, rotation (+0x44) and
-	// scale (+0x30), in its colour (+0x40) and fade (+0x50)
 	static void DrawModel(const ModelNode *n)
 	{
 		if (n->h.flags & 4) return;
@@ -280,7 +210,6 @@ namespace triple021
 		FieldFree(0x58);
 	}
 
-	// sub_89E880 (= Double 0x8D5950): a sprite's flipbook frame turned by its Y then X angle, scaled
 	static void DrawSpriteTurned(const SpriteNode *p)
 	{
 		if (p->h.flags & 4) return;
@@ -304,8 +233,6 @@ namespace triple021
 		FieldFree(0xB4);
 	}
 
-	// sub_89F2B0 (= MAG_001_CURE_DrawAdditiveGlow): flipbook `seq` frame 0 lying on the ground under
-	// the node (rotated 90 degrees about X, y = 0), in `colour`
 	static void DrawGroundGlow(const SpriteNode *p, uint32_t seq, const uint32_t *colour)
 	{
 		if (p->h.flags & 4) return;
@@ -327,7 +254,6 @@ namespace triple021
 		FieldFree(0xB4);
 	}
 
-	// sub_89F500 (= MAG_001_CURE_DrawSprite): the node's flipbook frame at its position (camera-facing)
 	static void DrawSpriteFacing(const SpriteNode *p)
 	{
 		if (p->h.flags & 4) return;
@@ -340,8 +266,6 @@ namespace triple021
 		FieldFree(0xB4);
 	}
 
-	// sub_89E6E0 (= Double 0x8D57C0): vertex blend out = a * (1 - t) + b * t (4.12) of the vertex
-	// blocks (+4 = count, 8 bytes per vertex from +8), through the GTE (GPF then GPL)
 	static void MorphVertices(const uint8_t *a, const uint8_t *b, uint8_t *out, int16_t t)
 	{
 		const uint8_t *pa = a + 8;
@@ -367,11 +291,6 @@ namespace triple021
 		FieldFree(8);
 	}
 
-	// ------------------------------------------------------------------
-	// Big rune (0x89E250) and what it spawns
-	// ------------------------------------------------------------------
-	// sub_89E3C0: while fading in (ticks 2..4) four sprites around the rune, random x in
-	// -0x200..0x1FF, 0x2C0 back: mode 0 at angles k * 0x400, mode 1 at k * 0x400 + 0x200
 	static void SpawnSprites(ModelNode *n, int16_t mode)
 	{
 		if (n->h.counter < 2 || n->h.counter > 4) return;
@@ -401,7 +320,6 @@ namespace triple021
 				v[2] = (int16_t)-0x2C0;
 				p->ay = (int16_t)((k << 10) + 0x200);
 			}
-			// (another mode would turn the never-written vector: not reached)
 			Mat4x3 m;
 			IdentityMatrix(&m);
 			RotateY(&m, p->ay);
@@ -412,7 +330,6 @@ namespace triple021
 		}
 	}
 
-	// sub_89E500: a morphing ring at tick 0
 	static void SpawnMorph(ModelNode *n)
 	{
 		if (n->h.counter != 0) return;
@@ -430,7 +347,6 @@ namespace triple021
 		m->rgb[2] = 0;
 	}
 
-	// MAG_021_sub_89E1E0 (the emitter's signal): the big rune on the target
 	static void SpawnBigRune(EmitterNode *e)
 	{
 		ModelNode *n = (ModelNode *)AddEffectTask(QModels(), ORIG_BigRune, 0x7C, e);
@@ -451,8 +367,6 @@ namespace triple021
 		n->rgb2[2] = 0;
 	}
 
-	// phases 0x89E560 (first model fades in, spawning), 0x89E590 (both models follow the fade
-	// tables, then hidden and done), 0x89E660
 	static void BigRunePhase(ModelNode *n)
 	{
 		switch (n->h.phase)
@@ -489,7 +403,6 @@ namespace triple021
 		}
 	}
 
-	// the big rune's two draws: the first model in its colour / fade, then the second
 	static void BigRuneDraw(ModelNode *n)
 	{
 		ff8fx::copy<(4)>(n->rgb, n->rgb1);
@@ -516,7 +429,6 @@ namespace triple021
 	{
 		ModelNode *n = (ModelNode *)t;
 		BigRunePhase(n);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_BIG, n);)
 		BigRuneDraw(n);
 		if (n->h.flags & 2)
@@ -534,10 +446,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Morphing ring (0x89E670)
-	// ------------------------------------------------------------------
-	// phases 0x89E780 (blend and fade from the fade table, done at its end), 0x89E7C0
 	static void MorphPhase(ModelNode *n)
 	{
 		if (n->h.phase != 0) return;
@@ -556,7 +464,6 @@ namespace triple021
 	{
 		ModelNode *n = (ModelNode *)t;
 		MorphPhase(n);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_MORPH, n);)
 		MorphVertices((const uint8_t *)MORPH_A, (const uint8_t *)MORPH_B, (uint8_t *)MODEL_Morph, n->morph);
 		DrawModel(n);
@@ -569,10 +476,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sprite (0x89E7D0)
-	// ------------------------------------------------------------------
-	// phases 0x89E960.. 0x89EA10: grey 0x18, 0x30, 0x40, (hold), 0x30, 0x18, then 0 and done
 	static void SpritePhase(SpriteNode *p)
 	{
 		uint8_t g;
@@ -605,7 +508,6 @@ namespace triple021
 		p->ax = (int16_t)(CrtRand() & 0xFFF);
 		const int32_t r = CrtRand() % 7;
 		p->frame = (int16_t)((uint8_t)(r + (uint8_t)p->frame + 1) & 7);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_SPRITE, p);)
 		DrawSpriteTurned(p);
 		p->h.counter++;
@@ -617,11 +519,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x89F5E0)
-	// ------------------------------------------------------------------
-	// sub_89F6A0: pushed out by a random turn (yaw, pitch) along z by rand() % n (n = 0 counts
-	// as 1): x, 2 * y, z of the turned vector
 	static void Scatter(SpriteNode *p, int16_t n)
 	{
 		int32_t d = n;
@@ -643,7 +540,6 @@ namespace triple021
 		p->h.pos[2] = (int16_t)(p->h.pos[2] + out[2]);
 	}
 
-	// sub_89F790: next flipbook frame; past the last one the node is hidden (frame stays last), 1
 	static int32_t LifetimeExpired(SpriteNode *p)
 	{
 		p->frame++;
@@ -656,7 +552,6 @@ namespace triple021
 		return 0;
 	}
 
-	// phase 1 (0x89F760): rises by its velocity, done at the last frame
 	static void SparkMove(SpriteNode *p)
 	{
 		p->h.pos[1] = (int16_t)(p->h.pos[1] + p->vel);
@@ -672,7 +567,7 @@ namespace triple021
 		SpriteNode *p = (SpriteNode *)t;
 		switch (p->h.phase)
 		{
-		case 0: // 0x89F640: at the column's place, scattered; white, 5 frames, rising speed 8..0x27
+		case 0:
 		{
 			const FxNode *parent = p->h.parent;
 			ff8fx::copy<(8)>(p->h.pos, parent->pos);
@@ -686,9 +581,8 @@ namespace triple021
 			break;
 		}
 		case 1: SparkMove(p); break;
-		default: break; // 0x89F7C0
+		default: break;
 		}
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_SPARK, p);)
 		DrawSpriteFacing(p);
 		p->h.counter++;
@@ -700,13 +594,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Column (0x89EDB0)
-	// ------------------------------------------------------------------
-	// phases 0x89EF50 (fade in, x / z grow), 0x89EF90 / 0x89EFB0 (y grows to 0x1800), 0x89EFE0
-	// (settles at 0x1000: flash, or the handshake for the flagged rune's column), 0x89F050 (the
-	// emitter's signal: second flash), 0x89F070 (fade out with sparks, then hidden and done),
-	// 0x89F0D0. `spawn` = false: the sparks are not spawned (state only)
 	static void ColumnPhase(ModelNode *n, bool spawn)
 	{
 		switch (n->h.phase)
@@ -777,8 +664,6 @@ namespace triple021
 		}
 	}
 
-	// the flash state: 1 / 3 start the flash model at fade 0x400 / 0x800 (white), 2 / 4 fade it by
-	// 0x100 / 0x200 per tick, then off
 	static void ColumnFlash(ModelNode *n)
 	{
 		const int16_t s = n->flash;
@@ -811,7 +696,6 @@ namespace triple021
 		n->flash = 0;
 	}
 
-	// spin, and the place on the circle (radius * (sin, cos) / 0x4000 of the orbit angle)
 	static void ColumnMotion(ModelNode *n)
 	{
 		const int16_t orbit = (int16_t)((n->orbit_step + n->orbit) & 0xFFF);
@@ -824,7 +708,6 @@ namespace triple021
 		n->h.pos[2] = (int16_t)(n->h.pos[2] + dz);
 	}
 
-	// the column's two draws: the flash model over it while the flash is on, then the column
 	static void ColumnDraw(ModelNode *n)
 	{
 		if (n->flash_on == 1)
@@ -842,7 +725,6 @@ namespace triple021
 		ColumnPhase(n, true);
 		ColumnFlash(n);
 		ColumnMotion(n);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_COLUMN, n);)
 		ColumnDraw(n);
 		n->h.counter++;
@@ -854,9 +736,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Glow (0x89F180)
-	// ------------------------------------------------------------------
 	static void AddGrey(SpriteNode *p, uint8_t d)
 	{
 		p->rgb[1] = (uint8_t)(p->rgb[1] + d);
@@ -864,8 +743,6 @@ namespace triple021
 		p->rgb[2] = (uint8_t)(p->rgb[2] + d);
 	}
 
-	// phases 0x89F370 (grey up by 4 to 0x20), 0x89F3A0 (the emitter's signal: pulse), 0x89F3C0
-	// (grey down by 4 once the pulse is over, then hidden and done), 0x89F400
 	static void GlowPhase(SpriteNode *p)
 	{
 		switch (p->h.phase)
@@ -896,7 +773,6 @@ namespace triple021
 		}
 	}
 
-	// the pulse: 1 / 3 set 0x40, 2 / 4 fade by 4 per tick back to 0x20
 	static void GlowPulse(SpriteNode *p)
 	{
 		switch (p->pulse)
@@ -917,7 +793,6 @@ namespace triple021
 		}
 	}
 
-	// on the rune's circle (radius 0x400: (sin, cos) / 4), on the ground
 	static void GlowPlace(SpriteNode *p)
 	{
 		ff8fx::copy<(8)>(p->h.pos, p->base);
@@ -931,7 +806,6 @@ namespace triple021
 		GlowPhase(p);
 		GlowPulse(p);
 		GlowPlace(p);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_GLOW, p);)
 		DrawGroundGlow(p, SEQ_Glow, (const uint32_t *)p->rgb);
 		p->h.counter++;
@@ -943,17 +817,12 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Mote (0x89F410)
-	// ------------------------------------------------------------------
-	// sub_89F4B0: + r * (sin, cos)(angle) / 4096 in x / z
 	static void Orbit(SpriteNode *p, int16_t r, int16_t angle)
 	{
 		p->h.pos[0] = (int16_t)(p->h.pos[0] + mul32(ComputeSin(angle), r) / 4096);
 		p->h.pos[2] = (int16_t)(p->h.pos[2] + mul32(ComputeCos(angle), r) / 4096);
 	}
 
-	// phase 0x89F590 (grey +0x20 up to 0x80), 0x89F5D0; radius -0x60 (done when gone), angle +0x60
 	static void MoteUpdate(SpriteNode *p)
 	{
 		if (p->h.phase == 0)
@@ -985,10 +854,8 @@ namespace triple021
 		SpriteNode *p = (SpriteNode *)t;
 		MoteUpdate(p);
 		MotePlace(p);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_MOTE, p);)
 		DrawSpriteFacing(p);
-		// sub_89F570: next flipbook frame (looping)
 		p->frame++;
 		if (p->frame > p->last) p->frame = 0;
 		p->h.counter++;
@@ -1000,10 +867,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Rune (0x89EBD0)
-	// ------------------------------------------------------------------
-	// sub_89ED20: the rune's column
 	static void SpawnColumn(ModelNode *r)
 	{
 		ModelNode *c = (ModelNode *)AddEffectTask(QModels(), ORIG_Column, 0x7C, r);
@@ -1024,7 +887,6 @@ namespace triple021
 		c->scale[2] = 0x10;
 	}
 
-	// sub_89ECA0: a mote per tick for ticks 0..6
 	static void SpawnMote(ModelNode *r)
 	{
 		if (r->h.counter < 0 || r->h.counter > 6) return;
@@ -1039,7 +901,6 @@ namespace triple021
 		p->scale[2] = 0x1000;
 	}
 
-	// phases 0x89F0E0 (fade in, spawning), 0x89F110 (shrink and fade out, then hidden and done), 0x89F170
 	static void RunePhase(ModelNode *n)
 	{
 		switch (n->h.phase)
@@ -1072,7 +933,6 @@ namespace triple021
 		}
 	}
 
-	// spin, and the place on the circle (radius 0x400: (sin, cos) / 4 of the orbit angle)
 	static void RuneMotion(ModelNode *n)
 	{
 		n->angle[1] = (int16_t)((n->angle[1] + 0x140) & 0xFFF);
@@ -1091,7 +951,6 @@ namespace triple021
 			if (n->h.counter == 3) SpawnColumn(n);
 			SpawnMote(n);
 		}
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_RUNE, n);)
 		DrawModel(n);
 		n->h.counter++;
@@ -1103,10 +962,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Sequencer (0x89EA70)
-	// ------------------------------------------------------------------
-	// sub_89EB20: a rune at `angle` on the circle around the target (0x280 up) and its glow
 	static void SpawnRune(SeqNode *s, int32_t angle, int16_t arg, int16_t flagged)
 	{
 		ModelNode *r = (ModelNode *)AddEffectTask(QModels(), ORIG_Rune, 0x7C, s);
@@ -1133,7 +988,7 @@ namespace triple021
 		SeqNode *s = (SeqNode *)t;
 		switch (s->h.phase)
 		{
-		case 0: // 0x89EAE0
+		case 0:
 			if (s->h.counter >= 0)
 			{
 				SpawnRune(s, 0, 0, 0);
@@ -1141,7 +996,7 @@ namespace triple021
 				s->h.phase++;
 			}
 			break;
-		case 1: // 0x89F7D0
+		case 1:
 			if (s->h.counter >= 3)
 			{
 				SpawnRune(s, 0x200, 0, 0);
@@ -1149,7 +1004,7 @@ namespace triple021
 				s->h.phase++;
 			}
 			break;
-		case 2: // 0x89F810
+		case 2:
 			if (s->h.counter >= 6)
 			{
 				SpawnRune(s, 0x400, 0, 0);
@@ -1157,7 +1012,7 @@ namespace triple021
 				s->h.phase++;
 			}
 			break;
-		case 3: // 0x89F850: the flagged last rune, then done
+		case 3:
 			if (s->h.counter >= 9)
 			{
 				SpawnRune(s, 0x600, 0, 0);
@@ -1166,7 +1021,7 @@ namespace triple021
 				s->h.phase++;
 			}
 			break;
-		default: break; // 0x89F890
+		default: break;
 		}
 		s->h.counter++;
 		if ((s->h.flags & 1) && s->h.children == 0)
@@ -1177,10 +1032,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Flash (0x89F950, = Double 0x8D6790)
-	// ------------------------------------------------------------------
-	// MAG_021_sub_89F8D0: on the target's top anchor, unless the target record's +3 bit 2 is set
 	static void SpawnFlash(EmitterNode *e)
 	{
 		const uint8_t *targets = e->h.ctx->actions[e->h.action].targets;
@@ -1198,7 +1049,6 @@ namespace triple021
 		f->th = 0x10;
 	}
 
-	// 0: jump (y velocity -0x90); 1: falls (+0x28 per tick) back to its rest height; 2: done at 15
 	static void FlashPhase(FlashNode *f)
 	{
 		switch (f->h.phase)
@@ -1227,8 +1077,6 @@ namespace triple021
 		}
 	}
 
-	// a semi-transparent textured quad (POLY_FT4, raw texture) tw x th centred on the projected
-	// position (screen coordinates / 8), its bottom edge there; straight into the render list
 	static void FlashDraw(const FlashNode *f)
 	{
 		uint8_t *p = (uint8_t *)PacketCursor();
@@ -1279,7 +1127,6 @@ namespace triple021
 	{
 		FlashNode *f = (FlashNode *)t;
 		FlashPhase(f);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note(REC_FLASH, f);)
 		FlashDraw(f);
 		f->h.counter++;
@@ -1291,9 +1138,6 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Emitter (0x89E110)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl EmitterTask(TaskNode *t)
 	{
 		EmitterNode *e = (EmitterNode *)t;
@@ -1301,11 +1145,11 @@ namespace triple021
 		ComputeModelBounds(e);
 		switch (e->h.phase)
 		{
-		case 0: // 0x89EA40: the rune sequencer
+		case 0:
 			AddEffectTask(QSequencers(), ORIG_Sequencer, 0x40, e);
 			e->h.phase++;
 			break;
-		case 1: // 0x89F8A0: at 24 the root goes on, the flash
+		case 1:
 			if (e->h.counter >= 0x18)
 			{
 				((RootNode *)e->h.root)->busy = 0;
@@ -1313,22 +1157,22 @@ namespace triple021
 				e->h.phase++;
 			}
 			break;
-		case 2: // 0x89FB00: the action result, done
+		case 2:
 			ApplyActionResultToTarget(e->h.ctx->actions[e->h.action].targets);
 			*(uint8_t *)&e->h.flags |= 1;
 			e->h.phase++;
 			break;
-		default: break; // 0x89FB30
+		default: break;
 		}
 		if (e->h.counter == 0)
 		{
-			int16_t mid[4]; // read and not used
+			int16_t mid[4];
 			CopyMidpointFromSource(e, mid);
 			BdPlaySE(SOUND_Triple, 0, 0x80);
 		}
 		switch (e->signal)
 		{
-		case 1: // the last rune's column settled: screen fade and the big rune
+		case 1:
 			ScreenFadeTask(0, 1, 2, 0x80);
 			SpawnBigRune(e);
 			e->signal++;
@@ -1347,22 +1191,19 @@ namespace triple021
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x89DFF0)
-	// ------------------------------------------------------------------
 	static void RootPhase(RootNode *r)
 	{
 		switch (r->h.phase)
 		{
-		case 0: // 0x89E0D0
+		case 0:
 			r->h.phase++;
 			break;
-		case 1: // 0x89E0E0: the emitter of the current action
+		case 1:
 			r->busy = 1;
 			AddEffectTask(QEmitters(), ORIG_Emitter, 0x5C, r);
 			r->h.phase++;
 			break;
-		case 2: // 0x89FB40: when the action is over, the next one (back to 1) or on
+		case 2:
 			if (r->busy == 0)
 			{
 				const int8_t a = r->h.action;
@@ -1374,14 +1215,14 @@ namespace triple021
 				else r->h.phase++;
 			}
 			break;
-		case 3: // 0x89FB70: every queue empty, done
+		case 3:
 			if (r->alive == 0)
 			{
 				*(uint8_t *)&r->h.flags |= 1;
 				r->h.phase++;
 			}
 			break;
-		default: break; // 0x89FB90
+		default: break;
 		}
 	}
 
@@ -1390,7 +1231,6 @@ namespace triple021
 		RootNode *r = (RootNode *)t;
 		if (r->tick & 1) PacketCursor() = var<uint32_t>(ARENA_A);
 		else PacketCursor() = var<uint32_t>(ARENA_B);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);
@@ -1424,7 +1264,6 @@ namespace triple021
 		register_port(triple021::ORIG_Morph, (void *)triple021::MorphTask, "021 Morph", 21);
 		register_port(triple021::ORIG_Sprite, (void *)triple021::SpriteTask, "021 Sprite", 21);
 		register_port(triple021::ORIG_Flash, (void *)triple021::FlashTask, "021 Flash", 21);
-		// 30 fps layer: see mag021_triple_held.inc
 		FX_HELD(register_mag021_held();)
 	}
 }

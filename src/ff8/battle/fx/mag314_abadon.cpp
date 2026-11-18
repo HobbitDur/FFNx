@@ -14,47 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 314: the caster's upper body breaking into falling bones and shards (enemy attack 191 of kernel.bin, no name;
-// Abadon c0m103, whose second entity slot holds its lower half; no other kernel.bin entry uses effect 314; MAG_314_*).
-//
-// Structure (setup 0x662890 -> _Init 0x6628C0, file loader 0x6628A0 = mag313.tim (name at 0x101AF1C) into 0x2505578; _Init
-// queues that TIM, keeps the context (0x250557C) and the CASTER's entity (0x2505580), clears entity flags 0x0C on the
-// caster and the next entity slot (its lower half), sets up the root queue 0x25055A8 (pool 0x25055B8, 1 x 0x14), hides the
-// three party entities' normal draw (flag 4) and starts camera animation 0x1016090):
-//   RootTask (0x662970) - alternates the module packet arena (magic buffer + 0x56F0 / + 0x156F0); on counter 1 (once): music
-//     volume fade 0x47E3C0(0xF0), the main pool (1 x 0x4C28 at + 0xA80), the bone-script pool (0x38 x 0x30 at the magic
-//     buffer), the main task (voice slot 0x10161A0, both halves' colour words +0x2C and the lower half's +0x28 kept, the
-//     particle / shard cursors), the stream state (+ 0x56A8) and 64 random shard spin matrices (CRT rand: angles +-0x100,
-//     scale 0xF00 - 0..0x1FF). Until counter 0xE4: the main queue, the caster's bones from its animation pose plus the
-//     main's pose offsets (0x662C00), the bone scripts, the caster's bones from its pose (0x508C90); the screen flash level;
-//     on 0xE4 two stream loads (0x168, 0x169) into + 0x56F0, the stream pump every tick from counter 1; after 0xE4 it ends
-//     when the streams are done (0x5342C0).
-//   MainTask (0x662F40) - counters 0..0xE1: flash ramps 0..7 / 0xDB..0xE1, 1000 between; counters 0x10..0x41: sweep A
-//     (316's code on this module's cursor: level 0x200 - 84 a tick); 0x51..0x60: both halves' colour words lerped toward
-//     0x25055D8 (0, never written), byte +0x2F = 0x32; 0x42: 29 bone scripts (0x101AA50..); from 0x42 the caster drawn with
-//     the pose offsets (0x663850); white tiles 0x659A10 on 0..4, 0xF..0x13, 0x13..0x17; the particles (0x665160, draw THEN
-//     move), the shards (0x664020 draw, 0x6642F0 move / spin / age); sound 0x101619C at 1, voice released at 0xDE;
-//     counters 0..8 flag 8 of both halves off (odd) / on (even); 0..0x10 up to 8 particles at random caster bones (CRT
-//     rand), the lower half's +0x28 colour lerped, its byte +0x2B = 2 and flags bit 11; at 0x10 the lower half's flag 4;
-//     counters 0x64..0xD2 the shard sweep (0x664420: polygons above a rising level leave the model as spinning shards,
-//     module LCG 0x25055D0, some throw a particle); at 0xE2: flags 8 off, colour words back, every polygon shown again
-//     on both halves, the party's flag 4 cleared, end.
-//   BoneScriptTask (0x664D20) - node 0x30: byte code moving one pose entry (set / add translation, velocity, rotation,
-//     angular velocity, step with a ground bounce that throws 16 dust particles once, ground level, hide, a flat
-//     full-screen quad 0x6650E0, counted loops 0x10F0, end 0x1100); any other word yields until the next tick.
-// Draw-only flags (battle_to_update_flags 0x201) are not tested: everything updates always.
-// ENTITY WRITES: the caster (both halves) - flags words +0x00 (bits 2 / 3, lower half bit 11), colour words +0x2C / +0x2F,
-// the lower half's +0x28 / +0x2B, the caster's bone matrices every tick, its model's polygon hidden bits (+0x0F bit 7,
-// shards; cleared at the end); the party's flags bit 2 (setup / end).
-// CAMERA: the setup's camera animation 0x1016090 (engine); no camera word is written by the tasks.
-// Module globals: 0x2505578..0x25055E0 (texture file 0x2505578, context 0x250557C, caster 0x2505580, script queue 0x2505588,
-// main queue 0x2505598, root queue 0x25055A8, root pool 0x25055B8, packet cursor 0x25055CC, module LCG 0x25055D0, flash level
-// 0x25055D4, colour lerp target 0x25055D8, magic buffer base 0x25055DC).
-// CODE OF OTHER MODULES: sweep A's polygons 0x661720 (316's range) and the particles' sprite renderer 0x672DB0 (298's range)
-// are ported in fx_model_sweep.h; this module's 0x663760 is used by 316 (also there); 0x662C00 is called by Griever's 064 too.
-// NEVER-WRITTEN STACK WORDS: none read (0x662C00's second path reads its stack arrays only at entries written for a parent
-// bone, which precedes its children in the skeletons).
-
 #include "mag_common.h"
 #include "fx_params.h"
 #include "fx_model_sweep.h"
@@ -67,29 +26,28 @@ namespace abadon314
 	using namespace magc;
 	using namespace msweep;
 
-	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2505578); }        // the effect's file (its TIM)
+	inline uint32_t &TexFile() { return var<uint32_t>(0x2505578); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x250557C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505580); }        // caster entity (setup); lower half at + 0x9C
-	inline TaskQueue *QScripts() { return (TaskQueue *)0x2505588; }        // pool: magic buffer, 0x38 x 0x30
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505598; }           // pool: + 0xA80, 1 x 0x4C28
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x25055A8; }           // pool 0x25055B8, 1 x 0x14
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505580); }
+	inline TaskQueue *QScripts() { return (TaskQueue *)0x2505588; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2505598; }
+	inline TaskQueue *QRoot() { return (TaskQueue *)0x25055A8; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25055CC); }
 	inline uint32_t &Lcg() { return var<uint32_t>(0x25055D0); }
 	inline uint32_t &Flash() { return var<uint32_t>(0x25055D4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25055DC); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexBase() { return var<uint32_t>(0x25055DC); }
 
 	static const uint32_t ORIG_Setup = 0x662890, ORIG_FileLoader = 0x6628A0;
 	static const uint32_t ORIG_RootTask = 0x662970;
 	static const uint32_t ORIG_MainTask = 0x662F40;
 	static const uint32_t ORIG_ScriptTask = 0x664D20;
-	static const uint32_t TEXTURE_NAME = 0x101AF1C;    // "mag313.tim"
+	static const uint32_t TEXTURE_NAME = 0x101AF1C;
 	static const uint32_t CAMERA = 0x1016090;
-	static const uint32_t SEQUENCES = 0x10168C0;       // particle sprite sequences (by the particle's +0x0F)
-	static const uint32_t COLOUR_Target = 0x25055D8;   // colour lerp target (never written: 0)
+	static const uint32_t SEQUENCES = 0x10168C0;
+	static const uint32_t COLOUR_Target = 0x25055D8;
 	static const void *const SOUND_Voice = (const void *)0x10161A0;
 	static const void *const SOUND_Start = (const void *)0x101619C;
-	static const uint32_t MAIN = 0xA80;                // magic buffer: the main node
+	static const uint32_t MAIN = 0xA80;
 	static const uint32_t STREAM_STATE = 0x56A8, STREAM_DST = 0x56F0;
 	static const uint32_t ARENA_A = 0x56F0, ARENA_B = 0x156F0;
 	static const int16_t PAGE_MOVE = 0xD, CLUT_MOVE = 0x314;
@@ -98,103 +56,92 @@ namespace abadon314
 		0x101AC18, 0x101AC38, 0x101AC64, 0x101AC90, 0x101ACB0, 0x101ACDC, 0x101AD08, 0x101AD28, 0x101AD58, 0x101AD88,
 		0x101ADB4, 0x101ADE0, 0x101AE0C, 0x101AE2C, 0x101AE58, 0x101AE84, 0x101AEA4, 0x101AED0, 0x101AEFC };
 
-	// engine functions not in fx_port.h / mag_common.h / fx_model_sweep.h
-	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }                                // Magic_TextureOFF_ToEAX1
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); } // Stream_QueueLoad
+	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); }
 	inline void StreamPump() { fn<void (__cdecl *)()>(0x534210)(); }
-	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }                    // au_re_BattleFile_preLoad_0
+	inline int32_t StreamPending(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x5342C0)(a); }
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, void *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, void *)>(0x502170)(entity, bone, flag, out); }
-	inline uint32_t FlashTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x659A10)(t, r, g, b, in, out, cursor); } // Effect_FlashTileUpDown
+	inline uint32_t FlashTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x659A10)(t, r, g, b, in, out, cursor); }
 	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-	inline void Apply2DTransform(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x508C30)(a, b, out); }   // apply2DTransform
-	inline void Apply3DTransform(const void *m, const void *v, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C3D0)(m, v, out); } // apply3DTransform
-	inline void Matrix3x3Multiply(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); } // Matrix3x3_MultiplyPSX
-	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFA0)(v); }                           // sub_45DFA0
-	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFC0)(v); }                           // sub_45DFC0
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }                                                // IR = R * V0
+	inline void Apply2DTransform(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x508C30)(a, b, out); }
+	inline void Apply3DTransform(const void *m, const void *v, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C3D0)(m, v, out); }
+	inline void Matrix3x3Multiply(const void *a, const void *b, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(0x56C090)(a, b, out); }
+	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFA0)(v); }
+	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(0x45DFC0)(v); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x25055B8)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E;
-		uint8_t started;   // +0x0F pools set up, main task started
-		uint32_t parity;   // +0x10 packet arena parity
+		uint8_t started;
+		uint32_t parity;
 	};
-	struct PoseEntry // 16 bytes, one per bone
+	struct PoseEntry
 	{
-		int16_t pos[3];    // +0x00 translation added to the bone after the entity matrix
-		int16_t vis;       // +0x06 0 shown, 1 shown with the colour key bone | 0x80, >= 2 hidden
-		int16_t rot[3];    // +0x08 rotation added to the animation pose (0x662C00)
+		int16_t pos[3];
+		int16_t vis;
+		int16_t rot[3];
 		int16_t pad;
 	};
-	struct Particle // 16 bytes
+	struct Particle
 	{
-		int16_t pos[3];    // +0x00
-		int16_t life;      // +0x06 ticks left (0 = free); frame = frame count - life
-		int16_t size;      // +0x08 sprite scale (4096 = as drawn)
+		int16_t pos[3];
+		int16_t life;
+		int16_t size;
 		int16_t pad0A;
-		int8_t vel[3];     // +0x0C x 4 a tick
-		int8_t seq;        // +0x0F sequence (0x10168C0)
+		int8_t vel[3];
+		int8_t seq;
 	};
-	struct Shard // 0x38 bytes
+	struct Shard
 	{
-		int16_t pos[3];    // +0x00
-		int16_t kind;      // +0x06 0 free, 1 triangle, 2 quad
-		int16_t vel[3];    // +0x08
-		int16_t life;      // +0x0E
-		uint8_t *spin;     // +0x10 its spin matrix (0x14-byte 3x3 of the main node's 64)
-		int16_t c[4][3];   // +0x14 corners from pos
-		uint32_t uv0;      // +0x2C u0 v0 CLUT
-		uint32_t uv1;      // +0x30 u1 v1 page
-		uint16_t uv2;      // +0x34
-		uint16_t uv3;      // +0x36
+		int16_t pos[3];
+		int16_t kind;
+		int16_t vel[3];
+		int16_t life;
+		uint8_t *spin;
+		int16_t c[4][3];
+		uint32_t uv0;
+		uint32_t uv1;
+		uint16_t uv2;
+		uint16_t uv3;
 	};
-	struct MainNode // pool of 1 node of 0x4C28 bytes (magic buffer + 0xA80)
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		uint32_t voice;    // +0x10 voice slot (0x4A29A0)
-		uint32_t colour[2]; // +0x14 the halves' colour words +0x2C at the start
-		uint32_t tint1;    // +0x1C the lower half's +0x28 at the start
-		PoseEntry pose[0x70]; // +0x20
-		Particle parts[0x80]; // +0x720
-		Particle *next_part;  // +0xF20
-		Shard shards[0x100];  // +0xF24
-		Shard *next_shard;    // +0x4724
-		uint8_t spins[0x40][0x14]; // +0x4728
+		uint32_t voice;
+		uint32_t colour[2];
+		uint32_t tint1;
+		PoseEntry pose[0x70];
+		Particle parts[0x80];
+		Particle *next_part;
+		Shard shards[0x100];
+		Shard *next_shard;
+		uint8_t spins[0x40][0x14];
 	};
-	struct ScriptNode // pool of 0x38 nodes of 0x30 bytes
+	struct ScriptNode
 	{
 		TaskNode hdr;
-		uint8_t *entity;   // +0x0C
-		PoseEntry *pose;   // +0x10 the main's pose array
-		PoseEntry *cur;    // +0x14 the entry this script moves
-		const int16_t *ip; // +0x18
-		int16_t vel[3];    // +0x1C
+		uint8_t *entity;
+		PoseEntry *pose;
+		PoseEntry *cur;
+		const int16_t *ip;
+		int16_t vel[3];
 		int16_t pad22;
-		int16_t avel[3];   // +0x24
+		int16_t avel[3];
 		int16_t pad2A;
-		int16_t ground;    // +0x2C bounce level (y down)
-		uint8_t bounced;   // +0x2E dust thrown
+		int16_t ground;
+		uint8_t bounced;
 		uint8_t pad2F;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(PoseEntry) == 0x10 && sizeof(Particle) == 0x10 && sizeof(Shard) == 0x38, "314 nodes");
 	static_assert(sizeof(MainNode) == 0x4C28 && sizeof(ScriptNode) == 0x30, "314 nodes");
 
-	// Draw headers (Field_Alloc blocks):
-	//   caster (0x9C): +0 polygon cursor, +4 vertex buffer, +8 / +0xA triangle / quad counts, +0xC..+0x12 screen rect 0, 0,
-	//     0x140, 0xD8 (x 8), +0x14 model colour (entity +0x28), +0x18 / +0x1A page / CLUT moves, +0x1C object mask, +0x20..
-	//     +0x3F the polygon's vertices, +0x40 NCLIP, +0x48 OTZ, +0x50 pose array.
-	//   shard sweep (0x58): +0 polygon cursor, +4 vertex buffer, +8 / +0xA counts, +0xC model colour, +0x10 object mask,
-	//     +0x14 level, +0x16 spread 0x7F, +0x18 / +0x1A page / CLUT moves, +0x1C main node, +0x20 pose array, +0x24..+0x43
-	//     the polygon's vertices (bone-space x / y / z + key word), +0x54 the spin matrices.
 }
 }
 
@@ -210,21 +157,12 @@ namespace abadon314
 	using namespace magc;
 	using namespace msweep;
 
-	// ------------------------------------------------------------------
-	// Module LCG (0x664B70): seed = (seed * 125 + 14) & 0x7FFF
-	// ------------------------------------------------------------------
 	static int32_t Rand15()
 	{
 		Lcg() = (Lcg() * 125 + 0xE) & 0x7FFF;
 		return (int32_t)Lcg();
 	}
 
-	// ------------------------------------------------------------------
-	// Bone matrices from the animation pose plus per-bone rotation offsets (0x662C00, Battle_BuildBoneMatricesWithPoseOffsets;
-	// Griever's 064 calls it too): each bone's angles + the pose entry's (+8) -> rotation; a root bone (parent -1) is scaled
-	// by the skeleton's scale and placed at its root position x scale >> 8; a child is its parent's matrix x (0, 0, parent
-	// length). Skeleton flag +1 bit 0: the per-bone scale path (local rotation x scale chain on the stack)
-	// ------------------------------------------------------------------
 	static void PoseBones(uint8_t *anim, const PoseEntry *pose)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x60);
@@ -264,7 +202,7 @@ namespace abadon314
 		}
 		else if (count != 0)
 		{
-			static uint8_t rots[0x50][0x20];   // the original's stack arrays (0x50 bones): local rotations, local scales
+			static uint8_t rots[0x50][0x20];
 			static int32_t scales[0x50][4];
 			for (uint32_t i = 0; i < count; i++)
 			{
@@ -311,10 +249,6 @@ namespace abadon314
 		FieldFree(0x60);
 	}
 
-	// ------------------------------------------------------------------
-	// Caster vertices (0x663EA0): one bone group through the current matrix (bone x camera) into 8-byte entries (sxy, sz,
-	// clip flags: x outside the screen rect left 1 / right 2, y top 4 / bottom 8, behind the camera 0x10; colour key)
-	// ------------------------------------------------------------------
 	static void ProjectCaster(const uint8_t **data, uint8_t **out, uint8_t *h, int32_t key)
 	{
 		const uint8_t *d = *data;
@@ -348,9 +282,6 @@ namespace abadon314
 		*out = o;
 	}
 
-	// ------------------------------------------------------------------
-	// Caster polygons (0x663B40): as 064's 0x6E5960 with the texture page / CLUT words moved by +0x18 / +0x1A
-	// ------------------------------------------------------------------
 	static uint32_t CasterPolys(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *pk = (uint8_t *)cursor;
@@ -452,10 +383,6 @@ namespace abadon314
 		return (uint32_t)pk;
 	}
 
-	// ------------------------------------------------------------------
-	// Caster model (0x6639A0): every object in the mask (+0x1C); a bone whose pose entry is hidden (>= 2) marks its
-	// vertices clipped, else they are projected (colour key bone | 0x80 when the entry is 1)
-	// ------------------------------------------------------------------
 	static uint32_t CasterModel(const uint8_t *model, uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		const uint32_t *objs = *(const uint32_t *const *)(model + 4);
@@ -504,10 +431,6 @@ namespace abadon314
 		return cursor;
 	}
 
-	// ------------------------------------------------------------------
-	// Caster draw (0x663850): its shadow, its bones from the pose plus the offsets, through its matrix, plus the offsets'
-	// translations, through the camera; its model into the frame arena; its bones from the pose plus the offsets again
-	// ------------------------------------------------------------------
 	static void CasterDraw(uint8_t *ent, const PoseEntry *pose, int16_t page, int16_t clut)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x9C);
@@ -539,10 +462,6 @@ namespace abadon314
 		FieldFree(0x9C);
 	}
 
-	// ------------------------------------------------------------------
-	// Particle slot (0x6643D0): the slot the cursor names when free, else the first free one (slots 0..0x7F; none: null);
-	// the cursor goes to the slot after it (wrapping)
-	// ------------------------------------------------------------------
 	static Particle *AllocParticle(MainNode *m)
 	{
 		Particle *s = m->next_part;
@@ -563,7 +482,6 @@ namespace abadon314
 		return s;
 	}
 
-	// shard slot (0x664B90): as the particles' over the 0x100 shards
 	static Shard *AllocShard(MainNode *m)
 	{
 		Shard *s = m->next_shard;
@@ -584,7 +502,6 @@ namespace abadon314
 		return s;
 	}
 
-	// a shard's particle (0x664BE0): at the shard, sequence 1, life 0xB, rising
 	static void ShardParticle(MainNode *m, const Shard *s)
 	{
 		Particle *p = AllocParticle(m);
@@ -601,10 +518,6 @@ namespace abadon314
 		p->vel[2] = (int8_t)vz;
 	}
 
-	// ------------------------------------------------------------------
-	// Shard sweep vertices (0x664C40): one bone group through the bone matrix (entity space, no camera) into 8-byte
-	// entries (x, y, z, key word); then every entry at or above the level (y <= +0x14) gets key | 1
-	// ------------------------------------------------------------------
 	static void ProjectShards(const uint8_t **data, uint8_t **out, uint8_t *h, int32_t key)
 	{
 		const uint8_t *d = *data;
@@ -630,11 +543,6 @@ namespace abadon314
 		*out = e;
 	}
 
-	// ------------------------------------------------------------------
-	// Shard sweep polygons (0x6646A0): every shown polygon whose vertices are all above the level with one key leaves the
-	// model (hidden bit) as a shard at its centre (corners from the centre, its texture words moved, a random spin matrix,
-	// a random velocity from the spread +0x16, life 4..0xB); 1 in 4 throws a particle. No free shard: the walk stops
-	// ------------------------------------------------------------------
 	static void ShardPolys(uint8_t *h)
 	{
 		uint8_t *p = F<uint8_t *>(h, 0);
@@ -746,7 +654,6 @@ namespace abadon314
 		}
 	}
 
-	// shard sweep model walk (0x664520): as the caster model's with the shard projection (hidden entries: key word 0)
 	static void ShardModel(const uint8_t *model, uint8_t *h)
 	{
 		const uint32_t *objs = *(const uint32_t *const *)(model + 4);
@@ -793,10 +700,6 @@ namespace abadon314
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Shard sweep (0x664420): the caster's bones from the pose plus the offsets, through its matrix, plus the offsets'
-	// translations; its model's polygons above `level` become shards
-	// ------------------------------------------------------------------
 	static void ShardSweep(uint8_t *ent, const PoseEntry *pose, uint8_t *spins, int16_t level, int16_t spread, int16_t page, int16_t clut)
 	{
 		uint8_t *anim = ent + 0x60;
@@ -825,11 +728,6 @@ namespace abadon314
 		FieldFree(0x58);
 	}
 
-	// ------------------------------------------------------------------
-	// Shards (0x664020): every live shard's corners around its position through the camera; a quad (kind 2) or a
-	// triangle, textured grey 0xF0, unless all its corners are off one side of the screen (x 0..0xA00, y 0..0x6C0) or it
-	// is behind the camera; OT bucket OTZ / 4 at the frame OT
-	// ------------------------------------------------------------------
 	static void ShardsDraw(MainNode *m)
 	{
 		GteSetRotMatrix(&Camera());
@@ -892,10 +790,6 @@ namespace abadon314
 		FieldFree(8);
 	}
 
-	// ------------------------------------------------------------------
-	// Shards' update (0x6642F0): age (dead at 0: kind 0, the shard cursor to it); corners spun by the shard's matrix
-	// (a first corner spun to the origin also kills it); position += velocity
-	// ------------------------------------------------------------------
 	static void ShardsUpdate(MainNode *m)
 	{
 		for (int k = 0; k < 0x100; k++)
@@ -931,10 +825,6 @@ namespace abadon314
 		}
 	}
 
-	// ------------------------------------------------------------------
-	// Particles (0x665160 -> 0x6651F0): drawn THEN moved, as 316's with the particle's own sequence (0x10168C0[+0x0F])
-	// and 298's sprite renderer
-	// ------------------------------------------------------------------
 	static void ParticleDraw(uint8_t *h, Particle *p)
 	{
 		GteSetRotMatrixCtrl(&Camera());
@@ -978,10 +868,6 @@ namespace abadon314
 		FieldFree(0xB4);
 	}
 
-	// ------------------------------------------------------------------
-	// A flat semi-transparent full-screen quad (0x6650E0) of colour (ip[0], ip[1], ip[2]) (low bytes) at the frame OT
-	// + 0x20 (alternate viewport); returns the program after it
-	// ------------------------------------------------------------------
 	static const int16_t *ScriptQuad(const int16_t *ip)
 	{
 		uint8_t *q = (uint8_t *)PacketCursor();
@@ -1003,9 +889,6 @@ namespace abadon314
 		return ip + 3;
 	}
 
-	// ------------------------------------------------------------------
-	// Bone script (0x664D20)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl ScriptTask(TaskNode *n)
 	{
 		ScriptNode *s = (ScriptNode *)n;
@@ -1095,7 +978,6 @@ namespace abadon314
 		}
 	}
 
-	// 0x664CD0: a bone script moving pose entry script[0]
 	static void StartScript(uint8_t *ent, PoseEntry *pose, const int16_t *script)
 	{
 		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), ORIG_ScriptTask);
@@ -1106,14 +988,9 @@ namespace abadon314
 		s->ip = script + 1;
 	}
 
-	// sweep A level at counter c (0x10..0x41)
 	static int16_t LevelA(int32_t c) { return (int16_t)(0x200 - (int32_t)((uint32_t)(c - 0x10) * 4200u / 50u)); }
-	// shard sweep level at counter c (0x64..0xD2)
 	static int16_t LevelShards(int32_t c) { return (int16_t)(mul32(3 * (c - 0x64) - 0x14A, 1000) / 110 + 0x400); }
 
-	// ------------------------------------------------------------------
-	// Main task (0x662F40)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
@@ -1134,7 +1011,6 @@ namespace abadon314
 		if (c < 8) Flash() = (uint32_t)(mul32(c, 1000) >> 3);
 		else if (c > 0xDA) Flash() = (uint32_t)(mul32(0xE2 - c, 1000) >> 3);
 		else Flash() = 0x3E8;
-		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(held_note_main(m);)
 		if ((uint32_t)(m->counter - 0x10) < 0x32)
 		{
@@ -1155,17 +1031,14 @@ namespace abadon314
 			for (int k = 0; k < 29; k++) StartScript(Caster(), m->pose, (const int16_t *)SCRIPTS[k]);
 		if (m->counter >= 0x42)
 		{
-			// 30 fps layer: see mag314_abadon_held.inc
 			FX_HELD(held_note_caster(m);)
 			CasterDraw(Caster(), m->pose, PAGE_MOVE, CLUT_MOVE);
 			*Caster() |= 4;
 		}
-		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(held_note_tiles(m->counter);)
 		if ((uint32_t)m->counter < 5) PacketCursor() = FlashTile(m->counter, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
 		if ((uint32_t)(m->counter - 0xF) < 5) PacketCursor() = FlashTile(m->counter - 0xF, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
 		if ((uint32_t)(m->counter - 0x13) < 5) PacketCursor() = FlashTile(m->counter - 0x13, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
-		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(held_note_parts(m);)
 		Particles(m);
 		ShardsDraw(m);
@@ -1209,9 +1082,6 @@ namespace abadon314
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x662970)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -1226,7 +1096,6 @@ namespace abadon314
 			r->parity = 1;
 		}
 		Flash() = 0;
-		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter == 1 && !r->started)
 		{
@@ -1280,7 +1149,6 @@ namespace abadon314
 		register_port(abadon314::ORIG_RootTask, (void *)abadon314::RootTask, "314 RootTask", 314);
 		register_port(abadon314::ORIG_MainTask, (void *)abadon314::MainTask, "314 MainTask", 314);
 		register_port(abadon314::ORIG_ScriptTask, (void *)abadon314::ScriptTask, "314 ScriptTask", 314);
-		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(register_mag314_held();)
 	}
 }

@@ -14,48 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 320: Dark Flare (Tiamat c0m132; MAG_320_*).
-//
-// Structure (setup MAG_320 0x65BC10 -> _Init 0x65BC40 (not ported), file loader 0x65BC20 = the texture file named at
-// 0xFF12B0 ("mag319.tim") -> [0x2505348]; the setup queues the TIM, keeps the context (0x2505350) and the CASTER's entity
-// (0x2505354), starts camera animation 0xFE729C and the root in its 1-node pool 0x2505388):
-//   RootTask (0x65BCC0) - alternates the packet arena (magic buffer + 0x1314 / + 0x11314); on counter 1 sets up the
-//     pools once (main 1 x 0x754 at + 0, sparks 0x40 x 0x20 at + 0x754) and starts the main task: T = the mean default
-//     effect position of action 0's targets (x / z, y 0), the three layouts 0xFE761C / 0xFE9294 / 0xFE9BCC decoded. Then
-//     the main and spark queues; it ends when both are empty.
-//   MainTask (0x65BE90) - counters 0..0x61:
-//     counters 0..0x23: S = the caster's point 0xFF12A0 (bone 0x1B, CasterBonePoint 0x65DA30 = Brrawghh 289's: the bone
-//       matrices as they are); the basis M of (T - S) (0x50CBA0, y / z the other way) at S, composed with the camera:
-//       layout 1 (depth -0x10); counters 0xF..0x23: two sparks a tick at the caster's points 0xFF12A8 (x +-(0x64 + 0x1F
-//       + rand 0x1F), written to that .data word), their velocity towards a second point (z + 0x10 + rand 0xF);
-//     counters 0x24..0x2E: M moved to L = T w + S (1 - w), w = (c - 0x24) / 10: layout 1 again; a grey tile at 0x24;
-//       four sparks a tick along T -> S (w, then w - 0.1 ..., while w >= 0) thrown out in M's plane (sine / cosine of a
-//       CRT rand angle, GTE GPF by 0x10 + rand 0xF);
-//     counters 0x24..0x33: M at S: layout 2 (depth -0x10);
-//     counters 0x2D..0x61: a rotation-free frame at T: layout 3 (depth -0x200, texture v scroll (c - 0x2D) * 16); tiles
-//       at 0x2E (grey, between draw-mode packets 0x2A0 / 0x2C0), 0x2F / 0x30 / 0x31 (0xF0 / 0xA0 / 0x50 grey);
-//     sound 0xFE7298 at counter 0; the damage of action 0's targets at 0x53.
-//   SparkTask (0x65DA90) - sprite sequence 0xFE7470 through the shadow-rotation camera (scale, -0x100), flipbook frame =
-//     its counter (from 0 or c - 0x14), 0x10 frames; moves by its velocity, which falls by 2 a tick.
-//   PrimCallback (0x65C430) - one layout object (header 0x6C): 063's callback with two kind tables in the parameter
-//     block: texture window kinds '1' / '2' and the renderer, '0' = the engine's 0x701DD0, else 0x65C750.
-//   RenderPrimSetAlt (0x65C750) = Diablos 325's 0x657030 = Maelstrom 207's 0x6A45E0: the prim set lists 0..7 of the
-//     model; lists 0 / 4 / 5 / 7 through this module's renderers 0x65C880 (F3) / 0x65CB40 (G3) / 0x65CE80 (G4) /
-//     0x65D2A0 (GT4) (ported below: 325's and 207's copies call them too, in the exe), lists 1 / 2 / 3 / 6 through
-//     325's 0x657160 and 207's 0x6A4710 / 0x6A4BA0 / 0x6A5120 (called in the exe). Each renderer brackets its
-//     polygons with draw-mode packets 0xE1000220 / 0xE1000240 (the GT4 one: 0x220 only, plus two texture windows
-//     when the header scrolls); the G3 / G4 ones step their packet cursor by twice the bracket (as the original).
-// No task tests the draw-only flags (battle_to_update_flags 0x201): everything updates always.
-// DRAW ORDER: every task draws in the same tick it updates (draw THEN update).
-// ENTITY / CAMERA: nothing written (the caster's bone matrices are only read; the camera animation is the engine's).
-// The .data word 0xFF12A8 (x of the spark point) is written by the main task.
-// Module globals: 0x2505348..0x25053A0 (texture file 0x2505348, packet cursor 0x250534C, context 0x2505350, caster
-// entity 0x2505354, the queues 0x2505358 sparks / 0x2505368 main / 0x2505378 root, root pool 0x2505388, magic buffer
-// base 0x250539C).
-// NEVER-WRITTEN STACK WORDS: the 4th word of the vectors loaded into GTE V0 (the record offset of the callback, the
-// spark direction) reaches VZ0's high half only; the parameter block's scroll word is written for layout 3 only (the
-// other layouts' kind tables have no '1' / '2'); the matrices' pad words are never read; the prim header keeps the
-// scratch's words but the ones the callback sets.
+// Effect 320: Dark Flare
 
 #include "mag_common.h"
 #include <stddef.h>
@@ -67,51 +26,46 @@ namespace flare320
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250534C); }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x2505350); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505354); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x250539C); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2505358; }         // pool: + 0x754, 0x40 x 0x20
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505368; }           // pool: magic buffer, 1 x 0x754
-	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }          // g_Battle_FrameRenderListBase
+	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505354); }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x250539C); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)0x2505358; }
+	inline TaskQueue *QMain() { return (TaskQueue *)0x2505368; }
+	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_RootTask = 0x65BCC0;
 	static const uint32_t ORIG_MainTask = 0x65BE90;
 	static const uint32_t ORIG_SparkTask = 0x65DA90;
 	static const uint32_t POOL_Sparks = 0x754;
-	static const uint32_t MORPH = 0xF54;                 // magic buffer: blended vertex frames
-	static const uint32_t ARENA_A = 0x1314;              // magic buffer: packet arenas
+	static const uint32_t MORPH = 0xF54;
+	static const uint32_t ARENA_A = 0x1314;
 	static const uint32_t ARENA_B = 0x11314;
-	static const uint32_t MODEL_1 = 0xFE761C;            // prim-model layouts
+	static const uint32_t MODEL_1 = 0xFE761C;
 	static const uint32_t MODEL_2 = 0xFE9294;
 	static const uint32_t MODEL_3 = 0xFE9BCC;
-	static const uint32_t KINDS_1 = 0xFE0FAC, DRAWS_1 = 0xFF12D4; // per object: texture window kind / renderer
+	static const uint32_t KINDS_1 = 0xFE0FAC, DRAWS_1 = 0xFF12D4;
 	static const uint32_t KINDS_2 = 0xFE0FB4, DRAWS_2 = 0xFE0FC8;
 	static const uint32_t KINDS_3 = 0xFF12C8, DRAWS_3 = 0xFF12BC;
-	static const uint32_t SEQ_Spark = 0xFE7470;          // sprite sequence
+	static const uint32_t SEQ_Spark = 0xFE7470;
 	static const void *const SOUND = (const void *)0xFE7298;
-	static const int16_t *const POINT_S = (const int16_t *)0xFF12A0; // caster point (x, y, z, bone)
-	static int16_t *const POINT_SPARK = (int16_t *)0xFF12A8;         // spark point (x written by the main task)
+	static const int16_t *const POINT_S = (const int16_t *)0xFF12A0;
+	static int16_t *const POINT_SPARK = (int16_t *)0xFF12A8;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }   // Effect_RotationYMatrix
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }  // MAG_017_sub_701310
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); } // MAG_063_RotationFromAnglesYXZ
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); } // MAG_017_sub_701390
-	inline void MatMul3x3(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(0x56C220)(a, b); }    // MatrixMultiply3x3: a = a * b
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }     // GTE_MatrixMultiply
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }   // IR = MAC = R * V0 (no translation)
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(0x701270)(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x701310)(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(0x7015B0)(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(0x701390)(model, f0, f1, t, out); }
+	inline void MatMul3x3(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(0x56C220)(a, b); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(0x460850)(); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
 	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(0x50CBA0)(v, m); }
-	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); } // (a wa + b wb) >> 12
+	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(0x56CB90)(a, b, wa, wb, out); }
 	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(0x45C8E0)(bucket, packet); }
-	// MAG_063_RenderPrimSet (0x701DD0): the engine's prim set draw (header 0x6C bytes)
 	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(0x701DD0)(h, ot, shift, cursor); }
-	// the prim set renderers of other modules that 0x65C750 calls (pure draws of the header's next list)
 	inline uint32_t RenderList(uint32_t f, void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(f)(h, ot, shift, cursor); }
-	// software GTE
 	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }
 	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(0x45DFE0)(a, b, c); }
 	inline void GteRTPT() { fn<void (__cdecl *)()>(0x45FE10)(); }
@@ -130,61 +84,51 @@ namespace flare320
 	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(0x45E360)(dst); }
 	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(0x45E370)(a, b, c); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x14 bytes (0x2505388)
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		uint8_t started;   // +0x0E pools set up
+		int16_t counter;
+		uint8_t started;
 		uint8_t pad0F;
-		uint32_t arena;    // +0x10 packet arena parity
+		uint32_t arena;
 	};
-	struct MainNode // pool of 1 node of 0x754 bytes
+	struct MainNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		Mat4x3 M;          // +0x10 basis of T - S (counters 0..0x23), translation rewritten per draw
-		int16_t S[4];      // +0x30 the caster's point (counters 0..0x23)
-		int16_t T[4];      // +0x38 the targets' mean position (y 0)
-		uint8_t layout_1[0x1F0]; // +0x40
-		uint8_t layout_2[0x110]; // +0x230
-		uint8_t layout_3[0x414]; // +0x340
+		Mat4x3 M;
+		int16_t S[4];
+		int16_t T[4];
+		uint8_t layout_1[0x1F0];
+		uint8_t layout_2[0x110];
+		uint8_t layout_3[0x414];
 	};
-	struct SparkNode // pool of 0x40 nodes of 0x20 bytes
+	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C flipbook frame
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
-		int16_t scale;     // +0x16 sprite scale (shadow-rotation camera)
-		int16_t vel[3];    // +0x18
+		int16_t pos[3];
+		int16_t scale;
+		int16_t vel[3];
 		int16_t pad1E;
 	};
-	// the prim-player callback's parameter block (a stack block of the main task)
 	struct PrimArg
 	{
-		Mat4x3 m;          // +0x00 object frame (camera composed in)
-		uint32_t kinds;    // +0x20 per object: texture window kind ('1' / '2')
-		uint32_t draws;    // +0x24 per object: '0' = 0x701DD0, else 0x65C750
-		int16_t depth;     // +0x28 the prim header's +0x18
-		int16_t scroll;    // +0x2A texture v scroll (low 7 bits; written for layout 3 only)
-		uint32_t morph;    // +0x2C blended vertex frames
+		Mat4x3 m;
+		uint32_t kinds;
+		uint32_t draws;
+		int16_t depth;
+		int16_t scroll;
+		uint32_t morph;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(MainNode) == 0x754 && sizeof(SparkNode) == 0x20, "Dark Flare nodes");
 	static_assert(sizeof(PrimArg) == 0x30, "Dark Flare prim block");
 	static_assert(offsetof(MainNode, S) == 0x30 && offsetof(MainNode, layout_1) == 0x40 && offsetof(MainNode, layout_3) == 0x340, "Dark Flare main node");
 
-	// ------------------------------------------------------------------
-	// Prim set renderers of this module (folded copies: 0x657030 / 0x6A45E0 call them too)
-	// ------------------------------------------------------------------
-	// header (0x6C, Field_Alloc scratch): +0x00 model, +0x04 vertices (4 bytes per index step), +0x08 far colour (r, g,
-	// b), +0x0C fade (IR0), +0x18 depth, +0x1C flags, +0x20 / +0x22 texture u / v scroll, +0x24..+0x32 two texture
-	// windows, +0x34 the list cursor; +0x38 / +0x40 / +0x44 the GTE's MAC0 / OTZ / FLAG of the last polygon
 	static inline uint32_t &H32(uint8_t *h, int o) { return *(uint32_t *)(h + o); }
 	static inline int32_t &HI32(uint8_t *h, int o) { return *(int32_t *)(h + o); }
 	static inline uint16_t &H16(uint8_t *h, int o) { return *(uint16_t *)(h + o); }
@@ -194,7 +138,6 @@ namespace flare320
 	static inline bool OffY(int16_t y) { return y < 0 || y > 0x6C0; }
 	static inline const uint8_t *Vtx(const uint8_t *v, const uint8_t *f, int o) { return v + (uint32_t)*(const uint16_t *)(f + o) * 4; }
 
-	// the polygon's OT bucket (OTZ + header depth, at least 0)
 	static uint32_t OTBucket(uint8_t *h, uint32_t ot, int32_t shift)
 	{
 		HI32(h, 0x40) = (int32_t)((uint32_t)HI32(h, 0x40) + (uint32_t)HI32(h, 0x18));
@@ -202,7 +145,6 @@ namespace flare320
 		return ot + (uint32_t)(HI32(h, 0x40) >> shift) * 4;
 	}
 
-	// 0x65C880: list 0, flat triangles (faces 0xC bytes: colour + code, three vertex indices)
 	static uint32_t RenderF3(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *lp = (uint8_t *)H32(h, 0x34);
@@ -261,8 +203,6 @@ namespace flare320
 		return (uint32_t)P;
 	}
 
-	// 0x65CB40: list 4, gouraud triangles (faces 0x14 bytes: colour 0 + code, three indices, colours 1 / 2); the
-	// packet cursor steps 0x48 per polygon drawn (the packets use 0x2C)
 	static uint32_t RenderG3(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *lp = (uint8_t *)H32(h, 0x34);
@@ -326,8 +266,6 @@ namespace flare320
 		return (uint32_t)P;
 	}
 
-	// 0x65CE80: list 5, gouraud quads (faces 0x18 bytes: colour 0 + code, four indices, colours 1..3); the packet
-	// cursor steps 0x58 per polygon drawn (the packets use 0x34)
 	static uint32_t RenderG4(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *lp = (uint8_t *)H32(h, 0x34);
@@ -400,7 +338,6 @@ namespace flare320
 		return (uint32_t)P;
 	}
 
-	// a texture window command from the header's window block at o (+0 / +2 offset bytes, +4 / +6 mask words)
 	static uint32_t TexWindow(const uint8_t *h, int o)
 	{
 		uint32_t e = ((uint32_t)(h[o + 2] & 0xF8) | 0xFFFE2000u) << 5;
@@ -410,7 +347,6 @@ namespace flare320
 		return e | ((uint32_t)((int32_t)(0u - (uint32_t)*(const uint16_t *)(h + o + 4)) >> 3) & 0x1F);
 	}
 
-	// one texture coordinate scrolled: the four bytes at P + o + 0xC * i moved by d, less the wrap byte when any passes 0xFF
 	static void ScrollUV(uint8_t *P, int o, uint32_t d, uint8_t wrap)
 	{
 		const uint32_t s0 = P[o] + d, s1 = P[o + 0xC] + d, s2 = P[o + 0x18] + d, s3 = P[o + 0x24] + d;
@@ -430,9 +366,6 @@ namespace flare320
 		}
 	}
 
-	// 0x65D2A0: list 7, textured gouraud quads (faces 0x24 bytes: colour 0 + code, four indices, uv 0 + clut, uv 1 +
-	// page, uv 2 / 3, colours 1..3); with a texture scroll (header +0x20 / +0x22) the uvs move (wrapping by the window
-	// bytes +0x30 / +0x32) between two texture windows
 	static uint32_t RenderGT4(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint8_t *lp = (uint8_t *)H32(h, 0x34);
@@ -524,7 +457,6 @@ namespace flare320
 		return (uint32_t)P;
 	}
 
-	// 0x65C750 (= 325's 0x657030 / 207's 0x6A45E0): the model's eight prim lists
 	static uint32_t RenderPrimSetAlt(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		if (!(H32(h, 0x1C) & 0x2000)) H32(h, 4) = H32(h, 0) + 8;
@@ -543,13 +475,6 @@ namespace flare320
 		return c;
 	}
 
-	// ------------------------------------------------------------------
-	// Prim-player callback (0x65C430): one object of a layout. Vertex frame (or blend into the
-	// parameter block's morph buffer), rotation from the record's angles (flag 0x40000: YXZ order),
-	// the record's offset through the parameter matrix composed with it (flag 0x200: the offset as
-	// is), scale (flag 0x100: 3x3 product, else scale3DMatrix), fade, the texture window of the
-	// object's kind, drawn by 0x701DD0 or this module's 0x65C750.
-	// ------------------------------------------------------------------
 	static void __cdecl PrimCallback(prim::Layout *l, prim::Record *r, int arg_)
 	{
 		const PrimArg *arg = (const PrimArg *)arg_;
@@ -588,7 +513,6 @@ namespace flare320
 		Mat4x3 m = {};
 		if (r->flags & 0x40000) RotationFromAnglesB(r->rot, &m);
 		else RotationFromAngles(r->rot, &m);
-		// the record's offset (4th word never written: only loaded into the GTE V0 pad)
 		int16_t off[4] = { r->pos[0], r->pos[1], r->pos[2], 0 };
 		int32_t t[3];
 		if (r->flags & 0x200)
@@ -662,8 +586,6 @@ namespace flare320
 		FieldFree(0x6C);
 	}
 
-	// 0x65DA30 (= Brrawghh 289's CasterBonePoint 0x678390): a point (x, y, z, bone) through the caster's bone composed
-	// with its matrix (the bone matrices as they are)
 	static void CasterBonePoint(const int16_t *v, int16_t *out)
 	{
 		uint8_t *c = Caster();
@@ -676,7 +598,6 @@ namespace flare320
 		GteStoreIR123(out);
 	}
 
-	// 0x65D900: a full-screen grey tile (semi-transparent F4) on the frame OT + 0x20
 	static void Tile(uint32_t rgb)
 	{
 		uint8_t *p = (uint8_t *)PacketCursor();
@@ -695,7 +616,6 @@ namespace flare320
 		InsertPrimAltViewport(OTBase() + 0x20, p);
 	}
 
-	// a draw-mode packet on the frame OT + 0x20
 	static void DrawMode(uint32_t mode)
 	{
 		uint8_t *p = (uint8_t *)PacketCursor();
@@ -705,7 +625,6 @@ namespace flare320
 		InsertPrimAutoDepth(OTBase() + 0x20, p);
 	}
 
-	// 0x65D970: the tile between the draw modes 0x2A0 and 0x2C0
 	static void TileModes(uint32_t rgb)
 	{
 		DrawMode(0xE10002A0);
@@ -713,7 +632,6 @@ namespace flare320
 		DrawMode(0xE10002C0);
 	}
 
-	// the sprite of a spark (0x65DA90..0x65DAEC)
 	static void SparkDraw(const int16_t *pos, int16_t scale, int16_t frame)
 	{
 		uint8_t *h = AllocHeader(0xB4);
@@ -725,7 +643,6 @@ namespace flare320
 		FieldFree(0xB4);
 	}
 
-	// the main's frame of counters 0..0x23: S, the basis M of T - S at S
 	static void MainFrame(MainNode *m, const int16_t *S, Mat4x3 *M)
 	{
 		const int32_t v[3] = { (int32_t)m->T[0] - S[0], (int32_t)S[1] - m->T[1], (int32_t)S[2] - m->T[2] };
@@ -735,7 +652,6 @@ namespace flare320
 		M->t[2] = S[2];
 	}
 
-	// the weight of T for counters 0x24..0x2E: (c - 0x24) / 10
 	static inline int32_t LerpWeight(int32_t c) { return (int32_t)(((uint32_t)(c - 0x24) << 12) / 10u); }
 
 	static void SetArg(PrimArg *arg, uint32_t kinds, uint32_t draws, int16_t depth)
@@ -756,13 +672,9 @@ namespace ff8fx
 {
 namespace flare320
 {
-	// ------------------------------------------------------------------
-	// Spark (0x65DA90)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		// 30 fps layer: see mag320_dark_flare_held.inc
 		FX_HELD(held_note_spark(n);)
 		SparkDraw(s->pos, s->scale, s->counter);
 		s->counter++;
@@ -774,14 +686,11 @@ namespace flare320
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Main (0x65BE90)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
 		PrimArg arg;
-		arg.scroll = 0; // (never-written stack word: only read for layout 3's kinds, which write it)
+		arg.scroll = 0;
 		const int32_t c = m->counter;
 		if ((uint32_t)c < 0x24)
 		{
@@ -789,7 +698,6 @@ namespace flare320
 			MainFrame(m, m->S, &m->M);
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
 			SetArg(&arg, KINDS_1, DRAWS_1, -0x10);
-			// 30 fps layer: see mag320_dark_flare_held.inc
 			FX_HELD(held_note_main(PLAY_1, n);)
 			prim::play((prim::Layout *)m->layout_1, PrimCallback, (int)&arg, 0);
 			if ((uint32_t)c >= 0xF)
@@ -883,7 +791,7 @@ namespace flare320
 				d[0] = (int16_t)ComputeSin(a);
 				d[1] = (int16_t)ComputeCos(a);
 				d[2] = 0;
-				d[3] = 0; // (never written: the GTE V0 pad)
+				d[3] = 0;
 				GteLoadV0(d);
 				GteMVMVA_RotV0();
 				GteStoreIR123(d);
@@ -908,9 +816,6 @@ namespace flare320
 		return m->counter < 0x62 ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x65BCC0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
@@ -924,7 +829,6 @@ namespace flare320
 			PacketCursor() = TexBase() + ARENA_B;
 			r->arena = 1;
 		}
-		// 30 fps layer: see mag320_dark_flare_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter == 1)
 		{
@@ -969,7 +873,6 @@ namespace flare320
 		register_port(flare320::ORIG_RootTask, (void *)flare320::RootTask, "320 RootTask", 320);
 		register_port(flare320::ORIG_MainTask, (void *)flare320::MainTask, "320 MainTask", 320);
 		register_port(flare320::ORIG_SparkTask, (void *)flare320::SparkTask, "320 SparkTask", 320);
-		// 30 fps layer: see mag320_dark_flare_held.inc
 		FX_HELD(register_mag320_held();)
 	}
 }

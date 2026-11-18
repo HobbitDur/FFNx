@@ -14,10 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 166: Megiddo Flame (enemy attack 310 of kernel.bin, Omega Weapon c0m114) (MAG_166_*): file loader 0x5E4E70 (texture mag311.tim), setup 0x5E4E90.
-// The module is one compile of the Megiddo Flame code shared with effect 312 (fx_megiddo.h: structure,
-// tasks and globals, written with 166's addresses); this file gives its descriptor and registers its tasks.
-
 #include "fx_megiddo.h"
 
 namespace ff8fx
@@ -26,10 +22,10 @@ namespace megiddo
 {
 	struct D166
 	{
-		static constexpr uint32_t CODE = 0, GLOB = 0, DATA = 0; // 166 address - this module's
-		static constexpr uint32_t CAMERA = 0xD716D8;                     // camera track (setup)
-		static constexpr int32_t BONE = 0x25;                            // the caster's bone of the effect point
-		static constexpr int32_t RMODE = 3;                              // OT shift of the glow / spin / ring prim models
+		static constexpr uint32_t CODE = 0, GLOB = 0, DATA = 0;
+		static constexpr uint32_t CAMERA = 0xD716D8;
+		static constexpr int32_t BONE = 0x25;
+		static constexpr int32_t RMODE = 3;
 		static constexpr int EFFECT = 166;
 	};
 }
@@ -47,7 +43,6 @@ namespace ff8fx
 			"166 Arc", "166 Sheet", "166 Ribbon", "166 Column", "166 ColumnFlash", "166 Pillar", "166 Flame", "166 Sparks", "166 Debris",
 			"166 KnockDown", "166 Throw", "166 Ring2" };
 		megiddo::Megiddo<megiddo::D166>::Register(names);
-		// 30 fps layer: see mag166_megiddo_flame_held.inc
 		FX_HELD(register_mag166_held();)
 	}
 }

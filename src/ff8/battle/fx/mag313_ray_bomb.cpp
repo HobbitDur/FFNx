@@ -14,49 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 313: Ray-Bomb (enemy attack 200 of kernel.bin, GIM52A c0m001; MAG_313_*).
-//
-// The module 0x59B0B0..0x59CB70 is Ray-Bomb 10 (mag010_ray_bomb.cpp, X-ATM092's attack) function for function (near4
-// w\p313_10.txt, w\amap_313.txt: exe data per item (camera animation 0xCD59B0, models / flipbooks 0xCD5B0C..0xCD82E0,
-// tables 0xCD8CF0..0xCD8D68, the dust tables 3 entries instead of 6), module globals -0x28DB70). 13 of its 14
-// functions are identical to 10's up to addresses (setup, root, dust particles, debris, ring, puff, beam, spark, flash,
-// charge, bounce, restore); the director (0x59B180) has the same code with another timeline and these changes:
-//   muzzle = the caster's effect point 0xF0 (flag 0x1000; 10: 0x680) + rotation * (0, 0xC8, 0x32) (10: (0, 800, -930));
-//   charge glows at 0x1A (scale 0xC00, step 0x4C; 10: 1, 0x1000, 0x66); dust 0x1A..0x37, 3 a tick (size 0x900..0xDFF,
-//   speed 0x5A..0xC7; 10: 1..0x1E, 6, 0x1000..0x13FF, 0x96..0x121); muzzle flash 0x38; at 0x4A TWO beams (scale 0x1000;
-//   the first turned -0x400 spinning +0x46 / +0xA0 as 10's, the second turned +0x400 spinning -0x46 / -0xA0; 10: one at
-//   0x22, scale 0x800); smoke puffs 0x63..0x68 (+ the texture restore at 0x63); shockwave ring 0x79; debris 0x79..0x7C;
-//   bounces 0x7A; screen flash counter << 7 up to 0x10, (0xBE - counter) << 8 from 0xB6; the muzzle sound at 0xA is a
-//   plain BdPlaySE 0xCD8CE8 (10: positional, plus the blast sound at 0x51); ends after 0xBE.
-//
-// Structure (setup MAG_313_UNKNOWN 0x59B0D0, file loader MAG_313_UNKNOWN_FL 0x59B0B0 = the texture named at 0xCD8D80
-// "mag312.tim" into 0x223CC88; the setup keeps the context and the caster slot, sets up the root queue 0x223B688 (pool
-// 2 x 0x10) and the effect queue 0x223BE18 (pool 100 x 0x24), spawns the root and the director, starts camera animation
-// 0xCD59B0, queues the TIM and clears the 80 dust particles):
-//   RootTask (0x59CA20) - alternates the packet arena (magic buffer / + 0x8000), runs the effect queue, then the dust
-//     particles; ends when both are empty.
-//   Director (0x59B180) - the whole attack on one 191-tick timeline (above).
-//   Debris (0x59B9F0) - prim model (table 0xCD8D40) tumbling up and falling back, fades at the end.
-//   Ring (0x59BB60) - prim model 0xCD6038 stretched upwards, fades from 10, ends at 24.
-//   Puff (0x59BCA0) - sprite 0xCD5CB8 after a delay, darkening, ends after its life.
-//   Beam (0x59BDF0) - prim model 0xCD82E0 from the muzzle to its end point, rolled to face the camera, stretched to the
-//     distance (half length at counter 1), spinning; from counter 2 spawns 3-7 sparks a tick at its end; fades from 3,
-//     ends at 10.
-//   Spark (0x59C250) - flipbook 0xCD5CE0 rising at a constant speed.
-//   Flash (0x59C2F0) - prim model 0xCD7C38 at the muzzle, shrinking, fades in / out.
-//   Charge (0x59C3E0) - flipbook 0xCD5B0C at the muzzle after a delay, growing, fades in / out.
-//   Bounce (0x59C4F0) - one party entity: saved (flags & 0x1020, rotation words +0x0C..+0x13, position +0x1C..+0x23 in
-//     0x223CC38 + slot * 0x14), spun and thrown up around its effect position for 24 ticks then bounced for 8, 16 dust
-//     particles at 24 (+ chain transformation 6 on a target) and 12 at 31; from 32 it waits while the entity's state
-//     (+0x74 -> byte 0) is 6, then restores the entity and applies the damage (targets only).
-//   Restore (0x59C9E0) - engine texture restore task (magic buffer + 0x10000), ends when done.
-//   Particles (0x59CA70) - 80 dust sprites 0xCD5E8C in 0x223B698 (0x18 each), drifting and slowing down (1/16 a tick),
-//     freed when the flipbook ends.
-// Every task tests the draw-only flags (battle_to_update_flags 0x201): the director and the restore do nothing, the
-// others draw and do not update.
-// Module globals: 0x223B668..0x223CCA0 (root pool, root queue, particles, effect queue + pool, saved entity states,
-// targets' centre 0x223CC78, context 0x223CC80, caster slot 0x223CC84, texture file 0x223CC88, muzzle 0x223CC90, magic
-// buffer base 0x223CC98, packet cursor 0x223CC9C).
+// Effect 313: Ray-Bomb
 
 #include "mag_common.h"
 
@@ -67,14 +25,13 @@ namespace raybomb313
 	using namespace eng;
 	using namespace magc;
 
-	// --- module globals ---
 	inline TaskQueue *QRoot() { return (TaskQueue *)0x223B688; }
 	inline TaskQueue *QEffect() { return (TaskQueue *)0x223BE18; }
-	inline int16_t *Centre() { return (int16_t *)0x223CC78; }             // targets' centre (x, y, z, pad)
+	inline int16_t *Centre() { return (int16_t *)0x223CC78; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x223CC80); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x223CC84); }
-	inline int16_t *Muzzle() { return (int16_t *)0x223CC90; }             // x, y, z, pad
-	inline uint32_t &TexBase() { return var<uint32_t>(0x223CC98); }       // Magic_TextureOFF (magic buffer)
+	inline int16_t *Muzzle() { return (int16_t *)0x223CC90; }
+	inline uint32_t &TexBase() { return var<uint32_t>(0x223CC98); }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x223CC9C); }
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -89,31 +46,27 @@ namespace raybomb313
 	static const uint32_t ORIG_Bounce = 0x59C4F0;
 	static const uint32_t ORIG_Restore = 0x59C9E0;
 	static const uint32_t ORIG_RootTask = 0x59CA20;
-	static const uint32_t ORIG_Particles = 0x59CA70;   // not a task: called by the root
+	static const uint32_t ORIG_Particles = 0x59CA70;
 
 	static const uint32_t SEQ_Dust = 0xCD5E8C, SEQ_Puff = 0xCD5CB8, SEQ_Spark = 0xCD5CE0, SEQ_Charge = 0xCD5B0C;
 	static const uint32_t MODEL_Ring = 0xCD6038, MODEL_Beam = 0xCD82E0, MODEL_Flash = 0xCD7C38;
-	static const uint32_t TABLE_DebrisModel = 0xCD8D40;   // 2 prim models
-	static const uint32_t TABLE_DustOffset = 0xCD8D50;    // 3 x SVECTOR: muzzle dust start offsets
-	static const uint32_t TABLE_DustDir = 0xCD8D68;       // 3 x SVECTOR: muzzle dust directions
-	static const uint32_t TABLE_PuffX = 0xCD8CF0, TABLE_PuffZ = 0xCD8D18;     // 5 spots (dword stride)
-	static const uint32_t TABLE_DebrisX = 0xCD8D04, TABLE_DebrisZ = 0xCD8D2C; // 5 spots (dword stride)
+	static const uint32_t TABLE_DebrisModel = 0xCD8D40;
+	static const uint32_t TABLE_DustOffset = 0xCD8D50;
+	static const uint32_t TABLE_DustDir = 0xCD8D68;
+	static const uint32_t TABLE_PuffX = 0xCD8CF0, TABLE_PuffZ = 0xCD8D18;
+	static const uint32_t TABLE_DebrisX = 0xCD8D04, TABLE_DebrisZ = 0xCD8D2C;
 	static const void *const SOUND_Muzzle = (const void *)0xCD8CE8;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
 	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); } // matrixMultiplyVector (rotation only)
-	inline int32_t NormalizeSVector(const int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); } // sub_56BDE0
-	inline int32_t NormalizeVectorLen2(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); } // returns x*x + y*y + z*z
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, v, out); }
+	inline int32_t NormalizeSVector(const int16_t *in, int16_t *out) { return fn<int32_t (__cdecl *)(const int16_t *, int16_t *)>(0x56BDE0)(in, out); }
+	inline int32_t NormalizeVectorLen2(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(0x56BC50)(in, out); }
 	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(0x56BEC0)(v); }
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); } // GTE_MatrixMultiply
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(0x56C270)(a, b); }
 	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, id); }
 
-	// ------------------------------------------------------------------
-	// Node layouts (effect queue: pool of 100 nodes of 0x24 bytes; root queue: 2 x 0x10)
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
 	struct RootNode { TaskNode hdr; uint16_t counter; uint16_t pad; };
 	struct DirectorNode { TaskNode hdr; int16_t counter; uint8_t pad[0x16]; };
@@ -121,119 +74,119 @@ namespace raybomb313
 	struct DebrisNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t life;      // +0x0E fades over the last 8 ticks
-		int16_t pos[3];    // +0x10
-		int16_t vy;        // +0x16 slows by 1/9 a tick
-		int16_t model;     // +0x18 index into 0xCD8D40
-		int16_t scale;     // +0x1A
-		int16_t rx;        // +0x1C angles (x, 0, z)
-		int16_t rx_step;   // +0x1E
-		int16_t rz;        // +0x20
-		int16_t rz_step;   // +0x22
+		int16_t counter;
+		int16_t life;
+		int16_t pos[3];
+		int16_t vy;
+		int16_t model;
+		int16_t scale;
+		int16_t rx;
+		int16_t rx_step;
+		int16_t rz;
+		int16_t rz_step;
 	};
 	struct RingNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10
+		int16_t pos[3];
 		uint8_t pad16[6];
-		int16_t sxz;       // +0x1C scale x / z
+		int16_t sxz;
 		int16_t pad1E;
-		int16_t sy;        // +0x20 scale y
-		int16_t sy_step;   // +0x22 halves a tick
+		int16_t sy;
+		int16_t sy_step;
 	};
 	struct PuffNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t delay;     // +0x0E
-		int16_t pos[3];    // +0x10
+		int16_t counter;
+		int16_t delay;
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t angle;     // +0x18 y rotation
+		int16_t angle;
 		int16_t pad1A;
-		int16_t scale;     // +0x1C
+		int16_t scale;
 		int16_t pad1E;
-		int16_t life;      // +0x20
+		int16_t life;
 		int16_t pad22;
 	};
 	struct BeamNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E;
-		int16_t pos[3];    // +0x10 end point
+		int16_t pos[3];
 		int16_t pad16;
-		int16_t angle;     // +0x18 spin
-		int16_t angle_step;// +0x1A grows by 1/16 a tick
+		int16_t angle;
+		int16_t angle_step;
 		int16_t pad1C[2];
-		int16_t scale;     // +0x20 width
+		int16_t scale;
 		int16_t pad22;
 	};
 	struct SparkNode
 	{
 		TaskNode hdr;
-		int16_t frame;     // +0x0C
-		int16_t life;      // +0x0E
-		int16_t pos[3];    // +0x10
-		int16_t vy;        // +0x16
+		int16_t frame;
+		int16_t life;
+		int16_t pos[3];
+		int16_t vy;
 		uint8_t pad18[4];
-		int16_t scale;     // +0x1C
+		int16_t scale;
 		uint8_t pad1E[6];
 	};
 	struct FlashNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad0E[0xE];
-		int16_t scale;     // +0x1C
-		int16_t scale_step;// +0x1E grows by 1/32 a tick
+		int16_t scale;
+		int16_t scale_step;
 		uint8_t pad20[4];
 	};
 	struct ChargeNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t delay;     // +0x0E
+		int16_t counter;
+		int16_t delay;
 		uint8_t pad10[8];
-		int16_t size;      // +0x18 sprite header +0x08
+		int16_t size;
 		int16_t pad1A;
-		int16_t scale;     // +0x1C
-		int16_t scale_step;// +0x1E
-		int16_t frame;     // +0x20
+		int16_t scale;
+		int16_t scale_step;
+		int16_t frame;
 		int16_t pad22;
 	};
 	struct BounceNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
-		int16_t slot;      // +0x0E party entity
-		int16_t pos[4];    // +0x10 its default effect position (taken at 0)
-		int16_t spin;      // +0x18 y rotation reached at 24 (x 24)
-		int16_t target;    // +0x1A index in the action's targets, -1 = not a target
+		int16_t counter;
+		int16_t slot;
+		int16_t pos[4];
+		int16_t spin;
+		int16_t target;
 		uint8_t pad1C[4];
-		int16_t amp;       // +0x20 throw height (negative = up)
+		int16_t amp;
 		int16_t pad22;
 	};
-	struct Particle // 0x223B698, 80 of them
+	struct Particle
 	{
-		uint32_t flag;     // +0x00 bit0 = in use
-		int16_t counter;   // +0x04 flipbook frame
-		int16_t scale;     // +0x06
-		int16_t pos[3];    // +0x08
+		uint32_t flag;
+		int16_t counter;
+		int16_t scale;
+		int16_t pos[3];
 		int16_t pad0E;
-		int16_t vel[3];    // +0x10
+		int16_t vel[3];
 		int16_t pad16;
 	};
-	struct SavedEntity // 0x223CC38 + slot * 0x14
+	struct SavedEntity
 	{
-		uint16_t flags;    // entity +0x00 & 0x1020
+		uint16_t flags;
 		uint16_t pad;
-		uint32_t rot0;     // entity +0x0C
-		uint32_t rot1;     // entity +0x10
-		uint32_t pos0;     // entity +0x1C
-		uint32_t pos1;     // entity +0x20
+		uint32_t rot0;
+		uint32_t rot1;
+		uint32_t pos0;
+		uint32_t pos1;
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(DirectorNode) == 0x24 && sizeof(DebrisNode) == 0x24 && sizeof(RingNode) == 0x24, "Ray-Bomb nodes");
@@ -255,7 +208,6 @@ namespace ff8fx
 {
 namespace raybomb313
 {
-	// first free dust particle (flag 0), or -1
 	static int FreeParticle()
 	{
 		for (int i = 0; i < PARTICLES; i++)
@@ -263,9 +215,6 @@ namespace raybomb313
 		return -1;
 	}
 
-	// ------------------------------------------------------------------
-	// Dust particles (0x59CA70): draw every particle in use, then drift / slow it down
-	// ------------------------------------------------------------------
 	static void ParticleDraw(uint8_t *h, const Particle *p)
 	{
 		*(int16_t *)(h + 4) = p->counter;
@@ -275,7 +224,6 @@ namespace raybomb313
 
 	static uint32_t ParticlePass()
 	{
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		uint32_t count = 0;
@@ -305,13 +253,9 @@ namespace raybomb313
 		return count;
 	}
 
-	// ------------------------------------------------------------------
-	// Root task (0x59CA20): node +0x0C counter
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
@@ -321,9 +265,6 @@ namespace raybomb313
 		return (dust | alive) ? 0 : TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Restore (0x59C9E0): engine texture restore task, ends when it says done
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RestoreTask(TaskNode *n)
 	{
 		RestoreNode *t = (RestoreNode *)n;
@@ -337,9 +278,6 @@ namespace raybomb313
 		return done ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Debris (0x59B9F0): prim model, angles (rx, 0, rz), uniform scale
-	// ------------------------------------------------------------------
 	static void DebrisHeader(uint8_t *h, const DebrisNode *p)
 	{
 		*(uint32_t *)(h + 0x1C) = 0;
@@ -369,13 +307,11 @@ namespace raybomb313
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
 		DebrisHeader(h, p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_fix_header(h);)
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
 
-	// rise / fall: y += vy, vy -= vy / 9; tumble
 	static void DebrisUpdate(DebrisNode *p)
 	{
 		int16_t v = p->vy;
@@ -389,19 +325,14 @@ namespace raybomb313
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *p = (DebrisNode *)n;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_draw(ORIG_Debris, p);)
 		DebrisDraw(p);
 		if (DrawOnly()) return 0;
 		DebrisUpdate(p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_after(p);)
 		return p->counter >= p->life ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Ring (0x59BB60): prim model 0xCD6038, no rotation, scale (sxz, sy, sxz)
-	// ------------------------------------------------------------------
 	static void RingHeader(uint8_t *h, const RingNode *p)
 	{
 		*(uint32_t *)h = MODEL_Ring;
@@ -431,7 +362,6 @@ namespace raybomb313
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
 		RingHeader(h, p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_fix_header(h);)
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -448,19 +378,14 @@ namespace raybomb313
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_draw(ORIG_Ring, p);)
 		RingDraw(p);
 		if (DrawOnly()) return 0;
 		RingUpdate(p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_after(p);)
 		return p->counter >= 0x18 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Puff (0x59BCA0): sprite 0xCD5CB8 turned (0x400, angle, 0), darkening
-	// ------------------------------------------------------------------
 	static void PuffHeader(uint8_t *h, const PuffNode *p)
 	{
 		*(uint16_t *)(h + 4) = 0;
@@ -488,7 +413,6 @@ namespace raybomb313
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0xB4);
 		PuffHeader(h, p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_fix_header(h);)
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -503,20 +427,14 @@ namespace raybomb313
 			p->delay--;
 			return 0;
 		}
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_draw(ORIG_Puff, p);)
 		PuffDraw(p);
 		if (DrawOnly()) return 0;
 		p->counter++;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_after(p);)
 		return p->counter >= p->life ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Beam (0x59BDF0): prim model 0xCD82E0 from the muzzle towards pos, rolled about its axis so
-	// that it faces the camera eye (0xB8B7F0), length = distance; spark spawn point in `end`
-	// ------------------------------------------------------------------
 	static void BeamHeader(uint8_t *h, const BeamNode *p)
 	{
 		*(uint32_t *)h = MODEL_Beam;
@@ -538,7 +456,6 @@ namespace raybomb313
 		int16_t angles[4] = { 0, p->angle, 0, 0 };
 		Mat4x3 m1 = {};
 		BuildRotationMatrixFromAngles(angles, &m1);
-		// axis / first cross product / second axis share one stack slot in the original
 		int32_t d[3], dir[3], axis[3];
 		d[0] = p->pos[0] - Muzzle()[0];
 		d[1] = p->pos[1] - Muzzle()[1];
@@ -550,7 +467,6 @@ namespace raybomb313
 		m1.t[0] = Muzzle()[0];
 		m1.t[1] = Muzzle()[1];
 		m1.t[2] = Muzzle()[2];
-		// the model's "up" in the beam frame
 		down[0] = 0;
 		down[1] = -0x1000;
 		down[2] = 0;
@@ -571,7 +487,6 @@ namespace raybomb313
 		BuildAxisAngleRotationMatrix(angle, &m2, dir);
 		MatrixMultiply(&m2, &m1);
 		int32_t len = Sqrt(len2);
-		// spark spawn point: muzzle + dir * distance (4th word = the muzzle's pad word)
 		ff8fx::copy<(8)>(end, Muzzle());
 		end[0] = (int16_t)(end[0] + (mul32(dir[0], len) >> 12));
 		end[1] = (int16_t)(end[1] + (mul32(dir[1], len) >> 12));
@@ -579,7 +494,6 @@ namespace raybomb313
 		const int32_t full = shl32(len, 12) / 1046;
 		int32_t stretch = full;
 		if (p->counter < 2) stretch = (full / 2) * p->counter;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_fix_stretch(&stretch, full);)
 		int32_t s[3] = { p->scale, p->scale, stretch };
 		Scale3DMatrix(&m1, s);
@@ -588,7 +502,6 @@ namespace raybomb313
 		GteSetTransVector(&m1);
 		uint8_t *h = AllocHeader(0x58);
 		BeamHeader(h, p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_fix_header(h);)
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -605,7 +518,6 @@ namespace raybomb313
 	{
 		BeamNode *p = (BeamNode *)n;
 		int16_t end[4];
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_draw(ORIG_Beam, p);)
 		BeamDraw(p, end);
 		if (DrawOnly()) return 0;
@@ -636,14 +548,10 @@ namespace raybomb313
 			}
 		}
 		p->counter++;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_after(p);)
 		return p->counter > 9 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Spark (0x59C250): flipbook 0xCD5CE0 rising at a constant speed
-	// ------------------------------------------------------------------
 	static void SparkDraw(const SparkNode *p)
 	{
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
@@ -658,20 +566,15 @@ namespace raybomb313
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *p = (SparkNode *)n;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_draw(ORIG_Spark, p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
 		p->pos[1] = (int16_t)(p->pos[1] + p->vy);
 		p->frame++;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_after(p);)
 		return p->frame >= p->life ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Flash (0x59C2F0): prim model 0xCD7C38 at the muzzle (camera facing), fades in then out
-	// ------------------------------------------------------------------
 	static void FlashHeader(uint8_t *h, const FlashNode *p)
 	{
 		h[0xA] = 0;
@@ -696,7 +599,6 @@ namespace raybomb313
 		TransformCameraByShadowRotation(Muzzle(), p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0x58);
 		FlashHeader(h, p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_fix_header(h);)
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -716,19 +618,14 @@ namespace raybomb313
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		FlashNode *p = (FlashNode *)n;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_draw(ORIG_Flash, p);)
 		FlashDraw(p);
 		if (DrawOnly()) return 0;
 		FlashUpdate(p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_after(p);)
 		return p->counter >= 0x24 ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Charge (0x59C3E0): flipbook 0xCD5B0C at the muzzle, growing, fades in (0..7) / out (22..)
-	// ------------------------------------------------------------------
 	static void ChargeHeader(uint8_t *h, const ChargeNode *p)
 	{
 		*(int32_t *)(h + 8) = p->size;
@@ -750,7 +647,6 @@ namespace raybomb313
 		TransformCameraByShadowRotation(Muzzle(), p->scale, -(p->scale >> 4));
 		uint8_t *h = AllocHeader(0xB4);
 		ChargeHeader(h, p);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_fix_header(h);)
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -767,24 +663,17 @@ namespace raybomb313
 			return 0;
 		}
 		uint8_t *h;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_draw(ORIG_Charge, p);)
 		ChargeDraw(p, &h);
 		if (DrawOnly()) return 0;
-		// the flipbook restarts when it has ended (header +0x28 negative; read after the free, the
-		// scratch is not reused in between)
 		if (*(int16_t *)(h + 0x28) < 0) p->frame = 0;
 		else p->frame++;
 		p->scale = (int16_t)(p->scale + p->scale_step);
 		p->counter++;
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(held_note_after(p);)
 		return p->counter >= 0x1E ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Bounce (0x59C4F0): throws one party entity (see the module comment)
-	// ------------------------------------------------------------------
 	static void BounceDust(const BounceNode *b, int n, int32_t scale_mod, int32_t scale_add, int32_t speed_mod, int32_t speed_add, bool mask_scale)
 	{
 		for (int k = 0; k < n; k++)
@@ -825,8 +714,6 @@ namespace raybomb313
 		}
 		if (b->counter <= 0x18)
 		{
-			// spun (y by spin * counter / 24, x by a half turn) and thrown up about its effect
-			// position: position = p - R * (p - saved position) + amp * sin(counter / 24 half turn)
 			int32_t a = shl32(b->counter, 11) / 24;
 			*(uint16_t *)e |= 0x1020;
 			int32_t lift = mul32(ComputeSin(a), b->amp);
@@ -851,7 +738,6 @@ namespace raybomb313
 		}
 		else if (b->counter <= 0x20)
 		{
-			// small bounce
 			int32_t a = shl32(b->counter - 0x18, 11) / 8;
 			*(uint16_t *)e |= 0x1020;
 			*(int16_t *)(e + 0x1E) = (int16_t)(mul32(ComputeSin(a), b->amp >> 3) >> 12);
@@ -876,9 +762,6 @@ namespace raybomb313
 		return TASK_END;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x59B180)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
@@ -911,7 +794,6 @@ namespace raybomb313
 		}
 		if (d->counter >= 0x1A && d->counter <= 0x37)
 		{
-			// 3 dust particles from the muzzle, one per table entry
 			for (int k = 0; k < 3; k++)
 			{
 				int i = FreeParticle();
@@ -963,7 +845,6 @@ namespace raybomb313
 			b->angle = 0x46;
 			b->angle_step = 0xA0;
 			b->scale = 0x1000;
-			// the second beam: turned the other way (+0x400), spinning the other way
 			b = (BeamNode *)AddTaskToQueue(QEffect(), ORIG_Beam);
 			v[0] = (int16_t)(Centre()[0] - Muzzle()[0]);
 			b->counter = 0;
@@ -1056,7 +937,6 @@ namespace raybomb313
 		}
 		if (d->counter == 0x7A)
 		{
-			// one bounce per party entity with a model
 			for (int slot = 0; slot < 3; slot++)
 			{
 				if (!(*Entity(slot) & 2)) continue;
@@ -1099,7 +979,6 @@ namespace raybomb313
 		register_port(raybomb313::ORIG_Charge, (void *)raybomb313::ChargeTask, "R313 Charge", 313);
 		register_port(raybomb313::ORIG_Bounce, (void *)raybomb313::BounceTask, "R313 Bounce", 313);
 		register_port(raybomb313::ORIG_Restore, (void *)raybomb313::RestoreTask, "R313 Restore", 313);
-		// 30 fps layer: see mag313_ray_bomb_held.inc
 		FX_HELD(register_mag313_held();)
 	}
 }

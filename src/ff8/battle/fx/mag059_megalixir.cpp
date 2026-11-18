@@ -14,38 +14,6 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 59: Megalixir (item, MAG_059_*): Mega-Potion's module (mag053_megapotion.cpp) with other pool sizes and timings:
-// a copy of the actor/heal effect library (see act_engine.h) built like Full-life (mag027_fulllife.cpp: same master,
-// emitter, stage fade and actor-system code with the module's own globals) with ONE actor system per target (the
-// director set-up 0x7F2DE0 takes the action's current target record instead of the whole target list) and the action loop
-// of Mighty Guard (mag078). Its code differs from Mega-Potion's only in immediates: pool sizes, emitter timings, the
-// fade-out wait, the emitter sound tick (and the setup's arena size).
-//
-// Setup MAG_059_MEGALIXIR_Init 0x7F2810 (runs once, not ported; file loader MAG_059_MEGALIXIR_FL 0x7F27F0 = the effect's
-// data file mag057-058.tim (name 0x159ADEC) -> [0x2607060], TIM uploaded by the setup unless the cast context's flag +1 bit 0, its
-// packet arenas at file + 0 / + 0x9000 (second arena word + 0x9000 / + 0x12000), file arena cursor 0x260803C = file +
-// 0x12000) creates the root queue 0x2607150 with the master and three task pools: 0x2607EA0 (4 x 0x58: emitters), 0x2607C00
-// (4 x 0x2A4: actor systems), 0x2607E90 (10 x 0x40: stage fade).
-//   Master (0x7F2930 = Full-life's 0x883240) - camera copy 0x2793E58 (the module scratch stack 0x2608030 grows down from
-//     it), packet arena by tick parity (cursor 0x2607064), bone follow, 11-state table: 0x7F2A90 reserves the actor pools
-//     after the arena (0x12FC + 0xD200 bytes = 45 particles of 0x6C and 80 actors of 0x2A0, cleared by 0x7F2AE0) and starts
-//     the stage fade in (0x7F2B20: level 0x1D98992 + k * 0x2C up to 0x400), 0x7F2C10 one emitter per target of the action
-//     (action loop 0x7F7AE0: next target record +0x2B once the emitter releases the master's +0x63 hold), 0x7F7B30 after
-//     12 more ticks the stage fade out (0x7F7B60), then waits for the queues to empty.
-//   Emitter (0x7F2C40), one per target: bone follow + model bounds (CURE_Emitter helpers), sound 0x1597840 at its tick
-//     8; state 0 spawns the actor system (0x7F2CD0 -> 0x7F2D00 with the actor data 0x159ACE8, mode 0x2D), state 1 releases
-//     the master at tick 18, state 2 applies the action result to its target (the heal) from tick 18.
-//   Actor system (0x7F2D50 -> 0x7F2DB0 / 0x7F7A40): the engine's particle actors (emitters and particles, sprite sequences
-//     0x7F4FE0 / prim models 0x7F3900 drawn into the module arena) placed by the actor data's key positions (caster / its one
-//     target), taken once at the director set-up 0x7F2DE0.
-//   Stage fade (0x7F2B20 in: 0x7F2B80 clears the 4 colour/fade layers of 0x1D9898C, 0x7F2BC0 level +0x100 per tick to
-//     0x400; 0x7F7B60 out: 0x7F7BC0 level 0x400, 0x7F7BE0 -0x100 per tick to 0): the level word +6 of each layer
-//     (0x1D98992 + k * 0x2C).
-// No task tests the draw-only flags (battle_to_update_flags 0x201).
-// Module globals: 0x2607060..0x2608044 (file pointer 0x2607060, packet cursor 0x2607064, pools, queues, arenas, actor state 0x2608040,
-// scratch stack pointer 0x2608030), the module scratch stack below the camera copy 0x2793E58, the fade layers
-// 0x1D98992 + k * 0x2C (words) / 0x1D989B8 + k * 0x2C (bytes).
-
 #include "act_engine.h"
 
 namespace ff8fx
@@ -54,24 +22,21 @@ namespace act
 {
 namespace megalixir
 {
-	// ---- generated (gen53.py): the module descriptor of this copy of the library ----
 	static const Mod MOD_059 = { "megalixir", 59, 0x7F27F0, 0x7F7C90,
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2607084, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2607C00, 0x0, 0x2607EA0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2608040 },
 		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7F3B80, 0x7F3D90, 0x7F4010, 0x7F4250, 0x7F44F0, 0x7F4720, 0x7F49E0, 0x7F4C40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7F2C40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7F5790, 0x7F57E0, 0x0, 0x0, 0x7F60D0, 0x0, 0x0, 0x0, 0x7F6AB0, 0x7F6AE0, 0x7F6BC0, 0x7F6CE0, 0x7F6E30, 0x0, 0x7F74F0, 0x7F76D0, 0x7F7810, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
 
-	// --- module globals ---
-	static const uint32_t PACKET_CURSOR = 0x2607064;   // module packet cursor (the draws' arena)
-	static const uint32_t ACTOR_STATE = 0x2608040;     // current actor system state block
-	static const uint32_t SCRATCH_SP = 0x2608030;      // module scratch stack pointer
+	static const uint32_t PACKET_CURSOR = 0x2607064;
+	static const uint32_t ACTOR_STATE = 0x2608040;
+	static const uint32_t SCRATCH_SP = 0x2608030;
 	static const uint32_t Q_EMITTER = 0x2607EA0, Q_ACTORS = 0x2607C00, Q_STAGE = 0x2607E90;
 	static const uint32_t ORIG_Master = 0x7F2930;
 	static const uint32_t ORIG_Emitter = 0x7F2C40;
 	static const uint32_t ORIG_StageIn = 0x7F2B20;
 	static const uint32_t ORIG_StageOut = 0x7F7B60;
 	static const uint32_t ORIG_ActorSystem = 0x7F2D50;
-	static const void *const SOUND = (const void *)0x1597840; // the emitter's sound
+	static const void *const SOUND = (const void *)0x1597840;
 
-	// engine functions not in act::x
 	namespace mlx
 	{
 		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x45E0B0)(a1); }
@@ -79,7 +44,6 @@ namespace megalixir
 		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(0x45EBF0)(); }
 	}
 
-	// helpers of the library code (as in act_engine.cpp / mag097_boko.cpp / mag039_drain.cpp)
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
 	{
 		U32(dst, 0) = U32(src, 0);
@@ -121,15 +85,12 @@ namespace megalixir
 	static inline bool b1_out(int16_t v, int16_t hi) { return v < 0 || v > hi; }
 	static inline bool b2_out_x(int16_t v) { return v < 0 || v > 0xA00; }
 	static inline bool b2_out_y(int16_t v) { return v < 0 || v > 0x6C0; }
-	// cdq; and edx, 0xFFFF; add eax, edx; sar eax, 16  (= signed 16.16 -> integer, toward zero)
 	static inline int32_t b2_fx(uint32_t v)
 	{
 		int32_t s = (int32_t)v;
 		return add32(s, (s >> 31) & 0xFFFF) >> 16;
 	}
 
-	// common task tail (frame counter already incremented): end (release the linked task, return 2)
-	// when finished (status read before the increment) and no children are alive
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
 	{
 		if ((status & 1) != 0 && U8(node, 0x28) == 0)
@@ -139,7 +100,6 @@ namespace megalixir
 		}
 		return 0;
 	}
-	// module ports of this file (32-bit words in and out, cdecl, like the originals)
 	uint32_t __cdecl ml_7F2930(uint32_t a1);
 	uint32_t __cdecl ml_7F2A90(uint32_t a1);
 	uint32_t __cdecl ml_7F2AE0(void);
@@ -197,24 +157,14 @@ namespace act
 {
 namespace megalixir
 {
-	// ====================================================================================
-	// the module's functions: the text of the matching Full-life port (Mighty Guard / Counter Laser-Eye for the
-	// pool set-up / allocator / emitter states / action loop) with this module's addresses and callees (the
-	// comments describe the source original); the director set-up is ported by hand
-	// ====================================================================================
 
-
-	// 0x7F2930 (MAG_059_sub_7F2930): MASTER task - camera copy, packet arena by tick parity, bone
-	// follow, 11-state table, the three queues (live task count -> node +0x5E; the actor counters
-	// 0x260802A / 0x260801A are cleared before the queues run)
 	uint32_t __cdecl ml_7F2930(uint32_t a1)
 	{
 		g_mod = &MOD_059;
-		// 30 fps layer: see mag059_megalixir_held.inc
 		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778); // rep movsd: camera matrix copy
+		ff8fx::copy<(8 * 4)>((void *)0x2793E58, (const void *)0x1D97778);
 		const uint32_t node = a1;
 		MEM<uint32_t>(SCRATCH_SP) = 0x2793E58;
 		MEM<uint32_t>(0x2607084) = 0x2793E58;
@@ -229,7 +179,7 @@ namespace megalixir
 		states[7] = 0x7F7C40;
 		states[8] = 0x7F7C50;
 		states[9] = 0x7F7C60;
-		states[10] = 0x7F7C80; // nullsub (ret)
+		states[10] = 0x7F7C80;
 		if ((parity & 1) != 0)
 		{
 			const uint32_t v1 = MEM<uint32_t>(0x2608014);
@@ -258,15 +208,10 @@ namespace megalixir
 		return task_end(node, status);
 	}
 
-
-	// 0x7F2A90 (MAG_059_sub_7F2A90): master state 2 - once no child is alive: the two actor pools
-	// are carved from the file arena cursor [0x260803C] (0x12FC bytes = 45 particles of 0x6C at
-	// [0x260801C], 0xD200 bytes = 80 actors of 0x2A0 at [0x2608034]) and cleared (0x7F2AE0), the
-	// stage fade task 0x7F2B20 (0x40 bytes, stage queue) starts, next state
 	uint32_t __cdecl ml_7F2A90(uint32_t a1)
 	{
 		if (U8(a1, 0x28) != 0)
-			return 0; // void
+			return 0;
 		uint32_t p = MEM<uint32_t>(0x260803C);
 		MEM<uint32_t>(0x260801C) = p;
 		p += 0x12FC;
@@ -276,12 +221,9 @@ namespace megalixir
 		ml_7F2AE0();
 		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, ORIG_StageIn, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F2AE0 (MAG_059_sub_7F2AE0): clears the two actor pools (0x12FC bytes at [0x260801C], 0xD200
-	// at [0x2608034]) and the pool cursors / counters
 	uint32_t __cdecl ml_7F2AE0(void)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(0x260801C), 0x12FC);
@@ -290,15 +232,9 @@ namespace megalixir
 		MEM<uint16_t>(0x2608028) = 0;
 		MEM<uint16_t>(0x2608018) = 0;
 		MEM<uint16_t>(0x2607068) = 0;
-		return 0; // void
+		return 0;
 	}
 
-
-	// ====================================================================================
-	// the library functions of this module whose code matches Drain's / an engine port's up to
-	// the module's addresses and callees (the port's text with the module's addresses)
-	// ====================================================================================
-	// 0x7F2BC0 (MAG_059_sub_7F2BC0), written to the four stage fade words 0x1D98992 + k * 0x2C
 	uint32_t __cdecl ml_7F2BC0(uint32_t a1)
 	{
 		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0x100);
@@ -313,13 +249,9 @@ namespace megalixir
 		uint32_t p = 0x1D98992;
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F2C40 (MAG_059_sub_7F2C40): EMITTER task (one per action) - bone-follow anchor and model
-	// bounds, state {0x7F2CD0 actor system, 0x7F7A70 release the master, 0x7F7A90 action result,
-	// ret}, sound at its first tick
 	uint32_t __cdecl ml_7F2C40(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -327,7 +259,7 @@ namespace megalixir
 		states[0] = 0x7F2CD0;
 		states[1] = 0x7F7A70;
 		states[2] = 0x7F7A90;
-		states[3] = 0x7F7AD0; // nullsub (ret)
+		states[3] = 0x7F7AD0;
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -338,19 +270,13 @@ namespace megalixir
 		return task_end(node, status);
 	}
 
-
-	// 0x7F2CD0 (MAG_059_sub_7F2CD0): emitter state 0 - the actor system (0x7F2D50, actor data
-	// 0x159ACE8, start tick 0, mode 0x2D) through the engine spawner 0x7F2D00, next state
 	uint32_t __cdecl ml_7F2CD0(uint32_t a1)
 	{
 		a_73C100(a1, ORIG_ActorSystem, 0x159ACE8, 0, 0x2D, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F2DB0 (sub_7F2DB0, copy of a_7348A0 0x7348A0; engine; MiniMog sub_7348A0): state: once the frame counter +0x24 reaches
-	// +0x298, runs a_73F990 and one step of the actor system (a_7353B0), advances the state
 	uint32_t __cdecl ml_7F2DB0(uint32_t a1)
 	{
 		if (S16(a1, 0x24) >= S16(a1, 0x298))
@@ -359,25 +285,19 @@ namespace megalixir
 			ml_7F3810(a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-	// 0x7F2DE0 (sub_7F2DE0): actor director set-up for node a1 (Full-life's 0x8836F0 with ONE target: the action's current
-	// target record +0x2B instead of the action's whole target list): *ACTOR_STATE = state block node+0x34; copies
-	// node+0x29A/0x29C(mode)/0x29E into it, points its 4 tables (+0x224..+0x230) into the loaded actor data
-	// (node+0x30; relocated once by 0x7F35B0, flag data+0), target count 1 = the action's record +0x2B target slot,
-	// sets start / per-target / bounds positions (0x7F3050, 0x7F33A0; modes 1/3/4 extra set-ups) and stores the
-	// caster-to-target distance in state+0.
 	uint32_t __cdecl ml_7F2DE0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t data = U32(node, 0x30);        // edi: loaded actor data
+		const uint32_t data = U32(node, 0x30);
 		const uint16_t w29a = U16(node, 0x29A);
 		const uint16_t w29c = U16(node, 0x29C);
-		uint32_t st = node + 0x34;                    // eax: director state block
-		const uint16_t caster = (uint16_t)U8(node, 0x2C); // bx (movzx)
+		uint32_t st = node + 0x34;
+		const uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x22) = w29a;
-		U16(st, 0x24) = w29c;                         // mode
+		U16(st, 0x24) = w29c;
 		U32(st, 0x224) = data + 4;
 		U32(st, 0x228) = data + 0x44;
 		U32(st, 0x22C) = data + 0x84;
@@ -396,17 +316,17 @@ namespace megalixir
 		const uint32_t tab = U32(U32(node, 0x0C), 4);
 		const int32_t ti = S8(node, 0x2B);
 		const uint32_t rec = U32(tab + (uint32_t)mul32(action, 5) * 4, 8);
-		U32(st, 4) = U8(rec, (uint32_t)mul32(ti, 3) * 8);   // target slot (byte, ebx cleared)
+		U32(st, 4) = U8(rec, (uint32_t)mul32(ti, 3) * 8);
 		U16(st, 0x1A) = U16(node, 0x29E);
 		ml_7F3050();
 		st = MEM<uint32_t>(ACTOR_STATE);
 		if (U16(st, 0x24) == 4)
 			callp(0x7F2F70, node);
-		ml_7F33A0();   // (the original pushes node; the callee takes no argument)
+		ml_7F33A0();
 		st = MEM<uint32_t>(ACTOR_STATE);
 		if (U16(st, 0x24) == 1)
 		{
-			callp(0x7F31B0, node);   // 0-arg function, node pushed like the original
+			callp(0x7F31B0, node);
 			st = MEM<uint32_t>(ACTOR_STATE);
 		}
 		if (U16(st, 0x24) == 3)
@@ -414,7 +334,6 @@ namespace megalixir
 			a_73FE90(node);
 			st = MEM<uint32_t>(ACTOR_STATE);
 		}
-		// distance caster entity -> target entity (s16 x/y/z at entity +0x1C/+0x1E/+0x20)
 		const int32_t s1 = S16(st, 0x1E);
 		const uint32_t e1 = 0x1D972C0 + (uint32_t)mul32(s1, 0x9C);
 		const uint32_t d10 = U32(e1, 0x1C);
@@ -429,14 +348,9 @@ namespace megalixir
 		const uint32_t dist = x::Sqrt((uint32_t)sq);
 		st = MEM<uint32_t>(ACTOR_STATE);
 		U32(st, 0) = dist;
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F2F70 (sub_7F2F70, copy of b_72AD60 0x72AD60; 097 sub_72AD60, 098 0x722B60, 099 0x7190B0, 100 0x70FD30): sets the arena
-	// [BG_257B5CC] +0x1B4 vector to node +0x290/+0x292/+0x294 (<< 16, fixed point) and copies that
-	// 16-byte vector to the history slots +0x204, +0x1F4, +0x1E4, +0x1D4, +0x1C4 (never runs in
-	// the harness)
 	uint32_t __cdecl ml_7F2F70(uint32_t a1)
 	{
 		const uint32_t arena = MEM<uint32_t>(0x2608040);
@@ -454,17 +368,11 @@ namespace megalixir
 		return U32(v, 0xC);
 	}
 
-
-	// 0x7F3050 (sub_7F3050): the actor system's reference points from the caster (slot state +0x1E):
-	// +0x1C4 its effect bone 0xF1 (y = its height word +0x24), +0x1D4 the same on the ground (y 0),
-	// +0x1E4 bone 0xF1 again, +0x1F4 bone 0xF0, +0x204 x / z with y = its +0x3C (16.16 each);
-	// mode 2 (+0x24) takes no bone position (the stack words keep what they held)
 	uint32_t __cdecl ml_7F3050(void)
 	{
 		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
 		const int32_t slot = S16(st, 0x1E);
 		const uint32_t ent = 0x1D972C0 + (uint32_t)mul32(slot, 0x9C);
-		// [esp+4] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
@@ -501,26 +409,20 @@ namespace megalixir
 		U32(st, 0x204) = sx;
 		S32(st, 0x208) = h;
 		U32(st, 0x20C) = U32(st, 0x1CC);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F31B0 (sub_7F31B0, copy of b_72AFE0 0x72AFE0; 097 sub_72AFE0, 098 0x722DE0, 099 0x719330, 100 0x70FFB0): for i < count
-	// (arena [BG_257B5CC] +0x1C, re-read each pass) copies the 16-byte vector arena +0x194 into
-	// arena +0x54/+0x94/+0xD4/+0x114/+0x154 + 0x10*i (5 trail histories; never runs in the harness)
 	uint32_t __cdecl ml_7F31B0(void)
 	{
 		const uint32_t arena = MEM<uint32_t>(0x2608040);
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
-			return arena; // void (eax = arena)
+			return arena;
 		const uint32_t src = arena + 0x194;
 		uint32_t dst = arena + 0x94;
 		do
 		{
 			i++;
-			// quirk: for i >= 4 the destinations reach the source (+0x194): the copies are done
-			// dword by dword in listing order, so the overlap behaves like the original
 			b1_copy16(dst - 0x40, src);
 			b1_copy16(dst, src);
 			b1_copy16(dst + 0x40, src);
@@ -528,19 +430,12 @@ namespace megalixir
 			b1_copy16(dst + 0xC0, src);
 			dst += 0x10;
 		} while (i < (int32_t)S16(arena, 0x1C));
-		return dst; // void (eax = last destination pointer)
+		return dst;
 	}
 
-
-	// 0x7F33A0 (sub_7F33A0): per target of the actor system (slots state +4.., count +0x1C) the
-	// target reference points +0x54 (bone 0xF1, y = height word +0x24), +0x94 (its ground point),
-	// +0xD4 (bone 0xF1), +0x114 (bone 0xF0), +0x154 (x / z, y = +0x3C), 16.16, stride 0x10;
-	// then the centre of the targets' x / z range at +0x194 (y 0). Mode 2 (+0x24) takes no bone
-	// position (the stack words keep what they held)
 	uint32_t __cdecl ml_7F33A0(void)
 	{
 		uint32_t st = MEM<uint32_t>(ACTOR_STATE);
-		// [esp+0x18] s16 x, y, z: never-written stack when mode 2 skips the bone reads (0 here)
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -587,7 +482,6 @@ namespace megalixir
 				if (i >= S16(st, 0x1C)) break;
 			}
 		}
-		// centre of the x / z range of the targets' +0x54 / +0x5C
 		const int32_t n = S16(st, 0x1C);
 		int32_t min_x = 0, max_x = 0, max_z = 0, min_z = 0;
 		for (int32_t i = 0; i < n; i++)
@@ -610,15 +504,9 @@ namespace megalixir
 		S32(st, 0x194) = add32(min_x, max_x) / 2;
 		U32(st, 0x198) = 0;
 		S32(st, 0x19C) = add32(max_z, min_z) / 2;
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F3810 (sub_7F3810, copy of a_7353B0 0x7353B0; engine; MiniMog sub_7353B0): one step of the actor system at node+0x34 (made
-	// current in G_258FB78): phase +0x20: 0 -> 1; 1 -> updates the actors (a_743190, a_736C00,
-	// a_740700) and draws them (a_735440), counts +0x18 up to +0x1A and moves to phase 2 when
-	// nothing is pending (+0x14/+0x16 == 0); 2 -> returns 1 (done). Always adds +0x14/+0x16 to
-	// the module counters G_258FB40 / G_258EC50
 	uint32_t __cdecl ml_7F3810(uint32_t a1)
 	{
 		uint32_t done = 0;
@@ -633,7 +521,6 @@ namespace megalixir
 		case 1:
 			ml_7F79B0();
 			ml_7F5060();
-			// 30 fps layer: see mag059_megalixir_held.inc
 			FX_HELD(held_note_system(sys);)
 			ml_7F4F20();
 			ml_7F38A0();
@@ -655,10 +542,6 @@ namespace megalixir
 		return done;
 	}
 
-
-	// 0x7F38A0 (sub_7F38A0, copy of a_735440 0x735440; engine; MiniMog sub_735440): draw pass of the actor system: for every actor of
-	// the list (sys+0x2C, next +4) of type 1 whose definition (sys+0x224 table, index +0x1D6)
-	// has kind 4 or 5 and which has a model (+0x170), draws it (a_7354A0)
 	uint32_t __cdecl ml_7F38A0(void)
 	{
 		uint32_t act = U32(U32(0x2608040, 0), 0x2C);
@@ -675,13 +558,9 @@ namespace megalixir
 			}
 			act = U32(act, 4);
 		}
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F3900 (sub_7F3900): the engine's 0x7354A0 (draw of a prim-model actor: header on the module
-	// scratch stack, model +0x170, fade +0x1CE / colour +0x16C, one copy or one per sub-position
-	// +0x19C..) drawing into the module arena
 	uint32_t __cdecl ml_7F3900(uint32_t a1, uint32_t a2)
 	{
 		uint32_t ctx = MEM<uint32_t>(SCRATCH_SP) - 0x58;
@@ -738,13 +617,6 @@ namespace megalixir
 		return top;
 	}
 
-
-	// 0x7F3B80 (sub_7F3B80, copy of b_72BA00 0x; 097 sub_72BA00, 098 0x723800, 099 0x719D50, 100 0x7109D0): flat-shaded triangle
-	// mesh emitter - for each 0xC-byte face at ctx +0x20 (count first) projects its 3 vertices
-	// (ctx +4 base, word indices *4), builds a POLY_F3 packet (0x14 bytes) at a4, culls (GTE flag,
-	// backface unless ctx+0x1C bit 0x10, screen range), optionally light-colours it (ctx+0x1C bit
-	// 0x40) and inserts it into OT a2 at OTZ >> a3; returns the new packet cursor (never runs in
-	// the harness)
 	uint32_t __cdecl ml_7F3B80(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -759,7 +631,7 @@ namespace megalixir
 			U32(ctx, 0x20) = face;
 			return cur;
 		}
-		uint32_t pk = cur + 0xC;   // edi: packet +0xC (xy1)
+		uint32_t pk = cur + 0xC;
 		uint32_t left = count;
 		do
 		{
@@ -771,10 +643,10 @@ namespace megalixir
 			x::GTE_RTPT();
 			const uint32_t fl = U32(ctx, 0x1C);
 			const uint32_t code = U32(face, 0);
-			U32(pcur, 0) = 0x4000000;          // tag: 4 words
-			U32(pk, -8) = code;                // colour + code
+			U32(pcur, 0) = 0x4000000;
+			U32(pk, -8) = code;
 			if ((fl & 1) != 0)
-				U32(pk, -8) = code | 0x2000000;   // semi-transparent
+				U32(pk, -8) = code | 0x2000000;
 			if ((fl & 4) != 0)
 				U32(pk, -8) &= 0xFDFFFFFFu;
 			x::GTE_ReadFLAG(ctx + 0x30);
@@ -817,11 +689,6 @@ namespace megalixir
 		return cur;
 	}
 
-
-	// 0x7F3D90 (sub_7F3D90, copy of b_72BC10 0x; 097 sub_72BC10, 098 0x723A10, 099 0x719F60, 100 0x710BE0): flat-shaded quad mesh
-	// emitter - like b_72BA00 with 4 vertices per 0xC-byte face (indices +4/+6/+8, 4th +0xA),
-	// POLY_F4 packets (0x18 bytes, tag 0x5000000), AVSZ4 depth; returns the new packet cursor
-	// (never runs in the harness)
 	uint32_t __cdecl ml_7F3D90(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
@@ -836,7 +703,7 @@ namespace megalixir
 			U32(ctx, 0x20) = face;
 			return cur;
 		}
-		uint32_t pk = cur + 0xC;   // esi: packet +0xC (xy1)
+		uint32_t pk = cur + 0xC;
 		uint32_t left = count;
 		do
 		{
@@ -848,10 +715,10 @@ namespace megalixir
 			x::GTE_RTPT();
 			const uint32_t fl = U32(ctx, 0x1C);
 			const uint32_t code = U32(face, 0);
-			U32(pcur, 0) = 0x5000000;          // tag: 5 words
-			U32(pk, -8) = code;                // colour + code
+			U32(pcur, 0) = 0x5000000;
+			U32(pk, -8) = code;
 			if ((fl & 1) != 0)
-				U32(pk, -8) = code | 0x2000000;   // semi-transparent
+				U32(pk, -8) = code | 0x2000000;
 			if ((fl & 4) != 0)
 				U32(pk, -8) &= 0xFDFFFFFFu;
 			x::GTE_ReadFLAG(ctx + 0x30);
@@ -900,36 +767,28 @@ namespace megalixir
 		return cur;
 	}
 
-
-	// 0x7F44F0 (sub_7F44F0, copy of b_72C370 0x72C370; Boko shared; 097 sub_72C370, 098 0x724170, 099 0x71A6C0, 100 0x711340): prim-list
-	// block "Gouraud triangles" of the Boko prim renderer (ctx a1: +4 vertices, +0xC depth-cue
-	// colour, +0x1C flags, +0x20 list cursor): count at *(ctx+0x20), then per 0x14-byte record
-	// (code+rgb0, u16 vertex indices +4/+6/+8, rgb1 +0xC, rgb2 +0x10) RTPT, builds a 0x1C-byte
-	// POLY_G3 at the cursor (tag 0x06000000; flags 2 = semi-trans on, 8 = off, 0x20 = no cull,
-	// 0x80 = GTE-lit colours), rejects GTE-flagged / back-facing / fully off-screen ones,
-	// InsertPrim at OT a2[OTZ >> a3]. Returns the new packet cursor; ctx+0x20 = end of the list.
 	uint32_t __cdecl ml_7F44F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
-		uint32_t cursor = a4;                 // [esp+0x10]
+		uint32_t cursor = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (the original stores it into its a2 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
 			U32(ctx, 0x20) = rec;
 			return a4;
 		}
-		uint32_t pkt = cursor;                // esi = pkt + 0x10 (advances with the cursor)
+		uint32_t pkt = cursor;
 		do
 		{
 			x::GTE_LoadV012(vbase + (uint32_t)U16(rec, 4) * 4, vbase + (uint32_t)U16(rec, 6) * 4, vbase + (uint32_t)U16(rec, 8) * 4);
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(cursor, 0) = 0x6000000;       // tag: 6 words
+			U32(cursor, 0) = 0x6000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -942,7 +801,7 @@ namespace megalixir
 			if (!(U32(ctx, 0x30) & 0x60000))
 			{
 				x::GTE_NCLIP();
-				uint32_t clip = 0;            // [esp+0x18]
+				uint32_t clip = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -983,15 +842,10 @@ namespace megalixir
 		return cursor;
 	}
 
-
-	// 0x7F4720 (sub_7F4720, copy of b_72C5A0 0x72C5A0; Boko shared; 097 sub_72C5A0, 098 0x7243A0, 099 0x71A8F0, 100 0x711570): prim-list
-	// block "Gouraud quads": same as 0x72C370 for 0x18-byte records (4th vertex index +0x0A,
-	// rgb1..3 at +0x0C/+0x10/+0x14) -> 0x24-byte POLY_G4 packets (tag 0x08000000), 4th vertex
-	// projected with RTPS, AVSZ4, off-screen test on the 4 corners. Returns the new packet cursor.
 	uint32_t __cdecl ml_7F4720(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
 		const uint32_t ctx = a1;
-		uint32_t cursor = a4;                 // [esp+0x14]
+		uint32_t cursor = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
 		uint32_t rec = list + 4;
@@ -1009,7 +863,7 @@ namespace megalixir
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(cursor, 0) = 0x8000000;       // tag: 8 words
+			U32(cursor, 0) = 0x8000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -1022,7 +876,7 @@ namespace megalixir
 			if (!(U32(ctx, 0x30) & 0x60000))
 			{
 				x::GTE_NCLIP();
-				uint32_t clip = 0;            // [esp+0x10]
+				uint32_t clip = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -1072,22 +926,14 @@ namespace megalixir
 		return cursor;
 	}
 
-
-	// 0x7F49E0 (sub_7F49E0, copy of b_72C860 0x; Boko shared; 097 sub_72C860, 098 0x724660, 099 0x71ABB0, 100 0x711830): prim-list
-	// block "Gouraud-textured triangles": per 0x1C-byte record (code+rgb0, u16 vertex indices
-	// +4/+6/+8, uv2 in the high half of +8, uv0|clut +0xC, uv1|tpage +0x10, rgb1 +0x14, rgb2 +0x18)
-	// RTPT, builds a 0x28-byte POLY_GT3 (tag 0x09000000) with the texture offset ctx+0x18 added to
-	// the uv words and the optional tpage (ctx+0x10, flags 0x400 add / 0x100 set) / clut (ctx+0x14,
-	// flags 0x800 add / 0x200 set) overrides, rejects GTE-flagged / back-facing / off-screen ones,
-	// optional GTE-lit colours (flag 0x80), InsertPrim at OT a2[OTZ >> a3]. Returns the new cursor.
 	uint32_t __cdecl ml_7F49E0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t ctx = a1;              // ebp
-		uint32_t pkt = a4;                    // esi
+		const uint32_t ctx = a1;
+		uint32_t pkt = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (stored into the a4 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
@@ -1100,7 +946,7 @@ namespace megalixir
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(pkt, 0) = 0x9000000;          // tag: 9 words
+			U32(pkt, 0) = 0x9000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -1129,7 +975,7 @@ namespace megalixir
 					U16(pkt, 0x0E) = (uint16_t)(U16(pkt, 0x0E) + U16(ctx, 0x14));
 				else if (f2 & 0x200)
 					U16(pkt, 0x0E) = U16(ctx, 0x14);
-				uint32_t zero = 0;            // [esp+0x10]
+				uint32_t zero = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -1169,21 +1015,14 @@ namespace megalixir
 		return pkt;
 	}
 
-
-	// 0x7F4C40 (sub_7F4C40, copy of b_72CAC0 0x72CAC0; Boko shared; 097 sub_72CAC0, 098 0x7248C0, 099 0x71AE10, 100 0x711A90): prim-list
-	// block "Gouraud-textured quads": per 0x24-byte record (code+rgb0, u16 vertex indices
-	// +4/+6/+8/+0xA, uv0|clut +0xC, uv1|tpage +0x10, uv2|uv3<<16 +0x14, rgb1..3 +0x18/+0x1C/+0x20)
-	// RTPT + RTPS, builds a 0x34-byte POLY_GT4 (tag 0x0C000000) with the texture offset ctx+0x18 and
-	// the tpage / clut overrides of 0x72C860, rejects GTE-flagged / back-facing / off-screen ones,
-	// optional GTE-lit colours (flag 0x80), InsertPrim at OT a2[OTZ >> a3]. Returns the new cursor.
 	uint32_t __cdecl ml_7F4C40(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t ctx = a1;              // ebx
-		uint32_t pkt = a4;                    // esi
+		const uint32_t ctx = a1;
+		uint32_t pkt = a4;
 		uint32_t list = U32(ctx, 0x20);
 		uint32_t count = U32(list, 0);
-		uint32_t rec = list + 4;              // edi
-		const uint32_t vbase = U32(ctx, 4);   // (stored into the a4 slot)
+		uint32_t rec = list + 4;
+		const uint32_t vbase = U32(ctx, 4);
 		U32(ctx, 0x20) = rec;
 		if ((int32_t)count <= 0)
 		{
@@ -1196,7 +1035,7 @@ namespace megalixir
 			x::GTE_RTPT();
 			uint32_t flags = U32(ctx, 0x1C);
 			uint32_t code = U32(rec, 0);
-			U32(pkt, 0) = 0xC000000;          // tag: 12 words
+			U32(pkt, 0) = 0xC000000;
 			U32(pkt, 4) = code;
 			if (flags & 2)
 			{
@@ -1228,7 +1067,7 @@ namespace megalixir
 					U16(pkt, 0x0E) = (uint16_t)(U16(pkt, 0x0E) + U16(ctx, 0x14));
 				else if (f2 & 0x200)
 					U16(pkt, 0x0E) = U16(ctx, 0x14);
-				uint32_t zero = 0;            // [esp+0x14]
+				uint32_t zero = 0;
 				x::GTE_ReadMAC0(ctx + 0x24);
 				if (S32(ctx, 0x24) >= 0 || (U8(ctx, 0x1C) & 0x20))
 				{
@@ -1277,35 +1116,30 @@ namespace megalixir
 		return pkt;
 	}
 
-
-	// 0x7F4F20 (sub_7F4F20, copy of a_740700 0x740700; engine; Siren sub_740700): draws the sprite sequences of the director's actor list
-	// (state +0x2C, next +4): every actor of kind +8 == 1 whose bone entry kind (+0x16) is 0/1/2
-	// and that has a sequence (+0x170): once (+0x1D8 == 1) or once per sub-position (s16 x/y/z at
-	// +0x19C.. stride 8 -> +0xC0..+0xC8) for +0x1D8 > 1, through 0x7407C0.
 	uint32_t __cdecl ml_7F4F20(void)
 	{
 		uint32_t act = U32(MEM<uint32_t>(0x2608040), 0x2C);
 		if (act == 0)
-			return 0; // void
+			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
 				uint32_t st = MEM<uint32_t>(0x2608040);
 				int32_t b = S8(act, 0x1D6);
-				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // ebx
+				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
 				if ((kind == 0 || kind == 1 || kind == 2) && U32(act, 0x170) != 0)
 				{
 					int8_t n = S8(act, 0x1D8);
 					if (n == 1)
 					{
-						ml_7F4FE0(act);   // (the original also pushes the bone entry, unused)
+						ml_7F4FE0(act);
 					}
 					else if (n > 0)
 					{
 						int32_t i = 0;
-						uint32_t sub = act + 0x19E;   // edi
+						uint32_t sub = act + 0x19E;
 						do
 						{
 							S32(act, 0xC0) = S16(sub, -2);
@@ -1320,12 +1154,9 @@ namespace megalixir
 			}
 			act = U32(act, 4);
 		} while (act != 0);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F4FE0 (sub_7F4FE0): the engine's 0x7407C0 (sprite sequence of an actor: header on the module
-	// scratch stack, sequence +0x170, variant +0x1D0, matrix +0xAC) drawing into the module arena
 	uint32_t __cdecl ml_7F4FE0(uint32_t a1)
 	{
 		const uint32_t act = a1;
@@ -1343,12 +1174,9 @@ namespace megalixir
 		U16(hdr, 0x24) = 0;
 		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
 		MEM<uint32_t>(SCRATCH_SP) = MEM<uint32_t>(SCRATCH_SP) + 0xB4;
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F5060 (sub_7F5060, copy of a_736C00 0x736C00; engine; MiniMog sub_736C00): update pass of the actor system: for every actor of
-	// the list (sys+0x2C, next +4) runs its type's update (type 0 a_737ED0, type 1 a_740880)
 	uint32_t __cdecl ml_7F5060(void)
 	{
 		uint32_t act = U32(U32(0x2608040, 0), 0x2C);
@@ -1361,20 +1189,15 @@ namespace megalixir
 				ml_7F50A0(act);
 			act = U32(act, 4);
 		}
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F50A0 (sub_7F50A0, copy of a_740880 0x740880, callee chain to the module's particle pool 0x7F6290): one update step of actor a1 (phase s16 +0x1CC):
-	// phase 0 = 0x741050, then if 0x7419C0 reports the end -> phase 1 and sequence +0x170 = 0,
-	// else motion step 0x740910 + 0x741120 and ++frame +0x1CA; phase 1 = 0x742CD0, clears +0x1D7
-	// and decrements the director's live-actor count (state +0x16).
 	uint32_t __cdecl ml_7F50A0(uint32_t a1)
 	{
 		const uint32_t act = a1;
 		uint32_t st = MEM<uint32_t>(0x2608040);
 		int32_t b = S8(act, 0x1D6);
-		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);   // edi
+		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
 		if (phase == 0)
 		{
@@ -1384,11 +1207,11 @@ namespace megalixir
 				a_740910(act, bone);
 				a_741120(act, bone);
 				U16(act, 0x1CA) = (uint16_t)(U16(act, 0x1CA) + 1);
-				return 0; // void
+				return 0;
 			}
 			U16(act, 0x1CC) = (uint16_t)(U16(act, 0x1CC) + 1);
 			U32(act, 0x170) = 0;
-			return 0; // void
+			return 0;
 		}
 		if (phase == 1)
 		{
@@ -1397,46 +1220,39 @@ namespace megalixir
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F60D0 (sub_7F60D0, copy of b_72E220 0x72E220; Boko shared; 097 sub_72E220, 098 0x725D50, 099 0x71C2A0, 100 0x712F20): vertex morph
-	// of a Boko model for frame S16(a1+0x1CA) of actor data a2: destination vertex block = state
-	// +0x22C table [a2+0x12C[frame]], sources = state+0x230 table [a2+0x130[frame]] and
-	// [a2+0x134[frame]], weight w = S16 a2+0x138[frame] (4096 = second source); writes
-	// dst[k] = src1[k] * (4096 - w) + src2[k] * w through the GTE (0x45E9D0 / 0x45EBF0), using an
-	// 8-byte weight block on the field stack. Does nothing when a source is missing.
 	uint32_t __cdecl ml_7F60D0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t data = a2;                              // edi
+		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(0x2608040, 0);                  // actor state block
+		uint32_t st = U32(0x2608040, 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
-		uint32_t dst = U32(dst_tab, i_dst * 4);                // ebx
+		uint32_t dst = U32(dst_tab, i_dst * 4);
 		uint32_t i_src1 = U8(U32(data, 0x130), frame);
-		uint32_t src1 = U32(src_tab, i_src1 * 4);              // ebp
+		uint32_t src1 = U32(src_tab, i_src1 * 4);
 		uint32_t i_src2 = U8(U32(data, 0x134), frame);
-		uint32_t src2 = U32(src_tab, i_src2 * 4);              // [esp+0x18] (a2 slot)
+		uint32_t src2 = U32(src_tab, i_src2 * 4);
 		if (src1 == 0 || src2 == 0)
-			return 0; // void
-		uint32_t w_blk = x::Field_Alloc(8);                    // esi: {+0 4096 - w, +4 w}
-		int32_t frame2 = S16(a1, 0x1CA);                       // (re-read through the a1 slot)
+			return 0;
+		uint32_t w_blk = x::Field_Alloc(8);
+		int32_t frame2 = S16(a1, 0x1CA);
 		uint32_t n = U32(dst, 4);
 		int32_t w = S16(U32(data, 0x138), frame2 * 2);
 		U32(w_blk, 4) = (uint32_t)w;
 		U32(w_blk, 0) = (uint32_t)sub32(0x1000, w);
 		if ((int32_t)n > 0)
 		{
-			uint32_t out = dst + 8;                            // ebx
-			uint32_t in2 = src2 + 8;                           // edi
-			uint32_t delta = src1 - src2;                      // ebp
+			uint32_t out = dst + 8;
+			uint32_t in2 = src2 + 8;
+			uint32_t delta = src1 - src2;
 			do
 			{
 				x::set_dword_1CA8A30(U32(w_blk, 0));
-				mlx::sub_45E0B0(in2 + delta);                   // = src1 + 8 + 8k
+				mlx::sub_45E0B0(in2 + delta);
 				mlx::sub_45E9D0();
 				x::set_dword_1CA8A30(U32(w_blk, 4));
 				mlx::sub_45E0B0(in2);
@@ -1447,30 +1263,23 @@ namespace megalixir
 			} while (--n != 0);
 		}
 		x::Field_Free(8);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F61E0 (sub_7F61E0, copy of a_7419C0 0x7419C0, callee chain to the module's particle pool 0x7F6290): end-of-life test of emitter instance a1 with
-	// descriptor a2 (+0x1E: 0 = when the animation is done +0x1D2, 1 = when timer +0x1C8 runs out,
-	// 2 = either); on end spawns the follow-up particle (0x741A40) and returns 1, else 0
 	uint32_t __cdecl ml_7F61E0(uint32_t a1, uint32_t a2)
 	{
 		int32_t kind = (int32_t)S8(a2, 0x1E);
 		if (kind == 2)
 		{
-			// 0x7419D3
 			U16(a1, 0x1C8) = (uint16_t)(U16(a1, 0x1C8) - 1);
 			if (S16(a1, 0x1C8) < 0)
 			{
 				ml_7F6260(a1, a2);
 				return 1;
 			}
-			// -> 0x741A21
 		}
 		else if (kind == 1)
 		{
-			// 0x7419F8
 			U16(a1, 0x1C8) = (uint16_t)(U16(a1, 0x1C8) - 1);
 			if (S16(a1, 0x1C8) >= 0)
 				return 0;
@@ -1481,7 +1290,6 @@ namespace megalixir
 		{
 			return 0;
 		}
-		// 0x741A21
 		if (U8(a1, 0x1D2) == 1)
 		{
 			ml_7F6260(a1, a2);
@@ -1490,29 +1298,17 @@ namespace megalixir
 		return 0;
 	}
 
-
-	// 0x7F6260 (sub_7F6260, copy of a_741A40 0x741A40, callee chain to the module's particle pool 0x7F6290): if descriptor a2 chains a follow-up
-	// (+0x30 == 1) allocates a particle owned by instance a1 with descriptor index a2+0x31 and
-	// anchor a1+0x1D9 (0x741A70)
 	uint32_t __cdecl ml_7F6260(uint32_t a1, uint32_t a2)
 	{
 		if (U8(a2, 0x30) == 1)
 		{
-			// quirk 0x741A4E/0x741A53: `movsx cx/dx, byte` then push ecx/edx: the high halves are a2's
-			// high word (ecx) and the caller's edx (UNINIT, 0 here); 0x741A70 only reads the low bytes.
 			uint32_t desc_index = (a2 & 0xFFFF0000u) | (uint16_t)(int16_t)S8(a2, 0x31);
 			uint32_t anchor = (uint16_t)(int16_t)S8(a1, 0x1D9);
 			return ml_7F6290(a1, desc_index, anchor);
 		}
-		return a1; // void (eax = a1 at the only call site, 0x7419C0)
+		return a1;
 	}
 
-
-	// 0x7F6290 (sub_7F6290): the engine's 0x741A70 with the module's particle pool: allocates a free
-	// 0x6C particle slot from the pool [0x260801C] (round robin from the cursor 0x2607160, which
-	// wraps at 44: slot 44 of the 45 is never used; +0x69 in use), zeroes it, sets owner +0x5C = a1,
-	// descriptor index +0x6A = a2, anchor +0x6B = a3, counts it in the actor state (+0x14) and
-	// appends it to the particle list with state 0 (0x7F74C0); returns the slot or 0
 	uint32_t __cdecl ml_7F6290(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
 		const uint32_t pool = MEM<uint32_t>(0x260801C);
@@ -1547,10 +1343,6 @@ namespace megalixir
 		return slot;
 	}
 
-
-	// 0x7F6330 (sub_7F6330, copy of a_737ED0 0x737ED0; engine; MiniMog sub_737ED0): update of a type-0 actor (emitter): first-frame
-	// init (a_742D00, +0x62 set), motion by mode +0x68 (3: F_7424C0, 4: F_742610), emission
-	// (a_737F50), frame counter +0x60, then a_741B60
 	uint32_t __cdecl ml_7F6330(uint32_t a1)
 	{
 		if (U16(a1, 0x62) == 0)
@@ -1566,13 +1358,9 @@ namespace megalixir
 		ml_7F63B0(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F63B0 (sub_7F63B0, copy of a_737F50 0x737F50; engine; MiniMog sub_737F50): emission step of an emitter: for its frame +0x60
-	// (<= 39) reads the spawn count from its definition's per-frame table (+0xC8) and spawns
-	// them through F_737FD0 in batches of the definition's batch size (+0x36), then the rest
 	uint32_t __cdecl ml_7F63B0(uint32_t a1)
 	{
 		uint32_t sys = U32(0x2608040, 0);
@@ -1580,10 +1368,10 @@ namespace megalixir
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
 		if (frame > 0x27)
-			return 0; // void
+			return 0;
 		uint32_t total = U8(U32(def, 0xC8), (int32_t)frame);
 		if (total == 0)
-			return 0; // void
+			return 0;
 		int32_t batch = S8(def, 0x36);
 		int32_t full = (int32_t)total / batch;
 		int32_t rest = (int32_t)total % batch;
@@ -1597,32 +1385,21 @@ namespace megalixir
 		}
 		if (rest > 0)
 			ml_7F6430(a1, def, (uint32_t)rest);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F6430 (sub_7F6430, copy of a_737FD0 0x737FD0; engine; MiniMog sub_737FD0, Boko 0x72E580/0x7260B0/0x71C600/0x713280): allocates a
-	// particle actor record (a_7387B0) for the emitter a1 and initialises its a3 particles from the
-	// descriptor a2: start positions (+0xDC/+0x12C, spread along a randomly rotated down vector
-	// when desc+0x34 = 1/2), per-particle rotation matrices (+0x0C+0x20i, multiplied by the emitter
-	// matrix a1+0x2C), speeds (+0x174/+0x184), key colours (+0x1E0..), then a_743100; uses 0x50
-	// bytes of the module scratch stack [G_258FB68]
 	uint32_t __cdecl ml_7F6430(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		// scratch: +0 matrix, +0x20 vector, +0x28/+0x30 angles, +0x38 offset, +0x48 spread keys,
-		// +0x4E key index
 		uint32_t sp = U32(0x2608030, 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
 		U32(0x2608030, 0) = sp;
-		// quirk 0x737FE1: `movsx ax` - the high half of the pushed dword is stale eax; a_7387B0
-		// only reads the low byte (0x73880E `mov cl, [esp+0x1c]`)
 		uint32_t node = ml_7F6C10(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
 		uint16_t w60 = U16(a1, 0x60);
 		uint8_t mode = U8(desc, 0x16);
-		U8(node, 0x1D8) = a3_lo;                           // particle count
-		U16(sp, 0x4E) = w60;                               // key index into the descriptor tables
+		U8(node, 0x1D8) = a3_lo;
+		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
 			uint32_t ctx = U32(0x2608040, 0);
@@ -1644,21 +1421,19 @@ namespace megalixir
 		U16(node, 0x1DA) = U16(desc, 0x64);
 		if ((int32_t)a3 > 0)
 		{
-			// (the original keeps these pointers in its own argument slots a1 / a2: compiler reuse)
-			uint32_t src = a1 + 0x4C;          // emitter position (16 bytes)
-			uint32_t emat = a1 + 0x2C;         // emitter matrix
+			uint32_t src = a1 + 0x4C;
+			uint32_t emat = a1 + 0x2C;
 			uint32_t out_speed = node + 0x184;
 			uint32_t mat = node + 0x0C;
 			uint32_t pos = node + 0x12C;
 			for (int32_t n = (int32_t)a3; n != 0; n--)
 			{
-				e6_copy16(pos - 0x50, src);    // +0xDC+0x10i: origin
+				e6_copy16(pos - 0x50, src);
 				if (U8(desc, 0x22) == 0)
-					e6_copy16(pos, src);       // +0x12C+0x10i: current position
+					e6_copy16(pos, src);
 				uint8_t spread = U8(desc, 0x34);
 				if (spread == 1)
 				{
-					// 0x738110: random direction over the whole sphere
 					U16(sp, 0x28) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2A) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2C) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -1698,7 +1473,6 @@ namespace megalixir
 				}
 				else if (spread == 2)
 				{
-					// 0x7382AD: random direction on a ring (angles rand, 0, 0x400)
 					U16(sp, 0x28) = (uint16_t)(x::CrtRand() & 0xFFF);
 					U16(sp, 0x2A) = 0;
 					U16(sp, 0x2C) = 0x400;
@@ -1724,7 +1498,6 @@ namespace megalixir
 					if ((x::CrtRand() & 1) != 0)
 						U16(sp, 0x4A) = (uint16_t)(0 - U16(sp, 0x4A));
 					e6_rotate_down_vector(sp);
-					// the y offset is the raw key << 16 (the rotated vector's y is not used)
 					int32_t ex = mul32(S16(sp, 0x48), S16(sp, 0x20));
 					int32_t ey = shl32(S16(sp, 0x4A), 16);
 					int32_t oldx = S32(pos, 0);
@@ -1740,23 +1513,17 @@ namespace megalixir
 					S32(sp, 0x40) = ez;
 					S32(pos, 8) = add32(oldz, ez);
 				}
-				// 0x738461: particle rotation angles sp+0x30 (random range, or a copy of the
-				// spread angles; any other mode keeps the stale scratch words)
 				int32_t rmode = S8(desc, 0x21);
 				if (rmode == 0)
 					a_742350(sp + 0x30, desc + 0x3C, desc + 0x44);
 				else if (rmode == 1)
 				{
-					// quirk 0x73846D: copies the dwords sp+0x28 / sp+0x2C, including the word
-					// +0x2E this function never writes (stale module scratch, deterministic;
-					// +0x28..+0x2C are also stale when desc+0x34 is neither 1 nor 2)
 					uint32_t c0 = U32(sp, 0x28);
 					uint32_t c1 = U32(sp, 0x2C);
 					U32(sp, 0x30) = c0;
 					U32(sp, 0x34) = c1;
 				}
 				e6_rotate_zxy(mat, sp + 0x30);
-				// particle matrix = emitter matrix * particle matrix (column by column)
 				x::GTE_SetRotMatrix(emat);
 				x::GTE_LoadIRFromMatrixColumn(mat);
 				x::GTE_MVMVA_RotIR();
@@ -1770,9 +1537,9 @@ namespace megalixir
 				if (U8(desc, 0x27) == 0)
 				{
 					uint32_t r1 = a_7422C0(U32(desc, 0x4C), U32(desc, 0x50));
-					U32(out_speed, -0x10) = r1;           // +0x174+4i
+					U32(out_speed, -0x10) = r1;
 					uint32_t r2 = a_7422C0(U32(desc, 0x54), U32(desc, 0x58));
-					U32(out_speed, 0) = r2;               // +0x184+4i
+					U32(out_speed, 0) = r2;
 				}
 				out_speed += 4;
 				pos += 0x10;
@@ -1792,7 +1559,6 @@ namespace megalixir
 			U32(node, 0x1DC) = a_7422C0(U32(desc, 0x5C), U32(desc, 0x60));
 			if ((int32_t)a3 > 0)
 			{
-				// three key-colour sets per particle (+0x1E0 / +0x220 / +0x260, 16 bytes each)
 				uint32_t q = node + 0x220;
 				for (int32_t n = (int32_t)a3; n != 0; n--)
 				{
@@ -1805,13 +1571,9 @@ namespace megalixir
 		}
 		ml_7F7920(node, desc);
 		U32(0x2608030, 0) = U32(0x2608030, 0) + 0x50;
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F6C10 (sub_7F6C10): the engine's 0x7387B0 (allocates a particle actor record of 0x2A0 bytes
-	// from the pool [0x2608034] starting at the cursor 0x2608028, cleared, owner a1, definition
-	// index a2) with the module's pool of 0x50 records (cursor wraps at 0x4F)
 	uint32_t __cdecl ml_7F6C10(uint32_t a1, uint32_t a2)
 	{
 		const uint32_t pool = MEM<uint32_t>(0x2608034);
@@ -1851,26 +1613,15 @@ namespace megalixir
 		return slot;
 	}
 
-
-	// 0x7F6E30 (sub_7F6E30, copy of b_72EF80 0x72EF80; Boko shared; 097 sub_72EF80, 098 0x726AB0, 099 0x71D000, 100 0x713C80): actor position
-	// for its current key a1+0x60: actor data = state+0x224[S8 a1+0x6A]; start point A = reference
-	// point (kind data+0x100[key]: 1 = state points +0x1D4/0x1E4/0x1F4/0x204 (16.16), 0 = the actor's
-	// target slot S8 a1+0x6B points +0x94/+0xD4/+0x114/+0x154; index data+0x108[key]) plus the
-	// offset (data+0x110/0x114/0x118) rotated by the actor matrix a1+0x2C; end point B likewise
-	// (kind +0x104, index +0x10C, offset +0x11C/0x120/0x124; unknown kind = the rotated first
-	// offset); a1+0x4C/0x50/0x54 = (A * 4096 + (B - A) * t) << 4 with t = S16 data+0x128[key].
 	uint32_t __cdecl ml_7F6E30(uint32_t a1)
 	{
-		const uint32_t act = a1;                               // esi
-		const uint32_t st = U32(0x2608040, 0);            // ecx
+		const uint32_t act = a1;
+		const uint32_t st = U32(0x2608040, 0);
 		int32_t aidx = S8(act, 0x6A);
-		int32_t key = S16(act, 0x60);                          // ebx
-		const uint32_t data = U32(U32(st, 0x224), aidx * 4);   // edi / [esp+0x10]
-		uint8_t sel = U8(U32(data, 0x108), key);               // bp (movzx)
+		int32_t key = S16(act, 0x60);
+		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
+		uint8_t sel = U8(U32(data, 0x108), key);
 		uint8_t kind = U8(U32(data, 0x100), key);
-		// UNINIT 0x72F1CE: the start point is a stack SVECTOR ([esp+0x14] x, [esp+0x16] y,
-		// [esp+0x18] z) that only the switch cases fill; an unknown kind / index > 3 leaves it
-		// uninitialised (0 here)
 		int16_t ax = 0, ay = 0, az = 0;
 		uint32_t base = 0;
 		bool have = false;
@@ -1878,7 +1629,7 @@ namespace megalixir
 		{
 			if (sel <= 3)
 			{
-				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5DC
+				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
 				base = st + (uint32_t)((int32_t)S8(act, 0x6B) << 4) + offs0[sel];
 				have = true;
 			}
@@ -1887,7 +1638,7 @@ namespace megalixir
 		{
 			if (sel <= 3)
 			{
-				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5CC
+				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
 				base = st + offs1[sel];
 				have = true;
 			}
@@ -1901,31 +1652,30 @@ namespace megalixir
 			az = (int16_t)vz;
 			ax = (int16_t)vx;
 		}
-		// first offset (SVECTOR [esp+0x1C]) rotated by the actor matrix -> IR1..3 ([esp+0x24], shorts)
 		int16_t v[4];
 		int16_t ir[8] = {};
 		v[0] = (int16_t)U16(U32(data, 0x110), key * 2);
 		v[1] = (int16_t)U16(U32(data, 0x114), key * 2);
 		v[2] = (int16_t)U16(U32(data, 0x118), key * 2);
-		v[3] = 0;                                              // (pad, not read by LoadV0)
+		v[3] = 0;
 		x::GTE_SetRotMatrix(act + 0x2C);
 		x::GTE_LoadV0(P(v));
 		x::GTE_MVMVA_RotV0();
 		x::GTE_StoreIR123(P(ir));
 		az = (int16_t)(az + ir[2]);
 		ay = (int16_t)(ay + ir[1]);
-		const int32_t key2 = S16(act, 0x60);                   // ecx
+		const int32_t key2 = S16(act, 0x60);
 		uint8_t kind2 = U8(U32(data, 0x104), key2);
 		uint8_t sel2 = U8(U32(data, 0x10C), key2);
 		ax = (int16_t)(ax + ir[0]);
-		int16_t bx, by, bz;                                    // si, di, bx
+		int16_t bx, by, bz;
 		uint32_t base2 = 0;
 		bool have2 = false;
 		if (kind2 == 0)
 		{
 			if (sel2 <= 3)
 			{
-				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };     // table 0x72F5FC
+				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
 				uint32_t g = U32(0x2608040, 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
@@ -1935,7 +1685,7 @@ namespace megalixir
 		{
 			if (sel2 <= 3)
 			{
-				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };  // table 0x72F5EC
+				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
 				uint32_t g = U32(0x2608040, 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
@@ -1952,13 +1702,10 @@ namespace megalixir
 		}
 		else
 		{
-			// quirk 0x72F4EA: an unknown end kind / index > 3 reuses the rotated first offset (the IR
-			// of the first MVMVA, still in [esp+0x24..0x29])
 			bz = ir[2];
 			by = ir[1];
 			bx = ir[0];
 		}
-		// second offset rotated by the actor matrix
 		v[0] = (int16_t)U16(U32(data, 0x11C), key2 * 2);
 		v[1] = (int16_t)U16(U32(data, 0x120), key2 * 2);
 		v[2] = (int16_t)U16(U32(data, 0x124), key2 * 2);
@@ -1978,20 +1725,13 @@ namespace megalixir
 		S32(act, 0x50) = shl32(add32(mul32(sub32(by, a), t), shl32(a, 12)), 4);
 		a = az;
 		S32(act, 0x54) = shl32(add32(mul32(sub32(bz, a), t), shl32(a, 12)), 4);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F7920 (sub_7F7920, copy of a_743100 0x743100, callee chain to the module's particle pool 0x7F6290): a1 = actor/effect object (+0x1D9 s8 variant), a2 = spawn
-	// descriptor: for each of the 4 bytes a2+0x28..0x2B equal to 1, spawns a sub-effect slot
-	// (a_741A70) with id s8 a2+0x2C..0x2F and variant s8 a1+0x1D9.
 	uint32_t __cdecl ml_7F7920(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t obj = a1;   // edi
-		const uint32_t desc = a2;  // esi
-		// quirk 0x743112..0x743179: args 2/3 are pushed as 32-bit registers of which only the low
-		// 16 bits are set (movsx r16); the high halves are leftover register bits. a_741A70 only
-		// reads their low byte, so the zero-extended 16-bit value is passed here.
+		const uint32_t obj = a1;
+		const uint32_t desc = a2;
 		if (U8(desc, 0x28) == 1)
 		{
 			uint32_t variant = (uint16_t)(int16_t)S8(obj, 0x1D9);
@@ -2016,17 +1756,12 @@ namespace megalixir
 			uint32_t id = (uint16_t)(int16_t)S8(desc, 0x2F);
 			ml_7F6290(obj, id, variant);
 		}
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F79B0 (sub_7F79B0, copy of a_743190 0x743190, callee chain to the module's particle pool 0x7F6290): for each of the 16 director slots (director G_258FB78,
-	// +0x224 slot table, +0x22 u16 skip mask) whose entry has kind (+0x11) 0/1/4 and group (+0x13)
-	// equal to director +0x18: spawns sub-effect slots via ml_7F6290(0, slot, n) - n = 0..count-1
-	// (count = director +0x1C) when entry +0x37 == 1, else once with n = 0.
 	uint32_t __cdecl ml_7F79B0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(0x2608040);  // eax (re-read only after the calls)
+		uint32_t dir = MEM<uint32_t>(0x2608040);
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2061,12 +1796,9 @@ namespace megalixir
 				dir = MEM<uint32_t>(0x2608040);
 			}
 		}
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F7A40 (sub_7F7A40, copy of a_7395E0 0x7395E0; engine; MiniMog sub_7395E0): state: steps the actor system (a_7353B0); when it
-	// reports done, sets the finished flag (+0x26 bit0) and advances the state index
 	uint32_t __cdecl ml_7F7A40(uint32_t a1)
 	{
 		if (ml_7F3810(a1) != 0)
@@ -2075,12 +1807,9 @@ namespace megalixir
 			U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) | 1);
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F7A70 (MAG_059_sub_7F7A70): emitter state 1 - at tick 18 releases the master (root +0x63
-	// = 0: its action loop may spawn the next emitter), next state
 	uint32_t __cdecl ml_7F7A70(uint32_t a1)
 	{
 		if (U16(a1, 0x24) == 0x12)
@@ -2091,14 +1820,11 @@ namespace megalixir
 		return a1;
 	}
 
-
-	// 0x7F7A90 (MAG_059_sub_7F7A90): emitter state 2 - from tick 18: the action result (the heal) of the
-	// action's current target (+0x2A action, +0x2B target record of 24 bytes), finished, next state
 	uint32_t __cdecl ml_7F7A90(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		if (S16(node, 0x24) < 0x12)
-			return 0; // void
+			return 0;
 		const int32_t ai = S8(node, 0x2A);
 		const int32_t ti = S8(node, 0x2B);
 		const uint32_t acts = U32(U32(node, 0xC), 4);
@@ -2107,13 +1833,9 @@ namespace megalixir
 		const uint8_t st = U8(node, 0x29);
 		U8(node, 0x26) |= 1;
 		U8(node, 0x29) = (uint8_t)(st + 1);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F7AE0 (MAG_059_sub_7F7AE0): master state 4 - action loop: once the emitter released the
-	// master (+0x63 = 0): the next target record (+0x2B) and action counter +0x2E, back to the
-	// emitter state; after the last one: wait 12 ticks (+0x60), next state
 	uint32_t __cdecl ml_7F7AE0(uint32_t a1)
 	{
 		const uint32_t node = a1;
@@ -2132,21 +1854,16 @@ namespace megalixir
 		return node;
 	}
 
-
-	// 0x7F7B30 (MAG_059_sub_7F7B30): master state - counts +0x60 down; at 0 starts the stage fade
-	// out (0x7F7B60, 0x40 bytes, stage queue), next state
 	uint32_t __cdecl ml_7F7B30(uint32_t a1)
 	{
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
-			return 0; // void
+			return 0;
 		x::Effect_AddTaskAndInitFromCtx(Q_STAGE, 0x7F7B60, 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		return 0; // void
+		return 0;
 	}
 
-
-	// 0x7F7BC0 (MAG_059_sub_7F7BC0): stage fade out state 0 - level +0x1C = 0x400, next state
 	uint32_t __cdecl ml_7F7BC0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
@@ -2155,9 +1872,6 @@ namespace megalixir
 		return a1;
 	}
 
-
-	// 0x7F7BE0 (MAG_059_sub_7F7BE0, copy of m_733C90 0x733C90; module 096 sub_733C90): fade-out state - level +0x1C -= 0x100 down to 0 (then
-	// finished, next state); writes the level to the 4 words 0x1D98992 + k*0x2C.
 	uint32_t __cdecl ml_7F7BE0(uint32_t a1)
 	{
 		U16(a1, 0x1C) = (uint16_t)(U16(a1, 0x1C) + 0xFF00);
@@ -2172,11 +1886,10 @@ namespace megalixir
 		uint32_t p = 0x1D98992;
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
-		return 0; // void
+		return 0;
 	}
 
 	struct ModPort { uint32_t addr; void *port; const char *name; };
-	// the module's functions served by the engine's ports (identical code up to module addresses)
 	static const ModPort ENGINE_PORTS[] = {
 		{ 0x7F2A70, (void *)a_73A0D0, "059 MAG_059_sub_7F2A70" },
 		{ 0x7F2A80, (void *)a_73A0D0, "059 MAG_059_sub_7F2A80" },
@@ -2220,7 +1933,6 @@ namespace megalixir
 		{ 0x7F7C80, (void *)a_73A6D0, "059 nullsub_1484" },
 		{ 0, nullptr, nullptr }
 	};
-	// the module's own ports
 	static const ModPort PORTS[] = {
 		{ 0x7F2930, (void *)ml_7F2930, "059 MAG_059_sub_7F2930" },
 		{ 0x7F2A90, (void *)ml_7F2A90, "059 MAG_059_sub_7F2A90" },
@@ -2277,7 +1989,6 @@ namespace megalixir
 			act::register_module_port(59, p->addr, p->port, p->name);
 		for (const act::megalixir::ModPort *p = act::megalixir::PORTS; p->addr; p++)
 			act::register_module_port(59, p->addr, p->port, p->name);
-		// 30 fps layer: see mag059_megalixir_held.inc
 		FX_HELD(register_mag059_held();)
 	}
 }

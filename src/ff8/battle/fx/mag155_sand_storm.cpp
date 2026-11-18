@@ -14,38 +14,7 @@
 //    GNU General Public License for more details.                          //
 /****************************************************************************/
 
-// Effect 155: Sand Storm (enemy attack 39 of kernel.bin, used by Fastitocalon; MAG_155_*).
-//
-// Structure (setup MAG_155_SAND_STORM 0x606CF0, file loader 0x606CD0 = the texture file named at
-// 0xDBA900 (mag154.tim); code 0x606CD0..0x607BF0). The setup keeps the cast context, the caster's
-// slot and the first target's slot, builds the root queue 0x23F0818 (pool 0x23F0808, 1 x 0x10) with
-// the root task and the effect queue 0x23F1AE8 (pool 0x23F1AF8, 100 x 0x24) with the director,
-// clears the two sprite pools, starts camera animation 0xDB7DC4 and queues the TIM.
-//   Root (0x607BB0) - alternates the packet arena (0x23F4230 / 0x23FC230, cursor 0x2404230), runs
-//     the effect queue, ends when it is empty.
-//   Director (0x606DB0) - tick 0: the caster's default effect position (0x23F2958, its y and height
-//     words swapped), the targets' centre (0x23F2938), the funnel vertex order (0x607090); tick 1: the
-//     wave and the funnel tasks, the two random side points of the path (0x23F07F0 / 0x23F07F8) and
-//     the random middle point 0x23F2920, the wind sound; tick 3: dust pool A; tick 4: dust pool B;
-//     tick 50: damage; ends after 60.
-//   VertexOrder (0x607090) - the 19 x 16 vertices of the funnel model 0xDB8150 (vertex data 0xDB8158)
-//     as (source, destination 0x23F2A70, y) records 0x23F33F0 sorted by y, highest first: 19 rings.
-//   Wave (0x607130) - every tick rewrites the destination vertices: ring k (of 16 vertices) is the
-//     source ring moved by radius (15 k) along angle (a + 300 k); a turns by -70..-139 per tick.
-//   Funnel (0x607210) - the funnel prim model drawn twice (scale 2 / 1.6 horizontally, height
-//     scale +0x12, spin +0x18, the second one half faded); its position moves from the caster to the
-//     targets' centre with a sway (ticks 0..29), then along a spline (0x571620 / 0x571690, 6 points
-//     built at tick 29: current position, the far side point's midpoint, the near side point, the
-//     random middle point, the far side point, the current position) sampled in 34 steps
-//     (0x23F2960); fades in (0..5) and out (52..); ends at 60.
-//   Dust A (0x6076E0) - pool 0x23F1188 (100 x 0x18) of sprites 0xDB7E94 thrown outwards from the
-//     funnel (3 per tick, ticks 0..52 of the task), sliding and slowing down.
-//   Dust B (0x607920) - pool 0x23F0828 (100 x 0x18) of sprites 0xDB8040 rising around the funnel
-//     (5 per tick, ticks 0..40), orbiting on a growing radius.
-// Every task but the root tests battle_to_update_flags (0x1D96A9C) & 0x201: the wave still rewrites
-// the vertices, the funnel and the dust pools draw, nothing moves, the director does nothing.
-// Module globals: 0x23F07F0..0x2404234 (path points, slots, queues, pools, spline table, funnel
-// vertices and records, packet arenas and cursor).
+// Effect 155: Sand Storm
 
 #include "mag_common.h"
 
@@ -56,31 +25,28 @@ namespace sandstorm155
 	using namespace eng;
 	using namespace magc;
 
-	// ------------------------------------------------------------------
-	// module globals
-	// ------------------------------------------------------------------
-	inline int16_t *SideA() { return (int16_t *)0x23F07F0; }           // random side point (x, y, z, w)
-	inline int16_t *SideB() { return (int16_t *)0x23F07F8; }           // random side point
-	inline uint32_t &TargetSlot() { return var<uint32_t>(0x23F0800); } // first target's slot (setup, unused)
+	inline int16_t *SideA() { return (int16_t *)0x23F07F0; }
+	inline int16_t *SideB() { return (int16_t *)0x23F07F8; }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(0x23F0800); }
 	inline TaskQueue *QRoot() { return (TaskQueue *)0x23F0818; }
 	inline TaskQueue *QEffect() { return (TaskQueue *)0x23F1AE8; }
-	inline int16_t *Spline() { return (int16_t *)0x23F2908; }          // 6 spline points of 8 bytes
-	inline int16_t *Centre() { return (int16_t *)0x23F2938; }          // targets' centre
+	inline int16_t *Spline() { return (int16_t *)0x23F2908; }
+	inline int16_t *Centre() { return (int16_t *)0x23F2938; }
 	inline CastContext *&Ctx() { return var<CastContext *>(0x23F2940); }
-	inline uint32_t &PosX() { return var<uint32_t>(0x23F2948); }       // funnel position x (+ word 0x23F294A)
-	inline uint32_t &PosZ() { return var<uint32_t>(0x23F294C); }       // funnel position z (+ word 0x23F294E)
+	inline uint32_t &PosX() { return var<uint32_t>(0x23F2948); }
+	inline uint32_t &PosZ() { return var<uint32_t>(0x23F294C); }
 	inline uint32_t &CasterSlot() { return var<uint32_t>(0x23F2950); }
 	inline uint32_t &TexFile() { return var<uint32_t>(0x23F2954); }
-	inline int16_t *CasterPos() { return (int16_t *)0x23F2958; }       // caster's default position (y / h swapped)
-	inline int16_t *PathTable() { return (int16_t *)0x23F2960; }       // 34 spline samples of 8 bytes
+	inline int16_t *CasterPos() { return (int16_t *)0x23F2958; }
+	inline int16_t *PathTable() { return (int16_t *)0x23F2960; }
 	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2404230); }
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
 
-	static const uint32_t POOL_A = 0x23F1188, POOL_B = 0x23F0828; // 100 x 0x18 each
-	static const uint32_t VERTS = 0x23F2A70;                       // funnel vertices (19 x 16 x 8 bytes)
-	static const uint32_t ORDER = 0x23F33F0;                       // 0x130 records of 12 bytes
+	static const uint32_t POOL_A = 0x23F1188, POOL_B = 0x23F0828;
+	static const uint32_t VERTS = 0x23F2A70;
+	static const uint32_t ORDER = 0x23F33F0;
 	static const uint32_t ARENA_A = 0x23F4230, ARENA_B = 0x23FC230;
-	static const uint32_t MODEL_Funnel = 0xDB8150;                 // prim model (vertices at +8)
+	static const uint32_t MODEL_Funnel = 0xDB8150;
 	static const uint32_t SEQ_DustA = 0xDB7E94, SEQ_DustB = 0xDB8040;
 	static const void *const SOUND_Wind = (const void *)0xDBA8F8;
 
@@ -91,74 +57,64 @@ namespace sandstorm155
 	static const uint32_t ORIG_DustA = 0x6076E0;
 	static const uint32_t ORIG_DustB = 0x607920;
 
-	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
-	// CalculateCenterPosition (0x5020A0): centre of the entities of a slot mask (low 16 bits)
 	inline void CalculateCenterPosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(mask, out); }
-	// matrixMultiplyVector (0x56C4F0): out = m (3x3) * in (3 x int16), in and out may alias
 	inline void MatrixMultiplyVector(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); }
-	// sub_571620 / sub_571690: spline through n points (8-byte SVECTORs) into a 0x190-byte work
-	// block, then its point at t (4.12) into out
 	inline void SplineSetup(int32_t n, const int16_t *points, void *work) { fn<void (__cdecl *)(int32_t, const int16_t *, void *)>(0x571620)(n, points, work); }
 	inline void SplineEval(int32_t n, void *work, int16_t *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, int16_t *, int32_t)>(0x571690)(n, work, out, t); }
 
-	// ------------------------------------------------------------------
-	// Node layouts
-	// ------------------------------------------------------------------
 #pragma pack(push, 1)
-	struct RootNode // pool of 1 node of 0x10 bytes
+	struct RootNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C packet arena parity
+		int16_t counter;
 		int16_t pad;
 	};
-	struct DirectorNode // effect pool, 0x24 bytes
+	struct DirectorNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad[0x16];
 	};
 	struct WaveNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E[5];
-		int16_t angle;     // +0x18
-		int16_t spin;      // +0x1A
-		int16_t radius;    // +0x1C (0)
+		int16_t angle;
+		int16_t spin;
+		int16_t radius;
 		int16_t pad1E[3];
 	};
 	struct FunnelNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		int16_t pad0E[2];
-		int16_t height;    // +0x12 height scale
+		int16_t height;
 		int16_t pad14;
-		int16_t grow;      // +0x16 height scale speed (ticks 0..9)
-		int16_t angle;     // +0x18 spin
-		int16_t spin;      // +0x1A
-		int16_t sway;      // +0x1C sway amplitude
-		int16_t sway_grow; // +0x1E
-		int16_t phase;     // +0x20 sway phase
-		int16_t phase_v;   // +0x22
+		int16_t grow;
+		int16_t angle;
+		int16_t spin;
+		int16_t sway;
+		int16_t sway_grow;
+		int16_t phase;
+		int16_t phase_v;
 	};
 	struct DustNode
 	{
 		TaskNode hdr;
-		int16_t counter;   // +0x0C
+		int16_t counter;
 		uint8_t pad[0x16];
 	};
-	// one sprite of a dust pool (0x18 bytes)
 	struct Dust
 	{
-		uint32_t used;     // +0x00 bit0
-		int16_t frame;     // +0x04
-		int16_t scale;     // +0x06
-		int16_t pos[4];    // +0x08 x, y, z, w
-		int16_t v[4];      // +0x10 A: vx, -, vz, - / B: radius, radius speed, angle, spin
+		uint32_t used;
+		int16_t frame;
+		int16_t scale;
+		int16_t pos[4];
+		int16_t v[4];
 	};
-	// funnel vertex record (12 bytes)
 	struct Order
 	{
 		uint32_t src, dst;
@@ -169,10 +125,6 @@ namespace sandstorm155
 	static_assert(sizeof(FunnelNode) == 0x24 && sizeof(DustNode) == 0x24, "Sand Storm nodes");
 	static_assert(sizeof(Dust) == 0x18 && sizeof(Order) == 12, "Sand Storm records");
 
-	// ------------------------------------------------------------------
-	// shared pieces of the draws
-	// ------------------------------------------------------------------
-	// the wave: ring k of the funnel moved by (radius + 15 k) along (angle + 300 k); dst + rebase
 	static void WaveVertices(int32_t angle, int32_t radius, uint32_t rebase)
 	{
 		Order *o = (Order *)ORDER;
@@ -193,12 +145,10 @@ namespace sandstorm155
 		}
 	}
 
-	// funnel position of a tick (x / z dwords: the path sample also writes the y / w words)
 	static void FunnelPosition(const FunnelNode *f, int16_t counter, uint32_t *x, uint32_t *z)
 	{
 		if (counter < 0x1E)
 		{
-			// caster -> targets' centre (t = counter / 29), plus the sway through the caster's matrix
 			const int32_t t = shl32((int32_t)counter, 12) / 29;
 			const int16_t *cp = CasterPos();
 			*(int16_t *)x = (int16_t)((((int32_t)Centre()[0] - cp[0]) * t >> 12) + cp[0]);
@@ -220,7 +170,6 @@ namespace sandstorm155
 		}
 	}
 
-	// funnel fade of a tick (prim header +0x0C, +0x1C)
 	static void FunnelFade(int16_t counter, int32_t *fade, uint32_t *flags)
 	{
 		*fade = 0;
@@ -237,7 +186,6 @@ namespace sandstorm155
 		}
 	}
 
-	// the two funnel draws (outer 2.0 / inner 1.6 horizontal scale, the inner one half faded)
 	static void FunnelDraw(int16_t angle, int16_t height, int16_t x, int16_t z, uint32_t verts, int32_t fade, uint32_t flags)
 	{
 		int16_t ang[3] = { 0, angle, 0 };
@@ -274,7 +222,6 @@ namespace sandstorm155
 		FieldFree(0x58);
 	}
 
-	// one dust sprite at p (header shared by the task's whole pool)
 	static void DustDraw(uint8_t *h, int16_t frame, const int16_t *p, int16_t scale)
 	{
 		*(int16_t *)(h + 4) = frame;
@@ -287,7 +234,6 @@ namespace sandstorm155
 		DustDraw(h, d->frame, d->pos, d->scale);
 	}
 
-	// pool B: the sprite orbits its base position (radius v[0], angle v[2])
 	static void DustPosB(const Dust *d, int16_t p[4])
 	{
 		ff8fx::copy<(8)>(p, d->pos);
@@ -312,9 +258,6 @@ namespace ff8fx
 {
 namespace sandstorm155
 {
-	// ------------------------------------------------------------------
-	// Vertex order (0x607090)
-	// ------------------------------------------------------------------
 	static void VertexOrder()
 	{
 		Order *o = (Order *)ORDER;
@@ -337,13 +280,9 @@ namespace sandstorm155
 				}
 	}
 
-	// ------------------------------------------------------------------
-	// Wave (0x607130)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		WaveNode *w = (WaveNode *)n;
-		// 30 fps layer: see mag155_sand_storm_held.inc
 		FX_HELD(held_note_wave(w);)
 		WaveVertices(w->angle, w->radius, 0);
 		if (DrawOnly()) return 0;
@@ -352,9 +291,6 @@ namespace sandstorm155
 		return w->counter >= 0x3C ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Funnel (0x607210)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl FunnelTask(TaskNode *n)
 	{
 		FunnelNode *f = (FunnelNode *)n;
@@ -362,7 +298,6 @@ namespace sandstorm155
 		int32_t fade;
 		uint32_t flags;
 		FunnelFade(f->counter, &fade, &flags);
-		// 30 fps layer: see mag155_sand_storm_held.inc
 		FX_HELD(held_note_funnel(f);)
 		FunnelDraw(f->angle, f->height, (int16_t)PosX(), (int16_t)PosZ(), VERTS, fade, flags);
 		if (DrawOnly()) return 0;
@@ -380,8 +315,6 @@ namespace sandstorm155
 		f->phase_v = (int16_t)(pv - (int16_t)(pv >> 5));
 		if (c == 0x1D)
 		{
-			// the spline: current position, far side midpoint, near side point, middle point, far
-			// side point, current position
 			int16_t *sp = Spline();
 			const int16_t cx = (int16_t)PosX(), cz = (int16_t)PosZ();
 			sp[0] = cx;
@@ -429,9 +362,6 @@ namespace sandstorm155
 		return f->counter >= 0x3C ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Dust A (0x6076E0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DustATask(TaskNode *n)
 	{
 		DustNode *t = (DustNode *)n;
@@ -442,7 +372,6 @@ namespace sandstorm155
 		for (Dust *d = (Dust *)POOL_A; d < (Dust *)POOL_A + 100; d++)
 		{
 			if (!(d->used & 1)) continue;
-			// 30 fps layer: see mag155_sand_storm_held.inc
 			FX_HELD(held_note_dust(0, h, d);)
 			DustDrawA(h, d);
 			if (DrawOnly()) continue;
@@ -489,9 +418,6 @@ namespace sandstorm155
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Dust B (0x607920)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DustBTask(TaskNode *n)
 	{
 		DustNode *t = (DustNode *)n;
@@ -502,7 +428,6 @@ namespace sandstorm155
 		for (Dust *d = (Dust *)POOL_B; d < (Dust *)POOL_B + 100; d++)
 		{
 			if (!(d->used & 1)) continue;
-			// 30 fps layer: see mag155_sand_storm_held.inc
 			FX_HELD(held_note_dust(1, h, d);)
 			DustDrawB(h, d);
 			if (DrawOnly()) continue;
@@ -548,9 +473,6 @@ namespace sandstorm155
 		return 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Director (0x606DB0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		if (DrawOnly()) return 0;
@@ -606,13 +528,9 @@ namespace sandstorm155
 		return r->counter > 0x3C ? TASK_END : 0;
 	}
 
-	// ------------------------------------------------------------------
-	// Root (0x607BB0)
-	// ------------------------------------------------------------------
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		// 30 fps layer: see mag155_sand_storm_held.inc
 		FX_HELD(held_note_root();)
 		PacketCursor() = (r->counter & 1) ? ARENA_B : ARENA_A;
 		const int a = ExecuteTaskQueue(QEffect());
@@ -629,7 +547,6 @@ namespace sandstorm155
 		register_port(sandstorm155::ORIG_Funnel, (void *)sandstorm155::FunnelTask, "155 FunnelTask", 155);
 		register_port(sandstorm155::ORIG_DustA, (void *)sandstorm155::DustATask, "155 DustATask", 155);
 		register_port(sandstorm155::ORIG_DustB, (void *)sandstorm155::DustBTask, "155 DustBTask", 155);
-		// 30 fps layer: see mag155_sand_storm_held.inc
 		FX_HELD(register_mag155_held();)
 	}
 }
