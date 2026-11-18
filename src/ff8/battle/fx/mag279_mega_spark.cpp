@@ -17,7 +17,6 @@
 // Effect 279: Mega Spark
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -162,8 +161,8 @@ namespace megaspark279
 	static_assert(sizeof(PrimNode) == 0x13C && sizeof(SparkNode) == 0x14 && sizeof(ArcNode) == 0x40, "Mega Spark nodes");
 	static_assert(sizeof(PrimArg) == 0x28, "Mega Spark prim block");
 
-	static uint32_t g_master_esp = 0;
-	static inline uint32_t ArcResidue() { return g_master_esp - 0x40 - 0x28; }
+	// The game reads a stack address here (the arc control point it pushed): the value it has in the game
+	static inline uint32_t ArcResidue() { return 0x1A4EB4; }
 	static const uint32_t RibbonResidue = 0x43300000;
 	static uint16_t MainSrcPad() { return 0; }
 	static uint16_t g_bolt_pt_pad = 0;
@@ -936,7 +935,6 @@ namespace megaspark279
 
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
-		g_master_esp = (uint32_t)_AddressOfReturnAddress();
 		g_bolt_pt_pad = 0;
 		FX_HELD(held_note_master();)
 		MasterNode *mn = (MasterNode *)n;

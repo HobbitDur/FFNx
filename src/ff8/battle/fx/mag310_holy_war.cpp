@@ -17,7 +17,6 @@
 // Effect 310: Holy War
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -232,19 +231,11 @@ namespace ff8fx
 {
 namespace holywar310
 {
-	static int32_t g_scaled = 0;
-	static bool g_spawned = false;
-	static bool g_first = false;
-	static int32_t g_spawn_word = 0;
-	static inline int32_t PrimScaled() { return g_scaled; }
+	// The game leaves a non-zero word where the play task reads its scale flag: the layouts are always scaled
+	static inline int32_t PrimScaled() { return 1; }
 
-	static __declspec(noinline) uint32_t PlayTaskBody(PlayNode *p, int32_t entry_word)
+	static uint32_t PlayTaskBody(PlayNode *p)
 	{
-		if (g_first)
-		{
-			g_first = false;
-			g_scaled = g_spawned ? g_spawn_word : entry_word;
-		}
 		PrimArg arg;
 		arg.pos[3] = 0;
 		arg.scaled = PrimScaled();
@@ -317,15 +308,13 @@ namespace holywar310
 	}
 	static uint32_t __cdecl PlayTask(TaskNode *n)
 	{
-		return PlayTaskBody((PlayNode *)n, *(const int32_t *)((const uint8_t *)_AddressOfReturnAddress() - 0xC));
+		return PlayTaskBody((PlayNode *)n);
 	}
 
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
 		FX_HELD(held_note_root();)
-		g_spawned = false;
-		g_first = true;
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -347,8 +336,6 @@ namespace holywar310
 		if (r->counter == 1 && r->next < Ctx()->actions[0].target_count)
 		{
 			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), us(ORIG_PlayTask));
-			g_spawned = true;
-			g_spawn_word = (int32_t)p->orbit[0];
 			uint8_t *e = Entity(Ctx()->actions[0].targets[r->next * TARGET_STRIDE]);
 			p->counter = 0;
 			p->entity = e;

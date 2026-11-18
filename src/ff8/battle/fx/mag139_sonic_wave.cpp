@@ -17,7 +17,6 @@
 // Effect 139: Sonic Wave
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -794,7 +793,7 @@ namespace sonic139
 					w->ents[i] = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
 					int16_t pos[4];
 					GetDefaultEffectPosition(w->ents[i], pos);
-					if (w->ents[i][0] & 2) g_start_residue = (int16_t)(((uint32_t)_AddressOfReturnAddress() - 8) >> 16);
+					if (w->ents[i][0] & 2) g_start_residue = 0x001A;
 					w->avg[0] = (int16_t)(w->avg[0] + pos[0]);
 					w->avg[1] = (int16_t)(w->avg[1] + pos[1]);
 					w->avg[2] = (int16_t)(w->avg[2] + pos[2]);

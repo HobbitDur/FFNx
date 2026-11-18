@@ -17,7 +17,6 @@
 // Effect 287: Mega Pulse Cannon
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -161,8 +160,8 @@ namespace megapulse287
 	static_assert(sizeof(RockNode) == 0x20 && sizeof(SpotNode) == 0x1D0 && sizeof(ArcNode) == 0x40, "Mega Pulse Cannon nodes");
 	static_assert(sizeof(PrimArg) == 0x28, "Mega Pulse Cannon prim block");
 
-	static uint32_t g_master_esp = 0;
-	static inline uint32_t ArcResidue() { return g_master_esp - 0x38 - 0x28; }
+	// The game reads a stack address here (the arc control point it pushed): the value it has in the game
+	static inline uint32_t ArcResidue() { return 0x1A4EBC; }
 	static int32_t MainPointPad() { return 0; }
 
 	static void BonePoint(const int16_t *v, int32_t *out)
@@ -788,7 +787,6 @@ namespace megapulse287
 
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
-		g_master_esp = (uint32_t)_AddressOfReturnAddress();
 		FX_HELD(held_note_master();)
 		MasterNode *mn = (MasterNode *)n;
 		if (mn->arena)

@@ -15,7 +15,6 @@
 /****************************************************************************/
 
 #include "mag_common.h"
-#include <intrin.h>
 
 namespace ff8fx
 {
@@ -674,8 +673,8 @@ namespace xatm276
 		}
 	}
 
-	static uint32_t g_root_esp = 0;
-	static inline uint32_t ArcResidue() { return g_root_esp - 0x34 - 0x38; }
+	// The game reads a stack address here (the arc control point it pushed): the value it has in the game
+	static inline uint32_t ArcResidue() { return 0x1A4EB0; }
 
 	static void ArcEdge(uint32_t p, uint32_t next, int16_t *prev, int16_t *out)
 	{
@@ -1421,7 +1420,6 @@ namespace xatm276
 	static uint32_t __cdecl RootTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
-		g_root_esp = (uint32_t)_AddressOfReturnAddress();
 		if (U32(n, 0x10))
 		{
 			PacketCursor() = Buffer() + BUF_ARENA0;
