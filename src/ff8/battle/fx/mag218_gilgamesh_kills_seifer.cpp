@@ -45,9 +45,16 @@
 // The renderer's six lists that this effect's data never reaches (F3 0x6353C0, F4 0x635650, FT4
 // 0x635C40, G3 0x635FB0, G4 0x636270, GT4 0x6368E0) are called at their original addresses; FT3
 // 0x635970 and GT3 0x6365E0 are ported.
+// FUJIN: Fujin's described Gilgamesh kills Seifer (effect_218.json) runs this code: its memory through own::R()
+// (fx_port.h; the model blocks E1 / E2, the shard table and the grab packets through accessors), its spawns through
+// own::Fn(), the setup (0x6326D0) ported below (the file loader is the engine's bare ret 0x575550); its parameters
+// (GilKillsParams: the sounds, the voice and the timeline's spawn ticks, Gilgamesh's own (dust, shards, flash), the
+// tiles, spinners, flare, ring, ground wave, slash, glow, dust, rings, camera shake, shards and flash, their 10 meshes, 3
+// flipbooks and the TIM). FX_PART tags its parts.
 
 #include "fx_port.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
 #include <stddef.h>
 
 namespace ff8fx
@@ -130,16 +137,16 @@ namespace g218
 
 	// --- module globals ---
 	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(0x24F2340); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(own::R(0x24F2340)); }
 	static const uint32_t STREAM_STATE = 0x24F2344;
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(0x24F2348); }  // effect frame (setup), translation 0x24F235C/60/64
-	inline uint32_t TargetSlot() { return var<uint32_t>(0x24F2368); } // the first target's slot (setup)
-	inline TaskQueue &Q2() { return var<TaskQueue>(0x24F23B8); }     // the model draw task
-	inline Mat4x3 &Frame() { return var<Mat4x3>(0x24F23F8); }       // Camera o RootMatrix, rebuilt by the timeline every tick
-	inline TaskQueue &Q1() { return var<TaskQueue>(0x24F2518); }     // timeline + effects
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x24F336C); }
-	inline uint32_t &Flags() { return var<uint32_t>(0x24F3544); }    // bit0 end, bit1 sword task ends, bit2 sword hidden
-	inline uint32_t Tex() { return var<uint32_t>(0x24F3550); }       // texture / file buffer (0x20DFAB8)
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(own::R(0x24F2348)); }  // effect frame (setup), translation 0x24F235C/60/64
+	inline uint32_t TargetSlot() { return var<uint32_t>(own::R(0x24F2368)); } // the first target's slot (setup)
+	inline TaskQueue &Q2() { return var<TaskQueue>(own::R(0x24F23B8)); }     // the model draw task
+	inline Mat4x3 &Frame() { return var<Mat4x3>(own::R(0x24F23F8)); }       // Camera o RootMatrix, rebuilt by the timeline every tick
+	inline TaskQueue &Q1() { return var<TaskQueue>(own::R(0x24F2518)); }     // timeline + effects
+	inline uint8_t *CastCtx() { return var<uint8_t *>(own::R(0x24F336C)); }
+	inline uint32_t &Flags() { return var<uint32_t>(own::R(0x24F3544)); }    // bit0 end, bit1 sword task ends, bit2 sword hidden
+	inline uint32_t Tex() { return var<uint32_t>(own::R(0x24F3550)); }       // texture / file buffer (0x20DFAB8)
 	inline uint32_t &Cursor() { return var<uint32_t>(0x1D8E054); }   // battle_texture_data_ptr_1D8E054
 	inline uint32_t RenderList() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t OT() { return RenderList() + 0x44; }
@@ -147,10 +154,10 @@ namespace g218
 	inline uint8_t *PoolA() { return var<uint8_t *>(0xE257E4); }     // buf + 0x2E800, 150 x 0x20
 	inline uint32_t VertexScratch() { return var<uint32_t>(0xE257E8); } // buf + 0x2F800 (RenderGeometry scratch)
 	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(0x1D972C0 + 156 * slot); }
-	static uint8_t *const E1 = (uint8_t *)0x24F2428;                 // the sword (exe model 0xF1DD54)
-	static uint8_t *const E2 = (uint8_t *)0x24F3558;                 // Gilgamesh
-	static uint8_t *const SHARDS = (uint8_t *)0x24F3378;             // 24 x 0x10: position, pad, velocity
-	inline int16_t *Centroid16(int k) { return (int16_t *)(0x24F235C + 4 * k); } // RootMatrix.t, read as words
+	inline uint8_t *E1_() { return (uint8_t *)own::R(0x24F2428); }           // the sword (exe model 0xF1DD54)
+	inline uint8_t *E2_() { return (uint8_t *)own::R(0x24F3558); }           // Gilgamesh
+	inline uint8_t *SHARDS_() { return (uint8_t *)own::R(0x24F3378); }       // 24 x 0x10: position, pad, velocity
+	inline int16_t *Centroid16(int k) { return (int16_t *)(own::R(0x24F235C) + 4 * k); } // RootMatrix.t, read as words
 
 	static const uint32_t ORIG_SequenceTick = 0x6374D0;
 	static const uint32_t ORIG_TimelineTask = 0x6328A0;
@@ -179,6 +186,49 @@ namespace g218
 	static const uint32_t ORIG_ShardChipTask = 0x636EB0;
 	static const uint32_t ORIG_FlashTask = 0x637200;
 	static const uint32_t ORIG_ModelDrawTask = 0x637350;
+
+	static const uint32_t ORIG_Setup = 0x6326D0;
+	static const uint32_t TIM = 0xF1E920;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_FADE = 1, PART_TILE = 2, PART_SPINNERS = 3, PART_FLARE = 4, PART_RING = 5, PART_GIL = 6, PART_SWORD = 7,
+	             PART_GLOW = 8, PART_DUST = 9, PART_RINGS = 10, PART_SHARDS = 11, PART_FLASH = 12, PART_WAVE = 13, PART_SLASH = 14 };
+	struct GilKillsParams
+	{
+		struct { uint32_t start, sword, end, voice; } sounds;   // the three sounds, the voice (its slot claimed at the start)
+		// the timeline's ticks: the spinners (the stage shown), the flare, the ring, the blue tile, the sword sound, the cut
+		// (the target's hit chain, the ground wave), the result, the slash, the end sound, the voice released, its end
+		struct { int16_t spinners, flare, ring, tile, sword, cut, result, slash, end_sound, release, end; } timing;
+		struct { int16_t ticks, in, out_from, out; } fade;     // the white tile at the start: ticks, in over, out from / over
+		struct { int16_t ticks, r, g, b; } tile;               // the blue tile behind everything: ticks, colour
+		// the two spinners: ticks, their spins, sizes, fade levels
+		struct { int16_t ticks, spin_a, spin_b, size_a, size_b, fade_a, fade_b; } spinners;
+		struct { int16_t ticks, length; } flare;               // the flare row: ticks, how far its sprites spread
+		struct { int16_t ticks; } ring;                        // the ring above: ticks
+		struct { int16_t ticks, scroll; } wave;                // the ground wave at the target: ticks, texture scroll a tick
+		struct { int16_t ticks, scroll, back; } slash;         // the slash at the target: ticks, scroll a tick, toward the eye
+		struct { int16_t dust, shards, flash; } gil;           // Gilgamesh's ticks: his landing (dust, rings, shake), shards, flash
+		struct { int16_t ticks, reach, fade; } glow;           // the sword glow: ticks, how far past the hand, fade level
+		struct { int16_t last, count; } dust;                  // the dust: spawned up to its tick last, count a tick
+		// the rings at his landing: the shock ring's, rising rings', wide ring's ticks; the camera shake's amount and ticks
+		struct { int16_t shock, rising, wide, shake, shake_ticks; } rings;
+		struct { int16_t count, kick, kick_rand; } shards;     // the screen shards: count, thrown at kick + a random below kick_rand
+		struct { int16_t ticks; } flash;                       // the flash: ticks
+		struct { uint32_t spinner, ring, wave, slash, sword, glow, shock, rising, wide, flash; } models;   // the meshes drawn
+		struct { uint32_t flare, dust, shard_dust; } seqs;     // the sprite sequences drawn (flipbooks)
+		struct { uint32_t tim; } res;                          // the TIM its setup uploads
+	};
+	static const GilKillsParams GAME = { { 0xE257D0, 0xE257D4, 0xE257D8, 0xE25698 },
+		{ 0xB, 0x18, 0x20, 0x48, 0x16E, 0x17F, 0x17F, 0x191, 0x22F, 0x240, 0x243 }, { 0x18, 4, 16, 8 }, { 0x14, 0x70, 0x80, 0xF0 },
+		{ 0x3D, -16, -8, 0xC80, 0xC00, 0x600, 0xA00 }, { 0x18, 2200 }, { 0x10 }, { 0x12, 24 }, { 0x16, 24, 2000 },
+		{ 0x2D, 0x136, 0x145 }, { 0x28, 600, 0x400 }, { 4, 8 }, { 0xE, 0x16, 0x10, 0x28, 8 }, { 24, 250, 350 }, { 0xA },
+		{ 0xE21CC0, 0xE1B7E0, 0xE22570, 0xE23660, 0xE254D8, 0xE1A0F0, 0xE1EF08, 0xE1C918, 0xE1E260, 0xE24FC8 },
+		{ 0xE19C14, 0xE19CBC, 0xE19E68 }, { TIM } };
+	static GilKillsParams live = GAME;
+	static const GilKillsParams &PG() { return live; }
 
 #pragma pack(push, 1)
 	// every Q1/Q2 node is 0x24 bytes (327's layout); field use differs per task
@@ -232,20 +282,20 @@ namespace ff8fx
 namespace g218
 {
 	static const int POOLB_N = 200, POOLA_N = 150;
-	inline Shard *SH(int k) { return (Shard *)(SHARDS + 0x10 * k); }
+	inline Shard *SH(int k) { return (Shard *)(SHARDS_() + 0x10 * k); }
 	static void SpawnRings();
 
 	// au_re_BdLinkTask_72 0x632E30 (Q1) / _73 0x632E50 (Q2) (no null check, as the original)
 	static Node24 *LinkQ1(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
 	}
 	static Node24 *LinkQ2(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q2(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q2(), own::Fn(task_fn));
 		n->c = 0;
 		n->e = 0;
 		return n;
@@ -333,8 +383,9 @@ namespace g218
 	// 0x632EB0 (tick 0), 24 ticks: white fade in over 4 ticks, out from 16 over 8
 	static int32_t FadeTileLevel(int32_t c)
 	{
-		if (c < 4) return (mul32(c, 255) / 4) & 0xFF;
-		if (c >= 16) return 0xFF - ((mul32(c - 16, 255) / 8) & 0xFF);
+		const GilKillsParams &g = PG();
+		if (c < g.fade.in) return (mul32(c, 255) / g.fade.in) & 0xFF;
+		if (c >= g.fade.out_from) return 0xFF - ((mul32(c - g.fade.out_from, 255) / g.fade.out) & 0xFF);
 		return 0xFF;
 	}
 
@@ -342,22 +393,24 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		int32_t v = FadeTileLevel(n->c);
+		FX_PART(PART_FADE);
 		Tile(v, v, v, 0);
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 0x18 ? TASK_END : 0;
+		return n->c >= PG().fade.ticks ? TASK_END : 0;
 	}
 
 	// 0x633680 (tick 72), 20 ticks: blue tile (0x70, 0x80, 0xF0) at the back of the OT (slot 0x1000)
 	static uint32_t __cdecl TileTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		Tile(0x70, 0x80, 0xF0, 0x1000);
+		FX_PART(PART_TILE);
+		Tile(PG().tile.r, PG().tile.g, PG().tile.b, 0x1000);
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 0x14 ? TASK_END : 0;
+		return n->c >= PG().tile.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -367,20 +420,20 @@ namespace g218
 	// ------------------------------------------------------------------
 	static void SpawnSpinners()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_SpinnerTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_SpinnerTask));
 		n->c = 0;
 		n->e = 0;
 		n->a18 = (int16_t)(CrtRand() % 0x800 - 0x400);
-		n->a1A = -16;
-		n->s1C = 0xC80;
-		n->s20 = 0x600;
-		n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_SpinnerTask);
+		n->a1A = PG().spinners.spin_a;
+		n->s1C = PG().spinners.size_a;
+		n->s20 = PG().spinners.fade_a;
+		n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_SpinnerTask));
 		n->c = 0;
 		n->e = 1;
 		n->a18 = (int16_t)(CrtRand() % 0x200);
-		n->a1A = -8;
-		n->s1C = 0xC00;
-		n->s20 = 0xA00;
+		n->a1A = PG().spinners.spin_b;
+		n->s1C = PG().spinners.size_b;
+		n->s20 = PG().spinners.fade_b;
 	}
 
 	static void SpinnerDraw(const Node24 *n, int16_t a18, int16_t s1C)
@@ -396,7 +449,7 @@ namespace g218
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = 0xE21CC0;
+		*(uint32_t *)h = fxp::model(PG().models.spinner, 0xE21CC0);
 		*(int32_t *)(h + 0xC) = n->s20;
 		*(uint32_t *)(h + 0x1C) = (n->e ? 0xCu : 3u) | 0xF0u;
 		*(uint32_t *)(h + 8) = 0;
@@ -407,12 +460,13 @@ namespace g218
 	static uint32_t __cdecl SpinnerTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
+		FX_PART(PART_SPINNERS);
 		SpinnerDraw(n, n->a18, n->s1C);
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		n->c++;
-		return n->c >= 0x3D ? TASK_END : 0;
+		return n->c >= PG().spinners.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -424,7 +478,7 @@ namespace g218
 	// ------------------------------------------------------------------
 	static void SpawnFlare()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_FlareTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_FlareTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xD8F0;
@@ -437,9 +491,9 @@ namespace g218
 
 	static void ScreenSpriteMatrix(const int16_t *v, int16_t size)
 	{
-		var<int16_t>(0x24F3608) = size;
-		var<int16_t>(0x24F3600) = size;
-		var<int16_t>(0x24F35F8) = size;
+		var<int16_t>(own::R(0x24F3608)) = size;
+		var<int16_t>(own::R(0x24F3600)) = size;
+		var<int16_t>(own::R(0x24F35F8)) = size;
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
 		GteLoadV0(v);
@@ -448,11 +502,11 @@ namespace g218
 		GteReadSXY2(sxy);
 		int16_t sx = (int16_t)((int32_t)sxy[0] / 8);
 		int16_t sy = (int16_t)((int32_t)sxy[1] / 8);
-		var<int32_t>(0x24F360C) = (int32_t)sx - 0xA0;
-		var<int32_t>(0x24F3610) = (int32_t)sy - 0x6C;
-		var<int32_t>(0x24F3614) = (int32_t)var<int16_t>(0x1D8E038);
-		GteSetRotMatrix((const Mat4x3 *)0x24F35F8);
-		GteSetTransVector((const Mat4x3 *)0x24F35F8);
+		var<int32_t>(own::R(0x24F360C)) = (int32_t)sx - 0xA0;
+		var<int32_t>(own::R(0x24F3610)) = (int32_t)sy - 0x6C;
+		var<int32_t>(own::R(0x24F3614)) = (int32_t)var<int16_t>(0x1D8E038);
+		GteSetRotMatrix((const Mat4x3 *)own::R(0x24F35F8));
+		GteSetTransVector((const Mat4x3 *)own::R(0x24F35F8));
 	}
 
 	// colour word of the flare at counter c; false = not written (the header keeps the scratch's word)
@@ -486,7 +540,7 @@ namespace g218
 		m.t[1] = n->p12;
 		m.t[2] = n->p14;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = 0xE19C14;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.flare, 0xE19C14);
 		*(uint16_t *)(h + 0x24) = 0;
 		uint32_t col;
 		if (FlareColour(c, &col))
@@ -496,7 +550,7 @@ namespace g218
 		}
 		for (uint32_t t = 0xE257F2; t < 0xE25832; t += 8)
 		{
-			int32_t k = mul32(*(const int16_t *)(t + 2), 2200) >> 12;
+			int32_t k = mul32(*(const int16_t *)(t + 2), PG().flare.length) >> 12;
 			int16_t v[4];
 			v[0] = (int16_t)(mul32(k, a) >> 12);
 			v[2] = (int16_t)(mul32(k, dz) >> 12);
@@ -515,11 +569,12 @@ namespace g218
 	static uint32_t __cdecl FlareTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
+		FX_PART(PART_FLARE);
 		FlareDraw(n, n->c, FlareA(n->c), FlareB(n->c), FlareDZ(n->c));
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 0x18 ? TASK_END : 0;
+		return n->c >= PG().flare.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -529,7 +584,7 @@ namespace g218
 	// ------------------------------------------------------------------
 	static void SpawnRing()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RingTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RingTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xD8F0;
@@ -554,18 +609,19 @@ namespace g218
 		ComposeAffineTransform(&Frame(), &m, &w);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&w);
-		PrimModel(0xE1B7E0, 0x33, false, 0, OT(), 2);
+		PrimModel(fxp::model(PG().models.ring, 0xE1B7E0), 0x33, false, 0, OT(), 2);
 	}
 
 	static uint32_t __cdecl RingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
+		FX_PART(PART_RING);
 		RingDraw(n, n->a18, RingScale(n->c));
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		n->c++;
-		return n->c >= 0x10 ? TASK_END : 0;
+		return n->c >= PG().ring.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -576,14 +632,14 @@ namespace g218
 	// ------------------------------------------------------------------
 	static void SpawnGroundWave()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_GroundWaveTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_GroundWaveTask));
 		n->c = 0;
 		GetDefaultEffectPosition(Entity(TargetSlot()), &n->p10);
 		n->p14 = (int16_t)(n->p14 + 0x190);
 		n->p12 = 0;
 	}
 
-	static int32_t GroundWaveIR0(int32_t c) { return shl32(c, 12) / 18; }
+	static int32_t GroundWaveIR0(int32_t c) { return shl32(c, 12) / PG().wave.ticks; }
 
 	static void GroundWaveDraw(const Node24 *n, int32_t uv, int32_t ir0)
 	{
@@ -598,7 +654,7 @@ namespace g218
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ScrollHeader(0xE22570);
+		uint8_t *h = ScrollHeader(fxp::model(PG().models.wave, 0xE22570));
 		*(uint16_t *)(h + 0x1A) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0x18) = 0x40;
@@ -620,11 +676,12 @@ namespace g218
 	static uint32_t __cdecl GroundWaveTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		GroundWaveDraw(n, mul32(n->c, 24), GroundWaveIR0(n->c));
+		FX_PART(PART_WAVE);
+		GroundWaveDraw(n, mul32(n->c, PG().wave.scroll), GroundWaveIR0(n->c));
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 0x12 ? TASK_END : 0;
+		return n->c >= PG().wave.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -645,15 +702,15 @@ namespace g218
 		int32_t angle = GetRotationBetweenVectors(0xE25840, d, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
-		m.t[0] = (mul32(-2000, d[0]) >> 12) + ex;
-		m.t[1] = (mul32(-2000, d[1]) >> 12) + ey;
-		m.t[2] = (mul32(-2000, d[2]) >> 12) + ez;
+		m.t[0] = (mul32(-PG().slash.back, d[0]) >> 12) + ex;
+		m.t[1] = (mul32(-PG().slash.back, d[1]) >> 12) + ey;
+		m.t[2] = (mul32(-PG().slash.back, d[2]) >> 12) + ez;
 		int32_t s[3] = { 0x1800, 0x1800, 0x3400 };
 		Scale3DMatrix(&m, s);
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ScrollHeader(0xE23660);
+		uint8_t *h = ScrollHeader(fxp::model(PG().models.slash, 0xE23660));
 		*(uint16_t *)(h + 0x1A) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0x18) = 0x40;
@@ -671,11 +728,12 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		GetEffectSpawnPosition(Entity(TargetSlot()), 0xF0, 0x1000, &n->p10);
-		SlashDraw(&n->p10, (const int16_t *)0x24FD358, -mul32(n->c, 24));
+		FX_PART(PART_SLASH);
+		SlashDraw(&n->p10, (const int16_t *)0x24FD358, -mul32(n->c, PG().slash.scroll));
 		FX_HELD(MemoExtra((const int16_t *)0x24FD358, 3); MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 0x16 ? TASK_END : 0;
+		return n->c >= PG().slash.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -694,7 +752,7 @@ namespace g218
 		m->t[2] = 0;
 		Scale3DMatrix(m, s);
 		Mat4x3 b;
-		ComposeAffineTransform((const Mat4x3 *)(E1 + 0x40), (const Mat4x3 *)(**(uint32_t **)(E1 + 0x64) + 0x50), &b);
+		ComposeAffineTransform((const Mat4x3 *)(E1_() + 0x40), (const Mat4x3 *)(**(uint32_t **)(E1_() + 0x64) + 0x50), &b);
 		ComposeAffineTransform(&b, m, m);
 	}
 
@@ -708,7 +766,8 @@ namespace g218
 		ComposeAffineTransform(&Frame(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		if (n->c > 0 && !(Flags() & 4)) PrimModel(0xE254D8, 0x33, false, 0, OT(), 3);
+		FX_PART(PART_SWORD);
+		if (n->c > 0 && !(Flags() & 4)) PrimModel(fxp::model(PG().models.sword, 0xE254D8), 0x33, false, 0, OT(), 3);
 		FX_HELD(MemoMat(&local, n->c > 0 && !(Flags() & 4)); MemoNode(n);)
 		if (!Paused()) n->c++;
 		return 0;
@@ -791,22 +850,23 @@ namespace g218
 	static uint32_t __cdecl ModelDrawTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		uint16_t fl = *(uint16_t *)E2;
-		*(uint16_t *)E1 = fl;
+		uint16_t fl = *(uint16_t *)E2_();
+		*(uint16_t *)E1_() = fl;
 		if (!(fl & 4))
 		{
-			memcpy(E1 + 0x40, E2 + 0x40, 0x20);
-			*(uint32_t *)(E1 + 0x28) = var<uint32_t>(0x24F3580);
-			DrawModel(E1, &Frame());
-			DrawModel(E2, &Frame());
-			fl = *(uint16_t *)E2;
+			memcpy(E1_() + 0x40, E2_() + 0x40, 0x20);
+			*(uint32_t *)(E1_() + 0x28) = var<uint32_t>(own::R(0x24F3580));
+			FX_PART(PART_GIL);
+			DrawModel(E1_(), &Frame());
+			DrawModel(E2_(), &Frame());
+			fl = *(uint16_t *)E2_();
 			FX_HELD(ModelMemoTake(n);)
 		}
 		if (Paused()) return 0;
 		if (!(fl & 8))
 		{
-			AdvanceModel(E1);
-			AdvanceModel(E2);
+			AdvanceModel(E1_());
+			AdvanceModel(E2_());
 		}
 		n->c++;
 		return n->c >= 0x20E ? TASK_END : 0;
@@ -815,7 +875,7 @@ namespace g218
 	// au_re_BdLinkTask_74 0x634070: the sword glow
 	static void LinkGlow()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_GlowTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_GlowTask));
 		n->c = 0;
 		n->s1C = 0x2400;
 		n->s20 = 0x1E00;
@@ -831,19 +891,19 @@ namespace g218
 	static uint32_t __cdecl GilTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		Mat4x3 *M2 = (Mat4x3 *)(E2 + 0x40);
+		Mat4x3 *M2 = (Mat4x3 *)(E2_() + 0x40);
 		if (n->c == 0)
 		{
 			ResetRotation(M2);
-			var<uint16_t>(0x24F35A8) = 0x1000;
-			var<uint16_t>(0x24F35A0) = 0x1000;
-			var<uint16_t>(0x24F3598) = 0x1000;
+			var<uint16_t>(own::R(0x24F35A8)) = 0x1000;
+			var<uint16_t>(own::R(0x24F35A0)) = 0x1000;
+			var<uint16_t>(own::R(0x24F3598)) = 0x1000;
 			M2->t[1] = 0;
 			M2->t[0] = 0;
 			M2->t[2] = 0;
-			ModelInit(E2, (uint8_t *)0x24F3500, (uint8_t *)Tex(), 0xF);
-			memcpy(E1 + 0x40, M2, 0x20);
-			ModelInit(E1, (uint8_t *)0x24F3338, (uint8_t *)0xF1DD54, 0x10);
+			ModelInit(E2_(), (uint8_t *)own::R(0x24F3500), (uint8_t *)Tex(), 0xF);
+			memcpy(E1_() + 0x40, M2, 0x20);
+			ModelInit(E1_(), (uint8_t *)own::R(0x24F3338), (uint8_t *)0xF1DD54, 0x10);
 		}
 		if (Paused()) return 0;
 		int32_t d = n->c;
@@ -851,8 +911,8 @@ namespace g218
 		{
 			if (d == 0)
 			{
-				SetAnim(E1, 0);
-				SetAnim(E2, 0);
+				SetAnim(E1_(), 0);
+				SetAnim(E2_(), 0);
 				M2->t[1] = -10000;
 				n->s1C = 0x140;
 				n->s20 = 0x50;
@@ -865,9 +925,9 @@ namespace g218
 			M2->t[2] += w;
 			n->s22 = (int16_t)((int16_t)(w >> 3) + w);
 			int16_t s = n->s1C;
-			var<int16_t>(0x24F35A8) = s;
-			var<int16_t>(0x24F35A0) = s;
-			var<int16_t>(0x24F3598) = s;
+			var<int16_t>(own::R(0x24F35A8)) = s;
+			var<int16_t>(own::R(0x24F35A0)) = s;
+			var<int16_t>(own::R(0x24F3598)) = s;
 			n->s1C = (int16_t)((int16_t)(s >> 3) + s);
 			if (d == 0) LinkGlow();
 		}
@@ -878,41 +938,35 @@ namespace g218
 				M2->t[1] = -5000;
 				M2->t[2] = 0;
 			}
-			var<int16_t>(0x24F35A8) = 0x1000;
-			var<int16_t>(0x24F35A0) = 0x1000;
-			var<int16_t>(0x24F3598) = 0x1000;
+			var<int16_t>(own::R(0x24F35A8)) = 0x1000;
+			var<int16_t>(own::R(0x24F35A0)) = 0x1000;
+			var<int16_t>(own::R(0x24F3598)) = 0x1000;
 		}
 		else if ((d -= 0x14) < 0x1A)
 		{
 			if (d == 0)
 			{
-				SetAnim(E1, 1);
-				SetAnim(E2, 1);
+				SetAnim(E1_(), 1);
+				SetAnim(E2_(), 1);
 				M2->t[1] = 0;
 			}
-			else if (d == 5)
-			{
-				LinkQ1(ORIG_DustTask);
-				SpawnRings();
-			}
+
 		}
 		else if ((d -= 0x1A) < 0xF4)
 		{
 			if (d == 0)
 			{
-				SetAnim(E1, 2);
-				SetAnim(E2, 2);
+				SetAnim(E1_(), 2);
+				SetAnim(E2_(), 2);
 			}
 		}
 		else if ((d -= 0xF4) < 0x15)
 		{
 			if (d == 0)
 			{
-				SetAnim(E1, 3);
-				SetAnim(E2, 3);
-				LinkQ1(ORIG_ShardsTask);
+				SetAnim(E1_(), 3);
+				SetAnim(E2_(), 3);
 			}
-			else if (d == 0xF) LinkQ1(ORIG_FlashTask);
 		}
 		else if ((d -= 0x15) < 0x28)
 		{
@@ -921,19 +975,19 @@ namespace g218
 		{
 			if (d == 0)
 			{
-				SetAnim(E1, 4);
-				SetAnim(E2, 4);
+				SetAnim(E1_(), 4);
+				SetAnim(E2_(), 4);
 			}
 		}
 		else if ((d -= 0x1E) < 0x7D)
 		{
 			if (d == 0)
 			{
-				SetAnim(E1, 5);
-				SetAnim(E2, 5);
+				SetAnim(E1_(), 5);
+				SetAnim(E2_(), 5);
 			}
-			else if (d == 0xF) E2[0] |= 8;
-			else if (d == 0x69) *(uint16_t *)E2 &= 0xFFF7;
+			else if (d == 0xF) E2_()[0] |= 8;
+			else if (d == 0x69) *(uint16_t *)E2_() &= 0xFFF7;
 			else if (d == 0x6A) Flags() |= 2;
 			else if (d >= 0x6D)
 			{
@@ -942,9 +996,16 @@ namespace g218
 				GteLoadRGBC(&rgbc);
 				GteSetIR0(shl32(d - 0x6D, 12) / 16);
 				GteDPCS();
-				GteStoreRGB2((void *)0x24F3580);
+				GteStoreRGB2((void *)own::R(0x24F3580));
 			}
 		}
+		if (n->c == PG().gil.dust)
+		{
+			LinkQ1(ORIG_DustTask);
+			SpawnRings();
+		}
+		if (n->c == PG().gil.shards) LinkQ1(ORIG_ShardsTask);
+		if (n->c == PG().gil.flash) LinkQ1(ORIG_FlashTask);
 		FX_HELD(MemoNode(n);)
 		n->c++;
 		if (n->c < 0x20E) return 0;
@@ -962,9 +1023,9 @@ namespace g218
 	static void GlowPoints(int16_t *A, int16_t *C)
 	{
 		int16_t B[4];
-		GetEffectSpawnPosition(E2, 0x2E, 0xC00, A);
-		GetEffectSpawnPosition(E2, 0x34, 0xC00, B);
-		GetEffectSpawnPosition(E2, 0xF0, 0, C);
+		GetEffectSpawnPosition(E2_(), 0x2E, 0xC00, A);
+		GetEffectSpawnPosition(E2_(), 0x34, 0xC00, B);
+		GetEffectSpawnPosition(E2_(), 0xF0, 0, C);
 		A[0] = (int16_t)(((int32_t)B[0] + A[0]) / 2);
 		A[1] = (int16_t)(((int32_t)B[1] + A[1]) / 2);
 		A[2] = (int16_t)(((int32_t)B[2] + A[2]) / 2);
@@ -978,9 +1039,9 @@ namespace g218
 		int32_t angle = GetRotationBetweenVectors(0xE25830, d, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
-		m.t[0] = (mul32(d[0], 600) >> 12) + C[0];
-		m.t[1] = (mul32(d[1], 600) >> 12) + C[1];
-		m.t[2] = (mul32(d[2], 600) >> 12) + C[2];
+		m.t[0] = (mul32(d[0], PG().glow.reach) >> 12) + C[0];
+		m.t[1] = (mul32(d[1], PG().glow.reach) >> 12) + C[1];
+		m.t[2] = (mul32(d[2], PG().glow.reach) >> 12) + C[2];
 		int32_t s[3];
 		s[0] = mul32(n->s1C, k) >> 12;
 		s[2] = s[0];
@@ -989,9 +1050,9 @@ namespace g218
 		ComposeAffineTransform(&Frame(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ScrollHeader(0xE1A0F0);
+		uint8_t *h = ScrollHeader(fxp::model(PG().models.glow, 0xE1A0F0));
 		*(int32_t *)(h + 0x14) = uv;
-		*(int32_t *)(h + 0xC) = 0x400;
+		*(int32_t *)(h + 0xC) = PG().glow.fade;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x20) = 0xF3;
 		*(uint16_t *)(h + 0x18) = 0;
@@ -1009,11 +1070,12 @@ namespace g218
 		Node24 *n = (Node24 *)tn;
 		int16_t A[4], C[4];
 		GlowPoints(A, C);
-		GlowDraw(n, A, C, var<int16_t>(0x24F3598), shl32(-n->c, 5));
-		FX_HELD(MemoExtra(A, 3); MemoExtra2(C, 3, var<int16_t>(0x24F3598)); MemoNode(n);)
+		FX_PART(PART_GLOW);
+		GlowDraw(n, A, C, var<int16_t>(own::R(0x24F3598)), shl32(-n->c, 5));
+		FX_HELD(MemoExtra(A, 3); MemoExtra2(C, 3, var<int16_t>(own::R(0x24F3598))); MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 0x28 ? TASK_END : 0;
+		return n->c >= PG().glow.ticks ? TASK_END : 0;
 	}
 
 	// first free record (dword 0) of a pool, -1 when none
@@ -1045,7 +1107,7 @@ namespace g218
 	{
 		*(uint16_t *)(h + 0x24) = 8;
 		memcpy(s + 8, &Frame(), 0x20);
-		*(uint32_t *)h = 0xE19CBC;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.dust, 0xE19CBC);
 	}
 
 	static void DustOne(uint8_t *h, uint8_t *s, const RecB *p)
@@ -1063,9 +1125,9 @@ namespace g218
 		Node24 *n = (Node24 *)tn;
 		uint8_t *pool = PoolB();
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
-		if (!Paused() && n->c <= 4)
+		if (!Paused() && n->c <= PG().dust.last)
 		{
-			for (int k = 0; k < 8; k++)
+			for (int k = 0; k < PG().dust.count; k++)
 			{
 				int i = FreeRecord(pool, 0x18, POOLB_N);
 				if (i < 0) break;
@@ -1084,6 +1146,7 @@ namespace g218
 			}
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
+		FX_PART(PART_DUST);
 		DustSetup(h, s);
 		int live = 0;
 		GteSetLightMatrix(s + 8);
@@ -1121,7 +1184,7 @@ namespace g218
 	// ------------------------------------------------------------------
 	static void SpawnRings()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_ShockRingTask);
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_ShockRingTask));
 		n->c = 0;
 		n->p14 = 0;
 		n->p12 = 0;
@@ -1130,7 +1193,7 @@ namespace g218
 		n->s1C = 0x900;
 		for (int k = 0; k < 2; k++)
 		{
-			n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_RisingRingTask);
+			n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_RisingRingTask));
 			n->c = 0;
 			n->p14 = 0;
 			n->p12 = 0;
@@ -1144,7 +1207,7 @@ namespace g218
 			n->s22 = (int16_t)v;
 			n->s20 = (int16_t)v;
 		}
-		n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_WideRingTask);
+		n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_WideRingTask));
 		n->c = 0;
 		n->p14 = 0;
 		n->p12 = 0;
@@ -1156,9 +1219,9 @@ namespace g218
 		n->s22 = 0x3AA;
 		n->s20 = 0x3AA;
 		n->a1A = (int16_t)(r + 0xF);
-		n = (Node24 *)AddTaskToQueue(&Q1(), ORIG_ShakeTask);
+		n = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_ShakeTask));
 		n->c = 0;
-		n->e = 0x28;
+		n->e = PG().rings.shake;
 	}
 
 	// a frame-relative prim (angles (0, y, 0), translation p, scale (sx, sy, sx)), faded when asked
@@ -1182,14 +1245,15 @@ namespace g218
 	static uint32_t __cdecl ShockRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		RingPrim(n, 0xE1EF08, 0, n->s1C, n->s1C, n->c >= 6, shl32(n->c - 6, 9));
+		FX_PART(PART_RINGS);
+		RingPrim(n, fxp::model(PG().models.shock, 0xE1EF08), 0, n->s1C, n->s1C, n->c >= 6, shl32(n->c - 6, 9));
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
 		n->s1E = (int16_t)(v - (int16_t)(v / 5));
 		n->c++;
-		return n->c >= 0xE ? TASK_END : 0;
+		return n->c >= PG().rings.shock ? TASK_END : 0;
 	}
 
 	// 0x634890, 22 ticks: prim 0xE1C918 turning (+0x18 by +0x1A), radius +0x1C (drag 1/6), height
@@ -1197,7 +1261,8 @@ namespace g218
 	static uint32_t __cdecl RisingRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		RingPrim(n, 0xE1C918, n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 341));
+		FX_PART(PART_RINGS);
+		RingPrim(n, fxp::model(PG().models.rising, 0xE1C918), n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 341));
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
@@ -1208,14 +1273,15 @@ namespace g218
 		n->s20 = (int16_t)(n->s20 + w);
 		n->s22 = (int16_t)(w - (int16_t)(w / 18));
 		n->c++;
-		return n->c >= 0x16 ? TASK_END : 0;
+		return n->c >= PG().rings.rising ? TASK_END : 0;
 	}
 
 	// 0x634A10, 16 ticks: prim 0xE1E260, as the rising rings with drags 1/5 and 1/8, fade from 10 (682)
 	static uint32_t __cdecl WideRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		RingPrim(n, 0xE1E260, n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 682));
+		FX_PART(PART_RINGS);
+		RingPrim(n, fxp::model(PG().models.wide, 0xE1E260), n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 682));
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
@@ -1226,7 +1292,7 @@ namespace g218
 		n->s20 = (int16_t)(n->s20 + w);
 		n->s22 = (int16_t)(w - (int16_t)(w / 8));
 		n->c++;
-		return n->c >= 0x10 ? TASK_END : 0;
+		return n->c >= PG().rings.wide ? TASK_END : 0;
 	}
 
 	// 0x634B90, 8 ticks: camera shake word 0x1D97712 = +-(sin(c * 0x80 + 0x400) * amplitude) (written
@@ -1245,7 +1311,7 @@ namespace g218
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 8 ? TASK_END : 0;
+		return n->c >= PG().rings.shake_ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -1257,7 +1323,7 @@ namespace g218
 	// ------------------------------------------------------------------
 	// the packets the grab inserts: the module's (real ticks) or copies (held frames)
 	struct GrabPackets { uint32_t env, exe, stp, area, ofs, xy; };
-	static const GrabPackets GRAB_MODULE = { 0x24F24D8, 0xE25AD8, 0x24F3538, 0x24F23C8, 0x24F24C8, 0x24F34F8 };
+	static GrabPackets GrabModule() { return { own::R(0x24F24D8), 0xE25AD8, own::R(0x24F3538), own::R(0x24F23C8), own::R(0x24F24C8), own::R(0x24F34F8) }; }
 
 	static void ScreenGrab(const int16_t *pos, const GrabPackets &pk)
 	{
@@ -1331,7 +1397,8 @@ namespace g218
 			n->p10 = (int16_t)(n->p10 + *Centroid16(0));
 			n->p12 = (int16_t)(n->p12 + *Centroid16(1));
 			n->p14 = (int16_t)(n->p14 + *Centroid16(2));
-			ScreenGrab(&n->p10, GRAB_MODULE);
+			FX_PART(PART_SHARDS);
+			ScreenGrab(&n->p10, GrabModule());
 		}
 		if (n->c == 0xF)
 		{
@@ -1346,9 +1413,9 @@ namespace g218
 			V[0] = (int16_t)(V[0] + *Centroid16(0));
 			V[1] = (int16_t)(V[1] + *Centroid16(1));
 			V[2] = (int16_t)(V[2] + *Centroid16(2));
-			for (int k = 0; k < 24; k++)
+			for (int k = 0; k < PG().shards.count; k++)
 			{
-				Node24 *t = (Node24 *)AddTaskToQueue(&Q1(), ORIG_ShardTask);
+				Node24 *t = (Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_ShardTask));
 				t->c = 0;
 				t->p16 = (int16_t)(k / 4);
 				Shard *sh = SH(k);
@@ -1366,7 +1433,7 @@ namespace g218
 				D[1] = (r + P[1]) * 2 - 0x320;
 				D[2] = (int32_t)P[2] - V[2];
 				NormalizeVectorToFixedPoint(D, D);
-				int32_t m = CrtRand() % 350 + 250;
+				int32_t m = CrtRand() % PG().shards.kick_rand + PG().shards.kick;
 				sh->vx = (int16_t)(mul32(m, D[0]) >> 12);
 				sh->vy = (int16_t)(mul32(m, D[1]) >> 12);
 				sh->vz = (int16_t)(mul32(m, D[2]) >> 12);
@@ -1374,8 +1441,8 @@ namespace g218
 		}
 		if (n->c == 0x10)
 		{
-			((Node24 *)AddTaskToQueue(&Q1(), ORIG_ShardDustTask))->c = 0;
-			((Node24 *)AddTaskToQueue(&Q1(), ORIG_ShardChipTask))->c = 0;
+			((Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_ShardDustTask)))->c = 0;
+			((Node24 *)AddTaskToQueue(&Q1(), own::Fn(ORIG_ShardChipTask)))->c = 0;
 		}
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
@@ -1575,6 +1642,7 @@ namespace g218
 	static uint32_t __cdecl ShardTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
+		FX_PART(PART_SHARDS);
 		if (n->p16 > 0)
 		{
 			if (!Paused()) n->p16--;
@@ -1599,7 +1667,7 @@ namespace g218
 	static void ShardDustSetup(uint8_t *h, uint8_t *s)
 	{
 		memcpy(s + 8, &Camera(), 0x20);
-		*(uint32_t *)h = 0xE19E68;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.shard_dust, 0xE19E68);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(uint16_t *)(h + 0x24) = 0xC;
 	}
@@ -1617,6 +1685,7 @@ namespace g218
 	static uint32_t __cdecl ShardDustTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
+		FX_PART(PART_SHARDS);
 		uint8_t *pool = PoolB();
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
 		if (!Paused() && n->c <= 0x12)
@@ -1702,6 +1771,7 @@ namespace g218
 	static uint32_t __cdecl ShardChipTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
+		FX_PART(PART_SHARDS);
 		uint8_t *pool = PoolA();
 		uint8_t *s = (uint8_t *)FieldAlloc(0x68);
 		if (!Paused() && n->c <= 6)
@@ -1779,7 +1849,7 @@ namespace g218
 		Scale3DMatrix(&m, s);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ScrollHeader(0xE24FC8);
+		uint8_t *h = ScrollHeader(fxp::model(PG().models.flash, 0xE24FC8));
 		*(uint16_t *)(h + 0x18) = 0x40;
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(uint32_t *)(h + 8) = 0;
@@ -1801,11 +1871,12 @@ namespace g218
 	static uint32_t __cdecl FlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
+		FX_PART(PART_FLASH);
 		FlashDraw(mul32(-3 - n->c, 28), n->c >= 6, shl32(n->c - 6, 10));
 		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 0xA ? TASK_END : 0;
+		return n->c >= PG().flash.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -1825,16 +1896,16 @@ namespace g218
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 0)
 		{
-			CameraScriptStart(0xE25970, &RootMatrix(), E2, &Q1(), 0);
-			BdTransSummonStream(0xF1DD50, STREAM_STATE);
-			VoiceSlot() = ClaimVoiceSlot((const void *)0xE25698, 1, 0x80);
+			CameraScriptStart(0xE25970, &RootMatrix(), E2_(), &Q1(), 0);
+			BdTransSummonStream(0xF1DD50, own::R(STREAM_STATE));
+			VoiceSlot() = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, 0xE25698), 1, 0x80);
 		}
 		int32_t d = n->c;
 		if (d < 0x34)
 		{
 			if (d == 2)
 			{
-				BdPlaySE(0xE257D0, 0, 0x80);
+				BdPlaySE(fxp::sound(PG().sounds.start, 0xE257D0), 0, 0x80);
 				CharacterLoad(0x2C1, Tex() + 0x11000);
 			}
 			else if (d == 0x10)
@@ -1844,13 +1915,6 @@ namespace g218
 				CharacterLoad(0x2C2, Tex());
 			}
 			else if (d == 0) LinkQ1(ORIG_FadeTileTask);
-			else if (d == 0xB)
-			{
-				SpawnSpinners();
-				ShowStage();
-			}
-			else if (d == 0x18) SpawnFlare();
-			else if (d == 0x20) SpawnRing();
 		}
 		else if ((d -= 0x34) < 0x14)
 		{
@@ -1864,7 +1928,6 @@ namespace g218
 		}
 		else if ((d -= 0x14) < 0x14)
 		{
-			if (d == 0) LinkQ1(ORIG_TileTask);
 		}
 		else if ((d -= 0x14) < 9)
 		{
@@ -1896,7 +1959,7 @@ namespace g218
 			else if (d == 0xA)
 			{
 				if (LoadState() < 0) return 0;
-				BdTransSummonStream(SummonData(), STREAM_STATE);
+				BdTransSummonStream(SummonData(), own::R(STREAM_STATE));
 			}
 		}
 		else if ((d -= 0x2D) < 0xA5)
@@ -1904,24 +1967,20 @@ namespace g218
 			if (d == 0x14)
 			{
 				Text(1, 0x2D);
-				E2[0] |= 8;
+				E2_()[0] |= 8;
 			}
-			else if (d == 0x41) *(uint16_t *)E2 &= 0xFFF7;
+			else if (d == 0x41) *(uint16_t *)E2_() &= 0xFFF7;
 			else if (d == 0x55)
 			{
 				Text(2, 0x2D);
-				E2[0] |= 8;
+				E2_()[0] |= 8;
 			}
-			else if (d == 0x82) *(uint16_t *)E2 &= 0xFFF7;
+			else if (d == 0x82) *(uint16_t *)E2_() &= 0xFFF7;
 			else if (d == 0x96) Text(3, 0xF);
 		}
 		else if ((d -= 0xA5) < 0x15)
 		{
-			if (d == 4)
-			{
-				BdPlaySE(0xE257D4, 0, 0x80);
-				Flags() &= ~4u;
-			}
+			if (d == 4) Flags() &= ~4u;
 			else if (d == 0xE)
 			{
 				BdPlaySummonStream(0x80, 0, 0x60);
@@ -1929,7 +1988,7 @@ namespace g218
 			}
 			else if (d == 0)
 			{
-				*(uint16_t *)E2 &= 0xFFF7;
+				*(uint16_t *)E2_() &= 0xFFF7;
 				Flags() &= ~4u;
 			}
 			else if (d >= 8 && d <= 0xB) Flags() |= 4;
@@ -1937,34 +1996,45 @@ namespace g218
 		}
 		else if ((d -= 0x15) < 0x12)
 		{
-			if (d == 0)
-			{
-				uint8_t *t = Entity(TargetSlot());
-				QueueChainTransformation(t, 0x37);
-				t[0] |= 0x20;
-				SpawnGroundWave();
-			}
 		}
 		else if ((d -= 0x12) < 0x16)
 		{
-			if (d == 0)
-			{
-				LinkQ1(ORIG_SlashTask);
-				Text(5, 0x14);
-			}
 		}
 		else if ((d -= 0x16) < 0x9C)
 		{
-			if (d == 0x88) BdPlaySE(0xE257D8, 0, 0x80);
-			else if (d == 0x51) Text(6, 0x2D);
-			else if (d == 0x99)
-			{
-				if (VoiceSlotBusy(VoiceSlot())) ReleaseVoiceSlot(VoiceSlot());
-			}
+			if (d == 0x51) Text(6, 0x2D);
 		}
-		if (n->c == 0x17F) ApplyActionResultToTarget(*(uint32_t *)(*(uint8_t **)(CastCtx() + 4) + 8));
+		const GilKillsParams &g = PG();
+		const int32_t c = n->c;
+		if (c == g.timing.spinners)
+		{
+			SpawnSpinners();
+			ShowStage();
+		}
+		if (c == g.timing.flare) SpawnFlare();
+		if (c == g.timing.ring) SpawnRing();
+		if (c == g.timing.tile) LinkQ1(ORIG_TileTask);
+		if (c == g.timing.sword) BdPlaySE(fxp::sound(g.sounds.sword, 0xE257D4), 0, 0x80);
+		if (c == g.timing.cut)
+		{
+			uint8_t *t = Entity(TargetSlot());
+			QueueChainTransformation(t, 0x37);
+			t[0] |= 0x20;
+			SpawnGroundWave();
+		}
+		if (c == g.timing.slash)
+		{
+			LinkQ1(ORIG_SlashTask);
+			Text(5, 0x14);
+		}
+		if (c == g.timing.end_sound) BdPlaySE(fxp::sound(g.sounds.end, 0xE257D8), 0, 0x80);
+		if (c == g.timing.release)
+		{
+			if (VoiceSlotBusy(VoiceSlot())) ReleaseVoiceSlot(VoiceSlot());
+		}
+		if (n->c == g.timing.result) ApplyActionResultToTarget(*(uint32_t *)(*(uint8_t **)(CastCtx() + 4) + 8));
 		n->c++;
-		if (n->c <= 0x243) return 0;
+		if (n->c <= PG().timing.end) return 0;
 		LinkQ1(ORIG_EndTask);
 		uint8_t *t = Entity(TargetSlot());
 		QueueChainTransformation(t, 1);
@@ -1973,33 +2043,207 @@ namespace g218
 	}
 
 	// ------------------------------------------------------------------
+	// Setup (0x6326D0): the game runs its own; Fujin's programs this (its memory may be a copy's): the magic buffer and the
+	// engine's three pool cells, the context, the target's and the caster's slots, the master, the timeline, the model
+	// queue, the pools cleared, the TIM (exe data), the root matrix (the target's yaw turned round, at the targets' centre's
+	// depth and 4500 in front of the target). (The file loader is the engine's bare ret; the camera is the timeline's script.)
+	// ------------------------------------------------------------------
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)
+	{
+		const uint32_t mb = (uint32_t)layouts::MagicBuffer();
+		var<uint32_t>(own::R(0x24F3550)) = mb;
+		var<uint32_t>(0xE257E8) = mb + 0x2F800;
+		var<uint32_t>(0xE257E0) = mb + 0x2D000;
+		var<uint32_t>(0xE257E4) = mb + 0x2E800;
+		const uint8_t *action = *(uint8_t **)(ctx + 4);
+		const int32_t target = (*(uint8_t **)(action + 8))[0];
+		var<uint8_t *>(own::R(0x24F336C)) = ctx;
+		var<int32_t>(own::R(0x24F2368)) = target;
+		var<int32_t>(own::R(0x24F3370)) = ctx[0];
+		TaskQueue *root = (TaskQueue *)own::R(0x24F2418);
+		InitTaskQueuePool(root, (void *)own::R(0x24F23D8), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_SequenceTick)) + 0xC) = 0;
+		InitTaskQueuePool(&Q1(), (void *)own::R(0x24F2528), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(&Q1(), own::Fn(ORIG_TimelineTask)) + 0xC) = 0;
+		InitTaskQueuePool(&Q2(), (void *)own::R(0x24F2370), 0x24, 2);
+		for (int i = 0; i < POOLB_N; i++) *(uint32_t *)(PoolB() + 0x18 * i) = 0;
+		for (int i = 0; i < POOLA_N; i++) *(uint32_t *)(PoolA() + 0x20 * i) = 0;
+		QueueTIMUpload(fxp::tim(PG().res.tim, TIM));
+		uint8_t *e = Entity((uint32_t)target);
+		int16_t v[4] = { 0, (int16_t)(*(const int16_t *)(e + 0x0E) + 0x800), 0, 0 };
+		BuildRotationMatrixFromAngles(v, &RootMatrix());
+		int16_t *centre = (int16_t *)own::R(0x24F3548);
+		fn<void (__cdecl *)(uint32_t, int16_t *)>(0x5020A0)(*(const uint16_t *)(ctx + 2), centre);   // CalculateCenterPosition
+		int32_t *t = (int32_t *)own::R(0x24F235C);
+		t[2] = centre[2];
+		t[0] = 0;
+		t[1] = 0;
+		v[0] = 0;
+		v[1] = 0;
+		v[2] = -4500;
+		MatrixMultiplyVector((const Mat4x3 *)(e + 0x40), v, v);
+		t[0] += v[0];
+		Flags() = 0;
+		t[1] += v[1];
+		t[2] += v[2];
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "timeline", "Timeline", "The 580-tick timeline: the camera script, Gilgamesh's files loaded, the summon stream, the battle text lines, the stage hidden and shown, the voice, the sounds; its spawns (spinners, flare, ring, blue tile, the cut on the target, the slash), the result; the TIM" },
+			{ PART_FADE, "fade", "White fade", "A white full-screen tile fading in, held, fading out at the start" },
+			{ PART_TILE, "tile", "Blue tile", "A blue full-screen tile behind everything" },
+			{ PART_SPINNERS, "spinners", "Spinners", "Two screen-space meshes turning (the stage shown with them)" },
+			{ PART_FLARE, "flare", "Flare row", "Eight flipbook sprites on a line from above the centre toward the camera, spreading out" },
+			{ PART_RING, "ring", "Ring", "A ring high above the centre, turning, swelling and shrinking" },
+			{ PART_GIL, "gilgamesh", "Gilgamesh", "Gilgamesh and his sword's model: descending, standing, his animations; his own ticks spawn his landing's dust, rings and camera shake, the shards and the flash" },
+			{ PART_SWORD, "sword", "Sword", "The sword mesh on the sword model's bone (hidden while he swings)" },
+			{ PART_GLOW, "glow", "Sword glow", "A glow mesh past Gilgamesh's hand, along his arm, its texture scrolling" },
+			{ PART_DUST, "dust", "Dust", "Dust flipbooks thrown out on a ring as he lands, slowing" },
+			{ PART_RINGS, "rings", "Landing rings", "A shock ring, two rising rings and a wide ring as he lands, fading out; the camera shake" },
+			{ PART_SHARDS, "shards", "Shards", "The screen grabbed into VRAM and cut into shards thrown from the target, with their dust and chips" },
+			{ PART_FLASH, "flash", "Flash", "A screen-space flash mesh, its texture scrolling, fading out" },
+			{ PART_WAVE, "wave", "Ground wave", "A wave on the ground at the target as he is cut, its colour going blue" },
+			{ PART_SLASH, "slash", "Slash", "The slash at the target, turned toward the camera script's eye, its texture scrolling" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The timeline's ticks" },
+		};
+#define MPF(member) (uint32_t)offsetof(GilKillsParams, member)
+		static const Field FIELDS[] = {
+			{ "timeline", "sounds.start", "Start sound", "At the timeline's tick 2 (with the first file's load)", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.sword", "Sword sound", "At the sword sound's tick", MPF(sounds.sword), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.end", "End sound", "At the end sound's tick", MPF(sounds.end), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "sounds.voice", "Voice", "The sound block its voice slot is claimed with (at the start)", MPF(sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "timeline", "timing.spinners", "Spinners", "The timeline's tick of the spinners (the stage shown)", MPF(timing.spinners), fxp::I16, 0, 600 },
+			{ "timeline", "timing.flare", "Flare row", "Its tick of the flare row", MPF(timing.flare), fxp::I16, 0, 600 },
+			{ "timeline", "timing.ring", "Ring", "Its tick of the ring", MPF(timing.ring), fxp::I16, 0, 600 },
+			{ "timeline", "timing.tile", "Blue tile", "Its tick of the blue tile", MPF(timing.tile), fxp::I16, 0, 600 },
+			{ "timeline", "timing.sword", "Sword sound", "Its tick of the sword sound", MPF(timing.sword), fxp::I16, 0, 600 },
+			{ "timeline", "timing.cut", "Cut", "Its tick the target is cut (his hit chain 0x37, the ground wave)", MPF(timing.cut), fxp::I16, 0, 600 },
+			{ "timeline", "timing.result", "Result", "Its tick of the target's result", MPF(timing.result), fxp::I16, 0, 600 },
+			{ "timeline", "timing.slash", "Slash", "Its tick of the slash (and its text line)", MPF(timing.slash), fxp::I16, 0, 600 },
+			{ "timeline", "timing.end_sound", "End sound", "Its tick of the end sound", MPF(timing.end_sound), fxp::I16, 0, 600 },
+			{ "timeline", "timing.release", "Voice released", "Its tick the voice slot is released", MPF(timing.release), fxp::I16, 0, 600 },
+			{ "timeline", "timing.end", "End", "Its last tick (the end task, the target's chain 1, the target hidden)", MPF(timing.end), fxp::I16, 0, 600 },
+			{ "timeline", "res.tim", "TIM", "The TIM its setup uploads (exe data)", MPF(res.tim), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "fade", "fade.ticks", "Ticks", "Its ticks", MPF(fade.ticks), fxp::I16, 0, 400 },
+			{ "fade", "fade.in", "In", "Fading in over so many ticks (at least 1)", MPF(fade.in), fxp::I16, 1, 400 },
+			{ "fade", "fade.out_from", "Out from", "Fading out from this tick", MPF(fade.out_from), fxp::I16, 0, 400 },
+			{ "fade", "fade.out", "Out", "Over so many ticks (at least 1)", MPF(fade.out), fxp::I16, 1, 400 },
+			{ "tile", "tile.ticks", "Ticks", "Its ticks", MPF(tile.ticks), fxp::I16, 0, 400 },
+			{ "tile", "tile.r", "Red", "Its colour", MPF(tile.r), fxp::I16, 0, 255 },
+			{ "tile", "tile.g", "Green", "Its colour", MPF(tile.g), fxp::I16, 0, 255 },
+			{ "tile", "tile.b", "Blue", "Its colour", MPF(tile.b), fxp::I16, 0, 255 },
+			{ "spinners", "spinners.ticks", "Ticks", "Their ticks", MPF(spinners.ticks), fxp::I16, 0, 400 },
+			{ "spinners", "spinners.spin_a", "First spin", "The first one's turn a tick", MPF(spinners.spin_a), fxp::I16, -0x400, 0x400, fxp::Angle },
+			{ "spinners", "spinners.spin_b", "Second spin", "The second one's turn a tick", MPF(spinners.spin_b), fxp::I16, -0x400, 0x400, fxp::Angle },
+			{ "spinners", "spinners.size_a", "First size", "The first one's size", MPF(spinners.size_a), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "spinners", "spinners.size_b", "Second size", "The second one's size", MPF(spinners.size_b), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "spinners", "spinners.fade_a", "First fade", "The first one's fade level", MPF(spinners.fade_a), fxp::I16, 0, 0x1000 },
+			{ "spinners", "spinners.fade_b", "Second fade", "The second one's fade level", MPF(spinners.fade_b), fxp::I16, 0, 0x1000 },
+			{ "spinners", "models.spinner", "Mesh", "The spinners' mesh", MPF(models.spinner), fxp::Model, 0, 0x7FFFFFFF },
+			{ "flare", "flare.ticks", "Ticks", "Its ticks", MPF(flare.ticks), fxp::I16, 0, 400 },
+			{ "flare", "flare.length", "Length", "How far its sprites lie along the line (x their table's distances)", MPF(flare.length), fxp::I16, -0x4000, 0x4000 },
+			{ "flare", "seqs.flare", "Flipbook", "The flare's flipbook", MPF(seqs.flare), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "ring", "ring.ticks", "Ticks", "Its ticks", MPF(ring.ticks), fxp::I16, 0, 400 },
+			{ "ring", "models.ring", "Mesh", "The ring's mesh", MPF(models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "gilgamesh", "gil.dust", "Landing", "Gilgamesh's tick of his landing's dust, rings and camera shake", MPF(gil.dust), fxp::I16, 0, 600 },
+			{ "gilgamesh", "gil.shards", "Shards", "His tick of the shards", MPF(gil.shards), fxp::I16, 0, 600 },
+			{ "gilgamesh", "gil.flash", "Flash", "His tick of the flash", MPF(gil.flash), fxp::I16, 0, 600 },
+			{ "sword", "models.sword", "Mesh", "The sword mesh", MPF(models.sword), fxp::Model, 0, 0x7FFFFFFF },
+			{ "glow", "glow.ticks", "Ticks", "Its ticks", MPF(glow.ticks), fxp::I16, 0, 400 },
+			{ "glow", "glow.reach", "Reach", "How far past his hand along his arm", MPF(glow.reach), fxp::I16, -0x4000, 0x4000 },
+			{ "glow", "glow.fade", "Fade", "Its fade level", MPF(glow.fade), fxp::I16, 0, 0x1000 },
+			{ "glow", "models.glow", "Mesh", "The glow's mesh", MPF(models.glow), fxp::Model, 0, 0x7FFFFFFF },
+			{ "dust", "dust.last", "Last", "Spawned up to this tick of it", MPF(dust.last), fxp::I16, 0, 100 },
+			{ "dust", "dust.count", "Count", "Puffs a tick (200 at most at once)", MPF(dust.count), fxp::I16, 0, 50 },
+			{ "dust", "seqs.dust", "Flipbook", "The dust's flipbook", MPF(seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "rings", "rings.shock", "Shock ticks", "The shock ring's ticks", MPF(rings.shock), fxp::I16, 0, 400 },
+			{ "rings", "rings.rising", "Rising ticks", "The rising rings' ticks", MPF(rings.rising), fxp::I16, 0, 400 },
+			{ "rings", "rings.wide", "Wide ticks", "The wide ring's ticks", MPF(rings.wide), fxp::I16, 0, 400 },
+			{ "rings", "rings.shake", "Shake", "The camera shake's amount", MPF(rings.shake), fxp::I16, -0x400, 0x400 },
+			{ "rings", "rings.shake_ticks", "Shake ticks", "Its ticks", MPF(rings.shake_ticks), fxp::I16, 0, 400 },
+			{ "rings", "models.shock", "Shock mesh", "The shock ring's mesh", MPF(models.shock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "rings", "models.rising", "Rising mesh", "The rising rings' mesh", MPF(models.rising), fxp::Model, 0, 0x7FFFFFFF },
+			{ "rings", "models.wide", "Wide mesh", "The wide ring's mesh", MPF(models.wide), fxp::Model, 0, 0x7FFFFFFF },
+			{ "shards", "shards.count", "Count", "How many (24 at most: the shard table's)", MPF(shards.count), fxp::I16, 0, 24 },
+			{ "shards", "shards.kick", "Speed", "Thrown at this + a random below the next", MPF(shards.kick), fxp::I16, -0x1000, 0x1000 },
+			{ "shards", "shards.kick_rand", "Speed random", "(at least 1)", MPF(shards.kick_rand), fxp::I16, 1, 0x1000 },
+			{ "shards", "seqs.shard_dust", "Dust flipbook", "The shards' dust flipbook", MPF(seqs.shard_dust), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "flash", "flash.ticks", "Ticks", "Its ticks", MPF(flash.ticks), fxp::I16, 0, 400 },
+			{ "flash", "models.flash", "Mesh", "The flash's mesh", MPF(models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "wave", "wave.ticks", "Ticks", "Its ticks (its colour goes blue over them; at least 1)", MPF(wave.ticks), fxp::I16, 1, 400 },
+			{ "wave", "wave.scroll", "Scroll", "Its texture scroll a tick", MPF(wave.scroll), fxp::I16, -0x100, 0x100 },
+			{ "wave", "models.wave", "Mesh", "The ground wave's mesh", MPF(models.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "slash", "slash.ticks", "Ticks", "Its ticks", MPF(slash.ticks), fxp::I16, 0, 400 },
+			{ "slash", "slash.scroll", "Scroll", "Its texture scroll a tick (backwards)", MPF(slash.scroll), fxp::I16, -0x100, 0x100 },
+			{ "slash", "slash.back", "Toward the eye", "Placed so far from the eye toward the target", MPF(slash.back), fxp::I16, -0x4000, 0x4000 },
+			{ "slash", "models.slash", "Mesh", "The slash's mesh", MPF(models.slash), fxp::Model, 0, 0x7FFFFFFF },
+		};
+#undef MPF
+	}
+
+	// ------------------------------------------------------------------
 	// registration
 	// ------------------------------------------------------------------
 	static void RegisterPorts()
 	{
+		fxp::register_params({ 218, "Gilgamesh kills Seifer", &live, &GAME, sizeof(GilKillsParams),
+		                       table::PARTS, (int)(sizeof(table::PARTS) / sizeof(table::PARTS[0])),
+		                       table::FIELDS, (int)(sizeof(table::FIELDS) / sizeof(table::FIELDS[0])),
+		                       table::GROUPS, (int)(sizeof(table::GROUPS) / sizeof(table::GROUPS[0])) });
+		own::note(ORIG_Setup, (void *)Setup);
+		own::note(ORIG_SequenceTick, (void *)SequenceTick);
 		register_port(ORIG_SequenceTick, (void *)SequenceTick, "G218 SequenceTick", 218);
+		own::note(ORIG_TimelineTask, (void *)TimelineTask);
 		register_port(ORIG_TimelineTask, (void *)TimelineTask, "G218 TimelineTask", 218);
+		own::note(ORIG_FadeTileTask, (void *)FadeTileTask);
 		register_port(ORIG_FadeTileTask, (void *)FadeTileTask, "G218 FadeTileTask", 218);
+		own::note(ORIG_SpinnerTask, (void *)SpinnerTask);
 		register_port(ORIG_SpinnerTask, (void *)SpinnerTask, "G218 SpinnerTask", 218);
+		own::note(ORIG_FlareTask, (void *)FlareTask);
 		register_port(ORIG_FlareTask, (void *)FlareTask, "G218 FlareTask", 218);
+		own::note(ORIG_RingTask, (void *)RingTask);
 		register_port(ORIG_RingTask, (void *)RingTask, "G218 RingTask", 218);
+		own::note(ORIG_TileTask, (void *)TileTask);
 		register_port(ORIG_TileTask, (void *)TileTask, "G218 TileTask", 218);
+		own::note(ORIG_GroundWaveTask, (void *)GroundWaveTask);
 		register_port(ORIG_GroundWaveTask, (void *)GroundWaveTask, "G218 GroundWaveTask", 218);
+		own::note(ORIG_SlashTask, (void *)SlashTask);
 		register_port(ORIG_SlashTask, (void *)SlashTask, "G218 SlashTask", 218);
+		own::note(ORIG_SwordTask, (void *)SwordTask);
 		register_port(ORIG_SwordTask, (void *)SwordTask, "G218 SwordTask", 218);
+		own::note(ORIG_EndTask, (void *)EndTask);
 		register_port(ORIG_EndTask, (void *)EndTask, "G218 EndTask", 218);
+		own::note(ORIG_GilTask, (void *)GilTask);
 		register_port(ORIG_GilTask, (void *)GilTask, "G218 GilTask", 218);
+		own::note(ORIG_GlowTask, (void *)GlowTask);
 		register_port(ORIG_GlowTask, (void *)GlowTask, "G218 GlowTask", 218);
+		own::note(ORIG_DustTask, (void *)DustTask);
 		register_port(ORIG_DustTask, (void *)DustTask, "G218 DustTask", 218);
+		own::note(ORIG_ShockRingTask, (void *)ShockRingTask);
 		register_port(ORIG_ShockRingTask, (void *)ShockRingTask, "G218 ShockRingTask", 218);
+		own::note(ORIG_RisingRingTask, (void *)RisingRingTask);
 		register_port(ORIG_RisingRingTask, (void *)RisingRingTask, "G218 RisingRingTask", 218);
+		own::note(ORIG_WideRingTask, (void *)WideRingTask);
 		register_port(ORIG_WideRingTask, (void *)WideRingTask, "G218 WideRingTask", 218);
+		own::note(ORIG_ShakeTask, (void *)ShakeTask);
 		register_port(ORIG_ShakeTask, (void *)ShakeTask, "G218 ShakeTask", 218);
+		own::note(ORIG_ShardsTask, (void *)ShardsTask);
 		register_port(ORIG_ShardsTask, (void *)ShardsTask, "G218 ShardsTask", 218);
+		own::note(ORIG_ShardTask, (void *)ShardTask);
 		register_port(ORIG_ShardTask, (void *)ShardTask, "G218 ShardTask", 218);
+		own::note(ORIG_ShardDustTask, (void *)ShardDustTask);
 		register_port(ORIG_ShardDustTask, (void *)ShardDustTask, "G218 ShardDustTask", 218);
+		own::note(ORIG_ShardChipTask, (void *)ShardChipTask);
 		register_port(ORIG_ShardChipTask, (void *)ShardChipTask, "G218 ShardChipTask", 218);
+		own::note(ORIG_FlashTask, (void *)FlashTask);
 		register_port(ORIG_FlashTask, (void *)FlashTask, "G218 FlashTask", 218);
+		own::note(ORIG_ModelDrawTask, (void *)ModelDrawTask);
 		register_port(ORIG_ModelDrawTask, (void *)ModelDrawTask, "G218 ModelDrawTask", 218);
 		// 30 fps layer: see mag218_gilgamesh_kills_seifer_held.inc
 		FX_HELD(register_mag218_held();)

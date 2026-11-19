@@ -73,9 +73,15 @@
 // called by effect 64 too; 0x687AE0 is effect 276's (ported there too); 0x672DB0 (called) is effect 298's.
 // STACK WORDS: the 4th words of the vectors loaded into GTE V0 (spawn positions, mark points) reach the GTE's VZ0 high half
 // (0x1CA8A16) only. The layout block's matrix pad word (+0x12) is never written (not read by its users).
+// FUJIN: Fujin's described Trauma shatter (effect_290.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the file loader (0x675290) and the setup (0x675280 -> _Init 0x6752B0) ported below; its
+// parameters (ShatterParams: the sound, the voice and the ticks, the layouts under and round the caster, his tint, the
+// sprites, the fragments and the marks, the 3 layouts, 4 flipbooks, 4 fragment meshes, the bone scripts, the texture
+// name and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
 #include <stddef.h>
 
 namespace ff8fx
@@ -86,15 +92,15 @@ namespace shatter290
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507B40); }        // caster entity (setup)
-	inline TaskQueue *QScript() { return (TaskQueue *)0x2507B48; }         // pool: magic buffer, 28 x 0x24
-	inline TaskQueue *QSpriteA() { return (TaskQueue *)0x2507B58; }        // pool: + 0x3F0, 32 x 0x18
-	inline TaskQueue *QSpriteB() { return (TaskQueue *)0x2507B68; }        // pool: + 0x6F0, 16 x 0x128
-	inline TaskQueue *QLayout() { return (TaskQueue *)0x2507B78; }         // pool: + 0x1970, 3 x 0x124
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2507B88; }         // pool: + 0x1CDC, 1 x 0x68E4
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507BBC); }
-	inline uint32_t &LcgSeed() { return var<uint32_t>(0x2507BC0); }        // module LCG
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507BC8); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507B40)); }        // caster entity (setup)
+	inline TaskQueue *QScript() { return (TaskQueue *)own::R(0x2507B48); }         // pool: magic buffer, 28 x 0x24
+	inline TaskQueue *QSpriteA() { return (TaskQueue *)own::R(0x2507B58); }        // pool: + 0x3F0, 32 x 0x18
+	inline TaskQueue *QSpriteB() { return (TaskQueue *)own::R(0x2507B68); }        // pool: + 0x6F0, 16 x 0x128
+	inline TaskQueue *QLayout() { return (TaskQueue *)own::R(0x2507B78); }         // pool: + 0x1970, 3 x 0x124
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2507B88); }         // pool: + 0x1CDC, 1 x 0x68E4
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507BBC)); }
+	inline uint32_t &LcgSeed() { return var<uint32_t>(own::R(0x2507BC0)); }        // module LCG
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507BC8)); }        // Magic_TextureOFF (magic buffer)
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // projected / world vertices
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -119,6 +125,46 @@ namespace shatter290
 	static const uint32_t SQRT_Table = 0x106E448;        // u16 (GTE-style square root table)
 	static const void *const SOUND_Voice = (const void *)0x106A3A0;
 	static const void *const SOUND_Start = (const void *)0x106A39C;
+
+	static const uint32_t ORIG_FileLoader = 0x675290, ORIG_Setup = 0x675280;
+	static const uint32_t TEXTURE_NAME = 0x106E894, CAMERA_ANIM = 0x106A2DC, SCRIPT_TABLE = 0x106E648;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507B38)); }     // the effect's file (its TIM)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_UNDER = 1, PART_RINGS = 2, PART_BODY = 3, PART_FRAGMENTS = 4, PART_MARKS = 5, PART_SPRITES = 6, PART_BURSTS = 7 };
+	struct ShatterParams
+	{
+		struct { uint32_t start, voice; } sounds;    // the start sound, the voice (its slot claimed at the start)
+		// the master's ticks: the start sound, the voice released, its end
+		struct { int16_t start, release, end; } timing;
+		// layout A and the flipbook under the caster: its first ticks, so far below his spawn point, depth, the sprite's size
+		struct { int16_t ticks, drop, depth, size; } under;
+		// layouts B and C at the caster's spawn point (bone, fraction) on the ground: from start for ticks, their turn, depth
+		struct { int16_t start, ticks, bone, frac, turn, depth; } rings;
+		// the caster's colour blended to black over ticks (its byte +0x2F set to alpha); drawn faded from hide_from
+		struct { int16_t ticks, alpha, hide_from; } tint;
+		// the sprites at the caster's spawn point on the first ticks: A (count a tick, scatter, size, life), B (count, size,
+		// life)
+		struct { int16_t ticks, count_a, spread, size_a, life_a, count_b, size_b, life_b; } sprites;
+		// the fragments: life (+ a random below 16), fall speed's growth a tick, fade over their last ticks, spin range
+		struct { int16_t life, gravity, fade, spin; } fragments;
+		struct { int16_t life, speed; } marks;      // the marks: life (their flipbook's frame 12 - life), speed (x their velocity bytes)
+		struct { uint32_t a, b, c; } layouts;       // the prim-model layouts played (A also by the bone scripts' layout op)
+		struct { uint32_t under, a, b, mark; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t frag[4]; } models;        // the fragments' meshes (one of four at random)
+		struct { uint32_t scripts; } tables;        // the 20 bone scripts (byte code: their loop counters are written)
+		struct { uint32_t texture_name, camera; } res;   // its resources (data): texture file name, camera track
+	};
+	static const ShatterParams GAME = { { 0x106A39C, 0x106A3A0 }, { 0, 0x56, 0x5A }, { 0x10, 0x3E8, -0x200, 0x4000 },
+		{ 0x14, 0x16, 1, 0x400, 0x800, 0 }, { 0x14, 0x32, 0x1E }, { 0x19, 2, 0x100, 0x800, 0xC, 1, 0x1770, 0xD },
+		{ 0x10, 0x14, 8, 0x200 }, { 0xC, 4 }, { 0x1067CB8, 0x106971C, 0x10688C4 }, { 0x106784C, 0x10676E0, 0x1067B58, 0x10679F8 },
+		{ { 0x1067400, 0x10674B8, 0x1067570, 0x1067628 } }, { SCRIPT_TABLE }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static ShatterParams live = GAME;
+	static const ShatterParams &PG() { return live; }
+	static const uint32_t SCRIPT_TABLE_SIZE = 0x24C;     // 0x106E648..0x106E894
 	// the 20 bone scripts started at counter 1 (first word: pose entry)
 	static const uint32_t SCRIPTS[20] = {
 		0x106E648, 0x106E664, 0x106E6A4, 0x106E6E4, 0x106E74C, 0x106E75C, 0x106E76C, 0x106E77C, 0x106E78C, 0x106E79C,
@@ -672,7 +718,7 @@ namespace shatter290
 		}
 		m->next_frag = (uintptr_t)f >= (uintptr_t)m + 0x5E5C ? m->frags : f + 1;
 		const uint32_t k = (uint32_t)ModLcg() >> 0xD;
-		if (k <= 3) f->model = FRAG_Models[k];
+		if (k <= 3) f->model = fxp::model(PG().models.frag[k], FRAG_Models[k]);
 		return f;
 	}
 
@@ -704,7 +750,7 @@ namespace shatter290
 	{
 		*(uint32_t *)f->pos = F<uint32_t>(s, 0x34);
 		*(uint32_t *)&f->pos[2] = F<uint32_t>(s, 0x38);
-		f->life = (int16_t)((SharedLcg() >> 0xC) + 0x10);
+		f->life = (int16_t)((SharedLcg() >> 0xC) + PG().fragments.life);
 		const int32_t x0 = F<int16_t>(s, 0x34), y0 = F<int16_t>(s, 0x36), z0 = F<int16_t>(s, 0x38);
 		F<int32_t>(s, 0x64) = x0 - F<int16_t>(s, 0x3C);
 		F<int32_t>(s, 0x68) = y0 - F<int16_t>(s, 0x3E);
@@ -727,8 +773,8 @@ namespace shatter290
 		GteSetLZCS(big);
 		f->angle[0] = (int16_t)ModLcg();
 		f->angle[1] = (int16_t)ModLcg();
-		f->spin[0] = (int16_t)((ModLcg() >> 5) - 0x200);
-		f->spin[1] = (int16_t)((ModLcg() >> 5) - 0x200);
+		f->spin[0] = (int16_t)((ModLcg() >> 5) - PG().fragments.spin);
+		f->spin[1] = (int16_t)((ModLcg() >> 5) - PG().fragments.spin);
 		int32_t lz;
 		GteReadLZCR(&lz);
 		if (lz < 0x12)
@@ -759,7 +805,7 @@ namespace shatter290
 		{
 			*(uint32_t *)k->pos = F<uint32_t>(s, 0x34);
 			*(uint32_t *)&k->pos[2] = F<uint32_t>(s, 0x38);
-			k->life = 0xC;
+			k->life = PG().marks.life;
 			k->vel[0] = (int8_t)((uint16_t)f->vel[0] >> 2);
 			k->vel[1] = (int8_t)((uint16_t)f->vel[1] >> 2);
 			k->vel[2] = (int8_t)((uint16_t)f->vel[2] >> 2);
@@ -1118,7 +1164,7 @@ namespace shatter290
 	}
 
 	// sub_676EF0 (fade): over the fragment's last 8 ticks
-	static int32_t FragFade(int16_t life) { return life < 8 ? shl32(life, 9) : 0x1000; }
+	static int32_t FragFade(int16_t life) { return life < PG().fragments.fade ? shl32(life, 12) / PG().fragments.fade : 0x1000; }
 
 	// sub_676EF0 (one fragment): its frame (rotation x scale through the camera, its point through the camera), faded (work
 	// block 0x68: +0x00 matrix, S = +0x20)
@@ -1155,6 +1201,7 @@ namespace shatter290
 	{
 		// 30 fps layer: see mag290_trauma_shatter_held.inc
 		FX_HELD(held_note_frags(m);)
+		FX_PART(PART_FRAGMENTS);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x68);
 		const Fragment *f = m->frags;
 		for (int32_t n = 0xC0; n != 0; n--, f++)
@@ -1180,7 +1227,7 @@ namespace shatter290
 			f->pos[0] = (int16_t)(f->pos[0] + f->vel[0]);
 			f->pos[2] = (int16_t)(f->pos[2] + f->vel[2]);
 			f->pos[1] = (int16_t)(f->pos[1] + f->vel[1]);
-			f->vel[1] = (int16_t)(f->vel[1] + 0x14);
+			f->vel[1] = (int16_t)(f->vel[1] + PG().fragments.gravity);
 			if (f->pos[1] > 0)
 			{
 				f->vel[1] = (int16_t)(-(int32_t)f->vel[1] >> 1);
@@ -1302,9 +1349,9 @@ namespace shatter290
 	{
 		MarkSprite(h, k);
 		k->life--;
-		k->pos[0] = (int16_t)(k->pos[0] + (int16_t)(k->vel[0] << 2));
-		k->pos[1] = (int16_t)(k->pos[1] + (int16_t)(k->vel[1] << 2));
-		k->pos[2] = (int16_t)(k->pos[2] + (int16_t)(k->vel[2] << 2));
+		k->pos[0] = (int16_t)(k->pos[0] + (int16_t)(k->vel[0] * PG().marks.speed));
+		k->pos[1] = (int16_t)(k->pos[1] + (int16_t)(k->vel[1] * PG().marks.speed));
+		k->pos[2] = (int16_t)(k->pos[2] + (int16_t)(k->vel[2] * PG().marks.speed));
 	}
 
 	// sub_677690: every live mark (work block 0xB4: sequence 0x10679F8, the identity rotation and the sprite vertices' z words
@@ -1313,8 +1360,9 @@ namespace shatter290
 	{
 		// 30 fps layer: see mag290_trauma_shatter_held.inc
 		FX_HELD(held_note_marks(m);)
+		FX_PART(PART_MARKS);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		F<uint32_t>(h, 0) = SEQ_Mark;
+		F<uint32_t>(h, 0) = fxp::sequence(PG().seqs.mark, SEQ_Mark);
 		F<uint16_t>(h, 0x92) = 0;
 		F<uint16_t>(h, 0x90) = 0;
 		F<uint16_t>(h, 0x8E) = 0;
@@ -1359,8 +1407,9 @@ namespace shatter290
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag290_trauma_shatter_held.inc
 		FX_HELD(held_note_sprite(s, SPRITE_A);)
-		SpriteDraw(s->pos, s->counter, SEQ_A, 0x800);
-		return SpriteStep(s, 0xC);
+		FX_PART(PART_SPRITES);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(PG().seqs.a, SEQ_A), PG().sprites.size_a);
+		return SpriteStep(s, PG().sprites.life_a);
 	}
 
 	static uint32_t __cdecl SpriteTaskB(TaskNode *n)
@@ -1368,8 +1417,9 @@ namespace shatter290
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag290_trauma_shatter_held.inc
 		FX_HELD(held_note_sprite(s, SPRITE_B);)
-		SpriteDraw(s->pos, s->counter, SEQ_B, 0x1770);
-		return SpriteStep(s, 0xD);
+		FX_PART(PART_SPRITES);
+		SpriteDraw(s->pos, s->counter, fxp::sequence(PG().seqs.b, SEQ_B), PG().sprites.size_b);
+		return SpriteStep(s, PG().sprites.life_b);
 	}
 
 	// ------------------------------------------------------------------
@@ -1400,6 +1450,7 @@ namespace shatter290
 		arg.depth = -0x80;
 		// 30 fps layer: see mag290_trauma_shatter_held.inc
 		FX_HELD(held_note_layout(L, &arg);)
+		FX_PART(PART_BURSTS);
 		return prim::play((prim::Layout *)L->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -1411,7 +1462,7 @@ namespace shatter290
 		const int32_t flag = ip[1];
 		const int16_t scale = ip[3];
 		ip += 4;
-		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayout(), ORIG_LayoutTask);
+		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayout(), own::Fn(ORIG_LayoutTask));
 		if (!L) return ip;
 		uint8_t *anim = entity + 0x60;
 		PoseBones(anim, pose);
@@ -1422,7 +1473,7 @@ namespace shatter290
 		L->pos[2] = (int16_t)(L->pos[2] + pe.pos[2]);
 		L->scale = scale;
 		BuildBoneMatricesFromPose(anim);
-		DecodeModelPrimLayout(MODEL_LayoutA, L->layout, 0x110);
+		DecodeModelPrimLayout(fxp::layout(PG().layouts.a, MODEL_LayoutA, 0x110), L->layout, 0x110);
 		return ip;
 	}
 
@@ -1527,9 +1578,9 @@ namespace shatter290
 	// sub_675650: a bone script on the pose entry of its first word
 	static void StartScript(uint32_t script)
 	{
-		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScript(), ORIG_ScriptTask);
+		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScript(), own::Fn(ORIG_ScriptTask));
 		Memset32(&s->cur, 0, 6);
-		const int16_t *p = (const int16_t *)script;
+		const int16_t *p = (const int16_t *)(fxp::data(PG().tables.scripts, SCRIPT_TABLE, SCRIPT_TABLE_SIZE, 4) + (script - SCRIPT_TABLE));
 		s->ip = p + 1;
 		s->cur = (PoseEntry *)(TexBase() + POSE + shl32(p[0], 4));
 	}
@@ -1543,65 +1594,71 @@ namespace shatter290
 		PrimArg arg;
 		arg.morph = TexBase() + MORPH;
 		arg.scaled = 0;
-		if (m->counter >= 0x5A) return TASK_END;
+		const ShatterParams &g = PG();
+		if (m->counter >= g.timing.end) return TASK_END;
 		int16_t pos[4] = {}; // the 4th word: never written by 0x502170 (stack residue in the game: GTE VZ0 pad only)
-		if (m->counter < 0x10)
+		if (m->counter < g.under.ticks)
 		{
 			GetEffectSpawnPosition(Caster(), 0, 0, pos);
 			RotY(0, &arg.m);
 			arg.m.t[0] = pos[0];
-			arg.m.t[1] = pos[1] - 0x3E8;
+			arg.m.t[1] = pos[1] - g.under.drop;
 			arg.m.t[2] = pos[2];
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
 			FX_HELD(held_note_frame(&arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-			arg.depth = -0x200;
+			arg.depth = g.under.depth;
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
 			FX_HELD(held_note_play(m, PLAY_A, &arg);)
+			FX_PART(PART_UNDER);
 			prim::play((prim::Layout *)m->layoutA, PrimCallback, (int)&arg, 0);
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
 			FX_HELD(held_note_under(m, pos);)
-			SpriteDraw(pos, m->counter, SEQ_Under, 0x4000);
+			SpriteDraw(pos, m->counter, fxp::sequence(g.seqs.under, SEQ_Under), g.under.size);
 		}
-		if ((uint32_t)(m->counter - 0x14) < 0x16)
+		if ((uint32_t)(m->counter - g.rings.start) < (uint32_t)g.rings.ticks)
 		{
-			GetEffectSpawnPosition(Caster(), 1, 0x400, pos);
-			RotY(0x800, &arg.m);
+			GetEffectSpawnPosition(Caster(), g.rings.bone, g.rings.frac, pos);
+			RotY(g.rings.turn, &arg.m);
 			arg.m.t[0] = pos[0];
 			arg.m.t[1] = 0;
 			arg.m.t[2] = pos[2];
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
 			FX_HELD(held_note_frame(&arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-			arg.depth = 0;
+			arg.depth = g.rings.depth;
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
 			FX_HELD(held_note_play(m, PLAY_B, &arg);)
+			FX_PART(PART_RINGS);
 			prim::play((prim::Layout *)m->layoutB, PrimCallback, (int)&arg, 0);
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
 			FX_HELD(held_note_play(m, PLAY_C, &arg);)
 			prim::play((prim::Layout *)m->layoutC, PrimCallback, (int)&arg, 0);
 		}
-		if (m->counter < 0x14)
+		if (m->counter < g.tint.ticks)
 		{
-			const int32_t w = shl32(m->counter, 12) / 20;
-			BlendColour(&m->colour, (const void *)COLOUR_Target, 0x1000 - w, w, Caster() + 0x2C);
-			Caster()[0x2F] = 0x32;
+			const int32_t w = shl32(m->counter, 12) / g.tint.ticks;
+			BlendColour(&m->colour, (const void *)own::R(COLOUR_Target), 0x1000 - w, w, Caster() + 0x2C);
+			Caster()[0x2F] = (uint8_t)g.tint.alpha;
 		}
 		if (m->counter >= 0)
 		{
 			// 30 fps layer: see mag290_trauma_shatter_held.inc
 			FX_HELD(held_note_body(m);)
+			FX_PART(PART_BODY);
 			CasterDraw(Caster(), m->pose);
 			*(uint8_t *)Caster() |= 4;
 		}
-		if (m->counter >= 0x1E) *(uint8_t *)Caster() |= 8;
+		if (m->counter >= g.tint.hide_from) *(uint8_t *)Caster() |= 8;
 		DrawFragments(m);
 		DrawMarks(m);
-		if (m->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
-		else if (m->counter == 0x56) ReleaseVoiceSlot(m->voice);
-		if (m->counter < 0x19)
+		if (m->counter == g.timing.start) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		else if (m->counter == g.timing.release) ReleaseVoiceSlot(m->voice);
+		if (m->counter < g.sprites.ticks)
 		{
-			SpriteNode *b = (SpriteNode *)AddTaskToQueue(QSpriteB(), ORIG_SpriteTaskB);
+			for (int32_t kb = g.sprites.count_b; kb > 0; kb--)
+			{
+			SpriteNode *b = (SpriteNode *)AddTaskToQueue(QSpriteB(), own::Fn(ORIG_SpriteTaskB));
 			GetEffectSpawnPosition(Caster(), 0, 0, pos);
 			if (b)
 			{
@@ -1612,15 +1669,17 @@ namespace shatter290
 				b->vel[1] = (int8_t)(0xE0 - (CrtRand() & 0xF));
 				b->vel[2] = (int8_t)(0xF0 - (CrtRand() & 0xF));
 			}
-			for (int32_t k = 2; k != 0; k--)
+			}
+			if (g.sprites.count_b <= 0) GetEffectSpawnPosition(Caster(), 0, 0, pos);
+			for (int32_t k = g.sprites.count_a; k > 0; k--)
 			{
-				SpriteNode *a = (SpriteNode *)AddTaskToQueue(QSpriteA(), ORIG_SpriteTaskA);
+				SpriteNode *a = (SpriteNode *)AddTaskToQueue(QSpriteA(), own::Fn(ORIG_SpriteTaskA));
 				if (!a) continue;
-				a->pos[0] = (int16_t)((CrtRand() & 0x1FF) + pos[0] - 0x100);
-				a->pos[1] = (int16_t)((CrtRand() & 0x1FF) + pos[1] - 0x100);
+				a->pos[0] = (int16_t)((CrtRand() & 0x1FF) + pos[0] - g.sprites.spread);
+				a->pos[1] = (int16_t)((CrtRand() & 0x1FF) + pos[1] - g.sprites.spread);
 				const int32_t rz = CrtRand() & 0x1FF;
 				a->counter = 0;
-				a->pos[2] = (int16_t)(rz + pos[2] - 0x100);
+				a->pos[2] = (int16_t)(rz + pos[2] - g.sprites.spread);
 				a->vel[0] = (int8_t)((CrtRand() & 0xF) - 0x10);
 				a->vel[1] = (int8_t)(0xC1 - (CrtRand() & 0x3F));
 				a->vel[2] = (int8_t)(0xF0 - (CrtRand() & 0xF));
@@ -1658,15 +1717,15 @@ namespace shatter290
 			InitTaskQueuePool(QSpriteB(), (void *)(TexBase() + POOL_SpriteB), 0x128, 0x10);
 			InitTaskQueuePool(QSpriteA(), (void *)(TexBase() + POOL_SpriteA), 0x18, 0x20);
 			InitTaskQueuePool(QScript(), (void *)TexBase(), 0x24, 0x1C);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x1A36);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 			m->colour = *(const uint32_t *)(Caster() + 0x2C);
 			m->next_frag = m->frags;
 			m->next_mark = m->marks;
-			DecodeModelPrimLayout(MODEL_LayoutA, m->layoutA, 0x110);
-			DecodeModelPrimLayout(MODEL_LayoutB, m->layoutB, 0x22C);
-			DecodeModelPrimLayout(MODEL_LayoutC, m->layoutC, 0xC8);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.a, MODEL_LayoutA, 0x110), m->layoutA, 0x110);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.b, MODEL_LayoutB, 0x22C), m->layoutB, 0x22C);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.c, MODEL_LayoutC, 0xC8), m->layoutC, 0xC8);
 			for (int i = 0; SCRIPTS[i]; i++) StartScript(SCRIPTS[i]);
 			*(uint16_t *)Caster() &= 0xFFF7;
 			StreamStateInit((void *)(TexBase() + STREAM_State));
@@ -1695,15 +1754,122 @@ namespace shatter290
 		rn->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x675290) and setup (0x675280 -> _Init 0x6752B0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster (its word +0 bits 2 / 3: only 3 set), the
+	// root, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		var<CastContext *>(own::R(0x2507B3C)) = ctx;
+		Caster() = Entity(ctx->attacker);
+		*(uint16_t *)Caster() &= 0xFFF3;
+		*(uint16_t *)Caster() |= 8;
+		TaskQueue *root = (TaskQueue *)own::R(0x2507B98);
+		InitTaskQueuePool(root, (void *)own::R(0x2507BA8), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The master's ticks, the start sound and the voice (claimed at the start, released near the end); the texture and the camera" },
+			{ 0, "scripts", "Bone scripts", "The 20 bone scripts: each moves one of the caster's 28 pose entries (offsets, turns, their speeds, a bounce on the ground), shatters bone groups into fragments (bones, count, speed, size, chance), spawns a bone layout, loops" },
+			{ PART_UNDER, "under", "Under", "Layout A and a flipbook under the caster on the first ticks" },
+			{ PART_RINGS, "rings", "Rings", "Layouts B and C on the ground at the caster" },
+			{ PART_BODY, "body", "Body", "The caster drawn by the module with the pose entries (his shadow, then the bone groups not hidden), his colour blended to black" },
+			{ PART_FRAGMENTS, "fragments", "Fragments", "The shattered polygons: fragments of up to 8 of them on a small mesh, flying off along their normal, spinning, falling, bouncing, fading out" },
+			{ PART_MARKS, "marks", "Marks", "A flipbook where each fragment started, drifting the same way" },
+			{ PART_SPRITES, "sprites", "Sprites", "Flipbook sprites rising from the caster on the first ticks" },
+			{ PART_BURSTS, "bursts", "Bone layouts", "Layout A at a bone, spawned by the bone scripts" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The master's ticks" },
+		};
+#define MPF(member) (uint32_t)offsetof(ShatterParams, member)
+		static const Field FIELDS[] = {
+			{ "master", "sounds.start", "Sound", "At the start sound's tick", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.voice", "Voice", "The sound block its voice slot is claimed with (at the start)", MPF(sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "timing.start", "Sound", "The master's tick of the start sound", MPF(timing.start), fxp::I16, 0, 400 },
+			{ "master", "timing.release", "Voice released", "Its tick the voice slot is released", MPF(timing.release), fxp::I16, 0, 400 },
+			{ "master", "timing.end", "End", "Its last tick (the effect ends once the battle file it streams is in)", MPF(timing.end), fxp::I16, 0, 400 },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "scripts", "tables.scripts", "Bone scripts", "The 20 bone scripts' byte code (0x24C bytes, each script at its own offset: edit their numbers, keep their shape)", MPF(tables.scripts), fxp::Data, 0, 0x7FFFFFFF },
+			{ "under", "under.ticks", "Ticks", "On the master's first ticks (the flipbook's frame = the tick: 16 at most)", MPF(under.ticks), fxp::I16, 0, 16 },
+			{ "under", "under.drop", "Drop", "So far below the caster's spawn point", MPF(under.drop), fxp::I16, -0x4000, 0x4000 },
+			{ "under", "under.depth", "Depth", "The layout's depth offset", MPF(under.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "under", "under.size", "Sprite size", "The flipbook's size", MPF(under.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "under", "layouts.a", "Layout A", "Layout A (the bone scripts' layout too)", MPF(layouts.a), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "under", "seqs.under", "Flipbook", "The flipbook under the caster", MPF(seqs.under), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "rings", "rings.start", "Start", "The master's tick they start", MPF(rings.start), fxp::I16, 0, 400 },
+			{ "rings", "rings.ticks", "Ticks", "Their ticks", MPF(rings.ticks), fxp::I16, 0, 400 },
+			{ "rings", "rings.bone", "Bone", "At the caster's spawn point of this bone (on the ground)", MPF(rings.bone), fxp::I16, 0, 0xFF },
+			{ "rings", "rings.frac", "Fraction", "The spawn point's fraction", MPF(rings.frac), fxp::I16, 0, 0x1000 },
+			{ "rings", "rings.turn", "Turn", "Their turn", MPF(rings.turn), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "rings", "rings.depth", "Depth", "Their depth offset", MPF(rings.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "rings", "layouts.b", "Layout B", "Layout B", MPF(layouts.b), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "rings", "layouts.c", "Layout C", "Layout C", MPF(layouts.c), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "body", "tint.ticks", "Tint ticks", "His colour blended to black over the first ticks (at least 1)", MPF(tint.ticks), fxp::I16, 1, 400 },
+			{ "body", "tint.alpha", "Tint byte", "His colour's 4th byte set meanwhile", MPF(tint.alpha), fxp::I16, 0, 255 },
+			{ "body", "tint.hide_from", "Hidden from", "From this tick his own draw is off (bit 3)", MPF(tint.hide_from), fxp::I16, 0, 400 },
+			{ "sprites", "sprites.ticks", "Ticks", "On the master's first ticks", MPF(sprites.ticks), fxp::I16, 0, 400 },
+			{ "sprites", "sprites.count_a", "A count", "Sprites A a tick", MPF(sprites.count_a), fxp::I16, 0, 8 },
+			{ "sprites", "sprites.spread", "A scatter", "Around the spawn point: a random below 0x200 - this on each axis", MPF(sprites.spread), fxp::I16, -0x1000, 0x1000 },
+			{ "sprites", "sprites.size_a", "A size", "Their size", MPF(sprites.size_a), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "sprites", "sprites.life_a", "A life", "Their ticks (their flipbook's frames: 12 at most)", MPF(sprites.life_a), fxp::I16, 1, 12 },
+			{ "sprites", "sprites.count_b", "B count", "Sprites B a tick", MPF(sprites.count_b), fxp::I16, 0, 8 },
+			{ "sprites", "sprites.size_b", "B size", "Their size", MPF(sprites.size_b), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "sprites", "sprites.life_b", "B life", "Their ticks (their flipbook's frames: 13 at most)", MPF(sprites.life_b), fxp::I16, 1, 13 },
+			{ "sprites", "seqs.a", "A flipbook", "Sprites A's flipbook", MPF(seqs.a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.b", "B flipbook", "Sprites B's flipbook", MPF(seqs.b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "fragments", "fragments.life", "Life", "A fragment's ticks: this + a random below 16", MPF(fragments.life), fxp::I16, 1, 400 },
+			{ "fragments", "fragments.gravity", "Gravity", "Its fall speed grows by this a tick (it bounces on the ground at half its speed)", MPF(fragments.gravity), fxp::I16, -0x400, 0x400 },
+			{ "fragments", "fragments.fade", "Fade", "It fades out over its last ticks (at least 1)", MPF(fragments.fade), fxp::I16, 1, 400 },
+			{ "fragments", "fragments.spin", "Spin", "Its spin on each axis: a random below 0x400 - this a tick", MPF(fragments.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "fragments", "models.frag[0]", "Mesh 1", "A fragment's mesh (one of four at random)", MPF(models.frag[0]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "fragments", "models.frag[1]", "Mesh 2", "A fragment's mesh", MPF(models.frag[1]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "fragments", "models.frag[2]", "Mesh 3", "A fragment's mesh", MPF(models.frag[2]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "fragments", "models.frag[3]", "Mesh 4", "A fragment's mesh", MPF(models.frag[3]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "marks", "marks.life", "Life", "A mark's ticks (its flipbook's frame 12 - its life left: its 12 frames at most)", MPF(marks.life), fxp::I16, 1, 12 },
+			{ "marks", "marks.speed", "Speed", "It moves by its velocity bytes (its fragment's / 4) x this a tick", MPF(marks.speed), fxp::I16, -64, 64 },
+			{ "marks", "seqs.mark", "Flipbook", "The marks' flipbook", MPF(seqs.mark), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag290_trauma_shatter()
 	{
+		fxp::register_params({ 290, "Trauma shatter", &shatter290::live, &shatter290::GAME, sizeof(shatter290::ShatterParams),
+		                       shatter290::table::PARTS, (int)(sizeof(shatter290::table::PARTS) / sizeof(shatter290::table::PARTS[0])),
+		                       shatter290::table::FIELDS, (int)(sizeof(shatter290::table::FIELDS) / sizeof(shatter290::table::FIELDS[0])),
+		                       shatter290::table::GROUPS, (int)(sizeof(shatter290::table::GROUPS) / sizeof(shatter290::table::GROUPS[0])) });
+		own::note(shatter290::ORIG_FileLoader, (void *)shatter290::FileLoader);
+		own::note(shatter290::ORIG_Setup, (void *)shatter290::Setup);
+		own::note(shatter290::ORIG_RootTask, (void *)shatter290::RootTask);
 		register_port(shatter290::ORIG_RootTask, (void *)shatter290::RootTask, "290 RootTask", 290);
+		own::note(shatter290::ORIG_MasterTask, (void *)shatter290::MasterTask);
 		register_port(shatter290::ORIG_MasterTask, (void *)shatter290::MasterTask, "290 MasterTask", 290);
+		own::note(shatter290::ORIG_ScriptTask, (void *)shatter290::ScriptTask);
 		register_port(shatter290::ORIG_ScriptTask, (void *)shatter290::ScriptTask, "290 ScriptTask", 290);
+		own::note(shatter290::ORIG_LayoutTask, (void *)shatter290::LayoutTask);
 		register_port(shatter290::ORIG_LayoutTask, (void *)shatter290::LayoutTask, "290 LayoutTask", 290);
+		own::note(shatter290::ORIG_SpriteTaskA, (void *)shatter290::SpriteTaskA);
 		register_port(shatter290::ORIG_SpriteTaskA, (void *)shatter290::SpriteTaskA, "290 SpriteTaskA", 290);
+		own::note(shatter290::ORIG_SpriteTaskB, (void *)shatter290::SpriteTaskB);
 		register_port(shatter290::ORIG_SpriteTaskB, (void *)shatter290::SpriteTaskB, "290 SpriteTaskB", 290);
 		// 30 fps layer: see mag290_trauma_shatter_held.inc
 		FX_HELD(register_mag290_held();)

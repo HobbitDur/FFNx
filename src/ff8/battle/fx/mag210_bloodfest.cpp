@@ -53,9 +53,17 @@
 // 0x2556484, caster 0x2556488, queues 0x2556490 layout tasks / 0x25564A0 trail / 0x25564B0 rocks / 0x25564C0 sparkles /
 // 0x25564D0 main / 0x25564E0 master, master pool 0x25564F0, zero angles 0x2556520, caster position 0x2556530, centre
 // 0x2556538, flash level 0x2556540, flame queue 0x2556548, magic buffer 0x2556558, orthonormal view 0x2556560).
+// FUJIN: Fujin's described Bloodfest (effect_210.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup (0x6F6800 -> _Init 0x6F6810) ported below (the file loader is the engine's bare
+// ret 0x5755D0); its parameters (BloodfestParams: the sounds and the ticks, the screen flash, the flames, the
+// afterimages, the rising layout, the bone model, the vortex, the lift and its burst, the drop and its rocks, the raise,
+// the white flash, the trail, the rocks, the sparkles, the 4 layouts, 3 meshes, 4 flipbooks, the TIM and the camera
+// track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -270,23 +278,24 @@ namespace blood210
 
 
 	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x2556478); }           // never written by the game (0)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x255647C); }
-	inline uint32_t &CaptureCursor() { return var<uint32_t>(0x2556480); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2556484); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556488); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2556490; }          // + 0, 3 x 0x714
-	inline TaskQueue *QTrail() { return (TaskQueue *)0x25564A0; }            // + 0x1BBC, 1 x 0x34C
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x25564B0; }            // + 0x183C, 0x20 x 0x1C
-	inline TaskQueue *QSparkles() { return (TaskQueue *)0x25564C0; }         // + 0x153C, 0x20 x 0x18
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25564D0; }             // + 0xA750, 1 x 0x3C0
-	inline TaskQueue *QFlames() { return (TaskQueue *)0x2556548; }           // + 0, 0x96 x 0x24 (up to 0x21)
-	inline uint32_t *ZeroAngles() { return (uint32_t *)0x2556520; }          // never written
-	inline uint32_t *CasterPos() { return (uint32_t *)0x2556530; }
-	inline int16_t *Centre() { return (int16_t *)0x2556538; }
-	inline int32_t &FlashLevel() { return var<int32_t>(0x2556540); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556558); }          // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 *OrthoView() { return (Mat4x3 *)0x2556560; }
+	inline uint32_t &Pause() { return var<uint32_t>(own::R(0x2556478)); }           // never written by the game (0)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x255647C)); }
+	inline uint32_t &CaptureCursor() { return var<uint32_t>(own::R(0x2556480)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2556484)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2556488)); }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x2556490); }          // + 0, 3 x 0x714
+	inline TaskQueue *QTrail() { return (TaskQueue *)own::R(0x25564A0); }            // + 0x1BBC, 1 x 0x34C
+	inline TaskQueue *QRocks() { return (TaskQueue *)own::R(0x25564B0); }            // + 0x183C, 0x20 x 0x1C
+	inline TaskQueue *QSparkles() { return (TaskQueue *)own::R(0x25564C0); }         // + 0x153C, 0x20 x 0x18
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x25564E0); }         // 1 x 0x10 (0x25564F0)
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25564D0); }             // + 0xA750, 1 x 0x3C0
+	inline TaskQueue *QFlames() { return (TaskQueue *)own::R(0x2556548); }           // + 0, 0x96 x 0x24 (up to 0x21)
+	inline uint32_t *ZeroAngles() { return (uint32_t *)own::R(0x2556520); }          // never written
+	inline uint32_t *CasterPos() { return (uint32_t *)own::R(0x2556530); }
+	inline int16_t *Centre() { return (int16_t *)own::R(0x2556538); }
+	inline int32_t &FlashLevel() { return var<int32_t>(own::R(0x2556540)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2556558)); }          // Magic_TextureOFF (magic buffer)
+	inline Mat4x3 *OrthoView() { return (Mat4x3 *)own::R(0x2556560); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 	inline uint32_t &FramePackets() { return var<uint32_t>(0x1D8E054); }
 
@@ -300,6 +309,65 @@ namespace blood210
 	static const uint32_t ORIG_LayoutTask = 0x6F9AA0;
 	static const uint32_t ORIG_RockTask = 0x6F9B60;
 	static const uint32_t ORIG_SparkleTask = 0x6F9C60;
+
+	static const uint32_t ORIG_Setup = 0x6F6800;
+	static const uint32_t TIM = 0x1470DC4, CAMERA_ANIM = 0x145D2BC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_FLAMES = 1, PART_GHOSTS = 2, PART_RISE = 3, PART_BONE = 4, PART_VORTEX = 5, PART_TARGETS = 6, PART_BURN = 7,
+	             PART_DROP = 8, PART_END = 9, PART_WHITE = 10, PART_TRAIL = 11, PART_ROCKS = 12, PART_SPARKLES = 13 };
+	struct BloodfestParams
+	{
+		struct { uint32_t start, ghost, lift, fall; } sounds;     // the four sounds
+		// the main task's ticks: the sounds (the fall sound while the targets rise back), its last (it ends once the
+		// battle files' preload is done)
+		struct { int16_t start, ghost, lift, fall, end; } timing;
+		struct { int16_t level, rise, fall; } flash;              // the screen flash: its level, rising over, falling over the last
+		// the flames on each target (Fire's parts): how many, their frames, embers and sparks from each, their size (+ a
+		// random below size_rand), the main task's tick they are all dropped
+		struct { int16_t count, frames, embers, sparks, size, size_rand, drop; } flames;
+		// the afterimages of the entity after the caster: two windows (start, ticks, recorded below rec), their brightness
+		// and its step from the newer to the older
+		struct { int16_t start_a, ticks_a, rec_a, start_b, ticks_b, rec_b, bright, fade; } ghosts;
+		struct { int16_t start, ticks; } rise;                     // the rising layout at the caster's effect point
+		// the bone model at the caster's bone: from start for ticks (fading in over them), its spin a tick
+		struct { int16_t start, ticks, bone, spin; } bone;
+		// the vortex at the targets' centre (the stage captured at its first tick): from start for ticks, a second one
+		// from its tick second; growing in over grow ticks; fading out from fade_from over fade_ticks; their yaws, the
+		// second's roll, the texture scroll a tick
+		struct { int16_t start, ticks, second, grow, fade_from, fade_ticks, yaw_a, yaw_b, roll, scroll; } vortex;
+		// the lift: the targets raised (a sine, then a cubic fall) from start for ticks, spinning; the burning layout's
+		// scrolls, its second scroll from its tick scroll_from; the burst of sparkles and rocks on its first ticks (count
+		// a tick each, on a ring of radius + a random below 0x800, rising at rise + a random below 0x80)
+		struct { int16_t start, ticks, spin, scroll, scroll_from, burst_ticks, sparkles, rocks, radius, rise; } lift;
+		// the drop: from start for ticks the targets fall from 0x2000 above; rocks a tick (their life, height, speed);
+		// the drop layout's depth
+		struct { int16_t start, ticks, rocks, rock_life, rock_height, rock_speed, depth; } drop;
+		// then the targets put back (lowered), raised a step a tick for ticks; the end layout on each and the results
+		struct { int16_t ticks, step, lower; } raise;
+		// the white flash: its first tick, in / hold / out ticks, colour
+		struct { int16_t start, in, hold, out, r, g, b; } white;
+		// the blade trail (slot 4's bone 1): from start for ticks (shorter from shorten), its length, its colour (0xBBGGRR)
+		struct { int16_t start, ticks, shorten, length; int32_t colour; } trail;
+		struct { int16_t gravity; } rocks;                         // the rocks' fall speed's growth a tick
+		struct { int16_t frames; } sparkles;                       // a sparkle's frames
+		struct { uint32_t rise, burn, drop, end; } layouts;        // the prim-model layouts played
+		struct { uint32_t bone, part, ring, rock; } models;        // the meshes drawn
+		struct { uint32_t flame, glow, ember, sparkle; } seqs;     // the sprite sequences drawn (flipbooks)
+		struct { uint32_t tim, camera; } res;                     // its resources (data): the TIM its setup uploads, the camera track
+	};
+	static const BloodfestParams GAME = { { 0x145D4DC, 0x145D4E0, 0x145D4E4, 0x145D4E8 }, { 0, 0x37, 0x73, 0xF1, 0xF3 },
+		{ 2300, 12, 12 }, { 4, 0x10, 4, 10, 0xD00, 0x600, 0x21 }, { 0x37, 7, 5, 0x48, 0x1C, 0x1A, 0x800, 0x400 },
+		{ 0x40, 0xF }, { 0x41, 8, 0x25, 0x100 }, { 0x55, 0x1E, 0xB, 8, 0x16, 8, 0x800, -0x400, 0x200, 0x20 },
+		{ 0x73, 0x50, 0x100, 0x10, 0x1A, 4, 8, 8, 0x800, 0x80 }, { 0xC3, 0x28, 2, 0xA, 0x800, 0x100, 0x100 },
+		{ 8, 0x200, 0x1000 }, { 0xE3, 6, 4, 6, 0xF0, 0xF0, 0xF0 }, { 0x37, 0x3B, 0x35, 777, 0x185820 }, { 0x14 }, { 0x10 },
+		{ 0x146D8A4, 0x1462010, 0x146A668, 0x146ED2C }, { 0x145D6AC, 0x145E1C4, 0x14603F4, 0x1461D98 },
+		{ 0x14708C0, 0x1470A6C, 0x1470C18, 0x145D4EC }, { TIM, CAMERA_ANIM } };
+	static BloodfestParams live = GAME;
+	static const BloodfestParams &PG() { return live; }
 
 	static const uint32_t STREAM_STATE = 0xA708;       // magic buffer offsets
 	static const uint32_t POOL_Main = 0xA750;
@@ -498,7 +566,7 @@ namespace blood210
 	// 0x6F6BB0: the flame spawner on an entity (251's 0x6F4840)
 	static void StartFlameSpawner(uint8_t *e)
 	{
-		SpawnerNode *s = (SpawnerNode *)AddTaskToQueue(QFlames(), ORIG_FlameSpawner);
+		SpawnerNode *s = (SpawnerNode *)AddTaskToQueue(QFlames(), own::Fn(ORIG_FlameSpawner));
 		if (!s) return;
 		s->counter = 0;
 		s->w0E = 0;
@@ -514,7 +582,7 @@ namespace blood210
 		StreamStateInit((void *)(TexBase() + STREAM_STATE));
 		InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x3C0, 1);
 		InitTaskQueuePool(QFlames(), (void *)TexBase(), 0x24, 0x96);
-		MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+		MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 		Memset32(&m->counter, 0, 0xED);
 		int16_t minx = 0x7FFF, miny = 0x7FFF, minz = 0x7FFF, maxx = -0x7FFF, maxy = -0x7FFF, maxz = -0x7FFF;
 		const ActionData *ad = Ctx()->actions;
@@ -598,15 +666,18 @@ namespace blood210
 		SpawnerNode *s = (SpawnerNode *)n;
 		if (s->counter == 1)
 		{
-			const int32_t spread = FlameSpread(EntitySize(s->slot), FLAME_ROLLS);
+			FlameRolls rolls = FLAME_ROLLS;
+			rolls.scale.base = PG().flames.size;
+			rolls.scale.mod = PG().flames.size_rand;
+			const int32_t spread = FlameSpread(EntitySize(s->slot), rolls);
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(s->slot), pos);
-			for (int32_t k = 0; k < 4; k++)
+			for (int32_t k = 0; k < PG().flames.count; k++)
 			{
-				FlameNode *f = (FlameNode *)AddTaskToQueue(QFlames(), ORIG_FlameTask);
+				FlameNode *f = (FlameNode *)AddTaskToQueue(QFlames(), own::Fn(ORIG_FlameTask));
 				if (!f) continue;
 				f->frame = 0;
-				FlameStart(&f->f, &f->delay, pos, EntityHeight(s->slot), spread, k, FLAME_ROLLS);
+				FlameStart(&f->f, &f->delay, pos, EntityHeight(s->slot), spread, k, rolls);
 			}
 		}
 		if (s->counter == 6)
@@ -629,26 +700,30 @@ namespace blood210
 		}
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_FlameTask, p);)
-		FlameDraw(&p->f, p->frame, FLAME_LOOK, PacketCursor());
+		FX_PART(PART_FLAMES);
+		FlameLook look = FLAME_LOOK;
+		look.seq = fxp::sequence(PG().seqs.flame, SEQ_Flame);
+		look.glow_seq = fxp::sequence(PG().seqs.glow, SEQ_FlameGlow);
+		FlameDraw(&p->f, p->frame, look, PacketCursor());
 		if (Pause() != 0) return 0;
 		if (p->frame == 0)
 		{
-			for (int32_t k = 0; k < 4; k++)
+			for (int32_t k = 0; k < PG().flames.embers; k++)
 			{
-				EmberNode *m = (EmberNode *)AddTaskToQueue(QFlames(), ORIG_EmberTask);
+				EmberNode *m = (EmberNode *)AddTaskToQueue(QFlames(), own::Fn(ORIG_EmberTask));
 				if (!m) continue;
 				m->frame = 0;
 				EmberStart(&m->e, &m->delay, p->f.pos, k, EMBER_ROLLS);
 			}
-			for (int32_t k = 0; k < 10; k++)
+			for (int32_t k = 0; k < PG().flames.sparks; k++)
 			{
-				SparkNode *m = (SparkNode *)AddTaskToQueue(QFlames(), ORIG_SparkTask);
+				SparkNode *m = (SparkNode *)AddTaskToQueue(QFlames(), own::Fn(ORIG_SparkTask));
 				if (!m) continue;
 				FireSparkStart(&m->s, &m->life, &m->delay, p->f.pos, k, SPARK_ROLLS);
 			}
 		}
 		p->frame++;
-		return p->frame >= 0x10 ? TASK_END : 0;
+		return p->frame >= PG().flames.frames ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl SparkTask(TaskNode *n)
@@ -662,6 +737,7 @@ namespace blood210
 		}
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkTask, p);)
+		FX_PART(PART_FLAMES);
 		FireSparkDraw(&p->s, p->life, SPARK_LOOK, PacketCursor());
 		if (Pause() != 0) return 0;
 		FireSparkMove(&p->s, &p->life, 4, 0x40);
@@ -679,7 +755,8 @@ namespace blood210
 		}
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_EmberTask, p);)
-		EmberDraw(&p->e, p->frame, SEQ_Ember, 3, PacketCursor());
+		FX_PART(PART_FLAMES);
+		EmberDraw(&p->e, p->frame, fxp::sequence(PG().seqs.ember, SEQ_Ember), 3, PacketCursor());
 		if (Pause() != 0) return 0;
 		EmberRise(&p->e, 5, 6);
 		p->frame++;
@@ -930,6 +1007,7 @@ namespace blood210
 	{
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_ghosts(entity, g);)
+		FX_PART(PART_GHOSTS);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x74);
 		GhostCtx *c = (GhostCtx *)(h + 0x20);
 		c->verts = var<uint32_t>(0x1D98B3C);
@@ -940,7 +1018,7 @@ namespace blood210
 		c->visible = *(const uint32_t *)(entity + 0x7C);
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)h);
 		c->ghosts = g;
-		int32_t w = 0x800;
+		int32_t w = PG().ghosts.bright;
 		for (int32_t i = 0; i < g[1]; i++)
 		{
 			GteSetIR0((w >> 1) + w);
@@ -968,7 +1046,7 @@ namespace blood210
 				GteReadMAC123((int32_t *)(r + 0x34));
 			}
 			GhostModel(*(uint8_t **)(entity + 0x64), c, OTBase() + 0x44, 0);
-			w -= 0x400;
+			w -= PG().ghosts.fade;
 		}
 		FieldFree(0x74);
 		if (Pause() != 0) return;
@@ -1080,6 +1158,7 @@ namespace blood210
 	{
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_capture(a, b);)
+		FX_PART(PART_VORTEX);
 		const int32_t b0 = -(int32_t)b[0];
 		const int32_t b3 = b[3];
 		const int32_t nb2 = -(int32_t)b[2];
@@ -1301,6 +1380,8 @@ namespace blood210
 	{
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_three(c, a2, a3, a4, a5, a6);)
+		FX_PART(PART_VORTEX);
+		const uint32_t part = fxp::model(PG().models.part, MODEL_Part);
 		Mat4x3 m;
 		if (a6 > 0)
 		{
@@ -1322,7 +1403,7 @@ namespace blood210
 			*(uint16_t *)(h + 0x32) = 0x80;
 			*(uint16_t *)(h + 0x20) = 0;
 			*(uint16_t *)(h + 0x22) = (uint16_t)(a5 & 0x7F);
-			*(uint32_t *)h = MODEL_Part;
+			*(uint32_t *)h = part;
 			*(int32_t *)(h + 0xC) = a6;
 			*(uint32_t *)(h + 8) = 0;
 			*(uint32_t *)(h + 0x18) = 0;
@@ -1364,7 +1445,7 @@ namespace blood210
 			*(uint16_t *)(h + 0x30) = 0x40;
 			*(uint16_t *)(h + 0x20) = (uint16_t)(a5 & 0x3F);
 			*(uint16_t *)(h + 0x22) = 0;
-			*(uint32_t *)h = MODEL_Ring;
+			*(uint32_t *)h = fxp::model(PG().models.ring, MODEL_Ring);
 			*(int32_t *)(h + 0xC) = a4;
 			PacketCursor() = RenderPrimSet(h, OTBase() + 0x44, 2, PacketCursor());
 			FieldFree(0xB4);
@@ -1387,9 +1468,9 @@ namespace blood210
 		q->win_b[2] = 0x100;
 		q->win_b[3] = 0x80;
 		q->vscroll = (uint16_t)(a5 & 0x7F);
-		q->data = MODEL_Part;
-		q->verts = MODEL_PartVerts;
-		q->list = MODEL_Part + *(const uint32_t *)MODEL_Part + 0x1C;
+		q->data = part;
+		q->verts = part + (MODEL_PartVerts - MODEL_Part);
+		q->list = part + *(const uint32_t *)part + 0x1C;
 		PacketCursor() = RenderQuads(q, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x98);
 	}
@@ -1400,47 +1481,49 @@ namespace blood210
 	// 8 sparkles and 8 rocks on a ring around the centre (0x73..0x76)
 	static void SpawnBurst(const MainNode *mn)
 	{
-		int32_t count = 8;
-		SparkleNode *s = (SparkleNode *)AddTaskToQueue(QSparkles(), ORIG_SparkleTask);
+		const BloodfestParams &g = PG();
+		int32_t count = g.lift.sparkles;
+		SparkleNode *s = count > 0 ? (SparkleNode *)AddTaskToQueue(QSparkles(), own::Fn(ORIG_SparkleTask)) : nullptr;
 		while (s)
 		{
 			s->frame = 0;
-			const int32_t r = (CrtRand() & 0x7FF) + 0x800;
+			const int32_t r = (CrtRand() & 0x7FF) + g.lift.radius;
 			RingPoint(CrtRand(), r, s->pos);
 			s->pos[0] = (int16_t)(s->pos[0] + mn->centre[0]);
 			s->pos[2] = (int16_t)(s->pos[2] + mn->centre[2]);
 			s->pos[1] = mn->centre[1];
-			s->vy = (int16_t)(-0x80 - (CrtRand() & 0x7F));
+			s->vy = (int16_t)(-g.lift.rise - (CrtRand() & 0x7F));
 			if (--count == 0) break;
-			s = (SparkleNode *)AddTaskToQueue(QSparkles(), ORIG_SparkleTask);
+			s = (SparkleNode *)AddTaskToQueue(QSparkles(), own::Fn(ORIG_SparkleTask));
 		}
-		count = 8;
-		RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+		count = g.lift.rocks;
+		RockNode *k = count > 0 ? (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask)) : nullptr;
 		while (k)
 		{
 			k->life = 0;
-			const int32_t r = (CrtRand() & 0x7FF) + 0x800;
+			const int32_t r = (CrtRand() & 0x7FF) + g.lift.radius;
 			RingPoint(CrtRand(), r, k->pos);
 			k->pos[0] = (int16_t)(k->pos[0] + mn->centre[0]);
 			k->pos[2] = (int16_t)(k->pos[2] + mn->centre[2]);
 			k->pos[1] = mn->centre[1];
-			k->vy = (int16_t)(-0x80 - (CrtRand() & 0x7F));
+			k->vy = (int16_t)(-g.lift.rise - (CrtRand() & 0x7F));
 			k->scale = (int16_t)((shl32(CrtRand(), 11) >> 15) + 0x800);
 			k->ax = (int8_t)CrtRand();
 			k->ay = (int8_t)CrtRand();
 			k->dax = (int8_t)CrtRand();
 			k->day = (int8_t)CrtRand();
 			if (--count == 0) break;
-			k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+			k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask));
 		}
 	}
 
 	// the flash level at counter c (rising 0..0xB, 0x8FC, falling 0xE7..0xF2)
 	static int32_t FlashOf(int32_t c)
 	{
-		if (c < 0xC) return c * 2300 / 12;
-		if (c >= 0xE7) return (0xF3 - c) * 2300 / 12;
-		return 0x8FC;
+		const BloodfestParams &g = PG();
+		if (c < g.flash.rise) return c * g.flash.level / g.flash.rise;
+		if (c >= g.timing.end - g.flash.fall) return (g.timing.end - c) * g.flash.level / g.flash.fall;
+		return g.flash.level;
 	}
 
 	// a target's height while lifted (0x73..0xC2): its start height minus a sine / cubic ramp of u
@@ -1458,50 +1541,53 @@ namespace blood210
 		MainNode *mn = (MainNode *)n;
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_main(mn);)
+		const BloodfestParams &g = PG();
 		FlashLevel() = FlashOf(mn->counter);
 		// 0x37..0x3D: afterimages of the next entity (the block and the trail at 0x37), recorded up to 0x3B
-		uint32_t i = (uint32_t)(mn->counter - 0x37);
-		if (i < 7)
+		if (mn->counter == 0x37) InitTaskQueuePool(QTrail(), (void *)(TexBase() + POOL_Trail), 0x34C, 1);
+		if (mn->counter == g.trail.start && Pause() == 0)
 		{
-			if (i == 0)
+			TrailNode *t = (TrailNode *)AddTaskToQueue(QTrail(), own::Fn(ORIG_TrailTask));
+			if (t)
 			{
-				GhostInit(mn->ghosts, 1, 1);
-				InitTaskQueuePool(QTrail(), (void *)(TexBase() + POOL_Trail), 0x34C, 1);
-				if (Pause() == 0)
-				{
-					TrailNode *t = (TrailNode *)AddTaskToQueue(QTrail(), ORIG_TrailTask);
-					t->counter = 0;
-					for (int32_t k = 0; k < 7; k++) t->ring[k].alive = 0;
-				}
+				t->counter = 0;
+				for (int32_t k = 0; k < 7; k++) t->ring[k].alive = 0;
 			}
+		}
+		uint32_t i = (uint32_t)(mn->counter - g.ghosts.start_a);
+		if (i < (uint32_t)g.ghosts.ticks_a)
+		{
+			if (i == 0) GhostInit(mn->ghosts, 1, 1);
 			GhostDraw(Caster() + 0x9C, mn->ghosts);
-			if (i < 5 && Pause() == 0) GhostRecord(Caster() + 0x9C, mn->ghosts);
+			if (i < (uint32_t)g.ghosts.rec_a && Pause() == 0) GhostRecord(Caster() + 0x9C, mn->ghosts);
 		}
 		PlayArg arg = {};
 		// 0x40..0x4E: layout 0x146D8A4 at the caster's effect point
-		i = (uint32_t)(mn->counter - 0x40);
-		if (i < 0xF)
+		i = (uint32_t)(mn->counter - g.rise.start);
+		if (i < (uint32_t)g.rise.ticks)
 		{
-			if (i == 0) DecodeModelPrimLayout(LAYOUT_Rise, mn->layout, 0xE0);
+			if (i == 0) DecodeModelPrimLayout(fxp::layout(g.layouts.rise, LAYOUT_Rise, 0xE0), mn->layout, 0xE0);
 			int16_t p[4];
 			GetDefaultEffectPosition(Caster(), p);
 			arg.depth = 0;
 			arg.kind = KIND_Plain;
+			FX_PART(PART_RISE);
 			Play(mn, 0, mn->layout, &arg, p[0], p[2]);
 		}
 		// 0x41..0x48: prim model 0x145D6AC at the caster's bone 0x25 (its y axis scaled by minus the bone's height), turning
-		i = (uint32_t)(mn->counter - 0x41);
-		if (i < 8)
+		i = (uint32_t)(mn->counter - g.bone.start);
+		if (i < (uint32_t)g.bone.ticks)
 		{
 			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_bone((int32_t)i);)
+			FX_PART(PART_BONE);
 			uint8_t *h = (uint8_t *)FieldAlloc(0x80);
 			int16_t *sp = (int16_t *)(h + 0x78);
-			GetEffectSpawnPosition(Caster(), 0x25, 0, sp);
+			GetEffectSpawnPosition(Caster(), g.bone.bone, 0, sp);
 			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_bone_point(sp);)
 			Mat4x3 *m = (Mat4x3 *)(h + 0x58);
-			RotationY((int32_t)(i << 8), m);
+			RotationY((int32_t)(i * (uint32_t)g.bone.spin), m);
 			m->m[1][1] = (int16_t)-sp[1];
 			m->t[0] = sp[0];
 			m->t[1] = 0;
@@ -1509,44 +1595,46 @@ namespace blood210
 			ComposeAffineTransform(&Camera(), m, m);
 			GteSetRotMatrix(m);
 			GteSetTransVector(m);
-			*(uint32_t *)h = MODEL_Bone;
+			*(uint32_t *)h = fxp::model(g.models.bone, MODEL_Bone);
 			*(uint32_t *)(h + 0x1C) = 0xF0;
-			*(uint32_t *)(h + 0xC) = (i << 12) >> 3;
+			*(uint32_t *)(h + 0xC) = (i << 12) / (uint32_t)g.bone.ticks;
 			*(uint32_t *)(h + 8) = 0;
 			PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 			FieldFree(0x80);
 		}
 		// 0x48..0x63: afterimages again, recorded up to 0x61
-		i = (uint32_t)(mn->counter - 0x48);
-		if (i < 0x1C)
+		i = (uint32_t)(mn->counter - g.ghosts.start_b);
+		if (i < (uint32_t)g.ghosts.ticks_b)
 		{
 			if (i == 0) GhostInit(mn->ghosts, 1, 1);
 			GhostDraw(Caster() + 0x9C, mn->ghosts);
-			if (i < 0x1A && Pause() == 0) GhostRecord(Caster() + 0x9C, mn->ghosts);
+			if (i < (uint32_t)g.ghosts.rec_b && Pause() == 0) GhostRecord(Caster() + 0x9C, mn->ghosts);
 		}
 		// 0x55..0x72: the stage capture (0x55) and the three-part draws at the centre
-		i = (uint32_t)(mn->counter - 0x55);
-		if (i < 0x1E)
+		i = (uint32_t)(mn->counter - g.vortex.start);
+		if (i < (uint32_t)g.vortex.ticks)
 		{
 			int32_t fade = 0;
 			if (i == 0)
 			{
-				const uint32_t model = LAYOUT_Burn + *(const uint32_t *)(LAYOUT_Burn + 0x18);
+				const uint32_t burn = fxp::layout(g.layouts.burn, LAYOUT_Burn, 0x244);
+				const uint32_t model = burn + *(const uint32_t *)(burn + 0x18);
 				int16_t box[6];
 				ModelBox(model, box);
 				ModelBox(model, box);
 				CaptureStage(mn->centre, box);
 			}
-			else if (i >= 0x16) fade = shl32((int32_t)i - 0x16, 12) / 8;
-			ThreePart(mn->centre, 0x800, 0, (int32_t)((i << 12) >> 3), (int32_t)(i << 5), fade);
-			if (i >= 0xB) ThreePart(mn->centre, -0x400, 0x200, (int32_t)(((i - 0xB) << 12) >> 3), (int32_t)(i << 5), fade);
+			else if (i >= (uint32_t)g.vortex.fade_from) fade = shl32((int32_t)i - g.vortex.fade_from, 12) / g.vortex.fade_ticks;
+			ThreePart(mn->centre, g.vortex.yaw_a, 0, (int32_t)((i << 12) / (uint32_t)g.vortex.grow), (int32_t)(i * (uint32_t)g.vortex.scroll), fade);
+			if (i >= (uint32_t)g.vortex.second)
+				ThreePart(mn->centre, g.vortex.yaw_b, g.vortex.roll, (int32_t)(((i - g.vortex.second) << 12) / (uint32_t)g.vortex.grow), (int32_t)(i * (uint32_t)g.vortex.scroll), fade);
 		}
 		// 0x73..0xC2: the targets lifted, spun and drawn by the module; the burning layout; 8 + 8 sparkles / rocks 0x73..0x76
 		int16_t off[4];
-		i = (uint32_t)(mn->counter - 0x73);
-		if (i < 0x50)
+		i = (uint32_t)(mn->counter - g.lift.start);
+		if (i < (uint32_t)g.lift.ticks)
 		{
-			const int32_t u = (int32_t)((i << 12) / 80) + 0x19;
+			const int32_t u = (int32_t)((i << 12) / (uint32_t)g.lift.ticks) + 0x19;
 			if (i == 0)
 			{
 				for (int32_t k = 0; k < mn->ntargets; k++)
@@ -1554,13 +1642,13 @@ namespace blood210
 					MeasureHeight(mn->recs[k].e, mn->recs[k].height);
 					*mn->recs[k].e |= 0xC;
 				}
-				DecodeModelPrimLayout(LAYOUT_Burn, mn->layout, 0x244);
+				DecodeModelPrimLayout(fxp::layout(g.layouts.burn, LAYOUT_Burn, 0x244), mn->layout, 0x244);
 				InitTaskQueuePool(QSparkles(), (void *)(TexBase() + POOL_Sparkles), 0x18, 0x20);
 				InitTaskQueuePool(QRocks(), (void *)(TexBase() + POOL_Rocks), 0x1C, 0x20);
 				InitTaskQueuePool(QLayouts(), (void *)TexBase(), 0x714, 3);
 				SpawnBurst(mn);
 			}
-			else if (i < 4) SpawnBurst(mn);
+			else if (i < (uint32_t)g.lift.burst_ticks) SpawnBurst(mn);
 			off[2] = 0;
 			off[0] = 0;
 			for (int32_t k = 0; k < mn->ntargets; k++)
@@ -1569,27 +1657,29 @@ namespace blood210
 				uint8_t *e = r->e;
 				if (Pause() == 0) *(int16_t *)(e + 0x1E) = LiftHeight(u, (int16_t)(r->pos01 >> 16));
 				*(int32_t *)(e + 0x58) = *(const int16_t *)(e + 0x1E);
-				r->ang[0] = (int16_t)(r->ang[0] + ((k & 1) ? 0x100 : -0x100));
+				r->ang[0] = (int16_t)(r->ang[0] + ((k & 1) ? g.lift.spin : -g.lift.spin));
 				off[1] = (int16_t)((r->height[1] + r->height[0]) >> 1);
+				FX_PART(PART_TARGETS);
 				DrawEntity(e, r->ang, off);
 			}
-			const uint32_t d = i - 0x1A;
+			const uint32_t d = i - g.lift.scroll_from;
 			arg.depth = -0x80;
 			arg.kind = KIND_Burn;
-			arg.scroll = (uint16_t)(i << 4);
+			arg.scroll = (uint16_t)(i * (uint32_t)g.lift.scroll);
 			arg.w28 = d < 0x64 ? (uint16_t)((d * d) >> 4) : 0;
+			FX_PART(PART_BURN);
 			Play(mn, 1, mn->layout, &arg, mn->centre[0], mn->centre[2]);
 		}
 		// 0xC3..0xEA: the targets dropped and drawn, the caster and the next entity hidden; layout 0x146A668; 2 rocks a tick
-		i = (uint32_t)(mn->counter - 0xC3);
-		if (i < 0x28)
+		i = (uint32_t)(mn->counter - g.drop.start);
+		if (i < (uint32_t)g.drop.ticks)
 		{
-			const int32_t w = (int32_t)((i << 12) / 40) + 0x33;
+			const int32_t w = (int32_t)((i << 12) / (uint32_t)g.drop.ticks) + 0x33;
 			if (i == 0)
 			{
 				InitTaskQueuePool(QRocks(), (void *)(TexBase() + POOL_Rocks), 0x1C, 0x20);
 				StageGroupsBit1Off();
-				DecodeModelPrimLayout(LAYOUT_Drop, mn->layout, 0x258);
+				DecodeModelPrimLayout(fxp::layout(g.layouts.drop, LAYOUT_Drop, 0x258), mn->layout, 0x258);
 				*Caster() |= 4;
 				*(Caster() + 0x9C) |= 4;
 			}
@@ -1602,37 +1692,39 @@ namespace blood210
 				const int16_t y = (int16_t)((int16_t)(r->pos01 >> 16) + (int16_t)(w * 4 - 0x2000));
 				*(int16_t *)(e + 0x1E) = y;
 				*(int32_t *)(e + 0x58) = y;
-				r->ang[0] = (int16_t)(r->ang[0] + ((k & 1) ? 0x100 : -0x100));
+				r->ang[0] = (int16_t)(r->ang[0] + ((k & 1) ? g.lift.spin : -g.lift.spin));
 				off[1] = (int16_t)((r->height[0] + r->height[1]) >> 1);
+				FX_PART(PART_TARGETS);
 				DrawEntity(e, r->ang, off);
 			}
 			if (Pause() == 0)
 			{
-				int32_t count = 2;
-				RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+				int32_t count = g.drop.rocks;
+				RockNode *k = count > 0 ? (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask)) : nullptr;
 				while (k)
 				{
-					k->life = 0xA;
+					k->life = g.drop.rock_life;
 					const int32_t r = (CrtRand() & 0x7FF) + 0x800;
 					RingPoint(CrtRand(), r, k->pos);
 					k->pos[0] = (int16_t)(k->pos[0] + mn->centre[0]);
 					k->pos[2] = (int16_t)(k->pos[2] + mn->centre[2]);
-					k->pos[1] = (int16_t)(mn->centre[1] - 0x800);
-					k->vy = (int16_t)((CrtRand() & 0x7F) + 0x100);
+					k->pos[1] = (int16_t)(mn->centre[1] - g.drop.rock_height);
+					k->vy = (int16_t)((CrtRand() & 0x7F) + g.drop.rock_speed);
 					k->scale = (int16_t)((shl32(CrtRand(), 11) >> 15) + 0x800);
 					k->ax = (int8_t)CrtRand();
 					k->ay = (int8_t)CrtRand();
 					k->dax = (int8_t)CrtRand();
 					k->day = (int8_t)CrtRand();
 					if (--count == 0) break;
-					k = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
+					k = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask));
 				}
 			}
-			arg.depth = 0x100;
+			arg.depth = g.drop.depth;
 			arg.kind = KIND_Plain;
+			FX_PART(PART_DROP);
 			Play(mn, 2, mn->layout, &arg, mn->centre[0], mn->centre[2]);
 		}
-		else if (i == 0x28)
+		else if (i == (uint32_t)g.drop.ticks)
 		{
 			// 0xEB: the targets put back (flags 0x0C off, position, 0x1000 lower), the caster / next entity shown
 			for (int32_t k = 0; k < mn->ntargets; k++)
@@ -1641,7 +1733,7 @@ namespace blood210
 				*(uint16_t *)r->e &= 0xFFF3;
 				*(uint32_t *)(r->e + 0x1C) = r->pos01;
 				*(uint32_t *)(r->e + 0x20) = r->pos23;
-				*(int16_t *)(r->e + 0x1E) = (int16_t)(*(int16_t *)(r->e + 0x1E) - 0x1000);
+				*(int16_t *)(r->e + 0x1E) = (int16_t)(*(int16_t *)(r->e + 0x1E) - g.raise.lower);
 			}
 			*(uint16_t *)Caster() &= 0xFFFB;
 			*(uint16_t *)(Caster() + 0x9C) &= 0xFFFB;
@@ -1650,34 +1742,37 @@ namespace blood210
 			QRocks()->tail = nullptr;
 			QRocks()->head = nullptr;
 		}
-		else if (i <= 0x30 && Pause() == 0)
+		else if (i <= (uint32_t)(g.drop.ticks + g.raise.ticks) && Pause() == 0)
 		{
 			// 0xEC..0xF3: the targets raised; 0xF3: a layout task on each and the result; 0xF1: the sound
+			const uint32_t last = (uint32_t)(g.drop.ticks + g.raise.ticks);
 			for (int32_t k = 0; k < mn->ntargets; k++)
 			{
 				uint8_t *e = mn->recs[k].e;
-				*(int16_t *)(e + 0x1E) = (int16_t)(*(int16_t *)(e + 0x1E) + 0x200);
-				if (i == 0x30)
+				*(int16_t *)(e + 0x1E) = (int16_t)(*(int16_t *)(e + 0x1E) + g.raise.step);
+				if (i == last)
 				{
-					LayoutNode *t = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
+					LayoutNode *t = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
+					if (!t) continue;
 					GetDefaultEffectPosition(e, t->pos);
 					t->pos[1] = 0;
-					DecodeModelPrimLayout(LAYOUT_End, t->layout, 0x1C0);
+					DecodeModelPrimLayout(fxp::layout(g.layouts.end, LAYOUT_End, 0x1C0), t->layout, 0x1C0);
 				}
 			}
-			if (i == 0x2E) BdPlaySE(SOUND_Fall, 0, 0x80);
-			else if (i == 0x30) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
+			if (mn->counter == g.timing.fall) BdPlaySE((const void *)fxp::sound(g.sounds.fall, (uint32_t)SOUND_Fall), 0, 0x80);
+			else if (i == last) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
 		}
 		// white tile series 0xE3..0xF2
-		i = (uint32_t)(mn->counter - 0xE3);
-		if (i < 0x10)
+		i = (uint32_t)(mn->counter - g.white.start);
+		if (i < (uint32_t)(g.white.in + g.white.hold + g.white.out))
 		{
 			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_tile((int32_t)i);)
-			PacketCursor() = FadeTileInHoldOut((int32_t)i, 0xF0, 0xF0, 0xF0, 6, 4, 6, PacketCursor());
+			FX_PART(PART_WHITE);
+			PacketCursor() = FadeTileInHoldOut((int32_t)i, g.white.r, g.white.g, g.white.b, g.white.in, g.white.hold, g.white.out, PacketCursor());
 		}
 		// counters: the flames dropped, the stream loads, the wait, the pump
-		if (mn->counter == 0x21)
+		if (mn->counter == g.flames.drop)
 		{
 			QFlames()->tail = nullptr;
 			QFlames()->head = nullptr;
@@ -1691,10 +1786,10 @@ namespace blood210
 			StreamQueueLoad(0x16A, TexBase() + STREAM_B, 0);
 		}
 		StreamPump();
-		if (mn->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
-		else if (mn->counter == 0x37) BdPlaySE(SOUND_Ghost, 0, 0x80);
-		else if (mn->counter == 0x73) BdPlaySE(SOUND_Lift, 0, 0x80);
-		if (mn->counter >= 0xF3)
+		if (mn->counter == g.timing.start) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		else if (mn->counter == g.timing.ghost) BdPlaySE((const void *)fxp::sound(g.sounds.ghost, (uint32_t)SOUND_Ghost), 0, 0x80);
+		else if (mn->counter == g.timing.lift) BdPlaySE((const void *)fxp::sound(g.sounds.lift, (uint32_t)SOUND_Lift), 0, 0x80);
+		if (mn->counter >= g.timing.end)
 		{
 			if (StreamPreloadPending(2) != 0) return TASK_END;
 			mn->counter = 0x133;
@@ -1738,8 +1833,8 @@ namespace blood210
 		GteSetFarColor2(0, 0, 0);
 		uint32_t *pk = (uint32_t *)PacketCursor();
 		uint32_t *pk2 = pk + 9;
-		w->col1 = 0x3A185820;
-		w->base_col = 0x3A185820;
+		w->col1 = 0x3A000000 | ((uint32_t)PG().trail.colour & 0xFFFFFF);
+		w->base_col = w->col1;
 		for (int32_t k = 0, tacc = 0; tacc < 0x1E000; k++, tacc += 0x1000)
 		{
 			w->col0 = w->col1;
@@ -1782,15 +1877,15 @@ namespace blood210
 		TrailNode *t = (TrailNode *)n;
 		TrailWork *w = (TrailWork *)FieldAlloc(0x40);
 		WeaponBone(TRAIL_ENTITY, 1, w->dir, w->base);
-		w->tip[0] = (int16_t)((int16_t)(mul32(w->dir[0], 777) >> 12) + w->base[0]);
-		w->tip[1] = (int16_t)((int16_t)(mul32(w->dir[1], 777) >> 12) + w->base[1]);
-		w->tip[2] = (int16_t)((int16_t)(mul32(w->dir[2], 777) >> 12) + w->base[2]);
+		w->tip[0] = (int16_t)((int16_t)(mul32(w->dir[0], PG().trail.length) >> 12) + w->base[0]);
+		w->tip[1] = (int16_t)((int16_t)(mul32(w->dir[1], PG().trail.length) >> 12) + w->base[1]);
+		w->tip[2] = (int16_t)((int16_t)(mul32(w->dir[2], PG().trail.length) >> 12) + w->base[2]);
 		int32_t idx = t->counter % 7;
 		RingEntry *e = &t->ring[idx];
 		e->alive = 1;
 		memcpy(e->base, w->base, 8);
 		memcpy(e->tip, w->tip, 8);
-		const int32_t want = t->counter >= 0x35 ? 0x3C - t->counter : 7;
+		const int32_t want = t->counter >= PG().trail.shorten ? PG().trail.ticks + 1 - t->counter : 7;
 		int32_t cnt = 0;
 		while (cnt < want)
 		{
@@ -1822,12 +1917,13 @@ namespace blood210
 			NormalizeVector(t->dir_ab, t->dir_ab);
 			// 30 fps layer: see mag210_bloodfest_held.inc
 			FX_HELD(held_note_trail(t);)
+			FX_PART(PART_TRAIL);
 			TrailDraw(t->spl_a, t->spl_b, w);
 		}
 		FieldFree(0x40);
 		if (Pause() != 0) return 0;
 		t->counter++;
-		return t->counter >= 0x3B ? TASK_END : 0;
+		return t->counter >= PG().trail.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -1849,6 +1945,7 @@ namespace blood210
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_task_layout(t, &arg);)
+		FX_PART(PART_END);
 		const int left = prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, (int)Pause());
 		return left ? 0 : TASK_END;
 	}
@@ -1869,7 +1966,7 @@ namespace blood210
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		*(uint32_t *)h = MODEL_Rock;
+		*(uint32_t *)h = fxp::model(PG().models.rock, MODEL_Rock);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x98);
@@ -1880,6 +1977,7 @@ namespace blood210
 		RockNode *k = (RockNode *)n;
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_RockTask, k);)
+		FX_PART(PART_ROCKS);
 		RockDraw(k);
 		if (Pause() != 0) return 0;
 		k->life--;
@@ -1887,7 +1985,7 @@ namespace blood210
 		k->ax = (int8_t)(k->ax + k->dax);
 		k->ay = (int8_t)(k->ay + k->day);
 		k->pos[1] = (int16_t)(k->pos[1] + k->vy);
-		k->vy = (int16_t)(k->vy + 0x14);
+		k->vy = (int16_t)(k->vy + PG().rocks.gravity);
 		return 0;
 	}
 
@@ -1898,7 +1996,7 @@ namespace blood210
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.sparkle, SEQ_Sparkle);
 		*(uint16_t *)(h + 4) = (uint16_t)frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1909,25 +2007,178 @@ namespace blood210
 		SparkleNode *s = (SparkleNode *)n;
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkleTask, s);)
+		FX_PART(PART_SPARKLES);
 		SparkleDraw(s->pos, s->frame);
 		if (Pause() != 0) return 0;
 		s->pos[1] = (int16_t)(s->pos[1] + s->vy);
 		s->frame++;
-		return s->frame < 0x10 ? 0 : TASK_END;
+		return s->frame < PG().sparkles.frames ? 0 : TASK_END;
+	}
+
+	// ------------------------------------------------------------------
+	// Setup (0x6F6800 -> _Init 0x6F6810): the game runs its own; Fujin's programs this (its memory may be a copy's): the
+	// TIM (exe data), the magic buffer, the context, the caster's entity, the master, the camera. (The file loader is the
+	// engine's bare ret.)
+	// ------------------------------------------------------------------
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(fxp::tim(PG().res.tim, TIM));
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x25564F0), 0x10, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 1);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The main task's ticks, its four sounds, the screen flash rising and falling; the TIM and the camera" },
+			{ PART_FLAMES, "flames", "Flames", "Flames around each target (Fire's parts), each with its ground glow, embers rising and sparks drifting" },
+			{ PART_GHOSTS, "ghosts", "Afterimages", "Afterimages of the entity after the caster (the last two recorded poses, the newer brighter), in two windows" },
+			{ PART_RISE, "rise", "Rising layout", "The rising layout at the caster's effect point" },
+			{ PART_BONE, "bone", "Bone model", "A mesh at the caster's bone, stretched to the ground, turning, fading in" },
+			{ PART_VORTEX, "vortex", "Vortex", "The stage captured into VRAM, then a vortex at the targets' centre (a ring pushed out and quads of the capture's texture growing in, a second one turned and rolled), fading out" },
+			{ PART_TARGETS, "targets", "Targets", "The targets lifted spinning (a sine, then a cubic fall), then dropped from above, drawn by the module" },
+			{ PART_BURN, "burn", "Burning layout", "The burning layout at the targets' centre while they are lifted (its textures scrolling); a burst of sparkles and rocks on its first ticks" },
+			{ PART_DROP, "drop", "Drop", "The drop layout at the targets' centre while they fall (the caster and the next entity hidden), rocks falling a few a tick; then the targets put back and raised" },
+			{ PART_END, "end", "End layouts", "A layout at each target's feet as the results come" },
+			{ PART_WHITE, "white", "White flash", "A full-screen flash (fading in, held, fading out)" },
+			{ PART_TRAIL, "trail", "Blade trail", "The blade trail of slot 4's bone 1: a ring of its last 7 points splined, drawn as gouraud quads fading along it" },
+			{ PART_ROCKS, "rocks", "Rocks", "Rocks (a mesh) turning, rising then falling" },
+			{ PART_SPARKLES, "sparkles", "Sparkles", "Sparkles rising from a ring round the targets' centre" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main task's ticks" },
+			{ "flash", "Screen flash", "The screen flash's level and slopes" },
+		};
+#define MPF(member) (uint32_t)offsetof(BloodfestParams, member)
+		static const Field FIELDS[] = {
+			{ "master", "sounds.start", "Start sound", "At the start sound's tick", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.ghost", "Afterimage sound", "At the afterimage sound's tick", MPF(sounds.ghost), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.lift", "Lift sound", "At the lift sound's tick", MPF(sounds.lift), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.fall", "Fall sound", "At the fall sound's tick", MPF(sounds.fall), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "timing.start", "Start sound", "The main task's tick of the start sound", MPF(timing.start), fxp::I16, 0, 400 },
+			{ "master", "timing.ghost", "Afterimage sound", "Its tick of the afterimage sound", MPF(timing.ghost), fxp::I16, 0, 400 },
+			{ "master", "timing.lift", "Lift sound", "Its tick of the lift sound", MPF(timing.lift), fxp::I16, 0, 400 },
+			{ "master", "timing.fall", "Fall sound", "Its tick of the fall sound (while the targets rise back)", MPF(timing.fall), fxp::I16, 0, 400 },
+			{ "master", "timing.end", "End", "Its last tick: it ends once the battle files' preload is done (the screen flash falls to 0 there)", MPF(timing.end), fxp::I16, 1, 400 },
+			{ "master", "flash.level", "Flash level", "The screen flash's level", MPF(flash.level), fxp::I16, 0, 0x1000 },
+			{ "master", "flash.rise", "Flash rise", "It rises over the first ticks (at least 1)", MPF(flash.rise), fxp::I16, 1, 400 },
+			{ "master", "flash.fall", "Flash fall", "It falls over the last ticks before the end (at least 1)", MPF(flash.fall), fxp::I16, 1, 400 },
+			{ "master", "res.tim", "TIM", "The TIM its setup uploads (exe data: the effect has no file)", MPF(res.tim), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "flames", "flames.count", "Count", "Flames around each target", MPF(flames.count), fxp::I16, 0, 8 },
+			{ "flames", "flames.frames", "Frames", "A flame's frames (its flipbook's: 16 at most)", MPF(flames.frames), fxp::I16, 1, 16 },
+			{ "flames", "flames.embers", "Embers", "Embers rising from each flame", MPF(flames.embers), fxp::I16, 0, 16 },
+			{ "flames", "flames.sparks", "Sparks", "Sparks drifting from each flame", MPF(flames.sparks), fxp::I16, 0, 20 },
+			{ "flames", "flames.size", "Size", "A flame's size: this + a random below the next", MPF(flames.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "flames", "flames.size_rand", "Size random", "(at least 1)", MPF(flames.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "flames", "flames.drop", "Dropped", "The main task's tick every flame, ember and spark is dropped", MPF(flames.drop), fxp::I16, 0, 400 },
+			{ "flames", "seqs.flame", "Flame", "The flames' sprite sequence (a flipbook)", MPF(seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "flames", "seqs.glow", "Ground glow", "Their ground glow's sprite sequence", MPF(seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "flames", "seqs.ember", "Ember", "The embers' sprite sequence", MPF(seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "ghosts", "ghosts.start_a", "First from", "The main task's tick of the first window (its first tick resets the record)", MPF(ghosts.start_a), fxp::I16, 0, 400 },
+			{ "ghosts", "ghosts.ticks_a", "First ticks", "Its ticks", MPF(ghosts.ticks_a), fxp::I16, 0, 400 },
+			{ "ghosts", "ghosts.rec_a", "First records", "A pose recorded on its ticks below this (after, they fade away)", MPF(ghosts.rec_a), fxp::I16, 0, 400 },
+			{ "ghosts", "ghosts.start_b", "Second from", "The main task's tick of the second window", MPF(ghosts.start_b), fxp::I16, 0, 400 },
+			{ "ghosts", "ghosts.ticks_b", "Second ticks", "Its ticks", MPF(ghosts.ticks_b), fxp::I16, 0, 400 },
+			{ "ghosts", "ghosts.rec_b", "Second records", "A pose recorded on its ticks below this", MPF(ghosts.rec_b), fxp::I16, 0, 400 },
+			{ "ghosts", "ghosts.bright", "Brightness", "The newer afterimage's colour: the entity's x 1.5 x this / 0x1000", MPF(ghosts.bright), fxp::I16, 0, 0x1000 },
+			{ "ghosts", "ghosts.fade", "Older", "The older one's brightness is less by this", MPF(ghosts.fade), fxp::I16, -0x1000, 0x1000 },
+			{ "rise", "rise.start", "Start", "The main task's tick it starts", MPF(rise.start), fxp::I16, 0, 400 },
+			{ "rise", "rise.ticks", "Ticks", "Its ticks", MPF(rise.ticks), fxp::I16, 0, 400 },
+			{ "rise", "layouts.rise", "Layout", "The prim-model layout played", MPF(layouts.rise), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "bone", "bone.start", "Start", "The main task's tick it starts", MPF(bone.start), fxp::I16, 0, 400 },
+			{ "bone", "bone.ticks", "Ticks", "Its ticks, fading in over them (at least 1)", MPF(bone.ticks), fxp::I16, 1, 400 },
+			{ "bone", "bone.bone", "Bone", "The caster's bone it stands at (its spawn point)", MPF(bone.bone), fxp::I16, 0, 0xFF },
+			{ "bone", "bone.spin", "Spin", "Its turn a tick", MPF(bone.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "bone", "models.bone", "Mesh", "The mesh drawn", MPF(models.bone), fxp::Model, 0, 0x7FFFFFFF },
+			{ "vortex", "vortex.start", "Start", "The main task's tick it starts (the stage captured then)", MPF(vortex.start), fxp::I16, 0, 400 },
+			{ "vortex", "vortex.ticks", "Ticks", "Its ticks", MPF(vortex.ticks), fxp::I16, 0, 400 },
+			{ "vortex", "vortex.second", "Second from", "Its tick the second one starts", MPF(vortex.second), fxp::I16, 0, 400 },
+			{ "vortex", "vortex.grow", "Grow", "Each grows in over so many ticks (the ring pushed out, the quads' depth; at least 1)", MPF(vortex.grow), fxp::I16, 1, 400 },
+			{ "vortex", "vortex.fade_from", "Fade from", "From this tick of it both fade out (the mesh drawn alone, faded)", MPF(vortex.fade_from), fxp::I16, 0, 400 },
+			{ "vortex", "vortex.fade_ticks", "Fade ticks", "Over so many ticks (at least 1)", MPF(vortex.fade_ticks), fxp::I16, 1, 400 },
+			{ "vortex", "vortex.yaw_a", "First yaw", "The first one's turn", MPF(vortex.yaw_a), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "vortex", "vortex.yaw_b", "Second yaw", "The second one's turn", MPF(vortex.yaw_b), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "vortex", "vortex.roll", "Second roll", "The second ring's roll", MPF(vortex.roll), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "vortex", "vortex.scroll", "Scroll", "Their texture scroll a tick", MPF(vortex.scroll), fxp::I16, -0x100, 0x100 },
+			{ "vortex", "models.part", "Mesh", "The vortex mesh (drawn as quads of the capture's texture, or faded)", MPF(models.part), fxp::Model, 0, 0x7FFFFFFF },
+			{ "vortex", "models.ring", "Ring", "The ring mesh", MPF(models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "targets", "lift.start", "Lift from", "The main task's tick the targets are lifted (the burning layout, the burst; the sparkles', rocks' and end layouts' pools set up)", MPF(lift.start), fxp::I16, 0, 400 },
+			{ "targets", "lift.ticks", "Lift ticks", "Its ticks", MPF(lift.ticks), fxp::I16, 1, 400 },
+			{ "targets", "lift.spin", "Spin", "The targets' turn a tick (every other one the other way)", MPF(lift.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "targets", "raise.ticks", "Raise ticks", "After the drop, the targets put back and raised for so many ticks; then the end layouts and the results", MPF(raise.ticks), fxp::I16, 0, 100 },
+			{ "targets", "raise.step", "Raise step", "Raised so much a tick", MPF(raise.step), fxp::I16, -0x1000, 0x1000 },
+			{ "targets", "raise.lower", "Lowered", "Put back so much lower first", MPF(raise.lower), fxp::I16, -0x4000, 0x4000 },
+			{ "burn", "lift.scroll", "Scroll", "The burning layout's texture scroll a tick", MPF(lift.scroll), fxp::I16, -0x100, 0x100 },
+			{ "burn", "lift.scroll_from", "Second scroll from", "Its second scroll (a square curve) from this tick of it", MPF(lift.scroll_from), fxp::I16, 0, 400 },
+			{ "burn", "lift.burst_ticks", "Burst ticks", "Its first ticks with a burst", MPF(lift.burst_ticks), fxp::I16, 0, 100 },
+			{ "burn", "lift.sparkles", "Burst sparkles", "Sparkles a tick of the burst", MPF(lift.sparkles), fxp::I16, 0, 32 },
+			{ "burn", "lift.rocks", "Burst rocks", "Rocks a tick of the burst", MPF(lift.rocks), fxp::I16, 0, 32 },
+			{ "burn", "lift.radius", "Burst radius", "On a ring of this + a random below 0x800 round the centre", MPF(lift.radius), fxp::I16, 0, 0x7000 },
+			{ "burn", "lift.rise", "Burst rise", "Rising at this + a random below 0x80 a tick", MPF(lift.rise), fxp::I16, -0x1000, 0x1000 },
+			{ "burn", "layouts.burn", "Layout", "The burning layout (its first model's box is the stage capture's)", MPF(layouts.burn), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "drop", "drop.start", "Start", "The main task's tick the targets drop", MPF(drop.start), fxp::I16, 0, 400 },
+			{ "drop", "drop.ticks", "Ticks", "Its ticks (at least 1)", MPF(drop.ticks), fxp::I16, 1, 400 },
+			{ "drop", "drop.rocks", "Rocks", "Rocks a tick", MPF(drop.rocks), fxp::I16, 0, 32 },
+			{ "drop", "drop.rock_life", "Rock life", "A rock's ticks", MPF(drop.rock_life), fxp::I16, 1, 400 },
+			{ "drop", "drop.rock_height", "Rock height", "Rocks start so high above the centre", MPF(drop.rock_height), fxp::I16, -0x4000, 0x4000 },
+			{ "drop", "drop.rock_speed", "Rock speed", "Falling at this + a random below 0x80 a tick", MPF(drop.rock_speed), fxp::I16, -0x1000, 0x1000 },
+			{ "drop", "drop.depth", "Depth", "The drop layout's depth offset", MPF(drop.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "drop", "layouts.drop", "Layout", "The drop layout", MPF(layouts.drop), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "end", "layouts.end", "Layout", "The end layout", MPF(layouts.end), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "white", "white.start", "Start", "The main task's tick it starts", MPF(white.start), fxp::I16, 0, 400 },
+			{ "white", "white.in", "In", "Ticks fading in", MPF(white.in), fxp::I16, 0, 100 },
+			{ "white", "white.hold", "Hold", "Ticks held", MPF(white.hold), fxp::I16, 0, 100 },
+			{ "white", "white.out", "Out", "Ticks fading out", MPF(white.out), fxp::I16, 0, 100 },
+			{ "white", "white.r", "Red", "Its colour", MPF(white.r), fxp::I16, 0, 255 },
+			{ "white", "white.g", "Green", "Its colour", MPF(white.g), fxp::I16, 0, 255 },
+			{ "white", "white.b", "Blue", "Its colour", MPF(white.b), fxp::I16, 0, 255 },
+			{ "trail", "trail.start", "Start", "The main task's tick it starts (0x37 at least: its pool is set up then)", MPF(trail.start), fxp::I16, 0x37, 400 },
+			{ "trail", "trail.ticks", "Ticks", "Its ticks", MPF(trail.ticks), fxp::I16, 1, 400 },
+			{ "trail", "trail.shorten", "Shorter from", "From this tick of it, it keeps ticks + 1 - its tick points (7 before)", MPF(trail.shorten), fxp::I16, 0, 400 },
+			{ "trail", "trail.length", "Length", "Its tip's distance from the bone along the blade", MPF(trail.length), fxp::I16, -0x2000, 0x2000 },
+			{ "trail", "trail.colour", "Colour", "Its colour at the blade (0xBBGGRR), fading to black along it", MPF(trail.colour), fxp::I32, 0, 0xFFFFFF },
+			{ "rocks", "rocks.gravity", "Gravity", "A rock's fall speed grows by this a tick", MPF(rocks.gravity), fxp::I16, -0x400, 0x400 },
+			{ "rocks", "models.rock", "Mesh", "The rock mesh", MPF(models.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "sparkles", "sparkles.frames", "Frames", "A sparkle's frames (its flipbook's: 16 at most)", MPF(sparkles.frames), fxp::I16, 1, 16 },
+			{ "sparkles", "seqs.sparkle", "Sparkle", "The sparkles' sprite sequence", MPF(seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef MPF
 	}
 }
 
 	void register_mag210_bloodfest()
 	{
+		fxp::register_params({ 210, "Bloodfest", &blood210::live, &blood210::GAME, sizeof(blood210::BloodfestParams),
+		                       blood210::table::PARTS, (int)(sizeof(blood210::table::PARTS) / sizeof(blood210::table::PARTS[0])),
+		                       blood210::table::FIELDS, (int)(sizeof(blood210::table::FIELDS) / sizeof(blood210::table::FIELDS[0])),
+		                       blood210::table::GROUPS, (int)(sizeof(blood210::table::GROUPS) / sizeof(blood210::table::GROUPS[0])) });
+		own::note(blood210::ORIG_Setup, (void *)blood210::Setup);
+		own::note(blood210::ORIG_MasterTask, (void *)blood210::MasterTask);
 		register_port(blood210::ORIG_MasterTask, (void *)blood210::MasterTask, "210 MasterTask", 210);
+		own::note(blood210::ORIG_FlameSpawner, (void *)blood210::FlameSpawner);
 		register_port(blood210::ORIG_FlameSpawner, (void *)blood210::FlameSpawner, "210 FlameSpawner", 210);
+		own::note(blood210::ORIG_FlameTask, (void *)blood210::FlameTask);
 		register_port(blood210::ORIG_FlameTask, (void *)blood210::FlameTask, "210 FlameTask", 210);
+		own::note(blood210::ORIG_SparkTask, (void *)blood210::SparkTask);
 		register_port(blood210::ORIG_SparkTask, (void *)blood210::SparkTask, "210 SparkTask", 210);
+		own::note(blood210::ORIG_EmberTask, (void *)blood210::EmberTask);
 		register_port(blood210::ORIG_EmberTask, (void *)blood210::EmberTask, "210 EmberTask", 210);
+		own::note(blood210::ORIG_MainTask, (void *)blood210::MainTask);
 		register_port(blood210::ORIG_MainTask, (void *)blood210::MainTask, "210 MainTask", 210);
+		own::note(blood210::ORIG_TrailTask, (void *)blood210::TrailTask);
 		register_port(blood210::ORIG_TrailTask, (void *)blood210::TrailTask, "210 TrailTask", 210);
+		own::note(blood210::ORIG_LayoutTask, (void *)blood210::LayoutTask);
 		register_port(blood210::ORIG_LayoutTask, (void *)blood210::LayoutTask, "210 LayoutTask", 210);
+		own::note(blood210::ORIG_RockTask, (void *)blood210::RockTask);
 		register_port(blood210::ORIG_RockTask, (void *)blood210::RockTask, "210 RockTask", 210);
+		own::note(blood210::ORIG_SparkleTask, (void *)blood210::SparkleTask);
 		register_port(blood210::ORIG_SparkleTask, (void *)blood210::SparkleTask, "210 SparkleTask", 210);
 		// 30 fps layer: see mag210_bloodfest_held.inc
 		FX_HELD(register_mag210_held();)
