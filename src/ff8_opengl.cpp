@@ -51,11 +51,9 @@
 #include "achievement.h"
 #include "ff8/widescreen.h"
 #include "ff8/world.h"
-#include "ff8/battle/fx/fx_port.h"
 
 #include <array>
 #include <chrono>
-#include <cmath>
 #include <cstring>
 #include <vector>
 
@@ -2419,10 +2417,6 @@ void ff8_init_hooks(struct game_obj *_game_object)
 	// #####################
 	ff8_sound_init();
 
-	// #####################
-	// native battle effect code
-	// #####################
-	ff8fx::install();
 }
 
 struct ff8_gfx_driver *ff8_load_driver(void* _game_object)
