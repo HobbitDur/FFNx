@@ -1191,7 +1191,8 @@ namespace demon251
 		{
 			if (i == 0)
 			{
-				DecodeModelPrimLayout(fxp::layout(g.layouts.push, LAYOUT_Push, 0x144), mn->layout_a, 0x144);
+				// (the game clears 0x144 bytes for it, its player state needs 392: an edited layout may use the block's 0x1C8)
+				DecodeModelPrimLayout(fxp::layout(g.layouts.push, LAYOUT_Push, 0x1C8), mn->layout_a, 0x144);
 				GetDefaultEffectPosition(Target(), mn->far_pt);
 			}
 			arg.depth = 0;
