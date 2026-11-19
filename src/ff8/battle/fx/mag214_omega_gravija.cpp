@@ -55,9 +55,15 @@
 // holding the third vertex's never-written word +0xA; only its bits 6..9 are kept: no residue is read.
 // UNWRITTEN PACKET BYTES: the textured polygons' CLUT (+0xE) and pad (+0x1E, quads +0x26) are never written (the
 // arena's own bytes), as in the game.
+// FUJIN: Fujin's described Omega Gravija (effect_214.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the file loader (0x69D5C0) and the setup (0x69D5B0 -> _Init 0x69D5E0) ported below; its
+// parameters (OmegaGravijaParams: the sound and the ticks, the layout's draw, the warp and its wave, the particles, the
+// layout, the particle flipbook, the warp mesh, the texture name and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,12 +73,13 @@ namespace gravija214
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25089B8); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25100FC); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2510114); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x2510118; }      // pool: magic buffer, 0x40 x 0x1C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2510128; }           // pool: + 0x700, 1 x 0x324
-	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(0x2510148); }          // m[0][0], m[1][1], TX, TY written
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25089B8)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25100FC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2510114)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x2510118); }      // pool: magic buffer, 0x40 x 0x1C
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2510138); }          // 1 x 0x14
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2510128); }           // pool: + 0x700, 1 x 0x324
+	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(own::R(0x2510148)); }          // m[0][0], m[1][1], TX, TY written
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_MasterTask = 0x69D670;
@@ -85,13 +92,47 @@ namespace gravija214
 	static const uint32_t MORPH_BYTES = VBUF - MORPH;
 	static const uint32_t ARENA_A = 0x1970;              // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x11970;
-	static uint8_t *const MESH = (uint8_t *)0x25089BC;   // the warp mesh (module copy): size, count, vertices, triangles, quads
+	inline uint8_t *Mesh() { return (uint8_t *)own::R(0x25089BC); }   // the warp mesh (module copy): size, count, vertices, triangles, quads
 	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x1178A50;
 	static const int16_t *const SIN_TABLE = (const int16_t *)0x1178C50;  // 0x1000 x s16 (sin, 4.12); the length table is its first quarter
 	static const uint32_t MODEL_Main = 0x1174AD0;        // prim-model layout
 	static const uint32_t SEQ_Particle = 0x1172B40;      // sprite sequence
 	static const void *const SOUND_Gravija = (const void *)0x1172B3C;
 	static const uint32_t COPY_X = 0x240, COPY_Y = 0x100; // VRAM screen copy
+	static const uint32_t ORIG_FileLoader = 0x69D5C0, ORIG_Setup = 0x69D5B0;
+	static const uint32_t TEXTURE_NAME = 0x10231C8, CAMERA_ANIM = 0x1178938, MESH_DATA = 0x1172D00;
+	static const uint32_t DATA_COPY = 0x7740;          // the setup's copy of the data from the mesh on (the mesh: its first 0x1DD0)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25089B4)); }   // the effect's file (its TIM)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_LAYOUT = 1, PART_WARP = 2, PART_PARTICLES = 3 };
+	struct OmegaGravijaParams
+	{
+		uint32_t sound;                                     // the main task's sound tick
+		// the master's tick of the screen copy (and the main task's start), the main task's ticks: the sound, the action
+		// results, its last (the battle textures restored)
+		struct { int16_t copy, sound, result, end; } timing;
+		struct { int16_t ticks, depth; } layout;           // the layout drawn on the main task's first ticks, its depth
+		// the warp: from tick start for ticks, growing over its first ticks; its wave (a sine travelling along the vertices'
+		// lengths: a turn every period ticks, its amplitude amp x sin(phase / 2)); its fade (fade, from tick fade_from: + step
+		// a tick); the box's least size (/ OTZ), widening, the OT entry
+		struct { int16_t start, ticks, grow, period, amp, fade, fade_from, fade_step; int32_t min_size; int16_t widen, ot; } warp;
+		// the particles: all at tick start, count, their draws (life - a random below life_rand), reach (+ a random below
+		// reach_rand), spin a tick; their circles' size: rising over rise ticks, falling from fall over rise ticks, to ticks
+		struct { int16_t start, count, life, life_rand, reach, reach_rand, spin, rise, fall, ticks; } particles;
+		struct { uint32_t main; } layouts;                  // the prim-model layout played (its models' animation)
+		struct { uint32_t particle; } seqs;                 // the sprite sequence drawn (flipbook)
+		struct { uint32_t mesh; } models;                   // the warp mesh (a prim model)
+		struct { uint32_t texture_name, camera; } res;      // its resources (data): texture file name, camera track
+	};
+	static const OmegaGravijaParams GAME = { 0x1172B3C, { 1, 0, 0x43, 0x4A }, { 0x4A, -0x80 },
+		{ 0x12, 0x38, 8, 56, 2, 0xC00, 0x30, 0x80, 0x18000, 54, 0x11 }, { 0x12, 0x40, 0x32, 8, 0x5DC, 0x400, 8, 0x10, 0x22, 0x32 },
+		{ MODEL_Main }, { SEQ_Particle }, { MESH_DATA }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static OmegaGravijaParams live = GAME;
+	static const OmegaGravijaParams &PG() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
@@ -453,7 +494,7 @@ namespace gravija214
 			if (i == 1)
 			{
 				const int32_t d = q[2] ? (int32_t)q[2] : 1;
-				w = mul32((int32_t)size, 54) / d;
+				w = mul32((int32_t)size, PG().warp.widen) / d;
 			}
 			q[0] = (int16_t)(q[0] - (int16_t)w);
 			any |= ExpandBox(box, q, minz);
@@ -743,7 +784,7 @@ namespace gravija214
 		GteReadSXY2(sxy); // (not used)
 		int32_t otz;
 		GteReadOTZ(&otz);
-		const int16_t s = (int16_t)(0x18000 / (int32_t)(int16_t)otz);
+		const int16_t s = (int16_t)(PG().warp.min_size / (int32_t)(int16_t)otz);
 		if (bw < s) bw = s;
 		if (bh < s) bh = s;
 		frame.m[1][1] = bh;
@@ -754,19 +795,23 @@ namespace gravija214
 		return true;
 	}
 
-	// the warp's fade (IR0) at b = counter - 0x12
+	// the warp's fade (IR0) at b = counter - start: fade, from tick fade_from fade + step / 2 + step a tick (the game's: 0xC00,
+	// from 0x30 0xC40 + 0x80 a tick)
 	static int32_t WarpFade(int32_t b)
 	{
-		if (b < 0x30) return 0xC00;
-		return (int32_t)((((uint32_t)b + 0x3FFFD0u) << 10) >> 3) + 0xC40;
+		const OmegaGravijaParams &g = PG();
+		if (b < g.warp.fade_from) return g.warp.fade;
+		return g.warp.fade + g.warp.fade_step / 2 + g.warp.fade_step * (b - g.warp.fade_from);
 	}
 
 	// the particle amplitude the main task sets at b = counter - 0x12 (0 <= b < 0x32)
+	// (rising over the first rise ticks: sin(b x 0x400 / rise), full, falling from fall: cos((b - fall) x 0x400 / rise))
 	static int16_t ParticleAmp(int32_t b)
 	{
-		if (b < 0x10) return (int16_t)ComputeSin(b << 6);
-		if (b <= 0x22) return 0x1000;
-		return (int16_t)ComputeCos((b - 0x22) << 6);
+		const OmegaGravijaParams &g = PG();
+		if (b < g.particles.rise) return (int16_t)ComputeSin(b * 0x400 / g.particles.rise);
+		if (b <= g.particles.fall) return 0x1000;
+		return (int16_t)ComputeCos((b - g.particles.fall) * 0x400 / g.particles.rise);
 	}
 
 	// the particle's draw (0x69DF00 up to its update)
@@ -790,7 +835,7 @@ namespace gravija214
 		v[2] = (int16_t)(v[2] + avg[2]);
 		TransformCameraByShadowRotation(v, 0x800, (int32_t)0xFFFFFE00);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Particle;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.particle, SEQ_Particle);
 		*(uint16_t *)(h + 4) = 1;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -806,15 +851,16 @@ namespace gravija214
 		const MainNode *w = (const MainNode *)(TexBase() + MAIN);
 		// 30 fps layer: see mag214_omega_gravija_held.inc
 		FX_HELD(held_note_particle(n);)
+		FX_PART(PART_PARTICLES);
 		ParticleDraw(p, w->amp, w->avg);
-		p->angle = (int16_t)(p->angle + 8);
+		p->angle = (int16_t)(p->angle + PG().particles.spin);
 		p->counter++;
 		return p->counter < p->life ? 0 : TASK_END;
 	}
 
-	// the wave of the warp at b = counter - 0x12: phase t = b x 4096 / 56, amplitude 2 sin(t / 2)
-	static int32_t WavePhase(int32_t b) { return (int32_t)(((uint32_t)b << 12) / 56); }
-	static int32_t WaveAmp(int32_t t) { const int32_t s = ComputeSin(t >> 1); return s + s; }
+	// the wave of the warp at b = counter - start: phase t = b x 4096 / period, amplitude amp x sin(t / 2) (the game's: 56, 2)
+	static int32_t WavePhase(int32_t b) { return (int32_t)(((uint32_t)b << 12) / (uint32_t)PG().warp.period); }
+	static int32_t WaveAmp(int32_t t) { return ComputeSin(t >> 1) * PG().warp.amp; }
 
 	// ------------------------------------------------------------------
 	// Main (0x69D870)
@@ -822,70 +868,69 @@ namespace gravija214
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *w = (MainNode *)n;
-		if ((uint16_t)w->counter < 0x4A)
+		if ((uint16_t)w->counter < (uint16_t)PG().layout.ticks)
 		{
 			PrimArg arg;
 			memcpy(arg.pos, w->avg, 8);
-			arg.depth = -0x80;
+			arg.depth = PG().layout.depth;
 			arg.morph = TexBase() + MORPH;
 			// 30 fps layer: see mag214_omega_gravija_held.inc
 			FX_HELD(held_note_main(K_PLAY, n);)
+			FX_PART(PART_LAYOUT);
 			prim::play((prim::Layout *)w->layout, PrimCallback, (int)&arg, 0);
 		}
-		int32_t b = (int32_t)w->counter - 0x12;
-		if ((uint32_t)b < 0x38)
+		int32_t b = (int32_t)w->counter - PG().warp.start;
+		if ((uint32_t)b < (uint32_t)PG().warp.ticks)
 		{
 			// 30 fps layer: see mag214_omega_gravija_held.inc
 			FX_HELD(held_note_main(K_WARP, n);)
+			FX_PART(PART_WARP);
 			int32_t z;
 			if (WarpBox(w, WarpFrame(), &z))
 			{
 				const int32_t t = WavePhase(b);
 				const int32_t amp = WaveAmp(t);
-				if (b < 0x19)
+				if (b < PG().warp.grow)
 				{
-					if (b < 8)
-					{
-						WarpFrame().m[0][0] = (int16_t)((uint32_t)mul32(WarpFrame().m[0][0], b) >> 3);
-						WarpFrame().m[1][1] = (int16_t)((uint32_t)mul32(WarpFrame().m[1][1], b) >> 3);
-					}
+					WarpFrame().m[0][0] = (int16_t)((uint32_t)mul32(WarpFrame().m[0][0], b) / (uint32_t)PG().warp.grow);
+					WarpFrame().m[1][1] = (int16_t)((uint32_t)mul32(WarpFrame().m[1][1], b) / (uint32_t)PG().warp.grow);
 				}
 				const int32_t fade = WarpFade(b);
 				GteSetRotMatrix(&WarpFrame());
 				GteSetTransVector(&WarpFrame());
-				Warp(MESH, MESH + 8, (z >> 2) + 0x11, fade, amp, t, (uint8_t *)(TexBase() + VBUF));
+				Warp(Mesh(), Mesh() + 8, (z >> 2) + PG().warp.ot, fade, amp, t, (uint8_t *)(TexBase() + VBUF));
 			}
 		}
-		if (w->counter == 0) BdPlaySE(SOUND_Gravija, 0, 0x80);
-		b = (int32_t)w->counter - 0x12;
-		if ((uint32_t)b < 0x32)
+		if (w->counter == PG().timing.sound) BdPlaySE((const void *)fxp::sound(PG().sound, (uint32_t)SOUND_Gravija), 0, 0x80);
+		b = (int32_t)w->counter - PG().particles.start;
+		if ((uint32_t)b < (uint32_t)PG().particles.ticks)
 		{
 			int16_t amp;
 			if (b == 0)
 			{
-				for (int i = 0; i < 0x40; i++)
+				for (int i = 0; i < PG().particles.count; i++)
 				{
-					ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+					ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_ParticleTask));
 					if (!p) continue;
 					p->counter = 0;
-					p->life = (int16_t)(0x32 - (CrtRand() & 7));
+					p->life = (int16_t)(PG().particles.life - CrtRand() % PG().particles.life_rand);
 					p->angle = (int16_t)CrtRand();
 					p->rot[0] = (int16_t)CrtRand();
 					p->rot[1] = (int16_t)CrtRand();
 					p->rot[2] = (int16_t)CrtRand();
-					p->reach = (int16_t)((CrtRand() & 0x3FF) + 0x5DC);
+					p->reach = (int16_t)(CrtRand() % PG().particles.reach_rand + PG().particles.reach);
 				}
 			}
 			amp = ParticleAmp(b);
 			w->amp = amp;
-			if (b == 0x31) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
 		}
-		if (w->counter < 0x4A)
+		if (w->counter == PG().timing.result) ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
+		if (w->counter < PG().timing.end)
 		{
 			w->counter++;
 			return 0;
 		}
-		if (w->counter == 0x4A)
+		if (w->counter == PG().timing.end)
 		{
 			TextureRestoreTask((void *)(TexBase() + ARENA_A), &w->restored);
 			w->counter++;
@@ -911,7 +956,7 @@ namespace gravija214
 			PacketCursor() = TexBase() + ARENA_B;
 			m->arena = 1;
 		}
-		if (m->counter == 1)
+		if (m->counter == PG().timing.copy)
 		{
 			// the screen copy: VRAM (0x240, 0x100) 320 x 256 cleared, the next OT pass drawn there
 			const int16_t rect[4] = { (int16_t)COPY_X, (int16_t)COPY_Y, 0x140, 0x100 };
@@ -919,13 +964,13 @@ namespace gravija214
 			RequestDrawOffset(COPY_X, COPY_Y);
 			if (!m->started)
 			{
-				PrepareMesh(MESH);
+				PrepareMesh(Mesh());
 				m->started = 1;
 				InitTaskQueuePool(QMain(), (void *)(TexBase() + MAIN), 0x324, 1);
 				InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x1C, 0x40);
-				MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+				MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 				Memset32(&w->counter, 0, 0xC6);
-				DecodeModelPrimLayout(MODEL_Main, w->layout, 0x2F4);
+				DecodeModelPrimLayout(fxp::layout(PG().layouts.main, MODEL_Main, 0x2F4), w->layout, 0x2F4);
 				w->count = (int16_t)Ctx()->actions[0].target_count;
 				w->avg[2] = 0;
 				w->avg[1] = 0;
@@ -955,12 +1000,98 @@ namespace gravija214
 		m->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x69D5C0) and setup (0x69D5B0 -> _Init 0x69D5E0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the data copy (the warp mesh first), the cast and its caster's
+	// entity, the master (it sets up the rest), the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		memcpy(Mesh(), (const void *)MESH_DATA, DATA_COPY);
+		const uint32_t mesh = fxp::model(PG().models.mesh, MESH_DATA, true);
+		if (mesh != MESH_DATA) memcpy(Mesh(), (const void *)mesh, fxp::model_size(mesh, fxp::data_end(mesh, 8)));
+		Ctx() = ctx;
+		var<uint32_t>(own::R(0x25089B0)) = 0x1D972C0 + 0x9C * ctx->attacker;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2510100), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The screen copy (VRAM (0x240, 0x100) cleared, the next frame drawn there), the main task's start at the targets' average point, the sound; the action results, the battle textures restored; the texture and the camera" },
+			{ PART_LAYOUT, "layout", "Layout", "The prim-model layout at the targets' average point" },
+			{ PART_WARP, "warp", "Warp", "The screen warp around the targets: the mesh over their heads and feet, its vertices pushed along their directions by a travelling sine, drawn faded then textured by the screen copy" },
+			{ PART_PARTICLES, "particles", "Particles", "Particles circling the average point on tilted circles that widen and narrow" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The master's and the main task's ticks" },
+		};
+#define MPF(member) (uint32_t)offsetof(OmegaGravijaParams, member)
+		static const Field FIELDS[] = {
+			{ "master", "sound", "Sound", "At the main task's sound tick", MPF(sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "timing.copy", "Screen copy", "The master's tick of the screen copy; its first one starts the main task", MPF(timing.copy), fxp::I16, 0, 200 },
+			{ "master", "timing.sound", "Sound", "The main task's tick of the sound", MPF(timing.sound), fxp::I16, 0, 400 },
+			{ "master", "timing.result", "Results", "The main task's tick of the action results", MPF(timing.result), fxp::I16, 0, 400 },
+			{ "master", "timing.end", "End", "The main task's last tick: the battle textures restored (it ends when that is done)", MPF(timing.end), fxp::I16, 0, 400 },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "layout", "layout.ticks", "Ticks", "The layout drawn on the main task's ticks below this", MPF(layout.ticks), fxp::I16, 0, 400 },
+			{ "layout", "layout.depth", "Depth", "Its depth offset", MPF(layout.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "layout", "layouts.main", "Layout", "The prim-model layout played (its models' animation)", MPF(layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "warp", "warp.start", "Start", "The main task's tick the warp starts", MPF(warp.start), fxp::I16, 0, 400 },
+			{ "warp", "warp.ticks", "Ticks", "Its ticks", MPF(warp.ticks), fxp::I16, 0, 400 },
+			{ "warp", "warp.grow", "Grow", "Its box growing from nothing over its first ticks (at least 1)", MPF(warp.grow), fxp::I16, 1, 400 },
+			{ "warp", "warp.period", "Wave period", "The wave's phase turns once in this many ticks (at least 1)", MPF(warp.period), fxp::I16, 1, 400 },
+			{ "warp", "warp.amp", "Wave amplitude", "Its amplitude: this x sin(phase / 2) (4.12 of each vertex's direction)", MPF(warp.amp), fxp::I16, -16, 16 },
+			{ "warp", "warp.fade", "Fade", "The faded polygons' fade (0x1000: black)", MPF(warp.fade), fxp::I16, 0, 0x1000 },
+			{ "warp", "warp.fade_from", "Fade out from", "From this tick of the warp the fade grows", MPF(warp.fade_from), fxp::I16, 0, 400 },
+			{ "warp", "warp.fade_step", "Fade step", "By this a tick (half of it at the first)", MPF(warp.fade_step), fxp::I16, 0, 0x1000 },
+			{ "warp", "warp.min_size", "Least size", "The box's least width and height: this / the average point's depth", MPF(warp.min_size), fxp::I32, 0, 0x7FFFFFF },
+			{ "warp", "warp.widen", "Widening", "The box widened both ways at each point by (size + 0x100) x this / its depth", MPF(warp.widen), fxp::I16, 0, 0x1000 },
+			{ "warp", "warp.ot", "OT entry", "Drawn at the nearest point's depth / 4 + this", MPF(warp.ot), fxp::I16, 0, 0x400 },
+			{ "warp", "models.mesh", "Mesh", "The warp mesh (241 vertices, 240 polygons: its setup copies it whole into a block of its size: an edited one keeps its vertices and its size (move vertices, change colours))", MPF(models.mesh), fxp::Model, 0, 0x7FFFFFFF },
+			{ "particles", "particles.start", "Start", "The main task's tick they all start", MPF(particles.start), fxp::I16, 0, 400 },
+			{ "particles", "particles.count", "Count", "How many (0x40 at most)", MPF(particles.count), fxp::I16, 0, 0x40 },
+			{ "particles", "particles.life", "Life", "A particle's draws: this - a random below the next", MPF(particles.life), fxp::I16, 0, 400 },
+			{ "particles", "particles.life_rand", "Life random", "(at least 1)", MPF(particles.life_rand), fxp::I16, 1, 400 },
+			{ "particles", "particles.reach", "Reach", "Its circle's radius: this + a random below the next, x the circles' size", MPF(particles.reach), fxp::I16, 0, 0x7FFF },
+			{ "particles", "particles.reach_rand", "Reach random", "(at least 1)", MPF(particles.reach_rand), fxp::I16, 1, 0x7FFF },
+			{ "particles", "particles.spin", "Spin", "Its angle step a tick on its circle", MPF(particles.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "particles", "particles.rise", "Rise", "The circles' size rising over this many ticks (and falling as long; at least 1)", MPF(particles.rise), fxp::I16, 1, 400 },
+			{ "particles", "particles.fall", "Fall from", "From this tick it falls", MPF(particles.fall), fxp::I16, 0, 400 },
+			{ "particles", "particles.ticks", "Ticks", "The circles' size set on this many ticks (it stays at its last after)", MPF(particles.ticks), fxp::I16, 0, 400 },
+			{ "particles", "seqs.particle", "Particle", "The sprite sequence of the particles (a flipbook: its frame 1 drawn)", MPF(seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag214_omega_gravija()
 	{
+		fxp::register_params({ 214, "Omega Gravija", &gravija214::live, &gravija214::GAME, sizeof(gravija214::OmegaGravijaParams),
+		                       gravija214::table::PARTS, (int)(sizeof(gravija214::table::PARTS) / sizeof(gravija214::table::PARTS[0])),
+		                       gravija214::table::FIELDS, (int)(sizeof(gravija214::table::FIELDS) / sizeof(gravija214::table::FIELDS[0])),
+		                       gravija214::table::GROUPS, (int)(sizeof(gravija214::table::GROUPS) / sizeof(gravija214::table::GROUPS[0])) });
+		own::note(gravija214::ORIG_FileLoader, (void *)gravija214::FileLoader);
+		own::note(gravija214::ORIG_Setup, (void *)gravija214::Setup);
+		own::note(gravija214::ORIG_MasterTask, (void *)gravija214::MasterTask);
 		register_port(gravija214::ORIG_MasterTask, (void *)gravija214::MasterTask, "214 MasterTask", 214);
+		own::note(gravija214::ORIG_MainTask, (void *)gravija214::MainTask);
 		register_port(gravija214::ORIG_MainTask, (void *)gravija214::MainTask, "214 MainTask", 214);
+		own::note(gravija214::ORIG_ParticleTask, (void *)gravija214::ParticleTask);
 		register_port(gravija214::ORIG_ParticleTask, (void *)gravija214::ParticleTask, "214 ParticleTask", 214);
 		// 30 fps layer: see mag214_omega_gravija_held.inc
 		FX_HELD(register_mag214_held();)
