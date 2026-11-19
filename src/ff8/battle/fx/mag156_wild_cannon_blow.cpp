@@ -42,9 +42,16 @@
 // ENTITY WRITES: none. CAMERA: the camera animation 0xDB4CD4 (engine) and the shake word 0x1D97712 (ShotTask).
 // Module globals: 0x23ECE40..0x23F07F0.
 // NEVER-WRITTEN STACK WORDS: none read (the shot set-up's offset vector's 4th word is not read by 0x56C4F0).
+// FUJIN: Fujin's described Wild Cannon Blow (effect_156.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the file loader (0x605510) and the setup (0x605530) ported below; its parameters
+// (WildCannonParams: the sounds and the master's ticks, the shots' timing and aim, the camera shake, the burst, trails,
+// fire ball and target smoke, the five flipbooks, the four meshes, the texture name and the camera track). FX_PART tags
+// its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -62,18 +69,18 @@ namespace wildcannon156
 	inline int16_t S16v(uint32_t p, int32_t o) { return AT<int16_t>(p, o); }
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23F03B8); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23F03BC); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23F07E8); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23F07EC); }
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x23ECE68; }
-	inline TaskQueue *ShotQueue() { return (TaskQueue *)0x23EF478; }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x23F03B8)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x23F03BC)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23F07E8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23F07EC)); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)own::R(0x23ECE68); }
+	inline TaskQueue *ShotQueue() { return (TaskQueue *)own::R(0x23EF478); }
 	static const uint32_t PARTS_A = 0x23ECE78, PARTS_B = 0x23EDC88, PARTS_C = 0x23EEA98, PARTS_END = 0x23EF3F8; // 150 / 150 / 100 x 0x18
-	inline uint32_t Ctrl(int i) { return 0x23F0298 + (uint32_t)i * 0x20; }   // 4 control points (8 bytes)
-	inline uint32_t Target(int i) { return 0x23F0318 + (uint32_t)i * 8; }
-	inline Mat4x3 *Rot(int i) { return (Mat4x3 *)(0x23F0338 + (uint32_t)i * 0x20); }
-	inline uint32_t Start(int i) { return 0x23F03C8 + (uint32_t)i * 8; }
-	inline uint32_t Point(int i, int k) { return 0x23F03E8 + ((uint32_t)i * 0x20 + (uint32_t)k) * 8; } // 32 curve points
+	inline uint32_t Ctrl(int i) { return own::R(0x23F0298) + (uint32_t)i * 0x20; }   // 4 control points (8 bytes)
+	inline uint32_t Target(int i) { return own::R(0x23F0318) + (uint32_t)i * 8; }
+	inline Mat4x3 *Rot(int i) { return (Mat4x3 *)(own::R(0x23F0338) + (uint32_t)i * 0x20); }
+	inline uint32_t Start(int i) { return own::R(0x23F03C8) + (uint32_t)i * 8; }
+	inline uint32_t Point(int i, int k) { return own::R(0x23F03E8) + ((uint32_t)i * 0x20 + (uint32_t)k) * 8; } // 32 curve points
 
 	static const uint32_t ORIG_Root = 0x606C20, ORIG_TexRestore = 0x606C90, ORIG_Master = 0x605620, ORIG_Shot = 0x6056E0,
 		ORIG_Flash = 0x605DF0, ORIG_Burst = 0x605F40, ORIG_Ring = 0x606200, ORIG_Ball = 0x606320, ORIG_Trail = 0x6063E0,
@@ -81,6 +88,40 @@ namespace wildcannon156
 	static const uint32_t MODEL_Flash = 0xDB6DFC, MODEL_Ring = 0xDB68EC, MODEL_Impact = 0xDB54AC, MODEL_ImpactRing = 0xDB7484;
 	static const uint32_t SEQ_Burst = 0xDB5300, SEQ_Ball = 0xDB528C, SEQ_Trail = 0xDB4F34, SEQ_Trail2 = 0xDB50E0, SEQ_Emitter = 0xDB4D88;
 	static const uint32_t SOUND_A = 0xDB7DAC, SOUND_B = 0xDB7DB0;
+	static const uint32_t ORIG_FileLoader = 0x605510, ORIG_Setup = 0x605530;
+	static const uint32_t TEXTURE_NAME = 0xDB7DB8, CAMERA = 0xDB4CD4;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23F03C0)); }
+	inline int32_t &FirstTarget() { return var<int32_t>(own::R(0x23ECE40)); }
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_FLASH = 1, PART_BURST = 2, PART_RING = 3, PART_BALL = 4, PART_TRAILS = 5, PART_IMPACT = 6, PART_SMOKE = 7 };
+	struct WildCannonParams
+	{
+		struct { uint32_t a, b; } sounds;                    // both at the master's sound tick
+		struct { int16_t sound, damage, end; } timing;       // the master's ticks
+		struct { int16_t first, every, count; } shots;       // a shot at the master's ticks first, first + every, ... (4 at most)
+		// a shot: from the caster's effect point odd_point (odd shots, x + x) or even_point (even shots, x - x), along a curve to
+		// the targets' centre +- a random spread; its impact and the target smoke at its ticks, its end; the ball's and the
+		// trails' first speed along the curve (points a tick, - 1 a tick down to 2)
+		struct { int16_t odd_point, even_point, x, spread_x, spread_z, speed, impact, smoke, end; } shot;
+		struct { int16_t tick, ticks, amount; } shake;       // the camera shake word +- amount (odd ticks +) from the shot's tick
+		struct { int16_t per_tick, ticks, size, size_rand; } burst; // particles at the muzzle on the shot's first ticks
+		struct { int16_t size, size_rand; } trails;         // a trail particle's size: size + a random below size_rand
+		struct { int16_t size, size_rand; } ball;           // the fire ball's size
+		struct { int16_t ticks, spread, size, size_rand; } smoke; // one particle a tick at each target, +- spread on each axis
+		struct { uint32_t burst, ball, trail, trail2, smoke; } seqs;      // the sprite sequences drawn (flipbooks)
+		struct { uint32_t flash, ring, impact, impact_ring; } models;      // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res;      // its resources (data): texture file name, camera track
+	};
+	static const WildCannonParams GAME = { { SOUND_A, SOUND_B }, { 1, 0x24, 0x2D }, { 1, 3, 4 },
+		{ 0xF, 9, 0xC8, 0x320, 0x190, 5, 0xD, 0xF, 0x14 }, { 0xD, 4, 0x40 }, { 0xC, 2, 0x400, 0x800 }, { 0xB00, 0x700 },
+		{ 0xC00, 0x200 }, { 3, 0x12C, 0x500, 0x500 }, { SEQ_Burst, SEQ_Ball, SEQ_Trail, SEQ_Trail2, SEQ_Emitter },
+		{ MODEL_Flash, MODEL_Ring, MODEL_Impact, MODEL_ImpactRing }, { TEXTURE_NAME, CAMERA } };
+	static WildCannonParams live = GAME;
+	static const WildCannonParams &PW() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(0x56C4F0)(m, in, out); } // matrixMultiplyVector
@@ -161,7 +202,7 @@ namespace wildcannon156
 		const int running = ExecuteTaskQueue(ShotQueue());
 		if (!running)
 		{
-			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), ORIG_TexRestore);
+			const uint32_t w = (uint32_t)AddTaskToQueue(RootQueue(), own::Fn(ORIG_TexRestore));
 			S16(w, 0xC) = 0;
 			S16(w, 0xE) = 0;
 		}
@@ -191,7 +232,7 @@ namespace wildcannon156
 		ComposeAffineTransform(&Camera(), &m, &v);
 		GteSetRotMatrix(&v);
 		GteSetTransVector(&v);
-		PrimDraw(MODEL_Flash, fade);
+		PrimDraw(fxp::model(PW().models.flash, MODEL_Flash), fade);
 	}
 
 	static uint32_t __cdecl FlashTask(TaskNode *nd)
@@ -199,6 +240,7 @@ namespace wildcannon156
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_FLASH, n);)
+		FX_PART(PART_FLASH);
 		FlashDraw(n, S16(n, 0xC) >= 4 ? shl32(S16(n, 0xC) - 4, 9) : -1);
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
@@ -222,7 +264,7 @@ namespace wildcannon156
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_Ring, fade);
+		PrimDraw(fxp::model(PW().models.ring, MODEL_Ring), fade);
 	}
 
 	static uint32_t __cdecl RingTask(TaskNode *nd)
@@ -230,6 +272,7 @@ namespace wildcannon156
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_RING, n);)
+		FX_PART(PART_RING);
 		RingDraw(n, S16(n, 0xC) >= 0 ? shl32(S16(n, 0xC), 10) : -1);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -249,7 +292,7 @@ namespace wildcannon156
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_ImpactRing, fade);
+		PrimDraw(fxp::model(PW().models.impact_ring, MODEL_ImpactRing), fade);
 	}
 
 	static uint32_t __cdecl ImpactRingTask(TaskNode *nd)
@@ -257,6 +300,7 @@ namespace wildcannon156
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_IRING, n);)
+		FX_PART(PART_IMPACT);
 		ImpactRingDraw(n, S16(n, 0xC) >= 3 ? mul32(S16(n, 0xC) - 3, 0x199) : -1);
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
@@ -282,7 +326,7 @@ namespace wildcannon156
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		PrimDraw(MODEL_Impact, fade, 3);
+		PrimDraw(fxp::model(PW().models.impact, MODEL_Impact), fade, 3);
 	}
 
 	static uint32_t __cdecl ImpactTask(TaskNode *nd)
@@ -291,6 +335,7 @@ namespace wildcannon156
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_IMPACT, n);)
 		const int16_t c = S16(n, 0xC);
+		FX_PART(PART_IMPACT);
 		ImpactDraw(n, c >= 8 ? shl32(c - 8, 9) : -1);
 		if (DrawOnly()) return 0;
 		const int16_t sp = S16(n, 0x1A);
@@ -312,7 +357,7 @@ namespace wildcannon156
 		TransformCameraByShadowRotation(pos, (int32_t)(uint16_t)r, -(r >> 3));
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		U16(h, 4) = (uint16_t)(U8(n, 0xC) & 3);
-		U32(h, 0) = SEQ_Ball;
+		U32(h, 0) = fxp::sequence(PW().seqs.ball, SEQ_Ball);
 		U16(h, 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData((void *)h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -323,6 +368,7 @@ namespace wildcannon156
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_node(REC_BALL, n);)
+		FX_PART(PART_BALL);
 		BallDraw(n, (const void *)Point(S16(n, 0xE), S16(n, 0x18)));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1A);
@@ -364,10 +410,10 @@ namespace wildcannon156
 	{
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		int alive = 0;
-		U32(h, 0) = SEQ_Burst;
+		U32(h, 0) = fxp::sequence(PW().seqs.burst, SEQ_Burst);
 		U16(h, 0x24) = 0;
 		const int i = S16(n, 0xE);
-		for (uint32_t p = PARTS_C; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS_C); p < own::R(PARTS_END); p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
 			// 30 fps layer: see mag156_wild_cannon_blow_held.inc
@@ -392,17 +438,18 @@ namespace wildcannon156
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_parts(REC_BURST, n);)
+		FX_PART(PART_BURST);
 		const int alive = BurstParticles(n);
 		if (DrawOnly()) return 0;
-		if (S16(n, 0xC) < 2)
+		if (S16(n, 0xC) < PW().burst.ticks)
 		{
-			for (int k = 0; k < 0xC; k++)
+			for (int k = 0; k < PW().burst.per_tick; k++)
 			{
-				const uint32_t p = FreeParticle(PARTS_C, PARTS_END, 0x64);
+				const uint32_t p = FreeParticle(own::R(PARTS_C), own::R(PARTS_END), 0x64);
 				if (!p) break;
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0x18);
 				S16(p, P_FRAME) = 0;
-				S16(p, P_SIZE) = (int16_t)((CrtRand() & 0x7FF) + 0x400);
+				S16(p, P_SIZE) = (int16_t)(CrtRand() % PW().burst.size_rand + PW().burst.size);
 				S16(p, P_POS) = (int16_t)(CrtRand() % 0xC8 - 0x64);
 				S16(p, P_POS + 2) = (int16_t)(CrtRand() % 0xC8 - 0x64);
 				S16(p, P_POS + 4) = (int16_t)(CrtRand() % 0x64);
@@ -450,8 +497,9 @@ namespace wildcannon156
 	{
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_parts(jitter ? REC_TRAIL2 : REC_TRAIL, n);)
-		const uint32_t lo = jitter ? PARTS_B : PARTS_A, hi = jitter ? PARTS_C : PARTS_B;
-		const int alive = TrailParticles(n, lo, hi, jitter ? SEQ_Trail2 : SEQ_Trail, 0, 4);
+		const uint32_t lo = jitter ? own::R(PARTS_B) : own::R(PARTS_A), hi = jitter ? own::R(PARTS_C) : own::R(PARTS_B);
+		FX_PART(PART_TRAILS);
+		const int alive = TrailParticles(n, lo, hi, jitter ? fxp::sequence(PW().seqs.trail2, SEQ_Trail2) : fxp::sequence(PW().seqs.trail, SEQ_Trail), 0, 4);
 		if (DrawOnly()) return 0;
 		TrailStep(n);
 		const int32_t at = S16(n, 0x1C);
@@ -463,7 +511,7 @@ namespace wildcannon156
 				if (!p) break;
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0x18);
 				S16(p, P_FRAME) = 0;
-				S16(p, P_SIZE) = (int16_t)(CrtRand() % 0x700 + 0xB00);
+				S16(p, P_SIZE) = (int16_t)(CrtRand() % PW().trails.size_rand + PW().trails.size);
 				U32(p, P_POS) = U32(Point(S16(n, 0xE), k), 0);
 				U32(p, P_POS + 4) = U32(Point(S16(n, 0xE), k), 4);
 				if (jitter)
@@ -486,9 +534,9 @@ namespace wildcannon156
 	{
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		int alive = 0;
-		U32(h, 0) = SEQ_Emitter;
+		U32(h, 0) = fxp::sequence(PW().seqs.smoke, SEQ_Emitter);
 		U16(h, 0x24) = 0;
-		for (uint32_t p = PARTS_C; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS_C); p < own::R(PARTS_END); p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
 			// 30 fps layer: see mag156_wild_cannon_blow_held.inc
@@ -505,22 +553,23 @@ namespace wildcannon156
 		const uint32_t n = (uint32_t)nd;
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(held_note_parts(REC_EMITTER, n);)
+		FX_PART(PART_SMOKE);
 		const int alive = EmitterParticles(n);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 2)
+		if (c >= 0 && c < PW().smoke.ticks)
 		{
-			const uint32_t p = FreeParticle(PARTS_C, PARTS_END, 0x64);
+			const uint32_t p = FreeParticle(own::R(PARTS_C), own::R(PARTS_END), 0x64);
 			if (p)
 			{
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0x18);
 				S16(p, P_FRAME) = 0;
-				S16(p, P_SIZE) = (int16_t)(CrtRand() % 0x500 + 0x500);
+				S16(p, P_SIZE) = (int16_t)(CrtRand() % PW().smoke.size_rand + PW().smoke.size);
 				U32(p, P_POS) = U32(n, 0x10);
 				U32(p, P_POS + 4) = U32(n, 0x14);
-				S16(p, P_POS) = (int16_t)(S16(p, P_POS) + CrtRand() % 0x258 - 0x12C);
-				S16(p, P_POS + 2) = (int16_t)(S16(p, P_POS + 2) + CrtRand() % 0x258 - 0x12C);
-				S16(p, P_POS + 4) = (int16_t)(S16(p, P_POS + 4) + CrtRand() % 0x258 - 0x12C);
+				S16(p, P_POS) = (int16_t)(S16(p, P_POS) + CrtRand() % (2 * PW().smoke.spread) - PW().smoke.spread);
+				S16(p, P_POS + 2) = (int16_t)(S16(p, P_POS + 2) + CrtRand() % (2 * PW().smoke.spread) - PW().smoke.spread);
+				S16(p, P_POS + 4) = (int16_t)(S16(p, P_POS + 4) + CrtRand() % (2 * PW().smoke.spread) - PW().smoke.spread);
 			}
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -532,7 +581,7 @@ namespace wildcannon156
 	// ------------------------------------------------------------------
 	static uint32_t NewTask(uint32_t f, int16_t index)
 	{
-		const uint32_t t = (uint32_t)AddTaskToQueue(ShotQueue(), f);
+		const uint32_t t = (uint32_t)AddTaskToQueue(ShotQueue(), own::Fn(f));
 		S16(t, 0xC) = 0;
 		S16(t, 0xE) = index;
 		return t;
@@ -545,13 +594,13 @@ namespace wildcannon156
 		int16_t off[4];
 		if (i & 1)
 		{
-			SpawnPosition((uint8_t *)ent, 0xF, 0x1000, (int16_t *)Start(i));
-			off[0] = 0xC8;
+			SpawnPosition((uint8_t *)ent, PW().shot.odd_point, 0x1000, (int16_t *)Start(i));
+			off[0] = PW().shot.x;
 		}
 		else
 		{
-			SpawnPosition((uint8_t *)ent, 9, 0x1000, (int16_t *)Start(i));
-			off[0] = -0xC8;
+			SpawnPosition((uint8_t *)ent, PW().shot.even_point, 0x1000, (int16_t *)Start(i));
+			off[0] = (int16_t)-PW().shot.x;
 		}
 		off[1] = -250;
 		off[2] = -250;
@@ -561,10 +610,10 @@ namespace wildcannon156
 		S16(Start(i), 2) = (int16_t)(S16(Start(i), 2) + off[1]);
 		S16(Start(i), 4) = (int16_t)(S16(Start(i), 4) + off[2]);
 		CentrePosition(Ctx()->target_mask, (int16_t *)Target(i));
-		S16(Target(i), 0) = (int16_t)(S16(Target(i), 0) + CrtRand() % 0x640 - 0x320);
-		const int32_t rz = CrtRand() % 0x320;
+		S16(Target(i), 0) = (int16_t)(S16(Target(i), 0) + CrtRand() % (2 * PW().shot.spread_x) - PW().shot.spread_x);
+		const int32_t rz = CrtRand() % (2 * PW().shot.spread_z);
 		int32_t fwd[3] = { 0, 0, -0x1000 };
-		S16(Target(i), 4) = (int16_t)(S16(Target(i), 4) + rz - 0x190);
+		S16(Target(i), 4) = (int16_t)(S16(Target(i), 4) + rz - PW().shot.spread_z);
 		TransformVectorBy3x3Matrix((const Mat4x3 *)(ent + 0x40), fwd, fwd);
 		const uint32_t c = Ctrl(i);
 		U32(c, 0) = U32(Start(i), 0);
@@ -613,18 +662,18 @@ namespace wildcannon156
 			S16(t, 0x1C) = (int16_t)(CrtRand() % 0x600 + 0x1900);
 			t = NewTask(ORIG_Ball, i);
 			S16(t, 0x18) = 0;
-			S16(t, 0x1A) = 5;
-			S16(t, 0x1C) = (int16_t)((CrtRand() & 0x1FF) + 0xC00);
+			S16(t, 0x1A) = PW().shot.speed;
+			S16(t, 0x1C) = (int16_t)(CrtRand() % PW().ball.size_rand + PW().ball.size);
 			t = NewTask(ORIG_Trail, i);
 			S16(t, 0x1C) = 0;
-			S16(t, 0x1E) = 5;
+			S16(t, 0x1E) = PW().shot.speed;
 			S16(t, 0x18) = (int16_t)(1 << i);
 			t = NewTask(ORIG_Trail2, i);
 			S16(t, 0x1C) = 0;
-			S16(t, 0x1E) = 5;
+			S16(t, 0x1E) = PW().shot.speed;
 			S16(t, 0x18) = (int16_t)(0x100 << i);
 		}
-		if (S16(n, 0xC) == 0xD)
+		if (S16(n, 0xC) == PW().shot.impact)
 		{
 			uint32_t t = NewTask(ORIG_Impact, i);
 			U32(t, 0x10) = U32(Target(i), 0);
@@ -638,21 +687,22 @@ namespace wildcannon156
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
 			S16(t, 0x1E) = S16(t, 0x1C) = (int16_t)(((CrtRand() & 0x3FF) + 0x1E00) / 4);
 		}
-		if (S16(n, 0xC) == 0xF)
+		if (S16(n, 0xC) == PW().shot.smoke)
 		{
 			for (int j = 0; j < Ctx()->actions->target_count; j++)
 			{
 				const uint8_t slot = Ctx()->actions->targets[j * TARGET_STRIDE];
-				const uint32_t e = (uint32_t)AddTaskToQueue(ShotQueue(), ORIG_Emitter);
+				const uint32_t e = (uint32_t)AddTaskToQueue(ShotQueue(), own::Fn(ORIG_Emitter));
 				S16(e, 0xC) = 0;
 				S16(e, 0x18) = (int16_t)(0x100 << (U8(n, 0xE) & 31));
 				SpawnPosition(Entity(slot), 0xF1, 0, (int16_t *)(e + 0x10));
 			}
 		}
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0xD && c <= 0x10) var<int16_t>(0x1D97712) = (int16_t)(var<int16_t>(0x1D97712) + ((c & 1) ? 0x40 : -0x40));
+		if (c >= PW().shake.tick && c < PW().shake.tick + PW().shake.ticks)
+			var<int16_t>(0x1D97712) = (int16_t)(var<int16_t>(0x1D97712) + ((c & 1) ? PW().shake.amount : -PW().shake.amount));
 		S16(n, 0xC) = (int16_t)(c + 1);
-		return S16(n, 0xC) >= 0x14 ? TASK_END : 0;
+		return S16(n, 0xC) >= PW().shot.end ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl MasterTask(TaskNode *nd)
@@ -660,37 +710,156 @@ namespace wildcannon156
 		if (DrawOnly()) return 0;
 		const uint32_t n = (uint32_t)nd;
 		const int16_t c = S16(n, 0xC);
-		if (c == 1 || c == 4 || c == 7 || c == 0xA)
+		const int16_t k = (int16_t)(c - PW().shots.first);
+		if (k >= 0 && k % PW().shots.every == 0 && k / PW().shots.every < PW().shots.count)
 		{
-			const uint32_t s = (uint32_t)AddTaskToQueue(ShotQueue(), ORIG_Shot);
+			const uint32_t s = (uint32_t)AddTaskToQueue(ShotQueue(), own::Fn(ORIG_Shot));
 			S16(s, 0xE) = S16(n, 0xE);
 			S16(s, 0xC) = 0;
 			S16(n, 0xE) = (int16_t)(S16(n, 0xE) + 1);
 		}
-		if (S16(n, 0xC) == 0x24) ApplyActionResultToTargets(Ctx()->actions->targets, Ctx()->actions->target_count);
-		if (S16(n, 0xC) == 1)
+		if (S16(n, 0xC) == PW().timing.damage) ApplyActionResultToTargets(Ctx()->actions->targets, Ctx()->actions->target_count);
+		if (S16(n, 0xC) == PW().timing.sound)
 		{
-			BdPlaySE((const void *)SOUND_A, 0, 0x80);
-			BdPlaySE((const void *)SOUND_B, 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(PW().sounds.a, SOUND_A), 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(PW().sounds.b, SOUND_B), 0, 0x80);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		return S16(n, 0xC) > 0x2D ? TASK_END : 0;
+		return S16(n, 0xC) > PW().timing.end ? TASK_END : 0;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x605510) and setup (0x605530): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the texture, the magic buffer, the cast, its first target's and its caster's slots, the root and the
+	// master, the three particle arrays freed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PW().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		FirstTarget() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(RootQueue(), (void *)own::R(0x23ECE48), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(ShotQueue(), (void *)own::R(0x23EF488), 0x24, 0x64);
+		const uint32_t t = (uint32_t)AddTaskToQueue(ShotQueue(), own::Fn(ORIG_Master));
+		S16(t, 0xC) = 0;
+		S16(t, 0xE) = 0;
+		for (uint32_t a = own::R(PARTS_C); a < own::R(PARTS_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(PARTS_A); a < own::R(PARTS_B); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(PARTS_B); a < own::R(PARTS_C); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(PW().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return RootQueue();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The master's timeline: the two sounds, the shots, the damage to every target, its end; the shots' timing and aim, "
+			  "the camera shake; the texture and the camera" },
+			{ PART_FLASH, "flash", "Flash", "A spinning flash mesh at the muzzle as each shot leaves, growing and fading" },
+			{ PART_BURST, "burst", "Burst", "Fire particles bursting out of the muzzle along the shot, slowing" },
+			{ PART_RING, "ring", "Ring", "A ring mesh on the floor under the muzzle, fading" },
+			{ PART_BALL, "ball", "Fire ball", "The fire ball flying along the shot's curve, slowing" },
+			{ PART_TRAILS, "trails", "Trails", "Two fire trails the ball leaves along its curve (the second one jittered), growing" },
+			{ PART_IMPACT, "impact", "Impact", "The impact mesh and its ring at the landing point, spinning, growing, fading" },
+			{ PART_SMOKE, "smoke", "Target smoke", "Smoke particles at every target's body after each impact" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "sounds", "Sounds", "Both at the master's sound tick" },
+			{ "shots", "Shots", "When the shots leave" },
+			{ "shake", "Camera shake", "The camera shaken up and down after each impact" },
+		};
+#define WC(member) (uint32_t)offsetof(WildCannonParams, member)
+		static const Field FIELDS[] = {
+			{ "director", "sounds.a", "Sound A", "At the master's sound tick", WC(sounds.a), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "sounds.b", "Sound B", "At the master's sound tick too", WC(sounds.b), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.sound", "Sound tick", "The sounds at this tick of the master", WC(timing.sound), fxp::I16, 0, 200 },
+			{ "director", "timing.damage", "Damage tick", "The damage to every target at this tick of the master", WC(timing.damage), fxp::I16, 0, 200 },
+			{ "director", "timing.end", "End tick", "The master's last tick (the shots still flying run on until they end)", WC(timing.end), fxp::I16, 0, 200 },
+			{ "director", "shots.first", "First shot", "The first shot leaves at this tick of the master", WC(shots.first), fxp::I16, 0, 200 },
+			{ "director", "shots.every", "Every", "The next ones this many ticks apart (at least 1)", WC(shots.every), fxp::I16, 1, 200 },
+			{ "director", "shots.count", "Shots", "How many (4 at most: the module keeps 4 curves)", WC(shots.count), fxp::I16, 0, 4 },
+			{ "director", "shot.odd_point", "Odd muzzle", "The caster's effect point the 1st and 3rd shots leave from", WC(shot.odd_point), fxp::I16, 0, 0xFF },
+			{ "director", "shot.even_point", "Even muzzle", "The caster's effect point the 2nd and 4th shots leave from", WC(shot.even_point), fxp::I16, 0, 0xFF },
+			{ "director", "shot.x", "Muzzle offset", "The start moved this far sideways (the caster's x: odd shots +, even shots -)", WC(shot.x), fxp::I16, -4000, 4000 },
+			{ "director", "shot.spread_x", "Aim spread x", "The landing point: the targets' centre + a random x up to this either side (at least 1)", WC(shot.spread_x), fxp::I16, 1, 0x3FFF },
+			{ "director", "shot.spread_z", "Aim spread z", "And a random z up to this either side (at least 1)", WC(shot.spread_z), fxp::I16, 1, 0x3FFF },
+			{ "director", "shot.speed", "Speed", "The ball and the trails move this many of the curve's 32 points a tick at first, 1 less a tick down to 2", WC(shot.speed), fxp::I16, 1, 32 },
+			{ "director", "shot.impact", "Impact tick", "The impact and its ring at this tick of the shot", WC(shot.impact), fxp::I16, 0, 200 },
+			{ "director", "shot.smoke", "Smoke tick", "The target smoke at this tick of the shot", WC(shot.smoke), fxp::I16, 0, 200 },
+			{ "director", "shot.end", "Shot end", "A shot's last tick", WC(shot.end), fxp::I16, 1, 200 },
+			{ "director", "shake.tick", "Tick", "From this tick of each shot", WC(shake.tick), fxp::I16, 0, 200 },
+			{ "director", "shake.ticks", "Ticks", "For this many ticks", WC(shake.ticks), fxp::I16, 0, 200 },
+			{ "director", "shake.amount", "Amount", "The camera moved this much a tick (up on odd ticks, down on even ones)", WC(shake.amount), fxp::I16, -0x400, 0x400 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", WC(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", WC(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "flash", "models.flash", "Flash model", "The prim model of the muzzle flash (a mesh: an edited one keeps its vertices)", WC(models.flash), fxp::Model, 0, 0x7FFFFFFF },
+			{ "burst", "burst.per_tick", "A tick", "How many particles a tick (100 at most alive, with the target smoke)", WC(burst.per_tick), fxp::I16, 0, 100 },
+			{ "burst", "burst.ticks", "Ticks", "On the shot's first ticks", WC(burst.ticks), fxp::I16, 0, 200 },
+			{ "burst", "burst.size", "Size", "A particle's size: this + a random below the next", WC(burst.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "burst", "burst.size_rand", "Size random", "(at least 1)", WC(burst.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "burst", "seqs.burst", "Burst", "The sprite sequence of the burst (a flipbook: an edited one keeps as many frames)", WC(seqs.burst), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "ring", "models.ring", "Ring model", "The prim model of the ring (a mesh: an edited one keeps its vertices)", WC(models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "ball", "ball.size", "Size", "The fire ball's size: this + a random below the next", WC(ball.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "ball", "ball.size_rand", "Size random", "(at least 1)", WC(ball.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "ball", "seqs.ball", "Fire ball", "The sprite sequence of the fire ball (a flipbook: an edited one keeps as many frames)", WC(seqs.ball), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "trails", "trails.size", "Size", "A trail particle's size: this + a random below the next (growing 1/32 a tick)", WC(trails.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "trails", "trails.size_rand", "Size random", "(at least 1)", WC(trails.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "trails", "seqs.trail", "Trail", "The sprite sequence of the first trail (a flipbook: an edited one keeps as many frames)", WC(seqs.trail), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "trails", "seqs.trail2", "Jittered trail", "The sprite sequence of the second trail", WC(seqs.trail2), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "impact", "models.impact", "Impact model", "The prim model of the impact (a mesh: an edited one keeps its vertices)", WC(models.impact), fxp::Model, 0, 0x7FFFFFFF },
+			{ "impact", "models.impact_ring", "Impact ring model", "The prim model of the impact's ring (a mesh: an edited one keeps its vertices)", WC(models.impact_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "smoke", "smoke.ticks", "Ticks", "One particle a tick at each target on its first ticks", WC(smoke.ticks), fxp::I16, 0, 200 },
+			{ "smoke", "smoke.spread", "Spread", "Each one up to this far from the target's body point on each axis (at least 1)", WC(smoke.spread), fxp::I16, 1, 0x3FFF },
+			{ "smoke", "smoke.size", "Size", "Its size: this + a random below the next", WC(smoke.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "smoke", "smoke.size_rand", "Size random", "(at least 1)", WC(smoke.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "smoke", "seqs.smoke", "Smoke", "The sprite sequence of the target smoke (a flipbook: an edited one keeps as many frames)", WC(seqs.smoke), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef WC
 	}
 
 	void register_mag156_wild_cannon_blow_ports()
 	{
+		fxp::register_params({ 156, "Wild Cannon Blow", &live, &GAME, sizeof(WildCannonParams),
+		                       table::PARTS, (int)(sizeof(table::PARTS) / sizeof(table::PARTS[0])),
+		                       table::FIELDS, (int)(sizeof(table::FIELDS) / sizeof(table::FIELDS[0])),
+		                       table::GROUPS, (int)(sizeof(table::GROUPS) / sizeof(table::GROUPS[0])) });
+		own::note(ORIG_FileLoader, (void *)FileLoader);
+		own::note(ORIG_Setup, (void *)Setup);
+		own::note(ORIG_Root, (void *)RootTask);
 		register_port(ORIG_Root, (void *)RootTask, "156 RootTask", 156);
+		own::note(ORIG_TexRestore, (void *)TexRestoreTask);
 		register_port(ORIG_TexRestore, (void *)TexRestoreTask, "156 TexRestoreTask", 156);
+		own::note(ORIG_Master, (void *)MasterTask);
 		register_port(ORIG_Master, (void *)MasterTask, "156 MasterTask", 156);
+		own::note(ORIG_Shot, (void *)ShotTask);
 		register_port(ORIG_Shot, (void *)ShotTask, "156 ShotTask", 156);
+		own::note(ORIG_Flash, (void *)FlashTask);
 		register_port(ORIG_Flash, (void *)FlashTask, "156 FlashTask", 156);
+		own::note(ORIG_Burst, (void *)BurstTask);
 		register_port(ORIG_Burst, (void *)BurstTask, "156 BurstTask", 156);
+		own::note(ORIG_Ring, (void *)RingTask);
 		register_port(ORIG_Ring, (void *)RingTask, "156 RingTask", 156);
+		own::note(ORIG_Ball, (void *)BallTask);
 		register_port(ORIG_Ball, (void *)BallTask, "156 BallTask", 156);
+		own::note(ORIG_Trail, (void *)TrailTask);
 		register_port(ORIG_Trail, (void *)TrailTask, "156 TrailTask", 156);
+		own::note(ORIG_Trail2, (void *)Trail2Task);
 		register_port(ORIG_Trail2, (void *)Trail2Task, "156 Trail2Task", 156);
+		own::note(ORIG_Impact, (void *)ImpactTask);
 		register_port(ORIG_Impact, (void *)ImpactTask, "156 ImpactTask", 156);
+		own::note(ORIG_ImpactRing, (void *)ImpactRingTask);
 		register_port(ORIG_ImpactRing, (void *)ImpactRingTask, "156 ImpactRingTask", 156);
+		own::note(ORIG_Emitter, (void *)EmitterTask);
 		register_port(ORIG_Emitter, (void *)EmitterTask, "156 EmitterTask", 156);
 		// 30 fps layer: see mag156_wild_cannon_blow_held.inc
 		FX_HELD(register_mag156_held();)
