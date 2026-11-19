@@ -54,9 +54,16 @@
 // STACK WORDS: the mark sprites' draw (0x66E090) keeps the bucket of its last inserted sprite in its own `mode` argument
 // slot: the next sprite's depth is shifted by it (and 31). The 4th words of the vectors loaded into GTE V0 (the record offset,
 // the dust position) reach the GTE's VZ0 high half (0x1CA8A16) only.
+// FUJIN: Fujin's described Gargantua burrow (effect_301.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the file loader (0x66D8F0) and the setup (0x66D8E0 -> _Init 0x66D910) ported below; its
+// parameters (BurrowParams: the sounds and the master's ticks, the layout, the body's ground line and marks, the spawn
+// stream's ticks, the rocks, the puffs, the marks, the colour fade; the layout, the rock mesh, 2 flipbooks, the spawn
+// stream, the texture name and the camera track). A copy reads its own spawn stream at the game's pointer's offset (the
+// pointer stays the game's exe word). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
 
 namespace ff8fx
 {
@@ -66,14 +73,14 @@ namespace burrow301
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25076DC); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25076E0); }        // caster entity (setup)
-	inline TaskQueue *QDust() { return (TaskQueue *)0x25076E8; }           // pool: + 0x1194, 0x20 x 0x18
-	inline TaskQueue *QRocks() { return (TaskQueue *)0x25076F8; }          // pool: + 0xE14, 0x20 x 0x1C
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x2507708; }         // pool: magic buffer, 1 x 0xE14
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250773C); }
-	inline uint16_t &PartyWord(int i) { return var<uint16_t>(0x2507744 + i * 4); } // the party entities' words +0 (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507754); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25076DC)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25076E0)); }        // caster entity (setup)
+	inline TaskQueue *QDust() { return (TaskQueue *)own::R(0x25076E8); }           // pool: + 0x1194, 0x20 x 0x18
+	inline TaskQueue *QRocks() { return (TaskQueue *)own::R(0x25076F8); }          // pool: + 0xE14, 0x20 x 0x1C
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2507708); }         // pool: magic buffer, 1 x 0xE14
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x250773C)); }
+	inline uint16_t &PartyWord(int i) { return var<uint16_t>(own::R(0x2507744) + i * 4); } // the party entities' words +0 (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507754)); }        // Magic_TextureOFF (magic buffer)
 	inline uint8_t *&Stream() { return var<uint8_t *>(0x103DC9C); }        // spawn stream (exe data)
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
@@ -93,6 +100,43 @@ namespace burrow301
 	static const void *const SOUND_Voice = (const void *)0x103BBD8;
 	static const void *const SOUND_Start = (const void *)0x103DC98;
 	static const int32_t GROUND = 0x40;                 // the body's ground line (y below it: under the ground)
+
+	static const uint32_t ORIG_FileLoader = 0x66D8F0, ORIG_Setup = 0x66D8E0;
+	static const uint32_t TEXTURE_NAME = 0x103DCA0, CAMERA_ANIM = 0x103DB5C;
+	static const uint32_t STREAM_Data = 0x103BD00, STREAM_SIZE = 0x12B8;   // the spawn stream: the 101 ticks' rocks and puffs
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25076D8)); }     // the effect's file (its TIM)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_LAYOUT = 1, PART_BODY = 2, PART_MARKS = 3, PART_ROCKS = 4, PART_DUST = 5 };
+	struct BurrowParams
+	{
+		struct { uint32_t start, voice; } sounds;      // the start sound, the voice (its slot claimed at the start)
+		struct { int16_t start, release, end; } timing; // the master's ticks: the start sound, the voice released, its end
+		struct { int16_t ticks, depth; } layout;       // the layout (and the body) on the master's ticks below `ticks`, depth
+		// the body: its ground line (vertices below it are under the ground), the marks' depth limit (its z - this), every
+		// n-th polygon crossing the line leaves a mark
+		struct { int16_t ground, mark_depth, mark_every; } body;
+		struct { int16_t ticks; } spawn;               // the stream's rocks and puffs on the master's ticks below this
+		// the rocks: their ticks, the fall speed's growth a tick, the velocity bytes' scale (x / z, y)
+		struct { int16_t life, gravity, speed_xz, speed_y; } rocks;
+		struct { int16_t life, size; } dust;           // the puffs: their ticks (their flipbook's frames), size
+		struct { int16_t life; } marks;                // the ground marks' ticks (their flipbook's frame count - life)
+		// the caster's colour faded back in from `start` over `ticks` (its byte +0x2F set to alpha)
+		struct { int16_t start, ticks, alpha; } fade;
+		struct { uint32_t main; } layouts;             // the prim-model layout at the caster
+		struct { uint32_t rock; } models;              // the rocks' mesh
+		struct { uint32_t dust, mark; } seqs;          // the puffs' and the marks' flipbooks
+		struct { uint32_t stream; } tables;            // the spawn stream (a count, 10 words a rock; a count, 6 words a puff)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track
+	};
+	static const BurrowParams GAME = { { 0x103DC98, 0x103BBD8 }, { 1, 0x8A, 0x8E }, { 0x7A, 0x100 }, { GROUND, 0x320, 8 },
+		{ 0x66 }, { 0x10, 2, 16, 4 }, { 0x10, 0x1000 }, { 0xC }, { 0x7A, 0x14, 0x32 }, { MODEL_Layout }, { MODEL_Rock },
+		{ SEQ_Dust, SEQ_Mark }, { STREAM_Data }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static BurrowParams live = GAME;
+	static const BurrowParams &PG() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -304,7 +348,7 @@ namespace burrow301
 		}
 		e->x = (int16_t)x;
 		e->z = (int16_t)z;
-		e->life = 0xC;
+		e->life = PG().marks.life;
 	}
 
 	// sub_66E9C0: one bone group of vertices: each through the bone matrix (world point at +8), then projected with the camera,
@@ -394,7 +438,7 @@ namespace burrow301
 					const uint8_t side = s[0x43] & s[0x33] & s[0x23];
 					if (side != 2)
 					{
-						if (side == 0 && ((F<int32_t>(s, 0x70) + F<uint16_t>(s, 8)) & 7) == 0 && (int32_t)F<int16_t>(s, 0x28) > F<int32_t>(s, 0x74))
+						if (side == 0 && (uint32_t)(F<int32_t>(s, 0x70) + F<uint16_t>(s, 8)) % (uint32_t)PG().body.mark_every == 0 && (int32_t)F<int16_t>(s, 0x28) > F<int32_t>(s, 0x74))
 						{
 							const int32_t z = ((int32_t)F<int16_t>(s, 0x28) + F<int16_t>(s, 0x48) + F<int16_t>(s, 0x38)) / 3;
 							const int32_t x = ((int32_t)F<int16_t>(s, 0x44) + F<int16_t>(s, 0x34) + F<int16_t>(s, 0x24)) / 3;
@@ -445,7 +489,7 @@ namespace burrow301
 					const uint8_t side = s[0x53] & s[0x43] & s[0x33] & s[0x23];
 					if (side != 2)
 					{
-						if (side == 0 && ((F<int32_t>(s, 0x70) + rest) & 7) == 0 && (int32_t)F<int16_t>(s, 0x28) > F<int32_t>(s, 0x74))
+						if (side == 0 && (uint32_t)(F<int32_t>(s, 0x70) + rest) % (uint32_t)PG().body.mark_every == 0 && (int32_t)F<int16_t>(s, 0x28) > F<int32_t>(s, 0x74))
 						{
 							const int32_t z = ((int32_t)F<int16_t>(s, 0x48) + F<int16_t>(s, 0x28) + F<int16_t>(s, 0x58) + F<int16_t>(s, 0x38)) / 4;
 							const int32_t x = ((int32_t)F<int16_t>(s, 0x54) + F<int16_t>(s, 0x44) + F<int16_t>(s, 0x34) + F<int16_t>(s, 0x24)) / 4;
@@ -529,7 +573,7 @@ namespace burrow301
 		uint8_t *s = (uint8_t *)FieldAlloc(0x88);
 		F<int32_t>(s, 0x6C) = ground;
 		F<int32_t>(s, 0x70) = counter;
-		F<int32_t>(s, 0x74) = *(const int32_t *)(entity + 0x5C) - 0x320;
+		F<int32_t>(s, 0x74) = *(const int32_t *)(entity + 0x5C) - PG().body.mark_depth;
 		F<uint32_t>(s, 4) = buf;
 		ComputeBonesWorldMatrices(entity + 0x60, entity + 0x40);
 		F<int16_t>(s, 0x10) = 0x140;
@@ -652,12 +696,13 @@ namespace burrow301
 		GteWriteDataReg((uint16_t)e->z, 1);
 		GteMVMVA_RotV0Tr();
 		GteReadMAC123((int32_t *)(h + 0x98));
-		*(uint32_t *)h = SEQ_Mark;
+		const uint32_t seq = fxp::sequence(PG().seqs.mark, SEQ_Mark);
+		*(uint32_t *)h = seq;
 		F<uint16_t>(h, 0x94) = 0x1000;
 		F<uint16_t>(h, 0x8C) = 0x1000;
 		F<uint16_t>(h, 0x84) = 0x1000;
-		const uint32_t f = (*(const uint32_t *)(SEQ_Mark + 8) & 0xFFFF) - (uint32_t)(int32_t)e->life;
-		const uint32_t frame = *(const uint16_t *)(SEQ_Mark + 8 + f * 2) + SEQ_Mark;
+		const uint32_t f = (*(const uint32_t *)(seq + 8) & 0xFFFF) - (uint32_t)(int32_t)e->life;
+		const uint32_t frame = *(const uint16_t *)(seq + 8 + f * 2) + seq;
 		F<uint32_t>(h, 0x2C) = frame;
 		F<uint32_t>(h, 0x30) = *(const uint32_t *)frame;
 		F<uint32_t>(h, 0x2C) = frame + 4;
@@ -677,6 +722,7 @@ namespace burrow301
 	{
 		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(held_note_marks(m);)
+		FX_PART(PART_MARKS);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint16_t>(h, 0x92) = 0;
 		F<uint16_t>(h, 0x90) = 0;
@@ -710,7 +756,7 @@ namespace burrow301
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		*(uint32_t *)h = MODEL_Rock;
+		*(uint32_t *)h = fxp::model(PG().models.rock, MODEL_Rock);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x98);
@@ -721,16 +767,18 @@ namespace burrow301
 		RockNode *r = (RockNode *)n;
 		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(held_note_rock(r);)
+		FX_PART(PART_ROCKS);
 		RockDraw(r->pos, (int16_t)(r->angle[0] << 4), (int16_t)(r->angle[1] << 4));
+		const BurrowParams &g = PG();
 		r->angle[0] = (int8_t)(r->angle[0] + r->spin[0]);
 		r->angle[1] = (int8_t)(r->angle[1] + r->spin[1]);
-		r->pos[0] = (int16_t)(r->pos[0] + (int16_t)(r->vel[0] << 4));
-		r->pos[2] = (int16_t)(r->pos[2] + (int16_t)(r->vel[2] << 4));
-		r->pos[1] = (int16_t)(r->pos[1] + (int16_t)(r->vel[1] << 2));
+		r->pos[0] = (int16_t)(r->pos[0] + (int16_t)(r->vel[0] * g.rocks.speed_xz));
+		r->pos[2] = (int16_t)(r->pos[2] + (int16_t)(r->vel[2] * g.rocks.speed_xz));
+		r->pos[1] = (int16_t)(r->pos[1] + (int16_t)(r->vel[1] * g.rocks.speed_y));
 		if (r->pos[1] >= 0) r->vel[1] = (int8_t)(-(int32_t)r->vel[1] >> 1);
 		r->vel[1] = (int8_t)(r->vel[1] + r->gravity);
 		r->counter++;
-		return r->counter < 0x10 ? 0 : TASK_END;
+		return r->counter < g.rocks.life ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -738,9 +786,9 @@ namespace burrow301
 	// ------------------------------------------------------------------
 	static void DustDraw(const int16_t *pos, int16_t frame)
 	{
-		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
+		TransformCameraByShadowRotation(pos, PG().dust.size, -0x400);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.dust, SEQ_Dust);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -752,92 +800,77 @@ namespace burrow301
 		DustNode *d = (DustNode *)n;
 		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(held_note_dust(d);)
+		FX_PART(PART_DUST);
 		DustDraw(d->pos, d->counter);
 		d->pos[0] = (int16_t)(d->pos[0] + d->vel[0]);
 		d->pos[1] = (int16_t)(d->pos[1] + d->vel[1]);
 		d->pos[2] = (int16_t)(d->pos[2] + d->vel[2]);
 		d->counter++;
-		return d->counter < 0x10 ? 0 : TASK_END;
+		return d->counter < PG().dust.life ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
 	// Spawns from the stream (0x66EB10 rocks, 0x66ED70 dust): a count word, then per node its offset from the caster's
 	// position words (+0x54 / +0x58 / +0x5C) and its bytes, one per word
 	// ------------------------------------------------------------------
+	// the stream where its pointer is: the game's (the pointer, exe data, is never put back), or the stream parameter read at
+	// the pointer's offset (nullptr when `need` bytes from there pass its end: a copy's second cast spawns nothing)
+	static const uint8_t *StreamAt(uint32_t need)
+	{
+		const uint32_t base = fxp::data(PG().tables.stream, STREAM_Data, STREAM_SIZE);
+		if (base == STREAM_Data) return Stream();
+		const uint32_t at = (uint32_t)Stream() - STREAM_Data;
+		return at <= STREAM_SIZE && need <= STREAM_SIZE - at ? (const uint8_t *)(base + at) : nullptr;
+	}
+
 	static void SpawnRocks()
 	{
-		uint8_t *g = Stream();
+		const uint8_t *g = StreamAt(2);
+		if (!g) return;
 		const int32_t count = *(const int16_t *)g;
-		Stream() = g + 2;
-		if (count == 0) return;
-		uint32_t left = (uint32_t)count;
-		do
+		if (count < 0 || !(g = StreamAt(2 + 20 * (uint32_t)count))) return;
+		Stream() = Stream() + 2 + 20 * count;
+		g += 2;
+		for (int32_t k = 0; k < count; k++, g += 20)
 		{
-			RockNode *r = (RockNode *)AddTaskToQueue(QRocks(), ORIG_RockTask);
-			r->pos[0] = (int16_t)(*(const int16_t *)(Caster() + 0x54) + *(const int16_t *)Stream());
-			g = Stream() + 2;
-			Stream() = g;
-			r->pos[1] = (int16_t)(*(const int16_t *)(Caster() + 0x58) + *(const int16_t *)g);
-			g = Stream() + 2;
-			Stream() = g;
-			r->pos[2] = (int16_t)(*(const int16_t *)(Caster() + 0x5C) + *(const int16_t *)g);
-			g = Stream() + 2;
-			Stream() = g;
+			RockNode *r = (RockNode *)AddTaskToQueue(QRocks(), own::Fn(ORIG_RockTask));
+			if (!r) continue;
+			r->pos[0] = (int16_t)(*(const int16_t *)(Caster() + 0x54) + *(const int16_t *)g);
+			r->pos[1] = (int16_t)(*(const int16_t *)(Caster() + 0x58) + *(const int16_t *)(g + 2));
+			r->pos[2] = (int16_t)(*(const int16_t *)(Caster() + 0x5C) + *(const int16_t *)(g + 4));
 			r->counter = 0;
-			r->vel[0] = *(const int8_t *)Stream();
-			g = Stream() + 2;
-			Stream() = g;
-			r->vel[1] = *(const int8_t *)g;
-			g = Stream() + 2;
-			Stream() = g;
-			r->vel[2] = *(const int8_t *)g;
-			g = Stream() + 2;
-			Stream() = g;
-			r->gravity = 2;
-			r->angle[0] = *(const int8_t *)Stream();
-			g = Stream() + 2;
-			Stream() = g;
-			r->angle[1] = *(const int8_t *)g;
-			g = Stream() + 2;
-			Stream() = g;
-			r->spin[0] = *(const int8_t *)g;
-			g = Stream() + 2;
-			Stream() = g;
-			r->spin[1] = *(const int8_t *)g;
-			Stream() = Stream() + 2;
-		} while (--left != 0);
+			r->vel[0] = *(const int8_t *)(g + 6);
+			r->vel[1] = *(const int8_t *)(g + 8);
+			r->vel[2] = *(const int8_t *)(g + 10);
+			r->gravity = (int8_t)PG().rocks.gravity;
+			r->angle[0] = *(const int8_t *)(g + 12);
+			r->angle[1] = *(const int8_t *)(g + 14);
+			r->spin[0] = *(const int8_t *)(g + 16);
+			r->spin[1] = *(const int8_t *)(g + 18);
+		}
 	}
 
 	static void SpawnDust()
 	{
-		uint8_t *g = Stream();
+		const uint8_t *g = StreamAt(2);
+		if (!g) return;
 		const int32_t count = *(const int16_t *)g;
-		Stream() = g + 2;
-		if (count == 0) return;
-		uint32_t left = (uint32_t)count;
-		do
+		if (count < 0 || !(g = StreamAt(2 + 12 * (uint32_t)count))) return;
+		Stream() = Stream() + 2 + 12 * count;
+		g += 2;
+		for (int32_t k = 0; k < count; k++, g += 12)
 		{
-			DustNode *d = (DustNode *)AddTaskToQueue(QDust(), ORIG_DustTask);
-			d->pos[0] = (int16_t)(*(const int16_t *)(Caster() + 0x54) + *(const int16_t *)Stream());
-			g = Stream() + 2;
-			Stream() = g;
-			d->pos[1] = (int16_t)(*(const int16_t *)(Caster() + 0x58) + *(const int16_t *)g);
-			g = Stream() + 2;
-			Stream() = g;
-			d->pos[2] = (int16_t)(*(const int16_t *)(Caster() + 0x5C) + *(const int16_t *)g);
-			g = Stream() + 2;
-			Stream() = g;
+			DustNode *d = (DustNode *)AddTaskToQueue(QDust(), own::Fn(ORIG_DustTask));
+			if (!d) continue;
+			d->pos[0] = (int16_t)(*(const int16_t *)(Caster() + 0x54) + *(const int16_t *)g);
+			d->pos[1] = (int16_t)(*(const int16_t *)(Caster() + 0x58) + *(const int16_t *)(g + 2));
+			d->pos[2] = (int16_t)(*(const int16_t *)(Caster() + 0x5C) + *(const int16_t *)(g + 4));
 			d->counter = 0;
-			d->vel[0] = *(const int8_t *)Stream();
-			g = Stream() + 2;
-			Stream() = g;
-			d->vel[1] = *(const int8_t *)g;
-			g = Stream() + 2;
-			Stream() = g;
-			d->vel[2] = *(const int8_t *)g;
-			Stream() = Stream() + 2;
+			d->vel[0] = *(const int8_t *)(g + 6);
+			d->vel[1] = *(const int8_t *)(g + 8);
+			d->vel[2] = *(const int8_t *)(g + 10);
 			d->pad17 = 2;
-		} while (--left != 0);
+		}
 	}
 
 	// ------------------------------------------------------------------
@@ -847,50 +880,53 @@ namespace burrow301
 	{
 		MasterNode *m = (MasterNode *)n;
 		m->counter++;
-		if (m->counter >= 0x8E)
+		const BurrowParams &g = PG();
+		if (m->counter >= g.timing.end)
 		{
 			*(uint16_t *)Caster() &= 0xFFF3;
 			return TASK_END;
 		}
 		*(uint16_t *)Caster() &= 0xFFF7;
 		const int32_t c = m->counter;
-		if ((uint32_t)c < 0x7A)
+		if ((uint32_t)c < (uint32_t)g.layout.ticks)
 		{
 			PrimArg arg;
 			memcpy(arg.pos, m->pos, sizeof(arg.pos));
 			arg.morph = TexBase() + VERTS;
-			arg.depth = 0x100;
+			arg.depth = g.layout.depth;
 			// 30 fps layer: see mag301_gargantua_burrow_held.inc
 			FX_HELD(held_note_play(m, &arg);)
+			FX_PART(PART_LAYOUT);
 			prim::play((prim::Layout *)m->layout, PrimCallback, (int)&arg, 0);
 			*(uint8_t *)Caster() |= 4;
 			// 30 fps layer: see mag301_gargantua_burrow_held.inc
 			FX_HELD(held_note_body(m);)
-			DrawBody(Caster(), c, GROUND, TexBase() + VERTS);
-			if ((uint32_t)c < 0x66)
+			FX_PART(PART_BODY);
+			DrawBody(Caster(), c, g.body.ground, TexBase() + VERTS);
+			if ((uint32_t)c < (uint32_t)g.spawn.ticks)
 			{
 				SpawnRocks();
 				SpawnDust();
 			}
 		}
 		else *(uint16_t *)Caster() &= 0xFFF3;
-		const int32_t d = m->counter - 0x7A;
-		if ((uint32_t)d <= 0x14)
+		const int32_t d = m->counter - g.fade.start;
+		if ((uint32_t)d <= (uint32_t)g.fade.ticks)
 		{
-			GteSetIR0(0x1000 - ComputeSin(shl32(0x14 - d, 10) / 20));
+			GteSetIR0(0x1000 - ComputeSin(shl32(g.fade.ticks - d, 10) / g.fade.ticks));
 			GteLoadIRBytes(&m->colour);
 			GteGPF();
 			GteStoreIRBytes(Caster() + 0x2C);
-			Caster()[0x2F] = 0x32;
-			if (d == 0x14) *(uint32_t *)(Caster() + 0x2C) = m->colour;
+			Caster()[0x2F] = (uint8_t)g.fade.alpha;
+			if (d == g.fade.ticks) *(uint32_t *)(Caster() + 0x2C) = m->colour;
 		}
 		DrawMarks(m);
-		if (m->counter == 1)
+		if (m->counter == g.timing.start)
 		{
-			BdPlaySE(SOUND_Start, 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
 			return 0;
 		}
-		if (m->counter == 0x8A) ReleaseVoiceSlot(m->voice);
+		if (m->counter == g.timing.release) ReleaseVoiceSlot(m->voice);
 		return 0;
 	}
 
@@ -919,11 +955,11 @@ namespace burrow301
 			InitTaskQueuePool(QMaster(), (void *)TexBase(), 0xE14, 1);
 			InitTaskQueuePool(QRocks(), (void *)(TexBase() + POOL_Rocks), 0x1C, 0x20);
 			InitTaskQueuePool(QDust(), (void *)(TexBase() + POOL_Dust), 0x18, 0x20);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x382);
 			Memset32(m->index, 0xFFFFFFFF, 0x258);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
-			DecodeModelPrimLayout(MODEL_Layout, m->layout, 0x90);
+			m->voice = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.main, MODEL_Layout, 0x90), m->layout, 0x90);
 			GetDefaultEffectPosition(Caster(), m->pos);
 			m->pos[1] = 0;
 			m->colour = *(const uint32_t *)(Caster() + 0x2C);
@@ -950,13 +986,108 @@ namespace burrow301
 		rn->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x66D8F0) and setup (0x66D8E0 -> _Init 0x66D910): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the party entities' words +0 kept (their bit 2 set), the context, the
+	// caster (its word +0 kept, bits 2 / 3 set), the root, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }    // BS_Camera_ArmReturnAfterEffect
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		var<uint32_t>(own::R(0x2507744)) = *(const uint16_t *)Entity(0);
+		const uint32_t w2 = *(const uint16_t *)Entity(2), w1 = *(const uint16_t *)Entity(1);
+		*(uint16_t *)Entity(0) |= 4;
+		*(uint16_t *)Entity(1) |= 4;
+		*(uint16_t *)Entity(2) |= 4;
+		var<uint32_t>(own::R(0x2507748)) = w1;
+		var<uint32_t>(own::R(0x250774C)) = w2;
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		var<uint32_t>(own::R(0x2507740)) = *(const uint16_t *)Caster();
+		*Caster() |= 0xC;
+		TaskQueue *root = (TaskQueue *)own::R(0x2507718);
+		InitTaskQueuePool(root, (void *)own::R(0x2507728), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		CameraArmReturn();
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The master's ticks, the start sound and the voice (claimed at the start, released near the end), the caster's colour faded back in at the end; the texture and the camera" },
+			{ PART_LAYOUT, "layout", "Layout", "The prim-model layout at the caster's effect position (on the ground)" },
+			{ PART_BODY, "body", "Body", "The caster drawn by the module: polygons all below the ground line left out, every n-th one crossing it leaving a ground mark" },
+			{ PART_MARKS, "marks", "Ground marks", "A flipbook on the ground where the body crosses it" },
+			{ PART_ROCKS, "rocks", "Rocks", "Rocks from the spawn stream: a mesh at the caster, thrown, spinning, falling and bouncing" },
+			{ PART_DUST, "dust", "Dust", "Dust puffs from the spawn stream: a flipbook drifting from the caster" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The master's ticks" },
+			{ "fade", "Colour fade", "The caster's colour faded back in" },
+		};
+#define MPF(member) (uint32_t)offsetof(BurrowParams, member)
+		static const Field FIELDS[] = {
+			{ "master", "sounds.start", "Sound", "At the start sound's tick", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.voice", "Voice", "The sound block its voice slot is claimed with (at the start)", MPF(sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "timing.start", "Sound", "The master's tick of the start sound", MPF(timing.start), fxp::I16, 0, 400 },
+			{ "master", "timing.release", "Voice released", "Its tick the voice slot is released", MPF(timing.release), fxp::I16, 0, 400 },
+			{ "master", "timing.end", "End", "Its last tick (the effect ends with it)", MPF(timing.end), fxp::I16, 1, 400 },
+			{ "master", "fade.start", "Fade start", "The master's tick the caster's colour starts fading back in (its own draw is back from there)", MPF(fade.start), fxp::I16, 0, 400 },
+			{ "master", "fade.ticks", "Fade ticks", "Its ticks (at least 1): the colour = its kept colour x (1 - sin of the quarter turn left)", MPF(fade.ticks), fxp::I16, 1, 400 },
+			{ "master", "fade.alpha", "Fade byte", "His colour's 4th byte set meanwhile", MPF(fade.alpha), fxp::I16, 0, 255 },
+			{ "master", "spawn.ticks", "Spawn ticks", "The spawn stream's rocks and puffs on the master's ticks below this (the stream holds 101 ticks)", MPF(spawn.ticks), fxp::I16, 0, 102 },
+			{ "master", "tables.stream", "Spawn stream", "The rocks and puffs of each tick (0x12B8 bytes: a count, then 10 words a rock - offset x / y / z, velocity x / y / z, angle x / y, spin x / y; a count, then 6 words a puff - offset, velocity; edit their numbers, keep their shape)", MPF(tables.stream), fxp::Data, 0, 0x7FFFFFFF },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "layout", "layout.ticks", "Ticks", "The layout and the body drawn on the master's ticks below this (then the caster's own draw)", MPF(layout.ticks), fxp::I16, 0, 400 },
+			{ "layout", "layout.depth", "Depth", "The layout's depth offset", MPF(layout.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "layout", "layouts.main", "Layout", "The layout", MPF(layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "body", "body.ground", "Ground line", "Vertices below this height are under the ground (a polygon all under it is left out)", MPF(body.ground), fxp::I16, -0x1000, 0x1000 },
+			{ "body", "body.mark_depth", "Mark depth", "A crossing polygon leaves a mark when its first vertex's z is beyond the caster's - this", MPF(body.mark_depth), fxp::I16, -0x4000, 0x4000 },
+			{ "body", "body.mark_every", "Mark every", "Every n-th crossing polygon (by its index and the tick) leaves a mark", MPF(body.mark_every), fxp::I16, 1, 64 },
+			{ "marks", "marks.life", "Life", "A mark's ticks (its flipbook's frame count - its life left: 12 at most)", MPF(marks.life), fxp::I16, 1, 12 },
+			{ "marks", "seqs.mark", "Flipbook", "The marks' flipbook", MPF(seqs.mark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "rocks", "rocks.life", "Life", "A rock's ticks", MPF(rocks.life), fxp::I16, 1, 400 },
+			{ "rocks", "rocks.gravity", "Gravity", "Its y velocity byte grows by this a tick (it bounces at half its speed on the ground)", MPF(rocks.gravity), fxp::I16, -64, 64 },
+			{ "rocks", "rocks.speed_xz", "Speed x / z", "It moves by its x / z velocity bytes x this a tick", MPF(rocks.speed_xz), fxp::I16, -128, 128 },
+			{ "rocks", "rocks.speed_y", "Speed y", "It moves by its y velocity byte x this a tick", MPF(rocks.speed_y), fxp::I16, -128, 128 },
+			{ "rocks", "models.rock", "Mesh", "The rocks' mesh", MPF(models.rock), fxp::Model, 0, 0x7FFFFFFF },
+			{ "dust", "dust.life", "Life", "A puff's ticks (its flipbook's frame = its tick: 16 at most)", MPF(dust.life), fxp::I16, 1, 16 },
+			{ "dust", "dust.size", "Size", "Its size", MPF(dust.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "dust", "seqs.dust", "Flipbook", "The puffs' flipbook", MPF(seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag301_gargantua_burrow()
 	{
+		fxp::register_params({ 301, "Gargantua burrow", &burrow301::live, &burrow301::GAME, sizeof(burrow301::BurrowParams),
+		                       burrow301::table::PARTS, (int)(sizeof(burrow301::table::PARTS) / sizeof(burrow301::table::PARTS[0])),
+		                       burrow301::table::FIELDS, (int)(sizeof(burrow301::table::FIELDS) / sizeof(burrow301::table::FIELDS[0])),
+		                       burrow301::table::GROUPS, (int)(sizeof(burrow301::table::GROUPS) / sizeof(burrow301::table::GROUPS[0])) });
+		own::note(burrow301::ORIG_FileLoader, (void *)burrow301::FileLoader);
+		own::note(burrow301::ORIG_Setup, (void *)burrow301::Setup);
+		own::note(burrow301::ORIG_RootTask, (void *)burrow301::RootTask);
 		register_port(burrow301::ORIG_RootTask, (void *)burrow301::RootTask, "301 RootTask", 301);
+		own::note(burrow301::ORIG_MasterTask, (void *)burrow301::MasterTask);
 		register_port(burrow301::ORIG_MasterTask, (void *)burrow301::MasterTask, "301 MasterTask", 301);
+		own::note(burrow301::ORIG_RockTask, (void *)burrow301::RockTask);
 		register_port(burrow301::ORIG_RockTask, (void *)burrow301::RockTask, "301 RockTask", 301);
+		own::note(burrow301::ORIG_DustTask, (void *)burrow301::DustTask);
 		register_port(burrow301::ORIG_DustTask, (void *)burrow301::DustTask, "301 DustTask", 301);
 		// 30 fps layer: see mag301_gargantua_burrow_held.inc
 		FX_HELD(register_mag301_held();)

@@ -54,9 +54,15 @@
 // pool 0x2507630, packet cursor 0x2507644, LCG 0x2507648, magic buffer base 0x2507658).
 // NEVER-WRITTEN STACK WORDS: the 4th word of the vectors loaded into GTE V0 (the callback's offset) reaches VZ0's high
 // half only; the callback block's scale words are read only when its flag is set (layout tasks, which write them).
+// FUJIN: Fujin's described Remove mask (effect_303.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the file loader (0x66A830) and the setup (0x66A820 -> _Init 0x66A850) ported below; its
+// parameters (MaskParams: the sounds and the main's ticks, the burst layout and its point, the sparks, the sprites and
+// their point, the mask pieces, the shards, the unmasked form's redraw; 2 layouts, 4 piece meshes, 2 flipbooks, the
+// pieces' velocities, the texture name and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
 #include <stddef.h>
 
 namespace ff8fx
@@ -67,16 +73,16 @@ namespace mask303
 	using namespace magc;
 
 	// --- module globals ---
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25075D4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25075D8); }        // caster entity (setup)
-	inline uint8_t *&Unmasked() { return var<uint8_t *>(0x25075DC); }      // action 0's first target's entity (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507644); }
-	inline uint32_t &Lcg() { return var<uint32_t>(0x2507648); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507658); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25075F0; }           // pool: magic buffer, 1 x 0x27C0
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2507600; }        // pool: + 0x27C0, 4 x 0x138
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2507610; }         // pool: + 0x2CA0, 0x40 x 0x24
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2507620; }        // pool: + 0x35A0, 8 x 0x14
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25075D4)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25075D8)); }        // caster entity (setup)
+	inline uint8_t *&Unmasked() { return var<uint8_t *>(own::R(0x25075DC)); }      // action 0's first target's entity (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507644)); }
+	inline uint32_t &Lcg() { return var<uint32_t>(own::R(0x2507648)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507658)); }        // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25075F0); }           // pool: magic buffer, 1 x 0x27C0
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x2507600); }        // pool: + 0x27C0, 4 x 0x138
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2507610); }         // pool: + 0x2CA0, 0x40 x 0x24
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2507620); }        // pool: + 0x35A0, 8 x 0x14
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }          // g_Battle_FrameRenderListBase
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // the engine's frame packet cursor
 
@@ -94,11 +100,51 @@ namespace mask303
 	static const uint32_t SEQ_Spark = 0x1031440, SEQ_Sprite = 0x1031550;
 	static const void *const SOUND_Voice = (const void *)0x103411C;
 	static const void *const SOUND_Start = (const void *)0x10340A8;
-	static const int16_t *const POINT_Main = (const int16_t *)0x1034250;    // caster points (x, y, z, bone)
-	static const int16_t *const POINT_Sprites = (const int16_t *)0x1034258;
 	static const struct { uint32_t vel, model; int16_t scale; } PIECES[4] = {
 		{ 0x1034230, 0x1031694, 0x1388 }, { 0x1034238, 0x1031E5C, 0x1000 }, { 0x1034240, 0x103218C, 0x1000 }, { 0x1034248, 0x10324BC, 0xBB8 } };
 	static const int32_t REDRAW_Clut = 0x3DD4;
+
+	static const uint32_t ORIG_FileLoader = 0x66A830, ORIG_Setup = 0x66A820;
+	static const uint32_t TEXTURE_NAME = 0x1034260, CAMERA_ANIM = 0x10340AC;
+	static const uint32_t PIECES_TABLE = 0x1034230;      // the 4 pieces' velocity x / y / z and life (PIECES[k].vel)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25075D0)); }     // the effect's file (its TIM)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_BURST = 1, PART_SPARKS = 2, PART_SPRITES = 3, PART_PIECES = 4, PART_PIECE_LAYOUTS = 5, PART_SHARDS = 6,
+	             PART_REDRAW = 7 };
+	struct MaskParams
+	{
+		struct { uint32_t start, voice; } sounds;      // the start sound, the voice (its slot claimed at the start)
+		struct { int16_t start, release, end; } timing; // the main's ticks: the start sound, the voice released, its end
+		// the burst layout at the caster's point (x, y, z at its bone, taken at the main's first tick) on the first ticks, depth
+		struct { int16_t ticks, depth, x, y, z, bone; } burst;
+		// the sparks at the burst's point on its first ticks: count a tick, velocity scatter, their ticks (flipbook frames)
+		struct { int16_t ticks, count, spread, life; } sparks;
+		// the sprites on one tick around the caster's point (x, y, z at its bone): count, scatter, their ticks
+		struct { int16_t tick, count, spread, life, x, y, z, bone; } sprites;
+		struct { int16_t gravity, scale[4]; } pieces;  // the mask pieces: their fall's growth a tick, their layouts' scales
+		// the shards (a piece shattered): velocity = (polygon centre - mesh centre) >> shift, ticks (+ a random below 8), fall
+		// speed's growth a tick, spin range, spin scale
+		struct { int16_t shift, life, gravity, spin, scale; } shards;
+		// the unmasked form redrawn environment-mapped: from start for ticks, its clut, texture page (x, y), uv scroll a tick,
+		// the grey's pulse (angle a tick)
+		struct { int16_t start, ticks, clut, page_x, page_y, scroll_u, scroll_v, pulse; } redraw;
+		struct { uint32_t burst, piece; } layouts;     // the burst layout, the pieces' layout (played where each shatters)
+		struct { uint32_t piece[4]; } models;          // the 4 mask pieces' meshes (shattered as they are)
+		struct { uint32_t spark, sprite; } seqs;       // the sparks' and the sprites' flipbooks
+		struct { uint32_t pieces; } tables;            // the pieces' velocity x / y / z and life
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track
+	};
+	static const MaskParams GAME = { { 0x10340A8, 0x103411C }, { 0, 0x25, 0x29 }, { 0x16, -0x80, 1789, 0, -1099, 3 },
+		{ 2, 0x20, 0x100, 0xA }, { 6, 8, 0x100, 0xC, 464, -13, -1058, 39 }, { 0xA, { 0x1388, 0x1000, 0x1000, 0xBB8 } },
+		{ 2, 0xC, 0x1E, 0x100, 0xF81 }, { 0x18, 0x10, REDRAW_Clut, 0x2C0, 0x100, 2, 4, 0x80 }, { MODEL_Main, MODEL_Piece },
+		{ { 0x1031694, 0x1031E5C, 0x103218C, 0x10324BC } }, { SEQ_Spark, SEQ_Sprite }, { PIECES_TABLE },
+		{ TEXTURE_NAME, CAMERA_ANIM } };
+	static MaskParams live = GAME;
+	static const MaskParams &PG() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -468,7 +514,7 @@ namespace mask303
 				s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 				s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 				s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
-				s->vel[1] = (int16_t)(s->vel[1] + 0x1E);
+				s->vel[1] = (int16_t)(s->vel[1] + PG().shards.gravity);
 				if (s->pos[1] >= 0) s->vel[1] = (int16_t)(-(int32_t)s->vel[1] >> 1);
 				return true;
 			}
@@ -503,7 +549,7 @@ namespace mask303
 			}
 		}
 		m->cursor = (uint8_t *)s >= (uint8_t *)&m->shards[0x7F] ? &m->shards[0] : s + 1;
-		s->life = (int16_t)((Rand15() & 7) + 0xC);
+		s->life = (int16_t)((Rand15() & 7) + PG().shards.life);
 		return s;
 	}
 
@@ -574,13 +620,14 @@ namespace mask303
 		h->centre[0] = (int16_t)(((int32_t)mx + nx) / 2);
 		h->centre[1] = (int16_t)(((int32_t)my + ny) / 2);
 		h->centre[2] = (int16_t)(((int32_t)mz + nz) / 2);
+		const MaskParams &g = PG();
 		for (int k = 0x40; k != 0; k--)
 		{
-			h->angles[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
-			h->angles[1] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
-			h->angles[2] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
+			h->angles[0] = (int16_t)((CrtRand() & 0x1FF) - g.shards.spin);
+			h->angles[1] = (int16_t)((CrtRand() & 0x1FF) - g.shards.spin);
+			h->angles[2] = (int16_t)((CrtRand() & 0x1FF) - g.shards.spin);
 			BuildRotationMatrixFromAngles(h->angles, (Mat4x3 *)out);
-			const int32_t s = 0xF81 - (CrtRand() & 0xFF);
+			const int32_t s = g.shards.scale - (CrtRand() & 0xFF);
 			h->scale[2] = s;
 			h->scale[1] = s;
 			h->scale[0] = s;
@@ -837,10 +884,11 @@ namespace mask303
 	// the main's redraw of counter c (0x66AC7F..0x66ACE3): rect (0x2C0, 0x100, 0x80, 0x80), grey sin((c - 0x18) * 0x80) / 64
 	static void MainRedraw(int32_t c, uint32_t vb)
 	{
-		const int16_t rect[4] = { 0x2C0, 0x100, 0x80, 0x80 };
-		const int32_t g = ComputeSin(shl32((c - 0x18) & 0x1FFFFF, 7)) >> 6;
+		const MaskParams &p = PG();
+		const int16_t rect[4] = { p.redraw.page_x, p.redraw.page_y, 0x80, 0x80 };
+		const int32_t g = ComputeSin(mul32((c - p.redraw.start) & 0x1FFFFF, p.redraw.pulse)) >> 6;
 		const uint8_t rgb[4] = { (uint8_t)g, (uint8_t)g, (uint8_t)g, 0 };
-		Redraw(Unmasked(), rect, REDRAW_Clut, c * 2, c * 4, rgb, vb);
+		Redraw(Unmasked(), rect, p.redraw.clut, c * p.redraw.scroll_u, c * p.redraw.scroll_v, rgb, vb);
 	}
 
 	// the sprite tasks' draw (0x66C080 / 0x66C100)
@@ -907,18 +955,20 @@ namespace mask303
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag303_remove_mask_held.inc
 		FX_HELD(held_note(SPRITE, n);)
-		SpriteDraw(s->pos, s->frame, SEQ_Sprite);
+		FX_PART(PART_SPRITES);
+		SpriteDraw(s->pos, s->frame, fxp::sequence(PG().seqs.sprite, SEQ_Sprite));
 		s->frame++;
-		return s->frame < 0xC ? 0 : TASK_END;
+		return s->frame < PG().sprites.life ? 0 : TASK_END;
 	}
 
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
 		FX_HELD(held_note(SPARK, n);)
-		SpriteDraw(s->pos, s->frame, SEQ_Spark);
+		FX_PART(PART_SPARKS);
+		SpriteDraw(s->pos, s->frame, fxp::sequence(PG().seqs.spark, SEQ_Spark));
 		s->frame++;
-		if (s->frame >= 0xA) return TASK_END;
+		if (s->frame >= PG().sparks.life) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
@@ -937,11 +987,12 @@ namespace mask303
 		if (L->life != 0)
 		{
 			FX_HELD(held_note(PIECE, n);)
+			FX_PART(PART_PIECES);
 			PieceDraw(L->model, L->pos);
 			L->pos[1] = (int16_t)(L->pos[1] + L->vel[1]);
 			L->pos[0] = (int16_t)(L->pos[0] + L->vel[0]);
 			L->pos[2] = (int16_t)(L->pos[2] + L->vel[2]);
-			L->vel[1] = (int16_t)(L->vel[1] + 0xA);
+			L->vel[1] = (int16_t)(L->vel[1] + PG().pieces.gravity);
 			L->life--;
 			if (L->life > 0) return 0;
 			Mat4x3 m = {};
@@ -951,7 +1002,7 @@ namespace mask303
 			ShatterHdr *h = (ShatterHdr *)FieldAlloc(0x58);
 			h->model = L->model;
 			h->main = (MainNode *)TexBase();
-			h->shift = 2;
+			h->shift = PG().shards.shift;
 			Shatter(h);
 			L->pos[0] = h->centre[0];
 			L->pos[1] = h->centre[1];
@@ -961,14 +1012,15 @@ namespace mask303
 		PrimArg a;
 		PieceArg(L, &a);
 		FX_HELD(held_note(PIECE_PLAY, n);)
+		FX_PART(PART_PIECE_LAYOUTS);
 		return prim::play((prim::Layout *)L->layout, PrimCallback, (int)&a, 0) != 0 ? 0 : TASK_END;
 	}
 
 	// 0x66C1C0: a mask piece at the caster's position: velocity, life (+6 word of vel), model, scale
 	static void SpawnPiece(const int16_t *vel, uint32_t model, int16_t scale)
 	{
-		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
-		DecodeModelPrimLayout(MODEL_Piece, L->layout, 0x118);
+		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
+		DecodeModelPrimLayout(fxp::layout(PG().layouts.piece, MODEL_Piece, 0x118), L->layout, 0x118);
 		L->model = model;
 		memcpy(L->pos, Caster() + 0x1C, 8);
 		L->scale = scale;
@@ -981,7 +1033,8 @@ namespace mask303
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
-		if (m->counter >= 0x29)
+		const MaskParams &g = PG();
+		if (m->counter >= g.timing.end)
 		{
 			StreamLoad(0x168, PacketCursor(), 1);
 			return TASK_END;
@@ -993,66 +1046,74 @@ namespace mask303
 		}
 		// 30 fps layer: see mag303_remove_mask_held.inc
 		FX_HELD(held_note(SHARDS, n);)
+		FX_PART(PART_SHARDS);
 		ShardsDraw(m->shards);
 		const int32_t c = m->counter;
-		if ((uint32_t)c < 0x16)
+		if ((uint32_t)c < (uint32_t)g.burst.ticks)
 		{
 			if (c == 0)
 			{
-				BonePoint(POINT_Main, m->pt);
+				const int16_t point[4] = { g.burst.x, g.burst.y, g.burst.z, g.burst.bone };
+				BonePoint(point, m->pt);
 				m->pt[3] = 0;
 			}
 			PrimArg a;
 			memcpy(a.pos, m->pt, 8);
 			a.scaled = 0;
-			a.depth = -0x80;
+			a.depth = g.burst.depth;
 			a.morph = TexBase() + MORPH;
 			FX_HELD(held_note(MAIN_PLAY, n);)
+			FX_PART(PART_BURST);
 			prim::play((prim::Layout *)m->layout, PrimCallback, (int)&a, 0);
-			if ((uint32_t)c < 2)
+			if ((uint32_t)c < (uint32_t)g.sparks.ticks)
 			{
-				for (int k = 0x20; k != 0; k--)
+				for (int k = g.sparks.count; k > 0; k--)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (!s) continue;
 					memcpy(s->pos, m->pt, 8); // pos + frame (the point's 4th word, 0)
-					s->vel[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
-					s->vel[1] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
-					s->vel[2] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
+					s->vel[0] = (int16_t)((CrtRand() & 0x1FF) - g.sparks.spread);
+					s->vel[1] = (int16_t)((CrtRand() & 0x1FF) - g.sparks.spread);
+					s->vel[2] = (int16_t)((CrtRand() & 0x1FF) - g.sparks.spread);
 					s->acc[0] = AccelOf(s->vel[0]);
 					s->acc[1] = AccelOf(s->vel[1]);
 					s->acc[2] = AccelOf(s->vel[2]);
 				}
 			}
 		}
-		const uint32_t e = (uint32_t)(m->counter - 0x18);
-		if (e < 0x10)
+		const uint32_t e = (uint32_t)(m->counter - g.redraw.start);
+		if (e < (uint32_t)g.redraw.ticks)
 		{
 			FX_HELD(held_note(REDRAW, n);)
+			FX_PART(PART_REDRAW);
 			MainRedraw(m->counter, TexBase() + MORPH);
 			*Unmasked() |= 4;
 		}
 		else if (e < 0x29) *(uint16_t *)Unmasked() &= 0xFFFB;
 		ShardsMove(m);
-		if (m->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
-		else if (m->counter == 0x25) ReleaseVoiceSlot(m->voice);
-		if (m->counter == 6)
+		if (m->counter == g.timing.start) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		else if (m->counter == g.timing.release) ReleaseVoiceSlot(m->voice);
+		if (m->counter == g.sprites.tick)
 		{
 			int16_t p[4];
-			BonePoint(POINT_Sprites, p);
-			for (int k = 8; k != 0; k--)
+			const int16_t point[4] = { g.sprites.x, g.sprites.y, g.sprites.z, g.sprites.bone };
+			BonePoint(point, p);
+			for (int k = g.sprites.count; k > 0; k--)
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 				if (!s) continue;
-				s->pos[0] = (int16_t)((CrtRand() & 0x1FF) + p[0] - 0x100);
+				s->pos[0] = (int16_t)((CrtRand() & 0x1FF) + p[0] - g.sprites.spread);
 				s->pos[1] = (int16_t)(0 - (CrtRand() & 0x1FF));
 				const int32_t rz = CrtRand() & 0x1FF;
 				s->frame = 0;
-				s->pos[2] = (int16_t)(rz + p[2] - 0x100);
+				s->pos[2] = (int16_t)(rz + p[2] - g.sprites.spread);
 			}
 		}
 		if (m->counter == 0)
-			for (const auto &pc : PIECES) SpawnPiece((const int16_t *)pc.vel, pc.model, pc.scale);
+		{
+			const int16_t *vel = (const int16_t *)fxp::data(g.tables.pieces, PIECES_TABLE, 0x20);
+			for (int k = 0; k < 4; k++) SpawnPiece(vel + 4 * k, fxp::model(g.models.piece[k], PIECES[k].model), g.pieces.scale[k]);
+		}
 		m->counter++;
 		return 0;
 	}
@@ -1082,11 +1143,11 @@ namespace mask303
 			InitTaskQueuePool(QLayouts(), (void *)(TexBase() + POOL_Layouts), 0x138, 4);
 			InitTaskQueuePool(QSparks(), (void *)(TexBase() + POOL_Sparks), 0x24, 0x40);
 			InitTaskQueuePool(QSprites(), (void *)(TexBase() + POOL_Sprites), 0x14, 8);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x9ED);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 			m->cursor = m->shards;
-			DecodeModelPrimLayout(MODEL_Main, m->layout, 0x1A0);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.burst, MODEL_Main, 0x1A0), m->layout, 0x1A0);
 			StreamStateInit((void *)(TexBase() + STREAM_STATE));
 		}
 		if (r->started)
@@ -1107,14 +1168,131 @@ namespace mask303
 		r->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x66A830) and setup (0x66A820 -> _Init 0x66A850): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster, action 0's first target (the unmasked
+	// form: on the caster's position, its chain transformation 13, its animation read), the root, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	inline void QueueChainTransformation(uint8_t *entity, int32_t seq) { fn<void (__cdecl *)(uint8_t *, int32_t)>(0x505C00)(entity, seq); }
+	inline int32_t BattleReadAnimation(void *hdr, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(0x508F90)(hdr, cmd); }
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		Unmasked() = Entity(ctx->actions->targets[0]);
+		*(uint32_t *)(Unmasked() + 0x1C) = *(const uint32_t *)(Caster() + 0x1C);
+		*(uint32_t *)(Unmasked() + 0x20) = *(const uint32_t *)(Caster() + 0x20);
+		QueueChainTransformation(Unmasked(), 13);
+		BattleReadAnimation(Unmasked() + 0x60, Unmasked() + 0x6C);
+		TaskQueue *root = (TaskQueue *)own::R(0x25075E0);
+		InitTaskQueuePool(root, (void *)own::R(0x2507630), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the start sound and the voice (claimed at the start, released near the end), the masked caster hidden and the unmasked form shown; the texture and the camera" },
+			{ PART_BURST, "burst", "Burst", "The burst layout at the caster's point on the first ticks" },
+			{ PART_SPARKS, "sparks", "Sparks", "Sparks thrown from the burst's point, slowing down (a flipbook)" },
+			{ PART_SPRITES, "sprites", "Sprites", "Sprites around the caster's second point on one tick (a flipbook, still)" },
+			{ PART_PIECES, "pieces", "Mask pieces", "The mask's four pieces (meshes) flying off the caster, falling, then shattered into shards" },
+			{ PART_PIECE_LAYOUTS, "piece_layouts", "Piece layouts", "The pieces' layout played where each shattered" },
+			{ PART_SHARDS, "shards", "Shards", "The shattered pieces' polygons, flying, spinning, falling and bouncing" },
+			{ PART_REDRAW, "redraw", "Unmasked form", "The unmasked form redrawn environment-mapped (its uv from its normals, scrolling, a pulsing grey)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+		};
+#define MPF(member) (uint32_t)offsetof(MaskParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "At the start sound's tick", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "sounds.voice", "Voice", "The sound block its voice slot is claimed with (at the start)", MPF(sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.start", "Sound", "The main's tick of the start sound", MPF(timing.start), fxp::I16, 0, 400 },
+			{ "main", "timing.release", "Voice released", "Its tick the voice slot is released", MPF(timing.release), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick (then the battle file it streams, the masked caster's slot removed)", MPF(timing.end), fxp::I16, 1, 400 },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "burst", "burst.ticks", "Ticks", "On the main's first ticks", MPF(burst.ticks), fxp::I16, 0, 400 },
+			{ "burst", "burst.depth", "Depth", "The layout's depth offset", MPF(burst.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "burst", "burst.x", "Point x", "Its point at the caster's bone (taken on the main's first tick)", MPF(burst.x), fxp::I16, -0x4000, 0x4000 },
+			{ "burst", "burst.y", "Point y", "Its point's y", MPF(burst.y), fxp::I16, -0x4000, 0x4000 },
+			{ "burst", "burst.z", "Point z", "Its point's z", MPF(burst.z), fxp::I16, -0x4000, 0x4000 },
+			{ "burst", "burst.bone", "Bone", "The caster's bone the point is at", MPF(burst.bone), fxp::I16, 0, 45 },
+			{ "burst", "layouts.burst", "Layout", "The burst layout", MPF(layouts.burst), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.ticks", "Ticks", "Thrown on the main's first ticks", MPF(sparks.ticks), fxp::I16, 0, 400 },
+			{ "sparks", "sparks.count", "Count", "Sparks a tick (64 at most alive)", MPF(sparks.count), fxp::I16, 0, 64 },
+			{ "sparks", "sparks.spread", "Scatter", "Their velocity: a random below 0x200 - this on each axis (slowing by a twelfth a tick)", MPF(sparks.spread), fxp::I16, -0x1000, 0x1000 },
+			{ "sparks", "sparks.life", "Life", "Their ticks (their flipbook's frames: 10 at most)", MPF(sparks.life), fxp::I16, 1, 10 },
+			{ "sparks", "seqs.spark", "Flipbook", "The sparks' flipbook", MPF(seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sprites", "sprites.tick", "Tick", "The main's tick they appear", MPF(sprites.tick), fxp::I16, 0, 400 },
+			{ "sprites", "sprites.count", "Count", "How many (8 at most)", MPF(sprites.count), fxp::I16, 0, 8 },
+			{ "sprites", "sprites.spread", "Scatter", "Around the point: a random below 0x200 - this on x / z (y: on the ground up to 0x1FF above it)", MPF(sprites.spread), fxp::I16, -0x1000, 0x1000 },
+			{ "sprites", "sprites.life", "Life", "Their ticks (their flipbook's frames: 12 at most)", MPF(sprites.life), fxp::I16, 1, 12 },
+			{ "sprites", "sprites.x", "Point x", "Their point at the caster's bone", MPF(sprites.x), fxp::I16, -0x4000, 0x4000 },
+			{ "sprites", "sprites.y", "Point y", "Its y", MPF(sprites.y), fxp::I16, -0x4000, 0x4000 },
+			{ "sprites", "sprites.z", "Point z", "Its z", MPF(sprites.z), fxp::I16, -0x4000, 0x4000 },
+			{ "sprites", "sprites.bone", "Bone", "The caster's bone the point is at", MPF(sprites.bone), fxp::I16, 0, 45 },
+			{ "sprites", "seqs.sprite", "Flipbook", "The sprites' flipbook", MPF(seqs.sprite), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "pieces", "pieces.gravity", "Gravity", "A piece's fall speed grows by this a tick", MPF(pieces.gravity), fxp::I16, -0x400, 0x400 },
+			{ "pieces", "tables.pieces", "Velocities", "The 4 pieces' velocity x / y / z and life (their ticks before they shatter): 4 words each", MPF(tables.pieces), fxp::Data, 0, 0x7FFFFFFF },
+			{ "pieces", "models.piece[0]", "Mesh 1", "Piece 1's mesh (shattered as it is: its polygons become shards)", MPF(models.piece[0]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "pieces", "models.piece[1]", "Mesh 2", "Piece 2's mesh", MPF(models.piece[1]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "pieces", "models.piece[2]", "Mesh 3", "Piece 3's mesh", MPF(models.piece[2]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "pieces", "models.piece[3]", "Mesh 4", "Piece 4's mesh", MPF(models.piece[3]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "piece_layouts", "pieces.scale[0]", "Scale 1", "Piece 1's layout's scale", MPF(pieces.scale[0]), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "piece_layouts", "pieces.scale[1]", "Scale 2", "Piece 2's layout's scale", MPF(pieces.scale[1]), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "piece_layouts", "pieces.scale[2]", "Scale 3", "Piece 3's layout's scale", MPF(pieces.scale[2]), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "piece_layouts", "pieces.scale[3]", "Scale 4", "Piece 4's layout's scale", MPF(pieces.scale[3]), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "piece_layouts", "layouts.piece", "Layout", "The layout played where a piece shattered", MPF(layouts.piece), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "shards", "shards.shift", "Speed shift", "A shard's velocity: (its polygon's centre - the piece's centre) >> this", MPF(shards.shift), fxp::I16, 0, 15 },
+			{ "shards", "shards.life", "Life", "Its ticks: this + a random below 8", MPF(shards.life), fxp::I16, 1, 400 },
+			{ "shards", "shards.gravity", "Gravity", "Its fall speed grows by this a tick (it bounces at half its speed on the ground)", MPF(shards.gravity), fxp::I16, -0x400, 0x400 },
+			{ "shards", "shards.spin", "Spin", "Its spin on each axis: a random below 0x200 - this a tick", MPF(shards.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "shards", "shards.scale", "Shrink", "Its spin matrix's scale: this - a random below 0x100 (0x1000: it keeps its size)", MPF(shards.scale), fxp::I16, 0, 0x2000, fxp::Scale },
+			{ "redraw", "redraw.start", "Start", "The main's tick it starts", MPF(redraw.start), fxp::I16, 0, 400 },
+			{ "redraw", "redraw.ticks", "Ticks", "Its ticks", MPF(redraw.ticks), fxp::I16, 0, 400 },
+			{ "redraw", "redraw.clut", "Palette", "Its texture's palette (clut word)", MPF(redraw.clut), fxp::I16, 0, 0x7FFF },
+			{ "redraw", "redraw.page_x", "Page x", "Its texture page's VRAM x", MPF(redraw.page_x), fxp::I16, 0, 0x3FF },
+			{ "redraw", "redraw.page_y", "Page y", "Its texture page's VRAM y", MPF(redraw.page_y), fxp::I16, 0, 0x1FF },
+			{ "redraw", "redraw.scroll_u", "Scroll u", "Its u scroll a tick", MPF(redraw.scroll_u), fxp::I16, -0x80, 0x80 },
+			{ "redraw", "redraw.scroll_v", "Scroll v", "Its v scroll a tick", MPF(redraw.scroll_v), fxp::I16, -0x80, 0x80 },
+			{ "redraw", "redraw.pulse", "Pulse", "Its grey: sin(its tick x this) / 64", MPF(redraw.pulse), fxp::I16, 0, 0x1000, fxp::Angle },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag303_remove_mask()
 	{
+		fxp::register_params({ 303, "Remove mask", &mask303::live, &mask303::GAME, sizeof(mask303::MaskParams),
+		                       mask303::table::PARTS, (int)(sizeof(mask303::table::PARTS) / sizeof(mask303::table::PARTS[0])),
+		                       mask303::table::FIELDS, (int)(sizeof(mask303::table::FIELDS) / sizeof(mask303::table::FIELDS[0])),
+		                       mask303::table::GROUPS, (int)(sizeof(mask303::table::GROUPS) / sizeof(mask303::table::GROUPS[0])) });
+		own::note(mask303::ORIG_FileLoader, (void *)mask303::FileLoader);
+		own::note(mask303::ORIG_Setup, (void *)mask303::Setup);
+		own::note(mask303::ORIG_RootTask, (void *)mask303::RootTask);
 		register_port(mask303::ORIG_RootTask, (void *)mask303::RootTask, "303 RootTask", 303);
+		own::note(mask303::ORIG_MainTask, (void *)mask303::MainTask);
 		register_port(mask303::ORIG_MainTask, (void *)mask303::MainTask, "303 MainTask", 303);
+		own::note(mask303::ORIG_LayoutTask, (void *)mask303::LayoutTask);
 		register_port(mask303::ORIG_LayoutTask, (void *)mask303::LayoutTask, "303 LayoutTask", 303);
+		own::note(mask303::ORIG_SparkTask, (void *)mask303::SparkTask);
 		register_port(mask303::ORIG_SparkTask, (void *)mask303::SparkTask, "303 SparkTask", 303);
+		own::note(mask303::ORIG_SpriteTask, (void *)mask303::SpriteTask);
 		register_port(mask303::ORIG_SpriteTask, (void *)mask303::SpriteTask, "303 SpriteTask", 303);
 		// 30 fps layer: see mag303_remove_mask_held.inc
 		FX_HELD(register_mag303_held();)
