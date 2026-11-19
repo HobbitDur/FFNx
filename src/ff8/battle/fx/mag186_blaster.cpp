@@ -58,9 +58,18 @@
 // Every drawing task draws first and updates afterwards; on draw-only ticks it returns after drawing.
 // ENTITY WRITES: the target's +0x20 word (shock wave; put back at its end). CAMERA: the camera animation 0xD1DA60 (engine),
 // the screen flash / fade (engine). Module globals: 0x22B7600..0x22BC128.
+// FUJIN: Fujin's described Blaster (effect_186.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the file loader (0x5BF6D0) and the setup (0x5BF6F0) ported below; its parameters
+// (BlasterParams: the sound and the director's ticks, the screen flash and fade, the mouth, the charge's beams and rings,
+// the bolts, sparks, glow, shock wave and splashes, four flipbooks, three meshes, the bolt's four key vertex sets, the
+// texture name and the camera track). The bolt's in-between meshes are made from the key sets in use; its key frames
+// draw them (the game's: the table 0xD20810's keys, in the module the in-between buffers). FX_PART tags its parts in
+// the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -78,17 +87,17 @@ namespace blaster186
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
 	// --- module globals ---
-	inline TaskQueue *RootQueue() { return (TaskQueue *)0x22B7628; }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x22B9930; }
-	inline uint32_t &Ctx() { return var<uint32_t>(0x22BC0F8); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x22BC0FC); }
-	inline int32_t &TargetSlot() { return var<int32_t>(0x22B7600); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x22BC120); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x22BC124); }
+	inline TaskQueue *RootQueue() { return (TaskQueue *)own::R(0x22B7628); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x22B9930); }
+	inline uint32_t &Ctx() { return var<uint32_t>(own::R(0x22BC0F8)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x22BC0FC)); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x22B7600)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x22BC120)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x22BC124)); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline uint8_t *Target() { return Entity(TargetSlot()); }
-	inline Mat4x3 *Aim() { return (Mat4x3 *)0x22BBA70; }
+	inline Mat4x3 *Aim() { return (Mat4x3 *)own::R(0x22BBA70); }
 	static const uint32_t PARTS = 0x22B7638, PARTS_END = 0x22B7F98;   // 100 x 0x18 bytes
 	static const uint32_t MOUTH = 0x22BC108;    // 3 words + the aim length - 300 (+6)
 	static const uint32_t AIMV = 0x22BC110;     // 3 dwords
@@ -103,6 +112,60 @@ namespace blaster186
 	static const uint32_t MODEL_BeamRing = 0xD20204, MODEL_Bolt = 0xD1EF4C, MODEL_Wave = 0xD1F754;
 	static const uint32_t SOUND_Charge = 0xD207F4, AIM_FROM = 0xD20800, BOUNDS = 0xD2087C;
 	static const uint32_t BOLT_MESHES = 0xD20810, WAVE_TEXTURES = 0xD20860;
+	static const uint32_t ORIG_FileLoader = 0x5BF6D0, ORIG_Setup = 0x5BF6F0;
+	static const uint32_t TEXTURE_NAME = 0xD208A4, CAMERA = 0xD1DA60;
+	// the bolt's four key vertex sets {size, count, 102 vertices} (the table 0xD20810's keys are their vertices)
+	static const uint32_t KEY_A = 0xD1E26C, KEY_B = 0xD1E5A4, KEY_C = 0xD1E8DC, KEY_D = 0xD1EC14;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x22BC100)); }
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_FADE = 1, PART_BEAMS = 2, PART_BOLTS = 3, PART_SPARKS = 4, PART_GLOW = 5, PART_WAVE = 6, PART_SPLASHES = 7 };
+	struct BlasterParams
+	{
+		uint32_t sound;                                     // at the director's sound tick
+		// the director's ticks: the charge, the sound, the screen fade, the sparks, the glow, the bolts, the shock wave, the
+		// splashes, the damage, the end
+		struct { int16_t charge, sound, fade, sparks, glow, bolts, wave, splashes, damage, end; } timing;
+		struct { int16_t up, down; } flash;                  // the screen flash: rising until tick up, falling from tick down
+		struct { int16_t point, out, pull; } mouth;          // the caster's point, moved out along the aim; the target point pulled back
+		struct { int16_t point_a, point_b, ticks; } charge;  // the beam between two points of the caster, its spawner's ticks
+		struct { int16_t length, width; } beams;             // a beam's flipbook scale
+		struct { int16_t size, size_rand; } beam_rings;      // a beam's ring
+		struct { int16_t ticks, end, life, life_rand, spin, size, size_rand, fade, frames; } bolts; // one on each odd tick
+		struct { int16_t ticks, size, size_rand, spread, target_size, target_size_rand, target_spread; } sparks;
+		struct { int16_t size, ticks, fade; } glow;          // at the mouth
+		struct { int16_t size, ticks, fade, shake, turn; } wave; // the shock wave at the target, shaking it
+		struct { int16_t ticks, count, size, size_rand, spread, depth, speed, speed_rand; } splashes;
+		struct { int16_t up, hold, down, level; } fade;     // the red screen fade
+		struct { uint32_t beam, spark, glow, splash; } seqs; // the sprite sequences drawn (flipbooks)
+		struct { uint32_t beam_ring, bolt, wave; } models;  // the prim models drawn (meshes)
+		struct { uint32_t a, b, c, d; } keys;               // the bolt's key vertex sets (data)
+		struct { uint32_t texture_name, camera; } res;      // its resources (data): texture file name, camera track
+	};
+	static const BlasterParams GAME = { SOUND_Charge, { 7, 7, 0x27, 0x27, 0x27, 0x28, 0x28, 0x28, 0x3C, 0x41 }, { 0x10, 0x39 },
+		{ 0x15, 300, 400 }, { 0x31, 0x32, 0x28 }, { 0x680, 0x400 }, { 0x900, 0x300 },
+		{ 0xD, 0x1E, 10, 10, 0x200, 0xB00, 0xA00, 4, 5 }, { 0x11, 0x500, 0x200, 0xA0, 0x700, 0x500, 0x104 }, { 0xE00, 0x16, 0xE },
+		{ 0x1600, 0x18, 0x10, 40, 0x800 }, { 0xF, 4, 0x900, 0x800, 0xC8, 0x64, 0xC8, 0x104 }, { 0, 1, 0xE, 0xFF },
+		{ SEQ_Beam, SEQ_Spark, SEQ_Glow, SEQ_Splash }, { MODEL_BeamRing, MODEL_Bolt, MODEL_Wave }, { KEY_A, KEY_B, KEY_C, KEY_D },
+		{ TEXTURE_NAME, CAMERA } };
+	static BlasterParams live = GAME;
+	static const BlasterParams &PG() { return live; }
+	// the vertices of the bolt's key k (0..3) in use
+	inline uint32_t Key(int k)
+	{
+		static const uint32_t GAME_KEYS[4] = { KEY_A, KEY_B, KEY_C, KEY_D };
+		const uint32_t set[4] = { PG().keys.a, PG().keys.b, PG().keys.c, PG().keys.d };
+		return fxp::vertices(set[k], GAME_KEYS[k]) + 8;
+	}
+	// the vertices of the bolt's mesh frame f (of 20: each key, then its 4 in-betweens in the module)
+	inline uint32_t BoltVertices(int32_t f)
+	{
+		f %= 20;
+		return f % 5 ? own::R(*(const uint32_t *)(BOLT_MESHES + 4 * f)) : Key(f / 5);
+	}
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -134,14 +197,14 @@ namespace blaster186
 {
 	static uint32_t NewTask(uint32_t f)
 	{
-		const uint32_t t = P(AddTaskToQueue(EffectQueue(), f));
+		const uint32_t t = P(AddTaskToQueue(EffectQueue(), own::Fn(f)));
 		S16(t, 0xC) = 0;
 		return t;
 	}
 
 	static uint32_t FreeParticle()
 	{
-		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS); p < own::R(PARTS_END); p += 0x18)
 			if (!U32(p, P_MASK)) return p;
 		return 0;
 	}
@@ -164,14 +227,14 @@ namespace blaster186
 		const int16_t ang[3] = { 0, 0, 0 };
 		Mat4x3 m, r;
 		ComposeZYXRotationMatrix(ang, &m);
-		m.t[0] = S16(BEAM, 0);
-		m.t[1] = S16(BEAM, 2);
-		m.t[2] = S16(BEAM, 4);
-		const int32_t sc[3] = { mul32(S16(n, 0x1C), S16(BEAM, 6)) / 820, S16(n, 0x20), 0 };
+		m.t[0] = S16(own::R(BEAM), 0);
+		m.t[1] = S16(own::R(BEAM), 2);
+		m.t[2] = S16(own::R(BEAM), 4);
+		const int32_t sc[3] = { mul32(S16(n, 0x1C), S16(own::R(BEAM), 6)) / 820, S16(n, 0x20), 0 };
 		ScaleMatrix(&m, sc);
 		const int32_t from[3] = { -0x1000, 0, 0 };
 		int32_t axis[3];
-		const int32_t a = RotationBetweenVectors(from, (const int32_t *)BEAMV, axis);
+		const int32_t a = RotationBetweenVectors(from, (const int32_t *)own::R(BEAMV), axis);
 		BuildAxisAngleRotationMatrix(a, &r, axis);
 		GteMatrixMultiply(&r, &m);
 		ComposeAffineTransform(&Camera(), &m, &m);
@@ -179,7 +242,7 @@ namespace blaster186
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0xB4));
 		U16(h, 4) = (uint16_t)(U8(n, 0xC) & 3);
-		U32(h, 0) = SEQ_Beam;
+		U32(h, 0) = fxp::sequence(PG().seqs.beam, SEQ_Beam);
 		U16(h, 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData((void *)h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -190,6 +253,7 @@ namespace blaster186
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(held_note_node(REC_BEAM, n);)
+		FX_PART(PART_BEAMS);
 		BeamDraw(n);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -202,9 +266,9 @@ namespace blaster186
 	static void BeamRingDraw(uint32_t n, int32_t fade)
 	{
 		const int16_t r = S16(n, 0x1C);
-		TransformCameraByShadowRotation((const void *)BEAM, (int32_t)(uint16_t)r, -(r >> 3));
+		TransformCameraByShadowRotation((const void *)own::R(BEAM), (int32_t)(uint16_t)r, -(r >> 3));
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_BeamRing;
+		U32(h, 0) = fxp::model(PG().models.beam_ring, MODEL_BeamRing);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0x33;
 		if (S16(n, 0xC) >= S16(n, 0x20))
@@ -221,6 +285,7 @@ namespace blaster186
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(held_note_node(REC_RING, n);)
+		FX_PART(PART_BEAMS);
 		BeamRingDraw(n, S16(n, 0xC) >= S16(n, 0x20) ? RingFade(n, S16(n, 0xC)) : 0);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -234,15 +299,15 @@ namespace blaster186
 	{
 		const uint32_t n = P(tn);
 		int16_t a[4];
-		SpawnPosition(Caster(), 0x31, 0x1000, a);
-		SpawnPosition(Caster(), 0x32, 0x1000, (int16_t *)BEAM);
-		S32(BEAMV, 0) = a[0] - S16(BEAM, 0);
-		S32(BEAMV, 4) = a[1] - S16(BEAM, 2);
-		S32(BEAMV, 8) = a[2] - S16(BEAM, 4);
-		S16(BEAM, 6) = (int16_t)Sqrt(Normalize((const int32_t *)BEAMV, (int32_t *)BEAMV));
-		S16(BEAM, 0) = (int16_t)((S16(BEAM, 0) + a[0]) / 2);
-		S16(BEAM, 2) = (int16_t)((S16(BEAM, 2) + a[1]) / 2);
-		S16(BEAM, 4) = (int16_t)((S16(BEAM, 4) + a[2]) / 2);
+		SpawnPosition(Caster(), PG().charge.point_a, 0x1000, a);
+		SpawnPosition(Caster(), PG().charge.point_b, 0x1000, (int16_t *)own::R(BEAM));
+		S32(own::R(BEAMV), 0) = a[0] - S16(own::R(BEAM), 0);
+		S32(own::R(BEAMV), 4) = a[1] - S16(own::R(BEAM), 2);
+		S32(own::R(BEAMV), 8) = a[2] - S16(own::R(BEAM), 4);
+		S16(own::R(BEAM), 6) = (int16_t)Sqrt(Normalize((const int32_t *)own::R(BEAMV), (int32_t *)own::R(BEAMV)));
+		S16(own::R(BEAM), 0) = (int16_t)((S16(own::R(BEAM), 0) + a[0]) / 2);
+		S16(own::R(BEAM), 2) = (int16_t)((S16(own::R(BEAM), 2) + a[1]) / 2);
+		S16(own::R(BEAM), 4) = (int16_t)((S16(own::R(BEAM), 4) + a[2]) / 2);
 		if (DrawOnly()) return 0;
 		const int16_t idx = S16(n, 0xE);
 		const int32_t end = S32(BOUNDS + 4, 4 * idx), start = S32(BOUNDS, 4 * idx);
@@ -254,33 +319,33 @@ namespace blaster186
 				const int32_t len = end - start;
 				uint32_t t = NewTask(ORIG_Beam);
 				S16(t, 0xE) = (int16_t)len;
-				S16(t, 0x1C) = 0x680;
-				S16(t, 0x20) = 0x400;
+				S16(t, 0x1C) = PG().beams.length;
+				S16(t, 0x20) = PG().beams.width;
 				t = NewTask(ORIG_BeamRing);
 				S16(t, 0xE) = (int16_t)len;
-				S16(t, 0x1C) = (int16_t)(CrtRand() % 0x300 + 0x900);
+				S16(t, 0x1C) = (int16_t)(CrtRand() % PG().beam_rings.size_rand + PG().beam_rings.size);
 				S16(t, 0x20) = S16(t, 0x22) = (int16_t)(S16(t, 0xE) / 2);
 			}
 			S16(n, 0xE) = (int16_t)(S16(n, 0xE) + 1);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		return S16(n, 0xC) >= 0x28 ? TASK_END : 0;
+		return S16(n, 0xC) >= PG().charge.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
 	// Bolts (0x5C0190 / 0x5C0280)
 	// ------------------------------------------------------------------
-	static int32_t BoltFade(uint32_t n, int32_t c) { return (0x1000 / S16(n, 0x22)) * (c - S16(n, 0x20)); }
+	static int32_t BoltFade(uint32_t n, int32_t c) { return (0x1000 / (S16(n, 0x22) > 0 ? S16(n, 0x22) : 1)) * (c - S16(n, 0x20)); }
 
 	static void BoltDraw(uint32_t n, int32_t fade)
 	{
 		const int16_t ang[3] = { 0, 0, S16(n, 0x18) };
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
-		m.t[0] = S16(MOUTH, 0);
-		m.t[1] = S16(MOUTH, 2);
-		m.t[2] = S16(MOUTH, 4);
-		const int32_t sc[3] = { S16(n, 0x1C), S16(n, 0x1C), shl32(S16(MOUTH, 6), 12) / 5000 };
+		m.t[0] = S16(own::R(MOUTH), 0);
+		m.t[1] = S16(own::R(MOUTH), 2);
+		m.t[2] = S16(own::R(MOUTH), 4);
+		const int32_t sc[3] = { S16(n, 0x1C), S16(n, 0x1C), shl32(S16(own::R(MOUTH), 6), 12) / 5000 };
 		ScaleMatrix(&m, sc);
 		GteMatrixMultiply(Aim(), &m);
 		ComposeAffineTransform(&Camera(), &m, &m);
@@ -288,9 +353,9 @@ namespace blaster186
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 8) = 0;
-		U32(h, 0) = MODEL_Bolt;
+		U32(h, 0) = fxp::model(PG().models.bolt, MODEL_Bolt);
 		U32(h, 0x1C) = 0x2033;
-		U32(h, 4) = U32(BOLT_MESHES, 4 * (S16(n, 0x1A) % 20));
+		U32(h, 4) = BoltVertices(S16(n, 0x1A));
 		if (S16(n, 0xC) >= S16(n, 0x20))
 		{
 			U32(h, 0x1C) = 0x20F3;
@@ -305,6 +370,7 @@ namespace blaster186
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(held_note_node(REC_BOLT, n);)
+		FX_PART(PART_BOLTS);
 		BoltDraw(n, S16(n, 0xC) >= S16(n, 0x20) ? BoltFade(n, S16(n, 0xC)) : 0);
 		if (DrawOnly()) return 0;
 		S16(n, 0x1A) = (int16_t)(S16(n, 0x1A) + 1);
@@ -317,20 +383,20 @@ namespace blaster186
 		if (DrawOnly()) return 0;
 		const uint32_t n = P(tn);
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0xC && (c & 1))
+		if (c >= 0 && c < PG().bolts.ticks && (c & 1))
 		{
 			const uint32_t t = NewTask(ORIG_Bolt);
-			S16(t, 0xE) = (int16_t)(CrtRand() % 10 + 10);
-			S16(t, 0x18) = (int16_t)((U8(n, 0xE) & 1) ? -0x200 : 0x200);
-			S16(t, 0x1A) = (int16_t)(CrtRand() % 5);
-			S16(t, 0x22) = 4;
-			S16(t, 0x1C) = (int16_t)(CrtRand() % 0xA00 + 0xB00);
+			S16(t, 0xE) = (int16_t)(CrtRand() % PG().bolts.life_rand + PG().bolts.life);
+			S16(t, 0x18) = (int16_t)((U8(n, 0xE) & 1) ? -PG().bolts.spin : PG().bolts.spin);
+			S16(t, 0x1A) = (int16_t)(CrtRand() % PG().bolts.frames);
+			S16(t, 0x22) = PG().bolts.fade;
+			S16(t, 0x1C) = (int16_t)(CrtRand() % PG().bolts.size_rand + PG().bolts.size);
 			S16(n, 0xE) = (int16_t)(S16(n, 0xE) + 1);
 			S16(t, 0x1E) = (int16_t)(S16(t, 0x1C) / 4);
-			S16(t, 0x20) = (int16_t)(S16(t, 0xE) - 4);
+			S16(t, 0x20) = (int16_t)(S16(t, 0xE) - PG().bolts.fade);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		return S16(n, 0xC) >= 0x1E ? TASK_END : 0;
+		return S16(n, 0xC) >= PG().bolts.end ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -349,11 +415,12 @@ namespace blaster186
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(held_note_parts(REC_SPARKS, n);)
+		FX_PART(PART_SPARKS);
 		const uint32_t h = P(FieldAlloc(0xB4));
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = fxp::sequence(PG().seqs.spark, SEQ_Spark);
 		U16(h, 0x24) = 0;
 		int alive = 0;
-		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS); p < own::R(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 1)) continue;
 			// 30 fps layer: see mag186_blaster_held.inc
@@ -371,30 +438,30 @@ namespace blaster186
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0x10)
+		if (c >= 0 && c < PG().sparks.ticks)
 		{
 			uint32_t p = FreeParticle();
 			if (p)
 			{
 				U32(p, P_MASK) = 1;
 				S16(p, P_FRAME) = 0;
-				S16(p, P_SIZE) = (int16_t)(CrtRand() % 0x200 + 0x500);
-				U32(p, P_POS) = U32(MOUTH, 0);
-				U32(p, P_POS + 4) = U32(MOUTH, 4);
-				S16(p, P_POS) = (int16_t)(S16(p, P_POS) + CrtRand() % 0x140 - 0xA0);
-				S16(p, P_POS + 2) = (int16_t)(S16(p, P_POS + 2) + CrtRand() % 0x140 - 0xA0);
-				S16(p, P_POS + 4) = (int16_t)(S16(p, P_POS + 4) + CrtRand() % 0x140 - 0xA0);
+				S16(p, P_SIZE) = (int16_t)(CrtRand() % PG().sparks.size_rand + PG().sparks.size);
+				U32(p, P_POS) = U32(own::R(MOUTH), 0);
+				U32(p, P_POS + 4) = U32(own::R(MOUTH), 4);
+				S16(p, P_POS) = (int16_t)(S16(p, P_POS) + CrtRand() % (2 * PG().sparks.spread) - PG().sparks.spread);
+				S16(p, P_POS + 2) = (int16_t)(S16(p, P_POS + 2) + CrtRand() % (2 * PG().sparks.spread) - PG().sparks.spread);
+				S16(p, P_POS + 4) = (int16_t)(S16(p, P_POS + 4) + CrtRand() % (2 * PG().sparks.spread) - PG().sparks.spread);
 				p = FreeParticle();
 				if (p)
 				{
 					U32(p, P_MASK) = 1;
 					S16(p, P_FRAME) = 0;
-					S16(p, P_SIZE) = (int16_t)(CrtRand() % 0x500 + 0x700);
-					U32(p, P_POS) = U32(TGT, 0);
-					U32(p, P_POS + 4) = U32(TGT, 4);
-					S16(p, P_POS) = (int16_t)(S16(p, P_POS) + CrtRand() % 0x208 - 0x104);
-					S16(p, P_POS + 2) = (int16_t)(S16(p, P_POS + 2) + CrtRand() % 0x208 - 0x104);
-					S16(p, P_POS + 4) = (int16_t)(S16(p, P_POS + 4) + CrtRand() % 0x208 - 0x104);
+					S16(p, P_SIZE) = (int16_t)(CrtRand() % PG().sparks.target_size_rand + PG().sparks.target_size);
+					U32(p, P_POS) = U32(own::R(TGT), 0);
+					U32(p, P_POS + 4) = U32(own::R(TGT), 4);
+					S16(p, P_POS) = (int16_t)(S16(p, P_POS) + CrtRand() % (2 * PG().sparks.target_spread) - PG().sparks.target_spread);
+					S16(p, P_POS + 2) = (int16_t)(S16(p, P_POS + 2) + CrtRand() % (2 * PG().sparks.target_spread) - PG().sparks.target_spread);
+					S16(p, P_POS + 4) = (int16_t)(S16(p, P_POS + 4) + CrtRand() % (2 * PG().sparks.target_spread) - PG().sparks.target_spread);
 				}
 			}
 		}
@@ -405,18 +472,18 @@ namespace blaster186
 	// ------------------------------------------------------------------
 	// Glow (0x5C0690)
 	// ------------------------------------------------------------------
-	static int32_t GlowColour(int32_t c) { return shl32(0x16 - c, 4); }
+	static int32_t GlowColour(int32_t c) { return shl32(PG().glow.ticks - c, 4); }
 
 	static void GlowDraw(uint32_t n, int32_t colour)
 	{
 		const int16_t r = S16(n, 0x1C);
-		TransformCameraByShadowRotation((const void *)MOUTH, (int32_t)(uint16_t)r, -(r >> 4));
+		TransformCameraByShadowRotation((const void *)own::R(MOUTH), (int32_t)(uint16_t)r, -(r >> 4));
 		const uint32_t h = P(FieldAlloc(0xB4));
 		const int16_t c = S16(n, 0xC);
-		U32(h, 0) = SEQ_Glow;
+		U32(h, 0) = fxp::sequence(PG().seqs.glow, SEQ_Glow);
 		U16(h, 4) = (uint16_t)(c & 0xF);
 		U16(h, 0x24) = 0;
-		if (c >= 0xE)
+		if (c >= PG().glow.fade)
 		{
 			U16(h, 0x24) = 4;
 			U8(h, 0x1E) = U8(h, 0x1D) = U8(h, 0x1C) = (uint8_t)colour;
@@ -430,39 +497,40 @@ namespace blaster186
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(held_note_node(REC_GLOW, n);)
+		FX_PART(PART_GLOW);
 		GlowDraw(n, GlowColour(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		return S16(n, 0xC) >= 0x16 ? TASK_END : 0;
+		return S16(n, 0xC) >= PG().glow.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
 	// Shock wave (0x5C0750)
 	// ------------------------------------------------------------------
-	static int32_t WaveFade(int32_t c) { return shl32(c - 0x10, 9); }
+	static int32_t WaveFade(int32_t c) { return shl32(c - PG().wave.fade, 9); }
 
 	static void WaveDraw(uint32_t n, int32_t fade)
 	{
 		const int16_t ang[3] = { 0, S16(n, 0x18), 0 };
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
-		m.t[0] = S16(TGT, 0);
-		m.t[1] = S16(TGT, 2);
+		m.t[0] = S16(own::R(TGT), 0);
+		m.t[1] = S16(own::R(TGT), 2);
 		const int32_t s = S16(n, 0x1C);
 		const int32_t sc[3] = { s, s, s };
-		m.t[2] = S16(TGT, 4);
+		m.t[2] = S16(own::R(TGT), 4);
 		ScaleMatrix(&m, sc);
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
 		const int16_t c = S16(n, 0xC);
-		U32(h, 0) = MODEL_Wave;
+		U32(h, 0) = fxp::model(PG().models.wave, MODEL_Wave);
 		U32(h, 8) = 0;
 		U32(h, 0x10) = (uint32_t)(~((int32_t)c % 8) & 1);
 		U32(h, 0x1C) = 0x1433;
 		U32(h, 0x18) = U32(WAVE_TEXTURES, 4 * (c & 7));
-		if (c >= 0x10)
+		if (c >= PG().wave.fade)
 		{
 			U32(h, 0x1C) = 0x14F3;
 			S32(h, 0xC) = fade;
@@ -476,18 +544,19 @@ namespace blaster186
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(held_note_node(REC_WAVE, n);)
+		FX_PART(PART_WAVE);
 		WaveDraw(n, WaveFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		int32_t d = ComputeSin(shl32(c, 11) / 24);
-		d = (d * 40) >> 12;
+		int32_t d = ComputeSin(shl32(c, 11) / (PG().wave.ticks > 0 ? PG().wave.ticks : 1));
+		d = (d * PG().wave.shake) >> 12;
 		int16_t &w = *(int16_t *)(Target() + 0x20);
 		const int16_t base = S16(n, 0x14);
 		w = base;
 		if (!(c & 1)) d = -d;
 		w = (int16_t)(d + base);
 		S16(n, 0xC) = (int16_t)(c + 1);
-		if (S16(n, 0xC) < 0x18) return 0;
+		if (S16(n, 0xC) < PG().wave.ticks) return 0;
 		w = base;
 		return TASK_END;
 	}
@@ -498,12 +567,12 @@ namespace blaster186
 	// h: the sequence header (0xB4), w: work (0x48): +8 camera x aim at the target point, +0x28 direction, +0x38 point
 	static void SplashSetup(uint32_t h, uint32_t w)
 	{
-		U32(h, 0) = SEQ_Splash;
+		U32(h, 0) = fxp::sequence(PG().seqs.splash, SEQ_Splash);
 		U16(h, 0x24) = 0;
 		memcpy((void *)(w + 8), (const void *)Aim(), 0x20);
-		S32(w, 0x1C) = S16(TGT, 0);
-		S32(w, 0x20) = S16(TGT, 2);
-		S32(w, 0x24) = S16(TGT, 4);
+		S32(w, 0x1C) = S16(own::R(TGT), 0);
+		S32(w, 0x20) = S16(own::R(TGT), 2);
+		S32(w, 0x24) = S16(own::R(TGT), 4);
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(w + 8), (Mat4x3 *)(w + 8));
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBKFromMatrix((const void *)(w + 8));
@@ -530,11 +599,12 @@ namespace blaster186
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(held_note_parts(REC_SPLASHES, n);)
+		FX_PART(PART_SPLASHES);
 		const uint32_t h = P(FieldAlloc(0xB4));
 		uint32_t w = P(FieldAlloc(0x48));
 		int alive = 0;
 		SplashSetup(h, w);
-		for (uint32_t p = PARTS; p < PARTS_END; p += 0x18)
+		for (uint32_t p = own::R(PARTS); p < own::R(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 2)) continue;
 			// 30 fps layer: see mag186_blaster_held.inc
@@ -559,23 +629,23 @@ namespace blaster186
 		if (DrawOnly()) return 0;
 		w = P(FieldAlloc(0x48));
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0xE)
+		if (c >= 0 && c < PG().splashes.ticks)
 		{
-			for (int k = 0; k < 4; k++)
+			for (int k = 0; k < PG().splashes.count; k++)
 			{
 				const uint32_t p = FreeParticle();
 				if (!p) break;
 				U32(p, P_MASK) = 2;
 				S16(p, P_FRAME) = 0;
-				S16(p, P_SIZE) = (int16_t)(CrtRand() % 0x800 + 0x900);
-				S16(p, P_POS) = (int16_t)(CrtRand() % 0x190 - 0xC8);
-				S16(p, P_POS + 2) = (int16_t)(CrtRand() % 0x190 - 0xC8);
-				S16(p, P_POS + 4) = (int16_t)-(CrtRand() % 0x64);
+				S16(p, P_SIZE) = (int16_t)(CrtRand() % PG().splashes.size_rand + PG().splashes.size);
+				S16(p, P_POS) = (int16_t)(CrtRand() % (2 * PG().splashes.spread) - PG().splashes.spread);
+				S16(p, P_POS + 2) = (int16_t)(CrtRand() % (2 * PG().splashes.spread) - PG().splashes.spread);
+				S16(p, P_POS + 4) = (int16_t)-(CrtRand() % PG().splashes.depth);
 				S32(w, 0x28) = CrtRand() % 0x1000 - 0x800;
 				S32(w, 0x2C) = CrtRand() % 0x1000 - 0x800;
 				S32(w, 0x30) = -(CrtRand() % 0x500);
 				NormalizeVector((const int32_t *)(w + 0x28), (int32_t *)(w + 0x28));
-				const int32_t sp = CrtRand() % 0x104 + 0xC8;
+				const int32_t sp = CrtRand() % PG().splashes.speed_rand + PG().splashes.speed;
 				S16(p, P_VEL) = (int16_t)(mul32(sp, S32(w, 0x28)) >> 12);
 				S16(p, P_VEL + 2) = (int16_t)(mul32(S32(w, 0x2C), sp) >> 12);
 				S16(p, P_VEL + 4) = (int16_t)(mul32(S32(w, 0x30), sp) >> 12);
@@ -612,6 +682,7 @@ namespace blaster186
 		if (v < 0) return TASK_END;
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(held_note_node(REC_FADE, n);)
+		FX_PART(PART_FADE);
 		FadeDraw(v);
 		return 0;
 	}
@@ -622,80 +693,82 @@ namespace blaster186
 	static uint32_t __cdecl DirectorTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		SpawnPosition(Caster(), 0x15, 0x1000, (int16_t *)MOUTH);
-		if (S16(n, 0xC) == 0) GetDefaultEffectPosition(Target(), (int16_t *)TGT);
-		S32(AIMV, 0) = S16(TGT, 0) - S16(MOUTH, 0);
-		S32(AIMV, 4) = 0;
-		S32(AIMV, 8) = S16(TGT, 4) - S16(MOUTH, 4);
+		SpawnPosition(Caster(), PG().mouth.point, 0x1000, (int16_t *)own::R(MOUTH));
+		if (S16(n, 0xC) == 0) GetDefaultEffectPosition(Target(), (int16_t *)own::R(TGT));
+		S32(own::R(AIMV), 0) = S16(own::R(TGT), 0) - S16(own::R(MOUTH), 0);
+		S32(own::R(AIMV), 4) = 0;
+		S32(own::R(AIMV), 8) = S16(own::R(TGT), 4) - S16(own::R(MOUTH), 4);
 		int32_t flat[3], axis[3];
 		Mat4x3 m;
-		NormalizeVector((const int32_t *)AIMV, flat);
+		NormalizeVector((const int32_t *)own::R(AIMV), flat);
 		int32_t a = RotationBetweenVectors((const int32_t *)AIM_FROM, flat, axis);
 		BuildAxisAngleRotationMatrix(a, Aim(), axis);
-		S32(AIMV, 4) = S16(TGT, 2) - S16(MOUTH, 2);
-		S16(MOUTH, 6) = (int16_t)Sqrt(Normalize((const int32_t *)AIMV, (int32_t *)AIMV));
-		a = RotationBetweenVectors(flat, (const int32_t *)AIMV, axis);
+		S32(own::R(AIMV), 4) = S16(own::R(TGT), 2) - S16(own::R(MOUTH), 2);
+		S16(own::R(MOUTH), 6) = (int16_t)Sqrt(Normalize((const int32_t *)own::R(AIMV), (int32_t *)own::R(AIMV)));
+		a = RotationBetweenVectors(flat, (const int32_t *)own::R(AIMV), axis);
 		BuildAxisAngleRotationMatrix(a, &m, axis);
 		GteMatrixMultiply(&m, Aim());
-		const int32_t dx = S32(AIMV, 0), dz = S32(AIMV, 8);
+		const int32_t dx = S32(own::R(AIMV), 0), dz = S32(own::R(AIMV), 8);
 		const int16_t c = S16(n, 0xC);
-		S16(MOUTH, 6) = (int16_t)(S16(MOUTH, 6) - 300);
-		S16(MOUTH, 0) = (int16_t)(S16(MOUTH, 0) + (mul32(dx, 300) >> 12));
-		const int32_t dy = S32(AIMV, 4);
-		S16(MOUTH, 2) = (int16_t)(S16(MOUTH, 2) + (mul32(dy, 300) >> 12));
-		S16(MOUTH, 4) = (int16_t)(S16(MOUTH, 4) + (mul32(dz, 300) >> 12));
+		const int32_t out = PG().mouth.out, pull = -PG().mouth.pull;
+		S16(own::R(MOUTH), 6) = (int16_t)(S16(own::R(MOUTH), 6) - out);
+		S16(own::R(MOUTH), 0) = (int16_t)(S16(own::R(MOUTH), 0) + (mul32(dx, out) >> 12));
+		const int32_t dy = S32(own::R(AIMV), 4);
+		S16(own::R(MOUTH), 2) = (int16_t)(S16(own::R(MOUTH), 2) + (mul32(dy, out) >> 12));
+		S16(own::R(MOUTH), 4) = (int16_t)(S16(own::R(MOUTH), 4) + (mul32(dz, out) >> 12));
 		if (c == 0)
 		{
-			S16(TGT, 0) = (int16_t)(S16(TGT, 0) + (mul32(dx, -400) >> 12));
-			S16(TGT, 2) = (int16_t)(S16(TGT, 2) + (mul32(dy, -400) >> 12));
-			S16(TGT, 4) = (int16_t)(S16(TGT, 4) + (mul32(dz, -400) >> 12));
+			S16(own::R(TGT), 0) = (int16_t)(S16(own::R(TGT), 0) + (mul32(dx, pull) >> 12));
+			S16(own::R(TGT), 2) = (int16_t)(S16(own::R(TGT), 2) + (mul32(dy, pull) >> 12));
+			S16(own::R(TGT), 4) = (int16_t)(S16(own::R(TGT), 4) + (mul32(dz, pull) >> 12));
 		}
 		if (DrawOnly()) return 0;
 		if (c == 0)
 		{
-			static const uint32_t KEYS[5] = { 0xD1E274, 0xD1E5AC, 0xD1E8E4, 0xD1EC1C, 0xD1E274 };
+			// (the game's keys: 0xD1E274, 0xD1E5AC, 0xD1E8E4, 0xD1EC1C, the first again)
+			const uint32_t keys[5] = { Key(0), Key(1), Key(2), Key(3), Key(0) };
 			for (int k = 0; k < 4; k++)
 				for (int i = 0; i < 4; i++)
-					MorphMesh(KEYS[k], KEYS[k + 1], U32(0xD20814 + 0x14 * k, 4 * i), 0x333 * (i + 1));
+					MorphMesh(keys[k], keys[k + 1], own::R(U32(0xD20814 + 0x14 * k, 4 * i)), 0x333 * (i + 1));
 		}
-		if (S16(n, 0xC) == 7)
+		if (S16(n, 0xC) == PG().timing.charge)
 		{
 			const uint32_t t = NewTask(ORIG_Charge);
 			S16(t, 0xE) = 1;
 		}
-		if (S16(n, 0xC) == 0x27)
+		if (S16(n, 0xC) == PG().timing.fade)
 		{
 			const uint32_t t = NewTask(ORIG_Fade);
-			S16(t, 0xE) = 0xE10;
-			S16(t, 0x1C) = 0xFF;
+			S16(t, 0xE) = (int16_t)((PG().fade.up & 0xF) | (PG().fade.hold & 0xF) << 4 | (PG().fade.down & 0xF) << 8);
+			S16(t, 0x1C) = PG().fade.level;
 		}
-		if (S16(n, 0xC) == 0x28)
+		if (S16(n, 0xC) == PG().timing.bolts)
 		{
 			const uint32_t t = NewTask(ORIG_Bolts);
 			S16(t, 0xE) = 1;
 		}
-		if (S16(n, 0xC) == 0x27)
+		if (S16(n, 0xC) == PG().timing.sparks) NewTask(ORIG_Sparks);
+		if (S16(n, 0xC) == PG().timing.glow)
 		{
-			NewTask(ORIG_Sparks);
 			const uint32_t t = NewTask(ORIG_Glow);
-			S16(t, 0x1C) = 0xE00;
+			S16(t, 0x1C) = PG().glow.size;
 		}
-		if (S16(n, 0xC) == 0x28)
+		if (S16(n, 0xC) == PG().timing.wave)
 		{
 			const uint32_t t = NewTask(ORIG_Wave);
-			S16(t, 0x1C) = 0x1600;
+			S16(t, 0x1C) = PG().wave.size;
 			U32(t, 0x10) = *(const uint32_t *)(Target() + 0x1C);
 			U32(t, 0x14) = *(const uint32_t *)(Target() + 0x20);
-			S16(t, 0x18) = (int16_t)(*(const int16_t *)(Caster() + 0xE) + 0x800);
-			NewTask(ORIG_Splashes);
+			S16(t, 0x18) = (int16_t)(*(const int16_t *)(Caster() + 0xE) + PG().wave.turn);
 		}
-		if (S16(n, 0xC) == 0x3C) ApplyActionResultToTarget((uint8_t *)U32(U32(Ctx(), 4), 8));
+		if (S16(n, 0xC) == PG().timing.splashes) NewTask(ORIG_Splashes);
+		if (S16(n, 0xC) == PG().timing.damage) ApplyActionResultToTarget((uint8_t *)U32(U32(Ctx(), 4), 8));
 		const int16_t t = S16(n, 0xC);
-		if (t <= 0x10) SetScreenFlash((uint32_t)shl32(t, 7), 0);
-		else if (t >= 0x39) SetScreenFlash((uint32_t)shl32(0x41 - t, 8), 0);
-		if (S16(n, 0xC) == 7) BdPlaySE((const void *)SOUND_Charge, 0, 0x80);
+		if (t <= PG().flash.up) SetScreenFlash((uint32_t)shl32(t, 7), 0);
+		else if (t >= PG().flash.down) SetScreenFlash((uint32_t)shl32(PG().timing.end - t, 8), 0);
+		if (S16(n, 0xC) == PG().timing.sound) BdPlaySE((const void *)fxp::sound(PG().sound, SOUND_Charge), 0, 0x80);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		if (S16(n, 0xC) <= 0x41) return 0;
+		if (S16(n, 0xC) <= PG().timing.end) return 0;
 		SetScreenFlash(0, 0);
 		return TASK_END;
 	}
@@ -712,7 +785,7 @@ namespace blaster186
 		const int running = ExecuteTaskQueue(EffectQueue());
 		if (!running)
 		{
-			const uint32_t w = P(AddTaskToQueue(RootQueue(), ORIG_TexRestore));
+			const uint32_t w = P(AddTaskToQueue(RootQueue(), own::Fn(ORIG_TexRestore)));
 			S16(w, 0xC) = 0;
 			S16(w, 0xE) = 0;
 		}
@@ -729,20 +802,162 @@ namespace blaster186
 		return done ? TASK_END : 0;
 	}
 
+	// ------------------------------------------------------------------
+	// File loader (0x5BF6D0) and setup (0x5BF6F0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the texture, the magic buffer, the cast, its first target's and its caster's slots, the root and the
+	// director, the particles freed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = (uint32_t)ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(RootQueue(), (void *)own::R(0x22B7608), 0x10, 2);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(RootQueue(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x22B9940), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(PARTS); a < own::R(PARTS_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return RootQueue();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The director's ticks: each part's start, the sound, the damage, the end; the mouth point and the aim (every tick), the screen flash; the bolt's in-between meshes (tick 0); the charge's beams and rings; the texture and the camera" },
+			{ PART_FADE, "fade", "Screen fade", "A red full-screen fade: up, held, down (its colour v, v / 4, v / 4)" },
+			{ PART_BEAMS, "beams", "Charge beams", "Beams between two of the caster's points, each with a ring fading over its second half, at the boundaries of the exe's interval table" },
+			{ PART_BOLTS, "bolts", "Bolts", "Bolt meshes from the mouth to the target, flickering through their key and in-between meshes, turning, fading over their last ticks" },
+			{ PART_SPARKS, "sparks", "Sparks", "Still sparks at the mouth and at the target, each playing its flipbook once" },
+			{ PART_GLOW, "glow", "Glow", "A glow flipbook at the mouth, dimming at the end" },
+			{ PART_WAVE, "wave", "Shock wave", "A shock wave mesh at the target, its texture cycling, fading at the end; the target shaken" },
+			{ PART_SPLASHES, "splashes", "Splashes", "Splashes thrown out from the target along the aim, slowing" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The director's ticks" },
+			{ "flash", "Screen flash", "Up by 128 a tick until tick up, down from tick down to 0 at the end" },
+			{ "mouth", "Mouth", "The point the bolts leave" },
+		};
+#define BPF(member) (uint32_t)offsetof(BlasterParams, member)
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's sound tick", BPF(sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.charge", "Charge", "The charge (its beams and rings) starts", BPF(timing.charge), fxp::I16, 0, 200 },
+			{ "director", "timing.sound", "Sound", "The sound", BPF(timing.sound), fxp::I16, 0, 200 },
+			{ "director", "timing.fade", "Screen fade", "The screen fade starts", BPF(timing.fade), fxp::I16, 0, 200 },
+			{ "director", "timing.sparks", "Sparks", "The sparks start", BPF(timing.sparks), fxp::I16, 0, 200 },
+			{ "director", "timing.glow", "Glow", "The glow starts", BPF(timing.glow), fxp::I16, 0, 200 },
+			{ "director", "timing.bolts", "Bolts", "The bolts start", BPF(timing.bolts), fxp::I16, 0, 200 },
+			{ "director", "timing.wave", "Shock wave", "The shock wave starts", BPF(timing.wave), fxp::I16, 0, 200 },
+			{ "director", "timing.splashes", "Splashes", "The splashes start", BPF(timing.splashes), fxp::I16, 0, 200 },
+			{ "director", "timing.damage", "Damage", "The damage to the target", BPF(timing.damage), fxp::I16, 0, 200 },
+			{ "director", "timing.end", "End", "The director's last tick (the screen flash back to 0)", BPF(timing.end), fxp::I16, 0, 200 },
+			{ "director", "flash.up", "Up until", "The flash at tick x 128 until this tick", BPF(flash.up), fxp::I16, 0, 200 },
+			{ "director", "flash.down", "Down from", "From this tick (end - tick) x 256", BPF(flash.down), fxp::I16, 0, 200 },
+			{ "director", "mouth.point", "Point", "The caster's effect point of the mouth", BPF(mouth.point), fxp::I16, 0, 0xFF },
+			{ "director", "mouth.out", "Out", "The mouth point moved this far along the aim (the bolts this much shorter)", BPF(mouth.out), fxp::I16, -0x2000, 0x2000 },
+			{ "director", "mouth.pull", "Target pull", "The target point (the sparks', wave's and splashes') pulled back this far towards the caster", BPF(mouth.pull), fxp::I16, -0x2000, 0x2000 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", BPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", BPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "fade", "fade.up", "Up", "Ticks up to the level (0: at once)", BPF(fade.up), fxp::I16, 0, 15 },
+			{ "fade", "fade.hold", "Hold", "Ticks held", BPF(fade.hold), fxp::I16, 0, 15 },
+			{ "fade", "fade.down", "Down", "Ticks down to none", BPF(fade.down), fxp::I16, 0, 15 },
+			{ "fade", "fade.level", "Level", "Its red at the top (green and blue a quarter of it)", BPF(fade.level), fxp::I16, 0, 0xFF },
+			{ "beams", "charge.point_a", "Point 1", "The caster's effect point the beam ends at (its middle: the beam's point)", BPF(charge.point_a), fxp::I16, 0, 0xFF },
+			{ "beams", "charge.point_b", "Point 2", "The other one", BPF(charge.point_b), fxp::I16, 0, 0xFF },
+			{ "beams", "charge.ticks", "Ticks", "The charge's ticks (a beam and its ring at each odd interval's start of the exe's table)", BPF(charge.ticks), fxp::I16, 0, 200 },
+			{ "beams", "beams.length", "Length", "A beam's length scale (x the points' distance / 820)", BPF(beams.length), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "beams", "beams.width", "Width", "A beam's width", BPF(beams.width), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "beams", "beam_rings.size", "Ring size", "A ring's size: this + a random below the next", BPF(beam_rings.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "beams", "beam_rings.size_rand", "Ring size random", "(at least 1)", BPF(beam_rings.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "beams", "seqs.beam", "Beam", "The sprite sequence of the beams (a flipbook: an edited one keeps as many frames)", BPF(seqs.beam), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "beams", "models.beam_ring", "Ring", "The prim model of the beams' rings (a mesh: an edited one keeps its vertices)", BPF(models.beam_ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolts", "bolts.ticks", "Ticks", "A bolt on each odd tick before this one", BPF(bolts.ticks), fxp::I16, 0, 200 },
+			{ "bolts", "bolts.end", "End", "Their spawner's last tick", BPF(bolts.end), fxp::I16, 0, 200 },
+			{ "bolts", "bolts.life", "Life", "A bolt's ticks: this + a random below the next", BPF(bolts.life), fxp::I16, 0, 200 },
+			{ "bolts", "bolts.life_rand", "Life random", "(at least 1)", BPF(bolts.life_rand), fxp::I16, 1, 200 },
+			{ "bolts", "bolts.spin", "Spin", "Its z angle step a tick (either way by turns)", BPF(bolts.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "bolts", "bolts.size", "Size", "Its width: this + a random below the next (its length: the aim's)", BPF(bolts.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "bolts", "bolts.size_rand", "Size random", "(at least 1)", BPF(bolts.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "bolts", "bolts.fade", "Fade", "Fading out over its last ticks (at least 1)", BPF(bolts.fade), fxp::I16, 1, 200 },
+			{ "bolts", "bolts.frames", "First frames", "Its first mesh frame: a random below this (of 20: the keys and their in-betweens; at least 1)", BPF(bolts.frames), fxp::I16, 1, 20 },
+			{ "bolts", "models.bolt", "Bolt", "The prim model of the bolts (a mesh of 102 vertices: its vertices are the key sets' and their in-betweens; edit its faces)", BPF(models.bolt), fxp::Model, 0, 0x7FFFFFFF },
+			{ "bolts", "keys.a", "Key 1", "The bolt's first key vertices (102 vertices x, y, z after its size and count: an edited one keeps the count)", BPF(keys.a), fxp::Data, 0, 0x7FFFFFFF },
+			{ "bolts", "keys.b", "Key 2", "The second key (the in-betweens: 4 between each key and the next, the last back to the first)", BPF(keys.b), fxp::Data, 0, 0x7FFFFFFF },
+			{ "bolts", "keys.c", "Key 3", "The third key", BPF(keys.c), fxp::Data, 0, 0x7FFFFFFF },
+			{ "bolts", "keys.d", "Key 4", "The fourth key", BPF(keys.d), fxp::Data, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.ticks", "Ticks", "One spark at the mouth and one at the target a tick on its first ticks (100 alive at most, with the splashes)", BPF(sparks.ticks), fxp::I16, 0, 200 },
+			{ "sparks", "sparks.size", "Mouth size", "A mouth spark's size: this + a random below the next", BPF(sparks.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "sparks", "sparks.size_rand", "Mouth size random", "(at least 1)", BPF(sparks.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "sparks", "sparks.spread", "Mouth spread", "Up to this far from the mouth on each axis (at least 1)", BPF(sparks.spread), fxp::I16, 1, 0x3FFF },
+			{ "sparks", "sparks.target_size", "Target size", "A target spark's size: this + a random below the next", BPF(sparks.target_size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "sparks", "sparks.target_size_rand", "Target size random", "(at least 1)", BPF(sparks.target_size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "sparks", "sparks.target_spread", "Target spread", "Up to this far from the target point on each axis (at least 1)", BPF(sparks.target_spread), fxp::I16, 1, 0x3FFF },
+			{ "sparks", "seqs.spark", "Spark", "The sprite sequence of the sparks (a flipbook: an edited one keeps as many frames)", BPF(seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "glow", "glow.size", "Size", "Its size", BPF(glow.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "glow", "glow.ticks", "Ticks", "Its ticks (its frame: the tick's low 4 bits)", BPF(glow.ticks), fxp::I16, 0, 200 },
+			{ "glow", "glow.fade", "Dim from", "From this tick drawn at (ticks - tick) x 16", BPF(glow.fade), fxp::I16, 0, 200 },
+			{ "glow", "seqs.glow", "Glow", "The sprite sequence of the glow (a flipbook: an edited one keeps as many frames)", BPF(seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "wave", "wave.size", "Size", "Its size", BPF(wave.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "wave", "wave.ticks", "Ticks", "Its ticks (the shake: half a sine over them)", BPF(wave.ticks), fxp::I16, 1, 200 },
+			{ "wave", "wave.fade", "Fade from", "Fading out by 512 a tick from this tick", BPF(wave.fade), fxp::I16, 0, 200 },
+			{ "wave", "wave.shake", "Shake", "The target's z shaken by up to this (either way by turns)", BPF(wave.shake), fxp::I16, -0x1000, 0x1000 },
+			{ "wave", "wave.turn", "Turn", "Its y angle: the caster's + this", BPF(wave.turn), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "wave", "models.wave", "Shock wave", "The prim model of the shock wave (a mesh: an edited one keeps its vertices; its texture words from the exe's table)", BPF(models.wave), fxp::Model, 0, 0x7FFFFFFF },
+			{ "splashes", "splashes.ticks", "Ticks", "New splashes on its first ticks", BPF(splashes.ticks), fxp::I16, 0, 200 },
+			{ "splashes", "splashes.count", "Count", "Splashes a tick", BPF(splashes.count), fxp::I16, 0, 100 },
+			{ "splashes", "splashes.size", "Size", "A splash's size: this + a random below the next", BPF(splashes.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "splashes", "splashes.size_rand", "Size random", "(at least 1)", BPF(splashes.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "splashes", "splashes.spread", "Spread", "Its start up to this far sideways from the target point (at least 1)", BPF(splashes.spread), fxp::I16, 1, 0x3FFF },
+			{ "splashes", "splashes.depth", "Depth", "And up to this far back along the aim (at least 1)", BPF(splashes.depth), fxp::I16, 1, 0x3FFF },
+			{ "splashes", "splashes.speed", "Speed", "Its speed: this + a random below the next (losing a quarter a tick)", BPF(splashes.speed), fxp::I16, 0, 0x3FFF },
+			{ "splashes", "splashes.speed_rand", "Speed random", "(at least 1)", BPF(splashes.speed_rand), fxp::I16, 1, 0x3FFF },
+			{ "splashes", "seqs.splash", "Splash", "The sprite sequence of the splashes (a flipbook: an edited one keeps as many frames)", BPF(seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef BPF
+	}
+
 	void register_mag186_blaster_ports()
 	{
+		fxp::register_params({ 186, "Blaster", &live, &GAME, sizeof(BlasterParams),
+		                       table::PARTS, (int)(sizeof(table::PARTS) / sizeof(table::PARTS[0])),
+		                       table::FIELDS, (int)(sizeof(table::FIELDS) / sizeof(table::FIELDS[0])),
+		                       table::GROUPS, (int)(sizeof(table::GROUPS) / sizeof(table::GROUPS[0])) });
+		own::note(ORIG_FileLoader, (void *)FileLoader);
+		own::note(ORIG_Setup, (void *)Setup);
+		own::note(ORIG_Root, (void *)RootTask);
 		register_port(ORIG_Root, (void *)RootTask, "186 RootTask", 186);
+		own::note(ORIG_TexRestore, (void *)TexRestoreTask);
 		register_port(ORIG_TexRestore, (void *)TexRestoreTask, "186 TexRestoreTask", 186);
+		own::note(ORIG_Director, (void *)DirectorTask);
 		register_port(ORIG_Director, (void *)DirectorTask, "186 DirectorTask", 186);
+		own::note(ORIG_Fade, (void *)FadeTask);
 		register_port(ORIG_Fade, (void *)FadeTask, "186 FadeTask", 186);
+		own::note(ORIG_Charge, (void *)ChargeTask);
 		register_port(ORIG_Charge, (void *)ChargeTask, "186 ChargeTask", 186);
+		own::note(ORIG_Beam, (void *)BeamTask);
 		register_port(ORIG_Beam, (void *)BeamTask, "186 BeamTask", 186);
+		own::note(ORIG_BeamRing, (void *)BeamRingTask);
 		register_port(ORIG_BeamRing, (void *)BeamRingTask, "186 BeamRingTask", 186);
+		own::note(ORIG_Bolts, (void *)BoltsTask);
 		register_port(ORIG_Bolts, (void *)BoltsTask, "186 BoltsTask", 186);
+		own::note(ORIG_Bolt, (void *)BoltTask);
 		register_port(ORIG_Bolt, (void *)BoltTask, "186 BoltTask", 186);
+		own::note(ORIG_Sparks, (void *)SparksTask);
 		register_port(ORIG_Sparks, (void *)SparksTask, "186 SparksTask", 186);
+		own::note(ORIG_Glow, (void *)GlowTask);
 		register_port(ORIG_Glow, (void *)GlowTask, "186 GlowTask", 186);
+		own::note(ORIG_Wave, (void *)WaveTask);
 		register_port(ORIG_Wave, (void *)WaveTask, "186 WaveTask", 186);
+		own::note(ORIG_Splashes, (void *)SplashesTask);
 		register_port(ORIG_Splashes, (void *)SplashesTask, "186 SplashesTask", 186);
 		// 30 fps layer: see mag186_blaster_held.inc
 		FX_HELD(register_mag186_held();)
