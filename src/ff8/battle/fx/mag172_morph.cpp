@@ -40,9 +40,15 @@
 // Every drawing task draws first and updates afterwards; on draw-only ticks it returns after drawing.
 // ENTITY WRITES: the caster's flag word +0 bit 2 (hidden while it is redrawn; cleared at the end). CAMERA: the camera animation
 // 0xD61E28 (engine). Module globals: 0x239A8E0..0x23AD700.
+// FUJIN: Fujin's described Morph (effect_172.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the file loader (0x5D9CB0) and the setup (0x5D9CD0) ported below; its parameters (MorphParams: the
+// sound and the director's ticks, the two rings, the sparkles, the tinted caster, the sparkle flipbook, the ring mesh,
+// the texture name and the camera track). The rings' radii and waved vertices are the drawn mesh's own (the game's: its
+// model + 8), so an edited mesh's vertices are the ones drawn. FX_PART tags its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -60,11 +66,11 @@ namespace morph172
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
 	// --- module globals ---
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x239A8F8; }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x239BEA8; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x239D4F0); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x239D4F4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23AD6FC); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x239A8F8); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x239BEA8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x239D4F0)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x239D4F4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23AD6FC)); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	inline uint8_t *TintEntity() { return Entity(CasterSlot()); }
 	static const uint32_t SPARKS = 0x239A908, SPARKS_END = 0x239B268;   // 100 x 0x18 bytes
@@ -77,6 +83,35 @@ namespace morph172
 		ORIG_Sparks = 0x5DA2C0, ORIG_Tint = 0x5DA520;
 	static const uint32_t MODEL_Ring = 0xD6299C, SEQ_Spark = 0xD61F8C, SOUND_Morph = 0xD655DC;
 	static const uint32_t *const TINT_COLOURS = (const uint32_t *)0xD655E4;
+	static const uint32_t ORIG_FileLoader = 0x5D9CB0, ORIG_Setup = 0x5D9CD0;
+	static const uint32_t TEXTURE_NAME = 0xD65634, CAMERA = 0xD61E28;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x239D6F8)); }
+	inline int32_t &FirstTarget() { return var<int32_t>(own::R(0x239A8E0)); }
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_RINGS = 1, PART_SPARKS = 2, PART_TINT = 3 };
+	struct MorphParams
+	{
+		uint32_t sound;                                     // at the director's sound tick, at the caster
+		struct { int16_t rings, sparks, sound, tint, end; } timing; // the director's ticks (its tick 0: the caster's point)
+		// the two rings at the caster's point: sizes, angle step, each one's turn (x its angle), ticks, the fade (in over
+		// its first ticks from none to the hold level, out from tick out back to none), the vertices' twist by their radius
+		struct { int16_t size_a, size_b, spin, turn_a, turn_b, ticks, in, out, hold, twist; } rings;
+		struct { int16_t ticks, size, size_rand, spread; } sparks; // one sparkle a tick at a random bone of the caster
+		struct { int16_t ticks, radius, in, out; } tint;   // the caster redrawn with a colour cycle on its faces near its point
+		struct { uint32_t spark; } seqs;                    // the sprite sequence drawn (flipbook)
+		struct { uint32_t ring; } models;                   // the prim model drawn (mesh)
+		struct { uint32_t texture_name, camera; } res;      // its resources (data): texture file name, camera track
+	};
+	static const MorphParams GAME = { SOUND_Morph, { 1, 1, 1, 8, 0x3C },
+		{ 0xC00, 0x1600, -10, -2, -3, 0x38, 8, 0x30, 0xC00, 0 }, { 0x2B, 0x140, 0x680, 0xB4 }, { 0x38, 0x3E8, 8, 0x30 },
+		{ SEQ_Spark }, { MODEL_Ring }, { TEXTURE_NAME, CAMERA } };
+	static MorphParams live = GAME;
+	static const MorphParams &PG() { return live; }
+	inline uint32_t RingModel() { return fxp::model(PG().models.ring, MODEL_Ring); }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -386,7 +421,7 @@ namespace morph172
 		S32(h, 0xAC) = S16(n, 0x12);
 		S32(h, 0xA8) = S16(n, 0x10);
 		S32(h, 0xB0) = S16(n, 0x14);
-		S32(h, 0xB4) = 0x3E8;
+		S32(h, 0xB4) = PG().tint.radius;
 		U32(h, 0xB8) = colour;
 		GteSetFarColorB(0, 0, 0);
 		GteLoadRGBC(h + 0xB8);
@@ -397,21 +432,28 @@ namespace morph172
 		FieldFree(0xDC);
 	}
 
-	// fade of the tinted caster: in over ticks 0..8, none, out from 0x30
-	static int32_t TintFade(int32_t c) { return c < 8 ? shl32(8 - c, 9) : (c >= 0x30 ? shl32(c - 0x30, 9) : 0); }
+	// fade of the tinted caster: in over its first ticks (from black), none, out from tick out (to black at its end)
+	static int32_t TintFade(int32_t c)
+	{
+		const MorphParams &g = PG();
+		if (c < g.tint.in) return 0x1000 * (g.tint.in - c) / g.tint.in;
+		if (c >= g.tint.out) return 0x1000 * (c - g.tint.out) / (g.tint.ticks > g.tint.out ? g.tint.ticks - g.tint.out : 1);
+		return 0;
+	}
 
 	static uint32_t __cdecl TintTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		if (S16(n, 0xC) < 0x38)
+		if (S16(n, 0xC) < PG().tint.ticks)
 		{
+			FX_PART(PART_TINT);
 			// 30 fps layer: see mag172_morph_held.inc
 			FX_HELD(held_note_node(REC_TINT, n);)
 			TintDraw(n, TintFade(S16(n, 0xC)), TintColour(S16(n, 0xC)));
 		}
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		if (S16(n, 0xC) < 0x38) return 0;
+		if (S16(n, 0xC) < PG().tint.ticks) return 0;
 		*(uint16_t *)TintEntity() &= 0xFFFB;
 		return TASK_END;
 	}
@@ -419,11 +461,11 @@ namespace morph172
 	// ------------------------------------------------------------------
 	// Rings (0x5D9F20 / 0x5DA0F0)
 	// ------------------------------------------------------------------
-	// 0x5D9EE0: every mesh vertex's radius in xy
-	static void MeshRadii()
+	// 0x5D9EE0: every mesh vertex's radius in xy (mesh: the ring model's vertices)
+	static void MeshRadii(uint32_t mesh)
 	{
-		uint32_t v = MESH;
-		for (uint32_t o = RADII; o < RADII_END; o += 4, v += 8)
+		uint32_t v = mesh;
+		for (uint32_t o = own::R(RADII); o < own::R(RADII_END); o += 4, v += 8)
 		{
 			const int32_t x = S16(v, 0), y = S16(v, 2);
 			S32(o, 0) = Sqrt(mul32(x, x) + mul32(y, y));
@@ -431,10 +473,10 @@ namespace morph172
 	}
 
 	// 0x5DA050 / 0x5DA220: every mesh vertex turned in xy by sin(radius * 3) * amp into out
-	static void WaveVerts(uint32_t out, int32_t amp)
+	static void WaveVerts(uint32_t mesh, uint32_t out, int32_t amp)
 	{
-		uint32_t v = MESH + 2, r = RADII, o = out + 2;
-		for (; r < RADII_END; r += 4, v += 8, o += 8)
+		uint32_t v = mesh + 2, r = own::R(RADII), o = out + 2;
+		for (; r < own::R(RADII_END); r += 4, v += 8, o += 8)
 		{
 			const int32_t a = mul32(ComputeSin(S32(r, 0) * 3), amp) >> 12;
 			const int32_t c = ComputeCos(a), s = ComputeSin(a);
@@ -445,7 +487,14 @@ namespace morph172
 		}
 	}
 
-	static int32_t RingFade(int32_t c) { return c < 8 ? shl32(0x20 - c, 7) : (c >= 0x30 ? shl32(c - 0x18, 7) : 0xC00); }
+	// the rings' fade: from none (0x1000) to the hold level over their first ticks, back to none from tick out
+	static int32_t RingFade(int32_t c)
+	{
+		const MorphParams &g = PG();
+		if (c < g.rings.in) return 0x1000 - (0x1000 - g.rings.hold) * c / g.rings.in;
+		if (c >= g.rings.out) return g.rings.hold + (0x1000 - g.rings.hold) * (c - g.rings.out) / (g.rings.ticks > g.rings.out ? g.rings.ticks - g.rings.out : 1);
+		return g.rings.hold;
+	}
 
 	// the ring through the shadow-rotation camera at its point, turned by z angle mul x its angle; its vertices waved into verts
 	static void RingDraw(uint32_t n, int32_t mul, uint32_t verts, int32_t fade)
@@ -457,9 +506,10 @@ namespace morph172
 		ComposeZYXRotationMatrix(ang, &m);
 		GteMatrixMultiply(sm, &m);
 		GteSetRotMatrix(&m);
-		WaveVerts(verts, 0);
+		const uint32_t model = RingModel();
+		WaveVerts(model + 8, verts, PG().rings.twist);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Ring;
+		U32(h, 0) = model;
 		U32(h, 4) = verts;
 		S32(h, 0xC) = 0xC00;
 		U32(h, 8) = 0;
@@ -473,11 +523,12 @@ namespace morph172
 	{
 		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(held_note_node(second ? REC_RING2 : REC_RING, n);)
-		RingDraw(n, second ? -3 : -2, second ? RING_VERTS_B : RING_VERTS_A, RingFade(S16(n, 0xC)));
+		FX_PART(PART_RINGS);
+		RingDraw(n, second ? PG().rings.turn_b : PG().rings.turn_a, second ? own::R(RING_VERTS_B) : own::R(RING_VERTS_A), RingFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		return S16(n, 0xC) >= 0x38 ? TASK_END : 0;
+		return S16(n, 0xC) >= PG().rings.ticks ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl RingTask(TaskNode *tn) { return RingTaskImpl(P(tn), false); }
@@ -502,12 +553,13 @@ namespace morph172
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(held_note_parts(REC_SPARKS, n);)
+		FX_PART(PART_SPARKS);
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
-		U32(h, 0) = SEQ_Spark;
+		U32(h, 0) = fxp::sequence(PG().seqs.spark, SEQ_Spark);
 		U16(h, 0x24) = 2;
 		S32(h, 0x14) = 0x1000;
-		for (uint32_t p = SPARKS; p < SPARKS_END; p += 0x18)
+		for (uint32_t p = own::R(SPARKS); p < own::R(SPARKS_END); p += 0x18)
 		{
 			if (!(U8(p, 0) & 1)) continue;
 			// 30 fps layer: see mag172_morph_held.inc
@@ -525,24 +577,24 @@ namespace morph172
 		FieldFree(0xB4);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0x2A)
+		if (c >= 0 && c < PG().sparks.ticks)
 		{
 			const int32_t bones = *(const uint8_t *)U32(U32(P(TintEntity()), 0x64), 0);
 			int32_t i = 0;
-			uint32_t p = SPARKS;
+			uint32_t p = own::R(SPARKS);
 			for (; U32(p, 0) != 0; p += 0x18, i++)
-				if (p + 0x18 >= SPARKS_END) { p = 0; break; }
+				if (p + 0x18 >= own::R(SPARKS_END)) { p = 0; break; }
 			if (p && i < 0x64)
 			{
 				U32(p, 0) = 1;
 				S16(p, 4) = 0;
-				S16(p, 6) = (int16_t)(CrtRand() % 0x680 + 0x140);
+				S16(p, 6) = (int16_t)(CrtRand() % PG().sparks.size_rand + PG().sparks.size);
 				const int32_t flag = CrtRand() & 0xFFF;
 				const int32_t bone = CrtRand() % bones;
 				GetEffectSpawnPosition(TintEntity(), bone, flag, (int16_t *)(p + 8));
-				S16(p, 8) = (int16_t)(S16(p, 8) + CrtRand() % 0x168 - 0xB4);
-				S16(p, 0xA) = (int16_t)(S16(p, 0xA) + CrtRand() % 0x168 - 0xB4);
-				S16(p, 0xC) = (int16_t)(S16(p, 0xC) + CrtRand() % 0x168 - 0xB4);
+				S16(p, 8) = (int16_t)(S16(p, 8) + CrtRand() % (2 * PG().sparks.spread) - PG().sparks.spread);
+				S16(p, 0xA) = (int16_t)(S16(p, 0xA) + CrtRand() % (2 * PG().sparks.spread) - PG().sparks.spread);
+				S16(p, 0xC) = (int16_t)(S16(p, 0xC) + CrtRand() % (2 * PG().sparks.spread) - PG().sparks.spread);
 				S16(p, 0x10) = (int16_t)((U8(p, 8) & 1) ? 0x1000 : -0x1000);
 				S16(p, 0x12) = (int16_t)((U8(p, 0xA) & 1) ? 0x1000 : -0x1000);
 			}
@@ -556,7 +608,7 @@ namespace morph172
 	// ------------------------------------------------------------------
 	static uint32_t NewTask(uint32_t f)
 	{
-		const uint32_t t = P(AddTaskToQueue(EffectQueue(), f));
+		const uint32_t t = P(AddTaskToQueue(EffectQueue(), own::Fn(f)));
 		S16(t, 0xC) = 0;
 		return t;
 	}
@@ -566,37 +618,37 @@ namespace morph172
 		if (DrawOnly()) return 0;
 		const uint32_t n = P(tn);
 		if (S16(n, 0xC) == 0) GetDefaultEffectPosition(TintEntity(), (int16_t *)(n + 0x10));
-		if (S16(n, 0xC) == 1)
+		if (S16(n, 0xC) == PG().timing.rings)
 		{
 			uint32_t t = NewTask(ORIG_Ring);
 			U32(t, 0x10) = U32(n, 0x10);
 			U32(t, 0x14) = U32(n, 0x14);
 			S16(t, 0x18) = 0;
-			S16(t, 0x1A) = -10;
-			S16(t, 0x1C) = 0xC00;
+			S16(t, 0x1A) = PG().rings.spin;
+			S16(t, 0x1C) = PG().rings.size_a;
 			t = NewTask(ORIG_Ring2);
 			U32(t, 0x10) = U32(n, 0x10);
 			U32(t, 0x14) = U32(n, 0x14);
 			S16(t, 0x18) = 0;
-			S16(t, 0x1A) = -10;
-			S16(t, 0x1C) = 0x1600;
-			MeshRadii();
-			NewTask(ORIG_Sparks);
+			S16(t, 0x1A) = PG().rings.spin;
+			S16(t, 0x1C) = PG().rings.size_b;
+			MeshRadii(RingModel() + 8);
 		}
-		if (S16(n, 0xC) == 8)
+		if (S16(n, 0xC) == PG().timing.sparks) NewTask(ORIG_Sparks);
+		if (S16(n, 0xC) == PG().timing.tint)
 		{
 			const uint32_t t = NewTask(ORIG_Tint);
 			U32(t, 0x10) = U32(n, 0x10);
 			U32(t, 0x14) = U32(n, 0x14);
 		}
-		if (S16(n, 0xC) == 1)
+		if (S16(n, 0xC) == PG().timing.sound)
 		{
 			int16_t at[4];
 			GetDefaultEffectPosition(TintEntity(), at);
-			BdPlaySE3D((const void *)SOUND_Morph, 0, at);
+			BdPlaySE3D((const void *)fxp::sound(PG().sound, SOUND_Morph), 0, at);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		return S16(n, 0xC) > 0x3C ? TASK_END : 0;
+		return S16(n, 0xC) > PG().timing.end ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl RootTask(TaskNode *tn)
@@ -604,19 +656,103 @@ namespace morph172
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(held_note_root();)
-		PacketCursor() = (U8(n, 0xC) & 1) ? ARENA_B : ARENA_A;
+		PacketCursor() = (U8(n, 0xC) & 1) ? own::R(ARENA_B) : own::R(ARENA_A);
 		const int running = ExecuteTaskQueue(EffectQueue());
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return running ? 0 : TASK_END;
 	}
 
+	// ------------------------------------------------------------------
+	// File loader (0x5D9CB0) and setup (0x5D9CD0): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the cast, its first target's and its caster's slots, the root and the director, the sparkles freed, the
+	// camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		Ctx() = ctx;
+		FirstTarget() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x239A8E8), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x239C6E0), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(SPARKS); a < own::R(SPARKS_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The director's ticks: the caster's point (tick 0), the rings, the sparkles, the sound at the caster, the tinted caster, the end; the texture and the camera" },
+			{ PART_RINGS, "rings", "Rings", "Two ring meshes at the caster's point through the shadow camera, turning (one faster), fading in and out" },
+			{ PART_SPARKS, "sparks", "Sparkles", "Still sparkles appearing at random bones of the caster, each playing its flipbook once" },
+			{ PART_TINT, "tint", "Tinted caster", "The caster hidden and redrawn with a cycling colour over its faces near its point, from black and back" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The director's ticks" },
+		};
+#define MPF(member) (uint32_t)offsetof(MorphParams, member)
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's sound tick, at the caster's point", MPF(sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.rings", "Rings", "The two rings start (the ring mesh's radii taken)", MPF(timing.rings), fxp::I16, 0, 200 },
+			{ "director", "timing.sparks", "Sparkles", "The sparkles start", MPF(timing.sparks), fxp::I16, 0, 200 },
+			{ "director", "timing.sound", "Sound", "The sound", MPF(timing.sound), fxp::I16, 0, 200 },
+			{ "director", "timing.tint", "Tinted caster", "The tinted caster starts", MPF(timing.tint), fxp::I16, 0, 200 },
+			{ "director", "timing.end", "End", "The director's last tick", MPF(timing.end), fxp::I16, 0, 200 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "rings", "rings.size_a", "Size 1", "The first ring's size", MPF(rings.size_a), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "rings", "rings.size_b", "Size 2", "The second ring's size", MPF(rings.size_b), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "rings", "rings.spin", "Spin", "Their angle step a tick", MPF(rings.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "rings", "rings.turn_a", "Turn 1", "The first ring turned about z by this x its angle", MPF(rings.turn_a), fxp::I16, -16, 16 },
+			{ "rings", "rings.turn_b", "Turn 2", "The second ring's", MPF(rings.turn_b), fxp::I16, -16, 16 },
+			{ "rings", "rings.ticks", "Ticks", "Their ticks", MPF(rings.ticks), fxp::I16, 1, 200 },
+			{ "rings", "rings.in", "Fade in", "Ticks from none to the hold level", MPF(rings.in), fxp::I16, 0, 200 },
+			{ "rings", "rings.out", "Fade out from", "From this tick back to none at their end", MPF(rings.out), fxp::I16, 0, 200 },
+			{ "rings", "rings.hold", "Hold fade", "Their fade in between (0x1000: none drawn)", MPF(rings.hold), fxp::I16, 0, 0x1000 },
+			{ "rings", "rings.twist", "Twist", "Each vertex turned by sin(its radius x 3) x this (0: the mesh as it is)", MPF(rings.twist), fxp::I16, -0x1000, 0x1000, fxp::Angle },
+			{ "rings", "models.ring", "Ring", "The prim model drawn (a mesh of 261 vertices: an edited one keeps its vertices)", MPF(models.ring), fxp::Model, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.ticks", "Ticks", "One new sparkle a tick on its first ticks (100 alive at most)", MPF(sparks.ticks), fxp::I16, 0, 200 },
+			{ "sparks", "sparks.size", "Size", "A sparkle's size: this + a random below the next", MPF(sparks.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "sparks", "sparks.size_rand", "Size random", "(at least 1)", MPF(sparks.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "sparks", "sparks.spread", "Spread", "Up to this far from its bone on each axis (at least 1)", MPF(sparks.spread), fxp::I16, 1, 0x3FFF },
+			{ "sparks", "seqs.spark", "Sparkle", "The sprite sequence of the sparkles (a flipbook: an edited one keeps as many frames)", MPF(seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "tint", "tint.ticks", "Ticks", "The caster drawn tinted for this many ticks (its colour: the 20-step cycle of the exe's table)", MPF(tint.ticks), fxp::I16, 0, 200 },
+			{ "tint", "tint.radius", "Radius", "The faces with a corner this near the caster's point get the colour (fading with the distance)", MPF(tint.radius), fxp::I16, 1, 0x7FFF },
+			{ "tint", "tint.in", "Fade in", "Ticks from black to its colour", MPF(tint.in), fxp::I16, 0, 200 },
+			{ "tint", "tint.out", "Fade out from", "From this tick back to black at its end", MPF(tint.out), fxp::I16, 0, 200 },
+		};
+#undef MPF
+	}
+
 	void register_mag172_morph_ports()
 	{
+		fxp::register_params({ 172, "Morph", &live, &GAME, sizeof(MorphParams),
+		                       table::PARTS, (int)(sizeof(table::PARTS) / sizeof(table::PARTS[0])),
+		                       table::FIELDS, (int)(sizeof(table::FIELDS) / sizeof(table::FIELDS[0])),
+		                       table::GROUPS, (int)(sizeof(table::GROUPS) / sizeof(table::GROUPS[0])) });
+		own::note(ORIG_FileLoader, (void *)FileLoader);
+		own::note(ORIG_Setup, (void *)Setup);
+		own::note(ORIG_Root, (void *)RootTask);
 		register_port(ORIG_Root, (void *)RootTask, "172 RootTask", 172);
+		own::note(ORIG_Director, (void *)DirectorTask);
 		register_port(ORIG_Director, (void *)DirectorTask, "172 DirectorTask", 172);
+		own::note(ORIG_Ring, (void *)RingTask);
 		register_port(ORIG_Ring, (void *)RingTask, "172 RingTask", 172);
+		own::note(ORIG_Ring2, (void *)Ring2Task);
 		register_port(ORIG_Ring2, (void *)Ring2Task, "172 Ring2Task", 172);
+		own::note(ORIG_Sparks, (void *)SparksTask);
 		register_port(ORIG_Sparks, (void *)SparksTask, "172 SparksTask", 172);
+		own::note(ORIG_Tint, (void *)TintTask);
 		register_port(ORIG_Tint, (void *)TintTask, "172 TintTask", 172);
 		// 30 fps layer: see mag172_morph_held.inc
 		FX_HELD(register_mag172_held();)
