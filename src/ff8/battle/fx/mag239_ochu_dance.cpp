@@ -30,26 +30,26 @@ namespace ochu_dance
 	{
 		c.name = "239 Ochu Dance";
 		c.effect_id = 239;
-		c.vm_table = us(0x1864C1C);
-		c.bone_table = us(0x186488C);
-		c.prim_table = us(0x18648D4);
-		c.prim_size = us(0x18649C4);
-		c.spr_table = us(0x18649D8);
-		c.ptype_table = us(0x1864A04);
-		c.pop_table = us(0x1864A18);
-		c.draw_table = us(0x1864A78);
-		c.attr_16A = us(0x1864BE2);
-		c.attr_184 = us(0x1864BFC);
-		c.attr_186 = us(0x1864BFE);
-		c.attr_194 = us(0x1864C0C);
-		c.attr_19C = us(0x1864C14);
-		c.desc = us(0x1864760);
-		c.ptr_block = us(0x1864864);
-		c.queue = us(0x27968D8);
-		c.file00 = us(0x27968D4);
-		c.file01 = us(0x27968D0);
-		c.tick = us(0xA160A0);
-		c.load_cb = us(0xA1B840);
+		c.vm_table = game_addr(game::MAG_239_VmOpcodeTable);
+		c.bone_table = game_addr(game::MAG_239_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_A18AE4);
+		c.prim_size = game_addr(game::unk_18649C4);
+		c.spr_table = game_addr(game::unk_18649D8);
+		c.ptype_table = game_addr(game::unk_1864A04);
+		c.pop_table = game_addr(game::funcs_A19E47);
+		c.draw_table = game_addr(game::MAG_239_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_1864BE2);
+		c.attr_184 = game_addr(game::unk_1864BFC);
+		c.attr_186 = game_addr(game::unk_1864BFE);
+		c.attr_194 = game_addr(game::unk_1864C0C);
+		c.attr_19C = game_addr(game::unk_1864C14);
+		c.desc = game_addr(game::MAG_239_Desc);
+		c.ptr_block = game_addr(game::MAG_239_PtrBlock);
+		c.queue = game_addr(game::MAG_239_Queue);
+		c.file00 = game_addr(game::unk_27968D4);
+		c.file01 = game_addr(game::unk_27968D0);
+		c.tick = game_addr(game::MAG_239_OchuDance_SequenceTick);
+		c.load_cb = game_addr(game::MAG_239_LoadBattleFile_Done);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -67,7 +67,7 @@ namespace ochu_dance
 		ochu_dance::describe(ochu_dance::g_c);
 		init_clone(ochu_dance::g_c, nullptr, 0);
 		apply_breath_glow(ochu_dance::g_c);
-		register_port(0xA160A0, (void *)ochu_dance::SequenceTask, "MAG239 Ochu Dance SequenceTick", 239);
+		register_port(game::MAG_239_OchuDance_SequenceTick, (void *)ochu_dance::SequenceTask, "MAG239 Ochu Dance SequenceTick", 239);
 	}
 }
 

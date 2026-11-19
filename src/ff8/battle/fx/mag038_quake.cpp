@@ -33,88 +33,88 @@ namespace quake038
 	inline int32_t &S32(uint32_t p, int32_t o) { return AT<int32_t>(p, o); }
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x278C8E0)); }
-	inline int16_t &WaveTick() { return var<int16_t>(us(0x278C8E4)); }
-	inline int16_t &HalfZ() { return var<int16_t>(us(0x278C8E6)); }
-	inline int16_t &HalfX() { return var<int16_t>(us(0x278C8E8)); }
-	inline int16_t &CrackTick() { return var<int16_t>(us(0x278C8EA)); }
-	inline int16_t &PrimCount() { return var<int16_t>(us(0x278C8EC)); }
-	static const uint32_t SAVED_FLAGS = 0x278C8F0;
-	static const uint32_t ZONES = 0x278C910;
-	inline int16_t &TargetsParty() { return var<int16_t>(us(0x278C9B0)); }
-	inline int16_t &FallTick() { return var<int16_t>(us(0x2792B40)); }
-	inline uint32_t &Arena1() { return var<uint32_t>(us(0x2792B44)); }
-	inline uint32_t &Arena0() { return var<uint32_t>(us(0x2792B48)); }
-	inline int16_t &DebrisCount() { return var<int16_t>(us(0x279299C)); }
-	inline int16_t &State() { return var<int16_t>(us(0x279299E)); }
-	static const uint32_t CRACK_TEMPLATE = 0x27929A0;
-	inline uint32_t &SeqCtx() { return var<uint32_t>(us(0x27929C8)); }
-	inline int16_t &VertexBase() { return var<int16_t>(us(0x2792D68)); }
-	inline int16_t &ChipCount() { return var<int16_t>(us(0x2792D6A)); }
-	inline int16_t &RockCount() { return var<int16_t>(us(0x2792D6C)); }
-	inline int16_t &ZoneOffsetZ() { return var<int16_t>(us(0x2792D6E)); }
-	inline int16_t &RippleTick() { return var<int16_t>(us(0x2792D70)); }
-	static const uint32_t SAVED_POS = 0x2792D78;
-	inline int16_t &BoundXHi() { return var<int16_t>(us(0x2792E04)); }
-	inline int16_t &BoundXLo() { return var<int16_t>(us(0x2792E06)); }
-	inline uint32_t &VertexZones() { return var<uint32_t>(us(0x2792E0C)); }
-	inline int16_t &DustCount() { return var<int16_t>(us(0x2792E18)); }
-	inline uint32_t &Entries() { return var<uint32_t>(us(0x2792E1C)); }
-	inline int16_t &QuakeGo() { return var<int16_t>(us(0x2792E20)); }
-	inline int16_t &BoundZHi() { return var<int16_t>(us(0x2792E2C)); }
-	inline int16_t &BoundZLo() { return var<int16_t>(us(0x2792E2E)); }
-	static const uint32_t WALL_TEMPLATE = 0x2792E38;
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_038_PacketCursor)); }
+	inline int16_t &WaveTick() { return var<int16_t>(game_addr(game::MAG_038_WaveTick)); }
+	inline int16_t &HalfZ() { return var<int16_t>(game_addr(game::MAG_038_HalfZ)); }
+	inline int16_t &HalfX() { return var<int16_t>(game_addr(game::MAG_038_HalfX)); }
+	inline int16_t &CrackTick() { return var<int16_t>(game_addr(game::unk_278C8EA)); }
+	inline int16_t &PrimCount() { return var<int16_t>(game_addr(game::MAG_038_PrimCount)); }
+	static constexpr game::Id SAVED_FLAGS = game::MAG_038_SavedFlags;
+	static constexpr game::Id ZONES = game::g_Quake_Zones;
+	inline int16_t &TargetsParty() { return var<int16_t>(game_addr(game::g_Quake_TargetsParty)); }
+	inline int16_t &FallTick() { return var<int16_t>(game_addr(game::MAG_038_FallTick)); }
+	inline uint32_t &Arena1() { return var<uint32_t>(game_addr(game::MAG_038_Arena1)); }
+	inline uint32_t &Arena0() { return var<uint32_t>(game_addr(game::MAG_038_Arena0)); }
+	inline int16_t &DebrisCount() { return var<int16_t>(game_addr(game::MAG_038_DebrisCount)); }
+	inline int16_t &State() { return var<int16_t>(game_addr(game::g_Quake_MeshState)); }
+	static constexpr game::Id CRACK_TEMPLATE = game::MAG_038_CrackTemplate;
+	inline uint32_t &SeqCtx() { return var<uint32_t>(game_addr(game::MAG_038_SeqCtx)); }
+	inline int16_t &VertexBase() { return var<int16_t>(game_addr(game::MAG_038_VertexBase)); }
+	inline int16_t &ChipCount() { return var<int16_t>(game_addr(game::unk_2792D6A)); }
+	inline int16_t &RockCount() { return var<int16_t>(game_addr(game::MAG_038_RockCount)); }
+	inline int16_t &ZoneOffsetZ() { return var<int16_t>(game_addr(game::MAG_038_ZoneOffsetZ)); }
+	inline int16_t &RippleTick() { return var<int16_t>(game_addr(game::MAG_038_RippleTick)); }
+	static constexpr game::Id SAVED_POS = game::MAG_038_SavedPos;
+	inline int16_t &BoundXHi() { return var<int16_t>(game_addr(game::MAG_038_BoundXHi)); }
+	inline int16_t &BoundXLo() { return var<int16_t>(game_addr(game::MAG_038_BoundXLo)); }
+	inline uint32_t &VertexZones() { return var<uint32_t>(game_addr(game::MAG_038_VertexZones)); }
+	inline int16_t &DustCount() { return var<int16_t>(game_addr(game::MAG_038_DustCount)); }
+	inline uint32_t &Entries() { return var<uint32_t>(game_addr(game::g_Quake_MeshEntries)); }
+	inline int16_t &QuakeGo() { return var<int16_t>(game_addr(game::MAG_038_QuakeGo)); }
+	inline int16_t &BoundZHi() { return var<int16_t>(game_addr(game::MAG_038_BoundZHi)); }
+	inline int16_t &BoundZLo() { return var<int16_t>(game_addr(game::MAG_038_BoundZLo)); }
+	static constexpr game::Id WALL_TEMPLATE = game::MAG_038_WallTemplate;
 
-	static const uint32_t Q_DEBRIS = 0x278E538, Q_SPRITES = 0x2792988, Q_EMITTER = 0x27929D0, Q_SEQUENCE = 0x2792B50;
+	static constexpr game::Id Q_DEBRIS = game::MAG_038_DebrisQueue, Q_SPRITES = game::MAG_038_SpritesQueue, Q_EMITTER = game::MAG_038_EmitterQueue, Q_SEQUENCE = game::MAG_038_SequenceQueue;
 
-	static const uint32_t ZONE_MAP = 0x1642568;
-	static const uint32_t ZONE_MAP_B = 0x1642968;
-	static const uint32_t WALL_DEPTH = 0x164253C;
-	static const uint32_t STEP_SHADE = 0x1642558;
-	static const uint32_t SHAKE_A = 0x164364C;
-	static const uint32_t SHAKE_B = 0x1643678;
-	static const uint32_t SEQ_Rock = 0x16434A0, SEQ_Dust = 0x164335C, SEQ_Chip = 0x1643218;
-	static const void *SOUND_Rumble() { return (const void *)us(0x1642D68); }
-	static const void *SOUND_Quake() { return (const void *)us(0x1642D6C); }
+	static constexpr game::Id ZONE_MAP = game::unk_1642568;
+	static constexpr game::Id ZONE_MAP_B = game::unk_1642968;
+	static constexpr game::Id WALL_DEPTH = game::unk_164253C;
+	static constexpr game::Id STEP_SHADE = game::unk_1642558;
+	static constexpr game::Id SHAKE_A = game::unk_164364C;
+	static constexpr game::Id SHAKE_B = game::unk_1643678;
+	static constexpr game::Id SEQ_Rock = game::unk_16434A0, SEQ_Dust = game::unk_164335C, SEQ_Chip = game::unk_1643218;
+	static const void *SOUND_Rumble() { return (const void *)game_addr(game::unk_1642D68); }
+	static const void *SOUND_Quake() { return (const void *)game_addr(game::unk_1642D6C); }
 
-	static const uint32_t STAGE_GROUND = 0x1D989C0;
-	static const uint32_t ENTITY0 = 0x1D972C0, ENTITY3 = 0x1D97494, ENTITY_SIZE = 0x9C;
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	static constexpr game::Id STAGE_GROUND = game::unk_1D989C0;
+	static constexpr game::Id ENTITY0 = game::BattleEntitySlotData, ENTITY3 = game::unk_1D97494; static const uint32_t ENTITY_SIZE = 0x9C;
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	static const uint32_t ORIG_Root = 0x8D8610;
-	static const uint32_t ORIG_Emitter = 0x8D8720;
-	static const uint32_t ORIG_Sequence = 0x8D8800;
-	static const uint32_t ORIG_Debris = 0x8DA900;
-	static const uint32_t ORIG_Rock = 0x8DB030;
-	static const uint32_t ORIG_Dust = 0x8DB410;
-	static const uint32_t ORIG_Chip = 0x8DB630;
-	static const uint32_t ORIG_Shake = 0x8DC250;
-	static const uint32_t ORIG_Fallback = 0x8DC360;
+	static constexpr game::Id ORIG_Root = game::MAG_038_QUAKE_Tick;
+	static constexpr game::Id ORIG_Emitter = game::MAG_038_QUAKE_EmitterTask;
+	static constexpr game::Id ORIG_Sequence = game::MAG_038_QUAKE_MainSequence_11Phase;
+	static constexpr game::Id ORIG_Debris = game::MAG_038_QUAKE_DebrisTask;
+	static constexpr game::Id ORIG_Rock = game::MAG_038_QUAKE_RockTask;
+	static constexpr game::Id ORIG_Dust = game::MAG_038_QUAKE_DustTask;
+	static constexpr game::Id ORIG_Chip = game::MAG_038_QUAKE_ChipTask;
+	static constexpr game::Id ORIG_Shake = game::MAG_038_QUAKE_CameraShakeTask;
+	static constexpr game::Id ORIG_Fallback = game::MAG_038_QUAKE_FallbackTask;
 
-	inline void ReleaseLinkedTask(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(us(0x8DC530))(n); }
-	inline uint32_t AddLinkedTask(uint32_t q, uint32_t task, int32_t size, uint32_t parent) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(us(0x8DC540))(q, task, size, parent); }
-	inline void EmitterUpdatePos(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(us(0x8DC610))(n); }
-	inline void EmitterComputeBounds(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(us(0x8DC870))(n); }
-	inline void UpdateTargetPosFromBones(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(us(0x8DC740))(n); }
-	inline void CopyMidpointFromSource(uint32_t n, void *out) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x8DC700))(n, out); }
-	inline void MatrixUnit(void *m) { fn<void (__cdecl *)(void *)>(us(0x8DD770))(m); }
-	inline void MatrixRotY(void *m, int32_t a) { fn<void (__cdecl *)(void *, int32_t)>(us(0x8DD8A0))(m, a); }
-	inline void MatrixRotX(void *m, int32_t a) { fn<void (__cdecl *)(void *, int32_t)>(us(0x8DD7E0))(m, a); }
-	inline void ReadAnimation(uint32_t header, uint32_t cmd, int32_t a) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(us(0x509440))(header, cmd, a); }
-	inline void ChainTransformationConditional(uint32_t entity, int32_t kind) { fn<void (__cdecl *)(uint32_t, int32_t)>(us(0x505CE0))(entity, kind); }
-	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(dx, dz); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(int32_t *dst) { fn<void (__cdecl *)(int32_t *)>(us(0x45E3C0))(dst); }
-	inline void GteStoreSXY012_FT3(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(us(0x45E2E0))(p); }
-	inline void GteStoreSXY012_FT4(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(us(0x45E320))(p); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZ32(uint32_t *dst) { fn<void (__cdecl *)(uint32_t *)>(us(0x45E3D0))(dst); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
-	inline void GteSetBackgroundVector(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DCF0))(a, b, c); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
+	inline void ReleaseLinkedTask(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::Effect_ReleaseLinkedTask))(n); }
+	inline uint32_t AddLinkedTask(uint32_t q, uint32_t task, int32_t size, uint32_t parent) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(game_addr(game::Effect_AddTaskAndInitFromCtx))(q, task, size, parent); }
+	inline void EmitterUpdatePos(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::MAG_001_CURE_Emitter_UpdatePos))(n); }
+	inline void EmitterComputeBounds(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::MAG_001_CURE_Emitter_ComputeModelBounds))(n); }
+	inline void UpdateTargetPosFromBones(uint32_t n) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::Effect_UpdateTargetPosFromBones))(n); }
+	inline void CopyMidpointFromSource(uint32_t n, void *out) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::Effect_CopyMidpointFromSource))(n, out); }
+	inline void MatrixUnit(void *m) { fn<void (__cdecl *)(void *)>(game_addr(game::Mtx_Identity))(m); }
+	inline void MatrixRotY(void *m, int32_t a) { fn<void (__cdecl *)(void *, int32_t)>(game_addr(game::Mtx_RotY))(m, a); }
+	inline void MatrixRotX(void *m, int32_t a) { fn<void (__cdecl *)(void *, int32_t)>(game_addr(game::Mtx_RotX))(m, a); }
+	inline void ReadAnimation(uint32_t header, uint32_t cmd, int32_t a) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t)>(game_addr(game::pre_Battle_ReadAnimation))(header, cmd, a); }
+	inline void ChainTransformationConditional(uint32_t entity, int32_t kind) { fn<void (__cdecl *)(uint32_t, int32_t)>(game_addr(game::AnimSeq_StartSeqIfFightOrDamage))(entity, kind); }
+	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(game_addr(game::CartesianToGameAngle))(dx, dz); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(int32_t *dst) { fn<void (__cdecl *)(int32_t *)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteStoreSXY012_FT3(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyFT3))(p); }
+	inline void GteStoreSXY012_FT4(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyFT3_2))(p); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZ32(uint32_t *dst) { fn<void (__cdecl *)(uint32_t *)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetLightMatrix))(m); }
+	inline void GteSetBackgroundVector(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetBackgroundVector))(a, b, c); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
 
 	inline uint32_t OtSlot(uint32_t ot, uint32_t otz, int shift) { return ot + (otz >> shift) * 4; }
 
@@ -132,7 +132,7 @@ namespace quake038
 	}
 
 	inline uint32_t Entry(int32_t id) { return Entries() + (uint32_t)(int16_t)id * 0x70; }
-	inline uint32_t EntityAt(int slot) { return us(ENTITY0) + ENTITY_SIZE * slot; }
+	inline uint32_t EntityAt(int slot) { return game_addr(ENTITY0) + ENTITY_SIZE * slot; }
 
 	struct EdgeVerts { int16_t v[12]; };
 
@@ -178,7 +178,7 @@ namespace quake038
 	{
 		for (int i = 0; i < 10; i++)
 		{
-			uint32_t z = us(ZONES) + 0x10 * i;
+			uint32_t z = game_addr(ZONES) + 0x10 * i;
 			S16(z, 0) = (int16_t)i;
 			ZoneReset(z);
 		}
@@ -188,7 +188,7 @@ namespace quake038
 	{
 		for (int i = 0; i < 10; i++)
 		{
-			uint32_t z = us(ZONES) + 0x10 * i;
+			uint32_t z = game_addr(ZONES) + 0x10 * i;
 			switch (S16(z, 0xA))
 			{
 			case 0:
@@ -217,7 +217,7 @@ namespace quake038
 		int32_t all = 1;
 		for (int i = 0; i < 10; i++)
 		{
-			uint32_t z = us(ZONES) + 0x10 * i;
+			uint32_t z = game_addr(ZONES) + 0x10 * i;
 			if (S16(z, 2) == 0) continue;
 			S16(z, 0xC) = (int16_t)(S16(z, 0xC) + 0x60);
 			S16(z, 2) = (int16_t)(S16(z, 2) + S16(z, 0xC));
@@ -227,7 +227,7 @@ namespace quake038
 		return all;
 	}
 
-	inline int16_t ZoneHeight(int zone) { return S16(us(ZONES) + 0x10 * zone, 2); }
+	inline int16_t ZoneHeight(int zone) { return S16(game_addr(ZONES) + 0x10 * zone, 2); }
 
 	static uint16_t ZoneLookup(uint32_t map, int32_t x, int32_t z)
 	{
@@ -330,9 +330,9 @@ namespace quake038
 		uint32_t e = Entry(id);
 		int32_t xm = (S16(e, b * 8) + S16(e, n * 8) + S16(e, a * 8)) / 3;
 		int32_t zm = (S16(e, n * 8 + 4) + S16(e, b * 8 + 4) + S16(e, a * 8 + 4)) / 3;
-		uint16_t zone = ZoneLookup(us(ZONE_MAP), xm, zm);
+		uint16_t zone = ZoneLookup(game_addr(ZONE_MAP), xm, zm);
 		U8(e, k + 0x58) = (uint8_t)zone;
-		U8(e, k + 0x5C) = (uint8_t)ZoneLookup(us(ZONE_MAP_B), xm, zm);
+		U8(e, k + 0x5C) = (uint8_t)ZoneLookup(game_addr(ZONE_MAP_B), xm, zm);
 		uint32_t bit = 1u << ((uint8_t)zone & 31);
 		int32_t va = S16(e, a * 2 + 0x34), vb = S16(e, b * 2 + 0x34), vn = S16(e, n * 2 + 0x34);
 		uint32_t tbl = VertexZones();
@@ -537,14 +537,14 @@ namespace quake038
 		GteAVSZ4();
 		uint32_t otz;
 		GteReadOTZ32(&otz);
-		U32(cur, 0) = U32(us(CRACK_TEMPLATE), 0);
-		U8(cur, 7) = U8(us(CRACK_TEMPLATE), 7);
-		U32(cur, 0xC) = U32(us(CRACK_TEMPLATE), 0xC);
-		U32(cur, 0x14) = U32(us(CRACK_TEMPLATE), 0x14);
-		U32(cur, 0x1C) = U32(us(CRACK_TEMPLATE), 0x1C);
-		U32(cur, 0x24) = U32(us(CRACK_TEMPLATE), 0x24);
+		U32(cur, 0) = U32(game_addr(CRACK_TEMPLATE), 0);
+		U8(cur, 7) = U8(game_addr(CRACK_TEMPLATE), 7);
+		U32(cur, 0xC) = U32(game_addr(CRACK_TEMPLATE), 0xC);
+		U32(cur, 0x14) = U32(game_addr(CRACK_TEMPLATE), 0x14);
+		U32(cur, 0x1C) = U32(game_addr(CRACK_TEMPLATE), 0x1C);
+		U32(cur, 0x24) = U32(game_addr(CRACK_TEMPLATE), 0x24);
 		U16(cur, 0xE) = 0x3C54;
-		uint8_t shade = U8(us(STEP_SHADE), step);
+		uint8_t shade = U8(game_addr(STEP_SHADE), step);
 		U8(cur, 6) = shade;
 		U8(cur, 5) = shade;
 		U8(cur, 4) = shade;
@@ -559,7 +559,7 @@ namespace quake038
 		if (RippleTick() >= 0xC) return;
 		if (CrtRand() & 3) return;
 		ChipCount() = (int16_t)(ChipCount() + 1);
-		uint32_t n = AddLinkedTask(us(Q_SPRITES), us(ORIG_Chip), 0xAC, ctx);
+		uint32_t n = AddLinkedTask(game_addr(Q_SPRITES), game_addr(ORIG_Chip), 0xAC, ctx);
 		S16(n, 0x1C) = (int16_t)((pA[0] + pB[0]) / 2);
 		int32_t r = CrtRand();
 		S16(n, 0x1E) = (int16_t)((pA[1] + pB[1]) / 2 - (r & 0x1FF));
@@ -575,7 +575,7 @@ namespace quake038
 		ff8fx::copy<(8)>(w + 12, pB);
 		ff8fx::copy<(8)>(w, pA);
 		ff8fx::copy<(8)>(w + 4, pB);
-		int16_t d = S16(us(WALL_DEPTH), step * 2);
+		int16_t d = S16(game_addr(WALL_DEPTH), step * 2);
 		w[1] = (int16_t)(w[1] + d);
 		w[5] = (int16_t)(w[5] + d);
 		GteLoadV012(w, w + 4, w + 8);
@@ -592,13 +592,13 @@ namespace quake038
 		GteAVSZ4();
 		uint32_t otz;
 		GteReadOTZ32(&otz);
-		U32(cur, 0) = U32(us(WALL_TEMPLATE), 0);
-		U32(cur, 0xC) = U32(us(WALL_TEMPLATE), 0xC);
-		U8(cur, 7) = U8(us(WALL_TEMPLATE), 7);
-		U32(cur, 0x1C) = U32(us(WALL_TEMPLATE), 0x1C);
-		U32(cur, 0x14) = U32(us(WALL_TEMPLATE), 0x14);
-		U32(cur, 0x24) = U32(us(WALL_TEMPLATE), 0x24);
-		uint8_t shade = U8(us(STEP_SHADE), (uint8_t)(step + 1));
+		U32(cur, 0) = U32(game_addr(WALL_TEMPLATE), 0);
+		U32(cur, 0xC) = U32(game_addr(WALL_TEMPLATE), 0xC);
+		U8(cur, 7) = U8(game_addr(WALL_TEMPLATE), 7);
+		U32(cur, 0x1C) = U32(game_addr(WALL_TEMPLATE), 0x1C);
+		U32(cur, 0x14) = U32(game_addr(WALL_TEMPLATE), 0x14);
+		U32(cur, 0x24) = U32(game_addr(WALL_TEMPLATE), 0x24);
+		uint8_t shade = U8(game_addr(STEP_SHADE), (uint8_t)(step + 1));
 		U8(cur, 6) = shade;
 		U8(cur, 5) = shade;
 		U8(cur, 4) = shade;
@@ -761,7 +761,7 @@ namespace quake038
 		sj->wA = (uint16_t)y;
 		if (x <= BoundXLo() || x >= BoundXHi() || z <= BoundZLo() || z >= BoundZHi()) return;
 		DebrisCount() = (int16_t)(DebrisCount() + 1);
-		uint32_t d = AddLinkedTask(us(Q_DEBRIS), us(ORIG_Debris), 0xB0, ctx);
+		uint32_t d = AddLinkedTask(game_addr(Q_DEBRIS), game_addr(ORIG_Debris), 0xB0, ctx);
 		S16(d, 0x1C) = x;
 		S16(d, 0x1E) = y;
 		S16(d, 0x20) = z;
@@ -775,7 +775,7 @@ namespace quake038
 		U32(d, 0xA4) = U32(e, 0x28);
 		U16(d, 0xA0) = U16(e, 0x30);
 		U8(d, 0xAB) = U8(e, 0x2B);
-		uint16_t zone = ZoneLookup(us(ZONE_MAP), S16(d, 0x1C), S16(d, 0x20));
+		uint16_t zone = ZoneLookup(game_addr(ZONE_MAP), S16(d, 0x1C), S16(d, 0x20));
 		S16(d, 0x1E) = ZoneHeight((int16_t)zone);
 	}
 
@@ -785,12 +785,12 @@ namespace quake038
 		uint32_t ctx = SeqCtx();
 		if (RandomGroundPoint(p) != 1) return;
 		RockCount() = (int16_t)(RockCount() + 1);
-		uint32_t n = AddLinkedTask(us(Q_SPRITES), us(ORIG_Rock), 0xAC, ctx);
+		uint32_t n = AddLinkedTask(game_addr(Q_SPRITES), game_addr(ORIG_Rock), 0xAC, ctx);
 		S16(n, 0x58) = p[0];
 		S16(n, 0x5A) = p[1];
 		S16(n, 0x5C) = p[2];
 		U16(n, 0x5E) = junk;
-		uint16_t zone = ZoneLookup(us(ZONE_MAP), p[0], p[2]);
+		uint16_t zone = ZoneLookup(game_addr(ZONE_MAP), p[0], p[2]);
 		S16(n, 0x60) = 1;
 		S16(n, 0x5A) = ZoneHeight((int16_t)zone);
 		if (count <= 1) return;
@@ -802,7 +802,7 @@ namespace quake038
 			S16(rec, 2) = p[1];
 			S16(rec, 4) = p[2];
 			U16(rec, 6) = junk;
-			zone = ZoneLookup(us(ZONE_MAP), p[0], p[2]);
+			zone = ZoneLookup(game_addr(ZONE_MAP), p[0], p[2]);
 			S16(rec, 2) = ZoneHeight((int16_t)zone);
 			S16(rec, 2) = (int16_t)(S16(rec, 2) + (int16_t)((CrtRand() & 0x3FF) - 0x200));
 			S16(rec, 8) = 1;
@@ -815,12 +815,12 @@ namespace quake038
 		uint32_t ctx = SeqCtx();
 		if (RandomGroundPoint(p) != 1) return;
 		DustCount() = (int16_t)(DustCount() + 1);
-		uint32_t n = AddLinkedTask(us(Q_SPRITES), us(ORIG_Dust), 0xAC, ctx);
+		uint32_t n = AddLinkedTask(game_addr(Q_SPRITES), game_addr(ORIG_Dust), 0xAC, ctx);
 		S16(n, 0x58) = p[0];
 		S16(n, 0x5A) = p[1];
 		S16(n, 0x5C) = p[2];
 		U16(n, 0x5E) = junk;
-		uint16_t zone = ZoneLookup(us(ZONE_MAP), p[0], p[2]);
+		uint16_t zone = ZoneLookup(game_addr(ZONE_MAP), p[0], p[2]);
 		S16(n, 0x60) = 1;
 		S16(n, 0x5A) = ZoneHeight((int16_t)zone);
 		uint32_t rec = n + 0x64;
@@ -831,7 +831,7 @@ namespace quake038
 			S16(rec, 2) = p[1];
 			S16(rec, 4) = p[2];
 			U16(rec, 6) = junk;
-			zone = ZoneLookup(us(ZONE_MAP), p[0], p[2]);
+			zone = ZoneLookup(game_addr(ZONE_MAP), p[0], p[2]);
 			S16(rec, 2) = ZoneHeight((int16_t)zone);
 			S16(rec, 2) = (int16_t)(S16(rec, 2) - (int16_t)(CrtRand() & 0x3FF));
 			S16(rec, 8) = 1;
@@ -976,7 +976,7 @@ namespace quake038
 			break;
 		case 5:
 		{
-			U8(us(0x1D989BD), 0) &= 0xFD;
+			U8(game_addr(game::unk_1D989BD), 0) &= 0xFD;
 			ZonesUpdate();
 			int16_t t = (int16_t)(FallTick() + 1);
 			FallTick() = t;
@@ -999,7 +999,7 @@ namespace quake038
 			if (ZonesSettle() == 1)
 			{
 				State() = 7;
-				U8(us(0x1D989BD), 0) |= 2;
+				U8(game_addr(game::unk_1D989BD), 0) |= 2;
 			}
 			break;
 		}
@@ -1017,24 +1017,24 @@ namespace quake038
 		GteSetRotMatrix(&cam);
 		GteSetTransVector(&cam);
 		uint32_t hdr = (uint32_t)FieldAlloc(0x2C);
-		U16(hdr, 0x24) = U16(us(0x1D989BE), 0);
+		U16(hdr, 0x24) = U16(game_addr(game::unk_1D989BE), 0);
 		S16(hdr, 0x14) = 0;
 		S16(hdr, 0x16) = 0;
 		S16(hdr, 0x18) = 0x140;
 		S16(hdr, 0x1A) = 0xD8;
-		U32(hdr, 0x1C) = U32(us(0x1D989E4), 0);
-		U32(hdr, 4) = var<uint32_t>(us(0x1D98B3C));
+		U32(hdr, 0x1C) = U32(game_addr(game::unk_1D989E4), 0);
+		U32(hdr, 4) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 		S32(hdr, 0x20) = -1;
-		U32(hdr, 0x10) = var<uint32_t>(us(0x1D969A8));
-		ReadAnimation(us(0x1D989D0), us(0x1D989DC), 0);
-		PacketCursor() = Ground(us(STAGE_GROUND), hdr, PacketCursor());
+		U32(hdr, 0x10) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
+		ReadAnimation(game_addr(game::unk_1D989D0), game_addr(game::unk_1D989DC), 0);
+		PacketCursor() = Ground(game_addr(STAGE_GROUND), hdr, PacketCursor());
 		FieldFree(0x2C);
 	}
 
 	static void Root_SpawnEmitter(uint32_t n)
 	{
 		U8(n, 0x63) = 1;
-		AddLinkedTask(us(Q_EMITTER), us(ORIG_Emitter), 0x58, n);
+		AddLinkedTask(game_addr(Q_EMITTER), game_addr(ORIG_Emitter), 0x58, n);
 		NextPhase(n);
 	}
 
@@ -1069,22 +1069,22 @@ namespace quake038
 			break;
 		default: break;
 		}
-		U16(n, 0x5E) = (uint16_t)ExecuteTaskQueue((TaskQueue *)us(Q_EMITTER));
-		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)us(Q_SEQUENCE)));
-		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)us(Q_SPRITES)));
-		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)us(Q_DEBRIS)));
+		U16(n, 0x5E) = (uint16_t)ExecuteTaskQueue((TaskQueue *)game_addr(Q_EMITTER));
+		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)game_addr(Q_SEQUENCE)));
+		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)game_addr(Q_SPRITES)));
+		U16(n, 0x5E) = (uint16_t)(U16(n, 0x5E) + ExecuteTaskQueue((TaskQueue *)game_addr(Q_DEBRIS)));
 		U16(n, 0x5C) = (uint16_t)(U16(n, 0x5C) + 1);
 		return EndCheck(n);
 	}
 
 	static void Emitter_Start(uint32_t n)
 	{
-		if ((U8(us(0x1D989BD), 0) & 1) && U32(U32(us(0x1D989C4), 0), 0) != 0)
+		if ((U8(game_addr(game::unk_1D989BD), 0) & 1) && U32(U32(game_addr(game::unk_1D989C4), 0), 0) != 0)
 		{
-			AddLinkedTask(us(Q_SEQUENCE), us(ORIG_Sequence), 0x34, n);
-			AddLinkedTask(us(Q_SEQUENCE), us(ORIG_Shake), 0x34, n);
+			AddLinkedTask(game_addr(Q_SEQUENCE), game_addr(ORIG_Sequence), 0x34, n);
+			AddLinkedTask(game_addr(Q_SEQUENCE), game_addr(ORIG_Shake), 0x34, n);
 		}
-		else AddLinkedTask(us(Q_SEQUENCE), us(ORIG_Fallback), 0x34, n);
+		else AddLinkedTask(game_addr(Q_SEQUENCE), game_addr(ORIG_Fallback), 0x34, n);
 		NextPhase(n);
 	}
 
@@ -1137,12 +1137,12 @@ namespace quake038
 		BoundZHi() = 0x2000;
 		ff8fx::fill<(0x2D80 * 4)>((void *)entries, 0);
 		ff8fx::fill<(0x330 * 4)>((void *)VertexZones(), 0);
-		U8(us(0x27929C4), 0) = 0x1F;
-		U8(us(0x27929B4), 0) = 0x1F;
-		U8(us(0x27929C5), 0) = 0x7F;
-		U8(us(0x27929BD), 0) = 0x7F;
-		U8(us(0x2792E5C), 0) = 0x7F;
-		U8(us(0x2792E4C), 0) = 0x7F;
+		U8(game_addr(game::unk_27929C4), 0) = 0x1F;
+		U8(game_addr(game::unk_27929B4), 0) = 0x1F;
+		U8(game_addr(game::unk_27929C5), 0) = 0x7F;
+		U8(game_addr(game::unk_27929BD), 0) = 0x7F;
+		U8(game_addr(game::unk_2792E5C), 0) = 0x7F;
+		U8(game_addr(game::unk_2792E4C), 0) = 0x7F;
 		ZoneOffsetZ() = 0;
 		State() = 0;
 		QuakeGo() = 0;
@@ -1153,31 +1153,31 @@ namespace quake038
 		RockCount() = 0;
 		DustCount() = 0;
 		ChipCount() = 0;
-		U32(us(0x27929A0), 0) = 0x9000000;
-		U8(us(0x27929BC), 0) = 0;
-		U8(us(0x27929AC), 0) = 0;
-		U8(us(0x27929B5), 0) = 0;
-		U8(us(0x27929AD), 0) = 0;
-		U8(us(0x27929A7), 0) = 0x2E;
-		U16(us(0x27929B6), 0) = 0xB9;
-		U32(us(0x2792E38), 0) = 0x9000000;
-		U8(us(0x2792E54), 0) = 0;
-		U8(us(0x2792E44), 0) = 0;
-		U8(us(0x2792E4D), 0) = 0;
-		U8(us(0x2792E45), 0) = 0;
-		U8(us(0x2792E5D), 0) = 0xFF;
-		U8(us(0x2792E55), 0) = 0xFF;
-		U8(us(0x2792E3F), 0) = 0x2E;
-		U16(us(0x2792E4E), 0) = 0xBA;
-		U16(us(0x2792E46), 0) = 0x3C14;
+		U32(game_addr(game::MAG_038_CrackTemplate), 0) = 0x9000000;
+		U8(game_addr(game::unk_27929BC), 0) = 0;
+		U8(game_addr(game::unk_27929AC), 0) = 0;
+		U8(game_addr(game::unk_27929B5), 0) = 0;
+		U8(game_addr(game::unk_27929AD), 0) = 0;
+		U8(game_addr(game::unk_27929A7), 0) = 0x2E;
+		U16(game_addr(game::unk_27929B6), 0) = 0xB9;
+		U32(game_addr(game::MAG_038_WallTemplate), 0) = 0x9000000;
+		U8(game_addr(game::unk_2792E54), 0) = 0;
+		U8(game_addr(game::unk_2792E44), 0) = 0;
+		U8(game_addr(game::unk_2792E4D), 0) = 0;
+		U8(game_addr(game::unk_2792E45), 0) = 0;
+		U8(game_addr(game::unk_2792E5D), 0) = 0xFF;
+		U8(game_addr(game::unk_2792E55), 0) = 0xFF;
+		U8(game_addr(game::unk_2792E3F), 0) = 0x2E;
+		U16(game_addr(game::unk_2792E4E), 0) = 0xBA;
+		U16(game_addr(game::unk_2792E46), 0) = 0x3C14;
 	}
 
 	template<typename F> static void ForCasterSide(bool enemies, F fn)
 	{
 		if (enemies)
-			for (int s = 3; s < 7; s++) fn(EntityAt(s), us(SAVED_FLAGS) + 4 * s);
+			for (int s = 3; s < 7; s++) fn(EntityAt(s), game_addr(SAVED_FLAGS) + 4 * s);
 		else
-			for (int s = 0; s < 3; s++) fn(EntityAt(s), us(SAVED_FLAGS) + 4 * s);
+			for (int s = 0; s < 3; s++) fn(EntityAt(s), game_addr(SAVED_FLAGS) + 4 * s);
 	}
 
 	static void Darken(uint32_t ent, int32_t level, uint32_t light)
@@ -1185,19 +1185,19 @@ namespace quake038
 		uint8_t l0 = (uint8_t)light, l1 = (uint8_t)(light >> 8);
 		U8(ent, 0x28) = (uint8_t)(l0 - (uint8_t)(mul32(l0, level) / 4096));
 		U8(ent, 0x29) = (uint8_t)(l1 - (uint8_t)(mul32(l1, level) / 4096));
-		uint8_t l2 = U8(us(0xB8B7DA), 0);
+		uint8_t l2 = U8(game_addr(game::unk_B8B7DA), 0);
 		U8(ent, 0x2A) = (uint8_t)(l2 - (uint8_t)(mul32(l2, level) / 4096));
-		uint8_t m0 = U8(us(0xB8B9A8), 0);
+		uint8_t m0 = U8(game_addr(game::CURRENT_BS_SHADOW_PALETTE), 0);
 		U8(ent, 0x2C) = (uint8_t)(m0 - (uint8_t)(mul32(m0, level) / 4096));
-		uint8_t m1 = U8(us(0xB8B9A9), 0);
+		uint8_t m1 = U8(game_addr(game::unk_B8B9A9), 0);
 		U8(ent, 0x2D) = (uint8_t)(m1 - (uint8_t)(mul32(m1, level) / 4096));
-		uint8_t m2 = U8(us(0xB8B9AA), 0);
+		uint8_t m2 = U8(game_addr(game::unk_B8B9AA), 0);
 		U8(ent, 0x2E) = (uint8_t)(m2 - (uint8_t)(mul32(m2, level) / 4096));
 	}
 
 	static void DarkenCasterSide(uint32_t n)
 	{
-		uint32_t light = var<uint32_t>(us(0xB8B7D8));
+		uint32_t light = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE));
 		ForCasterSide(TargetsParty() != 0, [&](uint32_t ent, uint32_t saved) {
 			if (!(U8(saved, 0) & 4)) Darken(ent, S16(n, 0x1C), light);
 		});
@@ -1205,9 +1205,9 @@ namespace quake038
 
 	static void Seq_Darken(uint32_t n)
 	{
-		for (int s = 0; s < 7; s++) U32(us(SAVED_FLAGS), 4 * s) = U16(EntityAt(s), 0);
+		for (int s = 0; s < 7; s++) U32(game_addr(SAVED_FLAGS), 4 * s) = U16(EntityAt(s), 0);
 		S16(n, 0x1C) = 0;
-		uint32_t light = var<uint32_t>(us(0xB8B7D8));
+		uint32_t light = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE));
 		ForCasterSide(TargetsParty() != 0, [&](uint32_t ent, uint32_t saved) {
 			if (U8(saved, 0) & 4) return;
 			U8(ent, 1) |= 8;
@@ -1236,13 +1236,13 @@ namespace quake038
 	{
 		if (TargetsParty())
 		{
-			for (int s = 3; s < 7; s++) if (!(U8(us(SAVED_FLAGS), 4 * s) & 4)) U8(EntityAt(s), 0) |= 4;
-			for (int s = 0; s < 3; s++) if (!(U8(us(SAVED_FLAGS), 4 * s) & 4)) U16(EntityAt(s), 0) |= 0x1020;
+			for (int s = 3; s < 7; s++) if (!(U8(game_addr(SAVED_FLAGS), 4 * s) & 4)) U8(EntityAt(s), 0) |= 4;
+			for (int s = 0; s < 3; s++) if (!(U8(game_addr(SAVED_FLAGS), 4 * s) & 4)) U16(EntityAt(s), 0) |= 0x1020;
 		}
 		else
 		{
-			for (int s = 0; s < 3; s++) if (!(U8(us(SAVED_FLAGS), 4 * s) & 4)) U8(EntityAt(s), 0) |= 4;
-			for (int s = 3; s < 7; s++) if (!(U8(us(SAVED_FLAGS), 4 * s) & 4)) U16(EntityAt(s), 0) |= 0x1020;
+			for (int s = 0; s < 3; s++) if (!(U8(game_addr(SAVED_FLAGS), 4 * s) & 4)) U8(EntityAt(s), 0) |= 4;
+			for (int s = 3; s < 7; s++) if (!(U8(game_addr(SAVED_FLAGS), 4 * s) & 4)) U16(EntityAt(s), 0) |= 0x1020;
 		}
 		NextPhase(n);
 		GroundRender();
@@ -1252,7 +1252,7 @@ namespace quake038
 	{
 		for (int s = 0; s < 7; s++)
 		{
-			uint32_t rec = us(SAVED_POS) + 0x14 * s, ent = EntityAt(s);
+			uint32_t rec = game_addr(SAVED_POS) + 0x14 * s, ent = EntityAt(s);
 			U32(rec, 0) = U32(ent, 0xC);
 			U32(rec, 4) = U32(ent, 0x10);
 			U32(rec, 8) = U32(ent, 0x1C);
@@ -1275,8 +1275,8 @@ namespace quake038
 
 	static void Bounce(uint32_t n, uint32_t ent, int slot)
 	{
-		uint32_t rec = us(SAVED_POS) + 0x14 * slot;
-		uint16_t zone = ZoneLookup(us(ZONE_MAP), S16(rec, 8), S16(rec, 0xC));
+		uint32_t rec = game_addr(SAVED_POS) + 0x14 * slot;
+		uint16_t zone = ZoneLookup(game_addr(ZONE_MAP), S16(rec, 8), S16(rec, 0xC));
 		int16_t h = ZoneHeight((int16_t)zone);
 		switch (S16(rec, 0x10))
 		{
@@ -1335,7 +1335,7 @@ namespace quake038
 	{
 		for (int s = 0; s < 7; s++)
 		{
-			uint32_t rec = us(SAVED_POS) + 0x14 * s, ent = EntityAt(s);
+			uint32_t rec = game_addr(SAVED_POS) + 0x14 * s, ent = EntityAt(s);
 			U32(ent, 0xC) = U32(rec, 0);
 			U32(ent, 0x10) = U32(rec, 4);
 			U32(ent, 0x1C) = U32(rec, 8);
@@ -1347,11 +1347,11 @@ namespace quake038
 	{
 		if (TargetsParty())
 		{
-			for (int s = 0; s < 3; s++) if (!(U8(us(SAVED_FLAGS), 4 * s) & 4)) Bounce(n, EntityAt(s), s);
+			for (int s = 0; s < 3; s++) if (!(U8(game_addr(SAVED_FLAGS), 4 * s) & 4)) Bounce(n, EntityAt(s), s);
 		}
 		else
 		{
-			for (int k = 0; k < 4; k++) if (!(U8(us(SAVED_FLAGS), 4 * (3 + k)) & 4)) Bounce(n, EntityAt(3 + k), k + 3);
+			for (int k = 0; k < 4; k++) if (!(U8(game_addr(SAVED_FLAGS), 4 * (3 + k)) & 4)) Bounce(n, EntityAt(3 + k), k + 3);
 		}
 		GroundRender();
 		if (State() == 7)
@@ -1368,31 +1368,31 @@ namespace quake038
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				if (U8(us(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
+				if (U8(game_addr(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
 				uint32_t ent = EntityAt(3 + k);
-				U16(ent, 0) ^= (uint16_t)((U8(us(SAVED_FLAGS), 4 * k) ^ U8(ent, 0)) & 4);
+				U16(ent, 0) ^= (uint16_t)((U8(game_addr(SAVED_FLAGS), 4 * k) ^ U8(ent, 0)) & 4);
 			}
 			for (int s = 0; s < 3; s++)
 			{
-				if (U8(us(SAVED_FLAGS), 4 * s) & 4) continue;
+				if (U8(game_addr(SAVED_FLAGS), 4 * s) & 4) continue;
 				uint32_t ent = EntityAt(s);
-				U16(ent, 0) ^= (uint16_t)((U16(us(SAVED_FLAGS), 4 * s) ^ U16(ent, 0)) & 0x1020);
+				U16(ent, 0) ^= (uint16_t)((U16(game_addr(SAVED_FLAGS), 4 * s) ^ U16(ent, 0)) & 0x1020);
 			}
 		}
 		else
 		{
 			for (int s = 0; s < 3; s++)
 			{
-				uint8_t f = U8(us(SAVED_FLAGS), 4 * s);
+				uint8_t f = U8(game_addr(SAVED_FLAGS), 4 * s);
 				if (f & 4) continue;
 				uint32_t ent = EntityAt(s);
 				U16(ent, 0) ^= (uint16_t)((f ^ U8(ent, 0)) & 4);
 			}
 			for (int k = 0; k < 4; k++)
 			{
-				if (U8(us(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
+				if (U8(game_addr(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
 				uint32_t ent = EntityAt(3 + k);
-				U16(ent, 0) ^= (uint16_t)((U16(us(SAVED_FLAGS), 4 * k) ^ U16(ent, 0)) & 0x1020);
+				U16(ent, 0) ^= (uint16_t)((U16(game_addr(SAVED_FLAGS), 4 * k) ^ U16(ent, 0)) & 0x1020);
 			}
 		}
 		NextPhase(n);
@@ -1411,14 +1411,14 @@ namespace quake038
 
 	static void Seq_End(uint32_t n)
 	{
-		uint32_t light = var<uint32_t>(us(0xB8B7D8)), light2 = var<uint32_t>(us(0xB8B9A8));
+		uint32_t light = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE)), light2 = var<uint32_t>(game_addr(game::CURRENT_BS_SHADOW_PALETTE));
 		if (TargetsParty())
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				if (U8(us(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
+				if (U8(game_addr(SAVED_FLAGS), 4 * k + 0xC) & 4) continue;
 				uint32_t ent = EntityAt(3 + k);
-				U16(ent, 0) ^= (uint16_t)((U16(ent, 0) ^ U16(us(SAVED_FLAGS), 4 * k)) & 0x800);
+				U16(ent, 0) ^= (uint16_t)((U16(ent, 0) ^ U16(game_addr(SAVED_FLAGS), 4 * k)) & 0x800);
 				U32(ent, 0x28) = light;
 				U32(ent, 0x2C) = light2;
 			}
@@ -1427,9 +1427,9 @@ namespace quake038
 		{
 			for (int s = 0; s < 3; s++)
 			{
-				if (U8(us(SAVED_FLAGS), 4 * s) & 4) continue;
+				if (U8(game_addr(SAVED_FLAGS), 4 * s) & 4) continue;
 				uint32_t ent = EntityAt(s);
-				U16(ent, 0) ^= (uint16_t)((U16(ent, 0) ^ U16(us(SAVED_FLAGS), 4 * s)) & 0x800);
+				U16(ent, 0) ^= (uint16_t)((U16(ent, 0) ^ U16(game_addr(SAVED_FLAGS), 4 * s)) & 0x800);
 				U32(ent, 0x28) = light;
 				U32(ent, 0x2C) = light2;
 			}
@@ -1477,7 +1477,7 @@ namespace quake038
 		return EndCheck(n);
 	}
 
-	inline int16_t &CameraShake() { return var<int16_t>(us(0x1D97712)); }
+	inline int16_t &CameraShake() { return var<int16_t>(game_addr(game::BATTLE_CAMERA_SHAKE_OFFSET_Y)); }
 
 	static uint32_t __cdecl ShakeTask(TaskNode *node)
 	{
@@ -1489,7 +1489,7 @@ namespace quake038
 			break;
 		case 1:
 		{
-			int16_t s = S16(us(SHAKE_A), S16(n, 0x24) * 2);
+			int16_t s = S16(game_addr(SHAKE_A), S16(n, 0x24) * 2);
 			if (s == 0x7F) NextPhase(n);
 			else CameraShake() = s;
 			break;
@@ -1498,7 +1498,7 @@ namespace quake038
 			if (State() == 5) NextPhase(n);
 			break;
 		case 3:
-			CameraShake() = S16(us(SHAKE_B), (U8(n, 0x24) & 0xF) * 2);
+			CameraShake() = S16(game_addr(SHAKE_B), (U8(n, 0x24) & 0xF) * 2);
 			if (State() == 7)
 			{
 				U8(n, 0x26) |= 1;
@@ -1529,7 +1529,7 @@ namespace quake038
 		case 2:
 		{
 			int16_t t = S16(n, 0x24);
-			CameraShake() = S16(us(SHAKE_B), (t & 0xF) * 2);
+			CameraShake() = S16(game_addr(SHAKE_B), (t & 0xF) * 2);
 			if (t >= 0x60)
 			{
 				U8(n, 0x26) |= 1;
@@ -1699,7 +1699,7 @@ namespace quake038
 		{
 		case 0:
 		{
-			U32(n, 0x4C) = us(SEQ_Rock);
+			U32(n, 0x4C) = game_addr(SEQ_Rock);
 			S16(n, 0x52) = 0xF;
 			int32_t r = CrtRand();
 			S16(n, 0xA6) = (int16_t)(-8 - (r & 0xF));
@@ -1735,7 +1735,7 @@ namespace quake038
 		{
 		case 0:
 		{
-			U32(n, 0x4C) = us(SEQ_Dust);
+			U32(n, 0x4C) = game_addr(SEQ_Dust);
 			S16(n, 0x52) = 0xB;
 			int32_t r = CrtRand();
 			S16(n, 0xA2) = (int16_t)(-0x64 - (r & 0x7F));
@@ -1786,7 +1786,7 @@ namespace quake038
 		{
 		case 0:
 		{
-			U32(n, 0x4C) = us(SEQ_Chip);
+			U32(n, 0x4C) = game_addr(SEQ_Chip);
 			S16(n, 0x52) = 0xB;
 			int32_t r = CrtRand();
 			S16(n, 0xA2) = (int16_t)(-0x30 - (r & 0xFF));

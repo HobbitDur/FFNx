@@ -37,26 +37,26 @@ namespace bghdeath247
 	{
 		c.name = "247 BGH251F2 Death";
 		c.effect_id = 247;
-		c.vm_table = us(0x185FD5C);
-		c.bone_table = us(0x185F9CC);
-		c.prim_table = us(0x185FA14);
-		c.prim_size = us(0x185FB04);
-		c.spr_table = us(0x185FB18);
-		c.ptype_table = us(0x185FB44);
-		c.pop_table = us(0x185FB58);
-		c.draw_table = us(0x185FBB8);
-		c.attr_16A = us(0x185FD22);
-		c.attr_184 = us(0x185FD3C);
-		c.attr_186 = us(0x185FD3E);
-		c.attr_194 = us(0x185FD4C);
-		c.attr_19C = us(0x185FD54);
-		c.desc = us(0x185F89C);
-		c.ptr_block = us(0x185F9A4);
-		c.queue = us(0x2796718);
-		c.file00 = us(0x2796710);
-		c.file01 = us(0x2796714);
-		c.tick = us(0x9C9F00);
-		c.load_cb = us(0x9CED90);
+		c.vm_table = game_addr(game::funcs_9D2DCC);
+		c.bone_table = game_addr(game::funcs_9CF9A7);
+		c.prim_table = game_addr(game::funcs_9CBB54);
+		c.prim_size = game_addr(game::unk_185FB04);
+		c.spr_table = game_addr(game::unk_185FB18);
+		c.ptype_table = game_addr(game::unk_185FB44);
+		c.pop_table = game_addr(game::funcs_9CD397);
+		c.draw_table = game_addr(game::unk_185FBB8);
+		c.attr_16A = game_addr(game::unk_185FD22);
+		c.attr_184 = game_addr(game::unk_185FD3C);
+		c.attr_186 = game_addr(game::unk_185FD3E);
+		c.attr_194 = game_addr(game::unk_185FD4C);
+		c.attr_19C = game_addr(game::unk_185FD54);
+		c.desc = game_addr(game::unk_185F89C);
+		c.ptr_block = game_addr(game::unk_185F9A4);
+		c.queue = game_addr(game::unk_2796718);
+		c.file00 = game_addr(game::unk_2796710);
+		c.file01 = game_addr(game::unk_2796714);
+		c.tick = game_addr(game::MAG_247_sub_9C9F00);
+		c.load_cb = game_addr(game::MAG_247_sub_9CED90);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -73,7 +73,7 @@ namespace bghdeath247
 		using namespace gfc;
 		bghdeath247::describe(bghdeath247::g_c);
 		init_clone(bghdeath247::g_c, nullptr, 0);
-		register_port(0x9C9F00, (void *)bghdeath247::SequenceTask, "MAG247 BGH251F2 Death SequenceTick", 247);
+		register_port(game::MAG_247_sub_9C9F00, (void *)bghdeath247::SequenceTask, "MAG247 BGH251F2 Death SequenceTick", 247);
 	}
 }
 

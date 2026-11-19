@@ -24,35 +24,35 @@ namespace act
 {
 namespace life
 {
-	static const Mod MOD_035 = { "life", 35, 0x8649A0, 0x8655E0,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x865230, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_035 = { "life", 35, game::MAG_035_LIFE_FL, game::MAG_034_PAIN_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_035_StepCounterLimit, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x26AC784;
-	static const uint32_t ARENA_ODD = 0x26B7174;
-	static const uint32_t ARENA_EVEN = 0x26B7170;
-	static const uint32_t Q_EMITTER = 0x26B4BD0;
-	static const uint32_t Q_UNUSED = 0x26B7178;
-	static const uint32_t Q_SPRITE = 0x26B4BB8;
-	static const uint32_t Q_GLINT = 0x26B7160;
-	static const uint32_t GLINT_CURSOR_PTR = 0x2792E74;
+	static constexpr game::Id PACKET_CURSOR = game::g_Life_PacketCursor;
+	static constexpr game::Id ARENA_ODD = game::g_Life_ArenaOdd;
+	static constexpr game::Id ARENA_EVEN = game::g_Life_ArenaEven;
+	static constexpr game::Id Q_EMITTER = game::MAG_035_EmitterQueue;
+	static constexpr game::Id Q_UNUSED = game::MAG_035_UnusedQueue;
+	static constexpr game::Id Q_SPRITE = game::MAG_035_SpriteQueue;
+	static constexpr game::Id Q_GLINT = game::MAG_035_GlintQueue;
+	static constexpr game::Id GLINT_CURSOR_PTR = game::Effect_GlintPacketCursorPtr;
 
-	static const uint32_t ORIG_Master = 0x864AB0;
-	static const uint32_t ORIG_Emitter = 0x864BC0;
-	static const uint32_t ORIG_Fall = 0x865120;
-	static const uint32_t ORIG_Ring = 0x865270;
-	static const uint32_t ORIG_Sparkle = 0x8653E0;
-	static const uint32_t ORIG_Glint = 0x8DCC20;
-	static const void *SOUND_Life() { return (const void *)us(0x15E6388); }
-	static const uint32_t SEQ_Revive = 0x15E6890;
-	static const uint32_t SEQ_RiseA = 0x15E638C;
-	static const uint32_t SEQ_RiseB = 0x15E6538;
-	static const uint32_t SEQ_Ring = 0x15E66E4;
-	static const uint32_t SEQ_Fall = 0x15E68EC;
+	static constexpr game::Id ORIG_Master = game::MAG_035_LIFE_Tick;
+	static constexpr game::Id ORIG_Emitter = game::MAG_035_LIFE_Emitter_Tick;
+	static constexpr game::Id ORIG_Fall = game::MAG_035_LIFE_FallSparkle_Tick;
+	static constexpr game::Id ORIG_Ring = game::MAG_035_LIFE_RingSparkle_Tick;
+	static constexpr game::Id ORIG_Sparkle = game::MAG_035_LIFE_Sparkle_Tick;
+	static constexpr game::Id ORIG_Glint = game::Effect_Glint_Tick;
+	static const void *SOUND_Life() { return (const void *)game_addr(game::unk_15E6388); }
+	static constexpr game::Id SEQ_Revive = game::unk_15E6890;
+	static constexpr game::Id SEQ_RiseA = game::unk_15E638C;
+	static constexpr game::Id SEQ_RiseB = game::unk_15E6538;
+	static constexpr game::Id SEQ_Ring = game::unk_15E66E4;
+	static constexpr game::Id SEQ_Fall = game::unk_15E68EC;
 
-	inline uint32_t Effect_CopyAnchorXZFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC6E0))(node, out); }
-	inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t scale, uint32_t offset) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(pos, scale, offset); }
-	inline uint32_t InitEffectSequenceFromData(uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(hdr, ot, mode, cursor); }
+	inline uint32_t Effect_CopyAnchorXZFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Effect_CopyAnchorXZFromSource))(node, out); }
+	inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t scale, uint32_t offset) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(pos, scale, offset); }
+	inline uint32_t InitEffectSequenceFromData(uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(hdr, ot, mode, cursor); }
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
 	{
@@ -78,21 +78,21 @@ namespace life
 		g_mod = &MOD_035;
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x864B80);
-		states[1] = us(0x864B90);
-		states[2] = us(0x865580);
-		states[3] = us(0x8655B0);
-		states[4] = us(0x8655D0);
+		states[0] = game_addr(game::MAG_035_LIFE_Root_State0_Advance);
+		states[1] = game_addr(game::MAG_035_LIFE_SpawnEmitter);
+		states[2] = game_addr(game::MAG_035_LIFE_NextAction);
+		states[3] = game_addr(game::MAG_035_LIFE_WaitChildren);
+		states[4] = game_addr(game::MAG_035_LIFE_Root_State4_Empty);
 		if ((U8(node, 0x5C) & 1) != 0)
-			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = MEM<uint32_t>(game_addr(ARENA_ODD));
 		else
-			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = MEM<uint32_t>(game_addr(ARENA_EVEN));
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_UNUSED)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPRITE)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_GLINT)));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_UNUSED)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_SPRITE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_GLINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -102,7 +102,7 @@ namespace life
 	static uint32_t __cdecl SpawnEmitter(uint32_t a1)
 	{
 		U8(a1, 0x63) = 1;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_EMITTER), us(ORIG_Emitter), 0x64, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_EMITTER), game_addr(ORIG_Emitter), 0x64, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -135,7 +135,7 @@ namespace life
 
 	static uint32_t SpawnSparkle(uint32_t parent, uint32_t seq, uint32_t last, uint32_t offset)
 	{
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Sparkle), 0x70, parent);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Sparkle), 0x70, parent);
 		Effect_CopyAnchorXZFromSource(s, s + 0x1C);
 		U16(s, 0x54) = (uint16_t)offset;
 		U32(s, 0x4C) = seq;
@@ -164,7 +164,7 @@ namespace life
 				radius = S16(node, 0x58);
 			if (radius == 0)
 				radius = 1;
-			const uint32_t seq = (x::CrtRand() & 1) != 0 ? us(SEQ_RiseA) : us(SEQ_RiseB);
+			const uint32_t seq = (x::CrtRand() & 1) != 0 ? game_addr(SEQ_RiseA) : game_addr(SEQ_RiseB);
 			const uint32_t s = SpawnSparkle(node, seq, 0xF, 0xFFFFFE00);
 			const int32_t angle = (int32_t)(x::CrtRand() & 0xFFF);
 			const int32_t dist = (int16_t)((int32_t)x::CrtRand() % (int32_t)radius);
@@ -181,11 +181,11 @@ namespace life
 	static void SpawnRevive(uint32_t node)
 	{
 		if (U16(node, 0x24) == 0)
-			SpawnSparkle(node, us(SEQ_Revive), 2, 0xFFFFFC00);
+			SpawnSparkle(node, game_addr(SEQ_Revive), 2, 0xFFFFFC00);
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x16 || (t & 1) != 0)
 			return;
-		const uint32_t s = SpawnSparkle(node, us(SEQ_Revive), 2, 0xFFFFFC00);
+		const uint32_t s = SpawnSparkle(node, game_addr(SEQ_Revive), 2, 0xFFFFFC00);
 		int16_t dx = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
 		const int16_t dy = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x5A) + 1));
 		int16_t dz = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
@@ -203,12 +203,12 @@ namespace life
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x1E)
 			return;
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Ring), 0x70, node);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Ring), 0x70, node);
 		Effect_CopyAnchorXZFromSource(s, s + 0x1C);
 		U16(s, 0x1E) = (uint16_t)(U16(s, 0x1E) + U16(node, 0x62));
 		U32(s, 0x60) = U32(s, 0x1C);
 		U32(s, 0x64) = U32(s, 0x20);
-		U32(s, 0x4C) = us(SEQ_Ring);
+		U32(s, 0x4C) = game_addr(SEQ_Ring);
 		U16(s, 0x52) = 0xF;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -220,8 +220,8 @@ namespace life
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0x14 || t >= 0x25)
 			return;
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Fall), 0x70, node);
-		U32(s, 0x4C) = us(SEQ_Fall);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Fall), 0x70, node);
+		U32(s, 0x4C) = game_addr(SEQ_Fall);
 		U16(s, 0x52) = 9;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -248,8 +248,8 @@ namespace life
 			return;
 		do
 		{
-			MEM<uint32_t>(us(GLINT_CURSOR_PTR)) = us(PACKET_CURSOR);
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_GLINT), us(ORIG_Glint), 0x5C, node);
+			MEM<uint32_t>(game_addr(GLINT_CURSOR_PTR)) = game_addr(PACKET_CURSOR);
+			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_GLINT), game_addr(ORIG_Glint), 0x5C, node);
 			U16(s, 0x56) = 8;
 			U8(s, 0x4C) = 0x10;
 			U8(s, 0x4D) = 0x10;
@@ -272,11 +272,11 @@ namespace life
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x865490);
-		states[1] = us(0x8654D0);
-		states[2] = us(0x8654F0);
-		states[3] = us(0x865520);
-		states[4] = us(0x865570);
+		states[0] = game_addr(game::MAG_035_LIFE_Emitter_Init);
+		states[1] = game_addr(game::MAG_035_LIFE_Emitter_Grow);
+		states[2] = game_addr(game::MAG_035_LIFE_Emitter_Spread);
+		states[3] = game_addr(game::MAG_035_LIFE_Emitter_End);
+		states[4] = game_addr(game::MAG_035_LIFE_Emitter_State4_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -359,7 +359,7 @@ namespace life
 		U32(hdr, 0) = U32(node, 0x4C);
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -372,7 +372,7 @@ namespace life
 		U32(hdr, 0) = U32(node, 0x4C);
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -380,9 +380,9 @@ namespace life
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8651F0);
-		states[1] = us(0x865200);
-		states[2] = us(0x865260);
+		states[0] = game_addr(game::MAG_035_LIFE_FallSparkle_State0_Advance);
+		states[1] = game_addr(game::MAG_035_LIFE_FallSparkle_Step);
+		states[2] = game_addr(game::MAG_035_LIFE_FallSparkle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		DrawFall(node);
 		const uint8_t status = U8(node, 0x26);
@@ -407,9 +407,9 @@ namespace life
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x865350);
-		states[1] = us(0x865360);
-		states[2] = us(0x8653D0);
+		states[0] = game_addr(game::MAG_035_LIFE_RingSparkle_State0_Advance);
+		states[1] = game_addr(game::MAG_035_LIFE_RingSparkle_Orbit);
+		states[2] = game_addr(game::MAG_035_LIFE_RingSparkle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
 		DrawScaled(node, U16(node, 0x68));
@@ -443,9 +443,9 @@ namespace life
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x865450);
-		states[1] = us(0x865460);
-		states[2] = us(0x865480);
+		states[0] = game_addr(game::MAG_035_LIFE_Sparkle_State0_Advance);
+		states[1] = game_addr(game::MAG_035_LIFE_Sparkle_State1_CounterFinish);
+		states[2] = game_addr(game::MAG_035_LIFE_Sparkle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
 		DrawScaled(node, U16(node, 0x68));
@@ -454,37 +454,37 @@ namespace life
 		return task_end(node, status);
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x864B80, (void *)a_73A0D0, "035 MAG_035_sub_864B80" },
-		{ 0x8651F0, (void *)a_73A0D0, "035 sub_8651F0" },
-		{ 0x865230, (void *)a_743C20, "035 sub_865230" },
-		{ 0x865260, (void *)a_73A6D0, "035 nullsub_1647" },
-		{ 0x865350, (void *)a_73A0D0, "035 sub_865350" },
-		{ 0x8653D0, (void *)a_73A6D0, "035 nullsub_1648" },
-		{ 0x865450, (void *)a_73A0D0, "035 sub_865450" },
-		{ 0x865460, (void *)a_743C00, "035 sub_865460" },
-		{ 0x865480, (void *)a_73A6D0, "035 nullsub_1649" },
-		{ 0x865570, (void *)a_73A6D0, "035 nullsub_1650" },
-		{ 0x8655D0, (void *)a_73A6D0, "035 nullsub_1651" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_035_LIFE_Root_State0_Advance, (void *)a_73A0D0, "035 MAG_035_sub_864B80" },
+		{ game::MAG_035_LIFE_FallSparkle_State0_Advance, (void *)a_73A0D0, "035 sub_8651F0" },
+		{ game::MAG_035_StepCounterLimit, (void *)a_743C20, "035 sub_865230" },
+		{ game::MAG_035_LIFE_FallSparkle_State2_Empty, (void *)a_73A6D0, "035 nullsub_1647" },
+		{ game::MAG_035_LIFE_RingSparkle_State0_Advance, (void *)a_73A0D0, "035 sub_865350" },
+		{ game::MAG_035_LIFE_RingSparkle_State2_Empty, (void *)a_73A6D0, "035 nullsub_1648" },
+		{ game::MAG_035_LIFE_Sparkle_State0_Advance, (void *)a_73A0D0, "035 sub_865450" },
+		{ game::MAG_035_LIFE_Sparkle_State1_CounterFinish, (void *)a_743C00, "035 sub_865460" },
+		{ game::MAG_035_LIFE_Sparkle_State2_Empty, (void *)a_73A6D0, "035 nullsub_1649" },
+		{ game::MAG_035_LIFE_Emitter_State4_Empty, (void *)a_73A6D0, "035 nullsub_1650" },
+		{ game::MAG_035_LIFE_Root_State4_Empty, (void *)a_73A6D0, "035 nullsub_1651" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
 		{ ORIG_Master, (void *)Master, "035 Life Master" },
-		{ 0x864B90, (void *)SpawnEmitter, "035 SpawnEmitter" },
-		{ 0x865580, (void *)NextAction, "035 NextAction" },
-		{ 0x8655B0, (void *)WaitChildren, "035 WaitChildren" },
+		{ game::MAG_035_LIFE_SpawnEmitter, (void *)SpawnEmitter, "035 SpawnEmitter" },
+		{ game::MAG_035_LIFE_NextAction, (void *)NextAction, "035 NextAction" },
+		{ game::MAG_035_LIFE_WaitChildren, (void *)WaitChildren, "035 WaitChildren" },
 		{ ORIG_Emitter, (void *)Emitter, "035 Emitter" },
-		{ 0x865490, (void *)EmitterInit, "035 EmitterInit" },
-		{ 0x8654D0, (void *)EmitterGrow, "035 EmitterGrow" },
-		{ 0x8654F0, (void *)EmitterSpread, "035 EmitterSpread" },
-		{ 0x865520, (void *)EmitterEnd, "035 EmitterEnd" },
+		{ game::MAG_035_LIFE_Emitter_Init, (void *)EmitterInit, "035 EmitterInit" },
+		{ game::MAG_035_LIFE_Emitter_Grow, (void *)EmitterGrow, "035 EmitterGrow" },
+		{ game::MAG_035_LIFE_Emitter_Spread, (void *)EmitterSpread, "035 EmitterSpread" },
+		{ game::MAG_035_LIFE_Emitter_End, (void *)EmitterEnd, "035 EmitterEnd" },
 		{ ORIG_Fall, (void *)Fall, "035 Fall" },
-		{ 0x865200, (void *)FallStep, "035 FallStep" },
+		{ game::MAG_035_LIFE_FallSparkle_Step, (void *)FallStep, "035 FallStep" },
 		{ ORIG_Ring, (void *)Ring, "035 Ring" },
-		{ 0x865360, (void *)RingStep, "035 RingStep" },
+		{ game::MAG_035_LIFE_RingSparkle_Orbit, (void *)RingStep, "035 RingStep" },
 		{ ORIG_Sparkle, (void *)Sparkle, "035 Sparkle" },
-		{ 0, nullptr, nullptr }
+		{ {}, nullptr, nullptr }
 	};
 }
 }

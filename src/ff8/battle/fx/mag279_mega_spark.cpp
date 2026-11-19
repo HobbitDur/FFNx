@@ -25,62 +25,62 @@ namespace megaspark279
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2508074)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2508078)); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2508080); }
-	inline TaskQueue *QPrimA() { return (TaskQueue *)us(0x2508090); }
-	inline TaskQueue *QPrimB() { return (TaskQueue *)us(0x25080A0); }
-	inline TaskQueue *QBolts() { return (TaskQueue *)us(0x25080B0); }
-	inline TaskQueue *QArcs() { return (TaskQueue *)us(0x25080C0); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x25080D0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2508104)); }
-	inline uint32_t &Seed() { return var<uint32_t>(us(0x2508108)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x250810C)); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_279_MegaSpark_CastContext)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_279_MegaSpark_CasterEntity)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)game_addr(game::MAG_279_MegaSpark_SparksQueue); }
+	inline TaskQueue *QPrimA() { return (TaskQueue *)game_addr(game::MAG_279_MegaSpark_PrimAQueue); }
+	inline TaskQueue *QPrimB() { return (TaskQueue *)game_addr(game::MAG_279_MegaSpark_PrimBQueue); }
+	inline TaskQueue *QBolts() { return (TaskQueue *)game_addr(game::MAG_279_MegaSpark_BoltsQueue); }
+	inline TaskQueue *QArcs() { return (TaskQueue *)game_addr(game::MAG_279_MegaSpark_ArcsQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::MAG_279_MegaSpark_MainQueue); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_279_MegaSpark_PacketCursor)); }
+	inline uint32_t &Seed() { return var<uint32_t>(game_addr(game::MAG_279_MegaSpark_Seed)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_279_MegaSpark_MagicBufferBase)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
 
-	static const uint32_t ORIG_MasterTask = 0x67F090;
-	static const uint32_t ORIG_MainTask = 0x67F340;
-	static const uint32_t ORIG_BoltTask = 0x67FC30;
-	static const uint32_t ORIG_SparkTask = 0x6800F0;
-	static const uint32_t ORIG_PrimTask = 0x680170;
-	static const uint32_t ORIG_ArcTask = 0x680520;
-	static const uint32_t ORIG_PrimCallback = 0x67F7E0;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_279_MegaSpark_MasterTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_279_MegaSpark_MainTask;
+	static constexpr game::Id ORIG_BoltTask = game::MAG_279_MegaSpark_BoltTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_279_MegaSpark_SparkTask;
+	static constexpr game::Id ORIG_PrimTask = game::MAG_279_MegaSpark_PrimTask;
+	static constexpr game::Id ORIG_ArcTask = game::MAG_279_MegaSpark_ArcTask;
+	static constexpr game::Id ORIG_PrimCallback = game::MAG_279_MegaSpark_PrimCallback;
 	static const uint32_t POOL_PrimA = 0x140, POOL_PrimB = 0x4F4, POOL_Bolts = 0x18B4, POOL_Arcs = 0x2334, POOL_Main = 0x3334;
 	static const uint32_t BUF_Points = 0x3E68;
 	static const uint32_t BUF_PointCache = 0x7A68;
 	static const uint32_t BUF_Morph = 0x7A6C;
 	static const uint32_t BUF_Profile = 0x7C6C, BUF_ProfileEnd = 0x7C7C;
 	static const uint32_t ARENA_A = 0x7C7C, ARENA_B = 0x17C7C;
-	static const uint32_t MODEL_Ring = 0x10AEC64;
-	static const uint32_t MODEL_Orb = 0x10AB23C;
-	static const uint32_t MODEL_Strike = 0x10AFEE0;
-	static const uint32_t MODEL_Hit = 0x10B0C08;
-	static const uint32_t SEQ_Spark = 0x10AB138;
-	static const uint32_t ANCHOR_0 = 0x10B6D28;
-	static const uint32_t POINT_Orb = 0x10B6F80;
-	static const uint32_t TRI_Rows = 0x10B6D40;
-	static const uint32_t TBL_Distance = 0x10B1BA0;
-	static const uint32_t TBL_Lengths = 0x10B5B20;
-	static const uint32_t TBL_Sine = 0x10B5D20;
-	static const void *SOUND_Spark() { return (const void *)us(0x10B1B9C); }
+	static constexpr game::Id MODEL_Ring = game::MAG_279_MegaSpark_ModelRing;
+	static constexpr game::Id MODEL_Orb = game::MAG_279_MegaSpark_ModelOrb;
+	static constexpr game::Id MODEL_Strike = game::MAG_279_MegaSpark_ModelStrike;
+	static constexpr game::Id MODEL_Hit = game::MAG_279_MegaSpark_ModelHit;
+	static constexpr game::Id SEQ_Spark = game::MAG_279_MegaSpark_SeqSpark;
+	static constexpr game::Id ANCHOR_0 = game::unk_10B6D28;
+	static constexpr game::Id POINT_Orb = game::unk_10B6F80;
+	static constexpr game::Id TRI_Rows = game::unk_10B6D40;
+	static constexpr game::Id TBL_Distance = game::MAG_279_MegaSpark_TableDistance;
+	static constexpr game::Id TBL_Lengths = game::MAG_279_MegaSpark_TableLengths;
+	static constexpr game::Id TBL_Sine = game::MAG_279_MegaSpark_TableSine;
+	static const void *SOUND_Spark() { return (const void *)game_addr(game::MAG_279_MegaSpark_SoundSpark); }
 	static const uint32_t QUAD_UV0 = 0x3D948048, QUAD_UV1 = 0xB68078;
 	static const uint16_t QUAD_UV2 = 0x8048, QUAD_UV3 = 0x8078;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(angle, out); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
-	inline void GetEffectSpawnPosition(uint8_t *ent, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(ent, bone, mode, out); }
-	inline void TriangleCentreNormal(uint32_t bones, uint32_t tri, int16_t *centre, int16_t *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, int16_t *, int16_t *)>(us(0x704130))(bones, tri, centre, normal); }
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAngles2(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_063_RotationXMatrix))(angle, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(angle, out); }
+	inline void GetEffectSpawnPosition(uint8_t *ent, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(ent, bone, mode, out); }
+	inline void TriangleCentreNormal(uint32_t bones, uint32_t tri, int16_t *centre, int16_t *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, int16_t *, int16_t *)>(game_addr(game::MAG_TriangleCentreNormal))(bones, tri, centre, normal); }
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(game_addr(game::Effect_SharedLcg_Rand))(); }
 
 	template<typename T> inline T &AT(uint32_t a, int32_t off = 0) { return *(T *)(a + (uint32_t)off); }
 	inline int16_t &S16(uint32_t a, int32_t off) { return AT<int16_t>(a, off); }
@@ -215,7 +215,7 @@ namespace megaspark279
 	{
 		const uint32_t p = AllocPoint(src);
 		if (!p) return 0;
-		BoltNode *b = (BoltNode *)AddTaskToQueue(QBolts(), us(ORIG_BoltTask));
+		BoltNode *b = (BoltNode *)AddTaskToQueue(QBolts(), game_addr(ORIG_BoltTask));
 		if (!b)
 		{
 			S16(p, 6) = -1;
@@ -362,7 +362,7 @@ namespace megaspark279
 			const int32_t dy = ScreenPx(S16(p, sxy + 2)) - ScreenPx(S16(next, sxy + 2));
 			int32_t ay = dy < 0 ? -dy : dy;
 			if (ay >= 0x80) ay = 0x7F;
-			const int32_t dist = U8(us(TBL_Distance), ay * 128 + ax);
+			const int32_t dist = U8(game_addr(TBL_Distance), ay * 128 + ax);
 			int32_t nx, ny;
 			if (prev)
 			{
@@ -497,7 +497,7 @@ namespace megaspark279
 	{
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Spark);
+		*(uint32_t *)h = game_addr(SEQ_Spark);
 		*(int16_t *)(h + 4) = s->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -530,24 +530,24 @@ namespace megaspark279
 		{
 			if (b->dst[1] < 0)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 				if (!s) return;
 				*(uint32_t *)&s->pos[0] = *(const uint32_t *)&b->dst[0];
 				*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->dst[2];
 				s->frame = 0;
 				return;
 			}
-			p = (PrimNode *)AddTaskToQueue(QPrimB(), us(ORIG_PrimTask));
+			p = (PrimNode *)AddTaskToQueue(QPrimB(), game_addr(ORIG_PrimTask));
 			if (!p) return;
-			DecodeModelPrimLayout(us(MODEL_Hit), p->layout, 0x88);
+			DecodeModelPrimLayout(game_addr(MODEL_Hit), p->layout, 0x88);
 			scale = (CrtRand() & 0xFFF) + 0x800;
 		}
 		else
 		{
 			if (b->strike == 0) return;
-			p = (PrimNode *)AddTaskToQueue(QPrimA(), us(ORIG_PrimTask));
+			p = (PrimNode *)AddTaskToQueue(QPrimA(), game_addr(ORIG_PrimTask));
 			if (!p) return;
-			DecodeModelPrimLayout(us(MODEL_Strike), p->layout, 0x110);
+			DecodeModelPrimLayout(game_addr(MODEL_Strike), p->layout, 0x110);
 		}
 		const uint8_t *caster = Caster();
 		int32_t v[3] = { (int32_t)b->dst[0] - *(const int16_t *)(caster + 0x1C), 0, (int32_t)b->dst[2] - *(const int16_t *)(caster + 0x20) };
@@ -609,7 +609,7 @@ namespace megaspark279
 			}
 			U32(b->tail, 0x24) = p;
 			b->tail = p;
-			GteSetIR0(AT<int16_t>(us(TBL_Sine), ((b->t >> 1) & 0xFFF) * 2));
+			GteSetIR0(AT<int16_t>(game_addr(TBL_Sine), ((b->t >> 1) & 0xFFF) * 2));
 			GteLoadIR123(b->bend);
 			GteGPF();
 			b->count++;
@@ -681,7 +681,7 @@ namespace megaspark279
 
 	static void SpawnArc(uint32_t model, uint32_t from, uint32_t to, uint8_t anchor, uint8_t amp_shift, uint8_t fade_shift)
 	{
-		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), us(ORIG_ArcTask));
+		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), game_addr(ORIG_ArcTask));
 		if (!a) return;
 		a->amp_shift = amp_shift;
 		a->fade_shift = fade_shift;
@@ -731,7 +731,7 @@ namespace megaspark279
 			const int32_t norm = lz - 0x18;
 			if (norm > 0) sum = shl32(sum, norm);
 			else sum >>= (0x18 - lz);
-			const int32_t len = (int32_t)((uint32_t)AT<uint16_t>(us(TBL_Lengths), sum * 2) << shift);
+			const int32_t len = (int32_t)((uint32_t)AT<uint16_t>(game_addr(TBL_Lengths), sum * 2) << shift);
 			amp = len >> 12;
 			GteSetIR0(len >> a->amp_shift);
 			GteLoadIR123(ctrl);
@@ -836,12 +836,12 @@ namespace megaspark279
 			if ((uint32_t)c >= 0xF && (uint32_t)c < 0x1F)
 			{
 				if (c == 0xF)
-					for (int i = 2; i >= 0; i--) DecodeModelPrimLayout(us(MODEL_Ring), m->ring[i], 0x148);
+					for (int i = 2; i >= 0; i--) DecodeModelPrimLayout(game_addr(MODEL_Ring), m->ring[i], 0x148);
 				arg.depth = -0x80;
 				arg.morph = TexBase() + BUF_Morph;
 				for (int i = 2; i >= 0; i--)
 				{
-					BonePoint((const int16_t *)(us(ANCHOR_0) + 8 * i), arg.m.t);
+					BonePoint((const int16_t *)(game_addr(ANCHOR_0) + 8 * i), arg.m.t);
 					RotX(*(const int16_t *)(Caster() + 0xC), &arg.m);
 					ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 					prim::play((prim::Layout *)m->ring[i], PrimCallback, (int)&arg, 0);
@@ -850,9 +850,9 @@ namespace megaspark279
 			if ((c & 3) == 0)
 			{
 				const uint32_t row = (((uint32_t)c >> 2) & 7) * 0x18;
-				ArcSet(us(TRI_Rows) + row, us(ANCHOR_0), 0, 0xC);
-				ArcSet(us(TRI_Rows) + 0xC0 + row, us(ANCHOR_0) + 8, 0, 0xC);
-				ArcSet(us(TRI_Rows) + 0x180 + row, us(ANCHOR_0) + 0x10, 0, 0xC);
+				ArcSet(game_addr(TRI_Rows) + row, game_addr(ANCHOR_0), 0, 0xC);
+				ArcSet(game_addr(TRI_Rows) + 0xC0 + row, game_addr(ANCHOR_0) + 8, 0, 0xC);
+				ArcSet(game_addr(TRI_Rows) + 0x180 + row, game_addr(ANCHOR_0) + 0x10, 0, 0xC);
 			}
 		}
 		c = m->counter - 0x14;
@@ -860,8 +860,8 @@ namespace megaspark279
 		{
 			if ((uint32_t)c >= 4)
 			{
-				if (c == 4) DecodeModelPrimLayout(us(MODEL_Orb), m->orb, 0x734);
-				BonePoint((const int16_t *)us(POINT_Orb), arg.m.t);
+				if (c == 4) DecodeModelPrimLayout(game_addr(MODEL_Orb), m->orb, 0x734);
+				BonePoint((const int16_t *)game_addr(POINT_Orb), arg.m.t);
 				RotY(0, &arg.m);
 				ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 				arg.morph = TexBase() + BUF_Morph;
@@ -870,9 +870,9 @@ namespace megaspark279
 			}
 			if ((c & 7) == 0)
 			{
-				ArcSet(us(ANCHOR_0), us(POINT_Orb), 1, 0xE);
-				ArcSet(us(ANCHOR_0) + 8, us(POINT_Orb), 1, 0xE);
-				ArcSet(us(ANCHOR_0) + 0x10, us(POINT_Orb), 1, 0xE);
+				ArcSet(game_addr(ANCHOR_0), game_addr(POINT_Orb), 1, 0xE);
+				ArcSet(game_addr(ANCHOR_0) + 8, game_addr(POINT_Orb), 1, 0xE);
+				ArcSet(game_addr(ANCHOR_0) + 0x10, game_addr(POINT_Orb), 1, 0xE);
 			}
 		}
 		c = m->counter - 0x28;
@@ -881,7 +881,7 @@ namespace megaspark279
 			uint8_t *tgt = m->targets[(uint32_t)c % (uint32_t)(int32_t)m->ntargets];
 			if (c == 0) ScreenFadeTask(0, 1, 2, 0x80);
 			int32_t tmp[3];
-			BonePoint((const int16_t *)us(POINT_Orb), tmp);
+			BonePoint((const int16_t *)game_addr(POINT_Orb), tmp);
 			int16_t src[4] = { (int16_t)tmp[0], (int16_t)tmp[1], (int16_t)tmp[2], (int16_t)MainSrcPad() };
 			int16_t dst[4] = { 0, 0, 0, 0 };
 			int16_t strike;
@@ -947,7 +947,7 @@ namespace megaspark279
 			InitTaskQueuePool(QPrimA(), (void *)(TexBase() + POOL_PrimA), 0x13C, 3);
 			InitTaskQueuePool(QPrimB(), (void *)(TexBase() + POOL_PrimB), 0x13C, 0x10);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x14, 0x10);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x2CA);
 			for (int32_t k = 0; k < 8; k++)
 				S16(TexBase(), BUF_Profile + 2 * k) = (int16_t)ComputeSin(shl32(k, 11) / 7);

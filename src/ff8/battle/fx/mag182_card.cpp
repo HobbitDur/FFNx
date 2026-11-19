@@ -25,36 +25,36 @@ namespace card182
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2306508)); }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x2304220)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23065CC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23065D0)); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x23056E8); }
-	static const uint32_t TRAIL_POOL = 0x2304248, TRAIL_END = 0x2304D88;
-	static const uint32_t SPARK_POOL = 0x2304D88, SPARK_END = 0x23056E8;
-	static const uint32_t AFTER = 0x2306518, AFTER_END = 0x23065CC;
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_182_CARD_CastContext)); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(game_addr(game::MAG_182_CARD_TargetSlot)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_182_CARD_TextureBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_182_CARD_PacketCursor)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::MAG_182_CARD_EffectQueue); }
+	static constexpr game::Id TRAIL_POOL = game::MAG_182_CARD_TrailPool, TRAIL_END = game::MAG_182_CARD_SparklePool;
+	static constexpr game::Id SPARK_POOL = game::MAG_182_CARD_SparklePool, SPARK_END = game::MAG_182_CARD_EffectQueue;
+	static constexpr game::Id AFTER = game::MAG_182_CARD_AfterImages, AFTER_END = game::MAG_182_CARD_TextureBase;
 	static const uint32_t ARENA_HALF = 0xC000;
 
-	static const uint32_t ORIG_RootTask = 0x5CB4E0;
-	static const uint32_t ORIG_DirectorA = 0x5CA0E0;
-	static const uint32_t ORIG_DirectorB = 0x5CA970;
-	static const uint32_t ORIG_Sparkles = 0x5CA490;
-	static const uint32_t ORIG_Ring = 0x5CA6B0;
-	static const uint32_t ORIG_Shard = 0x5CA810;
-	static const uint32_t ORIG_Card = 0x5CAED0;
-	static const uint32_t ORIG_CardModel = 0x5CB130;
-	static const uint32_t ORIG_TargetFade = 0x5CB390;
-	static const uint32_t SEQ_Sparkle = 0xD3ACCC, SEQ_Card = 0xD3ABC0;
-	static const uint32_t MODEL_Ring = 0xD3B3D8, MODEL_Card = 0xD3AE78;
-	static const uint32_t SHARD_MODELS = 0xD3D394;
-	static const uint32_t SPARK_COLOURS = 0xD3D3C4;
-	static const void *SOUND_CardA() { return (const void *)us(0xD3D38C); }
-	static const void *SOUND_CardB() { return (const void *)us(0xD3D388); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_182_CARD_RootTask;
+	static constexpr game::Id ORIG_DirectorA = game::MAG_182_CARD_DirectorShort;
+	static constexpr game::Id ORIG_DirectorB = game::MAG_182_CARD_DirectorCard;
+	static constexpr game::Id ORIG_Sparkles = game::MAG_182_CARD_Sparkles;
+	static constexpr game::Id ORIG_Ring = game::MAG_182_CARD_Ring;
+	static constexpr game::Id ORIG_Shard = game::MAG_182_CARD_Shard;
+	static constexpr game::Id ORIG_Card = game::MAG_182_CARD_SmallCard;
+	static constexpr game::Id ORIG_CardModel = game::MAG_182_CARD_CardModel;
+	static constexpr game::Id ORIG_TargetFade = game::MAG_182_CARD_TargetFade;
+	static constexpr game::Id SEQ_Sparkle = game::MAG_182_CARD_SparkleSequence, SEQ_Card = game::MAG_182_CARD_SmallCardSequence;
+	static constexpr game::Id MODEL_Ring = game::MAG_182_CARD_RingModel, MODEL_Card = game::MAG_182_CARD_CardModel3D;
+	static constexpr game::Id SHARD_MODELS = game::MAG_182_CARD_ShardModels;
+	static constexpr game::Id SPARK_COLOURS = game::MAG_182_CARD_SparkleColours;
+	static const void *SOUND_CardA() { return (const void *)game_addr(game::MAG_182_CARD_SoundShort); }
+	static const void *SOUND_CardB() { return (const void *)game_addr(game::MAG_182_CARD_SoundCard); }
 
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -96,9 +96,9 @@ namespace card182
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Card nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(AfterImage) == 0x24, "Card pools");
 
-	inline Particle *TrailPool() { return (Particle *)us(TRAIL_POOL); }
-	inline Particle *SparkPool() { return (Particle *)us(SPARK_POOL); }
-	inline AfterImage *After() { return (AfterImage *)us(AFTER); }
+	inline Particle *TrailPool() { return (Particle *)game_addr(TRAIL_POOL); }
+	inline Particle *SparkPool() { return (Particle *)game_addr(SPARK_POOL); }
+	inline AfterImage *After() { return (AfterImage *)game_addr(AFTER); }
 	inline uint8_t *Target() { return Entity((int)TargetSlot()); }
 	inline uint32_t &Cursor() { return PacketCursor(); }
 
@@ -129,14 +129,14 @@ namespace card182
 	static uint8_t *SparkHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Sparkle);
+		*(uint32_t *)h = game_addr(SEQ_Sparkle);
 		*(int16_t *)(h + 0x24) = 4;
 		return h;
 	}
 	static void SparkDraw(uint8_t *h, const Particle *p)
 	{
 		*(int16_t *)(h + 4) = p->frame;
-		*(uint32_t *)(h + 0x1C) = var<uint32_t>(us(SPARK_COLOURS) + (uint32_t)((int32_t)p->frame % 8) * 4);
+		*(uint32_t *)(h + 0x1C) = var<uint32_t>(game_addr(SPARK_COLOURS) + (uint32_t)((int32_t)p->frame % 8) * 4);
 		TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->scale >> 4));
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 	}
@@ -146,7 +146,7 @@ namespace card182
 	{
 		ModelMatrix(angle, n->x, 0, n->z, scale, scale, scale, nullptr);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = us(MODEL_Ring);
+		*(uint32_t *)h = game_addr(MODEL_Ring);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0xF3;
 		*(int32_t *)(h + 0xC) = fade;
@@ -160,7 +160,7 @@ namespace card182
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
-		*(uint32_t *)h = var<uint32_t>(us(SHARD_MODELS) + (uint32_t)n->e * 4);
+		*(uint32_t *)h = var<uint32_t>(game_addr(SHARD_MODELS) + (uint32_t)n->e * 4);
 		Cursor() = RenderPrimModel(h, RenderOT(), 2, Cursor());
 		FieldFree(0x58);
 	}
@@ -168,7 +168,7 @@ namespace card182
 	static uint8_t *CardHeader()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Card);
+		*(uint32_t *)h = game_addr(SEQ_Card);
 		*(int16_t *)(h + 0x24) = 8;
 		return h;
 	}
@@ -193,7 +193,7 @@ namespace card182
 		slot->used = 1;
 		ModelMatrix(angle, x, y, z, scale, scale, scale, &slot->m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = us(MODEL_Card);
+		*(uint32_t *)h = game_addr(MODEL_Card);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		if (c < 0x1E)
@@ -229,14 +229,14 @@ namespace card182
 	{
 		uint32_t colour = 0x32000000;
 		e[7] = (uint8_t)((uint32_t)(shl32(ir0, 8) - ir0) >> 12);
-		const uint32_t far0 = var<uint32_t>(us(0xB8B9A8));
-		GteSetFarColor(far0 & 0xFF, (far0 >> 8) & 0xFF, var<uint8_t>(us(0xB8B9AA)));
+		const uint32_t far0 = var<uint32_t>(game_addr(game::CURRENT_BS_SHADOW_PALETTE));
+		GteSetFarColor(far0 & 0xFF, (far0 >> 8) & 0xFF, var<uint8_t>(game_addr(game::unk_B8B9AA)));
 		GteLoadRGBC(&colour);
 		GteSetIR0(ir0);
 		GteDPCS();
 		GteStoreRGB2(e + 0x2C);
-		const uint32_t far1 = var<uint32_t>(us(0xB8B7D8));
-		GteSetFarColor(far1 & 0xFF, (far1 >> 8) & 0xFF, var<uint8_t>(us(0xB8B7DA)));
+		const uint32_t far1 = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE));
+		GteSetFarColor(far1 & 0xFF, (far1 >> 8) & 0xFF, var<uint8_t>(game_addr(game::unk_B8B7DA)));
 		uint32_t black = 0;
 		GteLoadRGBC(&black);
 		GteDPCS();
@@ -255,7 +255,7 @@ namespace card182
 		Node *n = (Node *)tn;
 		uint8_t *h = SparkHeader();
 		int alive = 0;
-		for (Particle *p = SparkPool(); (uint32_t)p < us(SPARK_END); p++)
+		for (Particle *p = SparkPool(); (uint32_t)p < game_addr(SPARK_END); p++)
 		{
 			if (!(p->tag & 1)) continue;
 			SparkDraw(h, p);
@@ -275,7 +275,7 @@ namespace card182
 				int i = 0;
 				Particle *p = SparkPool();
 				for (; p->tag != 0; p++, i++)
-					if ((uint32_t)(p + 1) >= us(SPARK_END)) { p = nullptr; break; }
+					if ((uint32_t)(p + 1) >= game_addr(SPARK_END)) { p = nullptr; break; }
 				if (!p || i >= 0x64) break;
 				p->tag = 1;
 				p->frame = 0;
@@ -338,7 +338,7 @@ namespace card182
 		uint8_t *h = CardHeader();
 		int alive = 0;
 		if (n->c < 8) CardSpriteDraw(h, n->c, &n->x, n->w1C);
-		for (Particle *p = TrailPool(); (uint32_t)p < us(TRAIL_END); p++)
+		for (Particle *p = TrailPool(); (uint32_t)p < game_addr(TRAIL_END); p++)
 		{
 			if (!(p->tag & (uint32_t)(int32_t)n->e)) continue;
 			TrailDraw(h, p);
@@ -356,7 +356,7 @@ namespace card182
 				int i = 0;
 				Particle *p = TrailPool();
 				for (; p->tag != 0; p++, i++)
-					if ((uint32_t)(p + 1) >= us(TRAIL_END)) { p = nullptr; break; }
+					if ((uint32_t)(p + 1) >= game_addr(TRAIL_END)) { p = nullptr; break; }
 				if (!p || i >= 0x78) break;
 				p->tag = (uint32_t)(int32_t)n->e;
 				p->frame = 6;
@@ -422,13 +422,13 @@ namespace card182
 
 	static void DirectorSpawn(Node *t)
 	{
-		Node *s = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Sparkles));
+		Node *s = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Sparkles));
 		*(uint32_t *)&s->x = *(const uint32_t *)&t->x;
 		*(uint32_t *)&s->z = *(const uint32_t *)&t->z;
 		s->w1C = t->w1C;
 		s->c = 0;
 		s->w1E = t->w1E;
-		Node *r1 = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
+		Node *r1 = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring));
 		*(uint32_t *)&r1->x = *(const uint32_t *)&t->x;
 		r1->c = 0;
 		*(uint32_t *)&r1->z = *(const uint32_t *)&t->z;
@@ -438,7 +438,7 @@ namespace card182
 		r1->w1A = (int16_t)(rr + 0x14);
 		r1->w1E = (int16_t)(sc / 16);
 		r1->w1C = (int16_t)(sc / 16);
-		Node *r2 = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
+		Node *r2 = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring));
 		*(uint32_t *)&r2->x = *(const uint32_t *)&t->x;
 		r2->c = 0;
 		*(uint32_t *)&r2->z = *(const uint32_t *)&t->z;
@@ -448,7 +448,7 @@ namespace card182
 		r2->w1C = r1->w1C;
 		for (int k = 0; k < 0xC; k++)
 		{
-			Node *d = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Shard));
+			Node *d = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Shard));
 			*(uint32_t *)&d->x = *(const uint32_t *)&t->x;
 			d->c = 0;
 			d->e = (int16_t)k;
@@ -511,7 +511,7 @@ namespace card182
 		{
 			for (int k = 0; k < 0xC; k++)
 			{
-				Node *d = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Card));
+				Node *d = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Card));
 				d->c = 0;
 				d->e = (int16_t)(1 << k);
 				d->x = (int16_t)(CrtRand() % 0x384 + t->x - 0x1C2);
@@ -526,7 +526,7 @@ namespace card182
 		}
 		if (t->c == 0x1A)
 		{
-			Node *m = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_CardModel));
+			Node *m = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_CardModel));
 			m->c = 0;
 			m->x = t->x;
 			m->y = (int16_t)(t->w16 - 0x1F4);
@@ -535,11 +535,11 @@ namespace card182
 			m->w1C = 0x800;
 			m->w1A = (int16_t)(CrtRand() % 0xC8 + 0x3E8);
 			m->w1E = (int16_t)(CrtRand() % 0x23 + 0x41);
-			for (AfterImage *a = After(); (uint32_t)a < us(AFTER_END); a++) a->used = 0;
+			for (AfterImage *a = After(); (uint32_t)a < game_addr(AFTER_END); a++) a->used = 0;
 		}
 		if (t->c == 0x14)
 		{
-			Node *f = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_TargetFade));
+			Node *f = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_TargetFade));
 			f->c = 0;
 			f->e = (int16_t)TargetSlot();
 			f->w18 = 6;

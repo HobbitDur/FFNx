@@ -37,31 +37,31 @@ namespace tiamat266
 	{
 		c.name = "266 Tiamat death";
 		c.effect_id = 266;
-		c.vm_table = us(0x1855DCC);
-		c.bone_table = us(0x1855A3C);
-		c.prim_table = us(0x1855A84);
-		c.prim_size = us(0x1855B74);
-		c.spr_table = us(0x1855B88);
-		c.ptype_table = us(0x1855BB4);
-		c.pop_table = us(0x1855BC8);
-		c.draw_table = us(0x1855C28);
-		c.attr_16A = us(0x1855D92);
-		c.attr_184 = us(0x1855DAC);
-		c.attr_186 = us(0x1855DAE);
-		c.attr_194 = us(0x1855DBC);
-		c.attr_19C = us(0x1855DC4);
-		c.desc = us(0x18558C8);
-		c.ptr_block = us(0x1855A14);
-		c.queue = us(0x2795CF8);
-		c.file00 = us(0x2795D0C);
-		c.file01 = us(0x2795D08);
-		c.tick = us(0x91FC50);
-		c.load_cb = us(0x928650);
+		c.vm_table = game_addr(game::funcs_92C68C);
+		c.bone_table = game_addr(game::funcs_929267);
+		c.prim_table = game_addr(game::funcs_924B84);
+		c.prim_size = game_addr(game::unk_1855B74);
+		c.spr_table = game_addr(game::unk_1855B88);
+		c.ptype_table = game_addr(game::unk_1855BB4);
+		c.pop_table = game_addr(game::funcs_926BF7);
+		c.draw_table = game_addr(game::unk_1855C28);
+		c.attr_16A = game_addr(game::unk_1855D92);
+		c.attr_184 = game_addr(game::unk_1855DAC);
+		c.attr_186 = game_addr(game::unk_1855DAE);
+		c.attr_194 = game_addr(game::unk_1855DBC);
+		c.attr_19C = game_addr(game::unk_1855DC4);
+		c.desc = game_addr(game::unk_18558C8);
+		c.ptr_block = game_addr(game::unk_1855A14);
+		c.queue = game_addr(game::unk_2795CF8);
+		c.file00 = game_addr(game::unk_2795D0C);
+		c.file01 = game_addr(game::unk_2795D08);
+		c.tick = game_addr(game::MAG_266_sub_91FC50);
+		c.load_cb = game_addr(game::MAG_266_sub_928650);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t DIS_KEYS = 0x2795D20;
+	static constexpr game::Id DIS_KEYS = game::unk_2795D20;
 	static const uint16_t DIS_RET16 = 0x0F2E;
 #include "gfc_disintegrate.inc"
 
@@ -97,7 +97,7 @@ namespace tiamat266
 		tiamat266::describe(tiamat266::g_c);
 		init_clone(tiamat266::g_c, nullptr, 0);
 		tiamat266::apply_slots(tiamat266::g_c);
-		register_port(0x91FC50, (void *)tiamat266::SequenceTask, "MAG266 Tiamat death SequenceTick", 266);
+		register_port(game::MAG_266_sub_91FC50, (void *)tiamat266::SequenceTask, "MAG266 Tiamat death SequenceTick", 266);
 	}
 }
 

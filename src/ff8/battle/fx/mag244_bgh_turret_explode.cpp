@@ -37,26 +37,26 @@ namespace turret244
 	{
 		c.name = "244 BGH251F2 turret explosion";
 		c.effect_id = 244;
-		c.vm_table = us(0x1861AA8);
-		c.bone_table = us(0x1861718);
-		c.prim_table = us(0x1861760);
-		c.prim_size = us(0x1861850);
-		c.spr_table = us(0x1861864);
-		c.ptype_table = us(0x1861890);
-		c.pop_table = us(0x18618A4);
-		c.draw_table = us(0x1861904);
-		c.attr_16A = us(0x1861A6E);
-		c.attr_184 = us(0x1861A88);
-		c.attr_186 = us(0x1861A8A);
-		c.attr_194 = us(0x1861A98);
-		c.attr_19C = us(0x1861AA0);
-		c.desc = us(0x186161C);
-		c.ptr_block = us(0x18616F0);
-		c.queue = us(0x27967C0);
-		c.file00 = us(0x27967BC);
-		c.file01 = us(0x27967B8);
-		c.tick = us(0x9E5E80);
-		c.load_cb = us(0x9EA510);
+		c.vm_table = game_addr(game::funcs_9EE54C);
+		c.bone_table = game_addr(game::funcs_9EB127);
+		c.prim_table = game_addr(game::funcs_9E7AD4);
+		c.prim_size = game_addr(game::unk_1861850);
+		c.spr_table = game_addr(game::unk_1861864);
+		c.ptype_table = game_addr(game::unk_1861890);
+		c.pop_table = game_addr(game::funcs_9E8B17);
+		c.draw_table = game_addr(game::unk_1861904);
+		c.attr_16A = game_addr(game::unk_1861A6E);
+		c.attr_184 = game_addr(game::unk_1861A88);
+		c.attr_186 = game_addr(game::unk_1861A8A);
+		c.attr_194 = game_addr(game::unk_1861A98);
+		c.attr_19C = game_addr(game::unk_1861AA0);
+		c.desc = game_addr(game::unk_186161C);
+		c.ptr_block = game_addr(game::unk_18616F0);
+		c.queue = game_addr(game::unk_27967C0);
+		c.file00 = game_addr(game::unk_27967BC);
+		c.file01 = game_addr(game::unk_27967B8);
+		c.tick = game_addr(game::MAG_244_sub_9E5E80);
+		c.load_cb = game_addr(game::MAG_244_sub_9EA510);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -73,7 +73,7 @@ namespace turret244
 		using namespace gfc;
 		turret244::describe(turret244::g_c);
 		init_clone(turret244::g_c, nullptr, 0);
-		register_port(0x9E5E80, (void *)turret244::SequenceTask, "MAG244 BGH251F2 turret explosion SequenceTick", 244);
+		register_port(game::MAG_244_sub_9E5E80, (void *)turret244::SequenceTask, "MAG244 BGH251F2 turret explosion SequenceTick", 244);
 	}
 }
 

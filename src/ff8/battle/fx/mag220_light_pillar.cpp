@@ -39,26 +39,26 @@ namespace pillar220
 	{
 		c.name = "220 Light Pillar";
 		c.effect_id = 220;
-		c.vm_table = us(0x186E198);
-		c.bone_table = us(0x186DE08);
-		c.prim_table = us(0x186DE50);
-		c.prim_size = us(0x186DF40);
-		c.spr_table = us(0x186DF54);
-		c.ptype_table = us(0x186DF80);
-		c.pop_table = us(0x186DF94);
-		c.draw_table = us(0x186DFF4);
-		c.attr_16A = us(0x186E15E);
-		c.attr_184 = us(0x186E178);
-		c.attr_186 = us(0x186E17A);
-		c.attr_194 = us(0x186E188);
-		c.attr_19C = us(0x186E190);
-		c.desc = us(0x186DCEC);
-		c.ptr_block = us(0x186DDE0);
-		c.queue = us(0x2796C18);
-		c.file00 = us(0x2796C2C);
-		c.file01 = us(0x2796C28);
-		c.tick = us(0xAB3990);
-		c.load_cb = us(0xAB8EA0);
+		c.vm_table = game_addr(game::funcs_ABCEDC);
+		c.bone_table = game_addr(game::funcs_AB9AB7);
+		c.prim_table = game_addr(game::funcs_AB56F4);
+		c.prim_size = game_addr(game::unk_186DF40);
+		c.spr_table = game_addr(game::unk_186DF54);
+		c.ptype_table = game_addr(game::unk_186DF80);
+		c.pop_table = game_addr(game::funcs_AB74A7);
+		c.draw_table = game_addr(game::unk_186DFF4);
+		c.attr_16A = game_addr(game::unk_186E15E);
+		c.attr_184 = game_addr(game::unk_186E178);
+		c.attr_186 = game_addr(game::unk_186E17A);
+		c.attr_194 = game_addr(game::unk_186E188);
+		c.attr_19C = game_addr(game::unk_186E190);
+		c.desc = game_addr(game::unk_186DCEC);
+		c.ptr_block = game_addr(game::unk_186DDE0);
+		c.queue = game_addr(game::unk_2796C18);
+		c.file00 = game_addr(game::unk_2796C2C);
+		c.file01 = game_addr(game::unk_2796C28);
+		c.tick = game_addr(game::MAG_220_sub_AB3990);
+		c.load_cb = game_addr(game::MAG_220_sub_AB8EA0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -91,7 +91,7 @@ namespace pillar220
 		pillar220::describe(pillar220::g_c);
 		init_clone(pillar220::g_c, nullptr, 0);
 		pillar220::apply_slots(pillar220::g_c);
-		register_port(0xAB3990, (void *)pillar220::SequenceTask, "MAG220 Light Pillar SequenceTick", 220);
+		register_port(game::MAG_220_sub_AB3990, (void *)pillar220::SequenceTask, "MAG220 Light Pillar SequenceTick", 220);
 	}
 }
 

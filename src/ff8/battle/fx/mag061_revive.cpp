@@ -22,28 +22,28 @@ namespace act
 {
 namespace revive
 {
-	static const Mod MOD_061 = { "revive", 61, 0x7E58A0, 0x7EB070,
-		{ 0x0, 0x0, 0x1596AD4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2604054, 0x2604060, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2601A30, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2603BD0, 0x0, 0x2603E70, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2604044, 0x0, 0x0, 0x2604056, 0x0, 0x260405C, 0x0, 0x260406C },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7E6C70, 0x7E6DB0, 0x7E6EF0, 0x7E7100, 0x7E7380, 0x7E75C0, 0x7E7860, 0x7E7A90, 0x7E7D50, 0x7E7FB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7E5C40, 0x7E5CC0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7E5E70, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7E6250, 0x7E6330, 0x7E64D0, 0x7E65A0, 0x7E66C0, 0x7E6920, 0x0, 0x0, 0x7E8B00, 0x7E8B50, 0x0, 0x0, 0x7E9440, 0x0, 0x0, 0x0, 0x7E9E20, 0x7E9E50, 0x7E9F30, 0x7EA050, 0x7EA1A0, 0x7EA830, 0x7EA860, 0x7EAA40, 0x7EAB80, 0x0, 0x0, 0x7EAF30, 0x7EAF70, 0x7EAF90, 0x7EAFB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_061 = { "revive", 61, game::MAG_061_REVIVE_FL, game::MAG_060_UNK1_FL,
+		{ {}, {}, game::MAG_061_REVIVE_DirectorBlockPtr, {}, {}, {}, {}, {}, game::MAG_061_REVIVE_ActorCursor, game::MAG_061_REVIVE_ActorPoolPtr, {}, {}, {}, {}, {}, {}, game::MAG_061_REVIVE_CamCopyPtr, {}, {}, {}, {}, {}, {}, {}, game::MAG_061_REVIVE_ActorSystemQueue, {}, game::MAG_061_REVIVE_EmitterQueue, {}, {}, {}, {}, {}, game::MAG_061_REVIVE_LiveCountB, {}, {}, game::MAG_061_REVIVE_LiveCountA, {}, game::MAG_061_REVIVE_ScratchSP, {}, game::MAG_061_REVIVE_ActorStatePtr },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_061_REVIVE_DrawModelActor, game::MAG_061_REVIVE_RenderPrimModel, game::MAG_061_REVIVE_MeshEmitF3, game::MAG_061_REVIVE_MeshEmitF4, game::MAG_061_REVIVE_RenderPolyFT3List, game::MAG_061_REVIVE_RenderPolyFT4List, game::MAG_061_REVIVE_PrimList_G3, game::MAG_061_REVIVE_PrimList_G4, game::MAG_061_REVIVE_PrimList_GT3, game::MAG_061_REVIVE_PrimList_GT4, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_061_REVIVE_EmitterTask, game::MAG_061_REVIVE_Emitter_State0_SpawnDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_061_REVIVE_DirSyncGate, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_061_REVIVE_ResetTrailHistory, game::MAG_061_REVIVE_Director_StartPositions, game::MAG_061_REVIVE_FillTrailRows, game::MAG_061_REVIVE_Director_Mode3Setup, game::MAG_061_REVIVE_Director_TargetPositions, game::MAG_061_REVIVE_RelocateActorData, {}, {}, game::MAG_061_REVIVE_DampValue, game::MAG_061_REVIVE_DampVector, {}, {}, game::MAG_061_REVIVE_MorphVertexBlock, {}, {}, {}, game::MAG_061_REVIVE_RandRange, game::MAG_061_REVIVE_RandRangeWide, game::MAG_061_REVIVE_RandAngleJitter, game::MAG_061_REVIVE_Particle_AttachToOwner, game::MAG_061_REVIVE_Actor_InterpolatePosition, game::MAG_061_REVIVE_ParticleList_Append, game::MAG_061_REVIVE_ParticleList_Unlink, game::MAG_061_REVIVE_Particle_PlaceAtAnchorSet, game::MAG_061_REVIVE_Particle_PlaceAtPoint, {}, {}, game::MAG_061_REVIVE_Emitter_State1_ApplyActionResult, game::MAG_061_REVIVE_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_061_REVIVE_Emitter_State3_FinishReleaseRoot, game::MAG_061_REVIVE_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t DIR_PTR = 0x1596AD4;
-	static const uint32_t PACKET_CURSOR = 0x2601924;
-	static const uint32_t SCRATCH_SP = 0x260405C;
-	static const uint32_t ACTOR_STATE = 0x260406C;
-	static const uint32_t STAGE_LIGHT = 0x1D98992;
-	static const uint32_t Q_EMITTER = 0x2603E70;
-	static const uint32_t Q_DIRECTOR = 0x2601A08;
-	static const uint32_t Q_ACTORS = 0x2603BD0;
-	static const uint32_t Q_WOBBLE = 0x2601B10;
-	static const uint32_t Q_TINT = 0x2603E60;
-	static const uint32_t ORIG_ActorSystem = 0x7E6010;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id DIR_PTR = game::MAG_061_REVIVE_DirectorBlockPtr;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_061_REVIVE_PacketCursor;
+	static constexpr game::Id SCRATCH_SP = game::MAG_061_REVIVE_ScratchSP;
+	static constexpr game::Id ACTOR_STATE = game::MAG_061_REVIVE_ActorStatePtr;
+	static constexpr game::Id STAGE_LIGHT = game::unk_1D98992;
+	static constexpr game::Id Q_EMITTER = game::MAG_061_REVIVE_EmitterQueue;
+	static constexpr game::Id Q_DIRECTOR = game::MAG_061_REVIVE_DirectorQueue;
+	static constexpr game::Id Q_ACTORS = game::MAG_061_REVIVE_ActorSystemQueue;
+	static constexpr game::Id Q_WOBBLE = game::MAG_061_REVIVE_StageDarkenQueue;
+	static constexpr game::Id Q_TINT = game::MAG_061_REVIVE_UnusedQueue;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_061_REVIVE_ActorSystemTask;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -341,7 +341,7 @@ namespace revive
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -400,46 +400,46 @@ namespace revive
 		g_mod = &MOD_061;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x2601A30)) = us(0x2793E58);
-		states[0] = us(0x7E5B70);
-		states[1] = us(0x7E5B80);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_CamCopyPtr)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_061_REVIVE_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_061_REVIVE_Master_State1_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = us(0x7E5B90);
-		states[3] = us(0x7E5C10);
-		states[4] = us(0x7EAFC0);
-		states[5] = us(0x7EB000);
-		states[6] = us(0x7EB010);
-		states[7] = us(0x7EB020);
-		states[8] = us(0x7EB030);
-		states[9] = us(0x7EB040);
-		states[10] = us(0x7EB060);
+		states[2] = game_addr(game::MAG_061_REVIVE_Master_State2_CarveActorPools);
+		states[3] = game_addr(game::MAG_061_REVIVE_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_061_REVIVE_Master_State4_NextActionLoop);
+		states[5] = game_addr(game::MAG_061_REVIVE_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_061_REVIVE_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_061_REVIVE_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_061_REVIVE_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_061_REVIVE_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_061_REVIVE_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2603FE4));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2603684));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x2601A2C)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ArenaA_Odd));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ArenaB_Odd));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_PacketCursor2)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2603FE0));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2603680));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x2601A2C)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ArenaA_Even));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ArenaB_Even));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_PacketCursor2)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x2604056)) = 0;
-		MEM<uint16_t>(us(0x2604044)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_WOBBLE)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TINT)));
+		MEM<uint16_t>(game_addr(game::MAG_061_REVIVE_LiveCountA)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_061_REVIVE_LiveCountB)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_WOBBLE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_TINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -450,12 +450,12 @@ namespace revive
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x2604068));
-		MEM<uint32_t>(us(0x2604048)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ParticlePoolPtr)) = p;
 		p += 0x870;
-		MEM<uint32_t>(us(0x2604060)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorPoolPtr)) = p;
 		p += 0x10680;
-		MEM<uint32_t>(us(0x2604068)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_FileArenaCursor)) = p;
 		rv_7E5BD0();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -463,27 +463,27 @@ namespace revive
 
 	uint32_t __cdecl rv_7E5BD0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2604048)), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2604060)), 0x10680);
-		MEM<uint16_t>(us(0x2603678)) = 0;
-		MEM<uint16_t>(us(0x2604054)) = 0;
-		MEM<uint16_t>(us(0x2603FE8)) = 0;
-		MEM<uint16_t>(us(0x2601928)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ParticlePoolPtr)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorPoolPtr)), 0x10680);
+		MEM<uint16_t>(game_addr(game::MAG_061_REVIVE_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_061_REVIVE_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_061_REVIVE_ClearedWordA)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_061_REVIVE_ClearedWordB)) = 0;
 		return 0;
 	}
 
 	uint32_t __cdecl rv_7E5CC0(uint32_t a1)
 	{
 		rv_7E5CF0(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x2601A08), us(0x7E5D80), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_061_REVIVE_DirectorQueue), game_addr(game::MAG_061_REVIVE_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl rv_7E5CF0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -493,7 +493,7 @@ namespace revive
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0;
 	}
 
@@ -501,12 +501,12 @@ namespace revive
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = us(0x7E5E50);
-		states[1] = us(0x7E5EA0);
-		states[2] = us(0x7E5EF0);
-		states[3] = us(0x7E5F10);
-		states[4] = us(0x7E5F30);
-		states[5] = us(0x7E5F50);
+		states[0] = game_addr(game::MAG_061_REVIVE_Director_State0_WaitDirGate1);
+		states[1] = game_addr(game::MAG_061_REVIVE_DirState_PlaySoundAtCut1);
+		states[2] = game_addr(game::MAG_061_REVIVE_DirState_DamageCueAtFrame28);
+		states[3] = game_addr(game::MAG_061_REVIVE_Director_State3_WaitDirGate2);
+		states[4] = game_addr(game::MAG_061_REVIVE_Director_State4_Finish);
+		states[5] = game_addr(game::MAG_061_REVIVE_Director_State5_Empty);
 		rv_7E5E00(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -539,14 +539,14 @@ namespace revive
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(us(0x1596AD8), 0, 0x80);
+		x::BdPlaySE(game_addr(game::MAG_061_REVIVE_Sound), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
 
 	uint32_t __cdecl rv_7E5EF0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		if (S16(d, 0x46) < 0x28)
 			return d;
 		U16(d, 0x48) = 1;
@@ -556,11 +556,11 @@ namespace revive
 
 	uint32_t __cdecl rv_7E5F70(uint32_t a1)
 	{
-		const int32_t cut = S16(MEM<uint32_t>(us(DIR_PTR)), 0x40);
+		const int32_t cut = S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40);
 		if (cut - 1 != 0)
 			return (uint32_t)(cut - 1);
-		a_73C100(a1, us(0x7E6010), us(0x1795000), 4, 0xF, 0);
-		return x::Effect_AddTaskAndInitFromCtx(us(Q_WOBBLE), us(0x7EADE0), 0x8C, a1);
+		a_73C100(a1, game_addr(game::MAG_061_REVIVE_ActorSystemTask), game_addr(game::MAG_061_REVIVE_ActorData), 4, 0xF, 0);
+		return x::Effect_AddTaskAndInitFromCtx(game_addr(Q_WOBBLE), game_addr(game::MAG_061_REVIVE_StageDarkenTask), 0x8C, a1);
 	}
 
 	uint32_t __cdecl rv_7E6070(uint32_t a1)
@@ -576,7 +576,7 @@ namespace revive
 
 	uint32_t __cdecl rv_7E6250(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x260406C));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -593,7 +593,7 @@ namespace revive
 
 	uint32_t __cdecl rv_7E64D0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x260406C));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -616,7 +616,7 @@ namespace revive
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x260406C), 0) = sys;
+		U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -628,7 +628,7 @@ namespace revive
 			rv_7E83D0();
 			rv_7E8290();
 			a_735440();
-			sys = U32(us(0x260406C), 0);
+			sys = U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -641,8 +641,8 @@ namespace revive
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x2604056), 0) = (uint16_t)(U16(us(0x2604056), 0) + c14);
-		U16(us(0x2604044), 0) = (uint16_t)(U16(us(0x2604044), 0) + c16);
+		U16(game_addr(game::MAG_061_REVIVE_LiveCountA), 0) = (uint16_t)(U16(game_addr(game::MAG_061_REVIVE_LiveCountA), 0) + c14);
+		U16(game_addr(game::MAG_061_REVIVE_LiveCountB), 0) = (uint16_t)(U16(game_addr(game::MAG_061_REVIVE_LiveCountB), 0) + c16);
 		return done;
 	}
 
@@ -1147,14 +1147,14 @@ namespace revive
 
 	uint32_t __cdecl rv_7E8290(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x260406C)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x260406C));
+				uint32_t st = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1189,26 +1189,26 @@ namespace revive
 	uint32_t __cdecl rv_7E8350(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl rv_7E83D0(void)
 	{
-		uint32_t act = U32(U32(us(0x260406C), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1224,7 +1224,7 @@ namespace revive
 	uint32_t __cdecl rv_7E8410(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x260406C));
+		uint32_t st = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1245,7 +1245,7 @@ namespace revive
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x260406C));
+			st = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1257,7 +1257,7 @@ namespace revive
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x260406C), 0);
+		uint32_t st = U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1340,8 +1340,8 @@ namespace revive
 
 	uint32_t __cdecl rv_7E9600(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2604048));
-		int32_t idx = MEM<int16_t>(us(0x2603678));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_061_REVIVE_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1351,7 +1351,7 @@ namespace revive
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1366,9 +1366,9 @@ namespace revive
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(us(0x2603678)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_061_REVIVE_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x2603678)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_061_REVIVE_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -1381,9 +1381,9 @@ namespace revive
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x7EA050), a1);
+			callp(game_addr(game::MAG_061_REVIVE_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x7EA1A0), a1);
+			callp(game_addr(game::MAG_061_REVIVE_Actor_InterpolatePosition), a1);
 		rv_7E9720(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1392,7 +1392,7 @@ namespace revive
 
 	uint32_t __cdecl rv_7E9720(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x260406C), 0);
+		uint32_t sys = U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1419,9 +1419,9 @@ namespace revive
 
 	uint32_t __cdecl rv_7E97A0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x260405C), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::MAG_061_REVIVE_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x260405C), 0) = sp;
+		U32(game_addr(game::MAG_061_REVIVE_ScratchSP), 0) = sp;
 		uint32_t node = a_7387B0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1431,7 +1431,7 @@ namespace revive
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x260406C), 0);
+			uint32_t ctx = U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1599,14 +1599,14 @@ namespace revive
 			}
 		}
 		rv_7EAC90(node, desc);
-		U32(us(0x260405C), 0) = U32(us(0x260405C), 0) + 0x50;
+		U32(game_addr(game::MAG_061_REVIVE_ScratchSP), 0) = U32(game_addr(game::MAG_061_REVIVE_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl rv_7EA1A0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x260406C), 0);
+		const uint32_t st = U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1666,7 +1666,7 @@ namespace revive
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x260406C), 0);
+				uint32_t g = U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1676,7 +1676,7 @@ namespace revive
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x260406C), 0);
+				uint32_t g = U32(game_addr(game::MAG_061_REVIVE_ActorStatePtr), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1751,7 +1751,7 @@ namespace revive
 
 	uint32_t __cdecl rv_7EAD20(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x260406C));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1776,14 +1776,14 @@ namespace revive
 				do
 				{
 					rv_7E9600(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x260406C));
+					dir = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				rv_7E9600(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x260406C));
+				dir = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_ActorStatePtr));
 			}
 		}
 		return 0;
@@ -1810,7 +1810,7 @@ namespace revive
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(STAGE_LIGHT);
+		uint32_t p = game_addr(STAGE_LIGHT);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return p;
@@ -1834,7 +1834,7 @@ namespace revive
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1842,7 +1842,7 @@ namespace revive
 
 	uint32_t __cdecl rv_7EAF30(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x1596AD4));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::MAG_061_REVIVE_DirectorBlockPtr));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -1856,107 +1856,107 @@ namespace revive
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x7E5B70, (void *)a_73A0D0, "061 MAG_061_sub_7E5B70" },
-		{ 0x7E5B80, (void *)a_73A0D0, "061 MAG_061_sub_7E5B80" },
-		{ 0x7E5C10, (void *)a_73A170, "061 MAG_061_sub_7E5C10" },
-		{ 0x7E5C40, (void *)a_73A1A0, "061 MAG_061_sub_7E5C40" },
-		{ 0x7E5E50, (void *)a_73B790, "061 sub_7E5E50" },
-		{ 0x7E5E70, (void *)a_73B640, "061 sub_7E5E70" },
-		{ 0x7E5ED0, (void *)a_73B7E0, "061 sub_7E5ED0" },
-		{ 0x7E5F10, (void *)a_73B8A0, "061 sub_7E5F10" },
-		{ 0x7E5F30, (void *)a_7475A0, "061 sub_7E5F30" },
-		{ 0x7E5F50, (void *)a_73A6D0, "061 nullsub_1464" },
-		{ 0x7E5F60, (void *)a_73A6D0, "061 nullsub_1465" },
-		{ 0x7E5FC0, (void *)a_73C100, "061 sub_7E5FC0" },
-		{ 0x7E6010, (void *)a_73A380, "061 sub_7E6010" },
-		{ 0x7E60A0, (void *)a_73F990, "061 sub_7E60A0" },
-		{ 0x7E6330, (void *)a_73FC20, "061 sub_7E6330" },
-		{ 0x7E65A0, (void *)a_73FE90, "061 sub_7E65A0" },
-		{ 0x7E66C0, (void *)a_73FFB0, "061 sub_7E66C0" },
-		{ 0x7E6920, (void *)a_740210, "061 sub_7E6920" },
-		{ 0x7E6C10, (void *)a_735440, "061 sub_7E6C10" },
-		{ 0x7E6C70, (void *)a_7354A0, "061 sub_7E6C70" },
-		{ 0x7E6DB0, (void *)a_7355E0, "061 sub_7E6DB0" },
-		{ 0x7E7380, (void *)a_735BB0, "061 sub_7E7380" },
-		{ 0x7E75C0, (void *)a_735DF0, "061 sub_7E75C0" },
-		{ 0x7E84A0, (void *)a_740910, "061 sub_7E84A0" },
-		{ 0x7E8B00, (void *)a_740F70, "061 sub_7E8B00" },
-		{ 0x7E8B50, (void *)a_740FC0, "061 sub_7E8B50" },
-		{ 0x7E8BE0, (void *)a_741050, "061 sub_7E8BE0" },
-		{ 0x7E8CB0, (void *)a_741120, "061 sub_7E8CB0" },
-		{ 0x7E96F0, (void *)a_741B60, "061 sub_7E96F0" },
-		{ 0x7E9E20, (void *)a_742290, "061 au_re__rand_32" },
-		{ 0x7E9E50, (void *)a_7422C0, "061 sub_7E9E50" },
-		{ 0x7E9E90, (void *)a_742300, "061 sub_7E9E90" },
-		{ 0x7E9EE0, (void *)a_742350, "061 sub_7E9EE0" },
-		{ 0x7E9F30, (void *)a_7423A0, "061 au_re__rand_32_0" },
-		{ 0x7E9F80, (void *)a_7387B0, "061 sub_7E9F80" },
-		{ 0x7EA040, (void *)a_7424B0, "061 sub_7EA040" },
-		{ 0x7EA050, (void *)a_7424C0, "061 sub_7EA050" },
-		{ 0x7EA830, (void *)a_742CA0, "061 sub_7EA830" },
-		{ 0x7EA860, (void *)a_742CD0, "061 sub_7EA860" },
-		{ 0x7EA890, (void *)a_742D00, "061 sub_7EA890" },
-		{ 0x7EAA40, (void *)a_742EB0, "061 sub_7EAA40" },
-		{ 0x7EAB80, (void *)a_742FF0, "061 sub_7EAB80" },
-		{ 0x7EADD0, (void *)a_73A6D0, "061 nullsub_1466" },
-		{ 0x7EADE0, (void *)a_73F110, "061 sub_7EADE0" },
-		{ 0x7EAE50, (void *)a_7335D0, "061 sub_7EAE50" },
-		{ 0x7EAF20, (void *)a_73A6D0, "061 nullsub_1467" },
-		{ 0x7EAF70, (void *)a_7474B0, "061 MAG_061_sub_7EAF70" },
-		{ 0x7EAF90, (void *)a_7474D0, "061 MAG_061_sub_7EAF90" },
-		{ 0x7EAFB0, (void *)a_73A6D0, "061 nullsub_1468" },
-		{ 0x7EAFC0, (void *)a_747500, "061 MAG_061_sub_7EAFC0" },
-		{ 0x7EB000, (void *)a_73A0D0, "061 MAG_061_sub_7EB000" },
-		{ 0x7EB010, (void *)a_747550, "061 MAG_061_sub_7EB010" },
-		{ 0x7EB020, (void *)a_73A0D0, "061 MAG_061_sub_7EB020" },
-		{ 0x7EB030, (void *)a_73A0D0, "061 MAG_061_sub_7EB030" },
-		{ 0x7EB040, (void *)a_7475A0, "061 MAG_061_sub_7EB040" },
-		{ 0x7EB060, (void *)a_73A6D0, "061 nullsub_1463" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_061_REVIVE_Master_State0_Advance, (void *)a_73A0D0, "061 MAG_061_sub_7E5B70" },
+		{ game::MAG_061_REVIVE_Master_State1_Advance, (void *)a_73A0D0, "061 MAG_061_sub_7E5B80" },
+		{ game::MAG_061_REVIVE_Master_State3_SpawnEmitter, (void *)a_73A170, "061 MAG_061_sub_7E5C10" },
+		{ game::MAG_061_REVIVE_EmitterTask, (void *)a_73A1A0, "061 MAG_061_sub_7E5C40" },
+		{ game::MAG_061_REVIVE_Director_State0_WaitDirGate1, (void *)a_73B790, "061 sub_7E5E50" },
+		{ game::MAG_061_REVIVE_DirSyncGate, (void *)a_73B640, "061 sub_7E5E70" },
+		{ game::MAG_061_REVIVE_DirPhaseGE, (void *)a_73B7E0, "061 sub_7E5ED0" },
+		{ game::MAG_061_REVIVE_Director_State3_WaitDirGate2, (void *)a_73B8A0, "061 sub_7E5F10" },
+		{ game::MAG_061_REVIVE_Director_State4_Finish, (void *)a_7475A0, "061 sub_7E5F30" },
+		{ game::MAG_061_REVIVE_Director_State5_Empty, (void *)a_73A6D0, "061 nullsub_1464" },
+		{ game::MAG_061_REVIVE_Director_OnCutRequest_Empty, (void *)a_73A6D0, "061 nullsub_1465" },
+		{ game::MAG_061_REVIVE_SpawnChildTask, (void *)a_73C100, "061 sub_7E5FC0" },
+		{ game::MAG_061_REVIVE_ActorSystemTask, (void *)a_73A380, "061 sub_7E6010" },
+		{ game::MAG_061_REVIVE_DirectorSetup, (void *)a_73F990, "061 sub_7E60A0" },
+		{ game::MAG_061_REVIVE_Director_StartPositions, (void *)a_73FC20, "061 sub_7E6330" },
+		{ game::MAG_061_REVIVE_Director_Mode3Setup, (void *)a_73FE90, "061 sub_7E65A0" },
+		{ game::MAG_061_REVIVE_Director_TargetPositions, (void *)a_73FFB0, "061 sub_7E66C0" },
+		{ game::MAG_061_REVIVE_RelocateActorData, (void *)a_740210, "061 sub_7E6920" },
+		{ game::MAG_061_REVIVE_ActSys_DrawPass, (void *)a_735440, "061 sub_7E6C10" },
+		{ game::MAG_061_REVIVE_DrawModelActor, (void *)a_7354A0, "061 sub_7E6C70" },
+		{ game::MAG_061_REVIVE_RenderPrimModel, (void *)a_7355E0, "061 sub_7E6DB0" },
+		{ game::MAG_061_REVIVE_RenderPolyFT3List, (void *)a_735BB0, "061 sub_7E7380" },
+		{ game::MAG_061_REVIVE_RenderPolyFT4List, (void *)a_735DF0, "061 sub_7E75C0" },
+		{ game::MAG_061_REVIVE_ActorMotion, (void *)a_740910, "061 sub_7E84A0" },
+		{ game::MAG_061_REVIVE_DampValue, (void *)a_740F70, "061 sub_7E8B00" },
+		{ game::MAG_061_REVIVE_DampVector, (void *)a_740FC0, "061 sub_7E8B50" },
+		{ game::MAG_061_REVIVE_Instance_AdvanceTexFrame, (void *)a_741050, "061 sub_7E8BE0" },
+		{ game::MAG_061_REVIVE_Instance_BuildTransform, (void *)a_741120, "061 sub_7E8CB0" },
+		{ game::MAG_061_REVIVE_Particle_LifeCountdown, (void *)a_741B60, "061 sub_7E96F0" },
+		{ game::MAG_061_REVIVE_RandRange, (void *)a_742290, "061 au_re__rand_32" },
+		{ game::MAG_061_REVIVE_RandRangeWide, (void *)a_7422C0, "061 sub_7E9E50" },
+		{ game::MAG_061_REVIVE_RandVec3, (void *)a_742300, "061 sub_7E9E90" },
+		{ game::MAG_061_REVIVE_JitterAngles3, (void *)a_742350, "061 sub_7E9EE0" },
+		{ game::MAG_061_REVIVE_RandAngleJitter, (void *)a_7423A0, "061 au_re__rand_32_0" },
+		{ game::MAG_061_REVIVE_ActSys_AllocParticleSlot, (void *)a_7387B0, "061 sub_7E9F80" },
+		{ game::MAG_061_REVIVE_GetWord8Minus1, (void *)a_7424B0, "061 sub_7EA040" },
+		{ game::MAG_061_REVIVE_Particle_AttachToOwner, (void *)a_7424C0, "061 sub_7EA050" },
+		{ game::MAG_061_REVIVE_ParticleList_Append, (void *)a_742CA0, "061 sub_7EA830" },
+		{ game::MAG_061_REVIVE_ParticleList_Unlink, (void *)a_742CD0, "061 sub_7EA860" },
+		{ game::MAG_061_REVIVE_Particle_Init, (void *)a_742D00, "061 sub_7EA890" },
+		{ game::MAG_061_REVIVE_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "061 sub_7EAA40" },
+		{ game::MAG_061_REVIVE_Particle_PlaceAtPoint, (void *)a_742FF0, "061 sub_7EAB80" },
+		{ game::MAG_061_REVIVE_ActorSystem_State2_Empty, (void *)a_73A6D0, "061 nullsub_1466" },
+		{ game::MAG_061_REVIVE_StageDarkenTask, (void *)a_73F110, "061 sub_7EADE0" },
+		{ game::MAG_061_REVIVE_StageDarken_State0_Reset, (void *)a_7335D0, "061 sub_7EAE50" },
+		{ game::MAG_061_REVIVE_StageDarken_State4_Empty, (void *)a_73A6D0, "061 nullsub_1467" },
+		{ game::MAG_061_REVIVE_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "061 MAG_061_sub_7EAF70" },
+		{ game::MAG_061_REVIVE_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "061 MAG_061_sub_7EAF90" },
+		{ game::MAG_061_REVIVE_Emitter_State4_Empty, (void *)a_73A6D0, "061 nullsub_1468" },
+		{ game::MAG_061_REVIVE_Master_State4_NextActionLoop, (void *)a_747500, "061 MAG_061_sub_7EAFC0" },
+		{ game::MAG_061_REVIVE_Master_State5_Advance, (void *)a_73A0D0, "061 MAG_061_sub_7EB000" },
+		{ game::MAG_061_REVIVE_Master_State6_WaitQueuesEmpty, (void *)a_747550, "061 MAG_061_sub_7EB010" },
+		{ game::MAG_061_REVIVE_Master_State7_Advance, (void *)a_73A0D0, "061 MAG_061_sub_7EB020" },
+		{ game::MAG_061_REVIVE_Master_State8_Advance, (void *)a_73A0D0, "061 MAG_061_sub_7EB030" },
+		{ game::MAG_061_REVIVE_Master_State9_Finish, (void *)a_7475A0, "061 MAG_061_sub_7EB040" },
+		{ game::MAG_061_REVIVE_Master_State10_Empty, (void *)a_73A6D0, "061 nullsub_1463" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x7E5A10, (void *)rv_7E5A10, "061 rv_7E5A10" },
-		{ 0x7E5B90, (void *)rv_7E5B90, "061 rv_7E5B90" },
-		{ 0x7E5BD0, (void *)rv_7E5BD0, "061 rv_7E5BD0" },
-		{ 0x7E5CC0, (void *)rv_7E5CC0, "061 rv_7E5CC0" },
-		{ 0x7E5CF0, (void *)rv_7E5CF0, "061 rv_7E5CF0" },
-		{ 0x7E5D80, (void *)rv_7E5D80, "061 rv_7E5D80" },
-		{ 0x7E5E00, (void *)rv_7E5E00, "061 rv_7E5E00" },
-		{ 0x7E5EA0, (void *)rv_7E5EA0, "061 rv_7E5EA0" },
-		{ 0x7E5EF0, (void *)rv_7E5EF0, "061 rv_7E5EF0" },
-		{ 0x7E5F70, (void *)rv_7E5F70, "061 rv_7E5F70" },
-		{ 0x7E6070, (void *)rv_7E6070, "061 rv_7E6070" },
-		{ 0x7E6250, (void *)rv_7E6250, "061 rv_7E6250" },
-		{ 0x7E64D0, (void *)rv_7E64D0, "061 rv_7E64D0" },
-		{ 0x7E6B80, (void *)rv_7E6B80, "061 rv_7E6B80" },
-		{ 0x7E6EF0, (void *)rv_7E6EF0, "061 rv_7E6EF0" },
-		{ 0x7E7100, (void *)rv_7E7100, "061 rv_7E7100" },
-		{ 0x7E7860, (void *)rv_7E7860, "061 rv_7E7860" },
-		{ 0x7E7A90, (void *)rv_7E7A90, "061 rv_7E7A90" },
-		{ 0x7E7D50, (void *)rv_7E7D50, "061 rv_7E7D50" },
-		{ 0x7E7FB0, (void *)rv_7E7FB0, "061 rv_7E7FB0" },
-		{ 0x7E8290, (void *)rv_7E8290, "061 rv_7E8290" },
-		{ 0x7E8350, (void *)rv_7E8350, "061 rv_7E8350" },
-		{ 0x7E83D0, (void *)rv_7E83D0, "061 rv_7E83D0" },
-		{ 0x7E8410, (void *)rv_7E8410, "061 rv_7E8410" },
-		{ 0x7E9440, (void *)rv_7E9440, "061 rv_7E9440" },
-		{ 0x7E9550, (void *)rv_7E9550, "061 rv_7E9550" },
-		{ 0x7E95D0, (void *)rv_7E95D0, "061 rv_7E95D0" },
-		{ 0x7E9600, (void *)rv_7E9600, "061 rv_7E9600" },
-		{ 0x7E96A0, (void *)rv_7E96A0, "061 rv_7E96A0" },
-		{ 0x7E9720, (void *)rv_7E9720, "061 rv_7E9720" },
-		{ 0x7E97A0, (void *)rv_7E97A0, "061 rv_7E97A0" },
-		{ 0x7EA1A0, (void *)rv_7EA1A0, "061 rv_7EA1A0" },
-		{ 0x7EAC90, (void *)rv_7EAC90, "061 rv_7EAC90" },
-		{ 0x7EAD20, (void *)rv_7EAD20, "061 rv_7EAD20" },
-		{ 0x7EADB0, (void *)rv_7EADB0, "061 rv_7EADB0" },
-		{ 0x7EAE90, (void *)rv_7EAE90, "061 rv_7EAE90" },
-		{ 0x7EAED0, (void *)rv_7EAED0, "061 rv_7EAED0" },
-		{ 0x7EAEE0, (void *)rv_7EAEE0, "061 rv_7EAEE0" },
-		{ 0x7EAF30, (void *)rv_7EAF30, "061 rv_7EAF30" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_061_REVIVE_Master, (void *)rv_7E5A10, "061 rv_7E5A10" },
+		{ game::MAG_061_REVIVE_Master_State2_CarveActorPools, (void *)rv_7E5B90, "061 rv_7E5B90" },
+		{ game::MAG_061_REVIVE_Master_ClearActorPools, (void *)rv_7E5BD0, "061 rv_7E5BD0" },
+		{ game::MAG_061_REVIVE_Emitter_State0_SpawnDirector, (void *)rv_7E5CC0, "061 rv_7E5CC0" },
+		{ game::MAG_061_REVIVE_PlaceDirectorData, (void *)rv_7E5CF0, "061 rv_7E5CF0" },
+		{ game::MAG_061_REVIVE_DirectorTask, (void *)rv_7E5D80, "061 rv_7E5D80" },
+		{ game::MAG_061_REVIVE_Director_CutBookkeeping, (void *)rv_7E5E00, "061 rv_7E5E00" },
+		{ game::MAG_061_REVIVE_DirState_PlaySoundAtCut1, (void *)rv_7E5EA0, "061 rv_7E5EA0" },
+		{ game::MAG_061_REVIVE_DirState_DamageCueAtFrame28, (void *)rv_7E5EF0, "061 rv_7E5EF0" },
+		{ game::MAG_061_REVIVE_Director_SpawnCut1, (void *)rv_7E5F70, "061 rv_7E5F70" },
+		{ game::MAG_061_REVIVE_ActorSystem_State0_StartActorSystemAtFrame, (void *)rv_7E6070, "061 rv_7E6070" },
+		{ game::MAG_061_REVIVE_ResetTrailHistory, (void *)rv_7E6250, "061 rv_7E6250" },
+		{ game::MAG_061_REVIVE_FillTrailRows, (void *)rv_7E64D0, "061 rv_7E64D0" },
+		{ game::MAG_061_REVIVE_ActorSystem_Run, (void *)rv_7E6B80, "061 rv_7E6B80" },
+		{ game::MAG_061_REVIVE_MeshEmitF3, (void *)rv_7E6EF0, "061 rv_7E6EF0" },
+		{ game::MAG_061_REVIVE_MeshEmitF4, (void *)rv_7E7100, "061 rv_7E7100" },
+		{ game::MAG_061_REVIVE_PrimList_G3, (void *)rv_7E7860, "061 rv_7E7860" },
+		{ game::MAG_061_REVIVE_PrimList_G4, (void *)rv_7E7A90, "061 rv_7E7A90" },
+		{ game::MAG_061_REVIVE_PrimList_GT3, (void *)rv_7E7D50, "061 rv_7E7D50" },
+		{ game::MAG_061_REVIVE_PrimList_GT4, (void *)rv_7E7FB0, "061 rv_7E7FB0" },
+		{ game::MAG_061_REVIVE_ActSys_DrawSpritePass, (void *)rv_7E8290, "061 rv_7E8290" },
+		{ game::MAG_061_REVIVE_DrawSpriteActor, (void *)rv_7E8350, "061 rv_7E8350" },
+		{ game::MAG_061_REVIVE_ActSys_UpdatePass, (void *)rv_7E83D0, "061 rv_7E83D0" },
+		{ game::MAG_061_REVIVE_ActorStep, (void *)rv_7E8410, "061 rv_7E8410" },
+		{ game::MAG_061_REVIVE_MorphVertexBlock, (void *)rv_7E9440, "061 rv_7E9440" },
+		{ game::MAG_061_REVIVE_Instance_EndOfLifeTest, (void *)rv_7E9550, "061 rv_7E9550" },
+		{ game::MAG_061_REVIVE_Instance_SpawnFollowUp, (void *)rv_7E95D0, "061 rv_7E95D0" },
+		{ game::MAG_061_REVIVE_AllocParticle, (void *)rv_7E9600, "061 rv_7E9600" },
+		{ game::MAG_061_REVIVE_ActSys_UpdateEmitter, (void *)rv_7E96A0, "061 rv_7E96A0" },
+		{ game::MAG_061_REVIVE_ActSys_EmitterSpawnStep, (void *)rv_7E9720, "061 rv_7E9720" },
+		{ game::MAG_061_REVIVE_ActSys_SpawnParticles, (void *)rv_7E97A0, "061 rv_7E97A0" },
+		{ game::MAG_061_REVIVE_Actor_InterpolatePosition, (void *)rv_7EA1A0, "061 rv_7EA1A0" },
+		{ game::MAG_061_REVIVE_SpawnSubEffects, (void *)rv_7EAC90, "061 rv_7EAC90" },
+		{ game::MAG_061_REVIVE_Director_SpawnGroupEffects, (void *)rv_7EAD20, "061 rv_7EAD20" },
+		{ game::MAG_061_REVIVE_ActorSystem_State1_StepActorSystem, (void *)rv_7EADB0, "061 rv_7EADB0" },
+		{ game::MAG_061_REVIVE_StageDarken_State1_Rise, (void *)rv_7EAE90, "061 rv_7EAE90" },
+		{ game::MAG_061_REVIVE_StageDarken_HoldUntilTick28, (void *)rv_7EAED0, "061 rv_7EAED0" },
+		{ game::MAG_061_REVIVE_StageDarken_FadeOut, (void *)rv_7EAEE0, "061 rv_7EAEE0" },
+		{ game::MAG_061_REVIVE_Emitter_State1_ApplyActionResult, (void *)rv_7EAF30, "061 rv_7EAF30" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

@@ -25,77 +25,77 @@ namespace armor197
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &EndTick() { return var<int32_t>(us(0x2260468)); }
-	inline int32_t &ModuleTick() { return var<int32_t>(us(0x2260BB0)); }
-	inline uint32_t &Flags() { return var<uint32_t>(us(0x22636F0)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2264518)); }
-	inline int32_t &CasterSlot() { return var<int32_t>(us(0x2265B00)); }
-	inline int32_t &IdCount() { return var<int32_t>(us(0x2265DA0)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2265DA4)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2265DA8)); }
-	inline int32_t &ArcCount() { return var<int32_t>(us(0x2265DAC)); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x2261A10); }
-	inline TaskQueue *QShots() { return (TaskQueue *)us(0x2261A20); }
-	inline TaskQueue *QAux() { return (TaskQueue *)us(0x22636F8); }
-	static const uint32_t PARTS_A = 0x2261A30, PARTS_B = 0x2262860;
+	inline int32_t &EndTick() { return var<int32_t>(game_addr(game::MAG_197_ARMORSHOT_AfterimageEndTick)); }
+	inline int32_t &ModuleTick() { return var<int32_t>(game_addr(game::MAG_197_ARMORSHOT_ModuleTick)); }
+	inline uint32_t &Flags() { return var<uint32_t>(game_addr(game::MAG_197_ARMORSHOT_Flags)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_197_ARMORSHOT_CastContext)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(game_addr(game::MAG_197_ARMORSHOT_CasterSlot)); }
+	inline int32_t &IdCount() { return var<int32_t>(game_addr(game::MAG_197_ARMORSHOT_ParticleIdCount)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_197_ARMORSHOT_TextureBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_197_ARMORSHOT_PacketCursor)); }
+	inline int32_t &ArcCount() { return var<int32_t>(game_addr(game::MAG_197_ARMORSHOT_ArcCount)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)game_addr(game::MAG_197_ARMORSHOT_RootQueue); }
+	inline TaskQueue *QShots() { return (TaskQueue *)game_addr(game::MAG_197_ARMORSHOT_ShotQueue); }
+	inline TaskQueue *QAux() { return (TaskQueue *)game_addr(game::MAG_197_ARMORSHOT_AuxQueue); }
+	static constexpr game::Id PARTS_A = game::MAG_197_ARMORSHOT_ParticlesEven, PARTS_B = game::MAG_197_ARMORSHOT_ParticlesOdd;
 	static const int32_t PARTS_N = 150;
-	static const uint32_t SHOTS = 0x2264520;
-	static const uint32_t ARCS = 0x2260470;
+	static constexpr game::Id SHOTS = game::MAG_197_ARMORSHOT_ShotRecords;
+	static constexpr game::Id ARCS = game::MAG_197_ARMORSHOT_ArcRecords;
 	static const int32_t ARC_POINTS = 24;
-	static const uint32_t BIND_OUT = 0x2262840;
-	static const uint32_t BONES_NOW = 0x2263670;
-	static const uint32_t GHOSTS = 0x2265B08, GHOSTS_END = 0x2265D9C;
+	static constexpr game::Id BIND_OUT = game::MAG_197_ARMORSHOT_AnimBindBlock;
+	static constexpr game::Id BONES_NOW = game::MAG_197_ARMORSHOT_WeaponBonesNow;
+	static constexpr game::Id GHOSTS = game::MAG_197_ARMORSHOT_GhostSlots, GHOSTS_END = game::MAG_197_ARMORSHOT_ShotCount;
 	static const uint32_t ARENA_ODD = 0xC000;
 
-	static const uint32_t ORIG_RootTask = 0x5B17F0;
-	static const uint32_t ORIG_RestoreTask = 0x5B18A0;
-	static const uint32_t ORIG_StartTask = 0x5B13C0;
-	static const uint32_t ORIG_ShotTask = 0x5AEEC0;
-	static const uint32_t ORIG_EndTask = 0x5B12A0;
-	static const uint32_t ORIG_FadeOutTask = 0x5B1360;
-	static const uint32_t ORIG_FadeInTask = 0x5B14B0;
-	static const uint32_t ORIG_AfterimageTask = 0x5B1500;
-	static const uint32_t ORIG_MuzzleFlashTask = 0x5AF7E0;
-	static const uint32_t ORIG_MuzzleConeTask = 0x5AF950;
-	static const uint32_t ORIG_GroundFlashTask = 0x5AFAC0;
-	static const uint32_t ORIG_BoneSmokeTask = 0x5AFBF0;
-	static const uint32_t ORIG_BeamTask = 0x5AFF30;
-	static const uint32_t ORIG_PathRingTask = 0x5B0160;
-	static const uint32_t ORIG_ImpactRingTask = 0x5B0340;
-	static const uint32_t ORIG_ImpactSpinTask = 0x5B04C0;
-	static const uint32_t ORIG_ArmorFlashTask = 0x5B0660;
-	static const uint32_t ORIG_DebrisTask = 0x5B0780;
-	static const uint32_t ORIG_TargetSparkTask = 0x5B0B90;
-	static const uint32_t ORIG_ArcTask = 0x5B0E80;
-	static const uint32_t ORIG_ArcSparkTask = 0x5B10C0;
+	static constexpr game::Id ORIG_RootTask = game::MAG_197_ARMORSHOT_RootTask;
+	static constexpr game::Id ORIG_RestoreTask = game::MAG_197_ARMORSHOT_TextureRestoreTask;
+	static constexpr game::Id ORIG_StartTask = game::MAG_197_ARMORSHOT_StartTask;
+	static constexpr game::Id ORIG_ShotTask = game::MAG_197_ARMORSHOT_ShotTask;
+	static constexpr game::Id ORIG_EndTask = game::MAG_197_ARMORSHOT_EndTask;
+	static constexpr game::Id ORIG_FadeOutTask = game::MAG_197_ARMORSHOT_FadeOutTask;
+	static constexpr game::Id ORIG_FadeInTask = game::MAG_197_ARMORSHOT_FadeInTask;
+	static constexpr game::Id ORIG_AfterimageTask = game::MAG_197_ARMORSHOT_AfterimageTask;
+	static constexpr game::Id ORIG_MuzzleFlashTask = game::MAG_197_ARMORSHOT_MuzzleFlashTask;
+	static constexpr game::Id ORIG_MuzzleConeTask = game::MAG_197_ARMORSHOT_MuzzleConeTask;
+	static constexpr game::Id ORIG_GroundFlashTask = game::MAG_197_ARMORSHOT_GroundFlashTask;
+	static constexpr game::Id ORIG_BoneSmokeTask = game::MAG_197_ARMORSHOT_BoneSmokeTask;
+	static constexpr game::Id ORIG_BeamTask = game::MAG_197_ARMORSHOT_BeamTask;
+	static constexpr game::Id ORIG_PathRingTask = game::MAG_197_ARMORSHOT_PathRingTask;
+	static constexpr game::Id ORIG_ImpactRingTask = game::MAG_197_ARMORSHOT_ImpactRingTask;
+	static constexpr game::Id ORIG_ImpactSpinTask = game::MAG_197_ARMORSHOT_ImpactSpinTask;
+	static constexpr game::Id ORIG_ArmorFlashTask = game::MAG_197_ARMORSHOT_ArmorFlashTask;
+	static constexpr game::Id ORIG_DebrisTask = game::MAG_197_ARMORSHOT_DebrisTask;
+	static constexpr game::Id ORIG_TargetSparkTask = game::MAG_197_ARMORSHOT_TargetSparkTask;
+	static constexpr game::Id ORIG_ArcTask = game::MAG_197_ARMORSHOT_ArcTask;
+	static constexpr game::Id ORIG_ArcSparkTask = game::MAG_197_ARMORSHOT_ArcSparkTask;
 
-	static const uint32_t ANIM_DATA = 0xCFB348;
-	static const uint32_t MODEL_MuzzleFlash = 0xD012B0, MODEL_Cone = 0xD03940, MODEL_GroundFlash = 0xD02180, MODEL_PathRing = 0xD04B88;
-	static const uint32_t MODEL_Beam = 0xCFDD18, MODEL_BeamHead = 0xCFEDE8, MODEL_ImpactRing = 0xD02570, MODEL_ImpactSpin = 0xD03298;
-	static const uint32_t MODEL_Armor = 0xCFF2F8;
-	static const uint32_t SEQ_BoneSmoke = 0xCFDA74, SEQ_Debris = 0xCFDC20, SEQ_Spark = 0xCFD714;
-	static const void *SOUND_Gun() { return (const void *)us(0xD05230); }
-	static const int32_t *DIR_BACK() { return (const int32_t *)us(0xD05238); }
-	static const int32_t *DIR_FRONT() { return (const int32_t *)us(0xD05248); }
-	static const int32_t *DIR_DOWN() { return (const int32_t *)us(0xD05258); }
-	static const uint32_t *GHOST_COLOURS() { return (const uint32_t *)us(0xD05268); }
+	static constexpr game::Id ANIM_DATA = game::MAG_197_ARMORSHOT_AnimSetComData;
+	static constexpr game::Id MODEL_MuzzleFlash = game::MAG_197_ARMORSHOT_ModelMuzzleFlash, MODEL_Cone = game::MAG_197_ARMORSHOT_ModelMuzzleCone, MODEL_GroundFlash = game::MAG_197_ARMORSHOT_ModelGroundFlash, MODEL_PathRing = game::MAG_197_ARMORSHOT_ModelPathRing;
+	static constexpr game::Id MODEL_Beam = game::MAG_197_ARMORSHOT_ModelBeam, MODEL_BeamHead = game::MAG_197_ARMORSHOT_ModelBeamHead, MODEL_ImpactRing = game::MAG_197_ARMORSHOT_ModelImpactRing, MODEL_ImpactSpin = game::MAG_197_ARMORSHOT_ModelImpactSpin;
+	static constexpr game::Id MODEL_Armor = game::MAG_197_ARMORSHOT_ModelArmorFlash;
+	static constexpr game::Id SEQ_BoneSmoke = game::MAG_197_ARMORSHOT_SeqBoneSmoke, SEQ_Debris = game::MAG_197_ARMORSHOT_SeqDebris, SEQ_Spark = game::MAG_197_ARMORSHOT_SeqSpark;
+	static const void *SOUND_Gun() { return (const void *)game_addr(game::MAG_197_ARMORSHOT_SoundGun); }
+	static const int32_t *DIR_BACK() { return (const int32_t *)game_addr(game::MAG_197_ARMORSHOT_DirBack); }
+	static const int32_t *DIR_FRONT() { return (const int32_t *)game_addr(game::MAG_197_ARMORSHOT_DirFront); }
+	static const int32_t *DIR_DOWN() { return (const int32_t *)game_addr(game::MAG_197_ARMORSHOT_DirDown); }
+	static const uint32_t *GHOST_COLOURS() { return (const uint32_t *)game_addr(game::MAG_197_ARMORSHOT_GhostColours); }
 
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t angle, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, angle, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, ctx, ot, a, cursor); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
-	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
-	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
-	inline uint32_t &FramePackets() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t angle, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, angle, out); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(game_addr(game::NormalizeVectorToFixedPoint))(in, out); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(game_addr(game::RenderGeometry))(model, ctx, ot, a, cursor); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetLightMatrix))(m); }
+	inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetBackColorFromTrans))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(game_addr(game::GTE_SetRotScale))(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(game_addr(game::GTE_SetTransFromVec32))(v); }
+	inline void SplineSetup(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(game_addr(game::Effect_SplineSetup))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(game_addr(game::Effect_SplineEval))(n, work, out, t); }
+	inline uint32_t &FramePackets() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -149,12 +149,12 @@ namespace armor197
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Armor Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x38 && sizeof(ArcRec) == 0xE8 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Armor Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(us(SHOTS) + 0x38 * i); }
-	inline ArcRec *Arc(int32_t i) { return (ArcRec *)(us(ARCS) + 0xE8 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(us(GHOSTS) + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(game_addr(SHOTS) + 0x38 * i); }
+	inline ArcRec *Arc(int32_t i) { return (ArcRec *)(game_addr(ARCS) + 0xE8 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(game_addr(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
-	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? us(PARTS_B) : us(PARTS_A)); }
+	inline Particle *PartArray(int16_t k) { return (Particle *)((k & 1) ? game_addr(PARTS_B) : game_addr(PARTS_A)); }
 	inline int32_t FindFree(const Particle *arr) { for (int32_t i = 0; i < PARTS_N; i++) if (arr[i].id == 0) return i; return -1; }
 }
 }
@@ -237,11 +237,11 @@ namespace armor197
 			ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), m);
 			*(uint16_t *)(h + 0x34) = 0;
 			*(uint16_t *)(h + 0x36) = 0;
-			*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0x1D98B3C));
+			*(uint32_t *)(h + 0x24) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 			*(uint32_t *)(h + 0x3C) = *(const uint32_t *)(entity + 0x28);
 			*(uint16_t *)(h + 0x38) = 0x140;
 			*(uint16_t *)(h + 0x3A) = 0xD8;
-			*(uint32_t *)(h + 0x30) = var<uint32_t>(us(0x1D969A8));
+			*(uint32_t *)(h + 0x30) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 			*(uint32_t *)(h + 0x40) = 0xFFFFFFFF;
 			const uint8_t c = entity[7];
 			h[0x4A] = c;
@@ -324,7 +324,7 @@ namespace armor197
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		ModelDraw(us(MODEL_GroundFlash), faded, fade);
+		ModelDraw(game_addr(MODEL_GroundFlash), faded, fade);
 	}
 
 	static void PathRingDraw(const Node *n, bool faded, int32_t fade)
@@ -348,7 +348,7 @@ namespace armor197
 		const int32_t v[3] = { n->f1C, n->f1C, n->f20 };
 		Scale3DMatrix(&m, v);
 		ModelMatrix(&m);
-		ModelDraw(us(MODEL_PathRing), faded, fade);
+		ModelDraw(game_addr(MODEL_PathRing), faded, fade);
 	}
 
 	static int16_t BeamDraw(const Node *n, bool faded, int32_t fade, int32_t head_size)
@@ -374,7 +374,7 @@ namespace armor197
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ModelHeader(us(MODEL_Beam), faded, fade);
+		uint8_t *h = ModelHeader(game_addr(MODEL_Beam), faded, fade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		int16_t p[4];
 		p[0] = (int16_t)((mul32(s->dir[0], n->f20) >> 12) + s->pos[0]);
@@ -382,7 +382,7 @@ namespace armor197
 		p[2] = (int16_t)((mul32(s->dir[2], n->f20) >> 12) + s->pos[2]);
 		p[3] = (int16_t)(head_size < 0 ? CrtRand() % 0x300 + 0x800 : head_size);
 		TransformCameraByShadowRotation(p, p[3], -((int32_t)p[3] >> 3));
-		*(uint32_t *)h = us(MODEL_BeamHead);
+		*(uint32_t *)h = game_addr(MODEL_BeamHead);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 		return p[3];
@@ -425,7 +425,7 @@ namespace armor197
 		const int32_t v[3] = { sc, sc, sc };
 		Scale3DMatrix(&m, v);
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
-		ModelDraw(us(MODEL_Armor), faded, fade);
+		ModelDraw(game_addr(MODEL_Armor), faded, fade);
 	}
 
 	static void SparkBegin(uint8_t *s, uint8_t *h, uint32_t seq)
@@ -456,7 +456,7 @@ namespace armor197
 
 	static void DebrisBegin(const Node *n, uint8_t *s, uint8_t *h)
 	{
-		*(uint32_t *)h = us(SEQ_Debris);
+		*(uint32_t *)h = game_addr(SEQ_Debris);
 		*(int16_t *)(h + 0x24) = 0x208;
 		int16_t *ang = (int16_t *)s;
 		ang[0] = 0;
@@ -508,7 +508,7 @@ namespace armor197
 
 	static void ArcSparkBegin(uint8_t *h)
 	{
-		*(uint32_t *)h = us(SEQ_Spark);
+		*(uint32_t *)h = game_addr(SEQ_Spark);
 		*(int16_t *)(h + 0x24) = 0;
 	}
 	static void ArcSparkDraw(const Particle *e, uint8_t *h)
@@ -521,7 +521,7 @@ namespace armor197
 	static uint32_t __cdecl MuzzleFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		MuzzleModel(n, n->f18, 0, us(MODEL_MuzzleFlash), n->counter >= 2, FadeFrom2(n->counter));
+		MuzzleModel(n, n->f18, 0, game_addr(MODEL_MuzzleFlash), n->counter >= 2, FadeFrom2(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -533,7 +533,7 @@ namespace armor197
 	static uint32_t __cdecl MuzzleConeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		MuzzleModel(n, 0, n->f18, us(MODEL_Cone), n->counter >= 6, FadeFrom6(n->counter));
+		MuzzleModel(n, 0, n->f18, game_addr(MODEL_Cone), n->counter >= 6, FadeFrom6(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -583,7 +583,7 @@ namespace armor197
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, us(SEQ_BoneSmoke));
+		SparkBegin(s, h, game_addr(SEQ_BoneSmoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -639,7 +639,7 @@ namespace armor197
 	static uint32_t __cdecl ImpactRingTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		ImpactModelDraw(n, DIR_FRONT(), us(MODEL_ImpactRing), n->counter >= 2, IringFade(n->counter));
+		ImpactModelDraw(n, DIR_FRONT(), game_addr(MODEL_ImpactRing), n->counter >= 2, IringFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -651,7 +651,7 @@ namespace armor197
 	static uint32_t __cdecl ImpactSpinTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		ImpactModelDraw(n, DIR_BACK(), us(MODEL_ImpactSpin), n->counter >= 6, Fade2AA(n->counter));
+		ImpactModelDraw(n, DIR_BACK(), game_addr(MODEL_ImpactSpin), n->counter >= 6, Fade2AA(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
 		n->f18 = (int16_t)(n->f18 + spin);
@@ -758,7 +758,7 @@ namespace armor197
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		SparkBegin(s, h, us(SEQ_Spark));
+		SparkBegin(s, h, game_addr(SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
@@ -812,7 +812,7 @@ namespace armor197
 		}
 		if (n->counter == 0)
 		{
-			Node *k = AddTask(QAux(), us(ORIG_ArcSparkTask));
+			Node *k = AddTask(QAux(), game_addr(ORIG_ArcSparkTask));
 			k->f0E = n->f18;
 			const int32_t num = IdCount();
 			k->pos[3] = (int16_t)num;
@@ -908,26 +908,26 @@ namespace armor197
 			uint8_t *t = Entity(n->f1A);
 			n->pos[3] = (int16_t)(mul32(*(const int16_t *)(t + 0x26), 2000) >> 12);
 			n->f1C = (int16_t)(mul32(ClampedSize(t), 2000) >> 12);
-			Node *f = AddTask(QAux(), us(ORIG_MuzzleFlashTask));
+			Node *f = AddTask(QAux(), game_addr(ORIG_MuzzleFlashTask));
 			f->counter = 0;
 			f->f0E = n->f0E;
 			f->f18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t third = (int16_t)((CrtRand() % 0x380 + 0xA80) / 3);
 			f->f1E = third;
 			f->f1C = third;
-			Node *c = AddTask(QAux(), us(ORIG_MuzzleConeTask));
+			Node *c = AddTask(QAux(), game_addr(ORIG_MuzzleConeTask));
 			c->counter = 0;
 			c->f0E = n->f0E;
 			c->f18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t third2 = (int16_t)((CrtRand() % 0x200 + 0xA00) / 3);
 			c->f1E = third2;
 			c->f1C = third2;
-			Node *g = AddTask(QAux(), us(ORIG_GroundFlashTask));
+			Node *g = AddTask(QAux(), game_addr(ORIG_GroundFlashTask));
 			g->counter = 0;
 			g->f0E = n->f0E;
 			g->f18 = (int16_t)(CrtRand() % 0x1000);
 			g->f1C = (int16_t)(CrtRand() % 0x480 + 0x980);
-			Node *b = AddTask(QAux(), us(ORIG_BoneSmokeTask));
+			Node *b = AddTask(QAux(), game_addr(ORIG_BoneSmokeTask));
 			const int32_t num = IdCount();
 			b->counter = 0;
 			b->f0E = (int16_t)num;
@@ -935,7 +935,7 @@ namespace armor197
 			const int32_t sixth = *(volatile int32_t *)&n_ / 6;
 			for (int32_t k = 1, frac = 0x200; frac <= 0xA00; k++, frac += 0x200)
 			{
-				Node *r = AddTask(QAux(), us(ORIG_PathRingTask));
+				Node *r = AddTask(QAux(), game_addr(ORIG_PathRingTask));
 				ff8fx::copy<(8)>(r->pos, s->pos);
 				r->f0E = n->f0E;
 				r->pos[0] = (int16_t)(r->pos[0] + (mul32(mul32(k, sixth), s->dir[0]) >> 12));
@@ -951,7 +951,7 @@ namespace armor197
 				r->f1C = sc;
 				r->f20 = (int16_t)(CrtRand() % 0x600 + 0x1100);
 			}
-			Node *m = AddTask(QAux(), us(ORIG_BeamTask));
+			Node *m = AddTask(QAux(), game_addr(ORIG_BeamTask));
 			m->f0E = n->f0E;
 			m->counter = 0;
 			const int16_t half = (int16_t)(*(volatile int32_t *)&n_ / 2);
@@ -961,7 +961,7 @@ namespace armor197
 		}
 		if (n->counter == 1)
 		{
-			Node *r = AddTask(QAux(), us(ORIG_ImpactRingTask));
+			Node *r = AddTask(QAux(), game_addr(ORIG_ImpactRingTask));
 			ff8fx::copy<(8)>(r->pos, n->pos);
 			r->counter = 0;
 			r->f0E = n->f0E;
@@ -970,7 +970,7 @@ namespace armor197
 			const int16_t third = (int16_t)(*(volatile int32_t *)&n_ / 3);
 			r->f1E = third;
 			r->f1C = third;
-			Node *p = AddTask(QAux(), us(ORIG_ImpactSpinTask));
+			Node *p = AddTask(QAux(), game_addr(ORIG_ImpactSpinTask));
 			ff8fx::copy<(8)>(p->pos, r->pos);
 			p->counter = 0;
 			p->f0E = n->f0E;
@@ -982,7 +982,7 @@ namespace armor197
 		}
 		if (n->counter == 6)
 		{
-			Node *f = AddTask(QAux(), us(ORIG_ArmorFlashTask));
+			Node *f = AddTask(QAux(), game_addr(ORIG_ArmorFlashTask));
 			ff8fx::copy<(8)>(f->pos, n->pos);
 			f->counter = 0;
 			f->f0E = n->f0E;
@@ -991,14 +991,14 @@ namespace armor197
 			const int16_t third = (int16_t)((mul32(CrtRand() % 0x480 + 0xA00, k) >> 12) / 3);
 			f->f1E = third;
 			f->f1C = third;
-			Node *d = AddTask(QAux(), us(ORIG_DebrisTask));
+			Node *d = AddTask(QAux(), game_addr(ORIG_DebrisTask));
 			const int32_t num = IdCount();
 			d->f0E = (int16_t)num;
 			IdCount() = num + 1;
 			ff8fx::copy<(4)>(d->pos, n->pos);
 			d->counter = 0;
 			ff8fx::copy<(4)>(d->pos + 2, n->pos + 2);
-			Node *sp = AddTask(QAux(), us(ORIG_TargetSparkTask));
+			Node *sp = AddTask(QAux(), game_addr(ORIG_TargetSparkTask));
 			const int32_t num2 = IdCount();
 			sp->f0E = (int16_t)num2;
 			IdCount() = num2 + 1;
@@ -1007,7 +1007,7 @@ namespace armor197
 			sp->f1A = n->f1A;
 			for (int32_t j = 0; j < 3; j++)
 			{
-				Node *a = AddTask(QAux(), us(ORIG_ArcTask));
+				Node *a = AddTask(QAux(), game_addr(ORIG_ArcTask));
 				ff8fx::copy<(8)>(a->pos, n->pos);
 				const int32_t arc = ArcCount();
 				a->counter = 0;
@@ -1050,7 +1050,7 @@ namespace armor197
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)us(BONES_NOW));
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)game_addr(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -1065,7 +1065,7 @@ namespace armor197
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)us(BONES_NOW));
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)game_addr(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -1078,15 +1078,15 @@ namespace armor197
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), us(BIND_OUT), us(ANIM_DATA));
+			BindExternalAnimSet(Caster(), game_addr(BIND_OUT), game_addr(ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
-			Node *f = AddTask(QAux(), us(ORIG_FadeInTask));
+			Node *f = AddTask(QAux(), game_addr(ORIG_FadeInTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;
-			AddTask(QAux(), us(ORIG_AfterimageTask))->counter = 0;
+			AddTask(QAux(), game_addr(ORIG_AfterimageTask))->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = us(GHOSTS); a < us(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = game_addr(GHOSTS); a < game_addr(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -1103,7 +1103,7 @@ namespace armor197
 		if (n->counter == 0)
 		{
 			QueueChainTransformation(Caster(), 2);
-			Node *f = AddTask(QAux(), us(ORIG_FadeOutTask));
+			Node *f = AddTask(QAux(), game_addr(ORIG_FadeOutTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;
@@ -1135,7 +1135,7 @@ namespace armor197
 		if (!(UpdateFlags() & 0x201)) ModuleTick()++;
 		if (aux == 0 && (Flags() & 2))
 		{
-			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), us(ORIG_RestoreTask));
+			RootNode *t = (RootNode *)AddTaskToQueue(QRoot(), game_addr(ORIG_RestoreTask));
 			t->counter = 0;
 			t->done = 0;
 		}

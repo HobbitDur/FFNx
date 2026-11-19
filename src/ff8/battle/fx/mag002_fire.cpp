@@ -25,24 +25,24 @@ namespace fire002
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(us(0x24CA828)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24CBD60)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24DFD6C)); }
-	inline uint32_t *TargetFree() { return (uint32_t *)us(0xDEE360); }
-	static const uint32_t ARENA_EVEN = 0x24CBD6C, ARENA_ODD = 0x24D5D6C;
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(game_addr(game::MAG002_FIRE_queues)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG002_FIRE_castCtx)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG002_FIRE_pktCursor)); }
+	inline uint32_t *TargetFree() { return (uint32_t *)game_addr(game::MAG002_FIRE_slotFree); }
+	static constexpr game::Id ARENA_EVEN = game::MAG002_FIRE_vramEven, ARENA_ODD = game::MAG002_FIRE_vramOdd;
 
-	static const uint32_t ORIG_RootTask = 0x62A610;
-	static const uint32_t ORIG_DirectorMulti = 0x629990;
-	static const uint32_t ORIG_DirectorSingle = 0x62A380;
-	static const uint32_t ORIG_FlameTask = 0x629C10;
-	static const uint32_t ORIG_SparkTask = 0x629F90;
-	static const uint32_t ORIG_EmberTask = 0x62A0A0;
-	static const void *SEQ_Flame() { return (const void *)us(0xDEDC2C); }
-	static const void *SEQ_FlameGlow() { return (const void *)us(0xDEDDD8); }
-	static const void *SEQ_Ember() { return (const void *)us(0xDEDF84); }
-	static const void *SOUND_Fire() { return (const void *)us(0xDEE130); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_002_FIRE_RootTask;
+	static constexpr game::Id ORIG_DirectorMulti = game::MAG_002_FIRE_Director_MultiTarget;
+	static constexpr game::Id ORIG_DirectorSingle = game::MAG_002_FIRE_Director_SingleTarget;
+	static constexpr game::Id ORIG_FlameTask = game::MAG_002_FIRE_Flame_Tick;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_002_FIRE_Spark_Tick;
+	static constexpr game::Id ORIG_EmberTask = game::MAG_002_FIRE_Ember_Tick;
+	static const void *SEQ_Flame() { return (const void *)game_addr(game::MAG002_FIRE_flameSprite); }
+	static const void *SEQ_FlameGlow() { return (const void *)game_addr(game::MAG002_FIRE_groundGlowSprite); }
+	static const void *SEQ_Ember() { return (const void *)game_addr(game::MAG002_FIRE_emberSprite); }
+	static const void *SOUND_Fire() { return (const void *)game_addr(game::MAG002_FIRE_soundId); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
 	struct RootNode { TaskNode hdr; uint16_t counter; };
 	struct DirectorNode
@@ -99,8 +99,8 @@ namespace fire002
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		PacketCursor() = us(ARENA_ODD);
-		if (!(r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
+		PacketCursor() = game_addr(ARENA_ODD);
+		if (!(r->counter & 1)) PacketCursor() = game_addr(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(&Queues().second);
 		r->counter++;
 		return alive ? 0 : TASK_END;
@@ -114,13 +114,13 @@ namespace fire002
 		DirectorNode *t;
 		if (acts[next].target_count > 1)
 		{
-			t = (DirectorNode *)AddTaskToQueue(&Queues().second, us(ORIG_DirectorMulti));
+			t = (DirectorNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_DirectorMulti));
 			t->counter = 0;
 			t->action = (int16_t)next;
 		}
 		else
 		{
-			t = (DirectorNode *)AddTaskToQueue(&Queues().second, us(ORIG_DirectorSingle));
+			t = (DirectorNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_DirectorSingle));
 			t->action = (int16_t)next;
 			t->counter = 0;
 			t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];
@@ -153,7 +153,7 @@ namespace fire002
 					int16_t pos[4];
 					GetDefaultEffectPosition(Entity(slot), pos);
 					int32_t half = spread >> 1;
-					FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameTask));
+					FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_FlameTask));
 					f->frame = 0;
 					f->delay = (int16_t)(CrtRand() % 6);
 					ff8fx::copy<(8)>(f->pos, pos);
@@ -200,7 +200,7 @@ namespace fire002
 			int32_t half = spread >> 1;
 			for (int k = 0; k < 4; k++)
 			{
-				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameTask));
+				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_FlameTask));
 				f->frame = 0;
 				f->delay = (int16_t)(CrtRand() % 6 + 2 * k);
 				ff8fx::copy<(8)>(f->pos, pos);
@@ -276,7 +276,7 @@ namespace fire002
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, us(ORIG_EmberTask));
+				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_EmberTask));
 				e->frame = 0;
 				e->delay = (int16_t)(CrtRand() % 6 + k);
 				ff8fx::copy<(8)>(e->pos, p->pos);
@@ -288,7 +288,7 @@ namespace fire002
 			}
 			for (int k = 0; k < 10; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, us(ORIG_SparkTask));
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_SparkTask));
 				s->life = (int16_t)(CrtRand() % 4 + 5);
 				s->delay = (int16_t)(CrtRand() % 4 + k);
 				ff8fx::copy<(8)>(s->pos, p->pos);

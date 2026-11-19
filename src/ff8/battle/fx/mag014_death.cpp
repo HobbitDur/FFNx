@@ -24,30 +24,30 @@ namespace act
 {
 namespace death
 {
-	static const Mod MOD_014 = { "death", 14, 0x8B68A0, 0x8BE1D0,
-		{ 0x0, 0x0, 0x162B860, 0x0, 0x0, 0x273AFE4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x273AE80, 0x0, 0x0, 0x0, 0x273AFE8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x27415D8, 0x0, 0x2741878, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2742820, 0x0, 0x0, 0x274285C, 0x0, 0x2742864, 0x0, 0x2742874 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8B7950, 0x8B8430, 0x8B84C0, 0x8B8520, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8BA8A0, 0x8BA9E0, 0x8BAA20, 0x8BBCB0, 0x8BBD00, 0x8BBD30, 0x8BBDB0, 0x8BC4A0, 0x8BC4F0, 0x8BC590, 0x8BC650, 0x8BCEA0, 0x8BD2A0, 0x8BD330, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8B6C90, 0x8B6D10, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8B7B00, 0x8B7BE0, 0x8B7D80, 0x8B7E50, 0x8B7F70, 0x8B81D0, 0x8BA960, 0x8BAAB0, 0x8BB110, 0x8BB160, 0x8BB1F0, 0x8BB2C0, 0x8BBA50, 0x8BBB60, 0x8BBBE0, 0x8BBC10, 0x8BC430, 0x8BC460, 0x8BC540, 0x8BC660, 0x8BC7B0, 0x0, 0x8BCE70, 0x8BD050, 0x8BD190, 0x0, 0x8B8430, 0x8BE070, 0x8BE0B0, 0x8BE0D0, 0x8BE0F0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_014 = { "death", 14, game::MAG_014_DEATH_DEATH_STONE_FL, game::MAG_013_DARK_MIST_POISON_MIST_FL,
+		{ {}, {}, game::unk_162B860, {}, {}, game::unk_273AFE4, {}, {}, {}, {}, {}, {}, game::MAG_014_FilePtr, {}, {}, {}, game::unk_273AFE8, {}, {}, {}, {}, {}, {}, {}, game::MAG_014_ActorSystemQueue, {}, game::MAG_014_EmitterQueue, {}, {}, {}, {}, {}, game::unk_2742820, {}, {}, game::unk_274285C, {}, game::MAG_014_ScratchSP, {}, game::MAG_014_ActorStatePtr },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_014_DirectorSetup, game::MAG_014_ActSys_Step, game::MAG_014_ActSys_DrawPass, game::Death_DrawPrimActor, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_014_ActSys_DrawSpritePass, game::MAG_014_ActSys_UpdatePass, game::MAG_014_ActorStep, game::MAG_014_ActSys_UpdateEmitter, game::MAG_014_Particle_LifeCountdown, game::MAG_014_ActSys_EmitterSpawnStep, game::MAG_014_ActSys_SpawnParticles, game::MAG_014_RandVec3, game::MAG_014_JitterAngles3, game::MAG_014_ActSys_AllocParticleSlot, game::MAG_014_GetWord8Minus1, game::MAG_014_Particle_Init, game::MAG_014_SpawnSubEffects, game::MAG_014_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::Death_EmitterTask, game::MAG_014_Death_Emitter_State0_SpawnDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_014_ResetTrailHistory, game::MAG_014_Director_StartPositions, game::MAG_014_FillTrailRows, game::MAG_014_Director_Mode3Setup, game::MAG_014_Director_TargetPositions, game::MAG_014_RelocateActorData, game::MAG_014_ActSys_DrawActorSprite, game::MAG_014_ActorMotion, game::MAG_014_DampValue, game::MAG_014_DampVector, game::MAG_014_Instance_AdvanceTexFrame, game::MAG_014_Instance_BuildTransform, game::MAG_014_MorphVertexBlock, game::MAG_014_Instance_EndOfLifeTest, game::MAG_014_Instance_SpawnFollowUp, game::MAG_014_AllocParticle, game::MAG_014_RandRange, game::MAG_014_RandRangeWide, game::MAG_014_RandAngleJitter, game::MAG_014_Particle_AttachToOwner, game::MAG_014_Actor_InterpolatePosition, {}, game::MAG_014_ParticleList_Unlink, game::MAG_014_Particle_PlaceAtAnchorSet, game::MAG_014_Particle_PlaceAtPoint, {}, game::MAG_014_ActSys_Step, game::MAG_014_Death_Emitter_State1_ApplyDamage, game::MAG_014_Death_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_014_Death_Emitter_State3_FinishReleaseRoot, game::MAG_014_Death_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x273AE84;
-	static const uint32_t ACTOR_STATE = 0x2742874;
-	static const uint32_t SCRATCH_SP = 0x2742864;
-	static const uint32_t REAPER_DATA = 0x162B860;
-	static const uint32_t ORIG_Master = 0x8B6A40;
-	static const uint32_t ORIG_Reaper = 0x8B6F70;
-	static const uint32_t ORIG_ActorSystem = 0x8B78C0;
-	static const uint32_t ORIG_Spark = 0x8BDBD0;
-	static const uint32_t REAPER_CTX = 0x273AE90;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_014_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::MAG_014_ActorStatePtr;
+	static constexpr game::Id SCRATCH_SP = game::MAG_014_ScratchSP;
+	static constexpr game::Id REAPER_DATA = game::unk_162B860;
+	static constexpr game::Id ORIG_Master = game::MAG_014_DEATH_Tick;
+	static constexpr game::Id ORIG_Reaper = game::Death_ReaperTask;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_014_AuraActorSystemTask;
+	static constexpr game::Id ORIG_Spark = game::Death_SparkTask;
+	static constexpr game::Id REAPER_CTX = game::MAG_014_ReaperRenderCtx;
 
 	namespace dx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		static inline uint32_t GTE_StoreSXY012_PolyFT3(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2E0))(a1); }
-		static inline uint32_t GTE_StoreSXY012_PolyFT3_2(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E320))(a1); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(a1); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(a1, a2, a3); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		static inline uint32_t GTE_StoreSXY012_PolyFT3(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyFT3))(a1); }
+		static inline uint32_t GTE_StoreSXY012_PolyFT3_2(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyFT3_2))(a1); }
 	}
 	using namespace dx;
 
@@ -239,12 +239,12 @@ namespace death
 {
 	uint32_t __cdecl d_8B6C20(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2742824)), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2742868)), 0x9D80);
-		MEM<uint16_t>(us(0x273B538)) = 0;
-		MEM<uint16_t>(us(0x2742830)) = 0;
-		MEM<uint16_t>(us(0x27423F0)) = 0;
-		MEM<uint16_t>(us(0x273AE88)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_014_ParticlePoolPtr)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_014_ActorPoolPtr)), 0x9D80);
+		MEM<uint16_t>(game_addr(game::MAG_014_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_014_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_27423F0)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_273AE88)) = 0;
 		return 0;
 	}
 
@@ -252,12 +252,12 @@ namespace death
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x2742870));
-		MEM<uint32_t>(us(0x2742824)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_014_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_014_ParticlePoolPtr)) = p;
 		p += 0x870;
-		MEM<uint32_t>(us(0x2742868)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_014_ActorPoolPtr)) = p;
 		p += 0x9D80;
-		MEM<uint32_t>(us(0x2742870)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_014_FileArenaCursor)) = p;
 		d_8B6C20();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -265,13 +265,13 @@ namespace death
 
 	uint32_t __cdecl d_8B6D40(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(REAPER_DATA)), 0x54);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(REAPER_DATA)), 0x54);
 		const uint32_t slot0 = U8(a1, 0x2D);
-		x::GetEffectSpawnPosition(us(0x1D972C0) + slot0 * 0x9C, 0xF1, 0, MEM<uint32_t>(us(REAPER_DATA)) + 8);
+		x::GetEffectSpawnPosition(game_addr(game::BattleEntitySlotData) + slot0 * 0x9C, 0xF1, 0, MEM<uint32_t>(game_addr(REAPER_DATA)) + 8);
 		const uint8_t slot = U8(a1, 0x2D);
-		const uint32_t d = MEM<uint32_t>(us(REAPER_DATA));
+		const uint32_t d = MEM<uint32_t>(game_addr(REAPER_DATA));
 		U16(d, 0xA) = 0;
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)slot * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)slot * 0x9C;
 		U32(d, 0) = U32(ent, 0x1C);
 		U32(d, 4) = U32(ent, 0x20);
 		U16(d, 2) = 0;
@@ -284,21 +284,21 @@ namespace death
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dxv = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t angle = x::CartesianToGameAngle((uint32_t)(int32_t)dxv, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(us(REAPER_DATA)), 0x4A) = (uint16_t)((angle - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(game_addr(REAPER_DATA)), 0x4A) = (uint16_t)((angle - 0x800) & 0xFFF);
 		return 0;
 	}
 
 	uint32_t __cdecl d_8B6D10(uint32_t a1)
 	{
 		d_8B6D40(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x273AFC0), us(0x8B6E30), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_014_DirectorQueue), game_addr(game::Death_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl d_8B6EA0(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(us(REAPER_DATA));
+		uint32_t d = MEM<uint32_t>(game_addr(REAPER_DATA));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -306,7 +306,7 @@ namespace death
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			a_73A6D0();
-			d = MEM<uint32_t>(us(REAPER_DATA));
+			d = MEM<uint32_t>(game_addr(REAPER_DATA));
 		}
 		const uint16_t next = U16(d, 0x44);
 		if (U16(d, 0x42) != next)
@@ -321,10 +321,10 @@ namespace death
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x8B6EF0);
-		states[1] = us(0x8B6F30);
-		states[2] = us(0x8BE020);
-		states[3] = us(0x8BE040);
+		states[0] = game_addr(game::MAG_014_UploadReaperTIMs);
+		states[1] = game_addr(game::MAG_014_SpawnReaperCreature);
+		states[2] = game_addr(game::MAG_014_Death_Director_State2_Finish);
+		states[3] = game_addr(game::MAG_014_Death_Director_State3_Empty);
 		d_8B6EA0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -336,8 +336,8 @@ namespace death
 	{
 		if (U8(a1, 0x2E) == 0)
 		{
-			x::Battle_QueueTIMUpload_GetEOF(us(0x1808FB0));
-			x::Battle_QueueTIMUpload_GetEOF(us(0x18113D0));
+			x::Battle_QueueTIMUpload_GetEOF(game_addr(game::MAG014_Reaper_BodyTIM));
+			x::Battle_QueueTIMUpload_GetEOF(game_addr(game::MAG014_Reaper_WingsTIM));
 		}
 		const uint8_t st = U8(a1, 0x29);
 		U16(a1, 0x44) = 1;
@@ -350,8 +350,8 @@ namespace death
 		U16(a1, 0x44) = (uint16_t)(U16(a1, 0x44) - 1);
 		if (S16(a1, 0x44) > 0)
 			return 0;
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(us(0x2742810), us(ORIG_Reaper), 0x140, a1);
-		x::Effect_BindModelContainerSetAnim(n, us(0x162C95C), 3);
+		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_014_CreatureQueue), game_addr(ORIG_Reaper), 0x140, a1);
+		x::Effect_BindModelContainerSetAnim(n, game_addr(game::MAG014_Reaper_ModelContainer), 3);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -492,7 +492,7 @@ namespace death
 		ff8fx::copy<(32)>((void *)ctx, (const void *)(blk + 0x40));
 		const uint32_t anim = blk + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(ctx);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(ctx + 0x20);
@@ -502,16 +502,16 @@ namespace death
 		x::GTE_LoadIRFromMatrixColumn(ctx + 4);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(ctx + 0x24);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(ctx + 0x14);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(ctx + 0x34);
-		const uint32_t shadow = x::sub_5088A0(blk, MEM<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, MEM<uint32_t>(U32(ctx, 0x4C)));
+		const uint32_t shadow = x::sub_5088A0(blk, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4040, 0x10, MEM<uint32_t>(U32(ctx, 0x4C)));
 		MEM<uint32_t>(U32(ctx, 0x4C)) = shadow;
-		d_8B7390(U32(blk, 0x64), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, ctx);
+		d_8B7390(U32(blk, 0x64), MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, ctx);
 		const uint32_t second = U32(blk, 0x78);
 		if (second != 0)
-			d_8B7390(U32(second, 4), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, ctx);
+			d_8B7390(U32(second, 4), MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, ctx);
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
 		return 0;
 	}
@@ -528,9 +528,9 @@ namespace death
 			S32(a1, 0x88) = S16(a1, 0x4E);
 			S32(a1, 0x8C) = S16(a1, 0x50);
 			x::scale3DMatrix(a1 + 0x70, a1 + 0x114);
-			return d_8B7290(us(REAPER_CTX));
+			return d_8B7290(game_addr(REAPER_CTX));
 		}
-		MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(a1, us(0x27419F0), MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_746C10(a1, game_addr(game::unk_27419F0), MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		return 0;
 	}
 
@@ -538,16 +538,16 @@ namespace death
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = us(0x8B7780);
-		states[1] = us(0x8BD710);
-		states[2] = us(0x8BD760);
-		states[3] = us(0x8BDE90);
-		states[4] = us(0x8BDEF0);
-		states[5] = us(0x8BE010);
+		states[0] = game_addr(game::Death_ReaperAppear);
+		states[1] = game_addr(game::MAG_014_Death_Reaper_State1_AppearAnimDone);
+		states[2] = game_addr(game::Death_ReaperStrike);
+		states[3] = game_addr(game::Death_ReaperVanish);
+		states[4] = game_addr(game::MAG_014_Death_Reaper_State4_StartWobbleOutFinish);
+		states[5] = game_addr(game::MAG_014_Death_Reaper_State5_Empty);
 		callp(states[S8(node, 0x29)], node);
 		const int32_t pz = S16(node, 0x50);
 		const int32_t py = S16(node, 0x4E);
-		ff8fx::copy<(32)>((void *)us(0x1D99AB0), (const void *)(node + 0x70));
+		ff8fx::copy<(32)>((void *)game_addr(game::unk_1D99AB0), (const void *)(node + 0x70));
 		const int32_t px = S16(node, 0x4C);
 		S32(node, 0x8C) = pz;
 		const uint8_t f = U8(node, 0x26);
@@ -565,7 +565,7 @@ namespace death
 	uint32_t __cdecl d_8BD700(uint32_t a1)
 	{
 		(void)a1;
-		U16(MEM<uint32_t>(us(0x16309A8)), 0x20) = 0;
+		U16(MEM<uint32_t>(game_addr(game::unk_16309A8)), 0x20) = 0;
 		return 0;
 	}
 
@@ -574,8 +574,8 @@ namespace death
 		x::MAG_007_sub_8DCC00(a1, 0x54);
 		U32(a1, 0x48) = a4;
 		U32(a1, 0x40) = a2;
-		U32(a1, 0x4C) = us(PACKET_CURSOR);
-		U32(a1, 0x50) = us(PACKET_CURSOR);
+		U32(a1, 0x4C) = game_addr(PACKET_CURSOR);
+		U32(a1, 0x50) = game_addr(PACKET_CURSOR);
 		U32(a3, 4) = a2;
 		U32(a1, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -592,14 +592,14 @@ namespace death
 
 	uint32_t __cdecl d_8BD670(uint32_t a1)
 	{
-		d_8BD6A0(us(REAPER_CTX), us(0x273B550), us(0x2742878), a1 + 0x30);
+		d_8BD6A0(game_addr(REAPER_CTX), game_addr(game::MAG_014_ReaperVertexBuffer), game_addr(game::MAG_014_ReaperObjectBlock), a1 + 0x30);
 		U8(a1, 0x26) |= 8;
 		return 0;
 	}
 
 	uint32_t __cdecl d_8B7780(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(REAPER_DATA));
+		const uint32_t d = MEM<uint32_t>(game_addr(REAPER_DATA));
 		U32(a1, 0x4C) = U32(d, 0);
 		const uint32_t w4 = U32(d, 4);
 		const uint16_t yaw = U16(d, 0x4A);
@@ -614,9 +614,9 @@ namespace death
 		{
 			x::au_re_Battle_ReadAnimation_7(a1, 5);
 			d_8BD670(a1);
-			a_73C100(a1, us(ORIG_ActorSystem), us(0x1801FD0), 0, 0x14, 2);
-			x::Effect_AddTaskAndInitFromCtx(us(0x273B0C8), us(0x8BD580), 0x70, a1);
-			x::BdPlaySE(us(0x162B864), 0, 0x80);
+			a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(game::unk_1801FD0), 0, 0x14, 2);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_014_StageWobbleQueue), game_addr(game::MAG_014_StageWobbleInTask), 0x70, a1);
+			x::BdPlaySE(game_addr(game::unk_162B864), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0;
 		}
@@ -625,7 +625,7 @@ namespace death
 		U16(a1, 0x13C) = 0x1000;
 		d_8BD3F0(a1, 1);
 		d_8BD510(a1);
-		x::BdPlaySE(us(0x162B868), 0, 0x80);
+		x::BdPlaySE(game_addr(game::unk_162B868), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 2);
 		return 0;
 	}
@@ -638,7 +638,7 @@ namespace death
 		{
 			U8(a1, 0x26) &= 0xF7;
 			x::au_re_Battle_ReadAnimation_7(a1, 6);
-			x::BdPlaySE(us(0x162B868), 0, 0x80);
+			x::BdPlaySE(game_addr(game::unk_162B868), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -655,13 +655,13 @@ namespace death
 		if (U16(a1, 0x136) == 5)
 		{
 			const int32_t action = S8(a1, 0x2A);
-			U16(MEM<uint32_t>(us(REAPER_DATA)), 0x48) = 1;
+			U16(MEM<uint32_t>(game_addr(REAPER_DATA)), 0x48) = 1;
 			const uint32_t targets = U32(U32(U32(a1, 0xC), 4) + (uint32_t)(action * 20), 8);
 			const int32_t target = S8(a1, 0x2B);
 			if (!(U8(targets + (uint32_t)(target * 24), 3) & 4))
 			{
-				a_73C100(a1, us(ORIG_ActorSystem), us(0x18069C4), 0, 0x14, 0);
-				x::Effect_AddTaskAndInitFromCtx(us(0x273B540), us(0x8BD840), 0x118, a1);
+				a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(game::unk_18069C4), 0, 0x14, 0);
+				x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_014_DarkSparkQueue), game_addr(game::Death_SparkBurstTask), 0x118, a1);
 			}
 		}
 		const uint32_t r = x::au_re_Battle_ReadAnimation_8(a1);
@@ -696,8 +696,8 @@ namespace death
 	uint32_t __cdecl d_8BDEF0(uint32_t a1)
 	{
 		if (U8(a1, 0x2E) == U8(a1, 0x2F))
-			x::Effect_AddTaskAndInitFromCtx(us(0x273B0C8), us(0x8BDF40), 0x70, a1);
-		const uint32_t d = MEM<uint32_t>(us(REAPER_DATA));
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_014_StageWobbleQueue), game_addr(game::MAG_014_StageWobbleOutTask), 0x70, a1);
+		const uint32_t d = MEM<uint32_t>(game_addr(REAPER_DATA));
 		U16(a1, 0x26) |= 1;
 		U16(d, 0x4C) = 1;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -709,7 +709,7 @@ namespace death
 		if (S16(a1, 0x24) < 0x1C)
 			return 0;
 		U16(a1, 0x1C) = 0;
-		uint32_t p = us(0x1D989BA);
+		uint32_t p = game_addr(game::unk_1D989BA);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 		{
 			MEM<uint16_t>(p - 0x28) = 0;
@@ -732,7 +732,7 @@ namespace death
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -751,14 +751,14 @@ namespace death
 	uint32_t __cdecl d_8BD8A0(uint32_t a1)
 	{
 		const uint32_t slot = U8(a1, 0x2D);
-		x::GetEffectSpawnPosition(us(0x1D972C0) + slot * 0x9C, 0xF1, 0, a1 + 0x1C);
+		x::GetEffectSpawnPosition(game_addr(game::BattleEntitySlotData) + slot * 0x9C, 0xF1, 0, a1 + 0x1C);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	static void SparkGroup(uint32_t a1, uint32_t base, uint32_t m2, uint32_t pitch_mask, uint32_t pitch_add, int32_t pitch_sub)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x273B540), us(ORIG_Spark), 0x118, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_014_DarkSparkQueue), game_addr(ORIG_Spark), 0x118, a1);
 		uint32_t vel = t + 0xF4;
 		uint32_t mat = t + 0x54;
 		for (int k = 4; k != 0; k--, mat += 0x20, vel += 8)
@@ -782,7 +782,7 @@ namespace death
 	{
 		alignas(4) uint8_t base[32] = {}, m2[32] = {};
 		const uint32_t slot = U8(a1, 0x2D);
-		const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 		x::MAG_022_sub_8DD770(P(base));
 		x::MAG_022_sub_8DD8A0(P(base), (uint32_t)(int32_t)S16(ent, 0xE));
 		x::sub_8DD960(P(base), 0x155);
@@ -820,7 +820,7 @@ namespace death
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), M, M);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -832,7 +832,7 @@ namespace death
 		U16(h, 0x2A) = 0x100;
 		U16(h, 0x28) = 0x100;
 		U32(h, 0x10) = (uint32_t)(int32_t)S16(a1, 0x52);
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(h, 0x18) = 0;
 		U16(h, 0x1A) = 0;
 		U16(h, 0x1E) = 0;
@@ -840,7 +840,7 @@ namespace death
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = d_8B8680(h, ot, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = d_8B8680(h, ot, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -863,10 +863,10 @@ namespace death
 	static void SparkDraw(uint32_t node)
 	{
 		const int32_t e = S16(node, 0x24) * 2;
-		S32(node, 0x30) = MEM<int16_t>(us(0x1630928) + e);
-		S32(node, 0x34) = MEM<int16_t>(us(0x1630948) + e);
-		S32(node, 0x38) = MEM<int16_t>(us(0x1630968) + e);
-		U16(node, 0x50) = MEM<uint16_t>(us(0x1630988) + e);
+		S32(node, 0x30) = MEM<int16_t>(game_addr(game::unk_1630928) + e);
+		S32(node, 0x34) = MEM<int16_t>(game_addr(game::unk_1630948) + e);
+		S32(node, 0x38) = MEM<int16_t>(game_addr(game::unk_1630968) + e);
+		U16(node, 0x50) = MEM<uint16_t>(game_addr(game::unk_1630988) + e);
 		uint32_t pos = node + 0xD4;
 		uint32_t mat = node + 0x54;
 		for (int k = 4; k != 0; k--, pos += 8, mat += 0x20)
@@ -881,9 +881,9 @@ namespace death
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8BDE20);
-		states[1] = us(0x8BDE50);
-		states[2] = us(0x8BDE70);
+		states[0] = game_addr(game::MAG_014_Death_Spark_State0_Init);
+		states[1] = game_addr(game::MAG_014_Death_Spark_State1_EndAtTick14);
+		states[2] = game_addr(game::MAG_014_Death_Spark_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		SparkMove(node);
 		SparkDraw(node);
@@ -898,7 +898,7 @@ namespace death
 		U32(a1, 0x34) = 0x1000;
 		U32(a1, 0x30) = 0x1000;
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = us(0x162B86C);
+		U32(a1, 0x4C) = game_addr(game::unk_162B86C);
 		U8(a1, 0x40) = 0x28;
 		U8(a1, 0x41) = 0;
 		U8(a1, 0x42) = 0xA;
@@ -919,10 +919,10 @@ namespace death
 
 	uint32_t __cdecl d_8B8520(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
+		const uint32_t h = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(us(SCRATCH_SP)) = h;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -950,7 +950,7 @@ namespace death
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(us(PACKET_CURSOR)) = d_8B8680(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = d_8B8680(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		}
 		else if (copies > 0)
 		{
@@ -962,38 +962,38 @@ namespace death
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(us(PACKET_CURSOR)) = d_8B8680(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = d_8B8680(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl d_8BA960(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl d_8BBC10(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2742824));
-		int32_t idx = MEM<int16_t>(us(0x273B538));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_014_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_014_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1003,7 +1003,7 @@ namespace death
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1018,16 +1018,16 @@ namespace death
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(us(0x273B538)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_014_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x273B538)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_014_ParticleCursor)) = 0;
 		return slot;
 	}
 
 	uint32_t __cdecl d_8BC590(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2742868));
-		int32_t i = MEM<int16_t>(us(0x2742830));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_014_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_014_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1040,7 +1040,7 @@ namespace death
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1057,9 +1057,9 @@ namespace death
 		}
 		i++;
 		if (i >= 0x3B)
-			MEM<uint16_t>(us(0x2742830)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_014_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x2742830)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_014_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -1068,43 +1068,43 @@ namespace death
 		g_mod = &MOD_014;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x2742864)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x273AFE8)) = us(0x2793E58);
-		states[0] = us(0x8B6BC0);
+		MEM<uint32_t>(game_addr(game::MAG_014_ScratchSP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_273AFE8)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_014_Death_Master_State0_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x8B6BD0);
-		states[2] = us(0x8B6BE0);
-		states[3] = us(0x8B6C60);
-		states[4] = us(0x8BE100);
-		states[5] = us(0x8BE140);
-		states[6] = us(0x8BE150);
-		states[7] = us(0x8BE160);
-		states[8] = us(0x8BE190);
-		states[9] = us(0x8BE1A0);
-		states[10] = us(0x8BE1C0);
+		states[1] = game_addr(game::MAG_014_Death_Master_State1_Advance);
+		states[2] = game_addr(game::MAG_014_Death_Master_State2_CarveActorPools);
+		states[3] = game_addr(game::MAG_014_Death_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_014_Death_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_014_Death_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_014_Death_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_014_Death_Master_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_014_Death_Master_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_014_Death_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_014_Death_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x27419EC));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2740B44));
-			MEM<uint32_t>(us(0x273AE84)) = v1;
-			MEM<uint32_t>(us(0x273AFE4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_27419EC));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2740B44));
+			MEM<uint32_t>(game_addr(game::MAG_014_PacketCursor)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_273AFE4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x27419E8));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2740B40));
-			MEM<uint32_t>(us(0x273AE84)) = v1;
-			MEM<uint32_t>(us(0x273AFE4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_27419E8));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2740B40));
+			MEM<uint32_t>(game_addr(game::MAG_014_PacketCursor)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_273AFE4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x274285C)) = 0;
-		MEM<uint16_t>(us(0x2742820)) = 0;
-		const uint32_t queues[7] = { us(0x2741878), us(0x273AFC0), us(0x2742810), us(0x27415D8),
-			us(0x273B0C8), us(0x273B540), us(0x2741868) };
+		MEM<uint16_t>(game_addr(game::unk_274285C)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2742820)) = 0;
+		const uint32_t queues[7] = { game_addr(game::MAG_014_EmitterQueue), game_addr(game::MAG_014_DirectorQueue), game_addr(game::MAG_014_CreatureQueue), game_addr(game::MAG_014_ActorSystemQueue),
+			game_addr(game::MAG_014_StageWobbleQueue), game_addr(game::MAG_014_DarkSparkQueue), game_addr(game::MAG_014_UnusedQueue) };
 		for (int i = 0; i < 7; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -1134,7 +1134,7 @@ namespace death
 
 	uint32_t __cdecl d_8B7B00(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x2742874));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1151,7 +1151,7 @@ namespace death
 
 	uint32_t __cdecl d_8B7D80(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x2742874));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -1174,7 +1174,7 @@ namespace death
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x2742874), 0) = sys;
+		U32(game_addr(game::MAG_014_ActorStatePtr), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1186,7 +1186,7 @@ namespace death
 			d_8BA9E0();
 			d_8BA8A0();
 			d_8B84C0();
-			sys = U32(us(0x2742874), 0);
+			sys = U32(game_addr(game::MAG_014_ActorStatePtr), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1199,19 +1199,19 @@ namespace death
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x274285C), 0) = (uint16_t)(U16(us(0x274285C), 0) + c14);
-		U16(us(0x2742820), 0) = (uint16_t)(U16(us(0x2742820), 0) + c16);
+		U16(game_addr(game::unk_274285C), 0) = (uint16_t)(U16(game_addr(game::unk_274285C), 0) + c14);
+		U16(game_addr(game::unk_2742820), 0) = (uint16_t)(U16(game_addr(game::unk_2742820), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl d_8B84C0(void)
 	{
-		uint32_t act = U32(U32(us(0x2742874), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_014_ActorStatePtr), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x2742874), 0);
+				uint32_t sys = U32(game_addr(game::MAG_014_ActorStatePtr), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1936,14 +1936,14 @@ namespace death
 
 	uint32_t __cdecl d_8BA8A0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x2742874)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x2742874));
+				uint32_t st = MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1977,7 +1977,7 @@ namespace death
 
 	uint32_t __cdecl d_8BA9E0(void)
 	{
-		uint32_t act = U32(U32(us(0x2742874), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_014_ActorStatePtr), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1993,7 +1993,7 @@ namespace death
 	uint32_t __cdecl d_8BAA20(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x2742874));
+		uint32_t st = MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -2014,7 +2014,7 @@ namespace death
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x2742874));
+			st = MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2026,7 +2026,7 @@ namespace death
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x2742874), 0);
+		uint32_t st = U32(game_addr(game::MAG_014_ActorStatePtr), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -2116,9 +2116,9 @@ namespace death
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x8BC660), a1);
+			callp(game_addr(game::MAG_014_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x8BC7B0), a1);
+			callp(game_addr(game::MAG_014_Actor_InterpolatePosition), a1);
 		d_8BBD30(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -2127,7 +2127,7 @@ namespace death
 
 	uint32_t __cdecl d_8BBD30(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x2742874), 0);
+		uint32_t sys = U32(game_addr(game::MAG_014_ActorStatePtr), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2154,9 +2154,9 @@ namespace death
 
 	uint32_t __cdecl d_8BBDB0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x2742864), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::MAG_014_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x2742864), 0) = sp;
+		U32(game_addr(game::MAG_014_ScratchSP), 0) = sp;
 		uint32_t node = d_8BC590(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -2166,7 +2166,7 @@ namespace death
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x2742874), 0);
+			uint32_t ctx = U32(game_addr(game::MAG_014_ActorStatePtr), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2334,14 +2334,14 @@ namespace death
 			}
 		}
 		d_8BD2A0(node, desc);
-		U32(us(0x2742864), 0) = U32(us(0x2742864), 0) + 0x50;
+		U32(game_addr(game::MAG_014_ScratchSP), 0) = U32(game_addr(game::MAG_014_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl d_8BC7B0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x2742874), 0);
+		const uint32_t st = U32(game_addr(game::MAG_014_ActorStatePtr), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -2401,7 +2401,7 @@ namespace death
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x2742874), 0);
+				uint32_t g = U32(game_addr(game::MAG_014_ActorStatePtr), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2411,7 +2411,7 @@ namespace death
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x2742874), 0);
+				uint32_t g = U32(game_addr(game::MAG_014_ActorStatePtr), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2486,7 +2486,7 @@ namespace death
 
 	uint32_t __cdecl d_8BD330(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x2742874));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2511,14 +2511,14 @@ namespace death
 				do
 				{
 					d_8BBC10(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x2742874));
+					dir = MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				d_8BBC10(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x2742874));
+				dir = MEM<uint32_t>(game_addr(game::MAG_014_ActorStatePtr));
 			}
 		}
 		return 0;
@@ -2545,7 +2545,7 @@ namespace death
 	uint32_t __cdecl d_8BD510(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t amb = MEM<uint32_t>(us(0xB8B9A8));
+		const uint32_t amb = MEM<uint32_t>(game_addr(game::CURRENT_BS_SHADOW_PALETTE));
 		const int32_t level = S16(node, 0x13C);
 		const uint8_t c0 = (uint8_t)(amb & 0xFF);
 		const uint8_t c1 = (uint8_t)((amb >> 8) & 0xFF);
@@ -2553,7 +2553,7 @@ namespace death
 		U8(node, 0x5C) = (uint8_t)(c0 - (uint8_t)d0);
 		const int32_t d1 = mul32((int32_t)c1, level) / 4096;
 		U8(node, 0x5D) = (uint8_t)(c1 - (uint8_t)d1);
-		const uint8_t c2 = MEM<uint8_t>(us(0xB8B9AA));
+		const uint8_t c2 = MEM<uint8_t>(game_addr(game::unk_B8B9AA));
 		const int32_t d2 = mul32((int32_t)c2, level) / 4096;
 		U8(node, 0x5E) = (uint8_t)(c2 - (uint8_t)d2);
 		return 0;
@@ -2570,7 +2570,7 @@ namespace death
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -2578,7 +2578,7 @@ namespace death
 
 	uint32_t __cdecl d_8BE070(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x162B860));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::unk_162B860));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -2592,131 +2592,131 @@ namespace death
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x8B6BC0, (void *)a_73A0D0, "014 MAG_014_sub_8B6BC0" },
-		{ 0x8B6BD0, (void *)a_73A0D0, "014 MAG_014_sub_8B6BD0" },
-		{ 0x8B6C60, (void *)a_73A170, "014 MAG_014_sub_8B6C60" },
-		{ 0x8B6C90, (void *)a_73A1A0, "014 MAG_014_sub_8B6C90" },
-		{ 0x8B70B0, (void *)a_746C10, "014 sub_8B70B0" },
-		{ 0x8B7870, (void *)a_73C100, "014 sub_8B7870" },
-		{ 0x8B78C0, (void *)a_73A380, "014 sub_8B78C0" },
-		{ 0x8B7950, (void *)a_73F990, "014 sub_8B7950" },
-		{ 0x8B7BE0, (void *)a_73FC20, "014 sub_8B7BE0" },
-		{ 0x8B7E50, (void *)a_73FE90, "014 sub_8B7E50" },
-		{ 0x8B7F70, (void *)a_73FFB0, "014 sub_8B7F70" },
-		{ 0x8B81D0, (void *)a_740210, "014 sub_8B81D0" },
-		{ 0x8B9740, (void *)a_73D770, "014 sub_8B9740" },
-		{ 0x8B9990, (void *)a_73D9C0, "014 sub_8B9990" },
-		{ 0x8BAAB0, (void *)a_740910, "014 sub_8BAAB0" },
-		{ 0x8BB110, (void *)a_740F70, "014 sub_8BB110" },
-		{ 0x8BB160, (void *)a_740FC0, "014 sub_8BB160" },
-		{ 0x8BB1F0, (void *)a_741050, "014 sub_8BB1F0" },
-		{ 0x8BB2C0, (void *)a_741120, "014 sub_8BB2C0" },
-		{ 0x8BBD00, (void *)a_741B60, "014 sub_8BBD00" },
-		{ 0x8BC430, (void *)a_742290, "014 au_re__rand_68" },
-		{ 0x8BC460, (void *)a_7422C0, "014 sub_8BC460" },
-		{ 0x8BC4A0, (void *)a_742300, "014 sub_8BC4A0" },
-		{ 0x8BC4F0, (void *)a_742350, "014 sub_8BC4F0" },
-		{ 0x8BC540, (void *)a_7423A0, "014 au_re__rand_68_0" },
-		{ 0x8BC650, (void *)a_7424B0, "014 sub_8BC650" },
-		{ 0x8BC660, (void *)a_7424C0, "014 sub_8BC660" },
-		{ 0x8BCE40, (void *)a_742CA0, "014 sub_8BCE40" },
-		{ 0x8BCE70, (void *)a_742CD0, "014 sub_8BCE70" },
-		{ 0x8BCEA0, (void *)a_742D00, "014 sub_8BCEA0" },
-		{ 0x8BD050, (void *)a_742EB0, "014 sub_8BD050" },
-		{ 0x8BD190, (void *)a_742FF0, "014 sub_8BD190" },
-		{ 0x8BD3E0, (void *)a_73A6D0, "014 nullsub_1798" },
-		{ 0x8BD410, (void *)a_733950, "014 sub_8BD410" },
-		{ 0x8BD580, (void *)a_73A380, "014 sub_8BD580" },
-		{ 0x8BD660, (void *)a_73A6D0, "014 nullsub_1799" },
-		{ 0x8BD840, (void *)a_73A380, "014 sub_8BD840" },
-		{ 0x8BDE70, (void *)a_73A6D0, "014 nullsub_1800" },
-		{ 0x8BDE80, (void *)a_73A6D0, "014 nullsub_1801" },
-		{ 0x8BDF40, (void *)a_73A380, "014 sub_8BDF40" },
-		{ 0x8BE000, (void *)a_73A6D0, "014 nullsub_1802" },
-		{ 0x8BE010, (void *)a_73A6D0, "014 nullsub_1803" },
-		{ 0x8BE020, (void *)a_7475A0, "014 sub_8BE020" },
-		{ 0x8BE040, (void *)a_73A6D0, "014 nullsub_1804" },
-		{ 0x8BE050, (void *)a_73A6D0, "014 nullsub_1805" },
-		{ 0x8BE060, (void *)a_73A6D0, "014 nullsub_1806" },
-		{ 0x8BE0B0, (void *)a_7474B0, "014 MAG_014_sub_8BE0B0" },
-		{ 0x8BE0D0, (void *)a_7474D0, "014 MAG_014_sub_8BE0D0" },
-		{ 0x8BE0F0, (void *)a_73A6D0, "014 nullsub_1807" },
-		{ 0x8BE100, (void *)a_747500, "014 MAG_014_sub_8BE100" },
-		{ 0x8BE140, (void *)a_73A0D0, "014 MAG_014_sub_8BE140" },
-		{ 0x8BE150, (void *)a_747550, "014 MAG_014_sub_8BE150" },
-		{ 0x8BE160, (void *)a_747560, "014 MAG_014_sub_8BE160" },
-		{ 0x8BE190, (void *)a_747590, "014 MAG_014_sub_8BE190" },
-		{ 0x8BE1A0, (void *)a_7475A0, "014 MAG_014_sub_8BE1A0" },
-		{ 0x8BE1C0, (void *)a_73A6D0, "014 nullsub_1797" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_014_Death_Master_State0_Advance, (void *)a_73A0D0, "014 MAG_014_sub_8B6BC0" },
+		{ game::MAG_014_Death_Master_State1_Advance, (void *)a_73A0D0, "014 MAG_014_sub_8B6BD0" },
+		{ game::MAG_014_Death_Master_State3_SpawnEmitter, (void *)a_73A170, "014 MAG_014_sub_8B6C60" },
+		{ game::Death_EmitterTask, (void *)a_73A1A0, "014 MAG_014_sub_8B6C90" },
+		{ game::MAG_014_DrawBattleModel, (void *)a_746C10, "014 sub_8B70B0" },
+		{ game::MAG_014_SpawnChildTask, (void *)a_73C100, "014 sub_8B7870" },
+		{ game::MAG_014_AuraActorSystemTask, (void *)a_73A380, "014 sub_8B78C0" },
+		{ game::MAG_014_DirectorSetup, (void *)a_73F990, "014 sub_8B7950" },
+		{ game::MAG_014_Director_StartPositions, (void *)a_73FC20, "014 sub_8B7BE0" },
+		{ game::MAG_014_Director_Mode3Setup, (void *)a_73FE90, "014 sub_8B7E50" },
+		{ game::MAG_014_Director_TargetPositions, (void *)a_73FFB0, "014 sub_8B7F70" },
+		{ game::MAG_014_RelocateActorData, (void *)a_740210, "014 sub_8B81D0" },
+		{ game::MAG_014_EmitG3, (void *)a_73D770, "014 sub_8B9740" },
+		{ game::MAG_014_EmitG4, (void *)a_73D9C0, "014 sub_8B9990" },
+		{ game::MAG_014_ActorMotion, (void *)a_740910, "014 sub_8BAAB0" },
+		{ game::MAG_014_DampValue, (void *)a_740F70, "014 sub_8BB110" },
+		{ game::MAG_014_DampVector, (void *)a_740FC0, "014 sub_8BB160" },
+		{ game::MAG_014_Instance_AdvanceTexFrame, (void *)a_741050, "014 sub_8BB1F0" },
+		{ game::MAG_014_Instance_BuildTransform, (void *)a_741120, "014 sub_8BB2C0" },
+		{ game::MAG_014_Particle_LifeCountdown, (void *)a_741B60, "014 sub_8BBD00" },
+		{ game::MAG_014_RandRange, (void *)a_742290, "014 au_re__rand_68" },
+		{ game::MAG_014_RandRangeWide, (void *)a_7422C0, "014 sub_8BC460" },
+		{ game::MAG_014_RandVec3, (void *)a_742300, "014 sub_8BC4A0" },
+		{ game::MAG_014_JitterAngles3, (void *)a_742350, "014 sub_8BC4F0" },
+		{ game::MAG_014_RandAngleJitter, (void *)a_7423A0, "014 au_re__rand_68_0" },
+		{ game::MAG_014_GetWord8Minus1, (void *)a_7424B0, "014 sub_8BC650" },
+		{ game::MAG_014_Particle_AttachToOwner, (void *)a_7424C0, "014 sub_8BC660" },
+		{ game::MAG_014_ParticleList_Append, (void *)a_742CA0, "014 sub_8BCE40" },
+		{ game::MAG_014_ParticleList_Unlink, (void *)a_742CD0, "014 sub_8BCE70" },
+		{ game::MAG_014_Particle_Init, (void *)a_742D00, "014 sub_8BCEA0" },
+		{ game::MAG_014_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "014 sub_8BD050" },
+		{ game::MAG_014_Particle_PlaceAtPoint, (void *)a_742FF0, "014 sub_8BD190" },
+		{ game::MAG_014_AuraActorSystem_State2_Empty, (void *)a_73A6D0, "014 nullsub_1798" },
+		{ game::MAG_014_SetEntityColourTint, (void *)a_733950, "014 sub_8BD410" },
+		{ game::MAG_014_StageWobbleInTask, (void *)a_73A380, "014 sub_8BD580" },
+		{ game::MAG_014_StageWobbleIn_State2_Empty, (void *)a_73A6D0, "014 nullsub_1799" },
+		{ game::Death_SparkBurstTask, (void *)a_73A380, "014 sub_8BD840" },
+		{ game::MAG_014_Death_Spark_State2_Empty, (void *)a_73A6D0, "014 nullsub_1800" },
+		{ game::MAG_014_Death_SparkBurst_State2_Empty, (void *)a_73A6D0, "014 nullsub_1801" },
+		{ game::MAG_014_StageWobbleOutTask, (void *)a_73A380, "014 sub_8BDF40" },
+		{ game::MAG_014_StageWobbleOut_State2_Empty, (void *)a_73A6D0, "014 nullsub_1802" },
+		{ game::MAG_014_Death_Reaper_State5_Empty, (void *)a_73A6D0, "014 nullsub_1803" },
+		{ game::MAG_014_Death_Director_State2_Finish, (void *)a_7475A0, "014 sub_8BE020" },
+		{ game::MAG_014_Death_Director_State3_Empty, (void *)a_73A6D0, "014 nullsub_1804" },
+		{ game::MAG_014_St_Empty, (void *)a_73A6D0, "014 nullsub_1805" },
+		{ game::MAG_014_St_Empty_2, (void *)a_73A6D0, "014 nullsub_1806" },
+		{ game::MAG_014_Death_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "014 MAG_014_sub_8BE0B0" },
+		{ game::MAG_014_Death_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "014 MAG_014_sub_8BE0D0" },
+		{ game::MAG_014_Death_Emitter_State4_Empty, (void *)a_73A6D0, "014 nullsub_1807" },
+		{ game::MAG_014_Death_Master_State4_NextTargetLoop, (void *)a_747500, "014 MAG_014_sub_8BE100" },
+		{ game::MAG_014_Death_Master_State5_Advance, (void *)a_73A0D0, "014 MAG_014_sub_8BE140" },
+		{ game::MAG_014_Death_Master_State6_WaitQueuesEmpty, (void *)a_747550, "014 MAG_014_sub_8BE150" },
+		{ game::MAG_014_Death_Master_State7_RequestBattleSync, (void *)a_747560, "014 MAG_014_sub_8BE160" },
+		{ game::MAG_014_Death_Master_State8_WaitBattleSyncDone, (void *)a_747590, "014 MAG_014_sub_8BE190" },
+		{ game::MAG_014_Death_Master_State9_Finish, (void *)a_7475A0, "014 MAG_014_sub_8BE1A0" },
+		{ game::MAG_014_Death_Master_State10_Empty, (void *)a_73A6D0, "014 nullsub_1797" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x8B6C20, (void *)d_8B6C20, "d_8B6C20" },
-		{ 0x8B6BE0, (void *)d_8B6BE0, "d_8B6BE0" },
-		{ 0x8B6D40, (void *)d_8B6D40, "d_8B6D40" },
-		{ 0x8B6D10, (void *)d_8B6D10, "d_8B6D10" },
-		{ 0x8B6EA0, (void *)d_8B6EA0, "d_8B6EA0" },
-		{ 0x8B6E30, (void *)d_8B6E30, "d_8B6E30" },
-		{ 0x8B6EF0, (void *)d_8B6EF0, "d_8B6EF0" },
-		{ 0x8B6F30, (void *)d_8B6F30, "d_8B6F30" },
-		{ 0x8B7390, (void *)d_8B7390, "d_8B7390" },
-		{ 0x8B7290, (void *)d_8B7290, "d_8B7290" },
-		{ 0x8B7030, (void *)d_8B7030, "d_8B7030" },
-		{ 0x8B6F70, (void *)d_8B6F70, "d_8B6F70" },
-		{ 0x8BD700, (void *)d_8BD700, "d_8BD700" },
-		{ 0x8BD6A0, (void *)d_8BD6A0, "d_8BD6A0" },
-		{ 0x8BD670, (void *)d_8BD670, "d_8BD670" },
-		{ 0x8B7780, (void *)d_8B7780, "d_8B7780" },
-		{ 0x8BD710, (void *)d_8BD710, "d_8BD710" },
-		{ 0x8BD760, (void *)d_8BD760, "d_8BD760" },
-		{ 0x8BDE90, (void *)d_8BDE90, "d_8BDE90" },
-		{ 0x8BDEF0, (void *)d_8BDEF0, "d_8BDEF0" },
-		{ 0x8BD5E0, (void *)d_8BD5E0, "d_8BD5E0" },
-		{ 0x8BD620, (void *)d_8BD620, "d_8BD620" },
-		{ 0x8BDFA0, (void *)d_8BDFA0, "d_8BDFA0" },
-		{ 0x8BD8A0, (void *)d_8BD8A0, "d_8BD8A0" },
-		{ 0x8BD8E0, (void *)d_8BD8E0, "d_8BD8E0" },
-		{ 0x8BDD20, (void *)d_8BDD20, "d_8BDD20" },
-		{ 0x8BDBD0, (void *)d_8BDBD0, "d_8BDBD0" },
-		{ 0x8BDE20, (void *)d_8BDE20, "d_8BDE20" },
-		{ 0x8BDE50, (void *)d_8BDE50, "d_8BDE50" },
-		{ 0x8B8520, (void *)d_8B8520, "d_8B8520" },
-		{ 0x8BA960, (void *)d_8BA960, "d_8BA960" },
-		{ 0x8BBC10, (void *)d_8BBC10, "d_8BBC10" },
-		{ 0x8BC590, (void *)d_8BC590, "d_8BC590" },
-		{ 0x8B6A40, (void *)d_8B6A40, "d_8B6A40" },
-		{ 0x8B7920, (void *)d_8B7920, "d_8B7920" },
-		{ 0x8B7B00, (void *)d_8B7B00, "d_8B7B00" },
-		{ 0x8B7D80, (void *)d_8B7D80, "d_8B7D80" },
-		{ 0x8B8430, (void *)d_8B8430, "d_8B8430" },
-		{ 0x8B84C0, (void *)d_8B84C0, "d_8B84C0" },
-		{ 0x8B8680, (void *)d_8B8680, "d_8B8680" },
-		{ 0x8B87B0, (void *)d_8B87B0, "d_8B87B0" },
-		{ 0x8B89D0, (void *)d_8B89D0, "d_8B89D0" },
-		{ 0x8B8C60, (void *)d_8B8C60, "d_8B8C60" },
-		{ 0x8B9150, (void *)d_8B9150, "d_8B9150" },
-		{ 0x8B9C70, (void *)d_8B9C70, "d_8B9C70" },
-		{ 0x8BA1D0, (void *)d_8BA1D0, "d_8BA1D0" },
-		{ 0x8BA8A0, (void *)d_8BA8A0, "d_8BA8A0" },
-		{ 0x8BA9E0, (void *)d_8BA9E0, "d_8BA9E0" },
-		{ 0x8BAA20, (void *)d_8BAA20, "d_8BAA20" },
-		{ 0x8BBA50, (void *)d_8BBA50, "d_8BBA50" },
-		{ 0x8BBB60, (void *)d_8BBB60, "d_8BBB60" },
-		{ 0x8BBBE0, (void *)d_8BBBE0, "d_8BBBE0" },
-		{ 0x8BBCB0, (void *)d_8BBCB0, "d_8BBCB0" },
-		{ 0x8BBD30, (void *)d_8BBD30, "d_8BBD30" },
-		{ 0x8BBDB0, (void *)d_8BBDB0, "d_8BBDB0" },
-		{ 0x8BC7B0, (void *)d_8BC7B0, "d_8BC7B0" },
-		{ 0x8BD2A0, (void *)d_8BD2A0, "d_8BD2A0" },
-		{ 0x8BD330, (void *)d_8BD330, "d_8BD330" },
-		{ 0x8BD3C0, (void *)d_8BD3C0, "d_8BD3C0" },
-		{ 0x8BD3F0, (void *)d_8BD3F0, "d_8BD3F0" },
-		{ 0x8BD510, (void *)d_8BD510, "d_8BD510" },
-		{ 0x8BDFC0, (void *)d_8BDFC0, "d_8BDFC0" },
-		{ 0x8BE070, (void *)d_8BE070, "d_8BE070" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_014_Master_ClearActorPools, (void *)d_8B6C20, "d_8B6C20" },
+		{ game::MAG_014_Death_Master_State2_CarveActorPools, (void *)d_8B6BE0, "d_8B6BE0" },
+		{ game::MAG_014_Reaper_PlaceAndFaceTarget, (void *)d_8B6D40, "d_8B6D40" },
+		{ game::MAG_014_Death_Emitter_State0_SpawnDirector, (void *)d_8B6D10, "d_8B6D10" },
+		{ game::MAG_014_Director_PhaseBookkeeping, (void *)d_8B6EA0, "d_8B6EA0" },
+		{ game::Death_DirectorTask, (void *)d_8B6E30, "d_8B6E30" },
+		{ game::MAG_014_UploadReaperTIMs, (void *)d_8B6EF0, "d_8B6EF0" },
+		{ game::MAG_014_SpawnReaperCreature, (void *)d_8B6F30, "d_8B6F30" },
+		{ game::Death_RenderDarkModel, (void *)d_8B7390, "d_8B7390" },
+		{ game::Death_ReaperDarkDraw, (void *)d_8B7290, "d_8B7290" },
+		{ game::Death_ReaperDraw, (void *)d_8B7030, "d_8B7030" },
+		{ game::Death_ReaperTask, (void *)d_8B6F70, "d_8B6F70" },
+		{ game::MAG_014_Reaper_ClearDataFlag20, (void *)d_8BD700, "d_8BD700" },
+		{ game::Death_InitDarkDrawContext, (void *)d_8BD6A0, "d_8BD6A0" },
+		{ game::MAG_014_Reaper_InitDarkDraw, (void *)d_8BD670, "d_8BD670" },
+		{ game::Death_ReaperAppear, (void *)d_8B7780, "d_8B7780" },
+		{ game::MAG_014_Death_Reaper_State1_AppearAnimDone, (void *)d_8BD710, "d_8BD710" },
+		{ game::Death_ReaperStrike, (void *)d_8BD760, "d_8BD760" },
+		{ game::Death_ReaperVanish, (void *)d_8BDE90, "d_8BDE90" },
+		{ game::MAG_014_Death_Reaper_State4_StartWobbleOutFinish, (void *)d_8BDEF0, "d_8BDEF0" },
+		{ game::MAG_014_StageWobbleIn_State0_ClearAtTick1C, (void *)d_8BD5E0, "d_8BD5E0" },
+		{ game::MAG_014_StageWobbleIn_State1_RampUp, (void *)d_8BD620, "d_8BD620" },
+		{ game::MAG_014_StageWobbleOut_State0_SetLevel600, (void *)d_8BDFA0, "d_8BDFA0" },
+		{ game::MAG_014_Death_SparkBurst_State0_AtTargetBone, (void *)d_8BD8A0, "d_8BD8A0" },
+		{ game::MAG_014_Death_SparkBurst_State1_SpawnSpark, (void *)d_8BD8E0, "d_8BD8E0" },
+		{ game::Death_DrawSpark, (void *)d_8BDD20, "d_8BDD20" },
+		{ game::Death_SparkTask, (void *)d_8BDBD0, "d_8BDBD0" },
+		{ game::MAG_014_Death_Spark_State0_Init, (void *)d_8BDE20, "d_8BDE20" },
+		{ game::MAG_014_Death_Spark_State1_EndAtTick14, (void *)d_8BDE50, "d_8BDE50" },
+		{ game::Death_DrawPrimActor, (void *)d_8B8520, "d_8B8520" },
+		{ game::MAG_014_ActSys_DrawActorSprite, (void *)d_8BA960, "d_8BA960" },
+		{ game::MAG_014_AllocParticle, (void *)d_8BBC10, "d_8BBC10" },
+		{ game::MAG_014_ActSys_AllocParticleSlot, (void *)d_8BC590, "d_8BC590" },
+		{ game::MAG_014_DEATH_Tick, (void *)d_8B6A40, "d_8B6A40" },
+		{ game::MAG_014_AuraActorSystem_State0_StartActorSystemAtFrame, (void *)d_8B7920, "d_8B7920" },
+		{ game::MAG_014_ResetTrailHistory, (void *)d_8B7B00, "d_8B7B00" },
+		{ game::MAG_014_FillTrailRows, (void *)d_8B7D80, "d_8B7D80" },
+		{ game::MAG_014_ActSys_Step, (void *)d_8B8430, "d_8B8430" },
+		{ game::MAG_014_ActSys_DrawPass, (void *)d_8B84C0, "d_8B84C0" },
+		{ game::Death_RenderPrimModel, (void *)d_8B8680, "d_8B8680" },
+		{ game::MAG_014_PrimList_FlatTri, (void *)d_8B87B0, "d_8B87B0" },
+		{ game::MAG_014_PrimList_FlatQuad, (void *)d_8B89D0, "d_8B89D0" },
+		{ game::MAG_014_PrimList_TexTri, (void *)d_8B8C60, "d_8B8C60" },
+		{ game::MAG_014_PrimList_TexQuad, (void *)d_8B9150, "d_8B9150" },
+		{ game::MAG_014_PrimList_GT3Scroll, (void *)d_8B9C70, "d_8B9C70" },
+		{ game::MAG_014_PrimList_GT4Scroll, (void *)d_8BA1D0, "d_8BA1D0" },
+		{ game::MAG_014_ActSys_DrawSpritePass, (void *)d_8BA8A0, "d_8BA8A0" },
+		{ game::MAG_014_ActSys_UpdatePass, (void *)d_8BA9E0, "d_8BA9E0" },
+		{ game::MAG_014_ActorStep, (void *)d_8BAA20, "d_8BAA20" },
+		{ game::MAG_014_MorphVertexBlock, (void *)d_8BBA50, "d_8BBA50" },
+		{ game::MAG_014_Instance_EndOfLifeTest, (void *)d_8BBB60, "d_8BBB60" },
+		{ game::MAG_014_Instance_SpawnFollowUp, (void *)d_8BBBE0, "d_8BBBE0" },
+		{ game::MAG_014_ActSys_UpdateEmitter, (void *)d_8BBCB0, "d_8BBCB0" },
+		{ game::MAG_014_ActSys_EmitterSpawnStep, (void *)d_8BBD30, "d_8BBD30" },
+		{ game::MAG_014_ActSys_SpawnParticles, (void *)d_8BBDB0, "d_8BBDB0" },
+		{ game::MAG_014_Actor_InterpolatePosition, (void *)d_8BC7B0, "d_8BC7B0" },
+		{ game::MAG_014_SpawnSubEffects, (void *)d_8BD2A0, "d_8BD2A0" },
+		{ game::MAG_014_Director_SpawnGroupEffects, (void *)d_8BD330, "d_8BD330" },
+		{ game::MAG_014_AuraActorSystem_State1_StepActorSystem, (void *)d_8BD3C0, "d_8BD3C0" },
+		{ game::MAG_014_Reaper_ApplyFadeTint, (void *)d_8BD3F0, "d_8BD3F0" },
+		{ game::MAG_014_Reaper_SetAmbientColour, (void *)d_8BD510, "d_8BD510" },
+		{ game::MAG_014_StageWobbleOut_State1_FadeOut, (void *)d_8BDFC0, "d_8BDFC0" },
+		{ game::MAG_014_Death_Emitter_State1_ApplyDamage, (void *)d_8BE070, "d_8BE070" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

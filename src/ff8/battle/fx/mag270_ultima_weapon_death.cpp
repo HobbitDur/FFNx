@@ -37,31 +37,31 @@ namespace ultima270
 	{
 		c.name = "270 Ultima Weapon Death";
 		c.effect_id = 270;
-		c.vm_table = us(0x18534D4);
-		c.bone_table = us(0x1853144);
-		c.prim_table = us(0x185318C);
-		c.prim_size = us(0x185327C);
-		c.spr_table = us(0x1853290);
-		c.ptype_table = us(0x18532BC);
-		c.pop_table = us(0x18532D0);
-		c.draw_table = us(0x1853330);
-		c.attr_16A = us(0x185349A);
-		c.attr_184 = us(0x18534B4);
-		c.attr_186 = us(0x18534B6);
-		c.attr_194 = us(0x18534C4);
-		c.attr_19C = us(0x18534CC);
-		c.desc = us(0x1852FD0);
-		c.ptr_block = us(0x185311C);
-		c.queue = us(0x2795C18);
-		c.file00 = us(0x2795C3C);
-		c.file01 = us(0x2795C38);
-		c.tick = us(0x8EA2A0);
-		c.load_cb = us(0x8F2CA0);
+		c.vm_table = game_addr(game::funcs_8F6CDC);
+		c.bone_table = game_addr(game::funcs_8F38B7);
+		c.prim_table = game_addr(game::funcs_8EF1D4);
+		c.prim_size = game_addr(game::unk_185327C);
+		c.spr_table = game_addr(game::unk_1853290);
+		c.ptype_table = game_addr(game::unk_18532BC);
+		c.pop_table = game_addr(game::funcs_8F1247);
+		c.draw_table = game_addr(game::unk_1853330);
+		c.attr_16A = game_addr(game::unk_185349A);
+		c.attr_184 = game_addr(game::unk_18534B4);
+		c.attr_186 = game_addr(game::unk_18534B6);
+		c.attr_194 = game_addr(game::unk_18534C4);
+		c.attr_19C = game_addr(game::unk_18534CC);
+		c.desc = game_addr(game::unk_1852FD0);
+		c.ptr_block = game_addr(game::unk_185311C);
+		c.queue = game_addr(game::unk_2795C18);
+		c.file00 = game_addr(game::unk_2795C3C);
+		c.file01 = game_addr(game::unk_2795C38);
+		c.tick = game_addr(game::MAG_270_sub_8EA2A0);
+		c.load_cb = game_addr(game::resetByte_2798219);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t DIS_KEYS = 0x2795C40;
+	static constexpr game::Id DIS_KEYS = game::unk_2795C40;
 	static const uint16_t DIS_RET16 = 0xB57E;
 #include "gfc_disintegrate.inc"
 
@@ -97,7 +97,7 @@ namespace ultima270
 		ultima270::describe(ultima270::g_c);
 		init_clone(ultima270::g_c, nullptr, 0);
 		ultima270::apply_slots(ultima270::g_c);
-		register_port(0x8EA2A0, (void *)ultima270::SequenceTask, "MAG270 Ultima Weapon Death SequenceTick", 270);
+		register_port(game::MAG_270_sub_8EA2A0, (void *)ultima270::SequenceTask, "MAG270 Ultima Weapon Death SequenceTick", 270);
 	}
 }
 

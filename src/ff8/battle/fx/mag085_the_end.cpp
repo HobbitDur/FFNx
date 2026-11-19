@@ -24,43 +24,43 @@ namespace act
 {
 namespace theend
 {
-	static const Mod MOD_085 = { "theend", 85, 0x784480, 0x78D790,
-		{ 0x0, 0x0, 0x156C7F0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25BC390, 0x0, 0x0, 0x0, 0x25BC4A0, 0x0, 0x0, 0x25BC894, 0x0, 0x0, 0x0, 0x0, 0x25C1748, 0x0, 0x25C19E8, 0x0, 0x0, 0x25C1B60, 0x25C1C58, 0x0, 0x0, 0x0, 0x25C1D28, 0x0, 0x0, 0x0, 0x25C21D4, 0x25C21DC },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x784890, 0x784910, 0x0, 0x784C60, 0x784C90, 0x784CC0, 0x784CD0, 0x784CE0, 0x784CF0, 0x784D00, 0x0, 0x0, 0x785040, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x784FA0, 0x0, 0x785000, 0x785790, 0x0, 0x0, 0x0, 0x0, 0x0, 0x788DD0, 0x788EB0, 0x789050, 0x789120, 0x789240, 0x7894A0, 0x0, 0x0, 0x78A1C0, 0x78A210, 0x0, 0x0, 0x78AB00, 0x0, 0x0, 0x0, 0x78B4E0, 0x78B510, 0x78B5F0, 0x78B710, 0x78B860, 0x0, 0x78BF20, 0x78C100, 0x78C240, 0x0, 0x0, 0x78D600, 0x78D670, 0x78D690, 0x78D6B0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_085 = { "theend", 85, game::MAG_085_THE_END_FL, game::MAG_084_ANGEL_WING_FL,
+		{ {}, {}, game::unk_156C7F0, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG085_THE_END_timBuffer, {}, {}, {}, game::unk_25BC4A0, {}, {}, game::unk_25BC894, {}, {}, {}, {}, game::unk_25C1748, {}, game::unk_25C19E8, {}, {}, game::MAG085_THE_END_activeSubObject, game::unk_25C1C58, {}, {}, {}, game::unk_25C1D28, {}, {}, {}, game::unk_25C21D4, game::unk_25C21DC },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_085_THE_END_EmitterTask, game::MAG_085_THE_END_Master_InitDirector, {}, game::MAG_085_THE_END_RequeueTIMUpload, game::MAG_085_THE_END_LoadCb_SummonStream, game::MAG_085_THE_END_LoadCb_ClearBusy_784CC0, game::MAG_085_THE_END_LoadCb_ClearBusy_784CD0, game::MAG_085_THE_END_LoadCb_ClearBusy_784CE0, game::MAG_085_THE_END_LoadCb_ClearBusy_784CF0, game::MAG_085_THE_END_LoadScript_RecordFile, {}, {}, game::MAG_085_THE_END_LoadScript_TryArmStep, {}, {}, {}, {}, {}, {}, {}, game::MAG_085_THE_END_DirSyncGate, {}, game::MAG_085_THE_END_DirPhaseGE, game::MAG_085_THE_END_PrimPlay_ObjectCallback, {}, {}, {}, {}, {}, game::MAG_085_THE_END_ResetTrailHistory, game::MAG_085_THE_END_Director_StartPositions, game::MAG_085_THE_END_FillTrailRows, game::MAG_085_THE_END_Director_Mode3Setup, game::MAG_085_THE_END_Director_TargetPositions, game::MAG_085_THE_END_RelocateActorData, {}, {}, game::MAG_085_THE_END_DampValue, game::MAG_085_THE_END_DampVector, {}, {}, game::MAG_085_THE_END_MorphVertexBlock, {}, {}, {}, game::MAG_085_RandRange, game::MAG_085_THE_END_RandRangeWide, game::MAG_085_RandAngleJitter, game::MAG_085_THE_END_Particle_AttachToOwner, game::MAG_085_THE_END_Actor_InterpolatePosition, {}, game::MAG_085_THE_END_ParticleList_Unlink, game::MAG_085_THE_END_Particle_PlaceAtAnchorSet, game::MAG_085_THE_END_Particle_PlaceAtPoint, {}, {}, game::MAG_085_THE_END_Emitter_State1_ApplyActionResults, game::MAG_085_THE_END_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_085_THE_END_Emitter_State3_FinishReleaseRoot, game::MAG_085_THE_END_Nullsub_78D6B0, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t DIR_PTR = 0x156C7F0;
-	static const uint32_t PHASE_DATA = DIR_PTR;
-	static const uint32_t SPRITE_CURSOR = 0x25BC394;
-	static const uint32_t PACKET_CURSOR = SPRITE_CURSOR;
-	static const uint32_t FA_CURSOR = 0x1D8E054;
-	static const uint32_t SCRATCH_SP = 0x25C21CC;
-	static const uint32_t ACTOR_STATE = 0x25C21DC;
-	static const uint32_t LOADER_PTR = 0x25C1C58;
-	static const uint32_t SCRIPT_CUR = 0x25C1B60;
+	static constexpr game::Id DIR_PTR = game::unk_156C7F0;
+	static constexpr game::Id PHASE_DATA = DIR_PTR;
+	static constexpr game::Id SPRITE_CURSOR = game::unk_25BC394;
+	static constexpr game::Id PACKET_CURSOR = SPRITE_CURSOR;
+	static constexpr game::Id FA_CURSOR = game::BATTLE_PACKET_WRITE_CURSOR;
+	static constexpr game::Id SCRATCH_SP = game::unk_25C21CC;
+	static constexpr game::Id ACTOR_STATE = game::unk_25C21DC;
+	static constexpr game::Id LOADER_PTR = game::unk_25C1C58;
+	static constexpr game::Id SCRIPT_CUR = game::MAG085_THE_END_activeSubObject;
 
 	namespace gx
 	{
-		static inline uint32_t sub_4A8480(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x4A8480))(a1); }
-		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x7015B0))(a1, a2); }
-		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(us(0x4607D0))(); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
-		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DEA0))(a1); }
-		static inline uint32_t sub_45E0E0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0E0))(a1); }
-		static inline uint32_t sub_45E410(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E410))(a1); }
-		static inline uint32_t GTE_ReadOTZ_SZ3div4(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E250))(a1); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a1, a2, a3); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(a1, a2); }
-		static inline uint32_t Music_SetVolumeTrans(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x46BBC0))(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
-		static inline uint32_t BS_R0win_QueueVictoryFanfare(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x501A20))(a1, a2); }
-		static inline uint32_t BS_Music_SetChannelVolumeCommand(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x501B10))(a1, a2); }
-		static inline uint32_t sub_8DE8F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x8DE8F0))(a1, a2, a3, a4); }
+		static inline uint32_t sub_4A8480(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::BattleMenu_SetVisible))(a1); }
+		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(a1, a2); }
+		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_ColorV0))(); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(a1, a2, a3); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(a1); }
+		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::sub_45DEA0))(a1); }
+		static inline uint32_t sub_45E0E0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123FromBytes))(a1); }
+		static inline uint32_t sub_45E410(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreIR123LowBytes))(a1); }
+		static inline uint32_t GTE_ReadOTZ_SZ3div4(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadOTZ_SZ3div4))(a1); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a1, a2, a3); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSZ3))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::VectorNormalS16))(a1, a2); }
+		static inline uint32_t Music_SetVolumeTrans(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::Music_SetVolumeTrans))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(a1, a2); }
+		static inline uint32_t BS_R0win_QueueVictoryFanfare(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::BS_R0win_QueueVictoryFanfare))(a1, a2); }
+		static inline uint32_t BS_Music_SetChannelVolumeCommand(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::BS_Music_SetChannelVolumeCommand))(a1, a2); }
+		static inline uint32_t sub_8DE8F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::Effect_GetBoneCameraPosition))(a1, a2, a3, a4); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -358,7 +358,7 @@ namespace theend
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -516,45 +516,45 @@ namespace theend
 		g_mod = &MOD_085;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x25C21CC)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x25BC4A0)) = us(0x2793E58);
-		states[0] = us(0x7847C0);
+		MEM<uint32_t>(game_addr(game::unk_25C21CC)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_25BC4A0)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_085_THE_END_Sequence_State0_Advance_7847C0);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x7847D0);
-		states[2] = us(0x7847E0);
-		states[3] = us(0x784860);
-		states[4] = us(0x78D6C0);
-		states[5] = us(0x78D700);
-		states[6] = us(0x78D710);
-		states[7] = us(0x78D720);
-		states[8] = us(0x78D750);
-		states[9] = us(0x78D760);
-		states[10] = us(0x78D780);
+		states[1] = game_addr(game::MAG_085_THE_END_Sequence_State0_Advance_7847D0);
+		states[2] = game_addr(game::MAG_085_THE_END_Master_State2_CarvePools);
+		states[3] = game_addr(game::MAG_085_THE_END_Sequence_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_085_THE_END_Sequence_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_085_THE_END_Sequence_State0_Advance_78D700);
+		states[6] = game_addr(game::MAG_085_THE_END_Sequence_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_085_THE_END_Sequence_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_085_THE_END_Sequence_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_085_THE_END_Sequence_State9_Finish_78D760);
+		states[10] = game_addr(game::MAG_085_THE_END_Nullsub_78D780);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x25C1B5C));
-			const uint32_t v2 = MEM<uint32_t>(us(0x25C0F54));
-			MEM<uint32_t>(us(0x25BC394)) = v1;
-			MEM<uint32_t>(us(0x25BC49C)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_25C1B5C));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_25C0F54));
+			MEM<uint32_t>(game_addr(game::unk_25BC394)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_25BC49C)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x25C1B58));
-			const uint32_t v2 = MEM<uint32_t>(us(0x25C0F50));
-			MEM<uint32_t>(us(0x25BC394)) = v1;
-			MEM<uint32_t>(us(0x25BC49C)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_25C1B58));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_25C0F50));
+			MEM<uint32_t>(game_addr(game::unk_25BC394)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_25BC49C)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x25C21B0)) = 0;
-		MEM<uint16_t>(us(0x25C1CB4)) = 0;
-		static const uint32_t queues[8] = { us(0x25C19E8), us(0x25BC478), us(0x25C21B8), us(0x25C1748), us(0x25BC580), us(0x25BC898), us(0x25C0F40), us(0x25C19D8) };
+		MEM<uint16_t>(game_addr(game::unk_25C21B0)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25C1CB4)) = 0;
+		static constexpr game::Id queues[8] = { game::unk_25C19E8, game::unk_25BC478, game::unk_25C21B8, game::unk_25C1748, game::unk_25BC580, game::unk_25BC898, game::unk_25C0F40, game::unk_25C19D8 };
 		for (int i = 0; i < 8; i++)
 		{
-			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
+			const uint32_t n = x::ExecuteTaskQueue(game_addr(queues[i]));
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -567,12 +567,12 @@ namespace theend
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x25C21D8));
-		MEM<uint32_t>(us(0x25C1CB8)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::unk_25C21D8));
+		MEM<uint32_t>(game_addr(game::unk_25C1CB8)) = p;
 		p += 0x798;
-		MEM<uint32_t>(us(0x25C21D0)) = p;
+		MEM<uint32_t>(game_addr(game::unk_25C21D0)) = p;
 		p += 0x9D80;
-		MEM<uint32_t>(us(0x25C21D8)) = p;
+		MEM<uint32_t>(game_addr(game::unk_25C21D8)) = p;
 		te_784820();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -580,12 +580,12 @@ namespace theend
 
 	uint32_t __cdecl te_784820()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25C1CB8)), 0x798);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25C21D0)), 0x9D80);
-		MEM<uint16_t>(us(0x25BC890)) = 0;
-		MEM<uint16_t>(us(0x25C1CC4)) = 0;
-		MEM<uint16_t>(us(0x25C1C54)) = 0;
-		MEM<uint16_t>(us(0x25BC398)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_25C1CB8)), 0x798);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_25C21D0)), 0x9D80);
+		MEM<uint16_t>(game_addr(game::unk_25BC890)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25C1CC4)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25C1C54)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25BC398)) = 0;
 		return 0;
 	}
 
@@ -593,26 +593,26 @@ namespace theend
 	{
 		te_784DC0(a1);
 		te_784960();
-		x::Effect_AddTaskAndInitFromCtx(us(0x25C21B8), us(0x784A60), 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x25BC478), us(0x784E30), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C21B8), game_addr(game::MAG_085_THE_END_FileLoadScriptTask_784A60), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC478), game_addr(game::MAG_085_THE_END_DirectorTask), 0x48, a1);
 		t1_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl te_784960()
 	{
-		MEM<uint32_t>(us(0x25C1B60)) = us(0x1571E70);
-		MEM<uint32_t>(us(0x25C1C58)) = us(0x25C21E0);
-		x::MAG_007_sub_8DCC00(us(0x25C21E0), 0x16C);
-		const uint32_t b = MEM<uint32_t>(us(0x25C1C58));
-		uint32_t c = MEM<uint32_t>(us(0x25C21D8));
+		MEM<uint32_t>(game_addr(game::MAG085_THE_END_activeSubObject)) = game_addr(game::unk_1571E70);
+		MEM<uint32_t>(game_addr(game::unk_25C1C58)) = game_addr(game::unk_25C21E0);
+		x::MAG_007_sub_8DCC00(game_addr(game::unk_25C21E0), 0x16C);
+		const uint32_t b = MEM<uint32_t>(game_addr(game::unk_25C1C58));
+		uint32_t c = MEM<uint32_t>(game_addr(game::unk_25C21D8));
 		U32(b, 0x100) = c;
 		c += 0xA000;
-		MEM<uint32_t>(us(0x25C21D8)) = c;
-		U32(b, 0x114) = us(0x19EB018);
+		MEM<uint32_t>(game_addr(game::unk_25C21D8)) = c;
+		U32(b, 0x114) = game_addr(game::unk_19EB018);
 		for (int32_t o = 0x104; o <= 0x160; o += 4)
-			if (o != 0x114 && o != 0x12C) U32(b, o) = us(0x19CF018);
-		U32(b, 0x12C) = us(0x19D2560);
+			if (o != 0x114 && o != 0x12C) U32(b, o) = game_addr(game::unk_19CF018);
+		U32(b, 0x12C) = game_addr(game::unk_19D2560);
 		U16(b, 0x164) = 0;
 		U16(b, 0x166) = 0;
 		return b;
@@ -621,8 +621,8 @@ namespace theend
 	uint32_t __cdecl te_784DC0(uint32_t a1)
 	{
 		(void)a1;
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x156C7F0)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(0x156C7F0));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_156C7F0)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(game::unk_156C7F0));
 		U16(d, 8) = 0;
 		U16(d, 0xA) = 0;
 		U16(d, 0xC) = 0;
@@ -632,7 +632,7 @@ namespace theend
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const int16_t dz = (int16_t)(U16(d, 0xC) - 0x1000);
 		const uint32_t a = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(us(0x156C7F0)), 0x4A) = (uint16_t)((a - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(game_addr(game::unk_156C7F0)), 0x4A) = (uint16_t)((a - 0x800) & 0xFFF);
 		return 0;
 	}
 
@@ -640,29 +640,29 @@ namespace theend
 	{
 		const uint32_t node = a1;
 		uint32_t states[23];
-		states[0] = us(0x784F80);
-		states[1] = us(0x784FD0);
-		states[2] = us(0x785020);
-		states[3] = us(0x785080);
-		states[4] = us(0x785110);
-		states[5] = us(0x785130);
-		states[6] = us(0x785150);
-		states[7] = us(0x785170);
-		states[8] = us(0x7851C0);
-		states[9] = us(0x7851E0);
-		states[10] = us(0x785200);
-		states[11] = us(0x785230);
-		states[12] = us(0x785250);
-		states[13] = us(0x785270);
-		states[14] = us(0x785290);
-		states[15] = us(0x7852B0);
-		states[16] = us(0x7852D0);
-		states[17] = us(0x7852F0);
-		states[18] = us(0x785310);
-		states[19] = us(0x785330);
-		states[20] = us(0x785350);
-		states[21] = us(0x785380);
-		states[22] = us(0x7853A0);
+		states[0] = game_addr(game::MAG_085_THE_END_Director_State0_WaitCut1_BattleUIOff);
+		states[1] = game_addr(game::MAG_085_THE_END_Director_State1_PlaySound1);
+		states[2] = game_addr(game::MAG_085_THE_END_Director_State2_ArmLoadScriptStep);
+		states[3] = game_addr(game::MAG_085_THE_END_Director_State3_WaitLoadDone);
+		states[4] = game_addr(game::MAG_085_THE_END_Director_State4_WaitFrame4B);
+		states[5] = game_addr(game::MAG_085_THE_END_Director_State5_WaitDirGate2);
+		states[6] = game_addr(game::MAG_085_THE_END_Director_State6_WaitDirPhase2);
+		states[7] = game_addr(game::MAG_085_THE_END_Director_State7_ScreenTint);
+		states[8] = game_addr(game::MAG_085_THE_END_Director_State8_Countdown);
+		states[9] = game_addr(game::MAG_085_THE_END_Director_State9_WaitDirGate3);
+		states[10] = game_addr(game::MAG_085_THE_END_Director_State10_WaitCut3_PlaySound2);
+		states[11] = game_addr(game::MAG_085_THE_END_Director_State11_WaitFrame3C);
+		states[12] = game_addr(game::MAG_085_THE_END_Director_State12_WaitDirGate4);
+		states[13] = game_addr(game::MAG_085_THE_END_Director_State13_WaitDirPhase4);
+		states[14] = game_addr(game::MAG_085_THE_END_Director_State14_WaitFrame2D_A);
+		states[15] = game_addr(game::MAG_085_THE_END_Director_State15_WaitDirGate5);
+		states[16] = game_addr(game::MAG_085_THE_END_Director_State16_WaitDirPhase5);
+		states[17] = game_addr(game::MAG_085_THE_END_Director_State17_WaitFrame2D_B);
+		states[18] = game_addr(game::MAG_085_THE_END_Director_State18_WaitDirGate6);
+		states[19] = game_addr(game::MAG_085_THE_END_Director_State19_WaitDirPhase6);
+		states[20] = game_addr(game::MAG_085_THE_END_Director_State20_BattleUIOn);
+		states[21] = game_addr(game::MAG_085_THE_END_Director_State21_Finish);
+		states[22] = game_addr(game::MAG_085_THE_END_Director_State22_Nullsub);
 		te_784F30(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -703,20 +703,20 @@ namespace theend
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(us(0x156C7F4), 0, 0x80);
+		x::BdPlaySE(game_addr(game::unk_156C7F4), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
 
 	uint32_t __cdecl te_785080(uint32_t a1)
 	{
-		if (U16(MEM<uint32_t>(us(0x25C1C58)), 0x166) == 0)
+		if (U16(MEM<uint32_t>(game_addr(game::unk_25C1C58)), 0x166) == 0)
 		{
 			a_73BB60(0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0;
 		}
-		if (S16(MEM<uint32_t>(us(0x156C7F0)), 0x46) >= 0x4A)
+		if (S16(MEM<uint32_t>(game_addr(game::unk_156C7F0)), 0x46) >= 0x4A)
 			a_73BB60(1);
 		return 0;
 	}
@@ -736,11 +736,11 @@ namespace theend
 
 	uint32_t __cdecl te_785170(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(0x156C7F0)), 0x46) < 0xE)
+		if (S16(MEM<uint32_t>(game_addr(game::unk_156C7F0)), 0x46) < 0xE)
 			return 0;
 		U16(a1, 0x44) = 6;
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25C19D8), us(0x8DDC30), 0x40, a1);
-		U32(t, 0x34) = us(0x1571FE8);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C19D8), game_addr(game::Effect_ScreenTintTask), 0x40, a1);
+		U32(t, 0x34) = game_addr(game::unk_1571FE8);
 		U16(t, 0x38) = 0;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -750,7 +750,7 @@ namespace theend
 	{
 		if (a_73B7E0(3) != 0)
 		{
-			x::BdPlaySE(us(0x156C7F8), 0, 0x80);
+			x::BdPlaySE(game_addr(game::unk_156C7F8), 0, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -758,7 +758,7 @@ namespace theend
 
 	uint32_t __cdecl te_785230(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(0x156C7F0)), 0x46) >= 0x3C)
+		if (S16(MEM<uint32_t>(game_addr(game::unk_156C7F0)), 0x46) >= 0x3C)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -773,7 +773,7 @@ namespace theend
 
 	uint32_t __cdecl te_785290(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(PHASE_DATA), 0x46) >= 0x2D)
+		if (S16(MEM<uint32_t>(game_addr(PHASE_DATA)), 0x46) >= 0x2D)
 			next_state(a1);
 		return 0;
 	}
@@ -789,7 +789,7 @@ namespace theend
 
 	uint32_t __cdecl te_7852F0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(PHASE_DATA), 0x46) >= 0x2D)
+		if (S16(MEM<uint32_t>(game_addr(PHASE_DATA)), 0x46) >= 0x2D)
 			next_state(a1);
 		return 0;
 	}
@@ -814,7 +814,7 @@ namespace theend
 
 	uint32_t __cdecl te_785350(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x156C7F0));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::unk_156C7F0));
 		if (S16(d, 0x46) < 0xA)
 			return 0;
 		U16(d, 0x48) = 1;
@@ -825,33 +825,33 @@ namespace theend
 
 	uint32_t __cdecl te_7853C0(uint32_t a1)
 	{
-		const int32_t cut = S16(MEM<uint32_t>(us(0x156C7F0)), 0x40);
+		const int32_t cut = S16(MEM<uint32_t>(game_addr(game::unk_156C7F0)), 0x40);
 		switch (cut - 1)
 		{
 		case 0:
-			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x787E20), 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x7882E0), 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x78D410), 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x787FD0), 0x60, a1);
-			x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x788420), 0xE4, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC580), game_addr(game::MAG_085_THE_END_ModelTaskC_787E20), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC580), game_addr(game::MAG_085_THE_END_ModelTaskC_7882E0), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC580), game_addr(game::MAG_085_THE_END_ModelTaskC_78D410), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC580), game_addr(game::MAG_085_THE_END_ModelTaskC_787FD0), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC898), game_addr(game::MAG_085_THE_END_FileLoadScriptTask_788420), 0xE4, a1);
 			break;
 		case 1:
-			x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x78C4C0), 0xE4, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC898), game_addr(game::MAG_085_THE_END_GroundTask), 0xE4, a1);
 			break;
 		case 2:
 		{
-			te_785510(a1, us(0x785560), us(0x1718EE4), 0x20, 1, 0);
-			const uint32_t t1 = te_785510(a1, us(0x787B50), us(0x171C42C), 0x50, 2, 0);
+			te_785510(a1, game_addr(game::MAG_085_THE_END_FileLoadScriptTask_785560), game_addr(game::unk_1718EE4), 0x20, 1, 0);
+			const uint32_t t1 = te_785510(a1, game_addr(game::MAG_085_THE_END_OrbitPlayTask), game_addr(game::unk_171C42C), 0x50, 2, 0);
 			U16(t1, 0x8A) = 0;
-			const uint32_t t2 = te_785510(a1, us(0x787B50), us(0x171C42C), 0x50, 2, 0);
+			const uint32_t t2 = te_785510(a1, game_addr(game::MAG_085_THE_END_OrbitPlayTask), game_addr(game::unk_171C42C), 0x50, 2, 0);
 			U16(t2, 0x8A) = 1;
 			break;
 		}
 		case 3:
-			x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x78CE80), 0xE4, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC898), game_addr(game::MAG_085_THE_END_PetalEmitterTask), 0xE4, a1);
 			break;
 		case 4:
-			x::Effect_AddTaskAndInitFromCtx(us(0x25BC580), us(0x78D250), 0x60, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC580), game_addr(game::MAG_085_THE_END_ScreenGlowTask), 0x60, a1);
 			break;
 		default:
 			break;
@@ -861,7 +861,7 @@ namespace theend
 
 	uint32_t __cdecl te_785510(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25C0F40), a2, 0x2DC, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C0F40), a2, 0x2DC, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int16_t)a4;
@@ -887,12 +887,12 @@ namespace theend
 
 	uint32_t __cdecl te_785620()
 	{
-		uint32_t cur = MEM<uint32_t>(us(0x25BC394));
-		for (uint32_t e = us(0x1D97494); e < us(0x1D97704); e += 0x9C)
+		uint32_t cur = MEM<uint32_t>(game_addr(game::unk_25BC394));
+		for (uint32_t e = game_addr(game::unk_1D97494); e < game_addr(game::CAMERA_FLAG_RELATED); e += 0x9C)
 		{
 			if (!(U8(e, 0) & 2)) continue;
-			cur = x::sub_5088A0(e, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, cur);
-			MEM<uint32_t>(us(0x25BC394)) = cur;
+			cur = x::sub_5088A0(e, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, cur);
+			MEM<uint32_t>(game_addr(game::unk_25BC394)) = cur;
 		}
 		return cur;
 	}
@@ -1003,7 +1003,7 @@ namespace theend
 		U16(h, 0x20) = 0x100;
 		U16(h, 0x2A) = 0x100;
 		U16(h, 0x28) = 0x100;
-		MEM<uint32_t>(us(0x1D8E054)) = te_785A90(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = te_785A90(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1739,7 +1739,7 @@ namespace theend
 
 	uint32_t __cdecl te_787B50(uint32_t a1)
 	{
-		const uint32_t tab[4] = { us(0x787BB0), us(0x787BE0), us(0x787C90), us(0x787E10) };
+		const uint32_t tab[4] = { game_addr(game::MAG_085_THE_END_OrbitPlay_State0_Wait), game_addr(game::MAG_085_THE_END_OrbitPlay_State1_Setup), game_addr(game::MAG_085_THE_END_OrbitPlay_State2_Orbit), game_addr(game::MAG_085_THE_END_OrbitPlay_State3_Nullsub) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -1832,7 +1832,7 @@ namespace theend
 		if (S16(a1, 0x24) < 0)
 			return 0;
 		U16(a1, 0x1C) = 0;
-		uint32_t e = us(0x1D989BA);
+		uint32_t e = game_addr(game::unk_1D989BA);
 		for (int k = 0; k < 4; k++, e += 0x2C)
 		{
 			U16(e, -0x28) = 0;
@@ -1854,7 +1854,7 @@ namespace theend
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		const uint16_t v = U16(a1, 0x1C);
-		for (uint32_t e = us(0x1D98992), k = 0; k < 4; k++, e += 0x2C)
+		for (uint32_t e = game_addr(game::unk_1D98992), k = 0; k < 4; k++, e += 0x2C)
 			MEM<uint16_t>(e) = v;
 		return 0;
 	}
@@ -1880,7 +1880,7 @@ namespace theend
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1911,8 +1911,8 @@ namespace theend
 
 	uint32_t __cdecl te_7880A0(void)
 	{
-		uint32_t save = MEM<uint32_t>(us(0x156C7F0)) + 0x20;
-		for (uint32_t e = us(0x1D972C0); e < us(0x1D97494); e += 0x9C, save += 4)
+		uint32_t save = MEM<uint32_t>(game_addr(game::unk_156C7F0)) + 0x20;
+		for (uint32_t e = game_addr(game::BattleEntitySlotData); e < game_addr(game::unk_1D97494); e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -1926,7 +1926,7 @@ namespace theend
 
 	uint32_t __cdecl te_7880E0(uint32_t a1, uint32_t a2)
 	{
-		for (uint32_t ent = us(0x1D972C0); ent < us(0x1D97494); ent += 0x9C)
+		for (uint32_t ent = game_addr(game::BattleEntitySlotData); ent < game_addr(game::unk_1D97494); ent += 0x9C)
 		{
 			uint16_t flags = U16(ent, 0);
 			if ((flags & 2) != 0)
@@ -1952,8 +1952,8 @@ namespace theend
 
 	uint32_t __cdecl te_788250(void)
 	{
-		uint32_t save = MEM<uint32_t>(us(0x156C7F0)) + 0x20;
-		for (uint32_t e = us(0x1D972C0); e < us(0x1D97494); e += 0x9C, save += 4)
+		uint32_t save = MEM<uint32_t>(game_addr(game::unk_156C7F0)) + 0x20;
+		for (uint32_t e = game_addr(game::BattleEntitySlotData); e < game_addr(game::unk_1D97494); e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -2048,7 +2048,7 @@ namespace theend
 			}
 			kind = 0x7F;
 		}
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x788580), 0xE4, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC898), game_addr(game::MAG_085_THE_END_MeteorTask), 0xE4, a1);
 		U16(a1, 0xDC) = (uint16_t)(U16(a1, 0xDC) + 1);
 		U16(t, 0xDE) = kind;
 		return 0;
@@ -2059,9 +2059,9 @@ namespace theend
 		uint8_t sp[0x2C];
 		const uint32_t s = P(sp);
 		uint32_t states[3];
-		states[0] = us(0x788810);
-		states[1] = us(0x788960);
-		states[2] = us(0x78C4A0);
+		states[0] = game_addr(game::MAG_085_THE_END_Meteor_State0_Setup);
+		states[1] = game_addr(game::MAG_085_THE_END_Meteor_State1_Fall);
+		states[2] = game_addr(game::MAG_085_THE_END_Nullsub_78C4A0);
 		callp(states[S8(a1, 0x29)], a1);
 		const uint16_t sw = (uint16_t)((U16(a1, 0xB4) + 0x20) & 0xFFF);
 		U16(a1, 0xB4) = sw;
@@ -2104,13 +2104,13 @@ namespace theend
 			return 0;
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
-		x::UnpackRotationMatrix(us(0x1D97778), M);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), M);
 		x::sub_8DD960(M, (uint32_t)(int32_t)S16(a1, 0x48));
 		S32(M, 0x14) = S16(a1, 0x1C);
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), M, M);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -2129,7 +2129,7 @@ namespace theend
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(us(0x1D8E054)) = te_785A90(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = te_785A90(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -2137,7 +2137,7 @@ namespace theend
 	uint32_t __cdecl te_788810(uint32_t a1)
 	{
 		const int32_t kind = S16(a1, 0xDE);
-		U32(a1, 0x4C) = us(0x156C7FC);
+		U32(a1, 0x4C) = game_addr(game::unk_156C7FC);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -2196,8 +2196,8 @@ namespace theend
 			U16(a1, 0x1E) = 0;
 			if (impact)
 			{
-				te_785510(a1, us(0x788A90), us(0x1715D28), 0x230, 0, 0);
-				const uint32_t t = a_73C100(a1, us(0x788B90), us(0x17151EC), 0, 0xF, 3);
+				te_785510(a1, game_addr(game::MAG_085_THE_END_FileLoadScriptTask_788A90), game_addr(game::unk_1715D28), 0x230, 0, 0);
+				const uint32_t t = a_73C100(a1, game_addr(game::MAG_085_THE_END_FileLoadScriptTask_788B90), game_addr(game::unk_17151EC), 0, 0xF, 3);
 				U32(t, 0x288) = U32(a1, 0x1C);
 				U32(t, 0x28C) = U32(a1, 0x20);
 			}
@@ -2267,7 +2267,7 @@ namespace theend
 
 	uint32_t __cdecl te_788DD0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25C21DC));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::unk_25C21DC));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -2284,7 +2284,7 @@ namespace theend
 
 	uint32_t __cdecl te_789050(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25C21DC));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::unk_25C21DC));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -2307,7 +2307,7 @@ namespace theend
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x25C21DC), 0) = sys;
+		U32(game_addr(game::unk_25C21DC), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -2319,7 +2319,7 @@ namespace theend
 			te_789A90();
 			te_789950();
 			te_789790();
-			sys = U32(us(0x25C21DC), 0);
+			sys = U32(game_addr(game::unk_25C21DC), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2332,19 +2332,19 @@ namespace theend
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x25C21B0), 0) = (uint16_t)(U16(us(0x25C21B0), 0) + c14);
-		U16(us(0x25C1CB4), 0) = (uint16_t)(U16(us(0x25C1CB4), 0) + c16);
+		U16(game_addr(game::unk_25C21B0), 0) = (uint16_t)(U16(game_addr(game::unk_25C21B0), 0) + c14);
+		U16(game_addr(game::unk_25C1CB4), 0) = (uint16_t)(U16(game_addr(game::unk_25C1CB4), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl te_789790(void)
 	{
-		uint32_t act = U32(U32(us(0x25C21DC), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::unk_25C21DC), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x25C21DC), 0);
+				uint32_t sys = U32(game_addr(game::unk_25C21DC), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -2358,10 +2358,10 @@ namespace theend
 
 	uint32_t __cdecl te_7897F0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
+		const uint32_t h = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(us(SCRATCH_SP)) = h;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -2389,7 +2389,7 @@ namespace theend
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(us(0x1D8E054)) = te_785A90(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+			MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = te_785A90(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		}
 		else if (copies > 0)
 		{
@@ -2401,24 +2401,24 @@ namespace theend
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(us(0x1D8E054)) = te_785A90(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+				MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = te_785A90(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl te_789950(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x25C21DC)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::unk_25C21DC)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x25C21DC));
+				uint32_t st = MEM<uint32_t>(game_addr(game::unk_25C21DC));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -2453,26 +2453,26 @@ namespace theend
 	uint32_t __cdecl te_789A10(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl te_789A90(void)
 	{
-		uint32_t act = U32(U32(us(0x25C21DC), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::unk_25C21DC), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2488,7 +2488,7 @@ namespace theend
 	uint32_t __cdecl te_789AD0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x25C21DC));
+		uint32_t st = MEM<uint32_t>(game_addr(game::unk_25C21DC));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -2509,7 +2509,7 @@ namespace theend
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x25C21DC));
+			st = MEM<uint32_t>(game_addr(game::unk_25C21DC));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2521,7 +2521,7 @@ namespace theend
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x25C21DC), 0);
+		uint32_t st = U32(game_addr(game::unk_25C21DC), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -2604,8 +2604,8 @@ namespace theend
 
 	uint32_t __cdecl te_78ACC0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25C1CB8));
-		int32_t i = MEM<int16_t>(us(0x25BC890));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_25C1CB8));
+		int32_t i = MEM<int16_t>(game_addr(game::unk_25BC890));
 		uint32_t slot = 0;
 		for (int32_t k = 0; k < 0x12; k++)
 		{
@@ -2616,7 +2616,7 @@ namespace theend
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
 				U8(slot, 0x69) = 1;
-				U16(MEM<uint32_t>(us(0x25C21DC)), 0x14) = (uint16_t)(U16(MEM<uint32_t>(us(0x25C21DC)), 0x14) + 1);
+				U16(MEM<uint32_t>(game_addr(game::unk_25C21DC)), 0x14) = (uint16_t)(U16(MEM<uint32_t>(game_addr(game::unk_25C21DC)), 0x14) + 1);
 				U32(slot, 0x5C) = a1;
 				U8(slot, 0x6B) = (uint8_t)a3;
 				a_742CA0(slot, 0);
@@ -2626,8 +2626,8 @@ namespace theend
 			if (i >= 0x11) i = 0;
 		}
 		i++;
-		if (i >= 0x11) MEM<uint16_t>(us(0x25BC890)) = 0;
-		else MEM<uint16_t>(us(0x25BC890)) = (uint16_t)i;
+		if (i >= 0x11) MEM<uint16_t>(game_addr(game::unk_25BC890)) = 0;
+		else MEM<uint16_t>(game_addr(game::unk_25BC890)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -2640,9 +2640,9 @@ namespace theend
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x78B710), a1);
+			callp(game_addr(game::MAG_085_THE_END_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x78B860), a1);
+			callp(game_addr(game::MAG_085_THE_END_Actor_InterpolatePosition), a1);
 		te_78ADE0(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -2651,7 +2651,7 @@ namespace theend
 
 	uint32_t __cdecl te_78ADE0(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x25C21DC), 0);
+		uint32_t sys = U32(game_addr(game::unk_25C21DC), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2678,9 +2678,9 @@ namespace theend
 
 	uint32_t __cdecl te_78AE60(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x25C21CC), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::unk_25C21CC), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x25C21CC), 0) = sp;
+		U32(game_addr(game::unk_25C21CC), 0) = sp;
 		uint32_t node = te_78B640(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -2690,7 +2690,7 @@ namespace theend
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x25C21DC), 0);
+			uint32_t ctx = U32(game_addr(game::unk_25C21DC), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2858,14 +2858,14 @@ namespace theend
 			}
 		}
 		te_78C350(node, desc);
-		U32(us(0x25C21CC), 0) = U32(us(0x25C21CC), 0) + 0x50;
+		U32(game_addr(game::unk_25C21CC), 0) = U32(game_addr(game::unk_25C21CC), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl te_78B640(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25C21D0));
-		int32_t i = MEM<int16_t>(us(0x25C1CC4));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_25C21D0));
+		int32_t i = MEM<int16_t>(game_addr(game::unk_25C1CC4));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2878,7 +2878,7 @@ namespace theend
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2895,16 +2895,16 @@ namespace theend
 		}
 		i++;
 		if (i >= 0x3B)
-			MEM<uint16_t>(us(0x25C1CC4)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_25C1CC4)) = 0;
 		else
-			MEM<uint16_t>(us(0x25C1CC4)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::unk_25C1CC4)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl te_78B860(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x25C21DC), 0);
+		const uint32_t st = U32(game_addr(game::unk_25C21DC), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -2964,7 +2964,7 @@ namespace theend
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x25C21DC), 0);
+				uint32_t g = U32(game_addr(game::unk_25C21DC), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2974,7 +2974,7 @@ namespace theend
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x25C21DC), 0);
+				uint32_t g = U32(game_addr(game::unk_25C21DC), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3049,7 +3049,7 @@ namespace theend
 
 	uint32_t __cdecl te_78C3E0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x25C21DC));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::unk_25C21DC));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3074,14 +3074,14 @@ namespace theend
 				do
 				{
 					te_78ACC0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x25C21DC));
+					dir = MEM<uint32_t>(game_addr(game::unk_25C21DC));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				te_78ACC0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x25C21DC));
+				dir = MEM<uint32_t>(game_addr(game::unk_25C21DC));
 			}
 		}
 		return 0;
@@ -3101,9 +3101,9 @@ namespace theend
 	uint32_t __cdecl te_78C4C0(uint32_t a1)
 	{
 		uint32_t states[3];
-		states[0] = us(0x78CE00);
-		states[1] = us(0x78CE30);
-		states[2] = us(0x78CE70);
+		states[0] = game_addr(game::MAG_085_THE_END_Ground_State0_Setup);
+		states[1] = game_addr(game::MAG_085_THE_END_Ground_State1_FadeWait);
+		states[2] = game_addr(game::MAG_085_THE_END_Ground_State2_Nullsub);
 		callp(states[S8(a1, 0x29)], a1);
 		te_78C530(a1, (uint32_t)U16(a1, 0xE0));
 		const uint8_t status = U8(a1, 0x26);
@@ -3125,7 +3125,7 @@ namespace theend
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), M, M);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -3145,7 +3145,7 @@ namespace theend
 		U16(h, 0x24) = 0;
 		U16(h, 0x64) = (uint16_t)a2;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(us(0x1D8E054)) = te_78C660(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = te_78C660(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3275,7 +3275,7 @@ namespace theend
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
-		U32(a1, 0x4C) = us(0x156C8BC);
+		U32(a1, 0x4C) = game_addr(game::unk_156C8BC);
 		U16(a1, 0xE0) = 0x80;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -3295,14 +3295,14 @@ namespace theend
 
 	uint32_t __cdecl te_78CE80(uint32_t a1)
 	{
-		const uint32_t states[2] = { us(0x78CED0), us(0x78D240) };
+		const uint32_t states[2] = { game_addr(game::MAG_085_THE_END_PetalEmitter_SpawnGroup), game_addr(game::MAG_085_THE_END_Nullsub_78D240) };
 		callp(states[S8(a1, 0x29)], a1);
 		return task_end(a1);
 	}
 
 	uint32_t __cdecl te_78CED0(uint32_t a1)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25BC898), us(0x78CFA0), 0xE4, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25BC898), game_addr(game::MAG_085_THE_END_PetalGroupTask), 0xE4, a1);
 		uint32_t st = t + 0xD4, p = t + 0x56;
 		for (int k = 0; k < 4; k++, st += 2, p += 8)
 		{
@@ -3328,11 +3328,11 @@ namespace theend
 		uint8_t sp[0x28];
 		const uint32_t s = P(sp);
 		uint32_t states[5];
-		states[0] = us(0x78D150);
-		states[1] = us(0x78D180);
-		states[2] = us(0x78D1C0);
-		states[3] = us(0x78D1F0);
-		states[4] = us(0x78D230);
+		states[0] = game_addr(game::MAG_085_THE_END_PetalGroup_State0_Setup);
+		states[1] = game_addr(game::MAG_085_THE_END_PetalGroup_State1_FadeOut);
+		states[2] = game_addr(game::MAG_085_THE_END_PetalGroup_State2_Wait);
+		states[3] = game_addr(game::MAG_085_THE_END_PetalGroup_State3_FadeIn);
+		states[4] = game_addr(game::MAG_085_THE_END_PetalGroup_State4_Nullsub);
 		callp(states[S8(a1, 0x29)], a1);
 		uint32_t p = a1 + 0x98, st = a1 + 0xD4;
 		for (int k = 0; k < 4; k++, st += 2, p += 8)
@@ -3384,7 +3384,7 @@ namespace theend
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
 		U16(a1, 0x50) = 0x1000;
-		U32(a1, 0x4C) = us(0x156C85C);
+		U32(a1, 0x4C) = game_addr(game::unk_156C85C);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -3423,7 +3423,7 @@ namespace theend
 
 	uint32_t __cdecl te_78D250(uint32_t a1)
 	{
-		const uint32_t tab[4] = { us(0x78D2B0), us(0x78D3A0), us(0x78D3D0), us(0x78D400) };
+		const uint32_t tab[4] = { game_addr(game::MAG_085_THE_END_ScreenGlow_State0_Widen), game_addr(game::MAG_085_THE_END_ScreenGlow_State1_Rise), game_addr(game::MAG_085_THE_END_ScreenGlow_State2_WaitCut6), game_addr(game::MAG_085_THE_END_ScreenGlow_State3_Nullsub) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -3444,7 +3444,7 @@ namespace theend
 
 	uint32_t __cdecl te_78D2E0(uint32_t a1)
 	{
-		const uint32_t pk = MEM<uint32_t>(us(0x1D8E054));
+		const uint32_t pk = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
 		U8(pk, 0x24) = 0;
 		U8(pk, 0xC) = 0;
 		U32(pk, 0) = 0xC000000;
@@ -3471,8 +3471,8 @@ namespace theend
 		const uint8_t l = U8(a1, 0x5A);
 		U8(pk, 0x2A) = l; U8(pk, 0x29) = l; U8(pk, 0x28) = l;
 		U8(pk, 0x12) = l; U8(pk, 0x11) = l; U8(pk, 0x10) = l;
-		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(us(0x1D8E04C)) + 0x14, pk);
-		MEM<uint32_t>(us(0x1D8E054)) = pk + 0x34;
+		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x14, pk);
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = pk + 0x34;
 		return pk + 0x34;
 	}
 
@@ -3524,8 +3524,8 @@ namespace theend
 	uint32_t __cdecl te_78D4D0(uint32_t a1, uint32_t a2)
 	{
 		(void)a1;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x14;
-		uint32_t pk = MEM<uint32_t>(us(0x1D8E054));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x14;
+		uint32_t pk = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
 		const uint16_t b = (uint16_t)a2;
 		U32(pk, 0) = 0x5000000;
 		U8(pk, 7) = 0x29;
@@ -3558,7 +3558,7 @@ namespace theend
 		U8(pk, 4) = 0;
 		x::SSIGPU_InsertPrimAltViewport(ot, pk);
 		pk += 0x18;
-		MEM<uint32_t>(us(0x1D8E054)) = pk;
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = pk;
 		return pk;
 	}
 
@@ -3583,211 +3583,211 @@ namespace theend
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x7847C0, (void *)a_73A0D0, "085 MAG_085_sub_7847C0" },
-		{ 0x7847D0, (void *)a_73A0D0, "085 MAG_085_sub_7847D0" },
-		{ 0x784860, (void *)a_73A170, "085 MAG_085_sub_784860" },
-		{ 0x784890, (void *)a_73A1A0, "085 MAG_085_sub_784890" },
-		{ 0x784A60, (void *)a_73A380, "085 MAG_085_sub_784A60" },
-		{ 0x784AC0, (void *)a_73A3E0, "085 sub_784AC0" },
-		{ 0x784C60, (void *)a_73A580, "085 MAG_085_THE_END_RequeueTIMUpload" },
-		{ 0x784C90, (void *)a_73A5B0, "085 sub_784C90" },
-		{ 0x784CC0, (void *)a_73A5E0, "085 sub_784CC0" },
-		{ 0x784CD0, (void *)a_73A5E0, "085 sub_784CD0" },
-		{ 0x784CE0, (void *)a_73A5E0, "085 sub_784CE0" },
-		{ 0x784CF0, (void *)a_73A5E0, "085 sub_784CF0" },
-		{ 0x784D00, (void *)a_73A620, "085 sub_784D00" },
-		{ 0x784D40, (void *)a_73A660, "085 sub_784D40" },
-		{ 0x784DB0, (void *)a_73A6D0, "085 nullsub_1311" },
-		{ 0x784FA0, (void *)a_73B640, "085 sub_784FA0" },
-		{ 0x785000, (void *)a_73B7E0, "085 sub_785000" },
-		{ 0x785020, (void *)a_73A930, "085 sub_785020" },
-		{ 0x785040, (void *)a_73A950, "085 sub_785040" },
-		{ 0x7850C0, (void *)a_73BB60, "085 sub_7850C0" },
-		{ 0x785130, (void *)a_73B8A0, "085 sub_785130" },
-		{ 0x785150, (void *)a_73B8C0, "085 sub_785150" },
-		{ 0x7851C0, (void *)a_73BC40, "085 sub_7851C0" },
-		{ 0x7851E0, (void *)a_733B70, "085 sub_7851E0" },
-		{ 0x785270, (void *)a_733760, "085 sub_785270" },
-		{ 0x7852B0, (void *)a_73B620, "085 sub_7852B0" },
-		{ 0x785380, (void *)a_7475A0, "085 sub_785380" },
-		{ 0x7853A0, (void *)a_73A6D0, "085 nullsub_1312" },
-		{ 0x7853B0, (void *)a_73A6D0, "085 nullsub_1313" },
-		{ 0x785560, (void *)a_73A380, "085 sub_785560" },
-		{ 0x785660, (void *)a_73C280, "085 sub_785660" },
-		{ 0x786A70, (void *)a_73D770, "085 sub_786A70" },
-		{ 0x786CC0, (void *)a_73D9C0, "085 sub_786CC0" },
-		{ 0x787B40, (void *)a_73A6D0, "085 nullsub_1314" },
-		{ 0x787E10, (void *)a_73A6D0, "085 nullsub_1315" },
-		{ 0x787E20, (void *)a_73F110, "085 sub_787E20" },
-		{ 0x787F10, (void *)a_746A10, "085 sub_787F10" },
-		{ 0x787F50, (void *)a_746AE0, "085 sub_787F50" },
-		{ 0x787FC0, (void *)a_73A6D0, "085 nullsub_1316" },
-		{ 0x787FD0, (void *)a_73F110, "085 sub_787FD0" },
-		{ 0x788120, (void *)a_733950, "085 sub_788120" },
-		{ 0x7882D0, (void *)a_73A6D0, "085 nullsub_1317" },
-		{ 0x7882E0, (void *)a_73F110, "085 sub_7882E0" },
-		{ 0x788410, (void *)a_73A6D0, "085 nullsub_1318" },
-		{ 0x788420, (void *)a_73A380, "085 sub_788420" },
-		{ 0x788A40, (void *)a_73C100, "085 sub_788A40" },
-		{ 0x788A90, (void *)a_73A380, "085 sub_788A90" },
-		{ 0x788B80, (void *)a_73A6D0, "085 nullsub_1326" },
-		{ 0x788B90, (void *)a_73A380, "085 sub_788B90" },
-		{ 0x788C20, (void *)a_73F990, "085 sub_788C20" },
-		{ 0x788EB0, (void *)a_73FC20, "085 sub_788EB0" },
-		{ 0x789120, (void *)a_73FE90, "085 sub_789120" },
-		{ 0x789240, (void *)a_73FFB0, "085 sub_789240" },
-		{ 0x7894A0, (void *)a_740210, "085 sub_7894A0" },
-		{ 0x789B60, (void *)a_740910, "085 sub_789B60" },
-		{ 0x78A1C0, (void *)a_740F70, "085 sub_78A1C0" },
-		{ 0x78A210, (void *)a_740FC0, "085 sub_78A210" },
-		{ 0x78A2A0, (void *)a_741050, "085 sub_78A2A0" },
-		{ 0x78A370, (void *)a_741120, "085 sub_78A370" },
-		{ 0x78ADB0, (void *)a_741B60, "085 sub_78ADB0" },
-		{ 0x78B4E0, (void *)a_742290, "085 MAG_085_RandRange" },
-		{ 0x78B510, (void *)a_7422C0, "085 sub_78B510" },
-		{ 0x78B550, (void *)a_742300, "085 sub_78B550" },
-		{ 0x78B5A0, (void *)a_742350, "085 sub_78B5A0" },
-		{ 0x78B5F0, (void *)a_7423A0, "085 MAG_085_RandAngleJitter" },
-		{ 0x78B700, (void *)a_7424B0, "085 sub_78B700" },
-		{ 0x78B710, (void *)a_7424C0, "085 sub_78B710" },
-		{ 0x78BEF0, (void *)a_742CA0, "085 sub_78BEF0" },
-		{ 0x78BF20, (void *)a_742CD0, "085 sub_78BF20" },
-		{ 0x78BF50, (void *)a_742D00, "085 sub_78BF50" },
-		{ 0x78C100, (void *)a_742EB0, "085 sub_78C100" },
-		{ 0x78C240, (void *)a_742FF0, "085 sub_78C240" },
-		{ 0x78C490, (void *)a_73A6D0, "085 nullsub_1327" },
-		{ 0x78C4A0, (void *)a_73A6D0, "085 nullsub_1328" },
-		{ 0x78C4B0, (void *)a_73A6D0, "085 nullsub_1319" },
-		{ 0x78CE70, (void *)a_73A6D0, "085 nullsub_1320" },
-		{ 0x78D230, (void *)a_73A6D0, "085 nullsub_1321" },
-		{ 0x78D240, (void *)a_73A6D0, "085 nullsub_1322" },
-		{ 0x78D400, (void *)a_73A6D0, "085 nullsub_1323" },
-		{ 0x78D410, (void *)a_73F110, "085 sub_78D410" },
-		{ 0x78D5F0, (void *)a_73A6D0, "085 nullsub_1324" },
-		{ 0x78D600, (void *)a_747440, "085 MAG_085_sub_78D600" },
-		{ 0x78D670, (void *)a_7474B0, "085 MAG_085_sub_78D670" },
-		{ 0x78D690, (void *)a_7474D0, "085 MAG_085_sub_78D690" },
-		{ 0x78D6B0, (void *)a_73A6D0, "085 nullsub_1325" },
-		{ 0x78D6C0, (void *)a_747500, "085 MAG_085_sub_78D6C0" },
-		{ 0x78D700, (void *)a_73A0D0, "085 MAG_085_sub_78D700" },
-		{ 0x78D710, (void *)a_747550, "085 MAG_085_sub_78D710" },
-		{ 0x78D720, (void *)a_747560, "085 MAG_085_sub_78D720" },
-		{ 0x78D750, (void *)a_747590, "085 MAG_085_sub_78D750" },
-		{ 0x78D760, (void *)a_7475A0, "085 MAG_085_sub_78D760" },
-		{ 0x78D780, (void *)a_73A6D0, "085 nullsub_1310" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_085_THE_END_Sequence_State0_Advance_7847C0, (void *)a_73A0D0, "085 MAG_085_sub_7847C0" },
+		{ game::MAG_085_THE_END_Sequence_State0_Advance_7847D0, (void *)a_73A0D0, "085 MAG_085_sub_7847D0" },
+		{ game::MAG_085_THE_END_Sequence_State3_SpawnEmitter, (void *)a_73A170, "085 MAG_085_sub_784860" },
+		{ game::MAG_085_THE_END_EmitterTask, (void *)a_73A1A0, "085 MAG_085_sub_784890" },
+		{ game::MAG_085_THE_END_FileLoadScriptTask_784A60, (void *)a_73A380, "085 MAG_085_sub_784A60" },
+		{ game::MAG_085_THE_END_LoadScript_Issue, (void *)a_73A3E0, "085 sub_784AC0" },
+		{ game::MAG_085_THE_END_RequeueTIMUpload, (void *)a_73A580, "085 MAG_085_THE_END_RequeueTIMUpload" },
+		{ game::MAG_085_THE_END_LoadCb_SummonStream, (void *)a_73A5B0, "085 sub_784C90" },
+		{ game::MAG_085_THE_END_LoadCb_ClearBusy_784CC0, (void *)a_73A5E0, "085 sub_784CC0" },
+		{ game::MAG_085_THE_END_LoadCb_ClearBusy_784CD0, (void *)a_73A5E0, "085 sub_784CD0" },
+		{ game::MAG_085_THE_END_LoadCb_ClearBusy_784CE0, (void *)a_73A5E0, "085 sub_784CE0" },
+		{ game::MAG_085_THE_END_LoadCb_ClearBusy_784CF0, (void *)a_73A5E0, "085 sub_784CF0" },
+		{ game::MAG_085_THE_END_LoadScript_RecordFile, (void *)a_73A620, "085 sub_784D00" },
+		{ game::MAG_085_THE_END_FileLoadScript_State1_LoadScriptWait, (void *)a_73A660, "085 sub_784D40" },
+		{ game::MAG_085_THE_END_Nullsub_784DB0, (void *)a_73A6D0, "085 nullsub_1311" },
+		{ game::MAG_085_THE_END_DirSyncGate, (void *)a_73B640, "085 sub_784FA0" },
+		{ game::MAG_085_THE_END_DirPhaseGE, (void *)a_73B7E0, "085 sub_785000" },
+		{ game::MAG_085_THE_END_Director_State2_ArmLoadScriptStep, (void *)a_73A930, "085 sub_785020" },
+		{ game::MAG_085_THE_END_LoadScript_TryArmStep, (void *)a_73A950, "085 sub_785040" },
+		{ game::MAG_085_THE_END_SetPauseSwitch, (void *)a_73BB60, "085 sub_7850C0" },
+		{ game::MAG_085_THE_END_Director_State5_WaitDirGate2, (void *)a_73B8A0, "085 sub_785130" },
+		{ game::MAG_085_THE_END_Director_State6_WaitDirPhase2, (void *)a_73B8C0, "085 sub_785150" },
+		{ game::MAG_085_THE_END_Director_State8_Countdown, (void *)a_73BC40, "085 sub_7851C0" },
+		{ game::MAG_085_THE_END_Director_State9_WaitDirGate3, (void *)a_733B70, "085 sub_7851E0" },
+		{ game::MAG_085_THE_END_Director_State13_WaitDirPhase4, (void *)a_733760, "085 sub_785270" },
+		{ game::MAG_085_THE_END_Director_State15_WaitDirGate5, (void *)a_73B620, "085 sub_7852B0" },
+		{ game::MAG_085_THE_END_Director_State21_Finish, (void *)a_7475A0, "085 sub_785380" },
+		{ game::MAG_085_THE_END_Director_State22_Nullsub, (void *)a_73A6D0, "085 nullsub_1312" },
+		{ game::MAG_085_THE_END_Nullsub_7853B0, (void *)a_73A6D0, "085 nullsub_1313" },
+		{ game::MAG_085_THE_END_FileLoadScriptTask_785560, (void *)a_73A380, "085 sub_785560" },
+		{ game::MAG_085_THE_END_DrawPrimModel, (void *)a_73C280, "085 sub_785660" },
+		{ game::MAG_085_THE_END_EmitG3, (void *)a_73D770, "085 sub_786A70" },
+		{ game::MAG_085_THE_END_EmitG4, (void *)a_73D9C0, "085 sub_786CC0" },
+		{ game::MAG_085_THE_END_PrimPlay_State2_Nullsub, (void *)a_73A6D0, "085 nullsub_1314" },
+		{ game::MAG_085_THE_END_OrbitPlay_State3_Nullsub, (void *)a_73A6D0, "085 nullsub_1315" },
+		{ game::MAG_085_THE_END_ModelTaskC_787E20, (void *)a_73F110, "085 sub_787E20" },
+		{ game::MAG_085_THE_END_ClearEntityRecordBit1, (void *)a_746A10, "085 sub_787F10" },
+		{ game::MAG_085_THE_END_RestoreEntityRecordBit1, (void *)a_746AE0, "085 sub_787F50" },
+		{ game::MAG_085_THE_END_StageFade_State3_Nullsub, (void *)a_73A6D0, "085 nullsub_1316" },
+		{ game::MAG_085_THE_END_ModelTaskC_787FD0, (void *)a_73F110, "085 sub_787FD0" },
+		{ game::MAG_085_THE_END_SetEntityColourTint, (void *)a_733950, "085 sub_788120" },
+		{ game::MAG_085_THE_END_Wobble_State4_Nullsub, (void *)a_73A6D0, "085 nullsub_1317" },
+		{ game::MAG_085_THE_END_ModelTaskC_7882E0, (void *)a_73F110, "085 sub_7882E0" },
+		{ game::MAG_085_THE_END_MusicFade_State4_Nullsub, (void *)a_73A6D0, "085 nullsub_1318" },
+		{ game::MAG_085_THE_END_FileLoadScriptTask_788420, (void *)a_73A380, "085 sub_788420" },
+		{ game::MAG_085_THE_END_SpawnChildTask, (void *)a_73C100, "085 sub_788A40" },
+		{ game::MAG_085_THE_END_FileLoadScriptTask_788A90, (void *)a_73A380, "085 sub_788A90" },
+		{ game::MAG_085_THE_END_ImpactPlay_State1_Nullsub, (void *)a_73A6D0, "085 nullsub_1326" },
+		{ game::MAG_085_THE_END_FileLoadScriptTask_788B90, (void *)a_73A380, "085 sub_788B90" },
+		{ game::MAG_085_THE_END_DirectorSetup, (void *)a_73F990, "085 sub_788C20" },
+		{ game::MAG_085_THE_END_Director_StartPositions, (void *)a_73FC20, "085 sub_788EB0" },
+		{ game::MAG_085_THE_END_Director_Mode3Setup, (void *)a_73FE90, "085 sub_789120" },
+		{ game::MAG_085_THE_END_Director_TargetPositions, (void *)a_73FFB0, "085 sub_789240" },
+		{ game::MAG_085_THE_END_RelocateActorData, (void *)a_740210, "085 sub_7894A0" },
+		{ game::MAG_085_THE_END_ActorMotion, (void *)a_740910, "085 sub_789B60" },
+		{ game::MAG_085_THE_END_DampValue, (void *)a_740F70, "085 sub_78A1C0" },
+		{ game::MAG_085_THE_END_DampVector, (void *)a_740FC0, "085 sub_78A210" },
+		{ game::MAG_085_THE_END_Instance_AdvanceTexFrame, (void *)a_741050, "085 sub_78A2A0" },
+		{ game::MAG_085_THE_END_InstanceBuildTransform, (void *)a_741120, "085 sub_78A370" },
+		{ game::MAG_085_THE_END_Particle_LifeCountdown, (void *)a_741B60, "085 sub_78ADB0" },
+		{ game::MAG_085_RandRange, (void *)a_742290, "085 MAG_085_RandRange" },
+		{ game::MAG_085_THE_END_RandRangeWide, (void *)a_7422C0, "085 sub_78B510" },
+		{ game::MAG_085_THE_END_RandVec3, (void *)a_742300, "085 sub_78B550" },
+		{ game::MAG_085_THE_END_JitterAngles3, (void *)a_742350, "085 sub_78B5A0" },
+		{ game::MAG_085_RandAngleJitter, (void *)a_7423A0, "085 MAG_085_RandAngleJitter" },
+		{ game::MAG_085_THE_END_GetWord8Minus1, (void *)a_7424B0, "085 sub_78B700" },
+		{ game::MAG_085_THE_END_Particle_AttachToOwner, (void *)a_7424C0, "085 sub_78B710" },
+		{ game::MAG_085_THE_END_ParticleList_Append, (void *)a_742CA0, "085 sub_78BEF0" },
+		{ game::MAG_085_THE_END_ParticleList_Unlink, (void *)a_742CD0, "085 sub_78BF20" },
+		{ game::MAG_085_THE_END_Particle_Init, (void *)a_742D00, "085 sub_78BF50" },
+		{ game::MAG_085_THE_END_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "085 sub_78C100" },
+		{ game::MAG_085_THE_END_Particle_PlaceAtPoint, (void *)a_742FF0, "085 sub_78C240" },
+		{ game::MAG_085_THE_END_Nullsub_78C490, (void *)a_73A6D0, "085 nullsub_1327" },
+		{ game::MAG_085_THE_END_Nullsub_78C4A0, (void *)a_73A6D0, "085 nullsub_1328" },
+		{ game::MAG_085_THE_END_Nullsub_78C4B0, (void *)a_73A6D0, "085 nullsub_1319" },
+		{ game::MAG_085_THE_END_Ground_State2_Nullsub, (void *)a_73A6D0, "085 nullsub_1320" },
+		{ game::MAG_085_THE_END_PetalGroup_State4_Nullsub, (void *)a_73A6D0, "085 nullsub_1321" },
+		{ game::MAG_085_THE_END_Nullsub_78D240, (void *)a_73A6D0, "085 nullsub_1322" },
+		{ game::MAG_085_THE_END_ScreenGlow_State3_Nullsub, (void *)a_73A6D0, "085 nullsub_1323" },
+		{ game::MAG_085_THE_END_ModelTaskC_78D410, (void *)a_73F110, "085 sub_78D410" },
+		{ game::MAG_085_THE_END_Letterbox_State4_Nullsub, (void *)a_73A6D0, "085 nullsub_1324" },
+		{ game::MAG_085_THE_END_Emitter_State1_ApplyActionResults, (void *)a_747440, "085 MAG_085_sub_78D600" },
+		{ game::MAG_085_THE_END_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "085 MAG_085_sub_78D670" },
+		{ game::MAG_085_THE_END_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "085 MAG_085_sub_78D690" },
+		{ game::MAG_085_THE_END_Nullsub_78D6B0, (void *)a_73A6D0, "085 nullsub_1325" },
+		{ game::MAG_085_THE_END_Sequence_State4_NextTargetLoop, (void *)a_747500, "085 MAG_085_sub_78D6C0" },
+		{ game::MAG_085_THE_END_Sequence_State0_Advance_78D700, (void *)a_73A0D0, "085 MAG_085_sub_78D700" },
+		{ game::MAG_085_THE_END_Sequence_State6_WaitQueuesEmpty, (void *)a_747550, "085 MAG_085_sub_78D710" },
+		{ game::MAG_085_THE_END_Sequence_State7_RequestBattleSync, (void *)a_747560, "085 MAG_085_sub_78D720" },
+		{ game::MAG_085_THE_END_Sequence_State8_WaitBattleSyncDone, (void *)a_747590, "085 MAG_085_sub_78D750" },
+		{ game::MAG_085_THE_END_Sequence_State9_Finish_78D760, (void *)a_7475A0, "085 MAG_085_sub_78D760" },
+		{ game::MAG_085_THE_END_Nullsub_78D780, (void *)a_73A6D0, "085 nullsub_1310" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x784630, (void *)te_784630, "085 te_784630" },
-		{ 0x7847E0, (void *)te_7847E0, "085 te_7847E0" },
-		{ 0x784820, (void *)te_784820, "085 te_784820" },
-		{ 0x784910, (void *)te_784910, "085 te_784910" },
-		{ 0x784960, (void *)te_784960, "085 te_784960" },
-		{ 0x784DC0, (void *)te_784DC0, "085 te_784DC0" },
-		{ 0x784E30, (void *)te_784E30, "085 te_784E30" },
-		{ 0x784F30, (void *)te_784F30, "085 te_784F30" },
-		{ 0x784F80, (void *)te_784F80, "085 te_784F80" },
-		{ 0x784FD0, (void *)te_784FD0, "085 te_784FD0" },
-		{ 0x785080, (void *)te_785080, "085 te_785080" },
-		{ 0x785110, (void *)te_785110, "085 te_785110" },
-		{ 0x785170, (void *)te_785170, "085 te_785170" },
-		{ 0x785200, (void *)te_785200, "085 te_785200" },
-		{ 0x785230, (void *)te_785230, "085 te_785230" },
-		{ 0x785250, (void *)te_785250, "085 te_785250" },
-		{ 0x785290, (void *)te_785290, "085 te_785290" },
-		{ 0x7852D0, (void *)te_7852D0, "085 te_7852D0" },
-		{ 0x7852F0, (void *)te_7852F0, "085 te_7852F0" },
-		{ 0x785310, (void *)te_785310, "085 te_785310" },
-		{ 0x785330, (void *)te_785330, "085 te_785330" },
-		{ 0x785350, (void *)te_785350, "085 te_785350" },
-		{ 0x7853C0, (void *)te_7853C0, "085 te_7853C0" },
-		{ 0x785510, (void *)te_785510, "085 te_785510" },
-		{ 0x7855C0, (void *)te_7855C0, "085 te_7855C0" },
-		{ 0x785620, (void *)te_785620, "085 te_785620" },
-		{ 0x785790, (void *)te_785790, "085 te_785790" },
-		{ 0x785A90, (void *)te_785A90, "085 te_785A90" },
-		{ 0x785BC0, (void *)te_785BC0, "085 te_785BC0" },
-		{ 0x785DE0, (void *)te_785DE0, "085 te_785DE0" },
-		{ 0x786070, (void *)te_786070, "085 te_786070" },
-		{ 0x7864F0, (void *)te_7864F0, "085 te_7864F0" },
-		{ 0x786FA0, (void *)te_786FA0, "085 te_786FA0" },
-		{ 0x7874A0, (void *)te_7874A0, "085 te_7874A0" },
-		{ 0x787AF0, (void *)te_787AF0, "085 te_787AF0" },
-		{ 0x787B50, (void *)te_787B50, "085 te_787B50" },
-		{ 0x787BB0, (void *)te_787BB0, "085 te_787BB0" },
-		{ 0x787BE0, (void *)te_787BE0, "085 te_787BE0" },
-		{ 0x787C90, (void *)te_787C90, "085 te_787C90" },
-		{ 0x787E90, (void *)te_787E90, "085 te_787E90" },
-		{ 0x787ED0, (void *)te_787ED0, "085 te_787ED0" },
-		{ 0x787F30, (void *)te_787F30, "085 te_787F30" },
-		{ 0x787F80, (void *)te_787F80, "085 te_787F80" },
-		{ 0x788040, (void *)te_788040, "085 te_788040" },
-		{ 0x788060, (void *)te_788060, "085 te_788060" },
-		{ 0x7880A0, (void *)te_7880A0, "085 te_7880A0" },
-		{ 0x7880E0, (void *)te_7880E0, "085 te_7880E0" },
-		{ 0x788220, (void *)te_788220, "085 te_788220" },
-		{ 0x788250, (void *)te_788250, "085 te_788250" },
-		{ 0x788290, (void *)te_788290, "085 te_788290" },
-		{ 0x788350, (void *)te_788350, "085 te_788350" },
-		{ 0x788370, (void *)te_788370, "085 te_788370" },
-		{ 0x7883B0, (void *)te_7883B0, "085 te_7883B0" },
-		{ 0x7883D0, (void *)te_7883D0, "085 te_7883D0" },
-		{ 0x788480, (void *)te_788480, "085 te_788480" },
-		{ 0x788490, (void *)te_788490, "085 te_788490" },
-		{ 0x788580, (void *)te_788580, "085 te_788580" },
-		{ 0x788700, (void *)te_788700, "085 te_788700" },
-		{ 0x788810, (void *)te_788810, "085 te_788810" },
-		{ 0x788960, (void *)te_788960, "085 te_788960" },
-		{ 0x788AF0, (void *)te_788AF0, "085 te_788AF0" },
-		{ 0x788B40, (void *)te_788B40, "085 te_788B40" },
-		{ 0x788BF0, (void *)te_788BF0, "085 te_788BF0" },
-		{ 0x788DD0, (void *)te_788DD0, "085 te_788DD0" },
-		{ 0x789050, (void *)te_789050, "085 te_789050" },
-		{ 0x789700, (void *)te_789700, "085 te_789700" },
-		{ 0x789790, (void *)te_789790, "085 te_789790" },
-		{ 0x7897F0, (void *)te_7897F0, "085 te_7897F0" },
-		{ 0x789950, (void *)te_789950, "085 te_789950" },
-		{ 0x789A10, (void *)te_789A10, "085 te_789A10" },
-		{ 0x789A90, (void *)te_789A90, "085 te_789A90" },
-		{ 0x789AD0, (void *)te_789AD0, "085 te_789AD0" },
-		{ 0x78AB00, (void *)te_78AB00, "085 te_78AB00" },
-		{ 0x78AC10, (void *)te_78AC10, "085 te_78AC10" },
-		{ 0x78AC90, (void *)te_78AC90, "085 te_78AC90" },
-		{ 0x78ACC0, (void *)te_78ACC0, "085 te_78ACC0" },
-		{ 0x78AD60, (void *)te_78AD60, "085 te_78AD60" },
-		{ 0x78ADE0, (void *)te_78ADE0, "085 te_78ADE0" },
-		{ 0x78AE60, (void *)te_78AE60, "085 te_78AE60" },
-		{ 0x78B640, (void *)te_78B640, "085 te_78B640" },
-		{ 0x78B860, (void *)te_78B860, "085 te_78B860" },
-		{ 0x78C350, (void *)te_78C350, "085 te_78C350" },
-		{ 0x78C3E0, (void *)te_78C3E0, "085 te_78C3E0" },
-		{ 0x78C470, (void *)te_78C470, "085 te_78C470" },
-		{ 0x78C4C0, (void *)te_78C4C0, "085 te_78C4C0" },
-		{ 0x78C530, (void *)te_78C530, "085 te_78C530" },
-		{ 0x78C660, (void *)te_78C660, "085 te_78C660" },
-		{ 0x78C6D0, (void *)te_78C6D0, "085 te_78C6D0" },
-		{ 0x78CE00, (void *)te_78CE00, "085 te_78CE00" },
-		{ 0x78CE30, (void *)te_78CE30, "085 te_78CE30" },
-		{ 0x78CE80, (void *)te_78CE80, "085 te_78CE80" },
-		{ 0x78CED0, (void *)te_78CED0, "085 te_78CED0" },
-		{ 0x78CFA0, (void *)te_78CFA0, "085 te_78CFA0" },
-		{ 0x78D150, (void *)te_78D150, "085 te_78D150" },
-		{ 0x78D180, (void *)te_78D180, "085 te_78D180" },
-		{ 0x78D1C0, (void *)te_78D1C0, "085 te_78D1C0" },
-		{ 0x78D1F0, (void *)te_78D1F0, "085 te_78D1F0" },
-		{ 0x78D250, (void *)te_78D250, "085 te_78D250" },
-		{ 0x78D2B0, (void *)te_78D2B0, "085 te_78D2B0" },
-		{ 0x78D2E0, (void *)te_78D2E0, "085 te_78D2E0" },
-		{ 0x78D3A0, (void *)te_78D3A0, "085 te_78D3A0" },
-		{ 0x78D3D0, (void *)te_78D3D0, "085 te_78D3D0" },
-		{ 0x78D480, (void *)te_78D480, "085 te_78D480" },
-		{ 0x78D4A0, (void *)te_78D4A0, "085 te_78D4A0" },
-		{ 0x78D4D0, (void *)te_78D4D0, "085 te_78D4D0" },
-		{ 0x78D590, (void *)te_78D590, "085 te_78D590" },
-		{ 0x78D5C0, (void *)te_78D5C0, "085 te_78D5C0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_085_THE_END_Tick, (void *)te_784630, "085 te_784630" },
+		{ game::MAG_085_THE_END_Master_State2_CarvePools, (void *)te_7847E0, "085 te_7847E0" },
+		{ game::MAG_085_THE_END_ClearPools, (void *)te_784820, "085 te_784820" },
+		{ game::MAG_085_THE_END_Master_InitDirector, (void *)te_784910, "085 te_784910" },
+		{ game::MAG_085_THE_END_LoaderSetup, (void *)te_784960, "085 te_784960" },
+		{ game::MAG_085_THE_END_DirectorDataSetup, (void *)te_784DC0, "085 te_784DC0" },
+		{ game::MAG_085_THE_END_DirectorTask, (void *)te_784E30, "085 te_784E30" },
+		{ game::MAG_085_THE_END_Director_CutBookkeeping, (void *)te_784F30, "085 te_784F30" },
+		{ game::MAG_085_THE_END_Director_State0_WaitCut1_BattleUIOff, (void *)te_784F80, "085 te_784F80" },
+		{ game::MAG_085_THE_END_Director_State1_PlaySound1, (void *)te_784FD0, "085 te_784FD0" },
+		{ game::MAG_085_THE_END_Director_State3_WaitLoadDone, (void *)te_785080, "085 te_785080" },
+		{ game::MAG_085_THE_END_Director_State4_WaitFrame4B, (void *)te_785110, "085 te_785110" },
+		{ game::MAG_085_THE_END_Director_State7_ScreenTint, (void *)te_785170, "085 te_785170" },
+		{ game::MAG_085_THE_END_Director_State10_WaitCut3_PlaySound2, (void *)te_785200, "085 te_785200" },
+		{ game::MAG_085_THE_END_Director_State11_WaitFrame3C, (void *)te_785230, "085 te_785230" },
+		{ game::MAG_085_THE_END_Director_State12_WaitDirGate4, (void *)te_785250, "085 te_785250" },
+		{ game::MAG_085_THE_END_Director_State14_WaitFrame2D_A, (void *)te_785290, "085 te_785290" },
+		{ game::MAG_085_THE_END_Director_State16_WaitDirPhase5, (void *)te_7852D0, "085 te_7852D0" },
+		{ game::MAG_085_THE_END_Director_State17_WaitFrame2D_B, (void *)te_7852F0, "085 te_7852F0" },
+		{ game::MAG_085_THE_END_Director_State18_WaitDirGate6, (void *)te_785310, "085 te_785310" },
+		{ game::MAG_085_THE_END_Director_State19_WaitDirPhase6, (void *)te_785330, "085 te_785330" },
+		{ game::MAG_085_THE_END_Director_State20_BattleUIOn, (void *)te_785350, "085 te_785350" },
+		{ game::MAG_085_THE_END_Director_NewCut, (void *)te_7853C0, "085 te_7853C0" },
+		{ game::MAG_085_THE_END_SpawnPrimPlayTask, (void *)te_785510, "085 te_785510" },
+		{ game::MAG_085_THE_END_PrimPlay_State0_DecodeLayout, (void *)te_7855C0, "085 te_7855C0" },
+		{ game::MAG_085_THE_END_DrawEntityShadows, (void *)te_785620, "085 te_785620" },
+		{ game::MAG_085_THE_END_PrimPlay_ObjectCallback, (void *)te_785790, "085 te_785790" },
+		{ game::MAG_085_THE_END_RenderPrimModel, (void *)te_785A90, "085 te_785A90" },
+		{ game::MAG_085_THE_END_PrimList_FlatTri, (void *)te_785BC0, "085 te_785BC0" },
+		{ game::MAG_085_THE_END_PrimList_FlatQuad, (void *)te_785DE0, "085 te_785DE0" },
+		{ game::MAG_085_THE_END_PrimList_TexTri, (void *)te_786070, "085 te_786070" },
+		{ game::MAG_085_THE_END_PrimList_TexQuad, (void *)te_7864F0, "085 te_7864F0" },
+		{ game::MAG_085_THE_END_PrimList_GouraudTexTriScroll, (void *)te_786FA0, "085 te_786FA0" },
+		{ game::MAG_085_THE_END_PrimList_GT4, (void *)te_7874A0, "085 te_7874A0" },
+		{ game::MAG_085_THE_END_PrimPlay_State1_Play, (void *)te_787AF0, "085 te_787AF0" },
+		{ game::MAG_085_THE_END_OrbitPlayTask, (void *)te_787B50, "085 te_787B50" },
+		{ game::MAG_085_THE_END_OrbitPlay_State0_Wait, (void *)te_787BB0, "085 te_787BB0" },
+		{ game::MAG_085_THE_END_OrbitPlay_State1_Setup, (void *)te_787BE0, "085 te_787BE0" },
+		{ game::MAG_085_THE_END_OrbitPlay_State2_Orbit, (void *)te_787C90, "085 te_787C90" },
+		{ game::MAG_085_THE_END_StageFade_State0_Init, (void *)te_787E90, "085 te_787E90" },
+		{ game::MAG_085_THE_END_StageFade_State1_FadeIn, (void *)te_787ED0, "085 te_787ED0" },
+		{ game::MAG_085_THE_END_StageFade_State2_WaitCut6, (void *)te_787F30, "085 te_787F30" },
+		{ game::MAG_085_THE_END_StageFadeOut_Step, (void *)te_787F80, "085 te_787F80" },
+		{ game::MAG_085_THE_END_Wobble_State0_Init, (void *)te_788040, "085 te_788040" },
+		{ game::MAG_085_THE_END_Wobble_State1_Rise, (void *)te_788060, "085 te_788060" },
+		{ game::MAG_085_THE_END_HidePartyModels, (void *)te_7880A0, "085 te_7880A0" },
+		{ game::MAG_085_THE_END_ApplyEntityFadeLevel, (void *)te_7880E0, "085 te_7880E0" },
+		{ game::MAG_085_THE_END_Wobble_State2_WaitCut6, (void *)te_788220, "085 te_788220" },
+		{ game::MAG_085_THE_END_ShowPartyModels, (void *)te_788250, "085 te_788250" },
+		{ game::MAG_085_THE_END_Wobble_State3_Fall, (void *)te_788290, "085 te_788290" },
+		{ game::MAG_085_THE_END_MusicFade_State0_Init, (void *)te_788350, "085 te_788350" },
+		{ game::MAG_085_THE_END_MusicFade_State1_FadeOut, (void *)te_788370, "085 te_788370" },
+		{ game::MAG_085_THE_END_MusicFade_State2_WaitDirPhase6, (void *)te_7883B0, "085 te_7883B0" },
+		{ game::MAG_085_THE_END_MusicFade_State3_FadeIn, (void *)te_7883D0, "085 te_7883D0" },
+		{ game::MAG_085_THE_END_Heartbreak_Ring_Wait, (void *)te_788480, "085 te_788480" },
+		{ game::MAG_085_THE_END_MeteorEmitter_SpawnMeteors, (void *)te_788490, "085 te_788490" },
+		{ game::MAG_085_THE_END_MeteorTask, (void *)te_788580, "085 te_788580" },
+		{ game::MAG_085_THE_END_DrawModel, (void *)te_788700, "085 te_788700" },
+		{ game::MAG_085_THE_END_Meteor_State0_Setup, (void *)te_788810, "085 te_788810" },
+		{ game::MAG_085_THE_END_Meteor_State1_Fall, (void *)te_788960, "085 te_788960" },
+		{ game::MAG_085_THE_END_ImpactPlay_State0_Play, (void *)te_788AF0, "085 te_788AF0" },
+		{ game::MAG_085_THE_END_Tonberry_Particle_State2_WaitCue3OrEnd, (void *)te_788B40, "085 te_788B40" },
+		{ game::MAG_085_THE_END_ActorSystem_State0_StartActorSystemAtFrame, (void *)te_788BF0, "085 te_788BF0" },
+		{ game::MAG_085_THE_END_ResetTrailHistory, (void *)te_788DD0, "085 te_788DD0" },
+		{ game::MAG_085_THE_END_FillTrailRows, (void *)te_789050, "085 te_789050" },
+		{ game::MAG_085_THE_END_ActSys_Step, (void *)te_789700, "085 te_789700" },
+		{ game::MAG_085_THE_END_ActSys_DrawPass, (void *)te_789790, "085 te_789790" },
+		{ game::MAG_085_THE_END_ActSys_DrawPrimActor, (void *)te_7897F0, "085 te_7897F0" },
+		{ game::MAG_085_THE_END_ActSys_DrawSpritePass, (void *)te_789950, "085 te_789950" },
+		{ game::MAG_085_THE_END_ActSys_DrawActorSprite, (void *)te_789A10, "085 te_789A10" },
+		{ game::MAG_085_THE_END_ActSys_UpdatePass, (void *)te_789A90, "085 te_789A90" },
+		{ game::MAG_085_THE_END_ActorStep, (void *)te_789AD0, "085 te_789AD0" },
+		{ game::MAG_085_THE_END_MorphVertexBlock, (void *)te_78AB00, "085 te_78AB00" },
+		{ game::MAG_085_THE_END_Instance_EndOfLifeTest, (void *)te_78AC10, "085 te_78AC10" },
+		{ game::MAG_085_THE_END_Instance_SpawnFollowUp, (void *)te_78AC90, "085 te_78AC90" },
+		{ game::MAG_085_THE_END_Actor_AllocSlot, (void *)te_78ACC0, "085 te_78ACC0" },
+		{ game::MAG_085_THE_END_ActSys_UpdateEmitter, (void *)te_78AD60, "085 te_78AD60" },
+		{ game::MAG_085_THE_END_ActSys_EmitterSpawnStep, (void *)te_78ADE0, "085 te_78ADE0" },
+		{ game::MAG_085_THE_END_ActSys_SpawnParticles, (void *)te_78AE60, "085 te_78AE60" },
+		{ game::MAG_085_THE_END_ActSys_AllocParticleSlot, (void *)te_78B640, "085 te_78B640" },
+		{ game::MAG_085_THE_END_Actor_InterpolatePosition, (void *)te_78B860, "085 te_78B860" },
+		{ game::MAG_085_THE_END_SpawnSubEffects, (void *)te_78C350, "085 te_78C350" },
+		{ game::MAG_085_THE_END_Director_SpawnGroupEffects, (void *)te_78C3E0, "085 te_78C3E0" },
+		{ game::MAG_085_THE_END_Tonberry_PrimModelActor_State3_CounterFinish, (void *)te_78C470, "085 te_78C470" },
+		{ game::MAG_085_THE_END_GroundTask, (void *)te_78C4C0, "085 te_78C4C0" },
+		{ game::MAG_085_THE_END_Ground_Draw, (void *)te_78C530, "085 te_78C530" },
+		{ game::MAG_085_THE_END_Ground_Render, (void *)te_78C660, "085 te_78C660" },
+		{ game::MAG_085_THE_END_Ground_DrawQuadsGT4, (void *)te_78C6D0, "085 te_78C6D0" },
+		{ game::MAG_085_THE_END_Ground_State0_Setup, (void *)te_78CE00, "085 te_78CE00" },
+		{ game::MAG_085_THE_END_Ground_State1_FadeWait, (void *)te_78CE30, "085 te_78CE30" },
+		{ game::MAG_085_THE_END_PetalEmitterTask, (void *)te_78CE80, "085 te_78CE80" },
+		{ game::MAG_085_THE_END_PetalEmitter_SpawnGroup, (void *)te_78CED0, "085 te_78CED0" },
+		{ game::MAG_085_THE_END_PetalGroupTask, (void *)te_78CFA0, "085 te_78CFA0" },
+		{ game::MAG_085_THE_END_PetalGroup_State0_Setup, (void *)te_78D150, "085 te_78D150" },
+		{ game::MAG_085_THE_END_PetalGroup_State1_FadeOut, (void *)te_78D180, "085 te_78D180" },
+		{ game::MAG_085_THE_END_PetalGroup_State2_Wait, (void *)te_78D1C0, "085 te_78D1C0" },
+		{ game::MAG_085_THE_END_PetalGroup_State3_FadeIn, (void *)te_78D1F0, "085 te_78D1F0" },
+		{ game::MAG_085_THE_END_ScreenGlowTask, (void *)te_78D250, "085 te_78D250" },
+		{ game::MAG_085_THE_END_ScreenGlow_State0_Widen, (void *)te_78D2B0, "085 te_78D2B0" },
+		{ game::MAG_085_THE_END_ScreenGlow_DrawQuad, (void *)te_78D2E0, "085 te_78D2E0" },
+		{ game::MAG_085_THE_END_ScreenGlow_State1_Rise, (void *)te_78D3A0, "085 te_78D3A0" },
+		{ game::MAG_085_THE_END_ScreenGlow_State2_WaitCut6, (void *)te_78D3D0, "085 te_78D3D0" },
+		{ game::MAG_085_THE_END_Letterbox_State0_Init, (void *)te_78D480, "085 te_78D480" },
+		{ game::MAG_085_THE_END_Letterbox_State1_Wait, (void *)te_78D4A0, "085 te_78D4A0" },
+		{ game::MAG_085_THE_END_Letterbox_DrawBars, (void *)te_78D4D0, "085 te_78D4D0" },
+		{ game::MAG_085_THE_END_Letterbox_State2_Hold, (void *)te_78D590, "085 te_78D590" },
+		{ game::MAG_085_THE_END_Letterbox_State3_Shrink, (void *)te_78D5C0, "085 te_78D5C0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

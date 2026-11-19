@@ -28,33 +28,33 @@ namespace fart
 	{
 		c.name = "234 Fart";
 		c.effect_id = 234;
-		c.vm_table = us(0x1867DC0);
-		c.bone_table = us(0x1867A30);
-		c.prim_table = us(0x1867A78);
-		c.prim_size = us(0x1867B68);
-		c.spr_table = us(0x1867B7C);
-		c.ptype_table = us(0x1867BA8);
-		c.pop_table = us(0x1867BBC);
-		c.draw_table = us(0x1867C1C);
-		c.attr_16A = us(0x1867D86);
-		c.attr_184 = us(0x1867DA0);
-		c.attr_186 = us(0x1867DA2);
-		c.attr_194 = us(0x1867DB0);
-		c.attr_19C = us(0x1867DB8);
-		c.desc = us(0x1867954);
-		c.ptr_block = us(0x1867A08);
-		c.queue = us(0x27969E8);
-		c.file00 = us(0x27969FC);
-		c.file01 = us(0x27969F8);
-		c.tick = us(0xA48F60);
-		c.load_cb = us(0xA4D9C0);
+		c.vm_table = game_addr(game::GF_234Fart_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_234Fart_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_A4B314);
+		c.prim_size = game_addr(game::unk_1867B68);
+		c.spr_table = game_addr(game::unk_1867B7C);
+		c.ptype_table = game_addr(game::unk_1867BA8);
+		c.pop_table = game_addr(game::funcs_A4BFC7);
+		c.draw_table = game_addr(game::GF_234Fart_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_1867D86);
+		c.attr_184 = game_addr(game::unk_1867DA0);
+		c.attr_186 = game_addr(game::unk_1867DA2);
+		c.attr_194 = game_addr(game::unk_1867DB0);
+		c.attr_19C = game_addr(game::unk_1867DB8);
+		c.desc = game_addr(game::GF_234Fart_ResourceDesc);
+		c.ptr_block = game_addr(game::unk_1867A08);
+		c.queue = game_addr(game::unk_27969E8);
+		c.file00 = game_addr(game::unk_27969FC);
+		c.file01 = game_addr(game::unk_27969F8);
+		c.tick = game_addr(game::GF_234Fart_SequenceTick);
+		c.load_cb = game_addr(game::GF_234Fart_LoadCallback);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static inline void xl_RotTransIR_56C850(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
-	static inline int32_t xl_Project_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
-	static inline uint32_t xl_RenderProjectedObject_5106E0(void *desc, uint32_t ot, int32_t mode, uint32_t cursor) { return x::f<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x5106E0))(desc, ot, mode, cursor); }
+	static inline void xl_RotTransIR_56C850(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(game_addr(game::GTE_RotTrans))(v, out, flag); }
+	static inline int32_t xl_Project_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::TransformWorldCoordinateToProjectedSpace))(v, sxy, p, flag); }
+	static inline uint32_t xl_RenderProjectedObject_5106E0(void *desc, uint32_t ot, int32_t mode, uint32_t cursor) { return x::f<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::BattleModel_RenderProjectedObject))(desc, ot, mode, cursor); }
 	static inline uint32_t xl_Render_5088A0(void *ent, uint32_t ot, int32_t mode, uint32_t cursor) { return x::Render_5088A0(ent, ot, mode, cursor); }
 
 	static void SyncEntityModelCopy(uint8_t *blk)
@@ -115,7 +115,7 @@ namespace fart
 			}
 		}
 		x::SetRotMatrix(BBMAT());
-		x::SetTransVector((const void *)us(0x27971E4));
+		x::SetTransVector((const void *)game_addr(game::unk_27971E4));
 		if (n > 0)
 		{
 			for (int32_t k = n; k > 0; k--)
@@ -236,7 +236,7 @@ namespace fart
 		fart::describe(fart::g_c);
 		init_clone(fart::g_c, nullptr, 0);
 		fart::g_c.draw[30] = fart::dh_30_WobbleEntity;
-		register_port(0xA48F60, (void *)fart::SequenceTask, "MAG234 Fart SequenceTick", 234);
+		register_port(game::GF_234Fart_SequenceTick, (void *)fart::SequenceTask, "MAG234 Fart SequenceTick", 234);
 	}
 }
 

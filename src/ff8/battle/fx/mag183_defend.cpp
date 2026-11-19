@@ -23,23 +23,23 @@ namespace defend183
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x22F4210)); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x22F4214)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x230421C)); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x22F33F0); }
-	static const uint32_t ARENA0 = 0x22F421C, ARENA1 = 0x22FC21C, ARENA_SIZE = 0x8000;
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_183_DEFEND_CastContext)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(game_addr(game::MAG_183_DEFEND_CasterSlot)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_183_DEFEND_PacketCursor)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::MAG_183_DEFEND_EffectQueue); }
+	static constexpr game::Id ARENA0 = game::MAG_183_DEFEND_PacketArena0, ARENA1 = game::MAG_183_DEFEND_PacketArena1; static const uint32_t ARENA_SIZE = 0x8000;
 
-	static const uint32_t ORIG_RootTask = 0x5C9F80;
-	static const uint32_t ORIG_Director = 0x5C9AE0;
-	static const uint32_t ORIG_ShieldA = 0x5C9C40;
-	static const uint32_t ORIG_ShieldB = 0x5C9DD0;
-	static const uint32_t MODEL_ShieldA = 0xD348C4, MODEL_ShieldB = 0xD34CE4;
-	static const uint32_t SHIELD_COLOURS = 0xD3933C;
-	static const void *SOUND_Defend() { return (const void *)us(0xD39304); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_183_DEFEND_RootTask;
+	static constexpr game::Id ORIG_Director = game::MAG_183_DEFEND_Director;
+	static constexpr game::Id ORIG_ShieldA = game::MAG_183_DEFEND_ShieldA;
+	static constexpr game::Id ORIG_ShieldB = game::MAG_183_DEFEND_ShieldB;
+	static constexpr game::Id MODEL_ShieldA = game::MAG_183_DEFEND_ShieldAModel, MODEL_ShieldB = game::MAG_183_DEFEND_ShieldBModel;
+	static constexpr game::Id SHIELD_COLOURS = game::MAG_183_DEFEND_ShieldBColours;
+	static const void *SOUND_Defend() { return (const void *)game_addr(game::MAG_183_DEFEND_Sound); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void MatrixMultiplySVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x650720))(h, ot, mode, cursor); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void MatrixMultiplySVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline uint32_t ScrollRender(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_066_RenderScrollPrimModel))(h, ot, mode, cursor); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -144,7 +144,7 @@ namespace defend183
 	static ShieldDraw ShieldAState(int16_t counter, int16_t scale)
 	{
 		ShieldDraw d;
-		d.model = us(MODEL_ShieldA);
+		d.model = game_addr(MODEL_ShieldA);
 		d.front = -600;
 		d.scale = scale;
 		d.scroll = mul32(counter, -10);
@@ -158,13 +158,13 @@ namespace defend183
 	static ShieldDraw ShieldBState(int16_t counter, int16_t scale)
 	{
 		ShieldDraw d;
-		d.model = us(MODEL_ShieldB);
+		d.model = game_addr(MODEL_ShieldB);
 		d.front = 200;
 		d.scale = scale;
 		d.scroll = mul32(counter, -6);
 		d.fade_on = counter < 4 || counter >= 0x10;
 		d.fade = counter < 4 ? shl32(4 - counter, 10) : counter >= 0x10 ? shl32(counter - 0x10, 10) : 0;
-		d.colour = var<uint32_t>(us(SHIELD_COLOURS) + (uint32_t)((int32_t)counter % 10) * 4);
+		d.colour = var<uint32_t>(game_addr(SHIELD_COLOURS) + (uint32_t)((int32_t)counter % 10) * 4);
 		d.b = true;
 		return d;
 	}
@@ -201,7 +201,7 @@ namespace defend183
 		if (t->counter == 0) GetEffectSpawnPosition(Caster(), 0xF1, 0, t->pos);
 		if (t->counter == 1)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_ShieldA));
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_ShieldA));
 			*(uint32_t *)&s->pos[0] = *(const uint32_t *)&t->pos[0];
 			*(uint32_t *)&s->pos[2] = *(const uint32_t *)&t->pos[2];
 			s->counter = 0;
@@ -211,7 +211,7 @@ namespace defend183
 		}
 		if (t->counter == 6)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_ShieldB));
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_ShieldB));
 			*(uint32_t *)&s->pos[0] = *(const uint32_t *)&t->pos[0];
 			*(uint32_t *)&s->pos[2] = *(const uint32_t *)&t->pos[2];
 			s->counter = 0;
@@ -232,8 +232,8 @@ namespace defend183
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		PacketCursor() = us(ARENA1);
-		if (!(r->counter & 1)) PacketCursor() = us(ARENA0);
+		PacketCursor() = game_addr(ARENA1);
+		if (!(r->counter & 1)) PacketCursor() = game_addr(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;

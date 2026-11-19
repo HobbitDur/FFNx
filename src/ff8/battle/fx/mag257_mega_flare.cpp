@@ -37,31 +37,31 @@ namespace megaflare257
 	{
 		c.name = "257 Mega Flare (Bahamut)";
 		c.effect_id = 257;
-		c.vm_table = us(0x185A564);
-		c.bone_table = us(0x185A1D4);
-		c.prim_table = us(0x185A21C);
-		c.prim_size = us(0x185A30C);
-		c.spr_table = us(0x185A320);
-		c.ptype_table = us(0x185A34C);
-		c.pop_table = us(0x185A360);
-		c.draw_table = us(0x185A3C0);
-		c.attr_16A = us(0x185A52A);
-		c.attr_184 = us(0x185A544);
-		c.attr_186 = us(0x185A546);
-		c.attr_194 = us(0x185A554);
-		c.attr_19C = us(0x185A55C);
-		c.desc = us(0x185A064);
-		c.ptr_block = us(0x185A1AC);
-		c.queue = us(0x2796510);
-		c.file00 = us(0x279650C);
-		c.file01 = us(0x2796508);
-		c.tick = us(0x96F900);
-		c.load_cb = us(0x974E80);
+		c.vm_table = game_addr(game::funcs_978EBC);
+		c.bone_table = game_addr(game::funcs_975A97);
+		c.prim_table = game_addr(game::funcs_971664);
+		c.prim_size = game_addr(game::unk_185A30C);
+		c.spr_table = game_addr(game::unk_185A320);
+		c.ptype_table = game_addr(game::unk_185A34C);
+		c.pop_table = game_addr(game::funcs_973487);
+		c.draw_table = game_addr(game::unk_185A3C0);
+		c.attr_16A = game_addr(game::unk_185A52A);
+		c.attr_184 = game_addr(game::unk_185A544);
+		c.attr_186 = game_addr(game::unk_185A546);
+		c.attr_194 = game_addr(game::unk_185A554);
+		c.attr_19C = game_addr(game::unk_185A55C);
+		c.desc = game_addr(game::unk_185A064);
+		c.ptr_block = game_addr(game::unk_185A1AC);
+		c.queue = game_addr(game::unk_2796510);
+		c.file00 = game_addr(game::unk_279650C);
+		c.file01 = game_addr(game::unk_2796508);
+		c.tick = game_addr(game::MAG_257_sub_96F900);
+		c.load_cb = game_addr(game::MAG_257_sub_974E80);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(us(0x1CA8A10) + 4 * reg); }
+	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(game_addr(game::GTE_VXY0) + 4 * reg); }
 
 	static inline int32_t DepthKey(uint32_t off)
 	{
@@ -157,7 +157,7 @@ namespace megaflare257
 		megaflare257::describe(megaflare257::g_c);
 		init_clone(megaflare257::g_c, nullptr, 0);
 		megaflare257::apply_slots(megaflare257::g_c);
-		register_port(0x96F900, (void *)megaflare257::SequenceTask, "MAG257 Mega Flare (Bahamut) SequenceTick", 257);
+		register_port(game::MAG_257_sub_96F900, (void *)megaflare257::SequenceTask, "MAG257 Mega Flare (Bahamut) SequenceTick", 257);
 	}
 }
 

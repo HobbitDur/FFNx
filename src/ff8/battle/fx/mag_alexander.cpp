@@ -24,13 +24,13 @@ namespace gfc
 {
 namespace part_alexander
 {
-	static const uint32_t BATTLE_DRAWENV_1D969C8 = 0x1D969C8;
-	static inline uint8_t DISP_PARITY_1D96A80() { return MEM<uint8_t>(us(0x1D96A80)); }
+	static constexpr game::Id BATTLE_DRAWENV_1D969C8 = game::g_Battle_DrawEnv;
+	static inline uint8_t DISP_PARITY_1D96A80() { return MEM<uint8_t>(game_addr(game::g_Battle_DisplayParity)); }
 
-	static inline void xl_SetDrawEnv_45C0F0(void *prim, const void *env) { x::f<void (__cdecl *)(void *, const void *)>(us(0x45C0F0))(prim, env); }
-	static inline void xl_InsertPrimAutoDepth_45C7A0(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
-	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(us(0xB65150))(); }
-	static inline void xl_ScaleColour_B66840() { blob::f<int32_t (__cdecl *)()>(us(0xB66840))(); }
+	static inline void xl_SetDrawEnv_45C0F0(void *prim, const void *env) { x::f<void (__cdecl *)(void *, const void *)>(game_addr(game::SSIGPU_SetDrawEnv))(prim, env); }
+	static inline void xl_InsertPrimAutoDepth_45C7A0(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(ot, prim); }
+	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(game_addr(game::xorEAX_6))(); }
+	static inline void xl_ScaleColour_B66840() { blob::f<int32_t (__cdecl *)()>(game_addr(game::GfBlob_ScaleColourWsF0))(); }
 
 	static inline int32_t div256(int32_t v) { return add32(v, (v >> 31) & 0xFF) >> 8; }
 	static inline int32_t neg32(int32_t v) { return (int32_t)(0u - (uint32_t)v); }
@@ -47,7 +47,7 @@ namespace part_alexander
 		S32(WS(), 0x64) = S16(prm, 2);
 		uint32_t idx = ((uint32_t)DISP_PARITY_1D96A80() - 1u) & 1u;
 		uint8_t *env = PTR(CTX(), 0x74);
-		const uint8_t *src = (const uint8_t *)(us(BATTLE_DRAWENV_1D969C8) + idx * 23u * 4u);
+		const uint8_t *src = (const uint8_t *)(game_addr(BATTLE_DRAWENV_1D969C8) + idx * 23u * 4u);
 		U32(env, 0) = U32(src, 0);
 		U32(env, 4) = U32(src, 4);
 		U32(env, 8) = U32(src, 8);
@@ -524,26 +524,26 @@ namespace alexander
 	{
 		c.name = "204 Alexander";
 		c.effect_id = 204;
-		c.vm_table = us(0x18729C0);
-		c.bone_table = us(0x1872630);
-		c.prim_table = us(0x1872678);
-		c.prim_size = us(0x1872768);
-		c.spr_table = us(0x187277C);
-		c.ptype_table = us(0x18727A8);
-		c.pop_table = us(0x18727BC);
-		c.draw_table = us(0x187281C);
-		c.attr_16A = us(0x1872986);
-		c.attr_184 = us(0x18729A0);
-		c.attr_186 = us(0x18729A2);
-		c.attr_194 = us(0x18729B0);
-		c.attr_19C = us(0x18729B8);
-		c.desc = us(0x1872384);
-		c.ptr_block = us(0x1872608);
-		c.queue = us(0x2796D70);
-		c.file00 = us(0x2796DA4);
-		c.file01 = us(0x2796DA0);
-		c.tick = us(0xB00310);
-		c.load_cb = us(0xB07C20);
+		c.vm_table = game_addr(game::GF_204Alexander_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_204Alexander_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_B04474);
+		c.prim_size = game_addr(game::unk_1872768);
+		c.spr_table = game_addr(game::unk_187277C);
+		c.ptype_table = game_addr(game::unk_18727A8);
+		c.pop_table = game_addr(game::funcs_B06227);
+		c.draw_table = game_addr(game::GF_204Alexander_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_1872986);
+		c.attr_184 = game_addr(game::unk_18729A0);
+		c.attr_186 = game_addr(game::unk_18729A2);
+		c.attr_194 = game_addr(game::unk_18729B0);
+		c.attr_19C = game_addr(game::unk_18729B8);
+		c.desc = game_addr(game::unk_1872384);
+		c.ptr_block = game_addr(game::unk_1872608);
+		c.queue = game_addr(game::unk_2796D70);
+		c.file00 = game_addr(game::unk_2796DA4);
+		c.file01 = game_addr(game::unk_2796DA0);
+		c.tick = game_addr(game::GF_204Alexander_SequenceTick);
+		c.load_cb = game_addr(game::MAG_204_sub_B07C20);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -563,7 +563,7 @@ namespace alexander
 		apply_alexander(alexander::g_c);
 		apply_shared_ribbon(alexander::g_c);
 		apply_shared_misc(alexander::g_c);
-		register_port(0xB00310, (void *)alexander::SequenceTask, "GFC204 Alexander SequenceTick", 204);
+		register_port(game::GF_204Alexander_SequenceTick, (void *)alexander::SequenceTask, "GFC204 Alexander SequenceTick", 204);
 	}
 }
 

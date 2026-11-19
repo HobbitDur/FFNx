@@ -25,120 +25,120 @@ namespace g218
 
 	namespace x
 	{
-		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(us(0x55CBD2))(); }
-		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x56CE30))(angles, out); }
-		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(us(0x56BEF0))(m, v); }
-		inline int32_t NormalizeVectorToFixedPoint(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
-		inline void VectorNormalS16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
-		inline uint32_t MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { return fn<uint32_t (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-		inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-		inline void TransformVectorBy3x3Matrix(const Mat4x3 *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int32_t *, int32_t *)>(us(0x56C600))(m, in, out); }
-		inline int32_t GetRotationBetweenVectors(uint32_t ref, const int32_t *v, int32_t *axis) { return fn<int32_t (__cdecl *)(uint32_t, const int32_t *, int32_t *)>(us(0x571480))(ref, v, axis); }
-		inline void BuildAxisAngleRotationMatrix(int32_t angle, Mat4x3 *out, const int32_t *axis) { fn<void (__cdecl *)(int32_t, Mat4x3 *, const int32_t *)>(us(0x5714F0))(angle, out, axis); }
-		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
-		inline void GetDefaultEffectPosition(void *entity, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x571400))(entity, out); }
-		inline void GteReadOffset(int32_t *ofx, int32_t *ofy) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(ofx, ofy); }
-		inline void GteSetOffset(int32_t ofx, int32_t ofy) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(ofx, ofy); }
-		inline int32_t PreReadAnimation(void *header, void *cmd, int32_t id) { return fn<int32_t (__cdecl *)(void *, void *, int32_t)>(us(0x509440))(header, cmd, id); }
-		inline int32_t ReadAnimation(void *header, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(us(0x508F90))(header, cmd); }
-		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(geom, hdr, ot, shift, cursor); }
-		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(us(0x501330))(se, a, b); }
-		inline void BdPlaySummonStream(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x5018C0))(a, b, c); }
-		inline void BdTransSummonStream(uint32_t src, uint32_t state) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x501860))(src, state); }
-		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(us(0x4A2900))(slot); }
-		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
-		inline void CameraScriptStart(uint32_t script, const void *frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, const void *, void *, TaskQueue *, int32_t)>(us(0x63E960))(script, frame, entity, q, n); }
-		inline void ApplyActionResultToTarget(uint32_t rec) { fn<void (__cdecl *)(uint32_t)>(us(0x506690))(rec); }
-		inline void QueueChainTransformation(void *entity, int32_t chain) { fn<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(entity, chain); }
-		inline void PrintMonsterText(uint32_t slot, int32_t line, int32_t len) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(us(0x4876F0))(slot, line, len); }
-		inline void WaitAnimSeq(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x508630))(buffer, flag); }
-		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(us(0x508500))(); }
-		inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(us(0x508480))(id, dst); }
-		inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(us(0x505E30))(tim); }
-		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(us(0x571B70))(); }
-		inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
-		inline void SetDrawEnv(uint32_t packet, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C0F0))(packet, env); }
-		inline void SetDrawArea(uint32_t packet, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(us(0x45C940))(packet, rect); }
-		inline void SetDrawOffset(uint32_t packet, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C9B0))(packet, xy); }
-		inline void SetDrawStp(uint32_t packet, int32_t on) { fn<void (__cdecl *)(uint32_t, int32_t)>(us(0x45C9F0))(packet, on); }
-		inline uint32_t RenderScrollPrimModel(void *header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x650720))(header, ot, mode, cursor); }
-		inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
-		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
-		inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
-		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
-		inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
-		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(us(0x64DE40))(); }
-		inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
-		inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-		inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-		inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
-		inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
-		inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
-		inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-		inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
-		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-		inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
-		inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-		inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
-		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
-		inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
-		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
+		inline int32_t CrtRand() { return fn<int32_t (__cdecl *)()>(game_addr(game::_rand))(); }
+		inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+		inline void ComposeZYXRotationMatrix(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::ComposeZYXRotationMatrix))(angles, out); }
+		inline void Scale3DMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(game_addr(game::scale3DMatrix))(m, v); }
+		inline int32_t NormalizeVectorToFixedPoint(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(game_addr(game::NormalizeVectorToFixedPoint))(in, out); }
+		inline void VectorNormalS16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(game_addr(game::VectorNormalS16))(in, out); }
+		inline uint32_t MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { return fn<uint32_t (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+		inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+		inline void TransformVectorBy3x3Matrix(const Mat4x3 *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int32_t *, int32_t *)>(game_addr(game::TransformVectorBy3x3Matrix))(m, in, out); }
+		inline int32_t GetRotationBetweenVectors(uint32_t ref, const int32_t *v, int32_t *axis) { return fn<int32_t (__cdecl *)(uint32_t, const int32_t *, int32_t *)>(game_addr(game::GetRotationBetweenVectors_AxisAngle))(ref, v, axis); }
+		inline void BuildAxisAngleRotationMatrix(int32_t angle, Mat4x3 *out, const int32_t *axis) { fn<void (__cdecl *)(int32_t, Mat4x3 *, const int32_t *)>(game_addr(game::BuildAxisAngleRotationMatrix))(angle, out, axis); }
+		inline int32_t GetEffectSpawnPosition(void *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(void *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, frac, out); }
+		inline void GetDefaultEffectPosition(void *entity, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(game_addr(game::GetDefaultEffectPosition))(entity, out); }
+		inline void GteReadOffset(int32_t *ofx, int32_t *ofy) { fn<void (__cdecl *)(int32_t *, int32_t *)>(game_addr(game::GTE_ReadScreenOffset))(ofx, ofy); }
+		inline void GteSetOffset(int32_t ofx, int32_t ofy) { fn<void (__cdecl *)(int32_t, int32_t)>(game_addr(game::Call_Bs_ParseCamera))(ofx, ofy); }
+		inline int32_t PreReadAnimation(void *header, void *cmd, int32_t id) { return fn<int32_t (__cdecl *)(void *, void *, int32_t)>(game_addr(game::pre_Battle_ReadAnimation))(header, cmd, id); }
+		inline int32_t ReadAnimation(void *header, void *cmd) { return fn<int32_t (__cdecl *)(void *, void *)>(game_addr(game::Battle_ReadAnimation))(header, cmd); }
+		inline uint32_t RenderGeometry(void *geom, void *hdr, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(game_addr(game::RenderGeometry))(geom, hdr, ot, shift, cursor); }
+		inline void BdPlaySE(uint32_t se, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(game_addr(game::BdPlaySE))(se, a, b); }
+		inline void BdPlaySummonStream(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::BdPlaySummonStream))(a, b, c); }
+		inline void BdTransSummonStream(uint32_t src, uint32_t state) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::BdTransSummonStream))(src, state); }
+		inline int32_t VoiceSlotBusy(uint32_t slot) { return fn<int32_t (__cdecl *)(uint32_t)>(game_addr(game::BdSound_IsVoiceSlotActive))(slot); }
+		inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(slot); }
+		inline void CameraScriptStart(uint32_t script, const void *frame, void *entity, TaskQueue *q, int32_t n) { fn<void (__cdecl *)(uint32_t, const void *, void *, TaskQueue *, int32_t)>(game_addr(game::MAG066_CamScript_Start))(script, frame, entity, q, n); }
+		inline void ApplyActionResultToTarget(uint32_t rec) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::ApplyActionResultToTarget))(rec); }
+		inline void QueueChainTransformation(void *entity, int32_t chain) { fn<void (__cdecl *)(void *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, chain); }
+		inline void PrintMonsterText(uint32_t slot, int32_t line, int32_t len) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(game_addr(game::printMonsterRelatedText))(slot, line, len); }
+		inline void WaitAnimSeq(uint32_t buffer, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::Battle_RestoreDefaultEffectTexture))(buffer, flag); }
+		inline int32_t LoadState() { return fn<int32_t (__cdecl *)()>(game_addr(game::BattleFile_GetLoadingState))(); }
+		inline void CharacterLoad(int32_t id, uint32_t dst) { fn<void (__cdecl *)(int32_t, uint32_t)>(game_addr(game::BattleFile_CharacterLoad))(id, dst); }
+		inline void QueueTIMUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::Battle_QueueTIMUpload_GetEOF))(tim); }
+		inline uint32_t SummonData() { return fn<uint32_t (__cdecl *)()>(game_addr(game::sub_571B70))(); }
+		inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAltViewport))(bucket, packet); }
+		inline void SetDrawEnv(uint32_t packet, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_SetDrawEnv))(packet, env); }
+		inline void SetDrawArea(uint32_t packet, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(game_addr(game::GPU_SetDrawAreaPrim))(packet, rect); }
+		inline void SetDrawOffset(uint32_t packet, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_SetDrawOffsetPrim))(packet, xy); }
+		inline void SetDrawStp(uint32_t packet, int32_t on) { fn<void (__cdecl *)(uint32_t, int32_t)>(game_addr(game::SetDrawStp))(packet, on); }
+		inline uint32_t RenderScrollPrimModel(void *header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_066_RenderScrollPrimModel))(header, ot, mode, cursor); }
+		inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetLightMatrix))(m); }
+		inline void GteSetBackColorFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetBackColorFromTrans))(m); }
+		inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(game_addr(game::GTE_SetRotScale))(s); }
+		inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(game_addr(game::GTE_SetTransFromVec32))(v); }
+		inline void GteTransFromMAC() { fn<void (__cdecl *)()>(game_addr(game::GTE_TransFromMAC))(); }
+		inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+		inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+		inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+		inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadFLAG))(dst); }
+		inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadMAC0))(dst); }
+		inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+		inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+		inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadOTZ))(dst); }
+		inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+		inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadRGB012))(a, b, c); }
+		inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+		inline void GteDPCT() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCT))(); }
+		inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(dst); }
+		inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_StoreRGB012))(a, b, c); }
+		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
 		typedef uint32_t (__cdecl *ListFn)(uint8_t *h, uint32_t ot, int32_t shift, uint32_t cursor);
-		static const uint32_t LIST_F3 = 0x6353C0, LIST_F4 = 0x635650, LIST_FT4 = 0x635C40, LIST_G3 = 0x635FB0, LIST_G4 = 0x636270, LIST_GT4 = 0x6368E0;
+		static constexpr game::Id LIST_F3 = game::sub_6353C0, LIST_F4 = game::sub_635650, LIST_FT4 = game::sub_635C40, LIST_G3 = game::sub_635FB0, LIST_G4 = game::sub_636270, LIST_GT4 = game::sub_6368E0;
 	}
 	using namespace x;
 
-	inline bool Paused() { return (var<uint32_t>(us(0x1D96A9C)) & 0x201) != 0; }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(us(0x24F2340)); }
-	static const uint32_t STREAM_STATE = 0x24F2344;
-	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(us(0x24F2348)); }
-	inline uint32_t TargetSlot() { return var<uint32_t>(us(0x24F2368)); }
-	inline TaskQueue &Q2() { return var<TaskQueue>(us(0x24F23B8)); }
-	inline Mat4x3 &Frame() { return var<Mat4x3>(us(0x24F23F8)); }
-	inline TaskQueue &Q1() { return var<TaskQueue>(us(0x24F2518)); }
-	inline uint8_t *CastCtx() { return var<uint8_t *>(us(0x24F336C)); }
-	inline uint32_t &Flags() { return var<uint32_t>(us(0x24F3544)); }
-	inline uint32_t Tex() { return var<uint32_t>(us(0x24F3550)); }
-	inline uint32_t &Cursor() { return var<uint32_t>(us(0x1D8E054)); }
-	inline uint32_t RenderList() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline bool Paused() { return (var<uint32_t>(game_addr(game::battle_to_update_flags_dword_1D96A9C)) & 0x201) != 0; }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(game_addr(game::unk_24F2340)); }
+	static constexpr game::Id STREAM_STATE = game::unk_24F2344;
+	inline Mat4x3 &RootMatrix() { return var<Mat4x3>(game_addr(game::unk_24F2348)); }
+	inline uint32_t TargetSlot() { return var<uint32_t>(game_addr(game::unk_24F2368)); }
+	inline TaskQueue &Q2() { return var<TaskQueue>(game_addr(game::unk_24F23B8)); }
+	inline Mat4x3 &Frame() { return var<Mat4x3>(game_addr(game::unk_24F23F8)); }
+	inline TaskQueue &Q1() { return var<TaskQueue>(game_addr(game::unk_24F2518)); }
+	inline uint8_t *CastCtx() { return var<uint8_t *>(game_addr(game::unk_24F336C)); }
+	inline uint32_t &Flags() { return var<uint32_t>(game_addr(game::unk_24F3544)); }
+	inline uint32_t Tex() { return var<uint32_t>(game_addr(game::unk_24F3550)); }
+	inline uint32_t &Cursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline uint32_t RenderList() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
 	inline uint32_t OT() { return RenderList() + 0x44; }
-	inline uint8_t *PoolB() { return var<uint8_t *>(us(0xE257E0)); }
-	inline uint8_t *PoolA() { return var<uint8_t *>(us(0xE257E4)); }
-	inline uint32_t VertexScratch() { return var<uint32_t>(us(0xE257E8)); }
-	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(us(0x1D972C0) + 156 * slot); }
-	static uint8_t *E1() { return (uint8_t *)us(0x24F2428); }
-	static uint8_t *E2() { return (uint8_t *)us(0x24F3558); }
-	static uint8_t *SHARDS() { return (uint8_t *)us(0x24F3378); }
-	inline int16_t *Centroid16(int k) { return (int16_t *)(us(0x24F235C) + 4 * k); }
+	inline uint8_t *PoolB() { return var<uint8_t *>(game_addr(game::unk_E257E0)); }
+	inline uint8_t *PoolA() { return var<uint8_t *>(game_addr(game::unk_E257E4)); }
+	inline uint32_t VertexScratch() { return var<uint32_t>(game_addr(game::unk_E257E8)); }
+	inline uint8_t *Entity(uint32_t slot) { return (uint8_t *)(game_addr(game::BattleEntitySlotData) + 156 * slot); }
+	static uint8_t *E1() { return (uint8_t *)game_addr(game::unk_24F2428); }
+	static uint8_t *E2() { return (uint8_t *)game_addr(game::unk_24F3558); }
+	static uint8_t *SHARDS() { return (uint8_t *)game_addr(game::unk_24F3378); }
+	inline int16_t *Centroid16(int k) { return (int16_t *)(game_addr(game::unk_24F235C) + 4 * k); }
 
-	static const uint32_t ORIG_SequenceTick = 0x6374D0;
-	static const uint32_t ORIG_TimelineTask = 0x6328A0;
-	static const uint32_t ORIG_FadeTileTask = 0x632EB0;
-	static const uint32_t ORIG_SpinnerTask = 0x633090;
-	static const uint32_t ORIG_FlareTask = 0x633200;
-	static const uint32_t ORIG_RingTask = 0x633560;
-	static const uint32_t ORIG_TileTask = 0x633680;
-	static const uint32_t ORIG_GroundWaveTask = 0x633720;
-	static const uint32_t ORIG_SlashTask = 0x6338B0;
-	static const uint32_t ORIG_SwordTask = 0x633AC0;
-	static const uint32_t ORIG_EndTask = 0x633BF0;
-	static const uint32_t ORIG_GilTask = 0x633C30;
-	static const uint32_t ORIG_GlowTask = 0x6340A0;
-	static const uint32_t ORIG_DustTask = 0x634300;
-	static const uint32_t ORIG_ShockRingTask = 0x634750;
-	static const uint32_t ORIG_RisingRingTask = 0x634890;
-	static const uint32_t ORIG_WideRingTask = 0x634A10;
-	static const uint32_t ORIG_ShakeTask = 0x634B90;
-	static const uint32_t ORIG_ShardsTask = 0x634C00;
-	static const uint32_t ORIG_ShardTask = 0x635110;
-	static const uint32_t ORIG_ShardRenderer = 0x635280;
-	static const uint32_t ORIG_ListFT3 = 0x635970;
-	static const uint32_t ORIG_ListGT3 = 0x6365E0;
-	static const uint32_t ORIG_ShardDustTask = 0x636CA0;
-	static const uint32_t ORIG_ShardChipTask = 0x636EB0;
-	static const uint32_t ORIG_FlashTask = 0x637200;
-	static const uint32_t ORIG_ModelDrawTask = 0x637350;
+	static constexpr game::Id ORIG_SequenceTick = game::MAG_218_sub_6374D0;
+	static constexpr game::Id ORIG_TimelineTask = game::MAG_218_sub_6328A0;
+	static constexpr game::Id ORIG_FadeTileTask = game::MAG_218_sub_632EB0;
+	static constexpr game::Id ORIG_SpinnerTask = game::MAG_218_sub_633090;
+	static constexpr game::Id ORIG_FlareTask = game::MAG_218_sub_633200;
+	static constexpr game::Id ORIG_RingTask = game::MAG_218_sub_633560;
+	static constexpr game::Id ORIG_TileTask = game::MAG_218_sub_633680;
+	static constexpr game::Id ORIG_GroundWaveTask = game::MAG_218_sub_633720;
+	static constexpr game::Id ORIG_SlashTask = game::MAG_218_sub_6338B0;
+	static constexpr game::Id ORIG_SwordTask = game::MAG_218_sub_633AC0;
+	static constexpr game::Id ORIG_EndTask = game::MAG_218_sub_633BF0;
+	static constexpr game::Id ORIG_GilTask = game::MAG_218_sub_633C30;
+	static constexpr game::Id ORIG_GlowTask = game::MAG_218_sub_6340A0;
+	static constexpr game::Id ORIG_DustTask = game::MAG_218_sub_634300;
+	static constexpr game::Id ORIG_ShockRingTask = game::MAG_218_sub_634750;
+	static constexpr game::Id ORIG_RisingRingTask = game::MAG_218_sub_634890;
+	static constexpr game::Id ORIG_WideRingTask = game::MAG_218_sub_634A10;
+	static constexpr game::Id ORIG_ShakeTask = game::MAG_218_sub_634B90;
+	static constexpr game::Id ORIG_ShardsTask = game::MAG_218_sub_634C00;
+	static constexpr game::Id ORIG_ShardTask = game::MAG_218_sub_635110;
+	static constexpr game::Id ORIG_ShardRenderer = game::MAG_218_sub_635280;
+	static constexpr game::Id ORIG_ListFT3 = game::sub_635970;
+	static constexpr game::Id ORIG_ListGT3 = game::sub_6365E0;
+	static constexpr game::Id ORIG_ShardDustTask = game::MAG_218_sub_636CA0;
+	static constexpr game::Id ORIG_ShardChipTask = game::MAG_218_sub_636EB0;
+	static constexpr game::Id ORIG_FlashTask = game::MAG_218_sub_637200;
+	static constexpr game::Id ORIG_ModelDrawTask = game::MAG_218_sub_637350;
 
 #pragma pack(push, 1)
 	struct Node24
@@ -204,11 +204,11 @@ namespace g218
 
 	static void HideStage()
 	{
-		for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) var<uint8_t>(a) |= 2;
+		for (uint32_t a = game_addr(game::unk_1D98991); a < game_addr(game::unk_1D98A41); a += 0x2C) var<uint8_t>(a) |= 2;
 	}
 	static void ShowStage()
 	{
-		for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) var<uint8_t>(a) &= 0xFD;
+		for (uint32_t a = game_addr(game::unk_1D98991); a < game_addr(game::unk_1D98A41); a += 0x2C) var<uint8_t>(a) &= 0xFD;
 	}
 
 	static void ResetRotation(void *m)
@@ -295,14 +295,14 @@ namespace g218
 
 	static void SpawnSpinners()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_SpinnerTask));
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_SpinnerTask));
 		n->c = 0;
 		n->e = 0;
 		n->a18 = (int16_t)(CrtRand() % 0x800 - 0x400);
 		n->a1A = -16;
 		n->s1C = 0xC80;
 		n->s20 = 0x600;
-		n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_SpinnerTask));
+		n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_SpinnerTask));
 		n->c = 0;
 		n->e = 1;
 		n->a18 = (int16_t)(CrtRand() % 0x200);
@@ -316,7 +316,7 @@ namespace g218
 		int16_t ang[4] = { 0x400, a18, 0, 0 };
 		Mat4x3 m;
 		BuildRotationMatrixFromAngles(ang, &m);
-		m.t[2] = var<int16_t>(us(0x1D8E038));
+		m.t[2] = var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE));
 		m.t[0] = 0;
 		m.t[1] = 0;
 		int32_t s[3] = { s1C, s1C, s1C };
@@ -324,7 +324,7 @@ namespace g218
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = us(0xE21CC0);
+		*(uint32_t *)h = game_addr(game::unk_E21CC0);
 		*(int32_t *)(h + 0xC) = n->s20;
 		*(uint32_t *)(h + 0x1C) = (n->e ? 0xCu : 3u) | 0xF0u;
 		*(uint32_t *)(h + 8) = 0;
@@ -344,7 +344,7 @@ namespace g218
 
 	static void SpawnFlare()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_FlareTask));
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_FlareTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xD8F0;
@@ -357,9 +357,9 @@ namespace g218
 
 	static void ScreenSpriteMatrix(const int16_t *v, int16_t size)
 	{
-		var<int16_t>(us(0x24F3608)) = size;
-		var<int16_t>(us(0x24F3600)) = size;
-		var<int16_t>(us(0x24F35F8)) = size;
+		var<int16_t>(game_addr(game::unk_24F3608)) = size;
+		var<int16_t>(game_addr(game::unk_24F3600)) = size;
+		var<int16_t>(game_addr(game::unk_24F35F8)) = size;
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
 		GteLoadV0(v);
@@ -368,11 +368,11 @@ namespace g218
 		GteReadSXY2(sxy);
 		int16_t sx = (int16_t)((int32_t)sxy[0] / 8);
 		int16_t sy = (int16_t)((int32_t)sxy[1] / 8);
-		var<int32_t>(us(0x24F360C)) = (int32_t)sx - 0xA0;
-		var<int32_t>(us(0x24F3610)) = (int32_t)sy - 0x6C;
-		var<int32_t>(us(0x24F3614)) = (int32_t)var<int16_t>(us(0x1D8E038));
-		GteSetRotMatrix((const Mat4x3 *)us(0x24F35F8));
-		GteSetTransVector((const Mat4x3 *)us(0x24F35F8));
+		var<int32_t>(game_addr(game::unk_24F360C)) = (int32_t)sx - 0xA0;
+		var<int32_t>(game_addr(game::unk_24F3610)) = (int32_t)sy - 0x6C;
+		var<int32_t>(game_addr(game::unk_24F3614)) = (int32_t)var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE));
+		GteSetRotMatrix((const Mat4x3 *)game_addr(game::unk_24F35F8));
+		GteSetTransVector((const Mat4x3 *)game_addr(game::unk_24F35F8));
 	}
 
 	static bool FlareColour(int32_t c, uint32_t *col)
@@ -392,9 +392,9 @@ namespace g218
 	static void FlareDraw(const Node24 *n, int32_t c, int32_t a, int32_t b, int32_t dz)
 	{
 		int32_t d[3];
-		d[0] = (int32_t)var<int16_t>(us(0xB8B7F0)) - n->p10;
-		d[1] = (int32_t)var<int16_t>(us(0xB8B7F2)) - n->p12;
-		d[2] = (int32_t)var<int16_t>(us(0xB8B7F4)) - n->p14;
+		d[0] = (int32_t)var<int16_t>(game_addr(game::Battle_Camera_world_XZ_s16)) - n->p10;
+		d[1] = (int32_t)var<int16_t>(game_addr(game::unk_B8B7F2)) - n->p12;
+		d[2] = (int32_t)var<int16_t>(game_addr(game::Battle_Camera_world_Y)) - n->p14;
 		int32_t ref[3] = { 0, 0, -0x1000 };
 		NormalizeVectorToFixedPoint(d, d);
 		int32_t axis[4];
@@ -405,7 +405,7 @@ namespace g218
 		m.t[1] = n->p12;
 		m.t[2] = n->p14;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = us(0xE19C14);
+		*(uint32_t *)h = game_addr(game::unk_E19C14);
 		*(uint16_t *)(h + 0x24) = 0;
 		uint32_t col;
 		if (FlareColour(c, &col))
@@ -413,7 +413,7 @@ namespace g218
 			*(uint16_t *)(h + 0x24) = 4;
 			*(uint32_t *)(h + 0x1C) = col;
 		}
-		for (uint32_t t = us(0xE257F2); t < us(0xE25832); t += 8)
+		for (uint32_t t = game_addr(game::unk_E257F2); t < game_addr(game::unk_E25832); t += 8)
 		{
 			int32_t k = mul32(*(const int16_t *)(t + 2), 2200) >> 12;
 			int16_t v[4];
@@ -442,7 +442,7 @@ namespace g218
 
 	static void SpawnRing()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_RingTask));
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_RingTask));
 		n->c = 0;
 		n->p10 = 0;
 		n->p12 = (int16_t)0xD8F0;
@@ -467,7 +467,7 @@ namespace g218
 		ComposeAffineTransform(&Frame(), &m, &w);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&w);
-		PrimModel(us(0xE1B7E0), 0x33, false, 0, OT(), 2);
+		PrimModel(game_addr(game::unk_E1B7E0), 0x33, false, 0, OT(), 2);
 	}
 
 	static uint32_t __cdecl RingTask(TaskNode *tn)
@@ -482,7 +482,7 @@ namespace g218
 
 	static void SpawnGroundWave()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_GroundWaveTask));
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_GroundWaveTask));
 		n->c = 0;
 		GetDefaultEffectPosition(Entity(TargetSlot()), &n->p10);
 		n->p14 = (int16_t)(n->p14 + 0x190);
@@ -504,7 +504,7 @@ namespace g218
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ScrollHeader(us(0xE22570));
+		uint8_t *h = ScrollHeader(game_addr(game::unk_E22570));
 		*(uint16_t *)(h + 0x1A) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0x18) = 0x40;
@@ -541,7 +541,7 @@ namespace g218
 		d[2] = ez - p[2];
 		NormalizeVectorToFixedPoint(d, d);
 		int32_t axis[4];
-		int32_t angle = GetRotationBetweenVectors(us(0xE25840), d, axis);
+		int32_t angle = GetRotationBetweenVectors(game_addr(game::unk_E25840), d, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[0] = (mul32(-2000, d[0]) >> 12) + ex;
@@ -552,7 +552,7 @@ namespace g218
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ScrollHeader(us(0xE23660));
+		uint8_t *h = ScrollHeader(game_addr(game::unk_E23660));
 		*(uint16_t *)(h + 0x1A) = 0x80;
 		*(uint16_t *)(h + 0x1E) = 0x80;
 		*(uint16_t *)(h + 0x18) = 0x40;
@@ -570,7 +570,7 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		GetEffectSpawnPosition(Entity(TargetSlot()), 0xF0, 0x1000, &n->p10);
-		SlashDraw(&n->p10, (const int16_t *)us(0x24FD358), -mul32(n->c, 24));
+		SlashDraw(&n->p10, (const int16_t *)game_addr(game::g_CamScript_SavedEye), -mul32(n->c, 24));
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x16 ? TASK_END : 0;
@@ -599,7 +599,7 @@ namespace g218
 		ComposeAffineTransform(&Frame(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		if (n->c > 0 && !(Flags() & 4)) PrimModel(us(0xE254D8), 0x33, false, 0, OT(), 3);
+		if (n->c > 0 && !(Flags() & 4)) PrimModel(game_addr(game::unk_E254D8), 0x33, false, 0, OT(), 3);
 		if (!Paused()) n->c++;
 		return 0;
 	}
@@ -649,7 +649,7 @@ namespace g218
 		uint8_t *h = (uint8_t *)FieldAlloc(0x4C);
 		ComposeAffineTransform(frame, (const Mat4x3 *)(E + 0x40), (Mat4x3 *)h);
 		ComputeBonesWorldMatrices(E + 0x60, h);
-		*(uint32_t *)(h + 0x30) = var<uint32_t>(us(0x1D969A8));
+		*(uint32_t *)(h + 0x30) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		*(uint32_t *)(h + 0x24) = ModelScratch();
 		*(uint16_t *)(h + 0x34) = 0;
 		*(uint16_t *)(h + 0x36) = 0;
@@ -672,7 +672,7 @@ namespace g218
 		if (!(fl & 4))
 		{
 			ff8fx::copy<(0x20)>(E1() + 0x40, E2() + 0x40);
-			*(uint32_t *)(E1() + 0x28) = var<uint32_t>(us(0x24F3580));
+			*(uint32_t *)(E1() + 0x28) = var<uint32_t>(game_addr(game::unk_24F3580));
 			DrawModel(E1(), &Frame());
 			DrawModel(E2(), &Frame());
 			fl = *(uint16_t *)E2();
@@ -689,7 +689,7 @@ namespace g218
 
 	static void LinkGlow()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_GlowTask));
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_GlowTask));
 		n->c = 0;
 		n->s1C = 0x2400;
 		n->s20 = 0x1E00;
@@ -702,15 +702,15 @@ namespace g218
 		if (n->c == 0)
 		{
 			ResetRotation(M2);
-			var<uint16_t>(us(0x24F35A8)) = 0x1000;
-			var<uint16_t>(us(0x24F35A0)) = 0x1000;
-			var<uint16_t>(us(0x24F3598)) = 0x1000;
+			var<uint16_t>(game_addr(game::unk_24F35A8)) = 0x1000;
+			var<uint16_t>(game_addr(game::unk_24F35A0)) = 0x1000;
+			var<uint16_t>(game_addr(game::unk_24F3598)) = 0x1000;
 			M2->t[1] = 0;
 			M2->t[0] = 0;
 			M2->t[2] = 0;
-			ModelInit(E2(), (uint8_t *)us(0x24F3500), (uint8_t *)Tex(), 0xF);
+			ModelInit(E2(), (uint8_t *)game_addr(game::unk_24F3500), (uint8_t *)Tex(), 0xF);
 			ff8fx::copy<(0x20)>(E1() + 0x40, M2);
-			ModelInit(E1(), (uint8_t *)us(0x24F3338), (uint8_t *)us(0xF1DD54), 0x10);
+			ModelInit(E1(), (uint8_t *)game_addr(game::unk_24F3338), (uint8_t *)game_addr(game::unk_F1DD54), 0x10);
 		}
 		if (Paused()) return 0;
 		int32_t d = n->c;
@@ -732,9 +732,9 @@ namespace g218
 			M2->t[2] += w;
 			n->s22 = (int16_t)((int16_t)(w >> 3) + w);
 			int16_t s = n->s1C;
-			var<int16_t>(us(0x24F35A8)) = s;
-			var<int16_t>(us(0x24F35A0)) = s;
-			var<int16_t>(us(0x24F3598)) = s;
+			var<int16_t>(game_addr(game::unk_24F35A8)) = s;
+			var<int16_t>(game_addr(game::unk_24F35A0)) = s;
+			var<int16_t>(game_addr(game::unk_24F3598)) = s;
 			n->s1C = (int16_t)((int16_t)(s >> 3) + s);
 			if (d == 0) LinkGlow();
 		}
@@ -745,9 +745,9 @@ namespace g218
 				M2->t[1] = -5000;
 				M2->t[2] = 0;
 			}
-			var<int16_t>(us(0x24F35A8)) = 0x1000;
-			var<int16_t>(us(0x24F35A0)) = 0x1000;
-			var<int16_t>(us(0x24F3598)) = 0x1000;
+			var<int16_t>(game_addr(game::unk_24F35A8)) = 0x1000;
+			var<int16_t>(game_addr(game::unk_24F35A0)) = 0x1000;
+			var<int16_t>(game_addr(game::unk_24F3598)) = 0x1000;
 		}
 		else if ((d -= 0x14) < 0x1A)
 		{
@@ -759,7 +759,7 @@ namespace g218
 			}
 			else if (d == 5)
 			{
-				LinkQ1(us(ORIG_DustTask));
+				LinkQ1(game_addr(ORIG_DustTask));
 				SpawnRings();
 			}
 		}
@@ -777,9 +777,9 @@ namespace g218
 			{
 				SetAnim(E1(), 3);
 				SetAnim(E2(), 3);
-				LinkQ1(us(ORIG_ShardsTask));
+				LinkQ1(game_addr(ORIG_ShardsTask));
 			}
-			else if (d == 0xF) LinkQ1(us(ORIG_FlashTask));
+			else if (d == 0xF) LinkQ1(game_addr(ORIG_FlashTask));
 		}
 		else if ((d -= 0x15) < 0x28)
 		{
@@ -809,7 +809,7 @@ namespace g218
 				GteLoadRGBC(&rgbc);
 				GteSetIR0(shl32(d - 0x6D, 12) / 16);
 				GteDPCS();
-				GteStoreRGB2((void *)us(0x24F3580));
+				GteStoreRGB2((void *)game_addr(game::unk_24F3580));
 			}
 		}
 		n->c++;
@@ -834,7 +834,7 @@ namespace g218
 		int32_t d[3] = { (int32_t)C[0] - A[0], (int32_t)C[1] - A[1], (int32_t)C[2] - A[2] };
 		NormalizeVectorToFixedPoint(d, d);
 		int32_t axis[4];
-		int32_t angle = GetRotationBetweenVectors(us(0xE25830), d, axis);
+		int32_t angle = GetRotationBetweenVectors(game_addr(game::unk_E25830), d, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[0] = (mul32(d[0], 600) >> 12) + C[0];
@@ -848,7 +848,7 @@ namespace g218
 		ComposeAffineTransform(&Frame(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ScrollHeader(us(0xE1A0F0));
+		uint8_t *h = ScrollHeader(game_addr(game::unk_E1A0F0));
 		*(int32_t *)(h + 0x14) = uv;
 		*(int32_t *)(h + 0xC) = 0x400;
 		*(uint32_t *)(h + 8) = 0;
@@ -868,7 +868,7 @@ namespace g218
 		Node24 *n = (Node24 *)tn;
 		int16_t A[4], C[4];
 		GlowPoints(A, C);
-		GlowDraw(n, A, C, var<int16_t>(us(0x24F3598)), shl32(-n->c, 5));
+		GlowDraw(n, A, C, var<int16_t>(game_addr(game::unk_24F3598)), shl32(-n->c, 5));
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x28 ? TASK_END : 0;
@@ -897,7 +897,7 @@ namespace g218
 	{
 		*(uint16_t *)(h + 0x24) = 8;
 		ff8fx::copy<(0x20)>(s + 8, &Frame());
-		*(uint32_t *)h = us(0xE19CBC);
+		*(uint32_t *)h = game_addr(game::unk_E19CBC);
 	}
 
 	static void DustOne(uint8_t *h, uint8_t *s, const RecB *p)
@@ -967,7 +967,7 @@ namespace g218
 
 	static void SpawnRings()
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_ShockRingTask));
+		Node24 *n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_ShockRingTask));
 		n->c = 0;
 		n->p14 = 0;
 		n->p12 = 0;
@@ -976,7 +976,7 @@ namespace g218
 		n->s1C = 0x900;
 		for (int k = 0; k < 2; k++)
 		{
-			n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_RisingRingTask));
+			n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_RisingRingTask));
 			n->c = 0;
 			n->p14 = 0;
 			n->p12 = 0;
@@ -990,7 +990,7 @@ namespace g218
 			n->s22 = (int16_t)v;
 			n->s20 = (int16_t)v;
 		}
-		n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_WideRingTask));
+		n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_WideRingTask));
 		n->c = 0;
 		n->p14 = 0;
 		n->p12 = 0;
@@ -1002,7 +1002,7 @@ namespace g218
 		n->s22 = 0x3AA;
 		n->s20 = 0x3AA;
 		n->a1A = (int16_t)(r + 0xF);
-		n = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_ShakeTask));
+		n = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_ShakeTask));
 		n->c = 0;
 		n->e = 0x28;
 	}
@@ -1026,7 +1026,7 @@ namespace g218
 	static uint32_t __cdecl ShockRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		RingPrim(n, us(0xE1EF08), 0, n->s1C, n->s1C, n->c >= 6, shl32(n->c - 6, 9));
+		RingPrim(n, game_addr(game::unk_E1EF08), 0, n->s1C, n->s1C, n->c >= 6, shl32(n->c - 6, 9));
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1038,7 +1038,7 @@ namespace g218
 	static uint32_t __cdecl RisingRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		RingPrim(n, us(0xE1C918), n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 341));
+		RingPrim(n, game_addr(game::unk_E1C918), n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 341));
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		int16_t v = n->s1E;
@@ -1054,7 +1054,7 @@ namespace g218
 	static uint32_t __cdecl WideRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		RingPrim(n, us(0xE1E260), n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 682));
+		RingPrim(n, game_addr(game::unk_E1E260), n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 682));
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		int16_t v = n->s1E;
@@ -1077,23 +1077,23 @@ namespace g218
 	static uint32_t __cdecl ShakeTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		var<int16_t>(us(0x1D97712)) = ShakeValue(n->c, n->e);
+		var<int16_t>(game_addr(game::BATTLE_CAMERA_SHAKE_OFFSET_Y)) = ShakeValue(n->c, n->e);
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 8 ? TASK_END : 0;
 	}
 
-	struct GrabPackets { uint32_t env, exe, stp, area, ofs, xy; };
-	static const GrabPackets GRAB_MODULE = { 0x24F24D8, 0xE25AD8, 0x24F3538, 0x24F23C8, 0x24F24C8, 0x24F34F8 };
+	struct GrabPackets { game::Id env, exe, stp, area, ofs, xy; };
+	static const GrabPackets GRAB_MODULE = { game::unk_24F24D8, game::unk_E25AD8, game::unk_24F3538, game::unk_24F23C8, game::unk_24F24C8, game::unk_24F34F8 };
 
 	static void ScreenGrab(const int16_t *pos, const GrabPackets &us_pk)
 	{
-		const GrabPackets pk = { us(us_pk.env), us(us_pk.exe), us(us_pk.stp), us(us_pk.area), us(us_pk.ofs), us(us_pk.xy) };
+		const struct { uint32_t env, exe, stp, area, ofs, xy; } pk = { game_addr(us_pk.env), game_addr(us_pk.exe), game_addr(us_pk.stp), game_addr(us_pk.area), game_addr(us_pk.ofs), game_addr(us_pk.xy) };
 		int16_t rect[4] = { 0x240, 0x100, 0x80, 0x100 };
 		Mat4x3 m1, m2;
 		m1.t[0] = 4 - (int32_t)pos[0] / 17;
 		m1.t[1] = (int32_t)pos[2] / 17 - 3;
-		m1.t[2] = var<int16_t>(us(0x1D8E038));
+		m1.t[2] = var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE));
 		int16_t ang[4] = { 0x400, 0, 0, 0 };
 		BuildRotationMatrixFromAngles(ang, &m1);
 		int32_t s[3];
@@ -1105,7 +1105,7 @@ namespace g218
 		BuildRotationMatrixFromAngles(ang2, &m2);
 		MatrixMultiply(&m2, &m1);
 		TransformVectorBy3x3Matrix(&m2, m1.t, m1.t);
-		SetDrawEnv(pk.env, us(0x1D969C8) + 0x5C * (var<uint8_t>(us(0x1D96A80)) ^ 1u));
+		SetDrawEnv(pk.env, game_addr(game::g_Battle_DrawEnv) + 0x5C * (var<uint8_t>(game_addr(game::g_Battle_DisplayParity)) ^ 1u));
 		InsertPrimAutoDepth(OT(), (void *)pk.env);
 		int32_t ofx, ofy;
 		GteReadOffset(&ofx, &ofy);
@@ -1113,20 +1113,20 @@ namespace g218
 		GteSetRotMatrix(&m1);
 		GteSetTransVector(&m1);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x2C);
-		*(int16_t *)(h + 0x24) = var<int16_t>(us(0x1D989BE));
+		*(int16_t *)(h + 0x24) = var<int16_t>(game_addr(game::unk_1D989BE));
 		*(int32_t *)(h + 0x10) = -1;
 		*(int32_t *)(h + 0x20) = -1;
 		*(uint16_t *)(h + 0x14) = 0;
 		*(uint16_t *)(h + 0x16) = 0;
 		*(uint16_t *)(h + 0x18) = 0x140;
 		*(uint16_t *)(h + 0x1A) = 0xD8;
-		*(uint32_t *)(h + 0x1C) = var<uint32_t>(us(0x1D989E4));
-		*(uint32_t *)(h + 4) = var<uint32_t>(us(0x1D98B3C));
-		if (var<uint8_t>(us(0x1D989BD)) & 1)
+		*(uint32_t *)(h + 0x1C) = var<uint32_t>(game_addr(game::unk_1D989E4));
+		*(uint32_t *)(h + 4) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
+		if (var<uint8_t>(game_addr(game::unk_1D989BD)) & 1)
 		{
-			BuildBoneMatricesFromPose((void *)us(0x1D989D0));
-			ComputeBonesWorldMatrices((void *)us(0x1D989D0), &m1);
-			Cursor() = RenderGeometry((void *)us(0x1D989C0), h, OT(), 0x10, Cursor());
+			BuildBoneMatricesFromPose((void *)game_addr(game::unk_1D989D0));
+			ComputeBonesWorldMatrices((void *)game_addr(game::unk_1D989D0), &m1);
+			Cursor() = RenderGeometry((void *)game_addr(game::unk_1D989C0), h, OT(), 0x10, Cursor());
 		}
 		FieldFree(0x2C);
 		GteSetOffset(ofx, ofy);
@@ -1170,13 +1170,13 @@ namespace g218
 			V[2] = (int16_t)(V[2] + *Centroid16(2));
 			for (int k = 0; k < 24; k++)
 			{
-				Node24 *t = (Node24 *)AddTaskToQueue(&Q1(), us(ORIG_ShardTask));
+				Node24 *t = (Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_ShardTask));
 				t->c = 0;
 				t->p16 = (int16_t)(k / 4);
 				Shard *sh = SH(k);
 				*(uint32_t *)&sh->x = *(uint32_t *)&n->p10;
 				*(uint32_t *)&sh->z = *(uint32_t *)&n->p14;
-				const int16_t *tb = (const int16_t *)(us(0xE258B2) + 8 * k);
+				const int16_t *tb = (const int16_t *)(game_addr(game::unk_E258B2) + 8 * k);
 				sh->x = (int16_t)(sh->x + tb[-1]);
 				sh->y = (int16_t)(sh->y + tb[0]);
 				sh->z = (int16_t)(sh->z + tb[1]);
@@ -1196,8 +1196,8 @@ namespace g218
 		}
 		if (n->c == 0x10)
 		{
-			((Node24 *)AddTaskToQueue(&Q1(), us(ORIG_ShardDustTask)))->c = 0;
-			((Node24 *)AddTaskToQueue(&Q1(), us(ORIG_ShardChipTask)))->c = 0;
+			((Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_ShardDustTask)))->c = 0;
+			((Node24 *)AddTaskToQueue(&Q1(), game_addr(ORIG_ShardChipTask)))->c = 0;
 		}
 		if (Paused()) return 0;
 		n->c++;
@@ -1345,7 +1345,7 @@ namespace g218
 		*(uint32_t *)(h + 0x20) = model + *(uint32_t *)model;
 		if (!(fl & 0x1000)) *(uint32_t *)(h + 0x18) = 0;
 		GteSetFarColor(h[8], h[9], h[0xA]);
-		const ListFn lists[8] = { (ListFn)us(LIST_F3), (ListFn)us(LIST_F4), ListFT3, (ListFn)us(LIST_FT4), (ListFn)us(LIST_G3), (ListFn)us(LIST_G4), ListGT3, (ListFn)us(LIST_GT4) };
+		const ListFn lists[8] = { (ListFn)game_addr(LIST_F3), (ListFn)game_addr(LIST_F4), ListFT3, (ListFn)game_addr(LIST_FT4), (ListFn)game_addr(LIST_G3), (ListFn)game_addr(LIST_G4), ListGT3, (ListFn)game_addr(LIST_GT4) };
 		for (int k = 0; k < 8; k++)
 		{
 			if (**(uint32_t **)(h + 0x20) != 0) cursor = lists[k](h, ot, shift, cursor);
@@ -1371,9 +1371,9 @@ namespace g218
 		const int32_t e = n->e;
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x3C;
-		*(uint32_t *)h = *(const uint32_t *)(us(0xE25850) + 4 * e);
-		*(uint32_t *)(h + 0x58) = *(const uint32_t *)(us(0xE258B0) + 8 * e);
-		*(uint32_t *)(h + 0x5C) = *(const uint32_t *)(us(0xE258B4) + 8 * e);
+		*(uint32_t *)h = *(const uint32_t *)(game_addr(game::unk_E25850) + 4 * e);
+		*(uint32_t *)(h + 0x58) = *(const uint32_t *)(game_addr(game::unk_E258B0) + 8 * e);
+		*(uint32_t *)(h + 0x5C) = *(const uint32_t *)(game_addr(game::unk_E258B4) + 8 * e);
 		Cursor() = ShardRender(h, OT(), 2, Cursor());
 		FieldFree(0x60);
 	}
@@ -1399,7 +1399,7 @@ namespace g218
 	static void ShardDustSetup(uint8_t *h, uint8_t *s)
 	{
 		ff8fx::copy<(0x20)>(s + 8, &Camera());
-		*(uint32_t *)h = us(0xE19E68);
+		*(uint32_t *)h = game_addr(game::unk_E19E68);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(uint16_t *)(h + 0x24) = 0xC;
 	}
@@ -1465,7 +1465,7 @@ namespace g218
 	static void ChipSetup(uint8_t *h, uint8_t *s)
 	{
 		ff8fx::copy<(0x20)>(s + 8, &Camera());
-		*(uint32_t *)h = us(0xE1F5F0);
+		*(uint32_t *)h = game_addr(game::unk_E1F5F0);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		*(int16_t *)(s + 2) = 0;
@@ -1561,11 +1561,11 @@ namespace g218
 		int32_t s[3] = { 0xE00, 0xE00, 0xE00 };
 		m.t[0] = 0;
 		m.t[1] = 0;
-		m.t[2] = var<int16_t>(us(0x1D8E038));
+		m.t[2] = var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE));
 		Scale3DMatrix(&m, s);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		uint8_t *h = ScrollHeader(us(0xE24FC8));
+		uint8_t *h = ScrollHeader(game_addr(game::unk_E24FC8));
 		*(uint16_t *)(h + 0x18) = 0x40;
 		*(uint16_t *)(h + 0x1C) = 0x40;
 		*(uint32_t *)(h + 8) = 0;
@@ -1598,7 +1598,7 @@ namespace g218
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
 		ComposeAffineTransform(&Camera(), &RootMatrix(), &Frame());
-		const uint32_t f = var<uint32_t>(us(0x1D96A9C));
+		const uint32_t f = var<uint32_t>(game_addr(game::battle_to_update_flags_dword_1D96A9C));
 		if (f & 0x201)
 		{
 			if (f & 1) return 0;
@@ -1607,16 +1607,16 @@ namespace g218
 		Node24 *n = (Node24 *)tn;
 		if (n->c == 0)
 		{
-			CameraScriptStart(us(0xE25970), &RootMatrix(), E2(), &Q1(), 0);
-			BdTransSummonStream(us(0xF1DD50), us(STREAM_STATE));
-			VoiceSlot() = ClaimVoiceSlot((const void *)us(0xE25698), 1, 0x80);
+			CameraScriptStart(game_addr(game::unk_E25970), &RootMatrix(), E2(), &Q1(), 0);
+			BdTransSummonStream(game_addr(game::unk_F1DD50), game_addr(STREAM_STATE));
+			VoiceSlot() = ClaimVoiceSlot((const void *)game_addr(game::unk_E25698), 1, 0x80);
 		}
 		int32_t d = n->c;
 		if (d < 0x34)
 		{
 			if (d == 2)
 			{
-				BdPlaySE(us(0xE257D0), 0, 0x80);
+				BdPlaySE(game_addr(game::unk_E257D0), 0, 0x80);
 				CharacterLoad(0x2C1, Tex() + 0x11000);
 			}
 			else if (d == 0x10)
@@ -1625,7 +1625,7 @@ namespace g218
 				QueueTIMUpload(Tex() + 0x11000);
 				CharacterLoad(0x2C2, Tex());
 			}
-			else if (d == 0) LinkQ1(us(ORIG_FadeTileTask));
+			else if (d == 0) LinkQ1(game_addr(ORIG_FadeTileTask));
 			else if (d == 0xB)
 			{
 				SpawnSpinners();
@@ -1639,14 +1639,14 @@ namespace g218
 			if (d == 0)
 			{
 				if (LoadState() < 0) return 0;
-				LinkQ2(us(ORIG_ModelDrawTask));
-				LinkQ1(us(ORIG_GilTask));
-				LinkQ1(us(ORIG_SwordTask));
+				LinkQ2(game_addr(ORIG_ModelDrawTask));
+				LinkQ1(game_addr(ORIG_GilTask));
+				LinkQ1(game_addr(ORIG_SwordTask));
 			}
 		}
 		else if ((d -= 0x14) < 0x14)
 		{
-			if (d == 0) LinkQ1(us(ORIG_TileTask));
+			if (d == 0) LinkQ1(game_addr(ORIG_TileTask));
 		}
 		else if ((d -= 0x14) < 9)
 		{
@@ -1678,7 +1678,7 @@ namespace g218
 			else if (d == 0xA)
 			{
 				if (LoadState() < 0) return 0;
-				BdTransSummonStream(SummonData(), us(STREAM_STATE));
+				BdTransSummonStream(SummonData(), game_addr(STREAM_STATE));
 			}
 		}
 		else if ((d -= 0x2D) < 0xA5)
@@ -1701,7 +1701,7 @@ namespace g218
 		{
 			if (d == 4)
 			{
-				BdPlaySE(us(0xE257D4), 0, 0x80);
+				BdPlaySE(game_addr(game::unk_E257D4), 0, 0x80);
 				Flags() &= ~4u;
 			}
 			else if (d == 0xE)
@@ -1731,13 +1731,13 @@ namespace g218
 		{
 			if (d == 0)
 			{
-				LinkQ1(us(ORIG_SlashTask));
+				LinkQ1(game_addr(ORIG_SlashTask));
 				Text(5, 0x14);
 			}
 		}
 		else if ((d -= 0x16) < 0x9C)
 		{
-			if (d == 0x88) BdPlaySE(us(0xE257D8), 0, 0x80);
+			if (d == 0x88) BdPlaySE(game_addr(game::unk_E257D8), 0, 0x80);
 			else if (d == 0x51) Text(6, 0x2D);
 			else if (d == 0x99)
 			{
@@ -1747,7 +1747,7 @@ namespace g218
 		if (n->c == 0x17F) ApplyActionResultToTarget(*(uint32_t *)(*(uint8_t **)(CastCtx() + 4) + 8));
 		n->c++;
 		if (n->c <= 0x243) return 0;
-		LinkQ1(us(ORIG_EndTask));
+		LinkQ1(game_addr(ORIG_EndTask));
 		uint8_t *t = Entity(TargetSlot());
 		QueueChainTransformation(t, 1);
 		t[0] |= 4;

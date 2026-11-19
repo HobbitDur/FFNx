@@ -22,29 +22,29 @@ namespace act
 {
 namespace resonance
 {
-	static const Mod MOD_049 = { "resonance", 49, 0x821520, 0x824CD0,
-		{ 0x0, 0x0, 0x15ADAF0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26464D8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26475F0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x821840, 0x8218C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x821A50, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x824B90, 0x824BB0, 0x824BD0, 0x824BF0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_049 = { "resonance", 49, game::MAG_049_RESONANCE_FL, game::MAG_048_MAGMA_BREATH_FL,
+		{ {}, {}, game::p_Resonance_DirectorBlock, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_049_FilePtr, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_049_EmitterQueue, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_049_Resonance_EmitterTask, game::MAG_049_Resonance_EmitterSetup, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_049_DirSyncGate, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_049_Resonance_EmitterWaitDamageCue, game::MAG_049_Resonance_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_049_Resonance_Emitter_State3_FinishReleaseRoot, game::MAG_049_Resonance_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x26464DC;
-	static const uint32_t FRAME_CURSOR = 0x1D8E054;
-	static const uint32_t DIR_PTR = 0x15ADAF0;
-	static const uint32_t WARP_PTR = 0x15ADC18;
-	static const uint32_t SOUND = 0x15ADAF4;
-	static const uint32_t BLEND_BUF = 0x2647D20;
-	static const uint32_t PRIM_CB = 0x821E70;
-	static const uint32_t GRID = 0x2647900;
-	static const uint32_t XWAVE = 0x26466E0, YWAVE = 0x26467B8;
-	static const uint32_t Q_EMITTER = 0x26475F0, Q_DIRECTOR = 0x26465B8, Q_MISC = 0x26466D0, Q_PRIM = 0x26472C0, Q_TINT = 0x26475E0;
-	static const uint32_t ORIG_Master = 0x821690;
-	static const uint32_t ORIG_Warp = 0x824260;
-	static const uint32_t ORIG_Hit = 0x824970;
-	static const uint32_t ORIG_Prim1 = 0x821C50, ORIG_Prim2 = 0x824140;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id PACKET_CURSOR = game::g_Resonance_PacketCursor;
+	static constexpr game::Id FRAME_CURSOR = game::BATTLE_PACKET_WRITE_CURSOR;
+	static constexpr game::Id DIR_PTR = game::p_Resonance_DirectorBlock;
+	static constexpr game::Id WARP_PTR = game::p_Resonance_WarpBlock;
+	static constexpr game::Id SOUND = game::unk_15ADAF4;
+	static constexpr game::Id BLEND_BUF = game::g_Resonance_BlendBuffer;
+	static constexpr game::Id PRIM_CB = game::MAG_049_Resonance_PrimDrawCallback;
+	static constexpr game::Id GRID = game::g_Resonance_WarpGrid;
+	static constexpr game::Id XWAVE = game::g_Resonance_WaveX, YWAVE = game::g_Resonance_WaveY;
+	static constexpr game::Id Q_EMITTER = game::MAG_049_EmitterQueue, Q_DIRECTOR = game::MAG_049_DirectorQueue, Q_MISC = game::MAG_049_WarpHitQueue, Q_PRIM = game::MAG_049_PrimModelQueue, Q_TINT = game::MAG_049_UnusedQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_049_Resonance_MasterTask;
+	static constexpr game::Id ORIG_Warp = game::MAG_049_Resonance_WarpTask;
+	static constexpr game::Id ORIG_Hit = game::MAG_049_Resonance_HitTask;
+	static constexpr game::Id ORIG_Prim1 = game::MAG_049_Resonance_PrimTask1, ORIG_Prim2 = game::MAG_049_Resonance_PrimTask2;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace rx
 	{
-		static inline uint32_t SetDrawEnv(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x45C0F0))(a1, a2); }
+		static inline uint32_t SetDrawEnv(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_SetDrawEnv))(a1, a2); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -342,7 +342,7 @@ namespace resonance
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
@@ -408,44 +408,44 @@ namespace resonance
 		g_mod = &MOD_049;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x26480E4)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x26465E0)) = us(0x2793E58);
-		states[0] = us(0x8217E0);
+		MEM<uint32_t>(game_addr(game::unk_26480E4)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_26465E0)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_049_Resonance_Master_State0_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x8217F0);
-		states[2] = us(0x821800);
-		states[3] = us(0x821810);
-		states[4] = us(0x824C00);
-		states[5] = us(0x824C40);
-		states[6] = us(0x824C50);
-		states[7] = us(0x824C60);
-		states[8] = us(0x824C90);
-		states[9] = us(0x824CA0);
-		states[10] = us(0x824CC0);
+		states[1] = game_addr(game::MAG_049_Resonance_Master_State1_Advance);
+		states[2] = game_addr(game::MAG_049_Resonance_MasterWaitChildren);
+		states[3] = game_addr(game::MAG_049_Resonance_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_049_Resonance_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_049_Resonance_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_049_Resonance_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_049_Resonance_Master_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_049_Resonance_Master_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_049_Resonance_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_049_Resonance_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x264781C));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26472D4));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26465DC)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_264781C));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26472D4));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::g_Resonance_PacketCursor2)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2647818));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26472D0));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26465DC)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_2647818));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26472D0));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::g_Resonance_PacketCursor2)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_MISC)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PRIM)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TINT)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_MISC)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_TINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -456,7 +456,7 @@ namespace resonance
 	{
 		if (S16(t1_data(), 0x46) >= 0xE)
 		{
-			x::BdPlaySE(us(SOUND), 0, 0x80);
+			x::BdPlaySE(game_addr(SOUND), 0, 0x80);
 			next_state(a1);
 		}
 		return 0;
@@ -475,10 +475,10 @@ namespace resonance
 		if ((int32_t)S16(t1_data(), 0x40) - 1 != 0)
 			return 0;
 		const uint32_t node = a1;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_MISC), us(ORIG_Warp), 0x80, node);
-		const uint32_t p1 = rs_821C00(node, us(ORIG_Prim1), us(0x17B329C), 0x2D4, 0, 0);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_MISC), game_addr(ORIG_Warp), 0x80, node);
+		const uint32_t p1 = rs_821C00(node, game_addr(ORIG_Prim1), game_addr(game::unk_17B329C), 0x2D4, 0, 0);
 		U8(p1, 0x2C) = 3;
-		const uint32_t p2 = rs_821C00(node, us(ORIG_Prim2), us(0x17B656C), 0x2C8, 1, 0);
+		const uint32_t p2 = rs_821C00(node, game_addr(ORIG_Prim2), game_addr(game::unk_17B656C), 0x2C8, 1, 0);
 		U8(p2, 0x2C) = 4;
 		const uint32_t act0 = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 		if (U8(act0, 0x10) == 0)
@@ -487,7 +487,7 @@ namespace resonance
 		uint32_t act;
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_MISC), us(ORIG_Hit), 0x80, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_MISC), game_addr(ORIG_Hit), 0x80, node);
 			act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 			const uint8_t slot = U8(U32(act, 8), k * 0x18);
 			U8(t, 0x2B) = (uint8_t)k;
@@ -499,7 +499,7 @@ namespace resonance
 
 	uint32_t __cdecl rs_821C00(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), a2, 0x368, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PRIM), a2, 0x368, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -601,12 +601,12 @@ namespace resonance
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
@@ -614,7 +614,7 @@ namespace resonance
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = rs_8220B0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = rs_8220B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -623,13 +623,13 @@ namespace resonance
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = us(0x8242E0);
-		states[1] = us(0x8243B0);
-		states[2] = us(0x8248A0);
-		states[3] = us(0x8248E0);
-		states[4] = us(0x824900);
-		states[5] = us(0x824940);
-		states[6] = us(0x824960);
+		states[0] = game_addr(game::MAG_049_Resonance_WarpWait);
+		states[1] = game_addr(game::MAG_049_Resonance_WarpStart);
+		states[2] = game_addr(game::MAG_049_Resonance_WarpRampUp);
+		states[3] = game_addr(game::MAG_049_Resonance_WarpHold);
+		states[4] = game_addr(game::MAG_049_Resonance_WarpRampDown);
+		states[5] = game_addr(game::MAG_049_Resonance_Warp_State5_Finish);
+		states[6] = game_addr(game::MAG_049_Resonance_Warp_State6_Empty);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -648,15 +648,15 @@ namespace resonance
 
 	uint32_t __cdecl rs_824300()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(WARP_PTR)), 0x10);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(WARP_PTR)), 0x10);
 		const uint32_t r0 = x::CrtRand();
-		U16(MEM<uint32_t>(us(WARP_PTR)), 6) = (uint16_t)((r0 & 0x3F) + 0x20);
+		U16(MEM<uint32_t>(game_addr(WARP_PTR)), 6) = (uint16_t)((r0 & 0x3F) + 0x20);
 		const uint32_t r1 = x::CrtRand();
-		U16(MEM<uint32_t>(us(WARP_PTR)), 8) = (uint16_t)(r1 & 0xFFF);
+		U16(MEM<uint32_t>(game_addr(WARP_PTR)), 8) = (uint16_t)(r1 & 0xFFF);
 		const uint32_t r2 = x::CrtRand();
-		U16(MEM<uint32_t>(us(WARP_PTR)), 0xC) = (uint16_t)(r2 & 0xFFF);
-		uint32_t e = us(GRID) + 4;
-		for (uint32_t i = 0; e < us(GRID) + 4 + 88 * 12; i++)
+		U16(MEM<uint32_t>(game_addr(WARP_PTR)), 0xC) = (uint16_t)(r2 & 0xFFF);
+		uint32_t e = game_addr(GRID) + 4;
+		for (uint32_t i = 0; e < game_addr(GRID) + 4 + 88 * 12; i++)
 		{
 			const uint8_t u0 = (uint8_t)(i << 5);
 			const uint8_t u1 = (uint8_t)(u0 + 0x20);
@@ -702,12 +702,12 @@ namespace resonance
 
 	uint32_t __cdecl rs_824410()
 	{
-		const uint32_t k = (uint32_t)(MEM<uint8_t>(us(0x1D96A80)) - 1) & 1;
-		const uint32_t pkt_scene = us(0x26472D8) + (k << 6);
-		const uint32_t pkt_back = us(0x2647820) + (k << 6);
-		const uint32_t env_back = us(0x2646700) + k * 0x5C;
-		const uint32_t env_disp = us(0x1D969C8) + k * 0x5C;
-		const uint32_t env_scene = us(0x2647760) + k * 0x5C;
+		const uint32_t k = (uint32_t)(MEM<uint8_t>(game_addr(game::g_Battle_DisplayParity)) - 1) & 1;
+		const uint32_t pkt_scene = game_addr(game::g_Resonance_DrawEnvScenePkt) + (k << 6);
+		const uint32_t pkt_back = game_addr(game::g_Resonance_DrawEnvBackPkt) + (k << 6);
+		const uint32_t env_back = game_addr(game::g_Resonance_DrawEnvBack) + k * 0x5C;
+		const uint32_t env_disp = game_addr(game::g_Battle_DrawEnv) + k * 0x5C;
+		const uint32_t env_scene = game_addr(game::g_Resonance_DrawEnvScene) + k * 0x5C;
 		ff8fx::copy<(0x5C)>((void *)env_back, (const void *)env_disp);
 		ff8fx::copy<(0x5C)>((void *)env_scene, (const void *)env_disp);
 		U16(env_scene, 0) = 0x240;
@@ -722,9 +722,9 @@ namespace resonance
 		U8(env_scene, 0x1B) = 0;
 		U8(env_back, 0x18) = 0;
 		rx::SetDrawEnv(pkt_scene, env_scene);
-		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(us(0x1D8E04C)) + 0x4484, pkt_scene);
+		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4484, pkt_scene);
 		rx::SetDrawEnv(pkt_back, env_back);
-		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(us(0x1D8E04C)) + 0x14, pkt_back);
+		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x14, pkt_back);
 		return 0;
 	}
 
@@ -747,19 +747,19 @@ namespace resonance
 			uint16_t by = 0;
 			for (uint32_t j = 0; j < 8; j++)
 			{
-				const uint32_t e = us(GRID) + (j + i * 8) * 0xC;
+				const uint32_t e = game_addr(GRID) + (j + i * 8) * 0xC;
 				if (i == 0)
 					U16(e, 0) = 0;
 				else if (i == 0xA)
 					U16(e, 0) = 0x140;
 				else
-					U16(e, 0) = (uint16_t)(U16(us(XWAVE) + (r + j * 2) * 2, 0) + bx);
+					U16(e, 0) = (uint16_t)(U16(game_addr(XWAVE) + (r + j * 2) * 2, 0) + bx);
 				if (j == 0)
 					U16(e, 2) = 0;
 				else if (j == 7)
 					U16(e, 2) = 0xF0;
 				else
-					U16(e, 2) = (uint16_t)(U16(us(YWAVE) + (r + i * 2) * 2, 0) + by);
+					U16(e, 2) = (uint16_t)(U16(game_addr(YWAVE) + (r + i * 2) * 2, 0) + by);
 				by = (uint16_t)(by + 0x20);
 			}
 		}
@@ -769,15 +769,15 @@ namespace resonance
 	uint32_t __cdecl rs_8245B0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
 		(void)a1;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + a2 * 4;
-		uint32_t pkt = MEM<uint32_t>(us(FRAME_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + a2 * 4;
+		uint32_t pkt = MEM<uint32_t>(game_addr(FRAME_CURSOR));
 		const uint8_t code = ((uint16_t)a3 == 1) ? 0x2F : 0x2D;
 		uint16_t tpage = 0x119;
 		for (uint32_t i = 0; i < 0xA; i++)
 		{
 			if (i == 8)
 				tpage = 0x11D;
-			uint32_t e = us(GRID) + i * 0x60 + 6;
+			uint32_t e = game_addr(GRID) + i * 0x60 + 6;
 			for (int j = 0; j < 7; j++)
 			{
 				U8(pkt, 7) = code;
@@ -800,7 +800,7 @@ namespace resonance
 				pkt = mode + 0xC;
 			}
 		}
-		MEM<uint32_t>(us(FRAME_CURSOR)) = pkt;
+		MEM<uint32_t>(game_addr(FRAME_CURSOR)) = pkt;
 		return 0;
 	}
 
@@ -821,8 +821,8 @@ namespace resonance
 			for (uint32_t k = 0; k < 8; k++)
 			{
 				const int32_t s = (int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)ph);
-				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(us(WARP_PTR)), 0));
-				U16(us(XWAVE) + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
+				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(game_addr(WARP_PTR)), 0));
+				U16(game_addr(XWAVE) + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
 				ph = (ph + step) & 0xFFF;
 			}
 		}
@@ -834,8 +834,8 @@ namespace resonance
 			{
 				const int32_t s = (int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)ph);
 				ph = (ph + step) & 0xFFF;
-				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(us(WARP_PTR)), 0));
-				U16(us(YWAVE) + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
+				const int32_t v = mul32(s, (int32_t)S16(MEM<uint32_t>(game_addr(WARP_PTR)), 0));
+				U16(game_addr(YWAVE) + row * 2 + k * 4, 0) = (uint16_t)(add32(v, (v >> 31) & 0x1FFFFF) >> 21);
 			}
 		}
 		return 0;
@@ -843,7 +843,7 @@ namespace resonance
 
 	uint32_t __cdecl rs_8248A0(uint32_t a1)
 	{
-		const uint32_t w = MEM<uint32_t>(us(WARP_PTR));
+		const uint32_t w = MEM<uint32_t>(game_addr(WARP_PTR));
 		U16(w, 0) = (uint16_t)(U16(w, 0) + 0x100);
 		if (S16(w, 0) >= 0x1000)
 		{
@@ -864,7 +864,7 @@ namespace resonance
 
 	uint32_t __cdecl rs_824900(uint32_t a1)
 	{
-		const uint32_t w = MEM<uint32_t>(us(WARP_PTR));
+		const uint32_t w = MEM<uint32_t>(game_addr(WARP_PTR));
 		U16(w, 0) = (uint16_t)(U16(w, 0) - 0x80);
 		if (S16(w, 0) <= 0)
 		{
@@ -956,15 +956,15 @@ namespace resonance
 	uint32_t __cdecl rs_8218C0(uint32_t a1)
 	{
 		rs_8218F0(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x26465B8), us(0x821970), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_049_DirectorQueue), game_addr(game::MAG_049_Resonance_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl rs_8218F0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -974,7 +974,7 @@ namespace resonance
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -982,11 +982,11 @@ namespace resonance
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x821A30);
-		states[1] = us(0x821A80);
-		states[2] = us(0x821AC0);
-		states[3] = us(0x821AF0);
-		states[4] = us(0x821B10);
+		states[0] = game_addr(game::MAG_049_Resonance_Director_State0_WaitDirGate1);
+		states[1] = game_addr(game::MAG_049_Resonance_DirectorWaitCue1);
+		states[2] = game_addr(game::MAG_049_Resonance_DirectorPlaySound);
+		states[3] = game_addr(game::MAG_049_Resonance_DirectorDamageCue);
+		states[4] = game_addr(game::MAG_049_Resonance_Director_State4_Empty);
 		rs_8219E0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -1041,7 +1041,7 @@ namespace resonance
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
 		U16(L, 0x54) = U16(node, 0x86);
 		U32(L, 0x44) = U32(node, 0x7C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -1049,10 +1049,10 @@ namespace resonance
 		U16(L, 0x52) = U16(node, 0x92);
 		U16(L, 0x4E) = U16(node, 0x8E);
 		U16(L, 0x50) = U16(node, 0x90);
-		U32(L, 0x48) = us(BLEND_BUF);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
+		return prim_play(node + 0x94, game_addr(PRIM_CB), L, 0);
 	}
 
 	uint32_t __cdecl rs_8220B0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
@@ -1768,92 +1768,92 @@ namespace resonance
 
 	uint32_t __cdecl rs_824970(uint32_t a1)
 	{
-		const uint32_t tab[6] = { us(0x8249E0), us(0x824A70), us(0x824AE0), us(0x824B00), us(0x824B20), us(0x824B80) };
+		const uint32_t tab[6] = { game_addr(game::MAG_049_Resonance_HitWait), game_addr(game::MAG_049_Resonance_HitWaitReaction), game_addr(game::MAG_049_Resonance_HitWait37), game_addr(game::MAG_049_Resonance_HitWait4B), game_addr(game::MAG_049_Resonance_HitApplyDamage), game_addr(game::MAG_049_Resonance_Hit_State5_Empty) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
 		return task_end(a1, status);
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x8217E0, (void *)a_73A0D0, "049 MAG_049_sub_8217E0" },
-		{ 0x8217F0, (void *)a_73A0D0, "049 MAG_049_sub_8217F0" },
-		{ 0x821810, (void *)a_73A170, "049 MAG_049_sub_821810" },
-		{ 0x821840, (void *)a_73A1A0, "049 MAG_049_sub_821840" },
-		{ 0x821A30, (void *)a_73B790, "049 sub_821A30" },
-		{ 0x821A50, (void *)a_73B640, "049 sub_821A50" },
-		{ 0x821AA0, (void *)a_73B7E0, "049 sub_821AA0" },
-		{ 0x821B10, (void *)a_73A6D0, "049 nullsub_1545" },
-		{ 0x821B20, (void *)a_73A6D0, "049 nullsub_1546" },
-		{ 0x821C50, (void *)a_73A380, "049 sub_821C50" },
-		{ 0x823090, (void *)a_73D770, "049 sub_823090" },
-		{ 0x8232E0, (void *)a_73D9C0, "049 sub_8232E0" },
-		{ 0x824130, (void *)a_73A6D0, "049 nullsub_1547" },
-		{ 0x824140, (void *)a_73A380, "049 sub_824140" },
-		{ 0x824250, (void *)a_73A6D0, "049 nullsub_1548" },
-		{ 0x824940, (void *)a_7475A0, "049 sub_824940" },
-		{ 0x824960, (void *)a_73A6D0, "049 nullsub_1549" },
-		{ 0x824B80, (void *)a_73A6D0, "049 nullsub_1550" },
-		{ 0x824BB0, (void *)a_7474B0, "049 MAG_049_sub_824BB0" },
-		{ 0x824BD0, (void *)a_7474D0, "049 MAG_049_sub_824BD0" },
-		{ 0x824BF0, (void *)a_73A6D0, "049 nullsub_1551" },
-		{ 0x824C00, (void *)a_747500, "049 MAG_049_sub_824C00" },
-		{ 0x824C40, (void *)a_73A0D0, "049 MAG_049_sub_824C40" },
-		{ 0x824C50, (void *)a_747550, "049 MAG_049_sub_824C50" },
-		{ 0x824C60, (void *)a_747560, "049 MAG_049_sub_824C60" },
-		{ 0x824C90, (void *)a_747590, "049 MAG_049_sub_824C90" },
-		{ 0x824CA0, (void *)a_7475A0, "049 MAG_049_sub_824CA0" },
-		{ 0x824CC0, (void *)a_73A6D0, "049 nullsub_1544" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_049_Resonance_Master_State0_Advance, (void *)a_73A0D0, "049 MAG_049_sub_8217E0" },
+		{ game::MAG_049_Resonance_Master_State1_Advance, (void *)a_73A0D0, "049 MAG_049_sub_8217F0" },
+		{ game::MAG_049_Resonance_Master_State3_SpawnEmitter, (void *)a_73A170, "049 MAG_049_sub_821810" },
+		{ game::MAG_049_Resonance_EmitterTask, (void *)a_73A1A0, "049 MAG_049_sub_821840" },
+		{ game::MAG_049_Resonance_Director_State0_WaitDirGate1, (void *)a_73B790, "049 sub_821A30" },
+		{ game::MAG_049_DirSyncGate, (void *)a_73B640, "049 sub_821A50" },
+		{ game::MAG_049_DirPhaseGE, (void *)a_73B7E0, "049 sub_821AA0" },
+		{ game::MAG_049_Resonance_Director_State4_Empty, (void *)a_73A6D0, "049 nullsub_1545" },
+		{ game::MAG_049_St_Empty, (void *)a_73A6D0, "049 nullsub_1546" },
+		{ game::MAG_049_Resonance_PrimTask1, (void *)a_73A380, "049 sub_821C50" },
+		{ game::MAG_049_EmitG3, (void *)a_73D770, "049 sub_823090" },
+		{ game::MAG_049_EmitG4, (void *)a_73D9C0, "049 sub_8232E0" },
+		{ game::MAG_049_Resonance_PrimTask1_State2_Empty, (void *)a_73A6D0, "049 nullsub_1547" },
+		{ game::MAG_049_Resonance_PrimTask2, (void *)a_73A380, "049 sub_824140" },
+		{ game::MAG_049_Resonance_PrimTask2_State2_Empty, (void *)a_73A6D0, "049 nullsub_1548" },
+		{ game::MAG_049_Resonance_Warp_State5_Finish, (void *)a_7475A0, "049 sub_824940" },
+		{ game::MAG_049_Resonance_Warp_State6_Empty, (void *)a_73A6D0, "049 nullsub_1549" },
+		{ game::MAG_049_Resonance_Hit_State5_Empty, (void *)a_73A6D0, "049 nullsub_1550" },
+		{ game::MAG_049_Resonance_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "049 MAG_049_sub_824BB0" },
+		{ game::MAG_049_Resonance_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "049 MAG_049_sub_824BD0" },
+		{ game::MAG_049_Resonance_Emitter_State4_Empty, (void *)a_73A6D0, "049 nullsub_1551" },
+		{ game::MAG_049_Resonance_Master_State4_NextTargetLoop, (void *)a_747500, "049 MAG_049_sub_824C00" },
+		{ game::MAG_049_Resonance_Master_State5_Advance, (void *)a_73A0D0, "049 MAG_049_sub_824C40" },
+		{ game::MAG_049_Resonance_Master_State6_WaitQueuesEmpty, (void *)a_747550, "049 MAG_049_sub_824C50" },
+		{ game::MAG_049_Resonance_Master_State7_RequestBattleSync, (void *)a_747560, "049 MAG_049_sub_824C60" },
+		{ game::MAG_049_Resonance_Master_State8_WaitBattleSyncDone, (void *)a_747590, "049 MAG_049_sub_824C90" },
+		{ game::MAG_049_Resonance_Master_State9_Finish, (void *)a_7475A0, "049 MAG_049_sub_824CA0" },
+		{ game::MAG_049_Resonance_Master_State10_Empty, (void *)a_73A6D0, "049 nullsub_1544" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x821690, (void *)rs_821690, "049 rs_821690" },
-		{ 0x821800, (void *)rs_821800, "049 rs_821800" },
-		{ 0x8218C0, (void *)rs_8218C0, "049 rs_8218C0" },
-		{ 0x8218F0, (void *)rs_8218F0, "049 rs_8218F0" },
-		{ 0x821970, (void *)rs_821970, "049 rs_821970" },
-		{ 0x8219E0, (void *)rs_8219E0, "049 rs_8219E0" },
-		{ 0x821A80, (void *)rs_821A80, "049 rs_821A80" },
-		{ 0x821AC0, (void *)rs_821AC0, "049 rs_821AC0" },
-		{ 0x821AF0, (void *)rs_821AF0, "049 rs_821AF0" },
-		{ 0x821B30, (void *)rs_821B30, "049 rs_821B30" },
-		{ 0x821C00, (void *)rs_821C00, "049 rs_821C00" },
-		{ 0x821CB0, (void *)rs_821CB0, "049 rs_821CB0" },
-		{ 0x821D40, (void *)rs_821D40, "049 rs_821D40" },
-		{ 0x821E70, (void *)rs_821E70, "049 rs_821E70" },
-		{ 0x8220B0, (void *)rs_8220B0, "049 rs_8220B0" },
-		{ 0x8221E0, (void *)rs_8221E0, "049 rs_8221E0" },
-		{ 0x822400, (void *)rs_822400, "049 rs_822400" },
-		{ 0x822690, (void *)rs_822690, "049 rs_822690" },
-		{ 0x822B10, (void *)rs_822B10, "049 rs_822B10" },
-		{ 0x8235C0, (void *)rs_8235C0, "049 rs_8235C0" },
-		{ 0x823AC0, (void *)rs_823AC0, "049 rs_823AC0" },
-		{ 0x824110, (void *)rs_824110, "049 rs_824110" },
-		{ 0x8241A0, (void *)rs_8241A0, "049 rs_8241A0" },
-		{ 0x824230, (void *)rs_824230, "049 rs_824230" },
-		{ 0x824260, (void *)rs_824260, "049 rs_824260" },
-		{ 0x8242E0, (void *)rs_8242E0, "049 rs_8242E0" },
-		{ 0x824300, (void *)rs_824300, "049 rs_824300" },
-		{ 0x8243B0, (void *)rs_8243B0, "049 rs_8243B0" },
-		{ 0x824410, (void *)rs_824410, "049 rs_824410" },
-		{ 0x8244E0, (void *)rs_8244E0, "049 rs_8244E0" },
-		{ 0x824520, (void *)rs_824520, "049 rs_824520" },
-		{ 0x8245B0, (void *)rs_8245B0, "049 rs_8245B0" },
-		{ 0x8246D0, (void *)rs_8246D0, "049 rs_8246D0" },
-		{ 0x8248A0, (void *)rs_8248A0, "049 rs_8248A0" },
-		{ 0x8248E0, (void *)rs_8248E0, "049 rs_8248E0" },
-		{ 0x824900, (void *)rs_824900, "049 rs_824900" },
-		{ 0x824970, (void *)rs_824970, "049 rs_824970" },
-		{ 0x8249E0, (void *)rs_8249E0, "049 rs_8249E0" },
-		{ 0x824A10, (void *)rs_824A10, "049 rs_824A10" },
-		{ 0x824A70, (void *)rs_824A70, "049 rs_824A70" },
-		{ 0x824AB0, (void *)rs_824AB0, "049 rs_824AB0" },
-		{ 0x824AE0, (void *)rs_824AE0, "049 rs_824AE0" },
-		{ 0x824B00, (void *)rs_824B00, "049 rs_824B00" },
-		{ 0x824B20, (void *)rs_824B20, "049 rs_824B20" },
-		{ 0x824B90, (void *)rs_824B90, "049 rs_824B90" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_049_Resonance_MasterTask, (void *)rs_821690, "049 rs_821690" },
+		{ game::MAG_049_Resonance_MasterWaitChildren, (void *)rs_821800, "049 rs_821800" },
+		{ game::MAG_049_Resonance_EmitterSetup, (void *)rs_8218C0, "049 rs_8218C0" },
+		{ game::MAG_049_Resonance_InitDirectorBlock, (void *)rs_8218F0, "049 rs_8218F0" },
+		{ game::MAG_049_Resonance_DirectorTask, (void *)rs_821970, "049 rs_821970" },
+		{ game::MAG_049_Resonance_DirectorPhaseStep, (void *)rs_8219E0, "049 rs_8219E0" },
+		{ game::MAG_049_Resonance_DirectorWaitCue1, (void *)rs_821A80, "049 rs_821A80" },
+		{ game::MAG_049_Resonance_DirectorPlaySound, (void *)rs_821AC0, "049 rs_821AC0" },
+		{ game::MAG_049_Resonance_DirectorDamageCue, (void *)rs_821AF0, "049 rs_821AF0" },
+		{ game::MAG_049_Resonance_SpawnPhaseTasks, (void *)rs_821B30, "049 rs_821B30" },
+		{ game::MAG_049_Resonance_SpawnPrimTask, (void *)rs_821C00, "049 rs_821C00" },
+		{ game::MAG_049_Resonance_PrimTask1_Place, (void *)rs_821CB0, "049 rs_821CB0" },
+		{ game::MAG_049_Resonance_PrimPlay, (void *)rs_821D40, "049 rs_821D40" },
+		{ game::MAG_049_Resonance_PrimDrawCallback, (void *)rs_821E70, "049 rs_821E70" },
+		{ game::MAG_049_Resonance_RenderPrimLists, (void *)rs_8220B0, "049 rs_8220B0" },
+		{ game::MAG_049_PrimList_FlatTri, (void *)rs_8221E0, "049 rs_8221E0" },
+		{ game::MAG_049_PrimList_FlatQuad, (void *)rs_822400, "049 rs_822400" },
+		{ game::MAG_049_PrimList_TexTri, (void *)rs_822690, "049 rs_822690" },
+		{ game::MAG_049_PrimList_TexQuad, (void *)rs_822B10, "049 rs_822B10" },
+		{ game::MAG_049_PrimList_GT3Scroll, (void *)rs_8235C0, "049 rs_8235C0" },
+		{ game::MAG_049_PrimList_GT4, (void *)rs_823AC0, "049 rs_823AC0" },
+		{ game::MAG_049_Resonance_PrimTask1_Play, (void *)rs_824110, "049 rs_824110" },
+		{ game::MAG_049_Resonance_PrimTask2_Place, (void *)rs_8241A0, "049 rs_8241A0" },
+		{ game::MAG_049_Resonance_PrimTask2_Play, (void *)rs_824230, "049 rs_824230" },
+		{ game::MAG_049_Resonance_WarpTask, (void *)rs_824260, "049 rs_824260" },
+		{ game::MAG_049_Resonance_WarpWait, (void *)rs_8242E0, "049 rs_8242E0" },
+		{ game::MAG_049_Resonance_WarpInit, (void *)rs_824300, "049 rs_824300" },
+		{ game::MAG_049_Resonance_WarpStart, (void *)rs_8243B0, "049 rs_8243B0" },
+		{ game::MAG_049_Resonance_WarpSetDrawEnvs, (void *)rs_824410, "049 rs_824410" },
+		{ game::MAG_049_Resonance_WarpDraw, (void *)rs_8244E0, "049 rs_8244E0" },
+		{ game::MAG_049_Resonance_WarpBuildGrid, (void *)rs_824520, "049 rs_824520" },
+		{ game::MAG_049_Resonance_WarpDrawQuads, (void *)rs_8245B0, "049 rs_8245B0" },
+		{ game::MAG_049_Resonance_WarpStepWaves, (void *)rs_8246D0, "049 rs_8246D0" },
+		{ game::MAG_049_Resonance_WarpRampUp, (void *)rs_8248A0, "049 rs_8248A0" },
+		{ game::MAG_049_Resonance_WarpHold, (void *)rs_8248E0, "049 rs_8248E0" },
+		{ game::MAG_049_Resonance_WarpRampDown, (void *)rs_824900, "049 rs_824900" },
+		{ game::MAG_049_Resonance_HitTask, (void *)rs_824970, "049 rs_824970" },
+		{ game::MAG_049_Resonance_HitWait, (void *)rs_8249E0, "049 rs_8249E0" },
+		{ game::MAG_049_Resonance_HitPlayReaction, (void *)rs_824A10, "049 rs_824A10" },
+		{ game::MAG_049_Resonance_HitWaitReaction, (void *)rs_824A70, "049 rs_824A70" },
+		{ game::MAG_049_Resonance_HitPlayAnim6, (void *)rs_824AB0, "049 rs_824AB0" },
+		{ game::MAG_049_Resonance_HitWait37, (void *)rs_824AE0, "049 rs_824AE0" },
+		{ game::MAG_049_Resonance_HitWait4B, (void *)rs_824B00, "049 rs_824B00" },
+		{ game::MAG_049_Resonance_HitApplyDamage, (void *)rs_824B20, "049 rs_824B20" },
+		{ game::MAG_049_Resonance_EmitterWaitDamageCue, (void *)rs_824B90, "049 rs_824B90" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

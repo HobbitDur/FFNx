@@ -24,65 +24,65 @@ namespace act
 {
 namespace hipotion
 {
-	static const Mod MOD_051 = { "hipotion", 51, 0x81C7E0, 0x81F9F0,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26315E8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x81C9E0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x81D070, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_051 = { "hipotion", 51, game::MAG_051_HIPOTION_FL, game::MAG_050_POTION_POTION_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_051_HIPOTION_EmitterQueue, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_051_HIPOTION_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_051_HIPOTION_StepCounterLimit, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x2619F54;
-	static const uint32_t FRAME_CURSOR = 0x1D8E054;
-	static const uint32_t Q_EMITTER = 0x26315E8;
-	static const uint32_t Q_PLAYER = 0x2631760;
-	static const uint32_t Q_SPRITE = 0x262B1C8;
-	static const uint32_t ARENA_EVEN = 0x2631758, ARENA_ODD = 0x263175C;
-	static const uint32_t BLEND_BUFFER = 0x26349A8;
-	static const uint32_t OVL_STATE = 0x26349C0;
-	static const uint32_t OVL_LIGHT = 0x2634970;
-	static const uint32_t OVL_FIRST = 0x2619F58;
-	static const uint32_t LIT_VERTICES = 0x262B1E8;
-	static const uint32_t LIGHT_WORDS = 0x1D98992;
-	static const uint32_t TAB_RINGS = 0x15ACCB4, TAB_SPARKLES = 0x15ACCF0, TAB_PARTICLES = 0x15ACD2C;
-	static const uint32_t LAYOUT_Aura = 0x15AB250, LAYOUT_Ring = 0x15AAF7C;
-	static const uint32_t SEQ_Glow = 0x15A9F78, SEQ_Swirl = 0x15A9FEC, SEQ_SwirlEnd = 0x15AA040, SEQ_Mote = 0x15AA104;
-	static const uint32_t SEQ_SparkleA = 0x15A9DCC, SEQ_SparkleA2 = 0x15AA3DC, SEQ_SparkleB = 0x15AA230, SEQ_SparkleB2 = 0x15AA588;
-	static const uint32_t SOUND_HiPotion = 0x15A9DC8;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_051_HIPOTION_PacketCursor;
+	static constexpr game::Id FRAME_CURSOR = game::BATTLE_PACKET_WRITE_CURSOR;
+	static constexpr game::Id Q_EMITTER = game::MAG_051_HIPOTION_EmitterQueue;
+	static constexpr game::Id Q_PLAYER = game::MAG_051_HIPOTION_PlayerQueue;
+	static constexpr game::Id Q_SPRITE = game::MAG_051_HIPOTION_SpriteQueue;
+	static constexpr game::Id ARENA_EVEN = game::MAG_051_HIPOTION_ArenaEven, ARENA_ODD = game::MAG_051_HIPOTION_ArenaOdd;
+	static constexpr game::Id BLEND_BUFFER = game::MAG_051_HIPOTION_BlendBufferPtr;
+	static constexpr game::Id OVL_STATE = game::MAG_051_HIPOTION_OverlayState;
+	static constexpr game::Id OVL_LIGHT = game::MAG_051_HIPOTION_OverlayLight;
+	static constexpr game::Id OVL_FIRST = game::MAG_051_HIPOTION_OverlayFirstWord;
+	static constexpr game::Id LIT_VERTICES = game::MAG_051_HIPOTION_OverlayLitVertices;
+	static constexpr game::Id LIGHT_WORDS = game::unk_1D98992;
+	static constexpr game::Id TAB_RINGS = game::MAG_051_HIPOTION_TabRings, TAB_SPARKLES = game::MAG_051_HIPOTION_TabSparkles, TAB_PARTICLES = game::MAG_051_HIPOTION_TabParticles;
+	static constexpr game::Id LAYOUT_Aura = game::MAG_051_HIPOTION_LayoutAura, LAYOUT_Ring = game::MAG_051_HIPOTION_LayoutRing;
+	static constexpr game::Id SEQ_Glow = game::MAG_051_HIPOTION_SeqGlow, SEQ_Swirl = game::MAG_051_HIPOTION_SeqSwirl, SEQ_SwirlEnd = game::MAG_051_HIPOTION_SeqSwirlEnd, SEQ_Mote = game::MAG_051_HIPOTION_SeqMote;
+	static constexpr game::Id SEQ_SparkleA = game::MAG_051_HIPOTION_SeqSparkleA, SEQ_SparkleA2 = game::MAG_051_HIPOTION_SeqSparkleA2, SEQ_SparkleB = game::MAG_051_HIPOTION_SeqSparkleB, SEQ_SparkleB2 = game::MAG_051_HIPOTION_SeqSparkleB2;
+	static constexpr game::Id SOUND_HiPotion = game::MAG_051_HIPOTION_SoundCtx;
 
-	static const uint32_t ORIG_Master = 0x81C8E0;
-	static const uint32_t ORIG_Emitter = 0x81C9E0;
-	static const uint32_t ORIG_Glow = 0x81CB10;
-	static const uint32_t ORIG_Swirl = 0x81CD70;
-	static const uint32_t ORIG_Mote = 0x81CF80;
-	static const uint32_t ORIG_Aura = 0x81D1E0;
-	static const uint32_t ORIG_LightTask = 0x81DE70;
-	static const uint32_t ORIG_RingSpawner = 0x81DFD0;
-	static const uint32_t ORIG_Ring = 0x81E130;
-	static const uint32_t ORIG_SparkleSpawner = 0x81E2B0;
-	static const uint32_t ORIG_Sparkle = 0x81E3F0;
-	static const uint32_t ORIG_Overlay = 0x81E670;
-	static const uint32_t ORIG_ParticleEmitter = 0x81F710;
-	static const uint32_t ORIG_Particle = 0x81F840;
-	static const uint32_t ORIG_DrawCallback = 0x81DA30;
+	static constexpr game::Id ORIG_Master = game::MAG_051_HIPOTION_Tick;
+	static constexpr game::Id ORIG_Emitter = game::MAG_051_HIPOTION_EmitterTask;
+	static constexpr game::Id ORIG_Glow = game::MAG_051_HIPOTION_Glow_Tick;
+	static constexpr game::Id ORIG_Swirl = game::MAG_051_HIPOTION_Swirl_Tick;
+	static constexpr game::Id ORIG_Mote = game::MAG_051_HIPOTION_Mote_Tick;
+	static constexpr game::Id ORIG_Aura = game::MAG_051_HIPOTION_AuraTask;
+	static constexpr game::Id ORIG_LightTask = game::MAG_051_HIPOTION_LightTask;
+	static constexpr game::Id ORIG_RingSpawner = game::MAG_051_HIPOTION_RingSpawner;
+	static constexpr game::Id ORIG_Ring = game::MAG_051_HIPOTION_Ring_Tick;
+	static constexpr game::Id ORIG_SparkleSpawner = game::MAG_051_HIPOTION_SparkleSpawner;
+	static constexpr game::Id ORIG_Sparkle = game::MAG_051_HIPOTION_Sparkle_Tick;
+	static constexpr game::Id ORIG_Overlay = game::MAG_051_HIPOTION_Overlay_Tick;
+	static constexpr game::Id ORIG_ParticleEmitter = game::MAG_051_HIPOTION_ParticleEmitter_Tick;
+	static constexpr game::Id ORIG_Particle = game::MAG_051_HIPOTION_Particle_Tick;
+	static constexpr game::Id ORIG_DrawCallback = game::MAG_051_HIPOTION_PrimDrawCallback;
 
 	namespace cx
 	{
-		inline uint32_t CopyAnchorFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC6E0))(node, out); }
-		inline uint32_t CopyMidpointFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC700))(node, out); }
-		inline uint32_t BoundsBaseY(uint32_t node) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DCAF0))(node); }
-		inline uint32_t BuildMatrixFromDirAndUp(uint32_t out, uint32_t dir, uint32_t up) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDA50))(out, dir, up); }
-		inline uint32_t NormalizeVec3(uint32_t in, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BD20))(in, out); }
-		inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t a, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(pos, a, b); }
-		inline uint32_t InitEffectSequenceFromData(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(h, ot, mode, cursor); }
-		inline uint32_t BattleReadAnimation(uint32_t hdr, uint32_t cmd) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x508F90))(hdr, cmd); }
-		inline uint32_t PreBattleReadAnimation(uint32_t hdr, uint32_t cmd, uint32_t anim) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x509440))(hdr, cmd, anim); }
-		inline uint32_t GteSetLightMatrix(uint32_t m) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(m); }
-		inline uint32_t GteSetBackgroundVector(uint32_t r, uint32_t g, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(r, g, b); }
-		inline uint32_t GteMVMVA_LightV0Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		inline uint32_t GteStoreSXY012_PolyGT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E300))(p); }
-		inline uint32_t GteStoreSXY012_PolyFT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2E0))(p); }
-		inline uint32_t GteStoreSXY012_PolyFT3_2(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E320))(p); }
-		inline uint32_t GteReadSXY012(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2A0))(p); }
-		inline uint32_t GteLoadIR123(uint32_t v) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(v); }
-		inline uint32_t GteGPF() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		inline uint32_t GteGPL() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		inline uint32_t CopyAnchorFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Effect_CopyAnchorXZFromSource))(node, out); }
+		inline uint32_t CopyMidpointFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Effect_CopyMidpointFromSource))(node, out); }
+		inline uint32_t BoundsBaseY(uint32_t node) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::sub_8DCAF0))(node); }
+		inline uint32_t BuildMatrixFromDirAndUp(uint32_t out, uint32_t dir, uint32_t up) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::Effect_BuildMatrixFromDirAndUp))(out, dir, up); }
+		inline uint32_t NormalizeVec3(uint32_t in, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Math_NormalizeVec3_Q12))(in, out); }
+		inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t a, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(pos, a, b); }
+		inline uint32_t InitEffectSequenceFromData(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(h, ot, mode, cursor); }
+		inline uint32_t BattleReadAnimation(uint32_t hdr, uint32_t cmd) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Battle_ReadAnimation))(hdr, cmd); }
+		inline uint32_t PreBattleReadAnimation(uint32_t hdr, uint32_t cmd, uint32_t anim) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::pre_Battle_ReadAnimation))(hdr, cmd, anim); }
+		inline uint32_t GteSetLightMatrix(uint32_t m) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(m); }
+		inline uint32_t GteSetBackgroundVector(uint32_t r, uint32_t g, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(r, g, b); }
+		inline uint32_t GteMVMVA_LightV0Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		inline uint32_t GteStoreSXY012_PolyGT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyGT3))(p); }
+		inline uint32_t GteStoreSXY012_PolyFT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyFT3))(p); }
+		inline uint32_t GteStoreSXY012_PolyFT3_2(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyFT3_2))(p); }
+		inline uint32_t GteReadSXY012(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSXY012))(p); }
+		inline uint32_t GteLoadIR123(uint32_t v) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(v); }
+		inline uint32_t GteGPF() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		inline uint32_t GteGPL() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
@@ -95,7 +95,7 @@ namespace hipotion
 		return 0;
 	}
 
-	static inline uint32_t RenderOT44() { return MEM<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	static inline uint32_t RenderOT44() { return MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
 	static inline uint32_t ArgSlotColour(uint32_t node, uint8_t c)
 	{
@@ -133,7 +133,7 @@ namespace hipotion
 		U32(h, 0) = U32(node, 0x4C);
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -147,7 +147,7 @@ namespace hipotion
 		m.t[0] = S16(node, 0x1C);
 		m.t[1] = 0;
 		m.t[2] = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), P(&m), P(&m));
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), P(&m), P(&m));
 		x::GTE_SetRotMatrix_W(P(&m));
 		x::GTE_SetTransVector_W(P(&m));
 		const uint32_t h = x::Field_Alloc(0xB4);
@@ -155,7 +155,7 @@ namespace hipotion
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 4;
 		U32(h, 0x1C) = U32(colour, 0);
-		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -173,7 +173,7 @@ namespace hipotion
 		m.t[0] = S16(node, 0x1C);
 		m.t[1] = 0;
 		m.t[2] = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), P(&m), P(&m));
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), P(&m), P(&m));
 		x::GTE_SetRotMatrix_W(P(&m));
 		x::GTE_SetTransVector_W(P(&m));
 		const uint32_t h = x::Field_Alloc(0xB4);
@@ -181,7 +181,7 @@ namespace hipotion
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 4;
 		U32(h, 0x1C) = U32(colour, 0);
-		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -377,7 +377,7 @@ namespace hipotion
 		}
 		if (U32(fp, 0) & 0x20000000)
 			ScrollModelV(U32(h, 0), S16(U32(blk, 0xC), index * 2));
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::Effect_RenderPrimModel(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::Effect_RenderPrimModel(h, RenderOT44(), 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 	}
 
@@ -387,8 +387,8 @@ namespace hipotion
 		U32(st, 0) = first;
 		U16(st, 0xDA) = (uint16_t)slot;
 		U32(st, 4) = light;
-		U32(st, 0xC) = us(FRAME_CURSOR);
-		U32(st, 0x10) = us(PACKET_CURSOR);
+		U32(st, 0xC) = game_addr(FRAME_CURSOR);
+		U32(st, 0x10) = game_addr(PACKET_CURSOR);
 		U16(st, 0xB4) = 0;
 		U16(st, 0xB6) = 0;
 		U16(st, 0xB8) = 0;
@@ -590,7 +590,7 @@ namespace hipotion
 				U32(h, 0x94) = U16(rec, 0) & 0xFFF;
 				x::GTE_LoadV012(vtx(U32(h, 0x94)), vtx(U32(h, 0x98)), vtx(U32(h, 0x9C)));
 				x::GTE_RTPT();
-				const uint32_t sz1 = MEM<uint32_t>(us(0x1CA8A54)), sz2 = MEM<uint32_t>(us(0x1CA8A58)), sz3 = MEM<uint32_t>(us(0x1CA8A5C));
+				const uint32_t sz1 = MEM<uint32_t>(game_addr(game::GTE_SZ1)), sz2 = MEM<uint32_t>(game_addr(game::GTE_SZ2)), sz3 = MEM<uint32_t>(game_addr(game::GTE_SZ3));
 				x::GTE_NCLIP();
 				x::GTE_ReadMAC0(h + 0x8C);
 				if (S32(h, 0x8C) <= 0)
@@ -662,7 +662,7 @@ namespace hipotion
 				U32(h, 0x94) = U16(rec, 0) & 0xFFF;
 				x::GTE_LoadV012(vtx(U32(h, 0x94)), vtx(U32(h, 0x98)), vtx(U32(h, 0x9C)));
 				x::GTE_RTPT();
-				const uint32_t sz1 = MEM<uint32_t>(us(0x1CA8A54)), sz2 = MEM<uint32_t>(us(0x1CA8A58)), sz3 = MEM<uint32_t>(us(0x1CA8A5C));
+				const uint32_t sz1 = MEM<uint32_t>(game_addr(game::GTE_SZ1)), sz2 = MEM<uint32_t>(game_addr(game::GTE_SZ2)), sz3 = MEM<uint32_t>(game_addr(game::GTE_SZ3));
 				x::GTE_NCLIP();
 				x::GTE_ReadMAC0(h + 0x8C);
 				if (S32(h, 0x8C) <= 0)
@@ -672,7 +672,7 @@ namespace hipotion
 				U32(h, 0xA0) = U16(rec, 6) & 0xFFF;
 				x::GTE_LoadV0(vtx(U32(h, 0xA0)));
 				x::GTE_RTPS();
-				const uint32_t sz4 = MEM<uint32_t>(us(0x1CA8A5C));
+				const uint32_t sz4 = MEM<uint32_t>(game_addr(game::GTE_SZ3));
 				x::GTE_ReadSXY2(pk + 0x2C);
 				x::GTE_ReadSXY2(ft + 0x20);
 				x::GTE_AVSZ4();
@@ -761,9 +761,9 @@ namespace hipotion
 			if (r != 0)
 				cx::PreBattleReadAnimation(anim, cmd, (r & 0xFFFF0000u) | U16(st, 0xD8));
 		}
-		x::ComposeAffineTransform(us(0x1D97778), st + 0x14, st + 0x34);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), st + 0x14, st + 0x34);
 		if ((U8(entity, 0) & 0x20) == 0)
-			U32(U32(st, 0xC), 0) = x::sub_5088A0(entity, MEM<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, U32(U32(st, 0xC), 0));
+			U32(U32(st, 0xC), 0) = x::sub_5088A0(entity, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4040, 0x10, U32(U32(st, 0xC), 0));
 		OverlayLight(st);
 		RenderModel(U32(entity, 0x64), RenderOT44(), st);
 		const uint32_t second = U32(entity, 0x78);
@@ -778,20 +778,20 @@ namespace hipotion
 		g_mod = &MOD_051;
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x81C9A0);
-		states[1] = us(0x81C9B0);
-		states[2] = us(0x81F990);
-		states[3] = us(0x81F9C0);
-		states[4] = us(0x81F9E0);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Root_State0_Advance);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Root_State1_SpawnEmitter);
+		states[2] = game_addr(game::MAG_051_HIPOTION_State2_NextActionLoop);
+		states[3] = game_addr(game::MAG_051_HIPOTION_Root_State3_WaitQueues);
+		states[4] = game_addr(game::MAG_051_HIPOTION_Root_State4_Empty);
 		if (U8(node, 0x5C) & 1)
-			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = MEM<uint32_t>(game_addr(ARENA_ODD));
 		else
-			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = MEM<uint32_t>(game_addr(ARENA_EVEN));
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PLAYER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPRITE)));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_PLAYER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_SPRITE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -828,18 +828,18 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = us(0x81CA80);
-		states[1] = us(0x81E620);
-		states[2] = us(0x81F680);
-		states[3] = us(0x81F6B0);
-		states[4] = us(0x81F6E0);
-		states[5] = us(0x81F940);
-		states[6] = us(0x81F980);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Emitter_State0_SpawnGlow);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Emitter_State1_SpawnOverlay);
+		states[2] = game_addr(game::MAG_051_HIPOTION_Emitter_State2_SpawnAuraC00);
+		states[3] = game_addr(game::MAG_051_HIPOTION_Emitter_State3_SpawnAuraE00);
+		states[4] = game_addr(game::MAG_051_HIPOTION_Emitter_State4_SpawnParticleEmitter);
+		states[5] = game_addr(game::MAG_051_HIPOTION_Emitter_State5_Heal);
+		states[6] = game_addr(game::MAG_051_HIPOTION_Emitter_State6_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(us(SOUND_HiPotion), 0, 0x80);
+			x::BdPlaySE(game_addr(SOUND_HiPotion), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -847,35 +847,35 @@ namespace hipotion
 
 	static uint32_t __cdecl SpawnFirst(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Glow), 0x84, a1);
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Glow), 0x84, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_RingSpawner), 0xC8, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_SparkleSpawner), 0xC8, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_LightTask), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_RingSpawner), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_SparkleSpawner), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_LightTask), 0xC8, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	static uint32_t __cdecl SpawnOverlay(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0x800;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Overlay), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Overlay), 0xC8, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	static uint32_t __cdecl SpawnAuraC00(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0xC00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 	static uint32_t __cdecl SpawnAuraE00(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0xE00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -885,7 +885,7 @@ namespace hipotion
 	{
 		if (S16(a1, 0x24) > 0xB)
 		{
-			x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_ParticleEmitter), 0xC8, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_ParticleEmitter), 0xC8, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return a1;
@@ -908,9 +908,9 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x81CCD0);
-		states[1] = us(0x81D1B0);
-		states[2] = us(0x81D1D0);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Glow_State0_SpawnSwirl);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Glow_State1_CounterFinish);
+		states[2] = game_addr(game::MAG_051_HIPOTION_Glow_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		DrawSprite(node);
 		const uint32_t colour = ArgSlotColour(node, 0x20);
@@ -925,12 +925,12 @@ namespace hipotion
 		const uint32_t node = a1;
 		cx::CopyAnchorFromSource(node, node + 0x1C);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFA00);
-		U32(node, 0x4C) = us(SEQ_Glow);
+		U32(node, 0x4C) = game_addr(SEQ_Glow);
 		U16(node, 0x52) = 3;
 		uint32_t angle = x::CrtRand() & 0xFFF;
 		for (int i = 8; i != 0; i--)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Swirl), 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Swirl), 0x84, node);
 			S32(t, 0x30) = 0x1000;
 			S32(t, 0x34) = 0x1000;
 			S32(t, 0x38) = 0x1000;
@@ -946,10 +946,10 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x81D0B0);
-		states[1] = us(0x81D120);
-		states[2] = us(0x81D180);
-		states[3] = us(0x81D1A0);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Swirl_State0_Start);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Swirl_State1_Loop);
+		states[2] = game_addr(game::MAG_051_HIPOTION_Swirl_State2_CounterFinish);
+		states[3] = game_addr(game::MAG_051_HIPOTION_Swirl_State3_Empty);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x7C) = (uint16_t)(U16(node, 0x7C) + U16(node, 0x7E));
 		if (S16(node, 0x7C) < 0)
@@ -965,7 +965,7 @@ namespace hipotion
 		U16(node, 0x1C) = xw;
 		if ((U8(node, 0x26) & 0x10) == 0 && (U8(node, 0x24) & 1) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Mote), 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Mote), 0x84, node);
 			RandomOffset(t, 0x80);
 			U16(t, 0x1E) = U16(node, 0x1E);
 			S32(t, 0x30) = 0x1000;
@@ -989,7 +989,7 @@ namespace hipotion
 		const uint32_t w20 = U32(node, 0x20);
 		U16(node, 0x78) = (uint16_t)(r1 & 0xFFF);
 		const uint32_t w1c = U32(node, 0x1C);
-		U32(node, 0x4C) = us(SEQ_Swirl);
+		U32(node, 0x4C) = game_addr(SEQ_Swirl);
 		U32(node, 0x68) = w1c;
 		U32(node, 0x6C) = w20;
 		U16(node, 0x52) = 1;
@@ -1012,7 +1012,7 @@ namespace hipotion
 		if (S16(node, 0x24) >= 0x10)
 		{
 			U16(node, 0x26) |= 0x10;
-			U32(node, 0x4C) = us(SEQ_SwirlEnd);
+			U32(node, 0x4C) = game_addr(SEQ_SwirlEnd);
 			U16(node, 0x50) = 0;
 			U16(node, 0x52) = 6;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -1024,9 +1024,9 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x81CFF0);
-		states[1] = us(0x81D030);
-		states[2] = us(0x81D0A0);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Mote_State0_Start);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Mote_State1_Fall);
+		states[2] = game_addr(game::MAG_051_HIPOTION_Mote_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if (S16(node, 0x1E) > 0)
 			U8(node, 0x26) |= 5;
@@ -1039,7 +1039,7 @@ namespace hipotion
 	static uint32_t __cdecl MoteStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = us(SEQ_Mote);
+		U32(node, 0x4C) = game_addr(SEQ_Mote);
 		U16(node, 0x50) = 0;
 		U16(node, 0x52) = 0xA;
 		const uint32_t r = x::CrtRand();
@@ -1069,7 +1069,7 @@ namespace hipotion
 		S32(a1, 0x30) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x38) = 0x1000;
-		DecodeLayout(us(LAYOUT_Aura), a1 + 0x60, 0x64);
+		DecodeLayout(game_addr(LAYOUT_Aura), a1 + 0x60, 0x64);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1078,7 +1078,7 @@ namespace hipotion
 	{
 		U32(fr, FR_BLOCK) = fr + FR_MATRIX;
 		U32(fr, FR_BLOCK + 4) = fr + FR_FLAGS;
-		U32(fr, FR_BLOCK + 8) = MEM<uint32_t>(us(BLEND_BUFFER));
+		U32(fr, FR_BLOCK + 8) = MEM<uint32_t>(game_addr(BLEND_BUFFER));
 	}
 
 	static uint32_t __cdecl AuraPlay(uint32_t a1)
@@ -1095,7 +1095,7 @@ namespace hipotion
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		FrameLinks(fr);
 		const int left = prim::play((prim::Layout *)(node + 0x60), DrawCallback, (int)(fr + FR_BLOCK), 0);
 		if (left == 0)
@@ -1111,11 +1111,11 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		int32_t i = 0;
-		if (S16(us(TAB_RINGS), S16(node, 0x24) * 2) > 0)
+		if (S16(game_addr(TAB_RINGS), S16(node, 0x24) * 2) > 0)
 		{
 			do
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Ring), 0xC8, node);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Ring), 0xC8, node);
 				S32(t, 0x30) = 0x1000;
 				S32(t, 0x34) = 0x1000;
 				S32(t, 0x38) = 0x1000;
@@ -1128,7 +1128,7 @@ namespace hipotion
 				if (x::CrtRand() & 1)
 					U16(t, 0x5C) = (uint16_t)(0x1000 - U16(t, 0x5C));
 				i++;
-			} while (i < S16(us(TAB_RINGS), S16(node, 0x24) * 2));
+			} while (i < S16(game_addr(TAB_RINGS), S16(node, 0x24) * 2));
 		}
 		if (S16(node, 0x24) >= 0x12)
 		{
@@ -1149,9 +1149,9 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x81E1B0);
-		states[1] = us(0x81E1E0);
-		states[2] = us(0x81E290);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Ring_State0_Start);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Ring_State1_Play);
+		states[2] = game_addr(game::MAG_051_HIPOTION_Ring_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t a50 = (uint16_t)(U16(node, 0x58) + U16(node, 0x50));
 		const uint16_t a54 = (uint16_t)(U16(node, 0x5C) + U16(node, 0x54));
@@ -1164,7 +1164,7 @@ namespace hipotion
 
 	static uint32_t __cdecl RingStart(uint32_t a1)
 	{
-		DecodeLayout(us(LAYOUT_Ring), a1 + 0x60, 0x34);
+		DecodeLayout(game_addr(LAYOUT_Ring), a1 + 0x60, 0x34);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1182,7 +1182,7 @@ namespace hipotion
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		FrameLinks(fr);
 		const int left = prim::play((prim::Layout *)(node + 0x60), DrawCallback, (int)(fr + FR_BLOCK), 0);
 		if (left == 0)
@@ -1209,9 +1209,9 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(us(TAB_SPARKLES), S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(game_addr(TAB_SPARKLES), S16(node, 0x24) * 2); i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Sparkle), 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Sparkle), 0x84, node);
 			RandomOffset(t, 0x200);
 			U16(t, 0x1E) = U16(node, 0x1E);
 			S32(t, 0x30) = 0x1000;
@@ -1230,9 +1230,9 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x81E590);
-		states[1] = us(0x81E5E0);
-		states[2] = us(0x81E600);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Sparkle_State0_Start);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Sparkle_State1_CounterFinish);
+		states[2] = game_addr(game::MAG_051_HIPOTION_Sparkle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		DrawSprite(node);
 		const uint32_t angle = (uint32_t)(U16(node, 0x7A) + 0x40) & 0xFFF;
@@ -1250,13 +1250,13 @@ namespace hipotion
 		const uint32_t node = a1;
 		if (x::CrtRand() & 1)
 		{
-			U32(node, 0x4C) = us(SEQ_SparkleA);
-			U32(node, 0x70) = us(SEQ_SparkleA2);
+			U32(node, 0x4C) = game_addr(SEQ_SparkleA);
+			U32(node, 0x70) = game_addr(SEQ_SparkleA2);
 		}
 		else
 		{
-			U32(node, 0x4C) = us(SEQ_SparkleB);
-			U32(node, 0x70) = us(SEQ_SparkleB2);
+			U32(node, 0x4C) = game_addr(SEQ_SparkleB);
+			U32(node, 0x70) = game_addr(SEQ_SparkleB2);
 		}
 		const uint32_t r = x::CrtRand();
 		U16(node, 0x52) = 0xF;
@@ -1281,9 +1281,9 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(us(TAB_PARTICLES), S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(game_addr(TAB_PARTICLES), S16(node, 0x24) * 2); i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Particle), 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Particle), 0x84, node);
 			U16(t, 0x1E) = (uint16_t)(U16(node, 0x1E) - 0x180);
 			RandomOffset(t, 0x200);
 		}
@@ -1299,9 +1299,9 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x81F8B0);
-		states[1] = us(0x81F8F0);
-		states[2] = us(0x81F920);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Particle_State0_Init);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Particle_State1_Rise);
+		states[2] = game_addr(game::MAG_051_HIPOTION_Particle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if (S16(node, 0x1E) > 0)
 			U8(node, 0x26) |= 5;
@@ -1314,7 +1314,7 @@ namespace hipotion
 	static uint32_t __cdecl ParticleStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = us(SEQ_Mote);
+		U32(node, 0x4C) = game_addr(SEQ_Mote);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0xFC00;
 		const uint32_t r = x::CrtRand();
@@ -1338,7 +1338,7 @@ namespace hipotion
 	static void SetLightWords(uint16_t v)
 	{
 		for (int k = 0; k < 4; k++)
-			U16(us(LIGHT_WORDS), k * 0x2C) = v;
+			U16(game_addr(LIGHT_WORDS), k * 0x2C) = v;
 	}
 
 	static uint32_t __cdecl LightUp(uint32_t a1)
@@ -1380,23 +1380,23 @@ namespace hipotion
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x81F480);
-		states[1] = us(0x81F620);
-		states[2] = us(0x81F670);
+		states[0] = game_addr(game::MAG_051_HIPOTION_Overlay_State0_Start);
+		states[1] = game_addr(game::MAG_051_HIPOTION_Overlay_State1_Rise);
+		states[2] = game_addr(game::MAG_051_HIPOTION_Overlay_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if (U8(node, 0x26) & 8)
 		{
 			alignas(4) uint8_t anchor[8] = {};
 			cx::CopyAnchorFromSource(node, P(anchor));
-			const uint32_t yaw = x::sub_8DD7B0(us(0x1D97778));
+			const uint32_t yaw = x::sub_8DD7B0(game_addr(game::unk_1D97778));
 			U16(node, 0x52) = (uint16_t)yaw;
 			const int32_t s = shl32((int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)yaw), 0xA);
 			U16(node, 0x1C) = (uint16_t)(s / 4096 + S32(P(anchor), 0));
 			const int32_t c = shl32((int32_t)x::computeCosine((uint32_t)(int32_t)S16(node, 0x52)), 0xA);
 			U16(node, 0x20) = (uint16_t)(c / 4096 + S32(P(anchor), 4));
-			U16(us(OVL_STATE), 0xB6) = U16(node, 0x1E);
-			OverlayParams(us(OVL_STATE), node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
-			DrawOverlay(us(OVL_STATE));
+			U16(game_addr(OVL_STATE), 0xB6) = U16(node, 0x1E);
+			OverlayParams(game_addr(OVL_STATE), node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
+			DrawOverlay(game_addr(OVL_STATE));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1406,16 +1406,16 @@ namespace hipotion
 	static uint32_t __cdecl OverlayStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t entity = U8(node, 0x2D) * 0x9Cu + us(0x1D972C0);
+		const uint32_t entity = U8(node, 0x2D) * 0x9Cu + game_addr(game::BattleEntitySlotData);
 		cx::CopyAnchorFromSource(node, node + 0x1C);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFA00);
 		U16(node, 0x42) = (uint16_t)Div18(0x100 - (int32_t)S16(node, 0x1E));
-		OverlayInit(us(OVL_STATE), us(OVL_FIRST), us(OVL_LIGHT), us(LIT_VERTICES), entity, U8(node, 0x2D));
+		OverlayInit(game_addr(OVL_STATE), game_addr(OVL_FIRST), game_addr(OVL_LIGHT), game_addr(LIT_VERTICES), entity, U8(node, 0x2D));
 		U8(node, 0x26) |= 8;
 		U8(entity, 0) |= 4;
-		U8(us(OVL_STATE), 0xC4) = 0x40;
-		U8(us(OVL_STATE), 0xC5) = 0x40;
-		U8(us(OVL_STATE), 0xC6) = 0x40;
+		U8(game_addr(OVL_STATE), 0xC4) = 0x40;
+		U8(game_addr(OVL_STATE), 0xC5) = 0x40;
+		U8(game_addr(OVL_STATE), 0xC6) = 0x40;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -1426,7 +1426,7 @@ namespace hipotion
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
 		if (S16(node, 0x24) >= 0x12)
 		{
-			const uint32_t entity = U8(node, 0x2D) * 0x9Cu + us(0x1D972C0);
+			const uint32_t entity = U8(node, 0x2D) * 0x9Cu + game_addr(game::BattleEntitySlotData);
 			U16(entity, 0) &= 0xFFFB;
 			U8(U32(node, 0x10), 0x63) = 0;
 			U16(node, 0x26) = (uint16_t)((U16(node, 0x26) & 0xFFF7) | 1);
@@ -1435,78 +1435,78 @@ namespace hipotion
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x81C9A0, (void *)a_73A0D0, "051 MAG_051_HIPOTION_Root_State0_Advance" },
-		{ 0x81C9B0, (void *)a_73A170, "051 MAG_051_HIPOTION_Root_State1_SpawnEmitter" },
-		{ 0x81D070, (void *)a_743C20, "051 MAG_051_HIPOTION_StepCounterLimit" },
-		{ 0x81D0A0, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Mote_State2_Empty" },
-		{ 0x81D180, (void *)a_743C00, "051 MAG_051_HIPOTION_Swirl_State2_CounterFinish" },
-		{ 0x81D1A0, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Swirl_State3_Empty" },
-		{ 0x81D1B0, (void *)a_743C00, "051 MAG_051_HIPOTION_Glow_State1_CounterFinish" },
-		{ 0x81D1D0, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Glow_State2_Empty" },
-		{ 0x81D1E0, (void *)a_73A380, "051 MAG_051_HIPOTION_AuraTask" },
-		{ 0x81DE60, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Aura_State2_Empty" },
-		{ 0x81DE70, (void *)a_73F110, "051 MAG_051_HIPOTION_LightTask" },
-		{ 0x81DEE0, (void *)a_7335D0, "051 MAG_051_HIPOTION_Light_State0_ResetEntityRecords" },
-		{ 0x81DFC0, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Light_State4_Empty" },
-		{ 0x81DFD0, (void *)a_73A380, "051 MAG_051_HIPOTION_RingSpawner" },
-		{ 0x81E290, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Ring_State2_Empty" },
-		{ 0x81E2A0, (void *)a_73A6D0, "051 MAG_051_HIPOTION_RingSpawner_State2_Empty" },
-		{ 0x81E2B0, (void *)a_73A380, "051 MAG_051_HIPOTION_SparkleSpawner" },
-		{ 0x81E5E0, (void *)a_743C00, "051 MAG_051_HIPOTION_Sparkle_State1_CounterFinish" },
-		{ 0x81E600, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Sparkle_State2_Empty" },
-		{ 0x81E610, (void *)a_73A6D0, "051 MAG_051_HIPOTION_SparkleSpawner_State2_Empty" },
-		{ 0x81F670, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Overlay_State2_Empty" },
-		{ 0x81F710, (void *)a_73A380, "051 MAG_051_HIPOTION_ParticleEmitter_Tick" },
-		{ 0x81F920, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Particle_State2_Empty" },
-		{ 0x81F930, (void *)a_73A6D0, "051 MAG_051_HIPOTION_ParticleEmitter_State2_Empty" },
-		{ 0x81F980, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Emitter_State6_Empty" },
-		{ 0x81F9E0, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Root_State4_Empty" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_051_HIPOTION_Root_State0_Advance, (void *)a_73A0D0, "051 MAG_051_HIPOTION_Root_State0_Advance" },
+		{ game::MAG_051_HIPOTION_Root_State1_SpawnEmitter, (void *)a_73A170, "051 MAG_051_HIPOTION_Root_State1_SpawnEmitter" },
+		{ game::MAG_051_HIPOTION_StepCounterLimit, (void *)a_743C20, "051 MAG_051_HIPOTION_StepCounterLimit" },
+		{ game::MAG_051_HIPOTION_Mote_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Mote_State2_Empty" },
+		{ game::MAG_051_HIPOTION_Swirl_State2_CounterFinish, (void *)a_743C00, "051 MAG_051_HIPOTION_Swirl_State2_CounterFinish" },
+		{ game::MAG_051_HIPOTION_Swirl_State3_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Swirl_State3_Empty" },
+		{ game::MAG_051_HIPOTION_Glow_State1_CounterFinish, (void *)a_743C00, "051 MAG_051_HIPOTION_Glow_State1_CounterFinish" },
+		{ game::MAG_051_HIPOTION_Glow_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Glow_State2_Empty" },
+		{ game::MAG_051_HIPOTION_AuraTask, (void *)a_73A380, "051 MAG_051_HIPOTION_AuraTask" },
+		{ game::MAG_051_HIPOTION_Aura_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Aura_State2_Empty" },
+		{ game::MAG_051_HIPOTION_LightTask, (void *)a_73F110, "051 MAG_051_HIPOTION_LightTask" },
+		{ game::MAG_051_HIPOTION_Light_State0_ResetEntityRecords, (void *)a_7335D0, "051 MAG_051_HIPOTION_Light_State0_ResetEntityRecords" },
+		{ game::MAG_051_HIPOTION_Light_State4_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Light_State4_Empty" },
+		{ game::MAG_051_HIPOTION_RingSpawner, (void *)a_73A380, "051 MAG_051_HIPOTION_RingSpawner" },
+		{ game::MAG_051_HIPOTION_Ring_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Ring_State2_Empty" },
+		{ game::MAG_051_HIPOTION_RingSpawner_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_RingSpawner_State2_Empty" },
+		{ game::MAG_051_HIPOTION_SparkleSpawner, (void *)a_73A380, "051 MAG_051_HIPOTION_SparkleSpawner" },
+		{ game::MAG_051_HIPOTION_Sparkle_State1_CounterFinish, (void *)a_743C00, "051 MAG_051_HIPOTION_Sparkle_State1_CounterFinish" },
+		{ game::MAG_051_HIPOTION_Sparkle_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Sparkle_State2_Empty" },
+		{ game::MAG_051_HIPOTION_SparkleSpawner_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_SparkleSpawner_State2_Empty" },
+		{ game::MAG_051_HIPOTION_Overlay_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Overlay_State2_Empty" },
+		{ game::MAG_051_HIPOTION_ParticleEmitter_Tick, (void *)a_73A380, "051 MAG_051_HIPOTION_ParticleEmitter_Tick" },
+		{ game::MAG_051_HIPOTION_Particle_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Particle_State2_Empty" },
+		{ game::MAG_051_HIPOTION_ParticleEmitter_State2_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_ParticleEmitter_State2_Empty" },
+		{ game::MAG_051_HIPOTION_Emitter_State6_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Emitter_State6_Empty" },
+		{ game::MAG_051_HIPOTION_Root_State4_Empty, (void *)a_73A6D0, "051 MAG_051_HIPOTION_Root_State4_Empty" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
 		{ ORIG_Master, (void *)Master, "051 Hi-Potion Master" },
-		{ 0x81F990, (void *)NextAction, "051 NextAction" },
-		{ 0x81F9C0, (void *)WaitQueues, "051 WaitQueues" },
+		{ game::MAG_051_HIPOTION_State2_NextActionLoop, (void *)NextAction, "051 NextAction" },
+		{ game::MAG_051_HIPOTION_Root_State3_WaitQueues, (void *)WaitQueues, "051 WaitQueues" },
 		{ ORIG_Emitter, (void *)Emitter, "051 Emitter" },
-		{ 0x81CA80, (void *)SpawnFirst, "051 SpawnFirst" },
-		{ 0x81E620, (void *)SpawnOverlay, "051 SpawnOverlay" },
-		{ 0x81F680, (void *)SpawnAuraC00, "051 SpawnAuraC00" },
-		{ 0x81F6B0, (void *)SpawnAuraE00, "051 SpawnAuraE00" },
-		{ 0x81F6E0, (void *)SpawnParticleEmitter, "051 SpawnParticleEmitter" },
-		{ 0x81F940, (void *)Heal, "051 Heal" },
+		{ game::MAG_051_HIPOTION_Emitter_State0_SpawnGlow, (void *)SpawnFirst, "051 SpawnFirst" },
+		{ game::MAG_051_HIPOTION_Emitter_State1_SpawnOverlay, (void *)SpawnOverlay, "051 SpawnOverlay" },
+		{ game::MAG_051_HIPOTION_Emitter_State2_SpawnAuraC00, (void *)SpawnAuraC00, "051 SpawnAuraC00" },
+		{ game::MAG_051_HIPOTION_Emitter_State3_SpawnAuraE00, (void *)SpawnAuraE00, "051 SpawnAuraE00" },
+		{ game::MAG_051_HIPOTION_Emitter_State4_SpawnParticleEmitter, (void *)SpawnParticleEmitter, "051 SpawnParticleEmitter" },
+		{ game::MAG_051_HIPOTION_Emitter_State5_Heal, (void *)Heal, "051 Heal" },
 		{ ORIG_Glow, (void *)Glow, "051 Glow" },
-		{ 0x81CCD0, (void *)GlowStart, "051 GlowStart" },
+		{ game::MAG_051_HIPOTION_Glow_State0_SpawnSwirl, (void *)GlowStart, "051 GlowStart" },
 		{ ORIG_Swirl, (void *)Swirl, "051 Swirl" },
-		{ 0x81D0B0, (void *)SwirlStart, "051 SwirlStart" },
-		{ 0x81D120, (void *)SwirlLoop, "051 SwirlLoop" },
+		{ game::MAG_051_HIPOTION_Swirl_State0_Start, (void *)SwirlStart, "051 SwirlStart" },
+		{ game::MAG_051_HIPOTION_Swirl_State1_Loop, (void *)SwirlLoop, "051 SwirlLoop" },
 		{ ORIG_Mote, (void *)Mote, "051 Mote" },
-		{ 0x81CFF0, (void *)MoteStart, "051 MoteStart" },
-		{ 0x81D030, (void *)MoteFall, "051 MoteFall" },
-		{ 0x81D240, (void *)AuraStart, "051 AuraStart" },
-		{ 0x81D370, (void *)AuraPlay, "051 AuraPlay" },
-		{ 0x81E030, (void *)RingSpawnerStart, "051 RingSpawnerStart" },
-		{ 0x81E050, (void *)RingSpawn, "051 RingSpawn" },
+		{ game::MAG_051_HIPOTION_Mote_State0_Start, (void *)MoteStart, "051 MoteStart" },
+		{ game::MAG_051_HIPOTION_Mote_State1_Fall, (void *)MoteFall, "051 MoteFall" },
+		{ game::MAG_051_HIPOTION_Aura_State0_Start, (void *)AuraStart, "051 AuraStart" },
+		{ game::MAG_051_HIPOTION_Aura_State1_Play, (void *)AuraPlay, "051 AuraPlay" },
+		{ game::MAG_051_HIPOTION_RingSpawner_State0_Start, (void *)RingSpawnerStart, "051 RingSpawnerStart" },
+		{ game::MAG_051_HIPOTION_RingSpawner_State1_SpawnRing, (void *)RingSpawn, "051 RingSpawn" },
 		{ ORIG_Ring, (void *)Ring, "051 Ring" },
-		{ 0x81E1B0, (void *)RingStart, "051 RingStart" },
-		{ 0x81E1E0, (void *)RingPlay, "051 RingPlay" },
-		{ 0x81E310, (void *)SparkleSpawnerStart, "051 SparkleSpawnerStart" },
-		{ 0x81E360, (void *)SparkleSpawn, "051 SparkleSpawn" },
+		{ game::MAG_051_HIPOTION_Ring_State0_Start, (void *)RingStart, "051 RingStart" },
+		{ game::MAG_051_HIPOTION_Ring_State1_Play, (void *)RingPlay, "051 RingPlay" },
+		{ game::MAG_051_HIPOTION_SparkleSpawner_State0_Start, (void *)SparkleSpawnerStart, "051 SparkleSpawnerStart" },
+		{ game::MAG_051_HIPOTION_SparkleSpawner_State1_SpawnSparkle, (void *)SparkleSpawn, "051 SparkleSpawn" },
 		{ ORIG_Sparkle, (void *)Sparkle, "051 Sparkle" },
-		{ 0x81E590, (void *)SparkleStart, "051 SparkleStart" },
-		{ 0x81F770, (void *)ParticleEmitterStart, "051 ParticleEmitterStart" },
-		{ 0x81F7C0, (void *)ParticleSpawn, "051 ParticleSpawn" },
+		{ game::MAG_051_HIPOTION_Sparkle_State0_Start, (void *)SparkleStart, "051 SparkleStart" },
+		{ game::MAG_051_HIPOTION_ParticleEmitter_State0_AnchorAndRate, (void *)ParticleEmitterStart, "051 ParticleEmitterStart" },
+		{ game::MAG_051_HIPOTION_ParticleEmitter_State1_RiseAndSpawn, (void *)ParticleSpawn, "051 ParticleSpawn" },
 		{ ORIG_Particle, (void *)Particle, "051 Particle" },
-		{ 0x81F8B0, (void *)ParticleStart, "051 ParticleStart" },
-		{ 0x81F8F0, (void *)ParticleMove, "051 ParticleMove" },
-		{ 0x81DF20, (void *)LightUp, "051 LightUp" },
-		{ 0x81DF60, (void *)LightHold, "051 LightHold" },
-		{ 0x81DF80, (void *)LightDown, "051 LightDown" },
+		{ game::MAG_051_HIPOTION_Particle_State0_Init, (void *)ParticleStart, "051 ParticleStart" },
+		{ game::MAG_051_HIPOTION_Particle_State1_Rise, (void *)ParticleMove, "051 ParticleMove" },
+		{ game::MAG_051_HIPOTION_Light_State1_Up, (void *)LightUp, "051 LightUp" },
+		{ game::MAG_051_HIPOTION_Light_State2_WaitTick20, (void *)LightHold, "051 LightHold" },
+		{ game::MAG_051_HIPOTION_Light_State3_Down, (void *)LightDown, "051 LightDown" },
 		{ ORIG_Overlay, (void *)Overlay, "051 Overlay" },
-		{ 0x81F480, (void *)OverlayStart, "051 OverlayStart" },
-		{ 0x81F620, (void *)OverlayRise, "051 OverlayRise" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_051_HIPOTION_Overlay_State0_Start, (void *)OverlayStart, "051 OverlayStart" },
+		{ game::MAG_051_HIPOTION_Overlay_State1_Rise, (void *)OverlayRise, "051 OverlayRise" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

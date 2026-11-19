@@ -37,26 +37,26 @@ namespace sorceress208
 	{
 		c.name = "208 Final Sorceress Death";
 		c.effect_id = 208;
-		c.vm_table = us(0x1870108);
-		c.bone_table = us(0x186FD78);
-		c.prim_table = us(0x186FDC0);
-		c.prim_size = us(0x186FEB0);
-		c.spr_table = us(0x186FEC4);
-		c.ptype_table = us(0x186FEF0);
-		c.pop_table = us(0x186FF04);
-		c.draw_table = us(0x186FF64);
-		c.attr_16A = us(0x18700CE);
-		c.attr_184 = us(0x18700E8);
-		c.attr_186 = us(0x18700EA);
-		c.attr_194 = us(0x18700F8);
-		c.attr_19C = us(0x1870100);
-		c.desc = us(0x186FBEC);
-		c.ptr_block = us(0x186FD50);
-		c.queue = us(0x2796CC0);
-		c.file00 = us(0x2796CF0);
-		c.file01 = us(0x2796CF4);
-		c.tick = us(0xAD7F70);
-		c.load_cb = us(0xADE7D0);
+		c.vm_table = game_addr(game::funcs_AE288C);
+		c.bone_table = game_addr(game::funcs_ADF3E7);
+		c.prim_table = game_addr(game::funcs_ADAD64);
+		c.prim_size = game_addr(game::unk_186FEB0);
+		c.spr_table = game_addr(game::unk_186FEC4);
+		c.ptype_table = game_addr(game::unk_186FEF0);
+		c.pop_table = game_addr(game::funcs_ADCDD7);
+		c.draw_table = game_addr(game::unk_186FF64);
+		c.attr_16A = game_addr(game::unk_18700CE);
+		c.attr_184 = game_addr(game::unk_18700E8);
+		c.attr_186 = game_addr(game::unk_18700EA);
+		c.attr_194 = game_addr(game::unk_18700F8);
+		c.attr_19C = game_addr(game::unk_1870100);
+		c.desc = game_addr(game::unk_186FBEC);
+		c.ptr_block = game_addr(game::unk_186FD50);
+		c.queue = game_addr(game::unk_2796CC0);
+		c.file00 = game_addr(game::unk_2796CF0);
+		c.file01 = game_addr(game::unk_2796CF4);
+		c.tick = game_addr(game::MAG_208_sub_AD7F70);
+		c.load_cb = game_addr(game::MAG_208_sub_ADE7D0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -99,7 +99,7 @@ namespace sorceress208
 		sorceress208::describe(sorceress208::g_c);
 		init_clone(sorceress208::g_c, nullptr, 0);
 		sorceress208::apply_slots(sorceress208::g_c);
-		register_port(0xAD7F70, (void *)sorceress208::SequenceTask, "MAG208 Final Sorceress Death SequenceTick", 208);
+		register_port(game::MAG_208_sub_AD7F70, (void *)sorceress208::SequenceTask, "MAG208 Final Sorceress Death SequenceTick", 208);
 	}
 }
 

@@ -32,26 +32,26 @@ namespace water
 	{
 		c.name = "222 Water";
 		c.effect_id = 222;
-		c.vm_table = us(0x186CCFC);
-		c.bone_table = us(0x186C96C);
-		c.prim_table = us(0x186C9B4);
-		c.prim_size = us(0x186CAA4);
-		c.spr_table = us(0x186CAB8);
-		c.ptype_table = us(0x186CAE4);
-		c.pop_table = us(0x186CAF8);
-		c.draw_table = us(0x186CB58);
-		c.attr_16A = us(0x186CCC2);
-		c.attr_184 = us(0x186CCDC);
-		c.attr_186 = us(0x186CCDE);
-		c.attr_194 = us(0x186CCEC);
-		c.attr_19C = us(0x186CCF4);
-		c.desc = us(0x186C84C);
-		c.ptr_block = us(0x186C944);
-		c.queue = us(0x2796BA8);
-		c.file00 = us(0x2796BDC);
-		c.file01 = us(0x2796BD8);
-		c.tick = us(0xA9B870);
-		c.load_cb = us(0xAA0ED0);
+		c.vm_table = game_addr(game::GF_222Water_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_222Water_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_A9DC34);
+		c.prim_size = game_addr(game::unk_186CAA4);
+		c.spr_table = game_addr(game::unk_186CAB8);
+		c.ptype_table = game_addr(game::unk_186CAE4);
+		c.pop_table = game_addr(game::funcs_A9F457);
+		c.draw_table = game_addr(game::GF_222Water_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_186CCC2);
+		c.attr_184 = game_addr(game::unk_186CCDC);
+		c.attr_186 = game_addr(game::unk_186CCDE);
+		c.attr_194 = game_addr(game::unk_186CCEC);
+		c.attr_19C = game_addr(game::unk_186CCF4);
+		c.desc = game_addr(game::GF_222Water_ResourceDesc);
+		c.ptr_block = game_addr(game::GF_222Water_PtrBlock);
+		c.queue = game_addr(game::g_GF222Water_TaskQueue);
+		c.file00 = game_addr(game::g_GF222Water_File00);
+		c.file01 = game_addr(game::g_GF222Water_File01);
+		c.tick = game_addr(game::MAG_222_WATER_CinematicRootTick);
+		c.load_cb = game_addr(game::GF_222Water_LoadBattleFileDone);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -85,7 +85,7 @@ namespace water
 		init_clone(water::g_water, nullptr, 0);
 		apply_shared_misc(water::g_water);
 		water::apply_draw38(water::g_water);
-		register_port(0xA9B870, (void *)water::SequenceTask, "MAG222 Water SequenceTick", 222);
+		register_port(game::MAG_222_WATER_CinematicRootTick, (void *)water::SequenceTask, "MAG222 Water SequenceTick", 222);
 	}
 }
 

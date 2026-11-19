@@ -24,49 +24,49 @@ namespace act
 {
 namespace aqua72
 {
-	static const Mod MOD_072 = { "aqua72", 72, 0x7D1E60, 0x7D6130,
-		{ 0x0, 0x0, 0x1589C28, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25F97F8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7D2180, 0x7D2200, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7D26F0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7D5330, 0x0, 0x7D5FC0, 0x7D6030, 0x7D6050, 0x7D6070, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_072 = { "aqua72", 72, game::_keep_, game::MAG_071_LASER_EYE_QUISTIS_FL,
+		{ {}, {}, game::MAG_072_AQUA_BREATH_QUISTIS_pDirectorBlock, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_072_AQUA_BREATH_QUISTIS_EmitterQueue, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_072_AQUA_BREATH_QUISTIS_EmitterTask, game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State0_SpawnDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_072_AQUA_BREATH_QUISTIS_Director_RequestPhase, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_072_AQUA_BREATH_QUISTIS_DrawSpriteQuads, {}, game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State1_ApplyDamageOnCue, game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State2_WaitChildren, game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State3_Finish, game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State4_Nullsub, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x25F4F6C;
-	static const uint32_t DIR_PTR = 0x1589C28;
-	static const uint32_t PHASE_DATA = DIR_PTR;
-	static const uint32_t Q_EMITTER = 0x25F97F8, Q_DIRECTOR = 0x25F5048, Q_TASKS = 0x25F5150, Q_ORB = 0x25F93D0, Q_SPARE = 0x25F97E8;
-	static const uint32_t ORIG_Master = 0x7D1FD0;
-	static const uint32_t ORIG_Darken = 0x7D2570;
-	static const uint32_t ORIG_Orb = 0x7D28F0;
-	static const uint32_t ORIG_Stream = 0x7D4DD0;
-	static const uint32_t ORIG_Drops = 0x7D4F80;
-	static const uint32_t ORIG_Splash = 0x7D5850;
-	static const uint32_t ORIG_SplashDrops = 0x7D5AD0;
-	static const uint32_t ORIG_Rain = 0x7D5C40;
-	static const uint32_t ORIG_RainDrops = 0x7D5E50;
-	static const uint32_t ORB_MODEL = 0x158A4BC;
-	static const uint32_t ORB_TEMPLATE = 0x158CE24;
-	static const uint32_t DROP_SPRITES = 0x158D98C;
-	static const uint32_t RAIN_SPRITES = 0x158D99C;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
-	static const uint32_t BIND_BLOCK = 0x25FA3D8;
-	static const uint32_t COM_ANIM = 0x158D9AC;
-	static inline void BindEntityModelFromComData(uint32_t entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
-	static inline void QueueChainTransformation(uint32_t entity, int32_t id) { fn<void (__cdecl *)(uint32_t, int32_t)>(us(0x505C00))(entity, id); }
+	static constexpr game::Id PACKET_CURSOR = game::MAG_072_AQUA_BREATH_QUISTIS_PacketCursor;
+	static constexpr game::Id DIR_PTR = game::MAG_072_AQUA_BREATH_QUISTIS_pDirectorBlock;
+	static constexpr game::Id PHASE_DATA = DIR_PTR;
+	static constexpr game::Id Q_EMITTER = game::MAG_072_AQUA_BREATH_QUISTIS_EmitterQueue, Q_DIRECTOR = game::MAG_072_AQUA_BREATH_QUISTIS_DirectorQueue, Q_TASKS = game::MAG_072_AQUA_BREATH_QUISTIS_TaskQueue, Q_ORB = game::MAG_072_AQUA_BREATH_QUISTIS_OrbQueue, Q_SPARE = game::MAG_072_AQUA_BREATH_QUISTIS_SpareQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_072_AQUA_BREATH_QUISTIS_MasterTask;
+	static constexpr game::Id ORIG_Darken = game::MAG_072_AQUA_BREATH_QUISTIS_StageDarkenTask;
+	static constexpr game::Id ORIG_Orb = game::MAG_072_AQUA_BREATH_QUISTIS_OrbTask;
+	static constexpr game::Id ORIG_Stream = game::MAG_072_AQUA_BREATH_QUISTIS_StreamTask;
+	static constexpr game::Id ORIG_Drops = game::MAG_072_AQUA_BREATH_QUISTIS_StreamDropsTask;
+	static constexpr game::Id ORIG_Splash = game::MAG_072_AQUA_BREATH_QUISTIS_SplashTask;
+	static constexpr game::Id ORIG_SplashDrops = game::MAG_072_AQUA_BREATH_QUISTIS_SplashDropsTask;
+	static constexpr game::Id ORIG_Rain = game::MAG_072_AQUA_BREATH_QUISTIS_RainTask;
+	static constexpr game::Id ORIG_RainDrops = game::MAG_072_AQUA_BREATH_QUISTIS_RainDropsTask;
+	static constexpr game::Id ORB_MODEL = game::MAG_072_AQUA_BREATH_QUISTIS_OrbModel;
+	static constexpr game::Id ORB_TEMPLATE = game::MAG_072_AQUA_BREATH_QUISTIS_OrbModelTemplate;
+	static constexpr game::Id DROP_SPRITES = game::MAG_072_AQUA_BREATH_QUISTIS_StreamDropSprites;
+	static constexpr game::Id RAIN_SPRITES = game::MAG_072_AQUA_BREATH_QUISTIS_RainDropSprites;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
+	static constexpr game::Id BIND_BLOCK = game::MAG_072_AQUA_BREATH_QUISTIS_BindBlock;
+	static constexpr game::Id COM_ANIM = game::MAG_072_AQUA_BREATH_QUISTIS_ComAnimData;
+	static inline void BindEntityModelFromComData(uint32_t entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+	static inline void QueueChainTransformation(uint32_t entity, int32_t id) { fn<void (__cdecl *)(uint32_t, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
 
 	namespace gx
 	{
-		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(us(0x4607D0))(); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
-		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DEA0))(a1); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a1, a2, a3); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(a1, a2); }
+		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_ColorV0))(); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(a1, a2, a3); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(a1); }
+		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::sub_45DEA0))(a1); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a1, a2, a3); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSZ3))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::VectorNormalS16))(a1, a2); }
 	}
 
-	static const uint32_t FALLOC_PTR = 0x1D999C4;
+	static constexpr game::Id FALLOC_PTR = game::GLOBAL_MEMORY_POOL;
 	static uint16_t g_pad_residue = 0;
 	static uint16_t ORB_VERTEX_PAD = 0;
 	static inline uint16_t orb_vertex_pad(uint32_t node, int32_t state)
@@ -371,7 +371,7 @@ namespace aqua72
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -435,19 +435,19 @@ namespace aqua72
 {
 	uint32_t __cdecl ab_7D2230(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		a_73A720(MEM<uint32_t>(us(DIR_PTR)) + 8);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		a_73A720(MEM<uint32_t>(game_addr(DIR_PTR)) + 8);
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2C));
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		U32(d, 0) = U32(ent, 0x1C);
 		U32(d, 4) = U32(ent, 0x20);
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		const uint32_t dist = ab_7D2370(node);
-		const uint32_t d2 = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d2 = MEM<uint32_t>(game_addr(DIR_PTR));
 		U32(d2, 0x3C) = dist;
 		if ((int32_t)dist < 0x1000)
 			U32(d2, 0x3C) = 0x1000;
@@ -460,13 +460,13 @@ namespace aqua72
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = us(0x7D2500);
-		states[1] = us(0x7D26C0);
-		states[2] = us(0x7D2720);
-		states[3] = us(0x7D2770);
-		states[4] = us(0x7D2790);
-		states[5] = us(0x7D27B0);
-		states[6] = us(0x7D27D0);
+		states[0] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Director_State0_DarkenAndCastAnim);
+		states[1] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Director_State1_CuePhase1);
+		states[2] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Director_State2_PlaySound);
+		states[3] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Director_State3_DamageCue);
+		states[4] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Director_State4_CuePhase2);
+		states[5] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Director_State5_Finish);
+		states[6] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Director_State6_Nullsub);
 		ab_7D24B0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -478,10 +478,10 @@ namespace aqua72
 	{
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2C));
-		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Darken), 0x154, node);
-		BindEntityModelFromComData(ent, us(BIND_BLOCK), us(COM_ANIM));
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Darken), 0x154, node);
+		BindEntityModelFromComData(ent, game_addr(BIND_BLOCK), game_addr(COM_ANIM));
 		QueueChainTransformation(ent, 1);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		U16(node, 0x44) = 4;
 		U16(ent, 0xE) = U16(d, 0x4A);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -501,18 +501,18 @@ namespace aqua72
 
 	uint32_t __cdecl ab_7D27F0(uint32_t a1)
 	{
-		if ((int32_t)S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) - 1 != 0)
+		if ((int32_t)S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40) - 1 != 0)
 			return 0;
 		const uint32_t node = a1;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_ORB), us(ORIG_Orb), 0x60, node);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Stream), 0x154, node);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_ORB), game_addr(ORIG_Orb), 0x60, node);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Stream), 0x154, node);
 		uint32_t act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 		if (U8(act, 0x10) != 0)
 		{
 			int32_t k = 0;
 			do
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Splash), 0x154, node);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Splash), 0x154, node);
 				act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 				U8(t, 0x2D) = U8(U32(act, 8), k * 0x18);
 				k++;
@@ -524,7 +524,7 @@ namespace aqua72
 			int32_t k = 0;
 			do
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Rain), 0x154, node);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Rain), 0x154, node);
 				act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 				U8(t, 0x2D) = U8(U32(act, 8), k * 0x18);
 				k++;
@@ -537,11 +537,11 @@ namespace aqua72
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x7D4C20);
-		states[1] = us(0x7D4D20);
-		states[2] = us(0x7D4D60);
-		states[3] = us(0x7D4D90);
-		states[4] = us(0x7D4DC0);
+		states[0] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State0_Appear);
+		states[1] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State1_FadeIn);
+		states[2] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State2_Hold);
+		states[3] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State3_FadeOut);
+		states[4] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State4_Nullsub);
 		const int32_t st = S8(node, 0x29);
 		callp(states[st], node);
 		ORB_VERTEX_PAD = orb_vertex_pad(node, st);
@@ -549,7 +549,7 @@ namespace aqua72
 		const uint32_t a = (uint32_t)(uint16_t)(U16(node, 0x54) + 0xA0) & 0xFFF;
 		U16(node, 0x58) = (uint16_t)b;
 		U16(node, 0x54) = (uint16_t)a;
-		ab_7D4B30(us(ORB_TEMPLATE), U32(node, 0x4C), a, b);
+		ab_7D4B30(game_addr(ORB_TEMPLATE), U32(node, 0x4C), a, b);
 		U16(node, 0x5E) = (uint16_t)((uint8_t)(U8(node, 0x5E) + 8) & 0x7F);
 		ab_7D29A0(node);
 		if ((U8(node, 0x26) & 4) == 0)
@@ -598,12 +598,12 @@ namespace aqua72
 	uint32_t __cdecl ab_7D4C20(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t s = U32(MEM<uint32_t>(us(DIR_PTR)), 0x3C);
+		const uint32_t s = U32(MEM<uint32_t>(game_addr(DIR_PTR)), 0x3C);
 		const uint8_t slot = U8(node, 0x2C);
 		U32(node, 0x38) = s;
 		U32(node, 0x34) = s;
 		U32(node, 0x30) = s;
-		U32(node, 0x4C) = us(ORB_MODEL);
+		U32(node, 0x4C) = game_addr(ORB_MODEL);
 		U16(node, 0x46) = U16(ENT(slot), 0xE);
 		ab_7D4C80(node + 0x1C, slot);
 		const uint8_t st = U8(node, 0x29);
@@ -663,7 +663,7 @@ namespace aqua72
 	{
 		const uint32_t node = a1;
 		ab_7D4C80(node + 0x1C, (uint32_t)U8(node, 0x2C));
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Drops), 0x154, node);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Drops), 0x154, node);
 		uint32_t spin = t + 0x148;
 		uint32_t mt = t + 0xC0;
 		for (int32_t n = 4; n != 0; n--)
@@ -695,14 +695,14 @@ namespace aqua72
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x7D57A0);
-		states[1] = us(0x7D57E0);
-		states[2] = us(0x7D5830);
+		states[0] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_StreamDrops_State0_Init);
+		states[1] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_StreamDrops_State1_Animate);
+		states[2] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_StreamDrops_State2_Nullsub);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x150) = (uint16_t)(U16(node, 0x150) + 0x10);
 		uint32_t mt = node + 0xC0;
 		uint32_t spin = node + 0x148;
-		for (uint32_t tbl = us(DROP_SPRITES); tbl < us(DROP_SPRITES) + 0x10; tbl += 4, mt += 0x20, spin += 2)
+		for (uint32_t tbl = game_addr(DROP_SPRITES); tbl < game_addr(DROP_SPRITES) + 0x10; tbl += 4, mt += 0x20, spin += 2)
 		{
 			alignas(4) uint16_t v[4];
 			alignas(4) uint8_t m[0x20];
@@ -733,11 +733,11 @@ namespace aqua72
 	uint32_t __cdecl ab_7D57A0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const int32_t v = S32(MEM<uint32_t>(us(DIR_PTR)), 0x3C);
+		const int32_t v = S32(MEM<uint32_t>(game_addr(DIR_PTR)), 0x3C);
 		int32_t hi = (int32_t)(((int64_t)v * (int64_t)(int32_t)0xD5555555) >> 32);
 		hi >>= 1;
 		const int32_t q = add32(hi, (int32_t)((uint32_t)hi >> 31));
-		U32(node, 0x4C) = us(0x1589D90);
+		U32(node, 0x4C) = game_addr(game::unk_1589D90);
 		const uint8_t st = U8(node, 0x29);
 		U16(node, 0x56) = 0xFFF0;
 		U16(node, 0x52) = 0xC;
@@ -771,7 +771,7 @@ namespace aqua72
 		const uint32_t node = a1;
 		if (((U8(node, 0x2D) + U8(node, 0x24)) & 1) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_SplashDrops), 0x154, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_SplashDrops), 0x154, node);
 			ab_7D5A70(ENT(U8(node, 0x2D)), t + 0x80, 2);
 			uint32_t vel = t + 0xA0;
 			for (int32_t n = 2; n != 0; n--, vel += 8)
@@ -840,9 +840,9 @@ namespace aqua72
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x7D5BE0);
-		states[1] = us(0x7D5C00);
-		states[2] = us(0x7D5C20);
+		states[0] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_SplashDrops_State0_Init);
+		states[1] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_SplashDrops_State1_Animate);
+		states[2] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_SplashDrops_State2_Nullsub);
 		callp(states[S8(node, 0x29)], node);
 		uint32_t vel = node + 0xA0;
 		for (int32_t n = 2; n != 0; n--, vel += 8)
@@ -851,7 +851,7 @@ namespace aqua72
 			U32(node, 0x20) = U32(vel, -0x1C);
 			ab_7D50D0(node);
 			if ((U8(node, 0x26) & 4) == 0)
-				g_pad_residue = (uint16_t)((MEM<uint32_t>(us(FALLOC_PTR)) + 0xCC) >> 16);
+				g_pad_residue = (uint16_t)((MEM<uint32_t>(game_addr(FALLOC_PTR)) + 0xCC) >> 16);
 			U16(vel, 2) = (uint16_t)(U16(vel, 2) + 0x50);
 			drop_step(vel);
 		}
@@ -863,7 +863,7 @@ namespace aqua72
 	uint32_t __cdecl ab_7D5BE0(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = us(0x158A1B0);
+		U32(a1, 0x4C) = game_addr(game::unk_158A1B0);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -887,7 +887,7 @@ namespace aqua72
 		const uint32_t node = a1;
 		if (((U8(node, 0x2D) + U8(node, 0x24)) & 1) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_RainDrops), 0x154, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_RainDrops), 0x154, node);
 			ab_7D5A70(ENT(U8(node, 0x2D)), t + 0x80, 4);
 			uint32_t pos = t + 0x80;
 			for (int32_t n = 4; n != 0; n--, pos += 8)
@@ -930,19 +930,19 @@ namespace aqua72
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x7D5F60);
-		states[1] = us(0x7D5F80);
-		states[2] = us(0x7D5FA0);
+		states[0] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_RainDrops_State0_Init);
+		states[1] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_RainDrops_State1_Animate);
+		states[2] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_RainDrops_State2_Nullsub);
 		callp(states[S8(node, 0x29)], node);
 		uint32_t vel = node + 0xA0;
-		for (uint32_t tbl = us(RAIN_SPRITES); tbl < us(RAIN_SPRITES) + 0x10; tbl += 4, vel += 8)
+		for (uint32_t tbl = game_addr(RAIN_SPRITES); tbl < game_addr(RAIN_SPRITES) + 0x10; tbl += 4, vel += 8)
 		{
 			U32(node, 0x1C) = U32(vel, -0x20);
 			U32(node, 0x20) = U32(vel, -0x1C);
 			U32(node, 0x4C) = MEM<uint32_t>(tbl);
 			ab_7D50D0(node);
 			if ((U8(node, 0x26) & 4) == 0)
-				g_pad_residue = (uint16_t)((MEM<uint32_t>(us(FALLOC_PTR)) + 0xCC) >> 16);
+				g_pad_residue = (uint16_t)((MEM<uint32_t>(game_addr(FALLOC_PTR)) + 0xCC) >> 16);
 			drop_step(vel);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -953,7 +953,7 @@ namespace aqua72
 	uint32_t __cdecl ab_7D5F60(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = us(0x1589EF0);
+		U32(a1, 0x4C) = game_addr(game::unk_1589EF0);
 		U16(a1, 0x56) = 0xFFF0;
 		U16(a1, 0x52) = 0xC;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -965,44 +965,44 @@ namespace aqua72
 		g_mod = &MOD_072;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x25FA3D0)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x25F5070)) = us(0x2793E58);
-		states[0] = us(0x7D2120);
+		MEM<uint32_t>(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_CameraCopyPtr)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_CameraCopyPtr2)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State0_Next);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x7D2130);
-		states[2] = us(0x7D2140);
-		states[3] = us(0x7D2150);
-		states[4] = us(0x7D6080);
-		states[5] = us(0x7D60C0);
-		states[6] = us(0x7D60D0);
-		states[7] = us(0x7D60E0);
-		states[8] = us(0x7D60F0);
-		states[9] = us(0x7D6100);
-		states[10] = us(0x7D6120);
+		states[1] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State1_Next);
+		states[2] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State2_WaitChildren);
+		states[3] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State4_NextAction);
+		states[5] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State5_Next);
+		states[6] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State6_WaitTasks);
+		states[7] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State7_Next);
+		states[8] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State8_Next);
+		states[9] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Master_State10_Nullsub);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x25F996C));
-			const uint32_t v2 = MEM<uint32_t>(us(0x25F9564));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x25F506C)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_ArenaBaseOdd));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Arena2BaseEven));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_PacketCursor2)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x25F9968));
-			const uint32_t v2 = MEM<uint32_t>(us(0x25F9560));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x25F506C)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_ArenaBaseEven));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_Arena2BaseOdd));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_PacketCursor2)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TASKS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ORB)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPARE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_TASKS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ORB)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_SPARE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1019,7 +1019,7 @@ namespace aqua72
 	uint32_t __cdecl ab_7D2200(uint32_t a1)
 	{
 		ab_7D2230(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x25F5048), us(0x7D2430), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_DirectorQueue), game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1027,14 +1027,14 @@ namespace aqua72
 	uint32_t __cdecl ab_7D2370(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(node, 0x2C) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(node, 0x2C) * 0x9C;
 		int32_t best = 0;
 		uint32_t act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 		if (U8(act, 0x10) == 0)
 			return 0;
 		for (uint32_t i = 0; ; )
 		{
-			const uint32_t t = us(0x1D972C0) + (uint32_t)U8(U32(act, 8), (int32_t)(i * 0x18)) * 0x9C;
+			const uint32_t t = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(U32(act, 8), (int32_t)(i * 0x18)) * 0x9C;
 			const int32_t dx = sub32(S16(t, 0x1C), S16(ent, 0x1C));
 			const int32_t dz = sub32(S16(t, 0x20), S16(ent, 0x20));
 			const int32_t d = (int32_t)x::Sqrt((uint32_t)add32(mul32(dz, dz), mul32(dx, dx)));
@@ -1079,7 +1079,7 @@ namespace aqua72
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1103,7 +1103,7 @@ namespace aqua72
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1113,14 +1113,14 @@ namespace aqua72
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(us(0x1589C2C), 0, 0x80);
+		x::BdPlaySE(game_addr(game::MAG_072_AQUA_BREATH_QUISTIS_SoundData), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
 
 	uint32_t __cdecl ab_7D2770(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(PHASE_DATA);
+		const uint32_t d = MEM<uint32_t>(game_addr(PHASE_DATA));
 		if (S16(d, 0x46) > 0x23)
 		{
 			U16(d, 0x48) = 1;
@@ -1143,7 +1143,7 @@ namespace aqua72
 		S32(P(m), 0x18) = S16(node, 0x1E);
 		S32(P(m), 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(P(m), node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), P(m), P(m));
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), P(m), P(m));
 		x::GTE_SetRotMatrix_W(P(m));
 		x::GTE_SetTransVector_W(P(m));
 		const uint32_t hdr = x::Field_Alloc(0x68);
@@ -1162,7 +1162,7 @@ namespace aqua72
 		S32(hdr, 0x10) = S16(node, 0x52);
 		U32(hdr, 0x14) = 0xF0;
 		U16(hdr, 0x28) = 0x80;
-		MEM<uint32_t>(us(0x1D8E054)) = ab_7D2AD0(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = ab_7D2AD0(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1886,7 +1886,7 @@ namespace aqua72
 			return 0;
 		uint32_t hdr = x::Field_Alloc(0xD8);
 		uint32_t m = hdr + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), m);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), m);
 		int32_t px = S16(a1, 0x1C);
 		int32_t py = S16(a1, 0x1E);
 		int32_t pz = S16(a1, 0x20);
@@ -1894,7 +1894,7 @@ namespace aqua72
 		S32(hdr, 0xD0) = py;
 		S32(hdr, 0xD4) = pz;
 		S32(vec, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(m);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(m);
@@ -1904,7 +1904,7 @@ namespace aqua72
 		x::GTE_LoadIRFromMatrixColumn(hdr + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(hdr + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(vec);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(vec);
@@ -1914,12 +1914,12 @@ namespace aqua72
 		uint16_t frame = U16(a1, 0x50);
 		uint16_t depth = U16(a1, 0x56);
 		U32(hdr, 0) = data;
-		uint32_t cursor = U32(us(0x1D8E054), 0);
+		uint32_t cursor = U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0);
 		U16(hdr, 4) = frame;
-		uint32_t ot = U32(us(0x1D8E04C), 0) + 0x44;
+		uint32_t ot = U32(game_addr(game::g_Battle_FrameRenderListBase), 0) + 0x44;
 		U16(hdr, 0x24) = 0;
 		U16(hdr, 0xB4) = depth;
-		U32(us(0x1D8E054), 0) = a_7435E0(hdr, ot, 2, cursor);
+		U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0) = a_7435E0(hdr, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
@@ -1957,99 +1957,99 @@ namespace aqua72
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x7D2120, (void *)a_73A0D0, "072 MAG_072_sub_7D2120" },
-		{ 0x7D2130, (void *)a_73A0D0, "072 MAG_072_sub_7D2130" },
-		{ 0x7D2150, (void *)a_73A170, "072 MAG_072_sub_7D2150" },
-		{ 0x7D2180, (void *)a_73A1A0, "072 MAG_072_sub_7D2180" },
-		{ 0x7D22E0, (void *)a_73A720, "072 sub_7D22E0" },
-		{ 0x7D2570, (void *)a_73F110, "072 sub_7D2570" },
-		{ 0x7D25E0, (void *)a_7335D0, "072 sub_7D25E0" },
-		{ 0x7D26B0, (void *)a_73A6D0, "072 nullsub_1417" },
-		{ 0x7D26F0, (void *)a_73B640, "072 sub_7D26F0" },
-		{ 0x7D2750, (void *)a_73B7E0, "072 sub_7D2750" },
-		{ 0x7D2790, (void *)a_73B8A0, "072 sub_7D2790" },
-		{ 0x7D27B0, (void *)a_7475A0, "072 sub_7D27B0" },
-		{ 0x7D27D0, (void *)a_73A6D0, "072 nullsub_1418" },
-		{ 0x7D27E0, (void *)a_73A6D0, "072 nullsub_1419" },
-		{ 0x7D3AB0, (void *)a_73D770, "072 sub_7D3AB0" },
-		{ 0x7D3D00, (void *)a_73D9C0, "072 sub_7D3D00" },
-		{ 0x7D4DC0, (void *)a_73A6D0, "072 nullsub_1420" },
-		{ 0x7D4DD0, (void *)a_73A380, "072 sub_7D4DD0" },
-		{ 0x7D51F0, (void *)a_7435E0, "072 InitEffectSequenceFromData_c11" },
-		{ 0x7D5330, (void *)a_743720, "072 sub_7D5330" },
-		{ 0x7D5800, (void *)a_743C20, "072 sub_7D5800" },
-		{ 0x7D5830, (void *)a_73A6D0, "072 nullsub_1421" },
-		{ 0x7D5840, (void *)a_73A6D0, "072 nullsub_1422" },
-		{ 0x7D5850, (void *)a_73A380, "072 sub_7D5850" },
-		{ 0x7D5C20, (void *)a_73A6D0, "072 nullsub_1423" },
-		{ 0x7D5C30, (void *)a_73A6D0, "072 nullsub_1424" },
-		{ 0x7D5C40, (void *)a_73A380, "072 sub_7D5C40" },
-		{ 0x7D5FA0, (void *)a_73A6D0, "072 nullsub_1425" },
-		{ 0x7D5FB0, (void *)a_73A6D0, "072 nullsub_1426" },
-		{ 0x7D5FC0, (void *)a_747440, "072 MAG_072_sub_7D5FC0" },
-		{ 0x7D6030, (void *)a_7474B0, "072 MAG_072_sub_7D6030" },
-		{ 0x7D6050, (void *)a_7474D0, "072 MAG_072_sub_7D6050" },
-		{ 0x7D6070, (void *)a_73A6D0, "072 nullsub_1427" },
-		{ 0x7D6080, (void *)a_747500, "072 MAG_072_sub_7D6080" },
-		{ 0x7D60C0, (void *)a_73A0D0, "072 MAG_072_sub_7D60C0" },
-		{ 0x7D60D0, (void *)a_747550, "072 MAG_072_sub_7D60D0" },
-		{ 0x7D60E0, (void *)a_73A0D0, "072 MAG_072_sub_7D60E0" },
-		{ 0x7D60F0, (void *)a_73A0D0, "072 MAG_072_sub_7D60F0" },
-		{ 0x7D6100, (void *)a_7475A0, "072 MAG_072_sub_7D6100" },
-		{ 0x7D6120, (void *)a_73A6D0, "072 nullsub_1416" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State0_Next, (void *)a_73A0D0, "072 MAG_072_sub_7D2120" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State1_Next, (void *)a_73A0D0, "072 MAG_072_sub_7D2130" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State3_SpawnEmitter, (void *)a_73A170, "072 MAG_072_sub_7D2150" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_EmitterTask, (void *)a_73A1A0, "072 MAG_072_sub_7D2180" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_GetMonstersCentre, (void *)a_73A720, "072 sub_7D22E0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StageDarkenTask, (void *)a_73F110, "072 sub_7D2570" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StageDarken_State0_Clear, (void *)a_7335D0, "072 sub_7D25E0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StageDarken_State4_Nullsub, (void *)a_73A6D0, "072 nullsub_1417" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_RequestPhase, (void *)a_73B640, "072 sub_7D26F0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_PhaseReached, (void *)a_73B7E0, "072 sub_7D2750" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_State4_CuePhase2, (void *)a_73B8A0, "072 sub_7D2790" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_State5_Finish, (void *)a_7475A0, "072 sub_7D27B0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_State6_Nullsub, (void *)a_73A6D0, "072 nullsub_1418" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Nullsub_7D27E0, (void *)a_73A6D0, "072 nullsub_1419" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderListG3, (void *)a_73D770, "072 sub_7D3AB0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderListG4, (void *)a_73D9C0, "072 sub_7D3D00" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State4_Nullsub, (void *)a_73A6D0, "072 nullsub_1420" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StreamTask, (void *)a_73A380, "072 sub_7D4DD0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_InitSpriteSequence, (void *)a_7435E0, "072 InitEffectSequenceFromData_c11" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_DrawSpriteQuads, (void *)a_743720, "072 sub_7D5330" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StepSpriteFrame, (void *)a_743C20, "072 sub_7D5800" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StreamDrops_State2_Nullsub, (void *)a_73A6D0, "072 nullsub_1421" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Nullsub_7D5840, (void *)a_73A6D0, "072 nullsub_1422" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_SplashTask, (void *)a_73A380, "072 sub_7D5850" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_SplashDrops_State2_Nullsub, (void *)a_73A6D0, "072 nullsub_1423" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Nullsub_7D5C30, (void *)a_73A6D0, "072 nullsub_1424" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RainTask, (void *)a_73A380, "072 sub_7D5C40" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RainDrops_State2_Nullsub, (void *)a_73A6D0, "072 nullsub_1425" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Nullsub_7D5FB0, (void *)a_73A6D0, "072 nullsub_1426" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State1_ApplyDamageOnCue, (void *)a_747440, "072 MAG_072_sub_7D5FC0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State2_WaitChildren, (void *)a_7474B0, "072 MAG_072_sub_7D6030" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State3_Finish, (void *)a_7474D0, "072 MAG_072_sub_7D6050" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State4_Nullsub, (void *)a_73A6D0, "072 nullsub_1427" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State4_NextAction, (void *)a_747500, "072 MAG_072_sub_7D6080" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State5_Next, (void *)a_73A0D0, "072 MAG_072_sub_7D60C0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State6_WaitTasks, (void *)a_747550, "072 MAG_072_sub_7D60D0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State7_Next, (void *)a_73A0D0, "072 MAG_072_sub_7D60E0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State8_Next, (void *)a_73A0D0, "072 MAG_072_sub_7D60F0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State9_Finish, (void *)a_7475A0, "072 MAG_072_sub_7D6100" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State10_Nullsub, (void *)a_73A6D0, "072 nullsub_1416" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x7D1FD0, (void *)ab_7D1FD0, "072 ab_7D1FD0" },
-		{ 0x7D2140, (void *)ab_7D2140, "072 ab_7D2140" },
-		{ 0x7D2200, (void *)ab_7D2200, "072 ab_7D2200" },
-		{ 0x7D2230, (void *)ab_7D2230, "072 ab_7D2230" },
-		{ 0x7D2370, (void *)ab_7D2370, "072 ab_7D2370" },
-		{ 0x7D2430, (void *)ab_7D2430, "072 ab_7D2430" },
-		{ 0x7D24B0, (void *)ab_7D24B0, "072 ab_7D24B0" },
-		{ 0x7D2500, (void *)ab_7D2500, "072 ab_7D2500" },
-		{ 0x7D2620, (void *)ab_7D2620, "072 ab_7D2620" },
-		{ 0x7D2660, (void *)ab_7D2660, "072 ab_7D2660" },
-		{ 0x7D2670, (void *)ab_7D2670, "072 ab_7D2670" },
-		{ 0x7D26C0, (void *)ab_7D26C0, "072 ab_7D26C0" },
-		{ 0x7D2720, (void *)ab_7D2720, "072 ab_7D2720" },
-		{ 0x7D2770, (void *)ab_7D2770, "072 ab_7D2770" },
-		{ 0x7D27F0, (void *)ab_7D27F0, "072 ab_7D27F0" },
-		{ 0x7D28F0, (void *)ab_7D28F0, "072 ab_7D28F0" },
-		{ 0x7D29A0, (void *)ab_7D29A0, "072 ab_7D29A0" },
-		{ 0x7D2AD0, (void *)ab_7D2AD0, "072 ab_7D2AD0" },
-		{ 0x7D2C00, (void *)ab_7D2C00, "072 ab_7D2C00" },
-		{ 0x7D2E20, (void *)ab_7D2E20, "072 ab_7D2E20" },
-		{ 0x7D30B0, (void *)ab_7D30B0, "072 ab_7D30B0" },
-		{ 0x7D3530, (void *)ab_7D3530, "072 ab_7D3530" },
-		{ 0x7D3FE0, (void *)ab_7D3FE0, "072 ab_7D3FE0" },
-		{ 0x7D44E0, (void *)ab_7D44E0, "072 ab_7D44E0" },
-		{ 0x7D4B30, (void *)ab_7D4B30, "072 ab_7D4B30" },
-		{ 0x7D4C20, (void *)ab_7D4C20, "072 ab_7D4C20" },
-		{ 0x7D4C80, (void *)ab_7D4C80, "072 ab_7D4C80" },
-		{ 0x7D4D20, (void *)ab_7D4D20, "072 ab_7D4D20" },
-		{ 0x7D4D60, (void *)ab_7D4D60, "072 ab_7D4D60" },
-		{ 0x7D4D90, (void *)ab_7D4D90, "072 ab_7D4D90" },
-		{ 0x7D4E30, (void *)ab_7D4E30, "072 ab_7D4E30" },
-		{ 0x7D4E70, (void *)ab_7D4E70, "072 ab_7D4E70" },
-		{ 0x7D4F80, (void *)ab_7D4F80, "072 ab_7D4F80" },
-		{ 0x7D50D0, (void *)ab_7D50D0, "072 ab_7D50D0" },
-		{ 0x7D57A0, (void *)ab_7D57A0, "072 ab_7D57A0" },
-		{ 0x7D57E0, (void *)ab_7D57E0, "072 ab_7D57E0" },
-		{ 0x7D58B0, (void *)ab_7D58B0, "072 ab_7D58B0" },
-		{ 0x7D5940, (void *)ab_7D5940, "072 ab_7D5940" },
-		{ 0x7D5A70, (void *)ab_7D5A70, "072 ab_7D5A70" },
-		{ 0x7D5AD0, (void *)ab_7D5AD0, "072 ab_7D5AD0" },
-		{ 0x7D5BE0, (void *)ab_7D5BE0, "072 ab_7D5BE0" },
-		{ 0x7D5C00, (void *)ab_7D5C00, "072 ab_7D5C00" },
-		{ 0x7D5CA0, (void *)ab_7D5CA0, "072 ab_7D5CA0" },
-		{ 0x7D5CF0, (void *)ab_7D5CF0, "072 ab_7D5CF0" },
-		{ 0x7D5E50, (void *)ab_7D5E50, "072 ab_7D5E50" },
-		{ 0x7D5F60, (void *)ab_7D5F60, "072 ab_7D5F60" },
-		{ 0x7D5F80, (void *)ab_7D5F80, "072 ab_7D5F80" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_MasterTask, (void *)ab_7D1FD0, "072 ab_7D1FD0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Master_State2_WaitChildren, (void *)ab_7D2140, "072 ab_7D2140" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Emitter_State0_SpawnDirector, (void *)ab_7D2200, "072 ab_7D2200" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_InitDirectorBlock, (void *)ab_7D2230, "072 ab_7D2230" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_GetFarthestTargetDistance, (void *)ab_7D2370, "072 ab_7D2370" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_DirectorTask, (void *)ab_7D2430, "072 ab_7D2430" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_PhaseBookkeeping, (void *)ab_7D24B0, "072 ab_7D24B0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_State0_DarkenAndCastAnim, (void *)ab_7D2500, "072 ab_7D2500" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StageDarken_State1_RampUp, (void *)ab_7D2620, "072 ab_7D2620" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StageDarken_State2_Hold, (void *)ab_7D2660, "072 ab_7D2660" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StageDarken_State3_RampDown, (void *)ab_7D2670, "072 ab_7D2670" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_State1_CuePhase1, (void *)ab_7D26C0, "072 ab_7D26C0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_State2_PlaySound, (void *)ab_7D2720, "072 ab_7D2720" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Director_State3_DamageCue, (void *)ab_7D2770, "072 ab_7D2770" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_SpawnPhaseTasks, (void *)ab_7D27F0, "072 ab_7D27F0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_OrbTask, (void *)ab_7D28F0, "072 ab_7D28F0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_DrawOrb, (void *)ab_7D29A0, "072 ab_7D29A0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderPrimModel, (void *)ab_7D2AD0, "072 ab_7D2AD0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderListF3, (void *)ab_7D2C00, "072 ab_7D2C00" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderListF4, (void *)ab_7D2E20, "072 ab_7D2E20" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderListFT3, (void *)ab_7D30B0, "072 ab_7D30B0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderListFT4, (void *)ab_7D3530, "072 ab_7D3530" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderListGT3, (void *)ab_7D3FE0, "072 ab_7D3FE0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RenderListGT4, (void *)ab_7D44E0, "072 ab_7D44E0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_OrbWaveVertices, (void *)ab_7D4B30, "072 ab_7D4B30" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State0_Appear, (void *)ab_7D4C20, "072 ab_7D4C20" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_GetCasterAnchor, (void *)ab_7D4C80, "072 ab_7D4C80" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State1_FadeIn, (void *)ab_7D4D20, "072 ab_7D4D20" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State2_Hold, (void *)ab_7D4D60, "072 ab_7D4D60" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Orb_State3_FadeOut, (void *)ab_7D4D90, "072 ab_7D4D90" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Stream_State0_Facing, (void *)ab_7D4E30, "072 ab_7D4E30" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Stream_State1_SpawnDrops, (void *)ab_7D4E70, "072 ab_7D4E70" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StreamDropsTask, (void *)ab_7D4F80, "072 ab_7D4F80" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_DrawDropSprite, (void *)ab_7D50D0, "072 ab_7D50D0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StreamDrops_State0_Init, (void *)ab_7D57A0, "072 ab_7D57A0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_StreamDrops_State1_Animate, (void *)ab_7D57E0, "072 ab_7D57E0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Splash_State0_HitAnim, (void *)ab_7D58B0, "072 ab_7D58B0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Splash_State1_SpawnDrops, (void *)ab_7D5940, "072 ab_7D5940" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_GetRandomBonePositions, (void *)ab_7D5A70, "072 ab_7D5A70" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_SplashDropsTask, (void *)ab_7D5AD0, "072 ab_7D5AD0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_SplashDrops_State0_Init, (void *)ab_7D5BE0, "072 ab_7D5BE0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_SplashDrops_State1_Animate, (void *)ab_7D5C00, "072 ab_7D5C00" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Rain_State0_Init, (void *)ab_7D5CA0, "072 ab_7D5CA0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_Rain_State1_SpawnDrops, (void *)ab_7D5CF0, "072 ab_7D5CF0" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RainDropsTask, (void *)ab_7D5E50, "072 ab_7D5E50" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RainDrops_State0_Init, (void *)ab_7D5F60, "072 ab_7D5F60" },
+		{ game::MAG_072_AQUA_BREATH_QUISTIS_RainDrops_State1_Animate, (void *)ab_7D5F80, "072 ab_7D5F80" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

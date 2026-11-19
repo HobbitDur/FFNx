@@ -25,27 +25,27 @@ namespace haste125
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x252136C)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2521370)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x252138C)); }
-	inline Mat4x3 *EffCam() { return (Mat4x3 *)us(0x2521390); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x25213B0); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::unk_252136C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_2521370)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_Haste_PacketCursor)); }
+	inline Mat4x3 *EffCam() { return (Mat4x3 *)game_addr(game::g_Haste_EffectCameraMatrix); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)game_addr(game::unk_25213B0); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
 
-	static const uint32_t ORIG_RootTask = 0x6BB750;
-	static const uint32_t ORIG_TargetTask = 0x6BB8D0;
-	static const uint32_t MODEL_Clock = 0x1248A0C;
-	static const uint32_t MODEL_Lower = 0x124BD98;
-	static const void *SOUND_Haste() { return (const void *)us(0x1252BD4); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_125_HASTE_RootTask;
+	static constexpr game::Id ORIG_TargetTask = game::MAG_125_HASTE_TargetTask;
+	static constexpr game::Id MODEL_Clock = game::unk_1248A0C;
+	static constexpr game::Id MODEL_Lower = game::unk_124BD98;
+	static const void *SOUND_Haste() { return (const void *)game_addr(game::unk_1252BD4); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))((int32_t)(uint16_t)angle, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationY(int16_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))((int32_t)(uint16_t)angle, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -246,14 +246,14 @@ namespace haste125
 			}
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), game_addr(ORIG_TargetTask));
 				Memset32(&t->counter, 0, 0x1F1);
 				t->action = (int16_t)(uint16_t)r->action;
 				t->entity = Entity(Ctx()->actions[t->action].targets[0]);
 				GetDefaultEffectPosition(t->entity, t->pos);
 				GetEffectSpawnPosition(t->entity, 0xF0, 0, t->spawn);
-				DecodeModelPrimLayout(us(MODEL_Clock), t->clock, 0x254);
-				DecodeModelPrimLayout(us(MODEL_Lower), t->lower, 0x558);
+				DecodeModelPrimLayout(game_addr(MODEL_Clock), t->clock, 0x254);
+				DecodeModelPrimLayout(game_addr(MODEL_Lower), t->lower, 0x558);
 				r->action++;
 			}
 		}

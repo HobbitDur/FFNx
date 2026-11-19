@@ -33,71 +33,71 @@ namespace gastric169
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	inline int32_t &TargetSlot() { return var<int32_t>(us(0x23B1370)); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x23B1CF8); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x23B2B18)); }
-	inline int32_t &AttackerSlot() { return var<int32_t>(us(0x23B3070)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23B3BE4)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23B3BE8)); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	static const uint32_t DROPS = 0x23B1398, DROPS_END = 0x23B1CF8;
-	static const uint32_t STREAMS = 0x23B2B20;
-	static const uint32_t MESH_VERTS = 0x23B3078;
-	static const uint32_t SPLASH_MATRIX = 0x23B3BF0;
-	static const uint32_t MDATA_LO = 0x23B1370, MDATA_HI = 0x23B3C10;
+	inline int32_t &TargetSlot() { return var<int32_t>(game_addr(game::g_Mag169_TargetSlot)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::g_Mag169_EffectQueue); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_Mag169_CastContext)); }
+	inline int32_t &AttackerSlot() { return var<int32_t>(game_addr(game::g_Mag169_AttackerSlot)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g_Mag169_TexBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_Mag169_PacketCursor)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	static constexpr game::Id DROPS = game::g_Mag169_Drops, DROPS_END = game::g_Mag169_EffectQueue;
+	static constexpr game::Id STREAMS = game::g_Mag169_Streams;
+	static constexpr game::Id MESH_VERTS = game::g_Mag169_MeshVerts;
+	static constexpr game::Id SPLASH_MATRIX = game::g_Mag169_SplashMatrix;
+	static constexpr game::Id MDATA_LO = game::g_Mag169_TargetSlot, MDATA_HI = game::unk_23B3C10;
 
-	static const uint32_t ORIG_Root = 0x5E16E0;
-	static const uint32_t ORIG_Director = 0x5DEF20;
-	static const uint32_t ORIG_Tint = 0x5DF030;
-	static const uint32_t ORIG_Stream = 0x5DFD40;
-	static const uint32_t ORIG_Blob = 0x5E00B0;
-	static const uint32_t ORIG_Mesh = 0x5E01A0;
-	static const uint32_t ORIG_Drips = 0x5E0FE0;
-	static const uint32_t ORIG_Puddle = 0x5E1200;
-	static const uint32_t ORIG_Splash = 0x5E1330;
-	static const uint32_t SEQ_Blob = 0xD6A544, SEQ_Splash = 0xD6A620, SEQ_Drip = 0xD6A718;
-	static const uint32_t MODEL_Mesh = 0xD6A8C4, MODEL_Puddle = 0xD6B534;
-	static const uint32_t MESH_A = 0xD6A8CC, MESH_B = 0xD6B2EC;
-	static const int32_t *DRIP_COUNTS() { return (const int32_t *)us(0xD6BC24); }
-	static const void *SOUND_Juice() { return (const void *)us(0xD6BC1C); }
+	static constexpr game::Id ORIG_Root = game::MAG_169_GastricJuice_RootTask;
+	static constexpr game::Id ORIG_Director = game::MAG_169_GastricJuice_DirectorTask;
+	static constexpr game::Id ORIG_Tint = game::MAG_169_GastricJuice_TintedTargetTask;
+	static constexpr game::Id ORIG_Stream = game::MAG_169_GastricJuice_StreamTask;
+	static constexpr game::Id ORIG_Blob = game::MAG_169_GastricJuice_BlobTask;
+	static constexpr game::Id ORIG_Mesh = game::MAG_169_GastricJuice_LandingMeshTask;
+	static constexpr game::Id ORIG_Drips = game::MAG_169_GastricJuice_DripEmitterTask;
+	static constexpr game::Id ORIG_Puddle = game::MAG_169_GastricJuice_PuddleTask;
+	static constexpr game::Id ORIG_Splash = game::MAG_169_GastricJuice_SplashTask;
+	static constexpr game::Id SEQ_Blob = game::unk_D6A544, SEQ_Splash = game::unk_D6A620, SEQ_Drip = game::unk_D6A718;
+	static constexpr game::Id MODEL_Mesh = game::unk_D6A8C4, MODEL_Puddle = game::unk_D6B534;
+	static constexpr game::Id MESH_A = game::unk_D6A8CC, MESH_B = game::unk_D6B2EC;
+	static const int32_t *DRIP_COUNTS() { return (const int32_t *)game_addr(game::unk_D6BC24); }
+	static const void *SOUND_Juice() { return (const void *)game_addr(game::unk_D6BC1C); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, mode, out); }
-	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
-	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5099D0))(model, hdr, ot, mode, cursor); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline void BezierInit(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, points, work); }
-	inline void BezierPoint(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
+	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, mode, out); }
+	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(entity, ot, mode, cursor); }
+	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::RenderGeometry))(model, hdr, ot, mode, cursor); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline void BezierInit(int32_t n, const void *points, void *work) { fn<void (__cdecl *)(int32_t, const void *, void *)>(game_addr(game::Effect_SplineSetup))(n, points, work); }
+	inline void BezierPoint(int32_t n, void *work, void *out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, void *, int32_t)>(game_addr(game::Effect_SplineEval))(n, work, out, t); }
 
-	inline void GteWriteData(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45D7C0))(value, reg); }
-	inline void GteReadData(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(us(0x45D7A0))(dst, reg); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
-	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
-	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DDA0))(r, g, b); }
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E360))(c); }
-	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E120))(a, b, c); }
-	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E370))(a, b, c); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
-	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF80))(p); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
-	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
-	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DDD0))(s); }
+	inline void GteWriteData(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::GTE_WriteDataReg))(value, reg); }
+	inline void GteReadData(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(game_addr(game::GTE_ReadDataRegTo))(dst, reg); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadV0))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSXY2))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColorRGB))(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCT))(); }
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreRGB2))(c); }
+	inline void GteLoadRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_LoadRGB012))(a, b, c); }
+	inline void GteStoreRGB012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_StoreRGB012))(a, b, c); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0_Tr_2))(); }
+	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetIR0FromS16))(p); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetLightMatrix))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetBackColorFromTrans))(m); }
+	inline void GteSetRotDiagonal16(int32_t s) { fn<void (__cdecl *)(int32_t)>(game_addr(game::GTE_SetRotDiag))(s); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
 
 #pragma pack(push, 1)
@@ -136,8 +136,8 @@ namespace gastric169
 	static_assert(sizeof(Node) == 0x24, "Gastric Juice nodes are 0x24 bytes");
 	static_assert(sizeof(Stream) == 0x110 && sizeof(Drop) == 0x18, "stream / droplet entries");
 
-	inline Stream *StreamOf(int32_t i) { return (Stream *)(us(STREAMS) + (uint32_t)(i * 0x110)); }
-	inline Drop *Drops() { return (Drop *)us(DROPS); }
+	inline Stream *StreamOf(int32_t i) { return (Stream *)(game_addr(STREAMS) + (uint32_t)(i * 0x110)); }
+	inline Drop *Drops() { return (Drop *)game_addr(DROPS); }
 }
 }
 
@@ -341,7 +341,7 @@ namespace gastric169
 	{
 		const uint32_t anim = entity + 0x60;
 		if (!(U8(entity, 0) & 0x20))
-			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
+			FrameCursor() = DrawShadow(entity, var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0xBC));
 		ComputeBonesWorldMatrices((void *)anim, (void *)(entity + 0x40));
 		U32(hdr, 0x1C) = U32(entity, 0x28);
@@ -350,8 +350,8 @@ namespace gastric169
 		U8(hdr, 0x2A) = cue;
 		U8(hdr, 0x29) = cue;
 		U8(hdr, 0x28) = cue;
-		U32(hdr, 4) = var<uint32_t>(us(0x1D98B3C));
-		U32(hdr, 0x10) = var<uint32_t>(us(0x1D969A8));
+		U32(hdr, 4) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
+		U32(hdr, 0x10) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		U16(hdr, 0x14) = 0;
 		U16(hdr, 0x16) = 0;
 		U16(hdr, 0x18) = 0x140;
@@ -684,12 +684,12 @@ namespace gastric169
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x5C));
-		U32(h, 0) = us(MODEL_Mesh);
+		U32(h, 0) = game_addr(MODEL_Mesh);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0x2033;
 		for (int32_t k = 0; k < 0x49; k++)
 		{
-			const uint32_t a = us(MESH_A) + (uint32_t)k * 8, b = us(MESH_B) + (uint32_t)k * 8, o = verts + (uint32_t)k * 8;
+			const uint32_t a = game_addr(MESH_A) + (uint32_t)k * 8, b = game_addr(MESH_B) + (uint32_t)k * 8, o = verts + (uint32_t)k * 8;
 			for (int32_t w = 0; w < 3; w++)
 				S16(o, w * 2) = (int16_t)((mul32(S16(b, w * 2) - S16(a, w * 2), s) >> 12) + S16(a, w * 2));
 		}
@@ -716,7 +716,7 @@ namespace gastric169
 	static uint32_t __cdecl MeshTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		MeshDraw(n, us(MESH_VERTS) + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
+		MeshDraw(n, game_addr(MESH_VERTS) + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
 		if (DrawOnly()) return 0;
 		n->counter++;
 		return n->counter >= 0x20 ? TASK_END : 0;
@@ -738,7 +738,7 @@ namespace gastric169
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = us(MODEL_Puddle);
+		U32(h, 0) = game_addr(MODEL_Puddle);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xF3;
 		S32(h, 0xC) = fade;
@@ -777,7 +777,7 @@ namespace gastric169
 	static uint32_t __cdecl BlobTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		BlobDraw(n, StreamOf(n->idx)->curve[0] + n->a18 * 4, us(SEQ_Blob));
+		BlobDraw(n, StreamOf(n->idx)->curve[0] + n->a18 * 4, game_addr(SEQ_Blob));
 		if (DrawOnly()) return 0;
 		const int16_t v = n->a1a;
 		n->a18 = (int16_t)(n->a18 + v);
@@ -798,9 +798,9 @@ namespace gastric169
 		Node *n = (Node *)tn;
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = us(SEQ_Drip);
+		U32(h, 0) = game_addr(SEQ_Drip);
 		U16(h, 0x24) = 0;
-		for (Drop *e = Drops(); P(e) < us(DROPS_END); e++)
+		for (Drop *e = Drops(); P(e) < game_addr(DROPS_END); e++)
 		{
 			if (!(e->flags & (uint32_t)(int32_t)n->idx)) continue;
 			DripDraw(h, e);
@@ -823,8 +823,8 @@ namespace gastric169
 			for (int32_t k = 0; k < DRIP_COUNTS()[n->counter]; k++)
 			{
 				Drop *e = Drops();
-				while (P(e) < us(DROPS_END) && e->flags) e++;
-				if (P(e) >= us(DROPS_END)) break;
+				while (P(e) < game_addr(DROPS_END) && e->flags) e++;
+				if (P(e) >= game_addr(DROPS_END)) break;
 				e->flags = (uint32_t)(int32_t)n->idx;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0x900 + 0x600);
@@ -856,14 +856,14 @@ namespace gastric169
 		m.t[1] = s->curve[1][1];
 		m.t[2] = s->curve[1][2];
 		ComposeAffineTransform(&Camera(), &m, &m);
-		GteSetRotMatrixCtrl((const Mat4x3 *)us(SPLASH_MATRIX));
+		GteSetRotMatrixCtrl((const Mat4x3 *)game_addr(SPLASH_MATRIX));
 		GteSetLightMatrix(&m);
 		GteSetBKFromMatrix(&m);
 	}
 
 	static void SplashDraw(uint32_t h, const Drop *e)
 	{
-		Mat4x3 &g = *(Mat4x3 *)us(SPLASH_MATRIX);
+		Mat4x3 &g = *(Mat4x3 *)game_addr(SPLASH_MATRIX);
 		GteLoadV0(e->pos);
 		GteMVMVA_LightV0Bk();
 		GteSetRotDiagonal16(e->scale);
@@ -884,10 +884,10 @@ namespace gastric169
 		Node *n = (Node *)tn;
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = us(SEQ_Splash);
+		U32(h, 0) = game_addr(SEQ_Splash);
 		U16(h, 0x24) = 0;
 		SplashSetup(StreamOf(n->idx));
-		for (Drop *e = Drops(); P(e) < us(DROPS_END); e++)
+		for (Drop *e = Drops(); P(e) < game_addr(DROPS_END); e++)
 		{
 			if (!(e->flags & 0x100)) continue;
 			SplashDraw(h, e);
@@ -909,8 +909,8 @@ namespace gastric169
 			for (int32_t k = 0; k < 0xC; k++)
 			{
 				Drop *e = Drops();
-				while (P(e) < us(DROPS_END) && e->flags) e++;
-				if (P(e) >= us(DROPS_END)) break;
+				while (P(e) < game_addr(DROPS_END) && e->flags) e++;
+				if (P(e) >= game_addr(DROPS_END)) break;
 				e->flags = 0x100;
 				e->frame = 0;
 				e->scale = (int16_t)(CrtRand() % 0x180 + 0x200);
@@ -971,7 +971,7 @@ namespace gastric169
 		}
 		if (n->counter == 1)
 		{
-			Node *b = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Blob));
+			Node *b = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Blob));
 			b->counter = 0;
 			b->idx = n->idx;
 			b->a18 = 0;
@@ -980,7 +980,7 @@ namespace gastric169
 		}
 		if (n->counter == 0x16)
 		{
-			Node *m = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Mesh));
+			Node *m = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Mesh));
 			ff8fx::copy<(8)>(m->pos, s->dst);
 			m->counter = 0;
 			m->idx = n->idx;
@@ -989,7 +989,7 @@ namespace gastric169
 			m->a1c = (int16_t)(CrtRand() % 0x600 + 0x400);
 			if (n->counter == 0x16)
 			{
-				Node *d = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Drips));
+				Node *d = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Drips));
 				d->counter = 0;
 				d->idx = (int16_t)(1u << ((uint8_t)n->idx & 31));
 				ff8fx::copy<(8)>(d->pos, s->dst);
@@ -997,7 +997,7 @@ namespace gastric169
 		}
 		if (n->counter == 0x15)
 		{
-			Node *p = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Puddle));
+			Node *p = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Puddle));
 			ff8fx::copy<(8)>(p->pos, s->dst);
 			p->counter = 0;
 			p->a18 = (int16_t)(CrtRand() % 4096);
@@ -1017,7 +1017,7 @@ namespace gastric169
 		{
 			for (int k = 0; k < 5; k++)
 			{
-				Node *s = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Stream));
+				Node *s = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Stream));
 				const int16_t i = n->idx;
 				s->counter = 0;
 				s->idx = i;
@@ -1026,13 +1026,13 @@ namespace gastric169
 				n->idx++;
 				s->a1a = (int16_t)d;
 			}
-			Node *sp = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Splash));
+			Node *sp = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Splash));
 			sp->counter = 0;
 			sp->idx = 0;
 		}
 		if (n->counter == 0x1E)
 		{
-			Node *t = (Node *)AddTaskToQueue(EffectQueue(), us(ORIG_Tint));
+			Node *t = (Node *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Tint));
 			t->counter = 0;
 			GetDefaultEffectPosition(Entity(TargetSlot()), t->pos);
 		}

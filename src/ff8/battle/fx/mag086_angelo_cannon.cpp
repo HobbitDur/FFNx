@@ -22,21 +22,21 @@ namespace act
 {
 namespace cannon86
 {
-	static const Mod MOD_086 = { "angelocannon", 86, 0x77F230, 0x784480,
-		{ 0x0, 0x0, 0x1561770, 0x0, 0x0, 0x25B4DCC, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25B4CC8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25B7080, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25BB0C0, 0x0, 0x0, 0x25BB238, 0x25BBD2C, 0x0, 0x0, 0x0, 0x25BBF60, 0x0, 0x0, 0x0, 0x25BC218, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x77F5B0, 0x77F630, 0x0, 0x77F980, 0x77F9B0, 0x77F9E0, 0x77F9F0, 0x77FA00, 0x77FA10, 0x77FA20, 0x0, 0x0, 0x77FDB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x77FD20, 0x0, 0x77FD70, 0x7838C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x782BF0, 0x0, 0x7842F0, 0x784360, 0x784380, 0x7843A0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_086 = { "angelocannon", 86, game::MAG_086_ANGELO_CANNON_LoadFile, game::MAG_085_THE_END_FL,
+		{ {}, {}, game::MAG_086_ANGELO_CANNON_pDirector, {}, {}, game::MAG_086_ANGELO_CANNON_PacketCursor2, {}, {}, {}, {}, {}, {}, game::MAG_086_ANGELO_CANNON_pFile, {}, {}, {}, {}, {}, {}, game::MAG_086_ANGELO_CANNON_PlaysPause, {}, {}, {}, {}, {}, {}, game::MAG_086_ANGELO_CANNON_EmitterQueue, {}, {}, game::MAG_086_ANGELO_CANNON_pLoadScriptRecord, game::MAG_086_ANGELO_CANNON_pModuleData, {}, {}, {}, game::MAG_086_ANGELO_CANNON_PlayVertexBlend, {}, {}, {}, game::MAG_086_ANGELO_CANNON_PauseSwitch, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_086_ANGELO_CANNON_EmitterTask, game::MAG_086_ANGELO_CANNON_Master_State2_InitDirector, {}, game::MAG_086_ANGELO_CANNON_LoadCallback_QueueTIM, game::MAG_086_ANGELO_CANNON_LoadCallback_SummonStream, game::MAG_086_ANGELO_CANNON_LoadCb_ClearBusy_77F9E0, game::MAG_086_ANGELO_CANNON_LoadCb_ClearBusy_77F9F0, game::MAG_086_ANGELO_CANNON_LoadCb_ClearBusy_77FA00, game::MAG_086_ANGELO_CANNON_LoadCb_ClearBusy_77FA10, game::MAG_086_ANGELO_CANNON_LoadScript_RecordFile, {}, {}, game::MAG_086_ANGELO_CANNON_LoadScript_TryArmStep, {}, {}, {}, {}, {}, {}, {}, game::MAG_086_ANGELO_CANNON_Director_SyncPoint, {}, game::MAG_086_ANGELO_CANNON_Director_CueReached, game::MAG_086_ANGELO_CANNON_Play_ObjectCallback, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_086_ANGELO_CANNON_Sequence_DrawSpriteStrip, {}, game::MAG_086_ANGELO_CANNON_Emitter_State1_ApplyActionResults, game::MAG_086_ANGELO_CANNON_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_086_ANGELO_CANNON_Emitter_State3_FinishReleaseRoot, game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_7843A0, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t DIR_PTR = 0x1561770;
-	static const uint32_t PHASE_DATA = DIR_PTR;
-	static const uint32_t PACKET_CURSOR = 0x25B4CCC;
-	static const uint32_t PLAY_PAUSE = 0x25B7080;
-	static const uint32_t CREATURE_ARG = 0x25BB240;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id DIR_PTR = game::MAG_086_ANGELO_CANNON_pDirector;
+	static constexpr game::Id PHASE_DATA = DIR_PTR;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_086_ANGELO_CANNON_PacketCursor;
+	static constexpr game::Id PLAY_PAUSE = game::MAG_086_ANGELO_CANNON_PlaysPause;
+	static constexpr game::Id CREATURE_ARG = game::MAG_086_ANGELO_CANNON_CreatureDrawState;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
+		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(a1, a2); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -334,7 +334,7 @@ namespace cannon86
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -419,38 +419,38 @@ namespace cannon86
 		g_mod = &MOD_086;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x25BC1F4)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x25B4DD0)) = us(0x2793E58);
-		states[0] = us(0x77F550);
-		states[1] = us(0x77F560);
-		states[2] = us(0x77F570);
-		states[3] = us(0x77F580);
-		states[4] = us(0x7843B0);
-		states[5] = us(0x7843F0);
-		states[6] = us(0x784400);
-		states[7] = us(0x784410);
-		states[8] = us(0x784440);
-		states[9] = us(0x784450);
-		states[10] = us(0x784470);
+		MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_pCameraCopy)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_pCameraCopy2)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State0_Advance_77F550);
+		states[1] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State0_Advance_77F560);
+		states[2] = game_addr(game::MAG_086_ANGELO_CANNON_Master_State2_WaitChildren);
+		states[3] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State0_Advance_7843F0);
+		states[6] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_086_ANGELO_CANNON_Sequence_State9_Finish);
+		states[10] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_784470);
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			MEM<uint32_t>(us(0x25B4CCC)) = MEM<uint32_t>(us(0x25BB234));
-			MEM<uint32_t>(us(0x25B4DCC)) = MEM<uint32_t>(us(0x25BAE2C));
+			MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketCursor)) = MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketArena_Odd));
+			MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketCursor2)) = MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketArena2_Odd));
 		}
 		else
 		{
-			MEM<uint32_t>(us(0x25B4CCC)) = MEM<uint32_t>(us(0x25BB230));
-			MEM<uint32_t>(us(0x25B4DCC)) = MEM<uint32_t>(us(0x25BAE28));
+			MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketCursor)) = MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketArena_Even));
+			MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketCursor2)) = MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketArena2_Even));
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		static const uint32_t queues[8] = { us(0x25BB0C0), us(0x25B4DA8), us(0x25BC1E0), us(0x25BBEE8), us(0x25B4EB0), us(0x25B7088), us(0x25BAE18), us(0x25BB0B0) };
+		static constexpr game::Id queues[8] = { game::MAG_086_ANGELO_CANNON_EmitterQueue, game::MAG_086_ANGELO_CANNON_DirectorQueue, game::MAG_086_ANGELO_CANNON_LoadScriptQueue, game::MAG_086_ANGELO_CANNON_AngeloQueue, game::MAG_086_ANGELO_CANNON_DustRingQueue, game::MAG_086_ANGELO_CANNON_ModelQueue, game::MAG_086_ANGELO_CANNON_PlayQueue, game::MAG_086_ANGELO_CANNON_Queue8 };
 		for (int i = 0; i < 8; i++)
 		{
-			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
+			const uint32_t n = x::ExecuteTaskQueue(game_addr(queues[i]));
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -470,26 +470,26 @@ namespace cannon86
 	{
 		ac_77FAE0(a1);
 		ac_77F680();
-		x::Effect_AddTaskAndInitFromCtx(us(0x25BC1E0), us(0x77F780), 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x25B4DA8), us(0x77FBF0), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_LoadScriptQueue), game_addr(game::MAG_086_ANGELO_CANNON_LoadScriptTask), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_DirectorQueue), game_addr(game::MAG_086_ANGELO_CANNON_DirectorTask), 0x48, a1);
 		t1_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl ac_77F680()
 	{
-		MEM<uint32_t>(us(0x25BB238)) = us(0x1565EB0);
-		MEM<uint32_t>(us(0x25BBD2C)) = us(0x25BC220);
-		x::MAG_007_sub_8DCC00(us(0x25BC220), 0x16C);
-		const uint32_t b = MEM<uint32_t>(us(0x25BBD2C));
-		uint32_t c = MEM<uint32_t>(us(0x25BC21C));
+		MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_pLoadScriptRecord)) = game_addr(game::MAG_086_ANGELO_CANNON_LoadScript);
+		MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_pModuleData)) = game_addr(game::MAG_086_ANGELO_CANNON_ModuleData);
+		x::MAG_007_sub_8DCC00(game_addr(game::MAG_086_ANGELO_CANNON_ModuleData), 0x16C);
+		const uint32_t b = MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_pModuleData));
+		uint32_t c = MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_FileArenaCursor));
 		U32(b, 0x100) = c;
 		c += 0xA000;
-		MEM<uint32_t>(us(0x25BC21C)) = c;
-		U32(b, 0x114) = us(0x19EB018);
+		MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_FileArenaCursor)) = c;
+		U32(b, 0x114) = game_addr(game::unk_19EB018);
 		for (int32_t o = 0x104; o <= 0x160; o += 4)
-			if (o != 0x114 && o != 0x12C) U32(b, o) = us(0x19CF018);
-		U32(b, 0x12C) = us(0x19D2560);
+			if (o != 0x114 && o != 0x12C) U32(b, o) = game_addr(game::unk_19CF018);
+		U32(b, 0x12C) = game_addr(game::unk_19D2560);
 		U16(b, 0x164) = 0;
 		U16(b, 0x166) = 0;
 		return b;
@@ -497,9 +497,9 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FAE0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		a_73A720(MEM<uint32_t>(us(DIR_PTR)) + 8);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		a_73A720(MEM<uint32_t>(game_addr(DIR_PTR)) + 8);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t c = ENT(U8(a1, 0x2C));
 		U16(d, 0xA) = 0;
 		U32(d, 0) = U32(c, 0x1C);
@@ -508,7 +508,7 @@ namespace cannon86
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -516,20 +516,20 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[14];
-		states[0] = us(0x77FD00);
-		states[1] = us(0x77FD50);
-		states[2] = us(0x77FD90);
-		states[3] = us(0x77FDF0);
-		states[4] = us(0x77FE10);
-		states[5] = us(0x77FE30);
-		states[6] = us(0x77FE50);
-		states[7] = us(0x77FE70);
-		states[8] = us(0x77FE90);
-		states[9] = us(0x77FEB0);
-		states[10] = us(0x77FED0);
-		states[11] = us(0x77FEF0);
-		states[12] = us(0x77FF10);
-		states[13] = us(0x77FF30);
+		states[0] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State0_UploadTIM_Sync1);
+		states[1] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State1_Cue1);
+		states[2] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State2_LoadStep);
+		states[3] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State3_WaitFrameF);
+		states[4] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State4_Sync2);
+		states[5] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Cue2);
+		states[6] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State6_WaitLoads);
+		states[7] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State7_Sync3);
+		states[8] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State8_Cue3);
+		states[9] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State9_DoneAtFrame32);
+		states[10] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State10_WaitFrame3C);
+		states[11] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State11_Sync4);
+		states[12] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State12_FinishAtCue4);
+		states[13] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_77FF30);
 		ac_77FCB0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -560,7 +560,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FD00(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(us(0x170CDCC));
+		x::Battle_QueueTIMUpload_GetEOF(game_addr(game::MAG_086_ANGELO_CANNON_AngeloTIM));
 		if (a_73B640(1) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -575,7 +575,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FDF0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0xF)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) >= 0xF)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -589,7 +589,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FEB0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		if (S16(d, 0x46) >= 0x32)
 		{
 			U16(d, 0x48) = 1;
@@ -600,7 +600,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FED0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(0x1561770)), 0x46) >= 0x3C)
+		if (S16(MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_pDirector)), 0x46) >= 0x3C)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -625,10 +625,10 @@ namespace cannon86
 
 	uint32_t __cdecl ac_77FF50(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) == 1)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40) == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25BBEE8), us(0x77FF90), 0x160, a1);
-			x::Effect_BindModelContainerSetAnim(t, us(0x1565EF4), 3);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_AngeloQueue), game_addr(game::MAG_086_ANGELO_CANNON_AngeloTask), 0x160, a1);
+			x::Effect_BindModelContainerSetAnim(t, game_addr(game::MAG_086_ANGELO_CANNON_AngeloModelContainer), 3);
 		}
 		return 0;
 	}
@@ -637,17 +637,17 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[11];
-		states[0] = us(0x783230);
-		states[1] = us(0x7832D0);
-		states[2] = us(0x7835E0);
-		states[3] = us(0x783640);
-		states[4] = us(0x783BA0);
-		states[5] = us(0x783F00);
-		states[6] = us(0x784150);
-		states[7] = us(0x7841E0);
-		states[8] = us(0x784270);
-		states[9] = us(0x7842B0);
-		states[10] = us(0x7842E0);
+		states[0] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State0_BindRinoaAnimSet);
+		states[1] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State1_ShowAtCue2_MuzzleGlow);
+		states[2] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State2_Anim1_RinoaChain2);
+		states[3] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State3_SpawnFirstPlay);
+		states[4] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State4_PauseUntilCue3_Dash);
+		states[5] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State5_Dash_ThirdPlay);
+		states[6] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State6_JumpBack);
+		states[7] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State7_Jump_RinoaChain3);
+		states[8] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State8_Anim6);
+		states[9] = game_addr(game::MAG_086_ANGELO_CANNON_Angelo_State9_Finish);
+		states[10] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_7842E0);
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t vz = U16(node, 0x128);
 		const uint16_t vy = U16(node, 0x126);
@@ -656,7 +656,7 @@ namespace cannon86
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + vy);
 		if ((st & 4) == 0)
 		{
-			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_746C10(node, game_addr(CREATURE_ARG), MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
 				const uint8_t anim = U8(node, 0x9C), frame = U8(node, 0xA2);
@@ -690,7 +690,7 @@ namespace cannon86
 		const int32_t pz = S16(node, 0x50);
 		const int32_t py = S16(node, 0x4E);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		ff8fx::copy<(8 * 4)>((void *)us(0x1D99AB0), (const void *)(node + 0x70));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::unk_1D99AB0), (const void *)(node + 0x70));
 		const int32_t px = S16(node, 0x4C);
 		S32(node, 0x8C) = pz;
 		const uint8_t status = U8(node, 0x26);
@@ -714,7 +714,7 @@ namespace cannon86
 		const int n = k > 3 ? 2 : 4;
 		for (int i = 0; i < n; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B4EB0), us(0x782930), 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_DustRingQueue), game_addr(game::MAG_086_ANGELO_CANNON_DustRingTask), 0x90, a1);
 			if ((uint32_t)(int32_t)k <= 5)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			if (k <= 3)
@@ -758,7 +758,7 @@ namespace cannon86
 			return 0;
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B7088), us(0x780640), 0x98, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_ModelQueue), game_addr(game::MAG_086_ANGELO_CANNON_DustPuffTask), 0x98, a1);
 			if ((uint32_t)(int32_t)k <= 3)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
@@ -778,7 +778,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_780640(uint32_t a1)
 	{
-		const uint32_t states[3] = { us(0x782810), us(0x782850), us(0x782920) };
+		const uint32_t states[3] = { game_addr(game::MAG_086_ANGELO_CANNON_DustPuff_State0_Setup), game_addr(game::MAG_086_ANGELO_CANNON_DustPuff_State1_RollShrink), game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_782920) };
 		callp(states[S8(a1, 0x29)], a1);
 		ac_7806A0(a1);
 		return task_end(a1);
@@ -790,13 +790,13 @@ namespace cannon86
 			return 0;
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
-		x::UnpackRotationMatrix(us(0x1D97778), M);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), M);
 		x::sub_8DD960(M, (uint32_t)(int32_t)S16(a1, 0x48));
 		S32(M, 0x14) = S16(a1, 0x1C);
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), M, M);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -815,7 +815,7 @@ namespace cannon86
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(us(0x1D8E054)) = ac_7807B0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = ac_7807B0(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1534,7 +1534,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_782810(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x15618C0);
+		U32(a1, 0x4C) = game_addr(game::MAG_086_ANGELO_CANNON_DustPuffModel);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -1581,9 +1581,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x783060);
-		states[1] = us(0x783080);
-		states[2] = us(0x783140);
+		states[0] = game_addr(game::MAG_086_ANGELO_CANNON_DustRing_State0_Setup);
+		states[1] = game_addr(game::MAG_086_ANGELO_CANNON_DustRing_State1_Rise);
+		states[2] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_783140);
 		callp(states[S8(node, 0x29)], node);
 		ac_782990(node);
 		const uint8_t status = U8(node, 0x26);
@@ -1598,7 +1598,7 @@ namespace cannon86
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), mat);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -1606,7 +1606,7 @@ namespace cannon86
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -1616,7 +1616,7 @@ namespace cannon86
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -1626,18 +1626,18 @@ namespace cannon86
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(us(0x25B4CCC));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketCursor));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(us(0x25B4CCC)) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(game::MAG_086_ANGELO_CANNON_PacketCursor)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
 
 	uint32_t __cdecl ac_783060(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x156177C);
+		U32(a1, 0x4C) = game_addr(game::MAG_086_ANGELO_CANNON_DustRingSequence);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -1672,7 +1672,7 @@ namespace cannon86
 		const uint32_t M = P(m);
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B4EB0), us(0x782930), 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_DustRingQueue), game_addr(game::MAG_086_ANGELO_CANNON_DustRingTask), 0x90, a1);
 			x::GetEffectSpawnPosition(a1 + 0x30, 0xF1, 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
 			const int32_t r1 = (int32_t)x::CrtRand();
@@ -1697,9 +1697,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		const uint32_t e = ENT(U8(node, 0x2C));
-		gx::BindEntityModelFromComData(e, us(0x25BC1F8), us(0x156AA60));
+		gx::BindEntityModelFromComData(e, game_addr(game::MAG_086_ANGELO_CANNON_RinoaAnimSetBlock), game_addr(game::MAG_086_ANGELO_CANNON_RinoaAnimSetComData));
 		gx::QueueChainTransformation(e, 1);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 4);
 		U32(node, 0x4C) = U32(d, 0);
 		U32(node, 0x50) = U32(d, 4);
@@ -1722,10 +1722,10 @@ namespace cannon86
 		const uint32_t node = a1;
 		U16(node, 0x134) = (uint16_t)(U16(node, 0x134) + 1);
 		if (U16(node, 0x134) == 4)
-			x::BdPlaySE(us(0x1561774), 1, 0x80);
+			x::BdPlaySE(game_addr(game::MAG_086_ANGELO_CANNON_SoundLoad), 1, 0x80);
 		if (a_73B7E0(2) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B7088), us(0x783350), 0x98, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_ModelQueue), game_addr(game::MAG_086_ANGELO_CANNON_MuzzleGlowTask), 0x98, node);
 			U8(node, 0x26) = (uint8_t)(U8(node, 0x26) & 0xFB);
 			U32(t, 0x8C) = node + 0x30;
 			U16(node, 0x128) = 0xFF00;
@@ -1738,9 +1738,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x783500);
-		states[1] = us(0x783590);
-		states[2] = us(0x7835D0);
+		states[0] = game_addr(game::MAG_086_ANGELO_CANNON_MuzzleGlow_State0_Setup);
+		states[1] = game_addr(game::MAG_086_ANGELO_CANNON_MuzzleGlow_State1_Fade);
+		states[2] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_7835D0);
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t v = (uint32_t)(uint8_t)(U8(node, 0x92) - 0x10) & 0x7F;
 		const uint32_t u = U16(node, 0x90);
@@ -1765,7 +1765,7 @@ namespace cannon86
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), M, M);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -1782,7 +1782,7 @@ namespace cannon86
 		U32(h, 0x24) = U32(a2, 0);
 		U32(h, 0x28) = U32(a2, 4);
 		S32(h, 0x10) = S16(a1, 0x52);
-		MEM<uint32_t>(us(0x1D8E054)) = ac_7807B0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = ac_7807B0(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1793,7 +1793,7 @@ namespace cannon86
 		ac_783550(node);
 		U16(node, 0x56) = 0;
 		U16(node, 0x54) = 0;
-		U32(node, 0x4C) = us(0x1561920);
+		U32(node, 0x4C) = game_addr(game::MAG_086_ANGELO_CANNON_MuzzleGlowModel);
 		U16(node, 0x58) = 0x80;
 		U16(node, 0x5A) = 0x80;
 		S32(node, 0x38) = 0x1000;
@@ -1808,7 +1808,7 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		x::GetEffectSpawnPosition(U32(node, 0x8C), 0xF1, 0, node + 0x1C);
-		const uint32_t z = MEM<uint32_t>(us(0xB8B7F4)) + 0x600;
+		const uint32_t z = MEM<uint32_t>(game_addr(game::Battle_Camera_world_Y)) + 0x600;
 		U16(node, 0x1E) = 0xFF00;
 		U16(node, 0x20) = (uint16_t)z;
 		return z;
@@ -1850,7 +1850,7 @@ namespace cannon86
 		x::au_re_Battle_ReadAnimation_8(node);
 		if (U16(node, 0x136) == 0xC)
 		{
-			const uint32_t t = ac_783690(node, us(0x7836E0), us(0x1706398), 0x38, 0, 0);
+			const uint32_t t = ac_783690(node, game_addr(game::MAG_086_ANGELO_CANNON_FirstPlayTask), game_addr(game::MAG_086_ANGELO_CANNON_FirstPlayLayout), 0x38, 0, 0);
 			x::GetEffectSpawnPosition(node + 0x30, 0xF1, 0, t + 0x1C);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
@@ -1859,7 +1859,7 @@ namespace cannon86
 
 	uint32_t __cdecl ac_783690(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25BAE18), a2, 0x450, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_PlayQueue), a2, 0x450, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -1993,9 +1993,9 @@ namespace cannon86
 			U16(hdr, 0x2A) = 0x100;
 			U16(hdr, 0x28) = 0x100;
 		}
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = ac_7807B0(hdr, ot, 2, cursor);
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = ac_7807B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -2023,18 +2023,18 @@ namespace cannon86
 			return 0;
 		}
 		a_73BB60(0);
-		x::BdPlaySE(us(0x1561778), 1, 0x80);
+		x::BdPlaySE(game_addr(game::MAG_086_ANGELO_CANNON_SoundFire), 1, 0x80);
 		x::au_re_Battle_ReadAnimation_7(node, 2);
 		U32(node, 0x140) = U32(mdl, 0x1C);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		U32(node, 0x148) = U32(d, 8);
 		U32(node, 0x144) = U32(mdl, 0x20);
 		U32(node, 0x14C) = U32(d, 0xC);
 		U16(node, 0x154) = 0;
 		U16(node, 0x156) = 0x201;
-		const uint32_t t = ac_783690(node, us(0x783C90), us(0x1706CC0), 0x1A0, 1, 0);
+		const uint32_t t = ac_783690(node, game_addr(game::MAG_086_ANGELO_CANNON_SecondPlayTask), game_addr(game::MAG_086_ANGELO_CANNON_SecondPlayLayout), 0x1A0, 1, 0);
 		x::GetEffectSpawnPosition(mdl, 0xF1, 0, t + 0x1C);
-		const uint32_t g = x::Effect_AddTaskAndInitFromCtx(us(0x25B7088), us(0x783DC0), 0x98, node);
+		const uint32_t g = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_086_ANGELO_CANNON_ModelQueue), game_addr(game::MAG_086_ANGELO_CANNON_DashGlowTask), 0x98, node);
 		U32(g, 0x8C) = mdl;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -2068,9 +2068,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x783E40);
-		states[1] = us(0x783EC0);
-		states[2] = us(0x783EF0);
+		states[0] = game_addr(game::MAG_086_ANGELO_CANNON_DashGlow_State0_Setup);
+		states[1] = game_addr(game::MAG_086_ANGELO_CANNON_DashGlow_State1_Follow);
+		states[2] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_783EF0);
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t v = (uint32_t)(uint8_t)(U8(node, 0x92) - 0x10) & 0x7F;
 		const uint32_t u = U16(node, 0x90);
@@ -2091,7 +2091,7 @@ namespace cannon86
 		S32(node, 0x38) = 0x1000;
 		S32(node, 0x34) = 0x1000;
 		S32(node, 0x30) = 0x1000;
-		U32(node, 0x4C) = us(0x15638C8);
+		U32(node, 0x4C) = game_addr(game::MAG_086_ANGELO_CANNON_DashGlowModel);
 		U16(node, 0x46) = 0x800;
 		U16(node, 0x54) = 0;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -2125,7 +2125,7 @@ namespace cannon86
 		if (U16(node, 0x154) == 0x1000)
 		{
 			x::au_re_Battle_ReadAnimation_7(node, 3);
-			ac_783690(node, us(0x783F80), us(0x1709404), 0x3A4, 2, 0);
+			ac_783690(node, game_addr(game::MAG_086_ANGELO_CANNON_ThirdPlayTask), game_addr(game::MAG_086_ANGELO_CANNON_ThirdPlayLayout), 0x3A4, 2, 0);
 			const uint16_t d = (uint16_t)((U16(node, 0x150) ^ U16(e, 0)) & 0x200);
 			U16(e, 0) = (uint16_t)(U16(e, 0) ^ d);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -2137,9 +2137,9 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x783FF0);
-		states[1] = us(0x784040);
-		states[2] = us(0x784060);
+		states[0] = game_addr(game::MAG_086_ANGELO_CANNON_ThirdPlay_State0_Setup);
+		states[1] = game_addr(game::MAG_086_ANGELO_CANNON_ThirdPlay_State1_Play);
+		states[2] = game_addr(game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_784060);
 		callp(states[S8(node, 0x29)], node);
 		const uint32_t s = (uint32_t)(uint8_t)(U8(node, 0x8C) + 0x10) & 0x7F;
 		const uint8_t status = U8(node, 0x26);
@@ -2152,7 +2152,7 @@ namespace cannon86
 	{
 		const uint32_t node = a1;
 		x::Effect_DecodeModelPrimLayout(U32(node, 0x74), node + 0x94, U32(node, 0x78));
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		U32(node, 0x1C) = U32(d, 8);
 		U32(node, 0x20) = U32(d, 0xC);
 		U32(node, 0x58) = 0x1000;
@@ -2259,130 +2259,130 @@ namespace cannon86
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x77F550, (void *)a_73A0D0, "086 MAG_086_sub_77F550" },
-		{ 0x77F560, (void *)a_73A0D0, "086 MAG_086_sub_77F560" },
-		{ 0x77F580, (void *)a_73A170, "086 MAG_086_sub_77F580" },
-		{ 0x77F5B0, (void *)a_73A1A0, "086 MAG_086_sub_77F5B0" },
-		{ 0x77F780, (void *)a_73A380, "086 MAG_086_LoadScriptTask" },
-		{ 0x77F7E0, (void *)a_73A3E0, "086 MAG_086_LoadScriptCommand" },
-		{ 0x77F980, (void *)a_73A580, "086 MAG_086_LoadCallbackTIM" },
-		{ 0x77F9B0, (void *)a_73A5B0, "086 sub_77F9B0" },
-		{ 0x77F9E0, (void *)a_73A5E0, "086 sub_77F9E0" },
-		{ 0x77F9F0, (void *)a_73A5E0, "086 sub_77F9F0" },
-		{ 0x77FA00, (void *)a_73A5E0, "086 sub_77FA00" },
-		{ 0x77FA10, (void *)a_73A5E0, "086 sub_77FA10" },
-		{ 0x77FA20, (void *)a_73A620, "086 sub_77FA20" },
-		{ 0x77FA60, (void *)a_73A660, "086 MAG_086_LoadScriptWait" },
-		{ 0x77FAD0, (void *)a_73A6D0, "086 nullsub_1055" },
-		{ 0x77FB60, (void *)a_73A720, "086 sub_77FB60" },
-		{ 0x77FD20, (void *)a_73B640, "086 sub_77FD20" },
-		{ 0x77FD70, (void *)a_73B7E0, "086 sub_77FD70" },
-		{ 0x77FD90, (void *)a_73A930, "086 sub_77FD90" },
-		{ 0x77FDB0, (void *)a_73A950, "086 sub_77FDB0" },
-		{ 0x77FE10, (void *)a_73B8A0, "086 sub_77FE10" },
-		{ 0x77FE30, (void *)a_73B8C0, "086 sub_77FE30" },
-		{ 0x77FE50, (void *)a_733AC0, "086 sub_77FE50" },
-		{ 0x77FE70, (void *)a_733B70, "086 sub_77FE70" },
-		{ 0x77FF30, (void *)a_73A6D0, "086 nullsub_1299" },
-		{ 0x77FF40, (void *)a_73A6D0, "086 nullsub_1300" },
-		{ 0x780130, (void *)a_746C10, "086 sub_780130" },
-		{ 0x781790, (void *)a_73D770, "086 sub_781790" },
-		{ 0x7819E0, (void *)a_73D9C0, "086 sub_7819E0" },
-		{ 0x782920, (void *)a_73A6D0, "086 nullsub_1301" },
-		{ 0x782AB0, (void *)a_7435E0, "086 InitEffectSequenceFromData_c8" },
-		{ 0x782BF0, (void *)a_743720, "086 sub_782BF0" },
-		{ 0x783110, (void *)a_743C20, "086 sub_783110" },
-		{ 0x783140, (void *)a_73A6D0, "086 nullsub_1302" },
-		{ 0x7835D0, (void *)a_73A6D0, "086 nullsub_1303" },
-		{ 0x7836E0, (void *)a_73A380, "086 sub_7836E0" },
-		{ 0x783790, (void *)a_73C280, "086 sub_783790" },
-		{ 0x783B90, (void *)a_73A6D0, "086 nullsub_1304" },
-		{ 0x783C90, (void *)a_73A380, "086 sub_783C90" },
-		{ 0x783D60, (void *)a_73A6D0, "086 nullsub_1305" },
-		{ 0x783D70, (void *)a_73BB60, "086 sub_783D70" },
-		{ 0x783EF0, (void *)a_73A6D0, "086 nullsub_1306" },
-		{ 0x784060, (void *)a_73A6D0, "086 nullsub_1307" },
-		{ 0x7842E0, (void *)a_73A6D0, "086 nullsub_1308" },
-		{ 0x7842F0, (void *)a_747440, "086 MAG_086_sub_7842F0" },
-		{ 0x784360, (void *)a_7474B0, "086 MAG_086_sub_784360" },
-		{ 0x784380, (void *)a_7474D0, "086 MAG_086_sub_784380" },
-		{ 0x7843A0, (void *)a_73A6D0, "086 nullsub_1309" },
-		{ 0x7843B0, (void *)a_747500, "086 MAG_086_sub_7843B0" },
-		{ 0x7843F0, (void *)a_73A0D0, "086 MAG_086_sub_7843F0" },
-		{ 0x784400, (void *)a_747550, "086 MAG_086_sub_784400" },
-		{ 0x784410, (void *)a_747560, "086 MAG_086_sub_784410" },
-		{ 0x784440, (void *)a_747590, "086 MAG_086_sub_784440" },
-		{ 0x784450, (void *)a_7475A0, "086 MAG_086_sub_784450" },
-		{ 0x784470, (void *)a_73A6D0, "086 nullsub_1298" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State0_Advance_77F550, (void *)a_73A0D0, "086 MAG_086_sub_77F550" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State0_Advance_77F560, (void *)a_73A0D0, "086 MAG_086_sub_77F560" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State3_SpawnEmitter, (void *)a_73A170, "086 MAG_086_sub_77F580" },
+		{ game::MAG_086_ANGELO_CANNON_EmitterTask, (void *)a_73A1A0, "086 MAG_086_sub_77F5B0" },
+		{ game::MAG_086_ANGELO_CANNON_LoadScriptTask, (void *)a_73A380, "086 MAG_086_LoadScriptTask" },
+		{ game::MAG_086_ANGELO_CANNON_LoadScript_State0_Command, (void *)a_73A3E0, "086 MAG_086_LoadScriptCommand" },
+		{ game::MAG_086_ANGELO_CANNON_LoadCallback_QueueTIM, (void *)a_73A580, "086 MAG_086_LoadCallbackTIM" },
+		{ game::MAG_086_ANGELO_CANNON_LoadCallback_SummonStream, (void *)a_73A5B0, "086 sub_77F9B0" },
+		{ game::MAG_086_ANGELO_CANNON_LoadCb_ClearBusy_77F9E0, (void *)a_73A5E0, "086 sub_77F9E0" },
+		{ game::MAG_086_ANGELO_CANNON_LoadCb_ClearBusy_77F9F0, (void *)a_73A5E0, "086 sub_77F9F0" },
+		{ game::MAG_086_ANGELO_CANNON_LoadCb_ClearBusy_77FA00, (void *)a_73A5E0, "086 sub_77FA00" },
+		{ game::MAG_086_ANGELO_CANNON_LoadCb_ClearBusy_77FA10, (void *)a_73A5E0, "086 sub_77FA10" },
+		{ game::MAG_086_ANGELO_CANNON_LoadScript_RecordFile, (void *)a_73A620, "086 sub_77FA20" },
+		{ game::MAG_086_ANGELO_CANNON_LoadScript_State1_Wait, (void *)a_73A660, "086 MAG_086_LoadScriptWait" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_77FAD0, (void *)a_73A6D0, "086 nullsub_1055" },
+		{ game::MAG_086_ANGELO_CANNON_MonstersCentre, (void *)a_73A720, "086 sub_77FB60" },
+		{ game::MAG_086_ANGELO_CANNON_Director_SyncPoint, (void *)a_73B640, "086 sub_77FD20" },
+		{ game::MAG_086_ANGELO_CANNON_Director_CueReached, (void *)a_73B7E0, "086 sub_77FD70" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State2_LoadStep, (void *)a_73A930, "086 sub_77FD90" },
+		{ game::MAG_086_ANGELO_CANNON_LoadScript_TryArmStep, (void *)a_73A950, "086 sub_77FDB0" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State4_Sync2, (void *)a_73B8A0, "086 sub_77FE10" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Cue2, (void *)a_73B8C0, "086 sub_77FE30" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State6_WaitLoads, (void *)a_733AC0, "086 sub_77FE50" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State7_Sync3, (void *)a_733B70, "086 sub_77FE70" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_77FF30, (void *)a_73A6D0, "086 nullsub_1299" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_77FF40, (void *)a_73A6D0, "086 nullsub_1300" },
+		{ game::MAG_086_ANGELO_CANNON_Creature_DrawModel, (void *)a_746C10, "086 sub_780130" },
+		{ game::MAG_086_ANGELO_CANNON_EmitG3, (void *)a_73D770, "086 sub_781790" },
+		{ game::MAG_086_ANGELO_CANNON_EmitG4, (void *)a_73D9C0, "086 sub_7819E0" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_782920, (void *)a_73A6D0, "086 nullsub_1301" },
+		{ game::InitEffectSequenceFromData_c8, (void *)a_7435E0, "086 InitEffectSequenceFromData_c8" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_DrawSpriteStrip, (void *)a_743720, "086 sub_782BF0" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_StepFrame, (void *)a_743C20, "086 sub_783110" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_783140, (void *)a_73A6D0, "086 nullsub_1302" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_7835D0, (void *)a_73A6D0, "086 nullsub_1303" },
+		{ game::MAG_086_ANGELO_CANNON_FirstPlayTask, (void *)a_73A380, "086 sub_7836E0" },
+		{ game::MAG_086_ANGELO_CANNON_Play_Step, (void *)a_73C280, "086 sub_783790" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_783B90, (void *)a_73A6D0, "086 nullsub_1304" },
+		{ game::MAG_086_ANGELO_CANNON_SecondPlayTask, (void *)a_73A380, "086 sub_783C90" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_783D60, (void *)a_73A6D0, "086 nullsub_1305" },
+		{ game::MAG_086_ANGELO_CANNON_SetPlaysPause, (void *)a_73BB60, "086 sub_783D70" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_783EF0, (void *)a_73A6D0, "086 nullsub_1306" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_784060, (void *)a_73A6D0, "086 nullsub_1307" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_7842E0, (void *)a_73A6D0, "086 nullsub_1308" },
+		{ game::MAG_086_ANGELO_CANNON_Emitter_State1_ApplyActionResults, (void *)a_747440, "086 MAG_086_sub_7842F0" },
+		{ game::MAG_086_ANGELO_CANNON_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "086 MAG_086_sub_784360" },
+		{ game::MAG_086_ANGELO_CANNON_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "086 MAG_086_sub_784380" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_7843A0, (void *)a_73A6D0, "086 nullsub_1309" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State4_NextTargetLoop, (void *)a_747500, "086 MAG_086_sub_7843B0" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State0_Advance_7843F0, (void *)a_73A0D0, "086 MAG_086_sub_7843F0" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State6_WaitQueuesEmpty, (void *)a_747550, "086 MAG_086_sub_784400" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State7_RequestBattleSync, (void *)a_747560, "086 MAG_086_sub_784410" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State8_WaitBattleSyncDone, (void *)a_747590, "086 MAG_086_sub_784440" },
+		{ game::MAG_086_ANGELO_CANNON_Sequence_State9_Finish, (void *)a_7475A0, "086 MAG_086_sub_784450" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State5_Nullsub_784470, (void *)a_73A6D0, "086 nullsub_1298" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x77F3E0, (void *)ac_77F3E0, "086 ac_77F3E0" },
-		{ 0x77F570, (void *)ac_77F570, "086 ac_77F570" },
-		{ 0x77F630, (void *)ac_77F630, "086 ac_77F630" },
-		{ 0x77F680, (void *)ac_77F680, "086 ac_77F680" },
-		{ 0x77FAE0, (void *)ac_77FAE0, "086 ac_77FAE0" },
-		{ 0x77FBF0, (void *)ac_77FBF0, "086 ac_77FBF0" },
-		{ 0x77FCB0, (void *)ac_77FCB0, "086 ac_77FCB0" },
-		{ 0x77FD00, (void *)ac_77FD00, "086 ac_77FD00" },
-		{ 0x77FD50, (void *)ac_77FD50, "086 ac_77FD50" },
-		{ 0x77FDF0, (void *)ac_77FDF0, "086 ac_77FDF0" },
-		{ 0x77FE90, (void *)ac_77FE90, "086 ac_77FE90" },
-		{ 0x77FEB0, (void *)ac_77FEB0, "086 ac_77FEB0" },
-		{ 0x77FED0, (void *)ac_77FED0, "086 ac_77FED0" },
-		{ 0x77FEF0, (void *)ac_77FEF0, "086 ac_77FEF0" },
-		{ 0x77FF10, (void *)ac_77FF10, "086 ac_77FF10" },
-		{ 0x77FF50, (void *)ac_77FF50, "086 ac_77FF50" },
-		{ 0x77FF90, (void *)ac_77FF90, "086 ac_77FF90" },
-		{ 0x780310, (void *)ac_780310, "086 ac_780310" },
-		{ 0x780640, (void *)ac_780640, "086 ac_780640" },
-		{ 0x7806A0, (void *)ac_7806A0, "086 ac_7806A0" },
-		{ 0x7807B0, (void *)ac_7807B0, "086 ac_7807B0" },
-		{ 0x7808E0, (void *)ac_7808E0, "086 ac_7808E0" },
-		{ 0x780B00, (void *)ac_780B00, "086 ac_780B00" },
-		{ 0x780D90, (void *)ac_780D90, "086 ac_780D90" },
-		{ 0x781210, (void *)ac_781210, "086 ac_781210" },
-		{ 0x781CC0, (void *)ac_781CC0, "086 ac_781CC0" },
-		{ 0x7821C0, (void *)ac_7821C0, "086 ac_7821C0" },
-		{ 0x782810, (void *)ac_782810, "086 ac_782810" },
-		{ 0x782850, (void *)ac_782850, "086 ac_782850" },
-		{ 0x782930, (void *)ac_782930, "086 ac_782930" },
-		{ 0x782990, (void *)ac_782990, "086 ac_782990" },
-		{ 0x783060, (void *)ac_783060, "086 ac_783060" },
-		{ 0x783080, (void *)ac_783080, "086 ac_783080" },
-		{ 0x783150, (void *)ac_783150, "086 ac_783150" },
-		{ 0x783230, (void *)ac_783230, "086 ac_783230" },
-		{ 0x7832D0, (void *)ac_7832D0, "086 ac_7832D0" },
-		{ 0x783350, (void *)ac_783350, "086 ac_783350" },
-		{ 0x7833D0, (void *)ac_7833D0, "086 ac_7833D0" },
-		{ 0x783500, (void *)ac_783500, "086 ac_783500" },
-		{ 0x783550, (void *)ac_783550, "086 ac_783550" },
-		{ 0x783590, (void *)ac_783590, "086 ac_783590" },
-		{ 0x7835E0, (void *)ac_7835E0, "086 ac_7835E0" },
-		{ 0x783640, (void *)ac_783640, "086 ac_783640" },
-		{ 0x783690, (void *)ac_783690, "086 ac_783690" },
-		{ 0x783740, (void *)ac_783740, "086 ac_783740" },
-		{ 0x7838C0, (void *)ac_7838C0, "086 ac_7838C0" },
-		{ 0x783B70, (void *)ac_783B70, "086 ac_783B70" },
-		{ 0x783BA0, (void *)ac_783BA0, "086 ac_783BA0" },
-		{ 0x783CF0, (void *)ac_783CF0, "086 ac_783CF0" },
-		{ 0x783D40, (void *)ac_783D40, "086 ac_783D40" },
-		{ 0x783DC0, (void *)ac_783DC0, "086 ac_783DC0" },
-		{ 0x783E40, (void *)ac_783E40, "086 ac_783E40" },
-		{ 0x783E90, (void *)ac_783E90, "086 ac_783E90" },
-		{ 0x783EC0, (void *)ac_783EC0, "086 ac_783EC0" },
-		{ 0x783F00, (void *)ac_783F00, "086 ac_783F00" },
-		{ 0x783F80, (void *)ac_783F80, "086 ac_783F80" },
-		{ 0x783FF0, (void *)ac_783FF0, "086 ac_783FF0" },
-		{ 0x784040, (void *)ac_784040, "086 ac_784040" },
-		{ 0x784070, (void *)ac_784070, "086 ac_784070" },
-		{ 0x784150, (void *)ac_784150, "086 ac_784150" },
-		{ 0x7841E0, (void *)ac_7841E0, "086 ac_7841E0" },
-		{ 0x784270, (void *)ac_784270, "086 ac_784270" },
-		{ 0x7842B0, (void *)ac_7842B0, "086 ac_7842B0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_086_ANGELO_CANNON_MasterTask, (void *)ac_77F3E0, "086 ac_77F3E0" },
+		{ game::MAG_086_ANGELO_CANNON_Master_State2_WaitChildren, (void *)ac_77F570, "086 ac_77F570" },
+		{ game::MAG_086_ANGELO_CANNON_Master_State2_InitDirector, (void *)ac_77F630, "086 ac_77F630" },
+		{ game::MAG_086_ANGELO_CANNON_ModuleDataSetup, (void *)ac_77F680, "086 ac_77F680" },
+		{ game::MAG_086_ANGELO_CANNON_DirectorDataSetup, (void *)ac_77FAE0, "086 ac_77FAE0" },
+		{ game::MAG_086_ANGELO_CANNON_DirectorTask, (void *)ac_77FBF0, "086 ac_77FBF0" },
+		{ game::MAG_086_ANGELO_CANNON_Director_PhaseBookkeeping, (void *)ac_77FCB0, "086 ac_77FCB0" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State0_UploadTIM_Sync1, (void *)ac_77FD00, "086 ac_77FD00" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State1_Cue1, (void *)ac_77FD50, "086 ac_77FD50" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State3_WaitFrameF, (void *)ac_77FDF0, "086 ac_77FDF0" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State8_Cue3, (void *)ac_77FE90, "086 ac_77FE90" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State9_DoneAtFrame32, (void *)ac_77FEB0, "086 ac_77FEB0" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State10_WaitFrame3C, (void *)ac_77FED0, "086 ac_77FED0" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State11_Sync4, (void *)ac_77FEF0, "086 ac_77FEF0" },
+		{ game::MAG_086_ANGELO_CANNON_Director_State12_FinishAtCue4, (void *)ac_77FF10, "086 ac_77FF10" },
+		{ game::MAG_086_ANGELO_CANNON_SpawnAngeloCreature, (void *)ac_77FF50, "086 ac_77FF50" },
+		{ game::MAG_086_ANGELO_CANNON_AngeloTask, (void *)ac_77FF90, "086 ac_77FF90" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_FootBurst, (void *)ac_780310, "086 ac_780310" },
+		{ game::MAG_086_ANGELO_CANNON_DustPuffTask, (void *)ac_780640, "086 ac_780640" },
+		{ game::MAG_086_ANGELO_CANNON_DustPuff_Draw, (void *)ac_7806A0, "086 ac_7806A0" },
+		{ game::MAG_086_ANGELO_CANNON_RenderModelPrims, (void *)ac_7807B0, "086 ac_7807B0" },
+		{ game::MAG_086_ANGELO_CANNON_PrimList_FlatTri, (void *)ac_7808E0, "086 ac_7808E0" },
+		{ game::MAG_086_ANGELO_CANNON_PrimList_FlatQuad, (void *)ac_780B00, "086 ac_780B00" },
+		{ game::MAG_086_ANGELO_CANNON_PrimList_TexTri, (void *)ac_780D90, "086 ac_780D90" },
+		{ game::MAG_086_ANGELO_CANNON_PrimList_TexQuad, (void *)ac_781210, "086 ac_781210" },
+		{ game::MAG_086_ANGELO_CANNON_PrimList_GouraudTexTriScroll, (void *)ac_781CC0, "086 ac_781CC0" },
+		{ game::MAG_086_ANGELO_CANNON_PrimList_GT4, (void *)ac_7821C0, "086 ac_7821C0" },
+		{ game::MAG_086_ANGELO_CANNON_DustPuff_State0_Setup, (void *)ac_782810, "086 ac_782810" },
+		{ game::MAG_086_ANGELO_CANNON_DustPuff_State1_RollShrink, (void *)ac_782850, "086 ac_782850" },
+		{ game::MAG_086_ANGELO_CANNON_DustRingTask, (void *)ac_782930, "086 ac_782930" },
+		{ game::MAG_086_ANGELO_CANNON_DustRing_Draw, (void *)ac_782990, "086 ac_782990" },
+		{ game::MAG_086_ANGELO_CANNON_DustRing_State0_Setup, (void *)ac_783060, "086 ac_783060" },
+		{ game::MAG_086_ANGELO_CANNON_DustRing_State1_Rise, (void *)ac_783080, "086 ac_783080" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_LandingRings, (void *)ac_783150, "086 ac_783150" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State0_BindRinoaAnimSet, (void *)ac_783230, "086 ac_783230" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State1_ShowAtCue2_MuzzleGlow, (void *)ac_7832D0, "086 ac_7832D0" },
+		{ game::MAG_086_ANGELO_CANNON_MuzzleGlowTask, (void *)ac_783350, "086 ac_783350" },
+		{ game::MAG_086_ANGELO_CANNON_Glow_Draw, (void *)ac_7833D0, "086 ac_7833D0" },
+		{ game::MAG_086_ANGELO_CANNON_MuzzleGlow_State0_Setup, (void *)ac_783500, "086 ac_783500" },
+		{ game::MAG_086_ANGELO_CANNON_MuzzleGlow_Place, (void *)ac_783550, "086 ac_783550" },
+		{ game::MAG_086_ANGELO_CANNON_MuzzleGlow_State1_Fade, (void *)ac_783590, "086 ac_783590" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State2_Anim1_RinoaChain2, (void *)ac_7835E0, "086 ac_7835E0" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State3_SpawnFirstPlay, (void *)ac_783640, "086 ac_783640" },
+		{ game::MAG_086_ANGELO_CANNON_SpawnPlayTask, (void *)ac_783690, "086 ac_783690" },
+		{ game::MAG_086_ANGELO_CANNON_FirstPlay_State0_Setup, (void *)ac_783740, "086 ac_783740" },
+		{ game::MAG_086_ANGELO_CANNON_Play_ObjectCallback, (void *)ac_7838C0, "086 ac_7838C0" },
+		{ game::MAG_086_ANGELO_CANNON_FirstPlay_State1_Play, (void *)ac_783B70, "086 ac_783B70" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State4_PauseUntilCue3_Dash, (void *)ac_783BA0, "086 ac_783BA0" },
+		{ game::MAG_086_ANGELO_CANNON_SecondPlay_State0_Setup, (void *)ac_783CF0, "086 ac_783CF0" },
+		{ game::MAG_086_ANGELO_CANNON_SecondPlay_State1_Play, (void *)ac_783D40, "086 ac_783D40" },
+		{ game::MAG_086_ANGELO_CANNON_DashGlowTask, (void *)ac_783DC0, "086 ac_783DC0" },
+		{ game::MAG_086_ANGELO_CANNON_DashGlow_State0_Setup, (void *)ac_783E40, "086 ac_783E40" },
+		{ game::MAG_086_ANGELO_CANNON_DashGlow_Place, (void *)ac_783E90, "086 ac_783E90" },
+		{ game::MAG_086_ANGELO_CANNON_DashGlow_State1_Follow, (void *)ac_783EC0, "086 ac_783EC0" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State5_Dash_ThirdPlay, (void *)ac_783F00, "086 ac_783F00" },
+		{ game::MAG_086_ANGELO_CANNON_ThirdPlayTask, (void *)ac_783F80, "086 ac_783F80" },
+		{ game::MAG_086_ANGELO_CANNON_ThirdPlay_State0_Setup, (void *)ac_783FF0, "086 ac_783FF0" },
+		{ game::MAG_086_ANGELO_CANNON_ThirdPlay_State1_Play, (void *)ac_784040, "086 ac_784040" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_DashStep, (void *)ac_784070, "086 ac_784070" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State6_JumpBack, (void *)ac_784150, "086 ac_784150" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State7_Jump_RinoaChain3, (void *)ac_7841E0, "086 ac_7841E0" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State8_Anim6, (void *)ac_784270, "086 ac_784270" },
+		{ game::MAG_086_ANGELO_CANNON_Angelo_State9_Finish, (void *)ac_7842B0, "086 ac_7842B0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

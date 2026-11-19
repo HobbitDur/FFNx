@@ -34,26 +34,26 @@ namespace part_core
 		if (U8(ctx, 0x4C) & 0x10)
 		{
 			uint32_t pad = U32(ctx, 0x40);
-			if (pad & 0x8000) MEM<int16_t>(us(0x2797782)) = (int16_t)(MEM<int16_t>(us(0x2797782)) + 0x20);
-			if (pad & 0x2000) MEM<int16_t>(us(0x2797782)) = (int16_t)(MEM<int16_t>(us(0x2797782)) - 0x20);
-			if (pad & 0x1000) MEM<int16_t>(us(0x2797780)) = (int16_t)(MEM<int16_t>(us(0x2797780)) - 0x20);
-			if (pad & 0x4000) MEM<int16_t>(us(0x2797780)) = (int16_t)(MEM<int16_t>(us(0x2797780)) + 0x20);
-			if (pad & 4) MEM<int16_t>(us(0x2797784)) = (int16_t)(MEM<int16_t>(us(0x2797784)) - 0x20);
-			if (pad & 8) MEM<int16_t>(us(0x2797784)) = (int16_t)(MEM<int16_t>(us(0x2797784)) + 0x20);
-			if (pad & 1) MEM<int32_t>(us(0x2797778)) = sub32(MEM<int32_t>(us(0x2797778)), 0x20);
-			if (pad & 2) MEM<int32_t>(us(0x2797778)) = add32(MEM<int32_t>(us(0x2797778)), 0x20);
+			if (pad & 0x8000) MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleY)) = (int16_t)(MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleY)) + 0x20);
+			if (pad & 0x2000) MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleY)) = (int16_t)(MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleY)) - 0x20);
+			if (pad & 0x1000) MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleX)) = (int16_t)(MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleX)) - 0x20);
+			if (pad & 0x4000) MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleX)) = (int16_t)(MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleX)) + 0x20);
+			if (pad & 4) MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleZ)) = (int16_t)(MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleZ)) - 0x20);
+			if (pad & 8) MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleZ)) = (int16_t)(MEM<int16_t>(game_addr(game::g_GfCinematic_RootAngleZ)) + 0x20);
+			if (pad & 1) MEM<int32_t>(game_addr(game::unk_2797778)) = sub32(MEM<int32_t>(game_addr(game::unk_2797778)), 0x20);
+			if (pad & 2) MEM<int32_t>(game_addr(game::unk_2797778)) = add32(MEM<int32_t>(game_addr(game::unk_2797778)), 0x20);
 		}
 		if (U8(ctx, 0x4C) & 0x40)
 		{
 			uint32_t pad = U32(ctx, 0x40);
-			if (pad & 0x8000) MEM<int32_t>(us(0x2797770)) = sub32(MEM<int32_t>(us(0x2797770)), 0x100);
-			if (pad & 0x2000) MEM<int32_t>(us(0x2797770)) = add32(MEM<int32_t>(us(0x2797770)), 0x100);
-			if (pad & 0x1000) MEM<int32_t>(us(0x2797774)) = sub32(MEM<int32_t>(us(0x2797774)), 0x100);
-			if (pad & 0x4000) MEM<int32_t>(us(0x2797774)) = add32(MEM<int32_t>(us(0x2797774)), 0x100);
-			if (pad & 1) MEM<int32_t>(us(0x2797778)) = sub32(MEM<int32_t>(us(0x2797778)), 0x100);
-			if (pad & 2) MEM<int32_t>(us(0x2797778)) = add32(MEM<int32_t>(us(0x2797778)), 0x100);
-			if (pad & 4) MEM<int32_t>(us(0x2797778)) = sub32(MEM<int32_t>(us(0x2797778)), 0x10);
-			if (pad & 8) MEM<int32_t>(us(0x2797778)) = add32(MEM<int32_t>(us(0x2797778)), 0x10);
+			if (pad & 0x8000) MEM<int32_t>(game_addr(game::unk_2797770)) = sub32(MEM<int32_t>(game_addr(game::unk_2797770)), 0x100);
+			if (pad & 0x2000) MEM<int32_t>(game_addr(game::unk_2797770)) = add32(MEM<int32_t>(game_addr(game::unk_2797770)), 0x100);
+			if (pad & 0x1000) MEM<int32_t>(game_addr(game::unk_2797774)) = sub32(MEM<int32_t>(game_addr(game::unk_2797774)), 0x100);
+			if (pad & 0x4000) MEM<int32_t>(game_addr(game::unk_2797774)) = add32(MEM<int32_t>(game_addr(game::unk_2797774)), 0x100);
+			if (pad & 1) MEM<int32_t>(game_addr(game::unk_2797778)) = sub32(MEM<int32_t>(game_addr(game::unk_2797778)), 0x100);
+			if (pad & 2) MEM<int32_t>(game_addr(game::unk_2797778)) = add32(MEM<int32_t>(game_addr(game::unk_2797778)), 0x100);
+			if (pad & 4) MEM<int32_t>(game_addr(game::unk_2797778)) = sub32(MEM<int32_t>(game_addr(game::unk_2797778)), 0x10);
+			if (pad & 8) MEM<int32_t>(game_addr(game::unk_2797778)) = add32(MEM<int32_t>(game_addr(game::unk_2797778)), 0x10);
 		}
 		return 0;
 	}
@@ -329,8 +329,8 @@ namespace part_core
 		U32(SCENE(), 0x14) = 0;
 		U16(SCENE(), 0x38) = 8;
 		U8(SCENE(), 0x3A) = 0;
-		MEM<uint8_t>(us(0x2798219)) = 0;
-		MEM<uint8_t>(us(0x2798218)) = 0xFF;
+		MEM<uint8_t>(game_addr(game::g_GfCinematic_FileLoadBusy)) = 0;
+		MEM<uint8_t>(game_addr(game::unk_2798218)) = 0xFF;
 		U8(RT(), 0x45) = 0;
 		U8(CTX(), 0xA2) = 0;
 		U32(SCENE(), 0x170) = 0;
@@ -355,7 +355,7 @@ namespace part_core
 		uint8_t *s0 = SCENE();
 		for (int k = 0; k < 7; k++)
 		{
-			uint32_t e = us(0x1D97358) + 0x9C * k;
+			uint32_t e = game_addr(game::unk_1D97358) + 0x9C * k;
 			uint8_t *s = SCENE();
 			U32(s, 0x60 + 4 * k) = e - 0x98;
 			U32(s0, 0x84 + 8 * k) = MEM<uint32_t>(e - 0x7C);
@@ -379,7 +379,7 @@ namespace part_core
 		U8(SCENE(), 0x44) = U8(cast, 0);
 		U8(SCENE(), 0x48) = U8(PTR(PTR(cast, 4), 8), 0);
 		uint8_t *dst = SCENE() + 0x4E;
-		for (int k = 0; k < 7; k++) U16(dst, 2 * k) = MEM<uint16_t>(us(0x1D972C0) + 0x9C * k);
+		for (int k = 0; k < 7; k++) U16(dst, 2 * k) = MEM<uint16_t>(game_addr(game::BattleEntitySlotData) + 0x9C * k);
 		const uint8_t *t = PTR(act, 8);
 		int32_t n = U8(act, 0x10);
 		uint32_t mask = 0;
@@ -421,7 +421,7 @@ namespace part_core
 		U8(RT(), 0x40) = U8(RT(), 0x41);
 		U32(RT(), 0x38) = FRAMERL() + 0x44;
 		{
-			const uint32_t *v = (const uint32_t *)us(0x1D97778);
+			const uint32_t *v = (const uint32_t *)game_addr(game::unk_1D97778);
 			uint32_t v0 = v[0], v1 = v[1], v2 = v[2], v3 = v[3], v4 = v[4] & 0xFFFF, v5 = v[5], v6 = v[6], v7 = v[7];
 			uint32_t *m0 = (uint32_t *)NODEMAT(), *ma = (uint32_t *)CAMALT();
 			m0[5] = v5; m0[0] = v0; ma[0] = v0; m0[1] = v1; m0[4] = v4; m0[6] = v6; ma[1] = v1; ma[4] = v4; ma[5] = v5;
@@ -480,7 +480,7 @@ namespace part_core
 	static VoidFn port_of(uint32_t orig, VoidFn gen, int tid, int index, const Exception *ex, int nex)
 	{
 		if (orig == 0) return nullptr;
-		if (orig < 0x401000 || orig >= 0xC00000) return (VoidFn)orig;
+		if (!is_game_code(orig)) return (VoidFn)orig;
 		if (*(const uint8_t *)orig == 0xC3) return noop;
 		for (int k = 0; k < nex; k++)
 			if (ex[k].table == tid && ex[k].index == index) return (VoidFn)orig;
@@ -542,17 +542,17 @@ namespace gfc
 {
 namespace part_vm_a
 {
-	inline uint8_t &LoadBusy() { return MEM<uint8_t>(us(0x2798219)); }
-	inline uint8_t &LoadDone() { return MEM<uint8_t>(us(0x2798218)); }
-	inline uint8_t &Byte1D96DC4() { return MEM<uint8_t>(us(0x1D96DC4)); }
-	inline uint32_t &Ptr1D99A88() { return MEM<uint32_t>(us(0x1D99A88)); }
-	inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(us(0xB8B7F0) + 4 * i); }
-	inline uint16_t &Word1D977A0() { return MEM<uint16_t>(us(0x1D977A0)); }
-	inline uint16_t &Word1D977A2() { return MEM<uint16_t>(us(0x1D977A2)); }
-	inline uint16_t &Word1D9771C() { return MEM<uint16_t>(us(0x1D9771C)); }
-	inline uint16_t *CamShake() { return (uint16_t *)us(0x1D97710); }
-	inline uint8_t *Entity(int32_t i) { return (uint8_t *)(us(0x1D972C0) + i * 0x9C); }
-	inline uint8_t *SlotData(uint32_t slot) { return (uint8_t *)(us(0x1D27B1C) + slot * 0xD0); }
+	inline uint8_t &LoadBusy() { return MEM<uint8_t>(game_addr(game::g_GfCinematic_FileLoadBusy)); }
+	inline uint8_t &LoadDone() { return MEM<uint8_t>(game_addr(game::unk_2798218)); }
+	inline uint8_t &Byte1D96DC4() { return MEM<uint8_t>(game_addr(game::GF_CINEMATIC_PARTY_HINT)); }
+	inline uint32_t &Ptr1D99A88() { return MEM<uint32_t>(game_addr(game::MAGIC_TEXTURE_BUFFER_PTR)); }
+	inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(game_addr(game::Battle_Camera_world_XZ_s16) + 4 * i); }
+	inline uint16_t &Word1D977A0() { return MEM<uint16_t>(game_addr(game::Battle_Camera_ReturnView_Param1D8E038)); }
+	inline uint16_t &Word1D977A2() { return MEM<uint16_t>(game_addr(game::g_BattleCam_Roll)); }
+	inline uint16_t &Word1D9771C() { return MEM<uint16_t>(game_addr(game::Battle_Camera_ReturnView_Roll)); }
+	inline uint16_t *CamShake() { return (uint16_t *)game_addr(game::BATTLE_CAMERA_SHAKE_OFFSET_X); }
+	inline uint8_t *Entity(int32_t i) { return (uint8_t *)(game_addr(game::BattleEntitySlotData) + i * 0x9C); }
+	inline uint8_t *SlotData(uint32_t slot) { return (uint8_t *)(game_addr(game::unk_1D27B1C) + slot * 0xD0); }
 
 	[[maybe_unused]] static void __cdecl cb_B2BB40_LoadDone()
 	{
@@ -1421,7 +1421,7 @@ namespace part_vm_b
 	static void __cdecl op_02D_SetCameraFlag()
 	{
 		uint8_t *s = STREAM();
-		MEM<uint8_t>(us(0x1D97705)) |= 0x80;
+		MEM<uint8_t>(game_addr(game::unk_1D97705)) |= 0x80;
 		STREAM() = s + 2;
 	}
 
@@ -1468,7 +1468,7 @@ namespace part_vm_b
 	static void __cdecl op_06D_PartyRecordFlag()
 	{
 		bool clr = (U8(RT(), 0x4B) & 0x80) != 0;
-		uint8_t *p = (uint8_t *)us(0x1D98991);
+		uint8_t *p = (uint8_t *)game_addr(game::unk_1D98991);
 		for (int i = 0; i < 4; i++, p += 0x2C)
 		{
 			if (clr) *p &= 0xFD;
@@ -2354,10 +2354,10 @@ namespace gfc
 {
 namespace part_vm_c
 {
-	inline uint8_t &LOADBUSY() { return MEM<uint8_t>(us(0x2798219)); }
-	static const uint32_t CLUTBUF = 0x279822C;
-	inline uint32_t &MODELPALETTE() { return MEM<uint32_t>(us(0xB8B7D8)); }
-	static const uint32_t FADELAYERS = 0x1D9898C;
+	inline uint8_t &LOADBUSY() { return MEM<uint8_t>(game_addr(game::g_GfCinematic_FileLoadBusy)); }
+	static constexpr game::Id CLUTBUF = game::unk_279822C;
+	inline uint32_t &MODELPALETTE() { return MEM<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE)); }
+	static constexpr game::Id FADELAYERS = game::BATTLE_STAGE_RENDER_GROUPS;
 
 	static uint32_t xl_Render_5088A0(void *a, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
@@ -2375,7 +2375,7 @@ namespace part_vm_c
 	static void SpawnBone_B2D610(uint32_t caller_ecx)
 	{
 		uint32_t n = U16(SCENE(), 0x38);
-		if (MEM<uint8_t>(us(0x2797453) + n) != 0xFF)
+		if (MEM<uint8_t>(game_addr(game::unk_2797453) + n) != 0xFF)
 		{
 			U32(WS(), 0xFC) = caller_ecx;
 			STREAM() += 4;
@@ -2897,7 +2897,7 @@ namespace part_vm_c
 		int32_t w0 = S16(STREAM(), 2);
 		blob::ReadClut_B66560(w0 & 0xFF);
 		U32(WS(), 0xF0) = U32(WS(), 0xFC);
-		U32(WS(), 0xF8) = (uint32_t)shl32(w0 >> 8, 9) + us(CLUTBUF);
+		U32(WS(), 0xF8) = (uint32_t)shl32(w0 >> 8, 9) + game_addr(CLUTBUF);
 		S32(WS(), 0xFC) = S16(STREAM(), 4);
 		uint8_t *ws = WS();
 		uint32_t d = (U32(ws, 0xFC) & 0xFF) << 1;
@@ -2956,7 +2956,7 @@ namespace part_vm_c
 		uint32_t c = U32(WS(), 0xFC);
 		if (k < 0) k = 0;
 		else if (k > 0x1000) k = 0x1000;
-		uint32_t p = us(FADELAYERS) + 0x2C;
+		uint32_t p = game_addr(FADELAYERS) + 0x2C;
 		for (int i = 4; i != 0; i--)
 		{
 			MEM<uint16_t>(p - 0x26) = (uint16_t)k;
@@ -2971,7 +2971,7 @@ namespace part_vm_c
 		S32(CUR(), 0xB8) = shl32(S16(STREAM(), 2), 1);
 		S32(CUR(), 0xBC) = shl32(S16(STREAM(), 4), 1);
 		int32_t w2 = S16(STREAM(), 6);
-		U32(CUR(), 0xC0) = (uint32_t)shl32(w2, 1) + us(CLUTBUF);
+		U32(CUR(), 0xC0) = (uint32_t)shl32(w2, 1) + game_addr(CLUTBUF);
 		S32(CUR(), 0xC4) = S16(STREAM(), 8);
 		blob::SetDrawHandler(0x1D);
 		STREAM() += 0xA;
@@ -3138,12 +3138,12 @@ namespace gfc
 {
 namespace part_vm_d
 {
-	inline int16_t *ROOTANG() { return (int16_t *)us(0x2797780); }
+	inline int16_t *ROOTANG() { return (int16_t *)game_addr(game::g_GfCinematic_RootAngleX); }
 	inline uint8_t *AUXMAT(int32_t slot) { return (uint8_t *)(0x2798B68u + (uint32_t)shl32(slot, 5)); }
 
 	inline uint8_t *xl_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m);
 	}
 
 	static void __cdecl op_000_EndChannel();
@@ -3152,9 +3152,9 @@ namespace part_vm_d
 	{
 		uint8_t *node = (uint8_t *)blob::NodeForCurBone();
 		x::RotMatrixFromAngles(CUR() + 0x94, node);
-		S32(node, 0x14) = MEM<int32_t>(us(0x27979FC));
-		S32(node, 0x18) = MEM<int32_t>(us(0x2797A00));
-		S32(node, 0x1C) = MEM<int32_t>(us(0x2797A04));
+		S32(node, 0x14) = MEM<int32_t>(game_addr(game::g_GfCinematic_CamMatMain_TransX));
+		S32(node, 0x18) = MEM<int32_t>(game_addr(game::g_GfCinematic_CamMatMain_TransY));
+		S32(node, 0x1C) = MEM<int32_t>(game_addr(game::g_GfCinematic_CamMatMain_TransZ));
 		x::MulMatrixGte(NODEMAT(), node);
 		pad_after_rot_mul(node, CUR() + 0x94);
 		U16(node, 0x48) = 0;
@@ -3195,7 +3195,7 @@ namespace part_vm_d
 		x::SetRotMatrix(NODEMAT());
 		x::SetTransVector(NODEMAT());
 		x::TransformToCamera(CUR() + 0x94, node + 0x14, WS() + 0xF0);
-		Mat4x3 *r = x::f<Mat4x3 *(__cdecl *)(void *, uint32_t)>(us(0xB65590))(CUR() + 0x8C, (uint32_t)U16(RT(), 0x4A) >> 12);
+		Mat4x3 *r = x::f<Mat4x3 *(__cdecl *)(void *, uint32_t)>(game_addr(game::GfCinematic_RotMatrixOrder))(CUR() + 0x8C, (uint32_t)U16(RT(), 0x4A) >> 12);
 		x::MulMatrix3(NODEMAT(), r, node);
 		U16(node, 0x12) = 0;
 		STREAM() += 4;
@@ -3424,11 +3424,11 @@ namespace part_vm_d
 		if (base == nullptr)
 		{
 			uint8_t *w = WS() + 0x60;
-			U32(w, 0x00) = MEM<uint32_t>(us(0x2797968));
-			U32(w, 0x04) = MEM<uint32_t>(us(0x279796C));
-			U32(w, 0x08) = MEM<uint32_t>(us(0x2797970));
-			U32(w, 0x0C) = MEM<uint32_t>(us(0x2797974));
-			U32(w, 0x10) = MEM<uint32_t>(us(0x2797978));
+			U32(w, 0x00) = MEM<uint32_t>(game_addr(game::unk_2797968));
+			U32(w, 0x04) = MEM<uint32_t>(game_addr(game::unk_279796C));
+			U32(w, 0x08) = MEM<uint32_t>(game_addr(game::unk_2797970));
+			U32(w, 0x0C) = MEM<uint32_t>(game_addr(game::unk_2797974));
+			U32(w, 0x10) = MEM<uint32_t>(game_addr(game::unk_2797978));
 			S32(w, 0x14) = S16(CUR(), 0x94);
 			S32(w, 0x18) = S16(CUR(), 0x96);
 			S32(w, 0x1C) = S16(CUR(), 0x98);
@@ -3527,7 +3527,7 @@ namespace part_vm_d
 	{
 		uint8_t *s = STREAM();
 		int32_t slot = S16(s, 2);
-		uint8_t *L = (uint8_t *)(0x27977A4u + (uint32_t)mul32(slot, 0x50));
+		uint8_t *L = (uint8_t *)(game_addr(game::g_GfCinematic_BoneMatrixTable) + (uint32_t)mul32(slot, 0x50));
 		uint8_t *m = WS() + 0x20;
 		int32_t id = S16(s, 4);
 		if (id != -1)
@@ -3840,11 +3840,11 @@ namespace gfc
 {
 namespace part_draw_mesh
 {
-	static inline void *xl_MatrixMultiplyGte(const void *a, void *b) { return x::f<void *(__cdecl *)(const void *, void *)>(us(0x56C270))(a, b); }
-	static inline void xl_TransformV0ToMac(const void *v, void *mac, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C820))(v, mac, flag); }
+	static inline void *xl_MatrixMultiplyGte(const void *a, void *b) { return x::f<void *(__cdecl *)(const void *, void *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	static inline void xl_TransformV0ToMac(const void *v, void *mac, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(game_addr(game::TransformCoordinateToCameraSpace))(v, mac, flag); }
 
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
-	static inline uint32_t &GTEFLAG() { return MEM<uint32_t>(us(0x1CA92F8)); }
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)game_addr(game::unk_27971E4); }
+	static inline uint32_t &GTEFLAG() { return MEM<uint32_t>(game_addr(game::GTE_FLAG)); }
 	static const double DEPTH_SCALE_NUM = 4096.0;
 
 	static void __cdecl dh_21_ScrollTextureUpload()
@@ -4982,9 +4982,9 @@ namespace gfc
 {
 namespace part_draw_sprite
 {
-	inline void *xl_MatMulGte(const void *a, void *b) { return x::f<void *(__cdecl *)(const void *, void *)>(us(0x56C270))(a, b); }
+	inline void *xl_MatMulGte(const void *a, void *b) { return x::f<void *(__cdecl *)(const void *, void *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
 
-	inline int32_t GteSZ(int i) { return MEM<int32_t>(us(0x1CA8A50) + 4 * i); }
+	inline int32_t GteSZ(int i) { return MEM<int32_t>(game_addr(game::GTE_SZ0) + 4 * i); }
 
 	inline Mat4x3 *BillboardOfCurBone() { return BBMAT() + (U8(CUR(), 0xDE) & 3); }
 
@@ -5711,17 +5711,17 @@ namespace gfc
 {
 namespace part_shared_ribbon
 {
-	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
-	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
-	static inline void xl_GteSetIR0(int32_t v) { x::f<void (__cdecl *)(int32_t)>(us(0x45E150))(v); }
-	static inline void xl_GteLoadRGB(const void *src) { x::f<void (__cdecl *)(const void *)>(us(0x45E0E0))(src); }
-	static inline void xl_GteGPF() { x::f<void (__cdecl *)()>(us(0x45E9D0))(); }
-	static inline void xl_GteStoreRGB(void *dst) { x::f<void (__cdecl *)(void *)>(us(0x45E410))(dst); }
-	static inline int32_t xl_LookAt_B66E50(const void *a, const void *b, void *out) { return x::f<int32_t (__cdecl *)(const void *, const void *, void *)>(us(0xB66E50))(a, b, out); }
+	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(game_addr(game::GTE_RotTrans))(v, out, flag); }
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::TransformWorldCoordinateToProjectedSpace))(v, sxy, p, flag); }
+	static inline void xl_GteSetIR0(int32_t v) { x::f<void (__cdecl *)(int32_t)>(game_addr(game::GTE_SetIR0))(v); }
+	static inline void xl_GteLoadRGB(const void *src) { x::f<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadIR123FromBytes))(src); }
+	static inline void xl_GteGPF() { x::f<void (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+	static inline void xl_GteStoreRGB(void *dst) { x::f<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreIR123LowBytes))(dst); }
+	static inline int32_t xl_LookAt_B66E50(const void *a, const void *b, void *out) { return x::f<int32_t (__cdecl *)(const void *, const void *, void *)>(game_addr(game::sub_B66E50))(a, b, out); }
 
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
-	static inline uint16_t &GTE_SZ3_W() { return MEM<uint16_t>(us(0x1CA8A5C)); }
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)game_addr(game::unk_27971E4); }
+	static inline uint16_t &GTE_SZ3_W() { return MEM<uint16_t>(game_addr(game::GTE_SZ3)); }
 
 	static int32_t Ribbon_B1AF60_TurnToward(int32_t a, int32_t t, int32_t rate)
 	{
@@ -6268,19 +6268,19 @@ namespace gfc
 {
 namespace part_shared_misc
 {
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
-	static inline void xl_SetDrawStp(void *p, int32_t pbw) { x::f<void (__cdecl *)(void *, int32_t)>(us(0x45C9F0))(p, pbw); }
-	static inline void xl_SetDrawMove(void *p, const void *rect, int32_t xx, int32_t yy) { x::f<void (__cdecl *)(void *, const void *, int32_t, int32_t)>(us(0x45C060))(p, rect, xx, yy); }
-	static inline void xl_QueueChainTransformation(void *entity, int32_t id) { x::f<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(entity, id); }
-	static inline uint8_t *xl_ChainMinEntity(void *entity) { return x::f<uint8_t *(__cdecl *)(void *)>(us(0x501FF0))(entity); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(ot, prim); }
+	static inline void xl_SetDrawStp(void *p, int32_t pbw) { x::f<void (__cdecl *)(void *, int32_t)>(game_addr(game::SetDrawStp))(p, pbw); }
+	static inline void xl_SetDrawMove(void *p, const void *rect, int32_t xx, int32_t yy) { x::f<void (__cdecl *)(void *, const void *, int32_t, int32_t)>(game_addr(game::SetDrawMove))(p, rect, xx, yy); }
+	static inline void xl_QueueChainTransformation(void *entity, int32_t id) { x::f<void (__cdecl *)(void *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
+	static inline uint8_t *xl_ChainMinEntity(void *entity) { return x::f<uint8_t *(__cdecl *)(void *)>(game_addr(game::Battle_EntityChainLowest))(entity); }
 	static inline int32_t xl_OffscreenStageRender(void *desc, const void *pos, const void *angles)
 	{
-		return x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(us(0xB65D10))(desc, pos, angles);
+		return x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(game_addr(game::GfCinematic_RenderBattleStageOffscreen))(desc, pos, angles);
 	}
 
-	static const uint32_t DISP_PARITY_1D96A80 = 0x1D96A80;
-	static const uint32_t DISP_ENV_1D969C8 = 0x1D969C8;
-	static const uint32_t BATTLE_ENTITIES_1D972C0 = 0x1D972C0;
+	static constexpr game::Id DISP_PARITY_1D96A80 = game::g_Battle_DisplayParity;
+	static constexpr game::Id DISP_ENV_1D969C8 = game::g_Battle_DrawEnv;
+	static constexpr game::Id BATTLE_ENTITIES_1D972C0 = game::BattleEntitySlotData;
 
 	static inline int32_t DepthKey(uint32_t off)
 	{
@@ -6382,12 +6382,12 @@ namespace part_shared_misc
 
 	static int32_t CaptureScreenStrips()
 	{
-		uint32_t par = MEM<uint8_t>(us(DISP_PARITY_1D96A80));
+		uint32_t par = MEM<uint8_t>(game_addr(DISP_PARITY_1D96A80));
 		uint8_t *pkt = PTR(CTX(), 0x7C);
 		uint32_t idx = par * 3u;
 		idx <<= 3;
 		idx -= par;
-		uint8_t *env = (uint8_t *)(us(DISP_ENV_1D969C8) + idx * 4u);
+		uint8_t *env = (uint8_t *)(game_addr(DISP_ENV_1D969C8) + idx * 4u);
 		xl_SetDrawStp(pkt, 0);
 		xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + 4, pkt);
 		uint8_t *w = WS();
@@ -6971,7 +6971,7 @@ namespace part_shared_misc
 		else
 			return;
 		uint8_t *r = xl_ChainMinEntity(e);
-		uint32_t d = (uint32_t)r - us(BATTLE_ENTITIES_1D972C0);
+		uint32_t d = (uint32_t)r - game_addr(BATTLE_ENTITIES_1D972C0);
 		uint32_t hi = (uint32_t)(((uint64_t)d * 0xA41A41A5ull) >> 32);
 		uint32_t q = (((d - hi) >> 1) + hi) >> 7;
 		U8(CUR(), 0x1B) = (uint8_t)q;
@@ -6986,7 +6986,7 @@ namespace part_shared_misc
 		auto live = [](uint32_t slot) -> bool
 		{
 			uint32_t orig = *(const uint32_t *)slot;
-			return orig >= 0x401000 && orig < 0xC00000 && *(const uint8_t *)orig != 0xC3;
+			return is_game_code(orig) && *(const uint8_t *)orig != 0xC3;
 		};
 		if (live(c.draw_table + 4 * 16)) c.draw[16] = part_shared_misc::dh_16_ScrollTextureU;
 		if (live(c.draw_table + 4 * 26)) c.draw[26] = part_shared_misc::dh_26_ScreenCaptureStrips;

@@ -25,52 +25,52 @@ namespace thunder285
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507D0C)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507D10)); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507D18); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2507D28); }
-	inline int16_t &MeanZ() { return var<int16_t>(us(0x2507D5C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507D60)); }
-	inline uint32_t &FlashLevel() { return var<uint32_t>(us(0x2507D64)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507D68)); }
-	inline Mat4x3 &EffCam() { return var<Mat4x3>(us(0x2507D70)); }
-	inline uint32_t *KeptWords() { return (uint32_t *)us(0x2507D90); }
-	inline int16_t *Eye() { return (int16_t *)us(0xB8B7F0); }
-	inline int16_t *LookAt() { return (int16_t *)us(0xB8B7F8); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_2507D0C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::unk_2507D10)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)game_addr(game::unk_2507D18); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::unk_2507D28); }
+	inline int16_t &MeanZ() { return var<int16_t>(game_addr(game::unk_2507D5C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::unk_2507D60)); }
+	inline uint32_t &FlashLevel() { return var<uint32_t>(game_addr(game::unk_2507D64)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::unk_2507D68)); }
+	inline Mat4x3 &EffCam() { return var<Mat4x3>(game_addr(game::unk_2507D70)); }
+	inline uint32_t *KeptWords() { return (uint32_t *)game_addr(game::unk_2507D90); }
+	inline int16_t *Eye() { return (int16_t *)game_addr(game::Battle_Camera_world_XZ_s16); }
+	inline int16_t *LookAt() { return (int16_t *)game_addr(game::Battle_Camera_LookAt_XZ_s16); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	static const uint32_t ORIG_MasterTask = 0x67A900;
-	static const uint32_t ORIG_MainTask = 0x67AC00;
-	static const uint32_t ORIG_SparkTask = 0x67B720;
-	static const uint32_t ORIG_PrimCallback = 0x67B190;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_285_sub_67A900;
+	static constexpr game::Id ORIG_MainTask = game::MAG_285_sub_67AC00;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_285_sub_67B720;
+	static constexpr game::Id ORIG_PrimCallback = game::MAG_285_sub_67B190;
 	static const uint32_t POOL_Main = 0x500;
 	static const uint32_t STREAM = 0x1E38;
 	static const uint32_t MORPH = 0x1AB8;
 	static const uint32_t ARENA_A = 0x1E80, ARENA_B = 0x11E80;
 	static const uint32_t LOAD_Next = 0x21E80;
-	static const uint32_t MODEL_Bolt = 0x1084BBC;
-	static const uint32_t MODEL_Ground = 0x1089B00;
-	static const uint32_t SEQ_Spark = 0x1084AF8;
-	static const uint32_t POINT_A = 0x108FAB8, POINT_B = 0x108FAB0;
-	static const void *SOUND_Start() { return (const void *)us(0x108FAA8); }
-	static const void *SOUND_Bolt() { return (const void *)us(0x108FAAC); }
+	static constexpr game::Id MODEL_Bolt = game::unk_1084BBC;
+	static constexpr game::Id MODEL_Ground = game::unk_1089B00;
+	static constexpr game::Id SEQ_Spark = game::unk_1084AF8;
+	static constexpr game::Id POINT_A = game::unk_108FAB8, POINT_B = game::unk_108FAB0;
+	static const void *SOUND_Start() { return (const void *)game_addr(game::unk_108FAA8); }
+	static const void *SOUND_Bolt() { return (const void *)game_addr(game::unk_108FAAC); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(angle, out); }
-	inline void VecLerp(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(us(0x50A730))(); }
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
-	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_063_RenderPrimSet))(h, ot, mode, cursor); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(angle, out); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_063_RotationXMatrix))(angle, out); }
+	inline void VecLerp(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_FullScreenTile))(r, g, b, level, cursor); }
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(game_addr(game::BS_Camera_ArmReturnAfterEffect))(); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(game_addr(game::Stream_QueueLoad))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(game_addr(game::Stream_Pump))(); }
+	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::BattleFile_PreLoad_IsLoaded))(a); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -168,12 +168,12 @@ namespace thunder285
 
 	static void SlotFlags(int32_t on)
 	{
-		for (uint8_t *p = (uint8_t *)us(0x1D98A15); ; p -= 0x2C)
+		for (uint8_t *p = (uint8_t *)game_addr(game::unk_1D98A15); ; p -= 0x2C)
 		{
 			*p = (uint8_t)((*p & 0xFD) | ((on & 1) << 1));
-			if (p == (uint8_t *)us(0x1D98991)) break;
+			if (p == (uint8_t *)game_addr(game::unk_1D98991)) break;
 		}
-		uint16_t *w = (uint16_t *)us(0x1D97668);
+		uint16_t *w = (uint16_t *)game_addr(game::unk_1D97668);
 		for (int i = 6; i >= 0; i--, w = (uint16_t *)((uint8_t *)w - 0x9C))
 		{
 			if (on) *w = (uint16_t)(((KeptWords()[i] ^ *w) & 4) ^ *w);
@@ -185,7 +185,7 @@ namespace thunder285
 	{
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Spark);
+		*(uint32_t *)h = game_addr(SEQ_Spark);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -347,9 +347,9 @@ namespace thunder285
 
 	static void SpawnSparks(int32_t c)
 	{
-		for (uint32_t point = us(POINT_A); ; point -= 8)
+		for (uint32_t point = game_addr(POINT_A); ; point -= 8)
 		{
-			SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+			SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 			if (s)
 			{
 				BonePoint((const int16_t *)point, s->pos);
@@ -358,7 +358,7 @@ namespace thunder285
 				{
 					for (int k = 4; k; k--)
 					{
-						SparkNode *e = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+						SparkNode *e = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 						if (!e) break;
 						e->pos[0] = (int16_t)((CrtRand() & 0x1FF) + s->pos[0] - 0x100);
 						e->pos[1] = (int16_t)((CrtRand() & 0x1FF) + s->pos[1] - 0x100);
@@ -368,7 +368,7 @@ namespace thunder285
 					}
 				}
 			}
-			if (point == us(POINT_B)) break;
+			if (point == game_addr(POINT_B)) break;
 		}
 	}
 
@@ -417,11 +417,11 @@ namespace thunder285
 			if (c1 == 0)
 			{
 				CameraArmReturn();
-				var<uint16_t>(us(0x1D8E038)) = 0x120;
-				var<uint16_t>(us(0x1D972C0)) |= 4;
-				var<uint16_t>(us(0x1D9735C)) |= 4;
-				var<uint16_t>(us(0x1D973F8)) |= 4;
-				var<uint16_t>(us(0x1D977A2)) = 0;
+				var<uint16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE)) = 0x120;
+				var<uint16_t>(game_addr(game::BattleEntitySlotData)) |= 4;
+				var<uint16_t>(game_addr(game::unk_1D9735C)) |= 4;
+				var<uint16_t>(game_addr(game::unk_1D973F8)) |= 4;
+				var<uint16_t>(game_addr(game::g_BattleCam_Roll)) = 0;
 			}
 			CameraTrack(c1);
 		}
@@ -450,7 +450,7 @@ namespace thunder285
 			if (c3 == 0)
 			{
 				SlotFlags(1);
-				const uint32_t mz = var<uint32_t>(us(0x2507D5C));
+				const uint32_t mz = var<uint32_t>(game_addr(game::unk_2507D5C));
 				LookAt()[2] = (int16_t)mz;
 				Eye()[2] = (int16_t)(mz + 0x1518);
 				PacketCursor() = Tile(0x80, 0x80, 0x80, 0x1000, PacketCursor());
@@ -468,11 +468,11 @@ namespace thunder285
 		m->counter++;
 		if (m->counter >= 0x87)
 		{
-			var<uint32_t>(us(0xB8B7FC)) = var<uint32_t>(us(0xB8B80C));
-			var<uint16_t>(us(0x1D8E038)) = var<uint16_t>(us(0x1D977A0));
-			var<uint32_t>(us(0xB8B7F8)) = var<uint32_t>(us(0xB8B808));
-			var<uint32_t>(us(0xB8B7F0)) = var<uint32_t>(us(0xB8B800));
-			var<uint32_t>(us(0xB8B7F4)) = var<uint32_t>(us(0xB8B804));
+			var<uint32_t>(game_addr(game::Battle_Camera_LookAt_Y)) = var<uint32_t>(game_addr(game::Battle_Camera_ReturnView_LookAt_Y));
+			var<uint16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE)) = var<uint16_t>(game_addr(game::Battle_Camera_ReturnView_Param1D8E038));
+			var<uint32_t>(game_addr(game::Battle_Camera_LookAt_XZ_s16)) = var<uint32_t>(game_addr(game::Battle_Camera_ReturnView_LookAt_XZ_s16));
+			var<uint32_t>(game_addr(game::Battle_Camera_world_XZ_s16)) = var<uint32_t>(game_addr(game::Battle_Camera_ReturnView_world_XZ_s16));
+			var<uint32_t>(game_addr(game::Battle_Camera_world_Y)) = var<uint32_t>(game_addr(game::Battle_Camera_ReturnView_world_Y));
 			StreamLoad(0x168, TexBase() + LOAD_Next, 0);
 			return TASK_END;
 		}
@@ -499,7 +499,7 @@ namespace thunder285
 			for (int i = 0; i < 7; i++) KeptWords()[i] = *(const uint16_t *)Entity(i);
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x15B8, 1);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x14, 0x40);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x56B);
 			const int32_t nt = Ctx()->actions[0].target_count;
 			int16_t sum = 0;
@@ -510,8 +510,8 @@ namespace thunder285
 				MeanZ() = sum;
 			}
 			MeanZ() = (int16_t)((int32_t)sum / nt);
-			DecodeModelPrimLayout(us(MODEL_Bolt), m->bolt, 0x944);
-			DecodeModelPrimLayout(us(MODEL_Ground), m->ground, 0xC64);
+			DecodeModelPrimLayout(game_addr(MODEL_Bolt), m->bolt, 0x944);
+			DecodeModelPrimLayout(game_addr(MODEL_Ground), m->ground, 0xC64);
 			StreamStateInit((void *)(TexBase() + STREAM));
 		}
 		int a0;

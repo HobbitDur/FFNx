@@ -26,67 +26,67 @@ namespace mask303
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25075D4)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25075D8)); }
-	inline uint8_t *&Unmasked() { return var<uint8_t *>(us(0x25075DC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507644)); }
-	inline uint32_t &Lcg() { return var<uint32_t>(us(0x2507648)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507658)); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x25075F0); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)us(0x2507600); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507610); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2507620); }
-	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_25075D4)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::unk_25075D8)); }
+	inline uint8_t *&Unmasked() { return var<uint8_t *>(game_addr(game::unk_25075DC)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::unk_2507644)); }
+	inline uint32_t &Lcg() { return var<uint32_t>(game_addr(game::unk_2507648)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::unk_2507658)); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::unk_25075F0); }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)game_addr(game::unk_2507600); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)game_addr(game::unk_2507610); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)game_addr(game::unk_2507620); }
+	inline uint32_t OTBase() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
 
-	static const uint32_t ORIG_RootTask = 0x66A920;
-	static const uint32_t ORIG_MainTask = 0x66AAF0;
-	static const uint32_t ORIG_LayoutTask = 0x66C220;
-	static const uint32_t ORIG_SparkTask = 0x66C100;
-	static const uint32_t ORIG_SpriteTask = 0x66C080;
+	static constexpr game::Id ORIG_RootTask = game::MAG_303_sub_66A920;
+	static constexpr game::Id ORIG_MainTask = game::MAG_303_sub_66AAF0;
+	static constexpr game::Id ORIG_LayoutTask = game::MAG_303_sub_66C220;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_303_sub_66C100;
+	static constexpr game::Id ORIG_SpriteTask = game::MAG_303_sub_66C080;
 	static const uint32_t POOL_Layouts = 0x27C0, POOL_Sparks = 0x2CA0, POOL_Sprites = 0x35A0;
 	static const uint32_t STREAM_STATE = 0x3640;
 	static const uint32_t MORPH = 0x3688;
 	static const uint32_t ARENA_A = 0x5688, ARENA_B = 0x15688;
-	static const uint32_t MODEL_Main = 0x1033114;
-	static const uint32_t MODEL_Piece = 0x10325F4;
-	static const uint32_t SEQ_Spark = 0x1031440, SEQ_Sprite = 0x1031550;
-	static const void *SOUND_Voice() { return (const void *)us(0x103411C); }
-	static const void *SOUND_Start() { return (const void *)us(0x10340A8); }
-	static const int16_t *POINT_Main() { return (const int16_t *)us(0x1034250); }
-	static const int16_t *POINT_Sprites() { return (const int16_t *)us(0x1034258); }
-	static const struct { uint32_t vel, model; int16_t scale; } PIECES[4] = {
-		{ 0x1034230, 0x1031694, 0x1388 }, { 0x1034238, 0x1031E5C, 0x1000 }, { 0x1034240, 0x103218C, 0x1000 }, { 0x1034248, 0x10324BC, 0xBB8 } };
+	static constexpr game::Id MODEL_Main = game::unk_1033114;
+	static constexpr game::Id MODEL_Piece = game::unk_10325F4;
+	static constexpr game::Id SEQ_Spark = game::unk_1031440, SEQ_Sprite = game::unk_1031550;
+	static const void *SOUND_Voice() { return (const void *)game_addr(game::unk_103411C); }
+	static const void *SOUND_Start() { return (const void *)game_addr(game::unk_10340A8); }
+	static const int16_t *POINT_Main() { return (const int16_t *)game_addr(game::unk_1034250); }
+	static const int16_t *POINT_Sprites() { return (const int16_t *)game_addr(game::unk_1034258); }
+	static const struct { game::Id vel, model; int16_t scale; } PIECES[4] = {
+		{ game::unk_1034230, game::unk_1031694, 0x1388 }, { game::unk_1034238, game::unk_1031E5C, 0x1000 }, { game::unk_1034240, game::unk_103218C, 0x1000 }, { game::unk_1034248, game::unk_10324BC, 0xBB8 } };
 	static const int32_t REDRAW_Clut = 0x3DD4;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, shift, cursor); }
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
-	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
-	inline void SetMonsterPresence(int32_t slot) { fn<void (__cdecl *)(int32_t)>(0x487670)(slot); }
-	inline uint32_t DrawShadow(uint8_t *ent, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(ent, ot, a, cursor); }
-	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45DFA0))(v); }
-	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45DFC0))(v); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
-	inline void GteReadSXY2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E260))(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
-	inline void GteSetSZ123(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45E1B0))(a, b, c); }
-	inline void GteSetSZ0123(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(us(0x45E1D0))(a, b, c, d); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, shift, cursor); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(game_addr(game::Stream_QueueLoad))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(game_addr(game::Stream_Pump))(); }
+	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::BattleFile_PreLoad_IsLoaded))(a); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(slot); }
+	inline void SetMonsterPresence(int32_t slot) { fn<void (__cdecl *)(int32_t)>(game_addr(game::setMonsterPresence))(slot); }
+	inline uint32_t DrawShadow(uint8_t *ent, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(ent, ot, a, cursor); }
+	inline void GteLoadV1(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV1))(v); }
+	inline void GteLoadV2(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV2))(v); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV0_u16))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteReadSXY2(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadSXY2))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a, b, c); }
+	inline void GteSetSZ123(int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetSZ123))(a, b, c); }
+	inline void GteSetSZ0123(int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetSZ0123))(a, b, c, d); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -805,7 +805,7 @@ namespace mask303
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		SpriteDraw(s->pos, s->frame, us(SEQ_Sprite));
+		SpriteDraw(s->pos, s->frame, game_addr(SEQ_Sprite));
 		s->frame++;
 		return s->frame < 0xC ? 0 : TASK_END;
 	}
@@ -813,7 +813,7 @@ namespace mask303
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		SpriteDraw(s->pos, s->frame, us(SEQ_Spark));
+		SpriteDraw(s->pos, s->frame, game_addr(SEQ_Spark));
 		s->frame++;
 		if (s->frame >= 0xA) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
@@ -858,8 +858,8 @@ namespace mask303
 
 	static void SpawnPiece(const int16_t *vel, uint32_t model, int16_t scale)
 	{
-		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), us(ORIG_LayoutTask));
-		DecodeModelPrimLayout(us(MODEL_Piece), L->layout, 0x118);
+		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), game_addr(ORIG_LayoutTask));
+		DecodeModelPrimLayout(game_addr(MODEL_Piece), L->layout, 0x118);
 		L->model = model;
 		ff8fx::copy<(8)>(L->pos, Caster() + 0x1C);
 		L->scale = scale;
@@ -898,7 +898,7 @@ namespace mask303
 			{
 				for (int k = 0x20; k != 0; k--)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 					if (!s) continue;
 					ff8fx::copy<(8)>(s->pos, m->pt);
 					s->vel[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
@@ -926,7 +926,7 @@ namespace mask303
 			BonePoint(POINT_Sprites(), p);
 			for (int k = 8; k != 0; k--)
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_SpriteTask));
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), game_addr(ORIG_SpriteTask));
 				if (!s) continue;
 				s->pos[0] = (int16_t)((CrtRand() & 0x1FF) + p[0] - 0x100);
 				s->pos[1] = (int16_t)(0 - (CrtRand() & 0x1FF));
@@ -936,7 +936,7 @@ namespace mask303
 			}
 		}
 		if (m->counter == 0)
-			for (const auto &pc : PIECES) SpawnPiece((const int16_t *)pc.vel, pc.model, pc.scale);
+			for (const auto &pc : PIECES) SpawnPiece((const int16_t *)game_addr(pc.vel), game_addr(pc.model), pc.scale);
 		m->counter++;
 		return 0;
 	}
@@ -961,11 +961,11 @@ namespace mask303
 			InitTaskQueuePool(QLayouts(), (void *)(TexBase() + POOL_Layouts), 0x138, 4);
 			InitTaskQueuePool(QSparks(), (void *)(TexBase() + POOL_Sparks), 0x24, 0x40);
 			InitTaskQueuePool(QSprites(), (void *)(TexBase() + POOL_Sprites), 0x14, 8);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x9ED);
 			m->voice = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
 			m->cursor = m->shards;
-			DecodeModelPrimLayout(us(MODEL_Main), m->layout, 0x1A0);
+			DecodeModelPrimLayout(game_addr(MODEL_Main), m->layout, 0x1A0);
 			StreamStateInit((void *)(TexBase() + STREAM_STATE));
 		}
 		if (r->started)

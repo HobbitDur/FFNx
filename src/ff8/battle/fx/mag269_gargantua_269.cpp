@@ -37,31 +37,31 @@ namespace gargantua269
 	{
 		c.name = "269 Gargantua";
 		c.effect_id = 269;
-		c.vm_table = us(0x1853F08);
-		c.bone_table = us(0x1853B78);
-		c.prim_table = us(0x1853BC0);
-		c.prim_size = us(0x1853CB0);
-		c.spr_table = us(0x1853CC4);
-		c.ptype_table = us(0x1853CF0);
-		c.pop_table = us(0x1853D04);
-		c.draw_table = us(0x1853D64);
-		c.attr_16A = us(0x1853ECE);
-		c.attr_184 = us(0x1853EE8);
-		c.attr_186 = us(0x1853EEA);
-		c.attr_194 = us(0x1853EF8);
-		c.attr_19C = us(0x1853F00);
-		c.desc = us(0x1853A0C);
-		c.ptr_block = us(0x1853B50);
-		c.queue = us(0x2795C50);
-		c.file00 = us(0x2795C74);
-		c.file01 = us(0x2795C70);
-		c.tick = us(0x8F7890);
-		c.load_cb = us(0x900400);
+		c.vm_table = game_addr(game::funcs_9044BC);
+		c.bone_table = game_addr(game::funcs_901017);
+		c.prim_table = game_addr(game::funcs_8FC934);
+		c.prim_size = game_addr(game::unk_1853CB0);
+		c.spr_table = game_addr(game::unk_1853CC4);
+		c.ptype_table = game_addr(game::unk_1853CF0);
+		c.pop_table = game_addr(game::funcs_8FE9A7);
+		c.draw_table = game_addr(game::unk_1853D64);
+		c.attr_16A = game_addr(game::unk_1853ECE);
+		c.attr_184 = game_addr(game::unk_1853EE8);
+		c.attr_186 = game_addr(game::unk_1853EEA);
+		c.attr_194 = game_addr(game::unk_1853EF8);
+		c.attr_19C = game_addr(game::unk_1853F00);
+		c.desc = game_addr(game::unk_1853A0C);
+		c.ptr_block = game_addr(game::unk_1853B50);
+		c.queue = game_addr(game::unk_2795C50);
+		c.file00 = game_addr(game::unk_2795C74);
+		c.file01 = game_addr(game::unk_2795C70);
+		c.tick = game_addr(game::MAG_269_sub_8F7890);
+		c.load_cb = game_addr(game::MAG_269_sub_900400);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t DIS_KEYS = 0x2795C78;
+	static constexpr game::Id DIS_KEYS = game::unk_2795C78;
 	static const uint16_t DIS_RET16 = 0x8B6E;
 #include "gfc_disintegrate.inc"
 
@@ -101,7 +101,7 @@ namespace gargantua269
 		gargantua269::describe(gargantua269::g_c);
 		init_clone(gargantua269::g_c, nullptr, 0);
 		gargantua269::apply_slots(gargantua269::g_c);
-		register_port(0x8F7890, (void *)gargantua269::SequenceTask, "MAG269 Gargantua 269 SequenceTick", 269);
+		register_port(game::MAG_269_sub_8F7890, (void *)gargantua269::SequenceTask, "MAG269 Gargantua 269 SequenceTick", 269);
 	}
 }
 

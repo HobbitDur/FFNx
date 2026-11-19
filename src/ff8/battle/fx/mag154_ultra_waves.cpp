@@ -25,71 +25,71 @@ namespace ultra154
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &TargetSlot() { return var<int32_t>(us(0x2404238)); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x2404260); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)us(0x2404BD0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24059F0)); }
-	inline int32_t &CasterSlot() { return var<int32_t>(us(0x24059F4)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x243A4D4)); }
-	inline uint32_t &FrameArena() { return var<uint32_t>(us(0x1D8E054)); }
-	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
-	inline uint8_t DisplayBuffer() { return var<uint8_t>(us(0x1D96A80)); }
+	inline int32_t &TargetSlot() { return var<int32_t>(game_addr(game::g_UW154_TargetSlot)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)game_addr(game::g_UW154_RootQueue); }
+	inline TaskQueue *QEffects() { return (TaskQueue *)game_addr(game::g_UW154_EffectQueue); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_UW154_Ctx)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(game_addr(game::g_UW154_CasterSlot)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_UW154_PacketCursor)); }
+	inline uint32_t &FrameArena() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline uint32_t OTBase() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
+	inline uint8_t DisplayBuffer() { return var<uint8_t>(game_addr(game::g_Battle_DisplayParity)); }
 
-	static const uint32_t ARENA_EVEN = 0x24224D4, ARENA_ODD = 0x242E4D4;
-	static const uint32_t GRID = 0x241EF00;
-	static const uint32_t GRID_END = 0x24224D0;
-	static const uint32_t GRID_BYTES = GRID_END - GRID;
-	static const uint32_t QUADS = 0x24059F8;
+	static constexpr game::Id ARENA_EVEN = game::g_UW154_PacketArenaA, ARENA_ODD = game::g_UW154_PacketArenaB;
+	static constexpr game::Id GRID = game::g_UW154_Grid;
+	static constexpr game::Id GRID_END = game::g_UW154_DrawOffsetXY;
+	static uint32_t GridBytes() { return game_addr(GRID_END) - game_addr(GRID); }
+	static constexpr game::Id QUADS = game::g_UW154_GridQuads;
 	static const uint32_t QUADS_BYTES = 27 * 40 * 0x60;
-	static const uint32_t OFFSET_XY = 0x24224D0;
-	static const uint32_t PKT_Capture = 0xDBAEE0;
-	static const uint32_t DRAWENV = 0x1D969C8;
-	static const uint32_t STAGE_Anim0 = 0x1D989A4;
-	static const uint32_t PARTS = 0x2404270;
+	static constexpr game::Id OFFSET_XY = game::g_UW154_DrawOffsetXY;
+	static constexpr game::Id PKT_Capture = game::UW154_CapturePackets;
+	static constexpr game::Id DRAWENV = game::g_Battle_DrawEnv;
+	static constexpr game::Id STAGE_Anim0 = game::unk_1D989A4;
+	static constexpr game::Id PARTS = game::g_UW154_Particles;
 	static const int PART_COUNT = 100;
 	static const int32_t WARP_TICKS = 0x23;
 
-	static const uint32_t ORIG_RootTask = 0x609590;
-	static const uint32_t ORIG_WaitTexRestore = 0x6095F0;
-	static const uint32_t ORIG_Controller = 0x607CC0;
-	static const uint32_t ORIG_Emitter = 0x608530;
-	static const uint32_t ORIG_ScreenWarp = 0x608040;
-	static const uint32_t MODEL_Ring = 0xDBAAC8;
-	static const uint32_t *WarpColours() { return (const uint32_t *)us(0xDBAD40); }
-	static const uint32_t EMITTER_Vectors = 0xDBADF0;
-	static const uint32_t *RingColours() { return (const uint32_t *)us(0xDBAE30); }
-	static const int32_t *StageDraw() { return (const int32_t *)us(0xDBAE70); }
-	static const void *SOUND_Waves() { return (const void *)us(0xDBAD38); }
-	static const void *CAMERA_Anim() { return (const void *)us(0xDBA910); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_154_UltraWaves_RootTask;
+	static constexpr game::Id ORIG_WaitTexRestore = game::MAG_154_UltraWaves_WaitTexRestoreTask;
+	static constexpr game::Id ORIG_Controller = game::MAG_154_UltraWaves_ControllerTask;
+	static constexpr game::Id ORIG_Emitter = game::MAG_154_UltraWaves_EmitterTask;
+	static constexpr game::Id ORIG_ScreenWarp = game::MAG_154_UltraWaves_ScreenWarpTask;
+	static constexpr game::Id MODEL_Ring = game::UW154_RingModel;
+	static const uint32_t *WarpColours() { return (const uint32_t *)game_addr(game::UW154_WarpColours); }
+	static constexpr game::Id EMITTER_Vectors = game::UW154_EmitterVectors;
+	static const uint32_t *RingColours() { return (const uint32_t *)game_addr(game::UW154_RingColours); }
+	static const int32_t *StageDraw() { return (const int32_t *)game_addr(game::UW154_StageDrawTable); }
+	static const void *SOUND_Waves() { return (const void *)game_addr(game::UW154_Sound); }
+	static const void *CAMERA_Anim() { return (const void *)game_addr(game::MAG154_ULTRA_WAVES_cameraAnim); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
-	inline void MulMatrixInPlace(Mat4x3 *m, const Mat4x3 *n) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(m, n); }
-	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline void BuildDrawEnvPacket(uint32_t packet, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C0F0))(packet, env); }
-	inline void BuildDrawAreaPacket(uint32_t packet, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(us(0x45C940))(packet, rect); }
-	inline void BuildDrawOffsetPacket(uint32_t packet, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C9B0))(packet, xy); }
-	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C8E0))(bucket, packet); }
-	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(x, y); }
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(x, y); }
-	inline uint32_t RenderGeometry(uint32_t group, uint32_t header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(group, header, ot, mode, cursor); }
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void MatVec(const void *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const void *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(game_addr(game::VectorNormalS16))(in, out); }
+	inline void MulMatrixInPlace(Mat4x3 *m, const Mat4x3 *n) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(game_addr(game::MatrixMultiply3x3))(m, n); }
+	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline void BuildDrawEnvPacket(uint32_t packet, uint32_t env) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_SetDrawEnv))(packet, env); }
+	inline void BuildDrawAreaPacket(uint32_t packet, const int16_t *rect) { fn<void (__cdecl *)(uint32_t, const int16_t *)>(game_addr(game::GPU_SetDrawAreaPrim))(packet, rect); }
+	inline void BuildDrawOffsetPacket(uint32_t packet, uint32_t xy) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_SetDrawOffsetPrim))(packet, xy); }
+	inline void InsertPrimAltViewport(uint32_t bucket, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_InsertPrimAltViewport))(bucket, packet); }
+	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(game_addr(game::GTE_ReadScreenOffset))(x, y); }
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(game_addr(game::Call_Bs_ParseCamera))(x, y); }
+	inline uint32_t RenderGeometry(uint32_t group, uint32_t header, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, int32_t, uint32_t)>(game_addr(game::RenderGeometry))(group, header, ot, mode, cursor); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(c); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadRGB012))(a, b, c); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCT))(); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_StoreRGB012))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -172,7 +172,7 @@ namespace ultra154
 	static_assert(sizeof(ControllerNode) == 0x24 && sizeof(EmitterNode) == 0x24 && sizeof(WarpNode) == 0x24, "Ultra Waves nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(RenderHeader) == 0x6C && sizeof(EmitterWork) == 0x88, "Ultra Waves particle / render header / work");
 
-	inline Particle *Parts() { return (Particle *)us(PARTS); }
+	inline Particle *Parts() { return (Particle *)game_addr(PARTS); }
 }
 }
 
@@ -525,12 +525,12 @@ namespace ultra154
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		PacketCursor() = us(ARENA_ODD);
-		if (!(r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
+		PacketCursor() = game_addr(ARENA_ODD);
+		if (!(r->counter & 1)) PacketCursor() = game_addr(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(QEffects());
 		if (alive == 0)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(QRoot(), us(ORIG_WaitTexRestore));
+			RootNode *w = (RootNode *)AddTaskToQueue(QRoot(), game_addr(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}
@@ -541,7 +541,7 @@ namespace ultra154
 	static uint32_t __cdecl WaitTexRestore(TaskNode *n)
 	{
 		RootNode *w = (RootNode *)n;
-		if (w->counter == 1) TextureRestoreTask((void *)us(ARENA_EVEN), &w->done);
+		if (w->counter == 1) TextureRestoreTask((void *)game_addr(ARENA_EVEN), &w->done);
 		int16_t done = w->done;
 		w->counter++;
 		return done ? TASK_END : 0;
@@ -549,7 +549,7 @@ namespace ultra154
 
 	static void GridInit()
 	{
-		uint32_t v = us(GRID);
+		uint32_t v = game_addr(GRID);
 		for (int32_t row = 0; row < 0x1C; row++)
 			for (int32_t col = 0; col < 0x29; col++, v += 0xC)
 			{
@@ -560,8 +560,8 @@ namespace ultra154
 				if (row == 0 || row == 0x1B) At<int16_t>(v, 0xA) = 1;
 				if (col == 0 || col == 0x28) At<int16_t>(v, 0xA) |= 2;
 			}
-		uint32_t vtx = us(GRID);
-		uint32_t rec = us(QUADS);
+		uint32_t vtx = game_addr(GRID);
+		uint32_t rec = game_addr(QUADS);
 		for (int32_t row = 0; row < 0x1B; row++)
 		{
 			const int32_t v0 = 8 * row;
@@ -599,18 +599,18 @@ namespace ultra154
 
 	static void StageHide()
 	{
-		for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) At<uint8_t>(a, 0) &= 0xFD;
+		for (uint32_t a = game_addr(game::unk_1D98991); a < game_addr(game::unk_1D98A41); a += 0x2C) At<uint8_t>(a, 0) &= 0xFD;
 	}
 	static void StageShow()
 	{
-		for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) At<uint8_t>(a, 0) |= 2;
+		for (uint32_t a = game_addr(game::unk_1D98991); a < game_addr(game::unk_1D98A41); a += 0x2C) At<uint8_t>(a, 0) |= 2;
 	}
 
 	static void Capture(uint32_t capture_packets, uint32_t offset_xy)
 	{
 		int16_t rect[4] = { 0x180, 0x100, 0x140, 0xD8 };
 		uint32_t pkt = PacketCursor();
-		BuildDrawEnvPacket(pkt, us(DRAWENV) + 0x5C * ((uint32_t)DisplayBuffer() ^ 1));
+		BuildDrawEnvPacket(pkt, game_addr(DRAWENV) + 0x5C * ((uint32_t)DisplayBuffer() ^ 1));
 		InsertPrimAutoDepth(OTBase() + 0x406C, (void *)pkt);
 		pkt += 0x40;
 		PacketCursor() = pkt;
@@ -622,12 +622,12 @@ namespace ultra154
 		At<int16_t>(h, 0x3E) = 0;
 		At<int16_t>(h, 0x40) = 0x140;
 		At<int16_t>(h, 0x42) = 0xD8;
-		At<uint32_t>(h, 0x2C) = var<uint32_t>(us(0x1D98B3C));
-		At<uint32_t>(h, 0x38) = var<uint32_t>(us(0x1D969A8));
+		At<uint32_t>(h, 0x2C) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
+		At<uint32_t>(h, 0x38) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		At<int32_t>(h, 0x48) = -1;
 		for (int k = 0; k < 4; k++)
 		{
-			const uint32_t anim = us(STAGE_Anim0) + 0x2C * (uint32_t)k;
+			const uint32_t anim = game_addr(STAGE_Anim0) + 0x2C * (uint32_t)k;
 			BuildBoneMatricesFromPose((void *)anim);
 			ComputeBonesWorldMatrices((void *)anim, &Camera());
 			if (At<uint8_t>(anim, (uint32_t)-0x13) & 1)
@@ -661,7 +661,7 @@ namespace ultra154
 		int32_t s = ComputeSin(shl32(c, 10) / n);
 		s = shl32(mul32(s, n) >> 12, 12) / n;
 		const int32_t amp = mul32(ComputeSin(s), 48) >> 12;
-		uint32_t v = us(GRID);
+		uint32_t v = game_addr(GRID);
 		for (int32_t rp = 0; rp < 0x7000; rp += 0x400)
 			for (int32_t ca = 0; ca < 0x3D800; ca += 0x1800, v += 0xC)
 			{
@@ -695,10 +695,10 @@ namespace ultra154
 		IdentityRotation(&m);
 		m.t[0] = 4;
 		m.t[1] = 4;
-		m.t[2] = var<int16_t>(us(0x1D8E038));
+		m.t[2] = var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE));
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		for (uint32_t v = us(GRID); v < us(GRID_END); v += 0xC)
+		for (uint32_t v = game_addr(GRID); v < game_addr(GRID_END); v += 0xC)
 		{
 			GteLoadV0((const void *)(v + 4));
 			GteRTPS();
@@ -728,8 +728,8 @@ namespace ultra154
 		{
 			for (int k = 0; k < 4; k++)
 			{
-				const uint32_t vec = us(EMITTER_Vectors) + 0x10 * (uint32_t)k;
-				EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEffects(), us(ORIG_Emitter));
+				const uint32_t vec = game_addr(EMITTER_Vectors) + 0x10 * (uint32_t)k;
+				EmitterNode *e = (EmitterNode *)AddTaskToQueue(QEffects(), game_addr(ORIG_Emitter));
 				e->counter = 0;
 				e->mask = (uint16_t)(1u << (2 * k));
 				GetEffectSpawnPosition(Entity(CasterSlot()), 0xF1, 0x1000, c->anchor);
@@ -749,7 +749,7 @@ namespace ultra154
 		}
 		if (c->counter == 8)
 		{
-			WarpNode *w = (WarpNode *)AddTaskToQueue(QEffects(), us(ORIG_ScreenWarp));
+			WarpNode *w = (WarpNode *)AddTaskToQueue(QEffects(), game_addr(ORIG_ScreenWarp));
 			w->counter = 0;
 		}
 		if (c->counter == 0x24) ApplyActionResultToTargets(Ctx()->actions->targets, Ctx()->actions->target_count);
@@ -763,7 +763,7 @@ namespace ultra154
 		h->far_rgb[0] = h->far_rgb[1] = h->far_rgb[2] = h->far_rgb[3] = 0;
 		w->from[0] = 0;
 		w->from[1] = 0;
-		h->model = us(MODEL_Ring);
+		h->model = game_addr(MODEL_Ring);
 		h->flags = 0x33;
 		w->from[2] = -0x1000;
 		w->to[0] = e->dir[0];
@@ -888,7 +888,7 @@ namespace ultra154
 		WarpNode *w = (WarpNode *)n;
 		if (w->counter < WARP_TICKS)
 		{
-			WarpDraw(w->counter, us(PKT_Capture), us(OFFSET_XY), us(QUADS));
+			WarpDraw(w->counter, game_addr(PKT_Capture), game_addr(OFFSET_XY), game_addr(QUADS));
 		}
 		if (DrawOnly()) return 0;
 		if (w->counter == 0) StageHide();

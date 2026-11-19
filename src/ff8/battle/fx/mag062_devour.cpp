@@ -29,31 +29,31 @@ namespace devour
 		Mod m = {};
 		m.name = "devour";
 		m.effect_id = 62;
-		m.lo = us(0x7E4AB0);
-		m.hi = us(0x7E58A0);
-		m.g[G_258BE30] = us(0x2601780);
-		m.f[F_73A1A0] = us(0x7E4D90);
+		m.lo = game::MAG_062_DEVOUR_FL;
+		m.hi = game::MAG_061_REVIVE_FL;
+		m.g[G_258BE30] = game::MAG_062_DEVOUR_EmitterQueue;
+		m.f[F_73A1A0] = game::MAG_062_DEVOUR_Emitter;
 		return m;
 	}
 	static const Mod MOD_062 = make_mod();
 
-	static const uint32_t PACKET_CURSOR = 0x260131C;
-	static const uint32_t Q_EMITTER = 0x2601780;
-	static const uint32_t Q_TASKS = 0x2601418;
-	static const uint32_t TIM_TITLE = 0x2601900;
-	static const uint32_t TIM_PIC1 = 0x2601904;
-	static const uint32_t TIM_PIC2 = 0x26018F8;
-	static const uint32_t TIM_PIC3 = 0x26018FC;
-	static const uint32_t SOUND_TABLE = 0x15962B4;
-	static const uint32_t FADE_LAYERS = 0x1D9898C;
-	static const uint32_t ENTITIES = 0x1D972C0;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_062_DEVOUR_PacketCursor;
+	static constexpr game::Id Q_EMITTER = game::MAG_062_DEVOUR_EmitterQueue;
+	static constexpr game::Id Q_TASKS = game::MAG_062_DEVOUR_TaskQueue;
+	static constexpr game::Id TIM_TITLE = game::MAG_062_DEVOUR_TimTitle;
+	static constexpr game::Id TIM_PIC1 = game::MAG_062_DEVOUR_TimPicture1;
+	static constexpr game::Id TIM_PIC2 = game::MAG_062_DEVOUR_TimPicture2;
+	static constexpr game::Id TIM_PIC3 = game::MAG_062_DEVOUR_TimPicture3;
+	static constexpr game::Id SOUND_TABLE = game::MAG_062_DEVOUR_OutcomeSoundTable;
+	static constexpr game::Id FADE_LAYERS = game::BATTLE_STAGE_RENDER_GROUPS;
+	static constexpr game::Id ENTITIES = game::BattleEntitySlotData;
 
-	static const uint32_t ORIG_Master = 0x7E4C10;
-	static const uint32_t ORIG_Emitter = 0x7E4D90;
-	static const uint32_t ORIG_Cast = 0x7E4E30;
-	static const uint32_t ORIG_Picture = 0x7E4F60;
-	static const uint32_t ORIG_Darken = 0x7E5290;
-	static const uint32_t ORIG_Music = 0x7E55F0;
+	static constexpr game::Id ORIG_Master = game::MAG_062_DEVOUR_Master;
+	static constexpr game::Id ORIG_Emitter = game::MAG_062_DEVOUR_Emitter;
+	static constexpr game::Id ORIG_Cast = game::MAG_062_DEVOUR_Cast;
+	static constexpr game::Id ORIG_Picture = game::MAG_062_DEVOUR_Picture;
+	static constexpr game::Id ORIG_Darken = game::MAG_062_DEVOUR_Darken;
+	static constexpr game::Id ORIG_Music = game::MAG_062_DEVOUR_MusicFade;
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
 	{
@@ -85,41 +85,41 @@ namespace devour
 		g_mod = &MOD_062;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x2601914)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x2601338)) = us(0x2793E58);
-		states[0] = us(0x7E4D30);
+		MEM<uint32_t>(game_addr(game::MAG_062_DEVOUR_CameraCopyPtr2)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::MAG_062_DEVOUR_CameraCopyPtr)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_062_DEVOUR_Master_NextState0);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x7E4D40);
-		states[2] = us(0x7E4D50);
-		states[3] = us(0x7E4D60);
-		states[4] = us(0x7E57F0);
-		states[5] = us(0x7E5830);
-		states[6] = us(0x7E5840);
-		states[7] = us(0x7E5850);
-		states[8] = us(0x7E5860);
-		states[9] = us(0x7E5870);
-		states[10] = us(0x7E5890);
+		states[1] = game_addr(game::MAG_062_DEVOUR_Master_NextState1);
+		states[2] = game_addr(game::MAG_062_DEVOUR_Master_WaitChildren);
+		states[3] = game_addr(game::MAG_062_DEVOUR_Master_SpawnEmitter);
+		states[4] = game_addr(game::MAG_062_DEVOUR_Master_ActionLoop);
+		states[5] = game_addr(game::MAG_062_DEVOUR_Master_NextState5);
+		states[6] = game_addr(game::MAG_062_DEVOUR_Master_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_062_DEVOUR_Master_NextState7);
+		states[8] = game_addr(game::MAG_062_DEVOUR_Master_NextState8);
+		states[9] = game_addr(game::MAG_062_DEVOUR_Master_Finish);
+		states[10] = game_addr(game::MAG_062_DEVOUR_Master_Done);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26018F4));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2601778));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x2601334)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_062_DEVOUR_ArenaOdd));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_062_DEVOUR_Arena2Odd));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_062_DEVOUR_PacketCursor2)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26018F0));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2601774));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x2601334)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_062_DEVOUR_ArenaEven));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_062_DEVOUR_Arena2Even));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_062_DEVOUR_PacketCursor2)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TASKS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_TASKS)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -137,10 +137,10 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x7E4E00);
-		states[1] = us(0x7E5780);
-		states[2] = us(0x7E57A0);
-		states[3] = us(0x7E57E0);
+		states[0] = game_addr(game::MAG_062_DEVOUR_Emitter_StartCast);
+		states[1] = game_addr(game::MAG_062_DEVOUR_Emitter_ReleaseMaster);
+		states[2] = game_addr(game::MAG_062_DEVOUR_Emitter_ApplyResult);
+		states[3] = game_addr(game::MAG_062_DEVOUR_Emitter_Done);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -151,7 +151,7 @@ namespace devour
 
 	static uint32_t __cdecl StartCast(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Cast), 0x54, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Cast), 0x54, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -186,10 +186,10 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x7E4E90);
-		states[1] = us(0x7E4F10);
-		states[2] = us(0x7E5710);
-		states[3] = us(0x7E5770);
+		states[0] = game_addr(game::MAG_062_DEVOUR_Cast_LoadTextures);
+		states[1] = game_addr(game::MAG_062_DEVOUR_Cast_StartParts);
+		states[2] = game_addr(game::MAG_062_DEVOUR_Cast_PlayOutcomeSound);
+		states[3] = game_addr(game::MAG_062_DEVOUR_Cast_Done);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -198,7 +198,7 @@ namespace devour
 
 	static uint32_t __cdecl LoadTextures(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(us(TIM_TITLE)));
+		x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(game_addr(TIM_TITLE)));
 		const int32_t r = (int32_t)x::CrtRand();
 		const uint32_t node = a1;
 		const int16_t pick = (int16_t)(r % 3);
@@ -206,13 +206,13 @@ namespace devour
 		switch (pick)
 		{
 		case 0:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(us(TIM_PIC1)));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(game_addr(TIM_PIC1)));
 			break;
 		case 1:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(us(TIM_PIC2)));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(game_addr(TIM_PIC2)));
 			break;
 		case 2:
-			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(us(TIM_PIC3)));
+			x::Battle_QueueTIMUpload_GetEOF(MEM<uint32_t>(game_addr(TIM_PIC3)));
 			break;
 		}
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -221,9 +221,9 @@ namespace devour
 
 	static uint32_t __cdecl StartParts(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Darken), 0x54, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Music), 0x54, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Picture), 0x54, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Darken), 0x54, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Music), 0x54, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Picture), 0x54, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -238,7 +238,7 @@ namespace devour
 			k = 0;
 		else if (k > 8)
 			k = 8;
-		x::BdPlaySE(MEM<uint32_t>(us(SOUND_TABLE) + (uint32_t)((int32_t)k * 4)), 0, 0x80);
+		x::BdPlaySE(MEM<uint32_t>(game_addr(SOUND_TABLE) + (uint32_t)((int32_t)k * 4)), 0, 0x80);
 		const uint8_t st = U8(node, 0x29);
 		U8(node, 0x26) |= 1;
 		U8(node, 0x29) = (uint8_t)(st + 1);
@@ -248,7 +248,7 @@ namespace devour
 	static uint32_t Quad(uint32_t x, uint32_t y, uint32_t vx, uint32_t vy, uint32_t w, uint32_t h, uint32_t u, uint32_t v,
 		uint32_t cx, uint32_t cy, uint32_t colour, uint32_t semi)
 	{
-		const uint32_t p = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t p = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U8(p, 7) = 0x2C;
 		U8(p, 7) = (uint8_t)((uint16_t)semi == 1 ? 0x2E : 0x2C);
 		const int32_t vys = (int16_t)vy;
@@ -296,8 +296,8 @@ namespace devour
 		U8(p, 6) = c;
 		U8(p, 5) = c;
 		U8(p, 4) = c;
-		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(us(0x1D8E04C)) + 0x14, p);
-		MEM<uint32_t>(us(PACKET_CURSOR)) = p + 0x28;
+		x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x14, p);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = p + 0x28;
 		return 0;
 	}
 
@@ -320,10 +320,10 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x7E4FC0);
-		states[1] = us(0x7E4FE0);
-		states[2] = us(0x7E5240);
-		states[3] = us(0x7E5280);
+		states[0] = game_addr(game::MAG_062_DEVOUR_Picture_Wait);
+		states[1] = game_addr(game::MAG_062_DEVOUR_Picture_Scroll);
+		states[2] = game_addr(game::MAG_062_DEVOUR_Picture_FadeOut);
+		states[3] = game_addr(game::MAG_062_DEVOUR_Picture_Done);
 		const int8_t state = S8(node, 0x29);
 		callp(states[state], node);
 		const uint8_t status = U8(node, 0x26);
@@ -375,7 +375,7 @@ namespace devour
 
 	static void TintAll(uint32_t level, uint32_t mode)
 	{
-		uint32_t e = us(ENTITIES);
+		uint32_t e = game_addr(ENTITIES);
 		for (int k = 7; k != 0; k--, e += 0x9C)
 		{
 			uint16_t f = U16(e, 0);
@@ -393,19 +393,19 @@ namespace devour
 		if (U16(first_target(node), 6) == 8)
 			return;
 		const uint32_t slot = U8(node, 0x2D);
-		U8(us(ENTITIES) + slot * 0x9C, 0) |= 4;
+		U8(game_addr(ENTITIES) + slot * 0x9C, 0) |= 4;
 	}
 
 	static uint32_t __cdecl Darken(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = us(0x7E5300);
-		states[1] = us(0x7E5340);
-		states[2] = us(0x7E54F0);
-		states[3] = us(0x7E5510);
-		states[4] = us(0x7E5560);
-		states[5] = us(0x7E55E0);
+		states[0] = game_addr(game::MAG_062_DEVOUR_Darken_SaveEntityFlags);
+		states[1] = game_addr(game::MAG_062_DEVOUR_Darken_BlackoutHideTarget);
+		states[2] = game_addr(game::MAG_062_DEVOUR_Darken_Wait);
+		states[3] = game_addr(game::MAG_062_DEVOUR_Darken_FadeOut);
+		states[4] = game_addr(game::MAG_062_DEVOUR_Darken_RestoreFlagsHideTarget);
+		states[5] = game_addr(game::MAG_062_DEVOUR_Darken_Done);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -415,7 +415,7 @@ namespace devour
 	static uint32_t __cdecl DarkenKeep(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		uint32_t e = us(ENTITIES);
+		uint32_t e = game_addr(ENTITIES);
 		if (S16(node, 0x24) < 0xA)
 			return node;
 		for (int k = 0; k < 7; k++, e += 0x9C)
@@ -428,7 +428,7 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		U16(node, 0x4C) = 0x1000;
-		uint32_t p = us(FADE_LAYERS) + 0x2D;
+		uint32_t p = game_addr(FADE_LAYERS) + 0x2D;
 		for (int k = 4; k != 0; k--, p += 0x2C)
 		{
 			U8(p, 1) = 0;
@@ -464,7 +464,7 @@ namespace devour
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(node, 0x4C);
-		uint32_t p = us(FADE_LAYERS) + 6;
+		uint32_t p = game_addr(FADE_LAYERS) + 6;
 		for (int k = 4; k != 0; k--, p += 0x2C)
 			U16(p, 0) = level;
 		TintAll(level, 0);
@@ -474,7 +474,7 @@ namespace devour
 	static uint32_t __cdecl DarkenRestore(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		uint32_t e = us(ENTITIES);
+		uint32_t e = game_addr(ENTITIES);
 		uint32_t kept = node + 0x30;
 		for (int k = 7; k != 0; k--, e += 0x9C, kept += 4)
 		{
@@ -493,11 +493,11 @@ namespace devour
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x7E5660);
-		states[1] = us(0x7E5680);
-		states[2] = us(0x7E56B0);
-		states[3] = us(0x7E56C0);
-		states[4] = us(0x7E5700);
+		states[0] = game_addr(game::MAG_062_DEVOUR_MusicFade_Wait);
+		states[1] = game_addr(game::MAG_062_DEVOUR_MusicFade_Down);
+		states[2] = game_addr(game::MAG_062_DEVOUR_MusicFade_Wait2);
+		states[3] = game_addr(game::MAG_062_DEVOUR_MusicFade_Up);
+		states[4] = game_addr(game::MAG_062_DEVOUR_MusicFade_Done);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -549,52 +549,52 @@ namespace devour
 		return x::Music_SetVolumeImmediate(0, (uint32_t)(int32_t)S16(node, 0x4C));
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x7E4D30, (void *)a_73A0D0, "062 MAG_062_sub_7E4D30" },
-		{ 0x7E4D40, (void *)a_73A0D0, "062 MAG_062_sub_7E4D40" },
-		{ 0x7E4D60, (void *)a_73A170, "062 MAG_062_sub_7E4D60" },
-		{ 0x7E5280, (void *)a_73A6D0, "062 nullsub_1460" },
-		{ 0x7E55E0, (void *)a_73A6D0, "062 nullsub_1461" },
-		{ 0x7E5700, (void *)a_73A6D0, "062 nullsub_1462" },
-		{ 0x7E5770, (void *)a_73A6D0, "062 nullsub_1459" },
-		{ 0x7E57E0, (void *)a_73A6D0, "062 nullsub_1458" },
-		{ 0x7E57F0, (void *)a_747500, "062 MAG_062_sub_7E57F0" },
-		{ 0x7E5830, (void *)a_73A0D0, "062 MAG_062_sub_7E5830" },
-		{ 0x7E5840, (void *)a_747550, "062 MAG_062_sub_7E5840" },
-		{ 0x7E5850, (void *)a_73A0D0, "062 MAG_062_sub_7E5850" },
-		{ 0x7E5860, (void *)a_73A0D0, "062 MAG_062_sub_7E5860" },
-		{ 0x7E5870, (void *)a_7475A0, "062 MAG_062_sub_7E5870" },
-		{ 0x7E5890, (void *)a_73A6D0, "062 nullsub_1457" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_062_DEVOUR_Master_NextState0, (void *)a_73A0D0, "062 MAG_062_sub_7E4D30" },
+		{ game::MAG_062_DEVOUR_Master_NextState1, (void *)a_73A0D0, "062 MAG_062_sub_7E4D40" },
+		{ game::MAG_062_DEVOUR_Master_SpawnEmitter, (void *)a_73A170, "062 MAG_062_sub_7E4D60" },
+		{ game::MAG_062_DEVOUR_Picture_Done, (void *)a_73A6D0, "062 nullsub_1460" },
+		{ game::MAG_062_DEVOUR_Darken_Done, (void *)a_73A6D0, "062 nullsub_1461" },
+		{ game::MAG_062_DEVOUR_MusicFade_Done, (void *)a_73A6D0, "062 nullsub_1462" },
+		{ game::MAG_062_DEVOUR_Cast_Done, (void *)a_73A6D0, "062 nullsub_1459" },
+		{ game::MAG_062_DEVOUR_Emitter_Done, (void *)a_73A6D0, "062 nullsub_1458" },
+		{ game::MAG_062_DEVOUR_Master_ActionLoop, (void *)a_747500, "062 MAG_062_sub_7E57F0" },
+		{ game::MAG_062_DEVOUR_Master_NextState5, (void *)a_73A0D0, "062 MAG_062_sub_7E5830" },
+		{ game::MAG_062_DEVOUR_Master_WaitQueuesEmpty, (void *)a_747550, "062 MAG_062_sub_7E5840" },
+		{ game::MAG_062_DEVOUR_Master_NextState7, (void *)a_73A0D0, "062 MAG_062_sub_7E5850" },
+		{ game::MAG_062_DEVOUR_Master_NextState8, (void *)a_73A0D0, "062 MAG_062_sub_7E5860" },
+		{ game::MAG_062_DEVOUR_Master_Finish, (void *)a_7475A0, "062 MAG_062_sub_7E5870" },
+		{ game::MAG_062_DEVOUR_Master_Done, (void *)a_73A6D0, "062 nullsub_1457" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
 		{ ORIG_Master, (void *)Master, "062 Devour Master" },
-		{ 0x7E4D50, (void *)WaitChildren, "062 WaitChildren" },
+		{ game::MAG_062_DEVOUR_Master_WaitChildren, (void *)WaitChildren, "062 WaitChildren" },
 		{ ORIG_Emitter, (void *)Emitter, "062 Emitter" },
-		{ 0x7E4E00, (void *)StartCast, "062 StartCast" },
-		{ 0x7E5780, (void *)ReleaseMaster, "062 ReleaseMaster" },
-		{ 0x7E57A0, (void *)Damage, "062 Damage" },
+		{ game::MAG_062_DEVOUR_Emitter_StartCast, (void *)StartCast, "062 StartCast" },
+		{ game::MAG_062_DEVOUR_Emitter_ReleaseMaster, (void *)ReleaseMaster, "062 ReleaseMaster" },
+		{ game::MAG_062_DEVOUR_Emitter_ApplyResult, (void *)Damage, "062 Damage" },
 		{ ORIG_Cast, (void *)Cast, "062 Cast" },
-		{ 0x7E4E90, (void *)LoadTextures, "062 LoadTextures" },
-		{ 0x7E4F10, (void *)StartParts, "062 StartParts" },
-		{ 0x7E5710, (void *)Sound, "062 Sound" },
+		{ game::MAG_062_DEVOUR_Cast_LoadTextures, (void *)LoadTextures, "062 LoadTextures" },
+		{ game::MAG_062_DEVOUR_Cast_StartParts, (void *)StartParts, "062 StartParts" },
+		{ game::MAG_062_DEVOUR_Cast_PlayOutcomeSound, (void *)Sound, "062 Sound" },
 		{ ORIG_Picture, (void *)PictureTask, "062 Picture" },
-		{ 0x7E4FC0, (void *)PictureWait, "062 PictureWait" },
-		{ 0x7E4FE0, (void *)PictureScroll, "062 PictureScroll" },
-		{ 0x7E5240, (void *)PictureFade, "062 PictureFade" },
+		{ game::MAG_062_DEVOUR_Picture_Wait, (void *)PictureWait, "062 PictureWait" },
+		{ game::MAG_062_DEVOUR_Picture_Scroll, (void *)PictureScroll, "062 PictureScroll" },
+		{ game::MAG_062_DEVOUR_Picture_FadeOut, (void *)PictureFade, "062 PictureFade" },
 		{ ORIG_Darken, (void *)Darken, "062 Darken" },
-		{ 0x7E5300, (void *)DarkenKeep, "062 DarkenKeep" },
-		{ 0x7E5340, (void *)DarkenIn, "062 DarkenIn" },
-		{ 0x7E54F0, (void *)DarkenWait, "062 DarkenWait" },
-		{ 0x7E5510, (void *)DarkenOut, "062 DarkenOut" },
-		{ 0x7E5560, (void *)DarkenRestore, "062 DarkenRestore" },
+		{ game::MAG_062_DEVOUR_Darken_SaveEntityFlags, (void *)DarkenKeep, "062 DarkenKeep" },
+		{ game::MAG_062_DEVOUR_Darken_BlackoutHideTarget, (void *)DarkenIn, "062 DarkenIn" },
+		{ game::MAG_062_DEVOUR_Darken_Wait, (void *)DarkenWait, "062 DarkenWait" },
+		{ game::MAG_062_DEVOUR_Darken_FadeOut, (void *)DarkenOut, "062 DarkenOut" },
+		{ game::MAG_062_DEVOUR_Darken_RestoreFlagsHideTarget, (void *)DarkenRestore, "062 DarkenRestore" },
 		{ ORIG_Music, (void *)Music, "062 Music" },
-		{ 0x7E5660, (void *)MusicWait, "062 MusicWait" },
-		{ 0x7E5680, (void *)MusicDown, "062 MusicDown" },
-		{ 0x7E56B0, (void *)MusicWait2, "062 MusicWait2" },
-		{ 0x7E56C0, (void *)MusicUp, "062 MusicUp" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_062_DEVOUR_MusicFade_Wait, (void *)MusicWait, "062 MusicWait" },
+		{ game::MAG_062_DEVOUR_MusicFade_Down, (void *)MusicDown, "062 MusicDown" },
+		{ game::MAG_062_DEVOUR_MusicFade_Wait2, (void *)MusicWait2, "062 MusicWait2" },
+		{ game::MAG_062_DEVOUR_MusicFade_Up, (void *)MusicUp, "062 MusicUp" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

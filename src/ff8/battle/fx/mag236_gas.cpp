@@ -37,26 +37,26 @@ namespace gas236
 	{
 		c.name = "236 Gas";
 		c.effect_id = 236;
-		c.vm_table = us(0x1866A28);
-		c.bone_table = us(0x1866698);
-		c.prim_table = us(0x18666E0);
-		c.prim_size = us(0x18667D0);
-		c.spr_table = us(0x18667E4);
-		c.ptype_table = us(0x1866810);
-		c.pop_table = us(0x1866824);
-		c.draw_table = us(0x1866884);
-		c.attr_16A = us(0x18669EE);
-		c.attr_184 = us(0x1866A08);
-		c.attr_186 = us(0x1866A0A);
-		c.attr_194 = us(0x1866A18);
-		c.attr_19C = us(0x1866A20);
-		c.desc = us(0x1866564);
-		c.ptr_block = us(0x1866670);
-		c.queue = us(0x2796978);
-		c.file00 = us(0x279698C);
-		c.file01 = us(0x2796988);
-		c.tick = us(0xA348B0);
-		c.load_cb = us(0xA39DF0);
+		c.vm_table = game_addr(game::funcs_A3DE2C);
+		c.bone_table = game_addr(game::funcs_A3AA07);
+		c.prim_table = game_addr(game::funcs_A36654);
+		c.prim_size = game_addr(game::unk_18667D0);
+		c.spr_table = game_addr(game::unk_18667E4);
+		c.ptype_table = game_addr(game::unk_1866810);
+		c.pop_table = game_addr(game::funcs_A383F7);
+		c.draw_table = game_addr(game::unk_1866884);
+		c.attr_16A = game_addr(game::unk_18669EE);
+		c.attr_184 = game_addr(game::unk_1866A08);
+		c.attr_186 = game_addr(game::unk_1866A0A);
+		c.attr_194 = game_addr(game::unk_1866A18);
+		c.attr_19C = game_addr(game::unk_1866A20);
+		c.desc = game_addr(game::unk_1866564);
+		c.ptr_block = game_addr(game::unk_1866670);
+		c.queue = game_addr(game::unk_2796978);
+		c.file00 = game_addr(game::unk_279698C);
+		c.file01 = game_addr(game::unk_2796988);
+		c.tick = game_addr(game::MAG_236_sub_A348B0);
+		c.load_cb = game_addr(game::MAG_236_sub_A39DF0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -79,7 +79,7 @@ namespace gas236
 		gas236::g_c.bone[8] = gas236::bh_08_VertexAtHeight;
 		gas236::g_c.prim[48] = gas236::pr_48_TintedFT3Abr;
 		gas236::g_c.draw[31] = gas236::dh_31_MeshHeightCut;
-		register_port(0xA348B0, (void *)gas236::SequenceTask, "MAG236 Gas SequenceTick", 236);
+		register_port(game::MAG_236_sub_A348B0, (void *)gas236::SequenceTask, "MAG236 Gas SequenceTick", 236);
 	}
 }
 

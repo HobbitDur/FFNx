@@ -32,26 +32,26 @@ namespace meteor
 	{
 		c.name = "223 Meteor";
 		c.effect_id = 223;
-		c.vm_table = us(0x186C314);
-		c.bone_table = us(0x186BF84);
-		c.prim_table = us(0x186BFCC);
-		c.prim_size = us(0x186C0BC);
-		c.spr_table = us(0x186C0D0);
-		c.ptype_table = us(0x186C0FC);
-		c.pop_table = us(0x186C110);
-		c.draw_table = us(0x186C170);
-		c.attr_16A = us(0x186C2DA);
-		c.attr_184 = us(0x186C2F4);
-		c.attr_186 = us(0x186C2F6);
-		c.attr_194 = us(0x186C304);
-		c.attr_19C = us(0x186C30C);
-		c.desc = us(0x186BE34);
-		c.ptr_block = us(0x186BF5C);
-		c.queue = us(0x2796B70);
-		c.file00 = us(0x2796BA4);
-		c.file01 = us(0x2796BA0);
-		c.tick = us(0xA8FF00);
-		c.load_cb = us(0xA96AF0);
+		c.vm_table = game_addr(game::GF_223Meteor_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_223Meteor_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_A930B4);
+		c.prim_size = game_addr(game::unk_186C0BC);
+		c.spr_table = game_addr(game::unk_186C0D0);
+		c.ptype_table = game_addr(game::unk_186C0FC);
+		c.pop_table = game_addr(game::funcs_A950F7);
+		c.draw_table = game_addr(game::GF_223Meteor_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_186C2DA);
+		c.attr_184 = game_addr(game::unk_186C2F4);
+		c.attr_186 = game_addr(game::unk_186C2F6);
+		c.attr_194 = game_addr(game::unk_186C304);
+		c.attr_19C = game_addr(game::unk_186C30C);
+		c.desc = game_addr(game::GF_223Meteor_ResourceDesc);
+		c.ptr_block = game_addr(game::GF_223Meteor_PtrBlock);
+		c.queue = game_addr(game::g_GF223Meteor_TaskQueue);
+		c.file00 = game_addr(game::g_GF223Meteor_File00);
+		c.file01 = game_addr(game::g_GF223Meteor_File01);
+		c.tick = game_addr(game::GF_223Meteor_SequenceTick);
+		c.load_cb = game_addr(game::GF_223Meteor_LoadBattleFileDone);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -71,36 +71,36 @@ namespace meteor
 		c.prim[6] = p6;
 	}
 
-	static const uint32_t RECTRING = 0x27978E8;
-	static const uint32_t RECTRING_IDX = 0x2798BF4;
+	static constexpr game::Id RECTRING = game::g_GfCinematic_BlitRectRing;
+	static constexpr game::Id RECTRING_IDX = game::g_GfCinematic_BlitRectRingIdx;
 
-	static inline void xl_QueueVramReadback(const void *rect, uint32_t dst) { x::f<void (__cdecl *)(const void *, uint32_t)>(us(0x505E70))(rect, dst); }
-	static inline void xl_TexWindow_B66670(int32_t id) { x::f<int32_t (__cdecl *)(int32_t)>(us(0xB66670))(id); }
-	static inline int32_t xl_RotTransPers_56C8C0(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C8C0))(v, sxy, p, flag); }
+	static inline void xl_QueueVramReadback(const void *rect, uint32_t dst) { x::f<void (__cdecl *)(const void *, uint32_t)>(game_addr(game::Battle_QueueVramReadback_Type2))(rect, dst); }
+	static inline void xl_TexWindow_B66670(int32_t id) { x::f<int32_t (__cdecl *)(int32_t)>(game_addr(game::GfCinematic_ReadAltTextureWindow))(id); }
+	static inline int32_t xl_RotTransPers_56C8C0(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::GTE_RotTransPersDiv8))(v, sxy, p, flag); }
 
 	static void StoreRect_B66F90(const uint8_t *src, uint32_t dst)
 	{
-		uint8_t *slot = (uint8_t *)(us(RECTRING) + 8u * (MEM<uint8_t>(us(RECTRING_IDX)) & 0xFu));
+		uint8_t *slot = (uint8_t *)(game_addr(RECTRING) + 8u * (MEM<uint8_t>(game_addr(RECTRING_IDX)) & 0xFu));
 		U16(slot, 0) = U16(src, 0);
 		U16(slot, 2) = U16(src, 2);
 		U16(slot, 4) = U16(src, 4);
 		U16(slot, 6) = U16(src, 6);
 		xl_QueueVramReadback(slot, dst);
-		MEM<uint8_t>(us(RECTRING_IDX)) = (uint8_t)(MEM<uint8_t>(us(RECTRING_IDX)) + 1);
+		MEM<uint8_t>(game_addr(RECTRING_IDX)) = (uint8_t)(MEM<uint8_t>(game_addr(RECTRING_IDX)) + 1);
 	}
 
 	static void LoadRect_B66F40(const uint8_t *src, uint32_t data)
 	{
-		uint8_t *slot = (uint8_t *)(us(RECTRING) + 8u * (MEM<uint8_t>(us(RECTRING_IDX)) & 0xFu));
+		uint8_t *slot = (uint8_t *)(game_addr(RECTRING) + 8u * (MEM<uint8_t>(game_addr(RECTRING_IDX)) & 0xFu));
 		U16(slot, 0) = U16(src, 0);
 		U16(slot, 2) = U16(src, 2);
 		U16(slot, 4) = U16(src, 4);
 		U16(slot, 6) = U16(src, 6);
 		x::QueueVramUpload(slot, (const void *)data);
-		MEM<uint8_t>(us(RECTRING_IDX)) = (uint8_t)(MEM<uint8_t>(us(RECTRING_IDX)) + 1);
+		MEM<uint8_t>(game_addr(RECTRING_IDX)) = (uint8_t)(MEM<uint8_t>(game_addr(RECTRING_IDX)) + 1);
 	}
 
-	static inline uint32_t MagicTexBuf() { return MEM<uint32_t>(us(0x1D99A88)); }
+	static inline uint32_t MagicTexBuf() { return MEM<uint32_t>(game_addr(game::MAGIC_TEXTURE_BUFFER_PTR)); }
 
 	static void __cdecl op_035_VramReadback()
 	{
@@ -127,7 +127,7 @@ namespace meteor
 	{
 		if (!(U8(RT(), 0x4B) & 0x80))
 		{
-			x::f<VoidFn>(us(0xA99730))();
+			x::f<VoidFn>(game_addr(game::GF_223Meteor_VmOp0BD_VramUpload))();
 			return;
 		}
 		uint8_t *s = STREAM();
@@ -311,7 +311,7 @@ namespace meteor
 			b = CUR();
 			if (U32(b, 0xBC) == 0)
 			{
-				U32(b, 0xBC) = us(0x27971E4);
+				U32(b, 0xBC) = game_addr(game::unk_27971E4);
 				b = CUR();
 			}
 		}
@@ -643,7 +643,7 @@ namespace meteor
 		apply_shared_misc(meteor::g_meteor);
 		meteor::apply_prim6(meteor::g_meteor);
 		meteor::apply_meteor_ports(meteor::g_meteor);
-		register_port(0xA8FF00, (void *)meteor::SequenceTask, "MAG223 Meteor SequenceTick", 223);
+		register_port(game::GF_223Meteor_SequenceTick, (void *)meteor::SequenceTask, "MAG223 Meteor SequenceTick", 223);
 	}
 }
 

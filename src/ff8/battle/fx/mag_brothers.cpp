@@ -24,26 +24,26 @@ namespace gfc
 {
 namespace part_brothers
 {
-	static const uint32_t BROTHERS_FLAG_2796D40 = 0x2796D40;
-	static const uint32_t COMBAT_SCENE_ID_1CFF6E0 = 0x1CFF6E0;
-	static const uint32_t MODEL_SLOT0_FILEID_1D98990 = 0x1D98990;
-	static const uint32_t DWORD_1D98A4C = 0x1D98A4C;
-	static const uint32_t WORD_1D974B0 = 0x1D974B0;
-	static const uint32_t WORD_1D97494 = 0x1D97494;
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
+	static constexpr game::Id BROTHERS_FLAG_2796D40 = game::g_GF205Brothers_NorgTargetFixupActive;
+	static constexpr game::Id COMBAT_SCENE_ID_1CFF6E0 = game::COMBAT_SCENE_ID;
+	static constexpr game::Id MODEL_SLOT0_FILEID_1D98990 = game::unk_1D98990;
+	static constexpr game::Id DWORD_1D98A4C = game::unk_1D98A4C;
+	static constexpr game::Id WORD_1D974B0 = game::unk_1D974B0;
+	static constexpr game::Id WORD_1D97494 = game::unk_1D97494;
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)game_addr(game::unk_27971E4); }
 
-	static inline void *xl_ComposeZYXRotation(const void *angles, void *out) { return x::f<void *(__cdecl *)(const void *, void *)>(us(0x56CE30))(angles, out); }
-	static inline void xl_Apply3DTransform(const void *m, const void *v, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C3D0))(m, v, out); }
-	static inline void xl_RotTransIR(const void *v, void *ir, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, ir, flag); }
-	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
-	static inline int32_t xl_NormalClip(int32_t a, int32_t b, int32_t c) { return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CB30))(a, b, c); }
+	static inline void *xl_ComposeZYXRotation(const void *angles, void *out) { return x::f<void *(__cdecl *)(const void *, void *)>(game_addr(game::ComposeZYXRotationMatrix))(angles, out); }
+	static inline void xl_Apply3DTransform(const void *m, const void *v, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(game_addr(game::apply3DTransform))(m, v, out); }
+	static inline void xl_RotTransIR(const void *v, void *ir, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(game_addr(game::GTE_RotTrans))(v, ir, flag); }
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::TransformWorldCoordinateToProjectedSpace))(v, sxy, p, flag); }
+	static inline int32_t xl_NormalClip(int32_t a, int32_t b, int32_t c) { return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_NormalClip3))(a, b, c); }
 	static inline void xl_ModelShadow_B67040(void *hdr, void *root, int32_t ot, int32_t y, int32_t level)
 	{
-		x::f<int32_t (__cdecl *)(void *, void *, int32_t, int32_t, int32_t)>(us(0xB67040))(hdr, root, ot, y, level);
+		x::f<int32_t (__cdecl *)(void *, void *, int32_t, int32_t, int32_t)>(game_addr(game::GfCinematic_DrawModelShadow))(hdr, root, ot, y, level);
 	}
 	static inline void xl_OffscreenModelRender_B65F30(void *desc, const void *pos, const void *angles)
 	{
-		x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(us(0xB65F30))(desc, pos, angles);
+		x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(game_addr(game::GfCinematic_RenderBattleModelOffscreen))(desc, pos, angles);
 	}
 
 	static void __cdecl dh_03_AnimatedModelWithShadow()
@@ -409,7 +409,7 @@ namespace part_brothers
 	static void __cdecl op_0C5_JumpIfBattleStage()
 	{
 		uint8_t *s = STREAM();
-		int32_t stage = (int32_t)(MEM<uint32_t>(us(COMBAT_SCENE_ID_1CFF6E0)) & 0xFFFF);
+		int32_t stage = (int32_t)(MEM<uint32_t>(game_addr(COMBAT_SCENE_ID_1CFF6E0)) & 0xFFFF);
 		if (stage == (int32_t)S16(s, 2))
 			STREAM() = s + S16(s, 4);
 		else
@@ -418,7 +418,7 @@ namespace part_brothers
 
 	static void __cdecl op_0D1_JumpIfModelSlot0FileId()
 	{
-		uint16_t id = MEM<uint8_t>(us(MODEL_SLOT0_FILEID_1D98990));
+		uint16_t id = MEM<uint8_t>(game_addr(MODEL_SLOT0_FILEID_1D98990));
 		uint8_t *s = STREAM();
 		if (id == U16(s, 2))
 			STREAM() = s + S16(s, 4);
@@ -428,8 +428,8 @@ namespace part_brothers
 
 	static void __cdecl op_0D5_NorgBossTargetFixup()
 	{
-		uint8_t &flag = MEM<uint8_t>(us(BROTHERS_FLAG_2796D40));
-		if (MEM<uint16_t>(us(COMBAT_SCENE_ID_1CFF6E0)) != 0x3F)
+		uint8_t &flag = MEM<uint8_t>(game_addr(BROTHERS_FLAG_2796D40));
+		if (MEM<uint16_t>(game_addr(COMBAT_SCENE_ID_1CFF6E0)) != 0x3F)
 		{
 			STREAM() += 4;
 			return;
@@ -448,11 +448,11 @@ namespace part_brothers
 			U8(sc, 0x41) = 4;
 			U8(SCENE(), 0x4B) = 3;
 			uint8_t *p = SCENE() + 0x9C;
-			U16(p, 0) = MEM<uint16_t>(us(WORD_1D974B0));
-			U16(p, 2) = MEM<uint16_t>(us(WORD_1D974B0) + 2);
-			U16(p, 4) = MEM<uint16_t>(us(WORD_1D974B0) + 4);
-			U16(SCENE(), 0x54) = MEM<uint16_t>(us(WORD_1D97494));
-			U32(SCENE(), 0x6C) = us(WORD_1D97494);
+			U16(p, 0) = MEM<uint16_t>(game_addr(WORD_1D974B0));
+			U16(p, 2) = MEM<uint16_t>(game_addr(WORD_1D974B0) + 2);
+			U16(p, 4) = MEM<uint16_t>(game_addr(WORD_1D974B0) + 4);
+			U16(SCENE(), 0x54) = MEM<uint16_t>(game_addr(WORD_1D97494));
+			U32(SCENE(), 0x6C) = game_addr(WORD_1D97494);
 			STREAM() += 4;
 			return;
 		}
@@ -472,7 +472,7 @@ namespace part_brothers
 	{
 		if (U8(RT(), 0x4B) & 0x10)
 		{
-			uint32_t lv = MEM<uint32_t>(us(DWORD_1D98A4C)) & 0xFF;
+			uint32_t lv = MEM<uint32_t>(game_addr(DWORD_1D98A4C)) & 0xFF;
 			uint8_t *b = CUR();
 			int32_t d = (int32_t)(lv + lv - 0xA0u);
 			int32_t hi = (int32_t)(((int64_t)d * (int64_t)0x55555556) >> 32);
@@ -531,26 +531,26 @@ namespace brothers
 	{
 		c.name = "205 Brothers";
 		c.effect_id = 205;
-		c.vm_table = us(0x1871E4C);
-		c.bone_table = us(0x1871ABC);
-		c.prim_table = us(0x1871B04);
-		c.prim_size = us(0x1871BF4);
-		c.spr_table = us(0x1871C08);
-		c.ptype_table = us(0x1871C34);
-		c.pop_table = us(0x1871C48);
-		c.draw_table = us(0x1871CA8);
-		c.attr_16A = us(0x1871E12);
-		c.attr_184 = us(0x1871E2C);
-		c.attr_186 = us(0x1871E2E);
-		c.attr_194 = us(0x1871E3C);
-		c.attr_19C = us(0x1871E44);
-		c.desc = us(0x1871878);
-		c.ptr_block = us(0x1871A94);
-		c.queue = us(0x2796D30);
-		c.file00 = us(0x2796D6C);
-		c.file01 = us(0x2796D68);
-		c.tick = us(0xAF4B90);
-		c.load_cb = us(0xAFAD70);
+		c.vm_table = game_addr(game::GF_205Brothers_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_205Brothers_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_AF74E4);
+		c.prim_size = game_addr(game::unk_1871BF4);
+		c.spr_table = game_addr(game::unk_1871C08);
+		c.ptype_table = game_addr(game::unk_1871C34);
+		c.pop_table = game_addr(game::funcs_AF92F7);
+		c.draw_table = game_addr(game::GF_205Brothers_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_1871E12);
+		c.attr_184 = game_addr(game::unk_1871E2C);
+		c.attr_186 = game_addr(game::unk_1871E2E);
+		c.attr_194 = game_addr(game::unk_1871E3C);
+		c.attr_19C = game_addr(game::unk_1871E44);
+		c.desc = game_addr(game::unk_1871878);
+		c.ptr_block = game_addr(game::unk_1871A94);
+		c.queue = game_addr(game::unk_2796D30);
+		c.file00 = game_addr(game::unk_2796D6C);
+		c.file01 = game_addr(game::unk_2796D68);
+		c.tick = game_addr(game::GF_205Brothers_SequenceTick);
+		c.load_cb = game_addr(game::MAG_205_sub_AFAD70);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -569,7 +569,7 @@ namespace brothers
 		init_clone(brothers::g_c, nullptr, 0);
 		apply_brothers(brothers::g_c);
 		apply_shared_misc(brothers::g_c);
-		register_port(0xAF4B90, (void *)brothers::SequenceTask, "GFC205 Brothers SequenceTick", 205);
+		register_port(game::GF_205Brothers_SequenceTick, (void *)brothers::SequenceTask, "GFC205 Brothers SequenceTick", 205);
 	}
 }
 

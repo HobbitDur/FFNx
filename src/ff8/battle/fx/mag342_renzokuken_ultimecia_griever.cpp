@@ -20,29 +20,27 @@ namespace ff8fx
 {
 namespace renzo342
 {
-	static const uint32_t PTS_A = 0x21E2DA8, PTS_B = 0x21E2DE8, TARGET_SLOT = 0x21E2E28;
-	static const uint32_t POOL_A = 0x21E2E30, POOL_A_END = 0x21E3010;
-	static const uint32_t POOL_B = 0x21E3010, POOL_B_SPAWN_END = 0x21E3290, POOL_B_END = 0x21E33D0;
-	static const uint32_t HIT_REC = 0x21E33D0, MASTER_POOL = 0x21E3B20, Q_MASTER = 0x21E3B30;
-	static const uint32_t SLOTS = 0x21E3B40, SLOTS_END = 0x21E47C0;
-	static const uint32_t POOL_C = 0x21E47C0, POOL_C_END = 0x21E4AE0;
-	static const uint32_t SPL_A = 0x21E4AE0, SPL_B = 0x21E4BE0;
-	static const uint32_t HIT_POS = 0x21E4CE0, HIT_DIR = 0x21E4CE8, Q_MAIN = 0x21E4CF8, MAIN_POOL = 0x21E4D08;
-	static const uint32_t PREV_HIT = 0x21E5B18, CONTEXT = 0x21E5B30, CASTER_SLOT = 0x21E5B34, TEX_FILE = 0x21E5B38;
-	static const uint32_t RING = 0x21E5B40, RING_END = 0x21E5BCC, LENGTH = 0x21E5BCC, FINISHER = 0x21E5BD0;
-	static const uint32_t TEX_BASE = 0x21E5BD4, PACKET_CURSOR = 0x21E5BD8;
+	static constexpr game::Id PTS_A = game::unk_21E2DA8, PTS_B = game::unk_21E2DE8, TARGET_SLOT = game::unk_21E2E28;
+	static constexpr game::Id POOL_A = game::unk_21E2E30, POOL_A_END = game::unk_21E3010;
+	static constexpr game::Id POOL_B = game::unk_21E3010, POOL_B_SPAWN_END = game::unk_21E3290, POOL_B_END = game::unk_21E33D0;
+	static constexpr game::Id HIT_REC = game::unk_21E33D0, MASTER_POOL = game::unk_21E3B20, Q_MASTER = game::unk_21E3B30;
+	static constexpr game::Id SLOTS = game::unk_21E3B40, SLOTS_END = game::unk_21E47C0;
+	static constexpr game::Id POOL_C = game::unk_21E47C0, POOL_C_END = game::unk_21E4AE0;
+	static constexpr game::Id SPL_A = game::unk_21E4AE0, SPL_B = game::unk_21E4BE0;
+	static constexpr game::Id HIT_POS = game::unk_21E4CE0, HIT_DIR = game::unk_21E4CE8, Q_MAIN = game::unk_21E4CF8, MAIN_POOL = game::unk_21E4D08;
+	static constexpr game::Id PREV_HIT = game::unk_21E5B18, CONTEXT = game::unk_21E5B30, CASTER_SLOT = game::unk_21E5B34, TEX_FILE = game::unk_21E5B38;
+	static constexpr game::Id RING = game::unk_21E5B40, RING_END = game::unk_21E5BCC, LENGTH = game::unk_21E5BCC, FINISHER = game::unk_21E5BD0;
+	static constexpr game::Id TEX_BASE = game::unk_21E5BD4, PACKET_CURSOR = game::unk_21E5BD8;
 	static const uint32_t PARITY = 0xC000;
-	static const void *SOUND() { return (const void *)us(0xE46FA8); }
-	static const uint32_t TEXTURE_NAME = 0xC90060, CAMERA = 0xE47144, ANIM_SETS = 0xE476F4, BIND_OUT = 0x24FE978;
-	static const uint32_t MODEL_SPARKLE = 0xE46FAC, SPARKLE_FADE = 0xE47134, SPARKLE_DEPTH = 0xE47124;
-	static const uint32_t MODEL_SLASH = 0xC89934, MODEL_STREAK = 0xC8A31C;
-	static const uint32_t SEQ_FLASH = 0xC893AC, SEQ_DEBRIS = 0xC8967C, SEQ_SPARK = 0xC89558, SPARK_FRAMES = 0xC8FF50;
-	static const uint32_t SLASH_REF = 0xC8FFB0, HIT_LEAD = 0xC8FFC0, HIT_OFFS = 0xC8FFF0;
-	static const uint32_t SEQ_HIT = 0xC89200, MODEL_FACING = 0xC8AF84;
-	static const uint32_t ORIG_FileLoader = 0x5776B0, ORIG_Setup = 0x5776D0;
-	static const uint32_t ORIG_Controller = 0x5777F0, ORIG_HitSpark = 0x577D90, ORIG_Sparkle = 0x578020,
-		ORIG_Trail = 0x578350, ORIG_SparkSpawn = 0x5788D0, ORIG_Hit = 0x578A00, ORIG_Slash = 0x578DF0,
-		ORIG_HitEmitter = 0x5790D0, ORIG_FacingA = 0x579440, ORIG_FacingB = 0x5795C0, ORIG_Master = 0x5797F0;
+	static const void *SOUND() { return (const void *)game_addr(game::unk_E46FA8); }
+	static constexpr game::Id TEXTURE_NAME = game::aMag333Tim_0, CAMERA = game::MAG342_RENZOKUKEN_VS_GRIEVER_ULTIMECIA_cameraAnim, ANIM_SETS = game::unk_E476F4, BIND_OUT = game::unk_24FE978;
+	static constexpr game::Id MODEL_SPARKLE = game::unk_E46FAC, SPARKLE_FADE = game::unk_E47134, SPARKLE_DEPTH = game::unk_E47124;
+	static constexpr game::Id MODEL_SLASH = game::unk_C89934, MODEL_STREAK = game::unk_C8A31C;
+	static constexpr game::Id SEQ_FLASH = game::unk_C893AC, SEQ_DEBRIS = game::unk_C8967C, SEQ_SPARK = game::unk_C89558, SPARK_FRAMES = game::unk_C8FF50;
+	static constexpr game::Id SLASH_REF = game::unk_C8FFB0, HIT_LEAD = game::unk_C8FFC0, HIT_OFFS = game::unk_C8FFF0;
+	static constexpr game::Id SEQ_HIT = game::unk_C89200, MODEL_FACING = game::unk_C8AF84;
+	static constexpr game::Id ORIG_FileLoader = game::MAG_342_UNKNOWN_FL, ORIG_Setup = game::MAG_342_UNKNOWN;
+	static constexpr game::Id ORIG_Controller = game::MAG_342_sub_5777F0, ORIG_HitSpark = game::MAG_342_sub_577D90, ORIG_Sparkle = game::MAG_342_sub_578020, ORIG_Trail = game::MAG_342_sub_578350, ORIG_SparkSpawn = game::MAG_342_sub_5788D0, ORIG_Hit = game::MAG_342_sub_578A00, ORIG_Slash = game::MAG_342_sub_578DF0, ORIG_HitEmitter = game::MAG_342_sub_5790D0, ORIG_FacingA = game::MAG_342_sub_579440, ORIG_FacingB = game::MAG_342_sub_5795C0, ORIG_Master = game::MAG_342_sub_5797F0;
 
 #include "renzo_boss_defs.inc"
 }
@@ -68,7 +66,7 @@ namespace renzo342
 	static void HitExtra(int32_t b)
 	{
 		if (b <= 0 || b >= 7) return;
-		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_HitEmitter));
+		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), game_addr(ORIG_HitEmitter));
 		t->c = 0;
 		t->e = (int16_t)b;
 	}
@@ -76,21 +74,21 @@ namespace renzo342
 	static void FacingAhead(Node24 *t, int32_t k)
 	{
 		int32_t v[3];
-		TransformVectorBy3x3Matrix((const Mat4x3 *)(Caster() + 0x40), (const int32_t *)us(SLASH_REF), v);
+		TransformVectorBy3x3Matrix((const Mat4x3 *)(Caster() + 0x40), (const int32_t *)game_addr(SLASH_REF), v);
 		SlotRec *r = Slot(t->e);
-		r->pos[0] = (int16_t)((mul32(v[0], -k) >> 12) + var<int32_t>(us(HIT_POS)));
-		r->pos[1] = (int16_t)((mul32(v[1], -k) >> 12) + var<int16_t>(us(HIT_POS) + 2));
-		r->pos[2] = (int16_t)((mul32(v[2], -k) >> 12) + var<int32_t>(us(HIT_POS) + 4));
-		r->w18 = var<int16_t>(us(HIT_DIR));
-		r->w1A = var<int16_t>(us(HIT_DIR) + 4);
-		r->w1C = var<int16_t>(us(HIT_DIR) + 8);
+		r->pos[0] = (int16_t)((mul32(v[0], -k) >> 12) + var<int32_t>(game_addr(HIT_POS)));
+		r->pos[1] = (int16_t)((mul32(v[1], -k) >> 12) + var<int16_t>(game_addr(HIT_POS) + 2));
+		r->pos[2] = (int16_t)((mul32(v[2], -k) >> 12) + var<int32_t>(game_addr(HIT_POS) + 4));
+		r->w18 = var<int16_t>(game_addr(HIT_DIR));
+		r->w1A = var<int16_t>(game_addr(HIT_DIR) + 4);
+		r->w1C = var<int16_t>(game_addr(HIT_DIR) + 8);
 	}
 
 	static void Events(Node24 *n)
 	{
 		if (n->c == 0x16)
 		{
-			Node24 *t = AddSlotTask(us(ORIG_FacingA));
+			Node24 *t = AddSlotTask(game_addr(ORIG_FacingA));
 			const int16_t s = (int16_t)((CrtRand() % 0x400 + 0x900) / 3);
 			t->w1E = s;
 			t->w1C = s;
@@ -98,7 +96,7 @@ namespace renzo342
 		}
 		if (n->c == 0x69)
 		{
-			Node24 *t = AddSlotTask(us(ORIG_FacingB));
+			Node24 *t = AddSlotTask(game_addr(ORIG_FacingB));
 			t->w1A = 0x14;
 			const int16_t s = (int16_t)((CrtRand() % 0x300 + 0xA00) / 3);
 			t->w1E = s;
@@ -107,7 +105,7 @@ namespace renzo342
 		}
 		if (n->c == 0x6A)
 		{
-			Node24 *t = AddSlotTask(us(ORIG_FacingB));
+			Node24 *t = AddSlotTask(game_addr(ORIG_FacingB));
 			t->w1A = 0x16;
 			const int16_t s = (int16_t)((CrtRand() % 0x580 + 0xD00) / 3);
 			t->w1E = s;
@@ -122,7 +120,7 @@ namespace renzo342
 		EmitWork *w = (EmitWork *)FieldAlloc(0x50);
 		if (!DrawOnly() && n->c <= 0xE)
 		{
-			const HitRec *hr = (const HitRec *)(us(HIT_REC) + 0x9C * n->e);
+			const HitRec *hr = (const HitRec *)(game_addr(HIT_REC) + 0x9C * n->e);
 			ff8fx::copy<(16)>(w->dir, hr->dir);
 			ff8fx::copy<(8)>(w->pos, hr->pos);
 			for (int32_t j = 0; j < 2; j++)
@@ -146,14 +144,14 @@ namespace renzo342
 				p->w14 = (int16_t)(rz + (mul32(w->dir[2], sp) >> 12) - 0x28);
 			}
 		}
-		const int32_t alive = EmitterDraw(n, w, n->e, us(SEQ_HIT), 5);
+		const int32_t alive = EmitterDraw(n, w, n->e, game_addr(SEQ_HIT), 5);
 		FieldFree(0x50);
 		if (DrawOnly()) return 0;
 		n->c++;
 		return alive ? 0 : TASK_END;
 	}
 
-	struct FacingDef { uint32_t orig; int16_t ax; int32_t mode, fade_mul; bool node_ticks; };
+	struct FacingDef { game::Id orig; int16_t ax; int32_t mode, fade_mul; bool node_ticks; };
 	static const FacingDef FACINGS[2] = {
 		{ ORIG_FacingA, -0x400, 3, 409, false },
 		{ ORIG_FacingB, 0x400, 2, 341, true },
@@ -182,7 +180,7 @@ namespace renzo342
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = us(MODEL_FACING);
+		*(uint32_t *)h = game_addr(MODEL_FACING);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= FacingFrom(d, n))

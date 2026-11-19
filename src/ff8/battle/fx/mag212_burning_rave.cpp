@@ -25,100 +25,100 @@ namespace rave212
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25101FC)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2510200)); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2510208); }
-	inline TaskQueue *QRocks() { return (TaskQueue *)us(0x2510218); }
-	inline TaskQueue *QDirector() { return (TaskQueue *)us(0x2510228); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2510258)); }
-	inline uint32_t &CaptureCursor() { return var<uint32_t>(us(0x251025C)); }
-	inline uint32_t *CamAnchor() { return (uint32_t *)us(0x2510260); }
-	inline int16_t *Centre() { return (int16_t *)us(0x2510268); }
-	inline const int16_t *ZeroAngles() { return (const int16_t *)us(0x2510270); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2510278)); }
-	inline const Mat4x3 *ZeroMatrix() { return (const Mat4x3 *)us(0x2510280); }
-	inline uint32_t *SavedFlags() { return (uint32_t *)us(0x25102A0); }
-	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
-	inline uint32_t &FramePackets() { return var<uint32_t>(us(0x1D8E054)); }
-	inline int16_t *CamEye() { return (int16_t *)us(0xB8B7F0); }
-	inline int16_t *CamLookAt() { return (int16_t *)us(0xB8B7F8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_25101FC)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::unk_2510200)); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)game_addr(game::unk_2510208); }
+	inline TaskQueue *QRocks() { return (TaskQueue *)game_addr(game::unk_2510218); }
+	inline TaskQueue *QDirector() { return (TaskQueue *)game_addr(game::unk_2510228); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::unk_2510258)); }
+	inline uint32_t &CaptureCursor() { return var<uint32_t>(game_addr(game::unk_251025C)); }
+	inline uint32_t *CamAnchor() { return (uint32_t *)game_addr(game::unk_2510260); }
+	inline int16_t *Centre() { return (int16_t *)game_addr(game::unk_2510268); }
+	inline const int16_t *ZeroAngles() { return (const int16_t *)game_addr(game::unk_2510270); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::unk_2510278)); }
+	inline const Mat4x3 *ZeroMatrix() { return (const Mat4x3 *)game_addr(game::unk_2510280); }
+	inline uint32_t *SavedFlags() { return (uint32_t *)game_addr(game::unk_25102A0); }
+	inline uint32_t OTBase() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
+	inline uint32_t &FramePackets() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline int16_t *CamEye() { return (int16_t *)game_addr(game::Battle_Camera_world_XZ_s16); }
+	inline int16_t *CamLookAt() { return (int16_t *)game_addr(game::Battle_Camera_LookAt_XZ_s16); }
 
-	static const uint32_t ORIG_RootTask = 0x6A0DC0;
-	static const uint32_t ORIG_DirectorTask = 0x6A1660;
-	static const uint32_t ORIG_RockTask = 0x6A30F0;
-	static const uint32_t ORIG_RockATask = 0x6A3280;
-	static const uint32_t ORIG_RockBTask = 0x6A33C0;
-	static const uint32_t ORIG_RockCTask = 0x6A33E0;
-	static const uint32_t ORIG_PieceTask = 0x6A3630;
-	static const uint32_t ORIG_SparkTask = 0x6A3750;
-	static const uint32_t ORIG_EmberTask = 0x6A3800;
-	static const uint32_t ORIG_FlameTask = 0x6A38B0;
-	static const uint32_t ORIG_GhostRecord274 = 0x68ADF0;
+	static constexpr game::Id ORIG_RootTask = game::MAG_212_BURNINGRAVE_RootTask;
+	static constexpr game::Id ORIG_DirectorTask = game::MAG_212_BURNINGRAVE_DirectorTask;
+	static constexpr game::Id ORIG_RockTask = game::MAG_212_BURNINGRAVE_RockTask;
+	static constexpr game::Id ORIG_RockATask = game::MAG_212_BURNINGRAVE_RockATask;
+	static constexpr game::Id ORIG_RockBTask = game::MAG_212_BURNINGRAVE_RockBTask;
+	static constexpr game::Id ORIG_RockCTask = game::MAG_212_BURNINGRAVE_RockCTask;
+	static constexpr game::Id ORIG_PieceTask = game::MAG_212_BURNINGRAVE_PieceTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_212_BURNINGRAVE_SparkTask;
+	static constexpr game::Id ORIG_EmberTask = game::MAG_212_BURNINGRAVE_EmberTask;
+	static constexpr game::Id ORIG_FlameTask = game::MAG_212_BURNINGRAVE_FlameTask;
+	static constexpr game::Id ORIG_GhostRecord274 = game::MAG_274_DUEL_GhostRecord;
 
-	static const uint32_t COM_Anim = 0x1181078;
-	static const uint32_t MODEL_Rock = 0x1183FA4, MODEL_RockA = 0x1184174, MODEL_RockB = 0x11843DC, MODEL_RockC = 0x1184694;
-	static const uint32_t MODEL_Glow = 0x11826E0;
-	static const uint32_t SEQ_Ember = 0x1182534, SEQ_Flame = 0x11823C8;
-	static const uint32_t LAYOUT_Ground = 0x11883AC, LAYOUT_Bone = 0x1187F2C, LAYOUT_Front = 0x1184ACC, LAYOUT_Burn = 0x118BA10;
-	static const uint32_t KIND_Ground = 0x1154F40, KIND_Bone = 0xFE0FB4, KIND_Front = 0xFE0FC0, KIND_Burn = 0x11AC25C, KIND_BurnB = 0x11AC268;
-	static const uint8_t *PIECE_Table() { return (const uint8_t *)us(0x11AC200); }
-	static const int16_t *FIST_A() { return (const int16_t *)us(0x11AC240); }
-	static const int16_t *FIST_B() { return (const int16_t *)us(0x11AC248); }
-	static const void *SOUND_A() { return (const void *)us(0x1181070); }
-	static const void *SOUND_B() { return (const void *)us(0x1181074); }
+	static constexpr game::Id COM_Anim = game::MAG_212_BURNING_RAVE_AnimSet;
+	static constexpr game::Id MODEL_Rock = game::unk_1183FA4, MODEL_RockA = game::unk_1184174, MODEL_RockB = game::unk_11843DC, MODEL_RockC = game::unk_1184694;
+	static constexpr game::Id MODEL_Glow = game::unk_11826E0;
+	static constexpr game::Id SEQ_Ember = game::unk_1182534, SEQ_Flame = game::unk_11823C8;
+	static constexpr game::Id LAYOUT_Ground = game::unk_11883AC, LAYOUT_Bone = game::unk_1187F2C, LAYOUT_Front = game::unk_1184ACC, LAYOUT_Burn = game::unk_118BA10;
+	static constexpr game::Id KIND_Ground = game::a100, KIND_Bone = game::a0, KIND_Front = game::a0000, KIND_Burn = game::a000000000, KIND_BurnB = game::a110000000;
+	static const uint8_t *PIECE_Table() { return (const uint8_t *)game_addr(game::unk_11AC200); }
+	static const int16_t *FIST_A() { return (const int16_t *)game_addr(game::unk_11AC240); }
+	static const int16_t *FIST_B() { return (const int16_t *)game_addr(game::unk_11AC248); }
+	static const void *SOUND_A() { return (const void *)game_addr(game::unk_1181070); }
+	static const void *SOUND_B() { return (const void *)game_addr(game::unk_1181074); }
 
 	enum : int { SITE_GROUND = 1, SITE_BONE, SITE_FRONT, SITE_BURN };
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(us(0x5022C0))(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationX(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(a, out); }
-	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(a, out); }
-	inline void RotationZ(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(a, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
-	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(us(0x56C3D0))(m, in, out); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
-	inline uint32_t DrawShadow(uint8_t *e, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(e, ot, a, cursor); }
-	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, ctx, ot, a, cursor); }
-	inline void MeasureModelHeight(uint8_t *e, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int16_t *)>(us(0x6DFD90))(e, out); }
-	inline void SetEnemyFlag4() { fn<void (__cdecl *)()>(us(0x6FBDE0))(); }
-	inline void CamLerp(const int16_t *a, const int16_t *b, int32_t t) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t)>(us(0x657DF0))(a, b, t); }
-	inline void CameraArmReturn() { fn<void (__cdecl *)()>(us(0x50A730))(); }
-	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline void TransformVectorBy3x3(const Mat4x3 *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int32_t *, int32_t *)>(us(0x56C600))(m, in, out); }
-	inline uint32_t SetDrawEnv(void *prim, uint32_t env) { return fn<uint32_t (__cdecl *)(void *, uint32_t)>(us(0x45C0F0))(prim, env); }
-	inline void SetDrawAreaPrim(void *prim, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(us(0x45C940))(prim, rect); }
-	inline void SetDrawOffsetPrim(void *prim, const int16_t *xy) { fn<void (__cdecl *)(void *, const int16_t *)>(us(0x45C9B0))(prim, xy); }
-	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(x, y); }
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(x, y); }
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
-	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
-	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
-	inline void GteLoadIRFromColumn(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(p); }
-	inline void GteStoreIRToColumn(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E470))(p); }
-	inline void GteLoadV0FromDwords(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(p); }
-	inline void GteLoadIR123FromBytes(const void *p) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(p); }
-	inline void GteStoreIR123LowBytes(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E410))(p); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(us(0x45E3C0))(p); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZ32(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(us(0x45E3D0))(p); }
-	inline void GteReadOTZdiv4(void *p) { fn<void (__cdecl *)(void *)>(us(0x45E250))(p); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(game_addr(game::Effect_SharedLcg_Rand))(); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, void *out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, void *, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationX(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_063_RotationXMatrix))(a, out); }
+	inline void RotationY(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(a, out); }
+	inline void RotationZ(int32_t a, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_065_RotationZMatrix))(a, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MatrixMultiply3x3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(game_addr(game::apply3DTransform))(m, in, out); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_063_RenderPrimSet))(h, ot, mode, cursor); }
+	inline uint32_t DrawShadow(uint8_t *e, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(e, ot, a, cursor); }
+	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(game_addr(game::RenderGeometry))(model, ctx, ot, a, cursor); }
+	inline void MeasureModelHeight(uint8_t *e, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int16_t *)>(game_addr(game::MAG_070_ShockwavePulsar_MeasureModelHeight))(e, out); }
+	inline void SetEnemyFlag4() { fn<void (__cdecl *)()>(game_addr(game::MAG_065_SetEnemyEntitiesFlag4))(); }
+	inline void CamLerp(const int16_t *a, const int16_t *b, int32_t t) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t)>(game_addr(game::MAG_325_CameraLerp))(a, b, t); }
+	inline void CameraArmReturn() { fn<void (__cdecl *)()>(game_addr(game::BS_Camera_ArmReturnAfterEffect))(); }
+	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline void TransformVectorBy3x3(const Mat4x3 *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int32_t *, int32_t *)>(game_addr(game::TransformVectorBy3x3Matrix))(m, in, out); }
+	inline uint32_t SetDrawEnv(void *prim, uint32_t env) { return fn<uint32_t (__cdecl *)(void *, uint32_t)>(game_addr(game::SSIGPU_SetDrawEnv))(prim, env); }
+	inline void SetDrawAreaPrim(void *prim, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(game_addr(game::GPU_SetDrawAreaPrim))(prim, rect); }
+	inline void SetDrawOffsetPrim(void *prim, const int16_t *xy) { fn<void (__cdecl *)(void *, const int16_t *)>(game_addr(game::SSIGPU_SetDrawOffsetPrim))(prim, xy); }
+	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(game_addr(game::GTE_ReadScreenOffset))(x, y); }
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(game_addr(game::Call_Bs_ParseCamera))(x, y); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAltViewport))(bucket, packet); }
+	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(game_addr(game::Stream_QueueLoad))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(game_addr(game::Stream_Pump))(); }
+	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::BattleFile_PreLoad_IsLoaded))(a); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotIR))(); }
+	inline void GteLoadIRFromColumn(const void *p) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadIRFromMatrixColumn))(p); }
+	inline void GteStoreIRToColumn(void *p) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreIRToMatrixColumn))(p); }
+	inline void GteLoadV0FromDwords(const void *p) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV0FromDwords))(p); }
+	inline void GteLoadIR123FromBytes(const void *p) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadIR123FromBytes))(p); }
+	inline void GteStoreIR123LowBytes(void *p) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreIR123LowBytes))(p); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a, b, c); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(game_addr(game::GTE_ReadMAC0))(p); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSZ123))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSZ0123))(a, b, c, d); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZ32(int32_t *p) { fn<void (__cdecl *)(int32_t *)>(game_addr(game::GTE_ReadOTZ))(p); }
+	inline void GteReadOTZdiv4(void *p) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadOTZ_SZ3div4))(p); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV0_u16))(v); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -444,7 +444,7 @@ namespace rave212
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x74);
 		GhostCtx *c = (GhostCtx *)(h + 0x20);
-		c->verts = var<uint32_t>(us(0x1D98B3C));
+		c->verts = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 		c->clip[0] = 0;
 		c->clip[1] = 0;
 		c->clip[2] = 0x140;
@@ -565,7 +565,7 @@ namespace rave212
 		m->t[1] = (int32_t)((uint32_t)m->t[1] - U32(h, 0x24));
 		m->t[2] = (int32_t)((uint32_t)m->t[2] - U32(h, 0x28));
 		ComputeBonesWorldMatrices(e + 0x60, m);
-		U32(h, 0x34) = var<uint32_t>(us(0x1D98B3C));
+		U32(h, 0x34) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 		U16(h, 0x44) = 0;
 		U16(h, 0x46) = 0;
 		U16(h, 0x48) = 0x140;
@@ -573,7 +573,7 @@ namespace rave212
 		U32(h, 0x4C) = U32(e, 0x28);
 		U32(h, 0x58) = 0;
 		U32(h, 0x50) = U32(e, 0x7C);
-		U32(h, 0x40) = var<uint32_t>(us(0x1D969A8));
+		U32(h, 0x40) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		FramePackets() = RenderGeometry(U32(e, 0x64), h + 0x30, OTBase() + 0x44, 4, FramePackets());
 		BuildBoneMatricesFromPose(e + 0x60);
 		uint8_t *w = *(uint8_t **)(e + 0x78);
@@ -618,36 +618,36 @@ namespace rave212
 		int32_t s3[3];
 		s3[1] = 0;
 		m2.t[0] = (b0 - b3) / 2 / sx + m.t[0];
-		m2.t[2] = (int32_t)var<int16_t>(us(0x1D8E038));
+		m2.t[2] = (int32_t)var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE));
 		m2.t[1] = m.t[2] - ((nb2 - b5) / 2 / sz);
 		s3[0] = 0x1000000 / (shl32(w, 12) / rect[2]);
 		s3[2] = 0x1000000 / (shl32(dz, 12) / rect[3]);
 		Scale3DMatrix(&m2, s3);
 		uint8_t *env = (uint8_t *)PacketCursor();
 		PacketCursor() += 0x40;
-		SetDrawEnv(env, us(0x1D969C8) + (uint32_t)(var<uint8_t>(us(0x1D96A80)) ^ 1) * 0x5C);
+		SetDrawEnv(env, game_addr(game::g_Battle_DrawEnv) + (uint32_t)(var<uint8_t>(game_addr(game::g_Battle_DisplayParity)) ^ 1) * 0x5C);
 		InsertPrimAutoDepth(OTBase() + 0x44, env);
 		int32_t ox, oy;
 		GetScreenOffset(&ox, &oy);
 		SetScreenOffset(rect[2] / 2, rect[3] / 2);
 		GteSetRotMatrix(&m2);
 		GteSetTransVector(&m2);
-		if (var<uint8_t>(us(0x1D989BD)) & 1)
+		if (var<uint8_t>(game_addr(game::unk_1D989BD)) & 1)
 		{
 			uint8_t *h = (uint8_t *)FieldAlloc(0x2C);
 			U16(h, 0x14) = 0;
 			U16(h, 0x16) = 0;
 			U16(h, 0x18) = 0x140;
 			U16(h, 0x1A) = 0xD8;
-			U16(h, 0x24) = var<uint16_t>(us(0x1D989BE));
-			U32(h, 0x1C) = var<uint32_t>(us(0x1D989E4));
-			U32(h, 4) = var<uint32_t>(us(0x1D98B3C));
+			U16(h, 0x24) = var<uint16_t>(game_addr(game::unk_1D989BE));
+			U32(h, 0x1C) = var<uint32_t>(game_addr(game::unk_1D989E4));
+			U32(h, 4) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 			U32(h, 0x20) = 0xFFFFFFFF;
 			U32(h, 0x28) = 0;
 			U32(h, 0x10) = CaptureCursor();
-			BuildBoneMatricesFromPose((void *)us(0x1D989D0));
-			ComputeBonesWorldMatrices((void *)us(0x1D989D0), &m2);
-			PacketCursor() = RenderGeometry(us(0x1D989C0), h, OTBase() + 0x44, 0x10, PacketCursor());
+			BuildBoneMatricesFromPose((void *)game_addr(game::unk_1D989D0));
+			ComputeBonesWorldMatrices((void *)game_addr(game::unk_1D989D0), &m2);
+			PacketCursor() = RenderGeometry(game_addr(game::unk_1D989C0), h, OTBase() + 0x44, 0x10, PacketCursor());
 			FieldFree(0x2C);
 		}
 		uint8_t *q = (uint8_t *)PacketCursor();
@@ -731,7 +731,7 @@ namespace rave212
 	static uint32_t __cdecl RockTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		RockDraw(k, us(MODEL_Rock));
+		RockDraw(k, game_addr(MODEL_Rock));
 		if (--k->life == 0) return TASK_END;
 		RockMoveBounce(k);
 		return 0;
@@ -746,21 +746,21 @@ namespace rave212
 	}
 	static uint32_t __cdecl RockATask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, us(MODEL_RockA));
+		return RockModelTask((RockNode *)n, game_addr(MODEL_RockA));
 	}
 	static uint32_t __cdecl RockBTask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, us(MODEL_RockB));
+		return RockModelTask((RockNode *)n, game_addr(MODEL_RockB));
 	}
 	static uint32_t __cdecl RockCTask(TaskNode *n)
 	{
-		return RockModelTask((RockNode *)n, us(MODEL_RockC));
+		return RockModelTask((RockNode *)n, game_addr(MODEL_RockC));
 	}
 
 	static uint32_t __cdecl PieceTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		RockDraw(k, us(MODEL_Rock));
+		RockDraw(k, game_addr(MODEL_Rock));
 		if (--k->life == 0) return TASK_END;
 		RockMove(k);
 		return 0;
@@ -793,17 +793,17 @@ namespace rave212
 	}
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
-		return SpriteTaskStep((SpriteNode *)n, us(SEQ_Ember), -0x89);
+		return SpriteTaskStep((SpriteNode *)n, game_addr(SEQ_Ember), -0x89);
 	}
 	static uint32_t __cdecl EmberTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		return SpriteTaskStep(s, us(SEQ_Ember), -((int32_t)s->size >> 2));
+		return SpriteTaskStep(s, game_addr(SEQ_Ember), -((int32_t)s->size >> 2));
 	}
 	static uint32_t __cdecl FlameTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		return SpriteTaskStep(s, us(SEQ_Flame), -((int32_t)s->size >> 2));
+		return SpriteTaskStep(s, game_addr(SEQ_Flame), -((int32_t)s->size >> 2));
 	}
 
 	static void SpawnRocks(int32_t count, int32_t x, int32_t y, int32_t z, int32_t ls, int32_t lb, int32_t rs, int32_t rb, int32_t ss, int32_t sb, uint32_t fn)
@@ -855,7 +855,7 @@ namespace rave212
 	static void SpawnPiece(prim::Layout *l, prim::Record *r, uint8_t *h)
 	{
 		if (l->frame >= 0x20) return;
-		RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), us(ORIG_PieceTask));
+		RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), game_addr(ORIG_PieceTask));
 		if (!k) return;
 		const uint8_t *verts = *(uint8_t **)(h + 4);
 		const uint8_t *tab = PIECE_Table() + (int32_t)(int16_t)r->flags_lo * 0x20;
@@ -1067,7 +1067,7 @@ namespace rave212
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
 		uint8_t *p = h + 0x20;
-		U32(p, 0) = us(MODEL_Glow);
+		U32(p, 0) = game_addr(MODEL_Glow);
 		if (g.mode == 0xF0)
 		{
 			U32(p, 8) = 0;
@@ -1102,8 +1102,8 @@ namespace rave212
 		if (c == 1)
 		{
 			if (engine) CameraArmReturn();
-			var<int16_t>(us(0x1D8E038)) = 0x120;
-			var<int16_t>(us(0x1D977A2)) = 0;
+			var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE)) = 0x120;
+			var<int16_t>(game_addr(game::g_BattleCam_Roll)) = 0;
 			CamLookAt()[1] = (int16_t)0xFCFD;
 			CamEye()[1] = (int16_t)0xFF1B;
 			CamLookAt()[0] = (int16_t)(X - 0x7D);
@@ -1126,7 +1126,7 @@ namespace rave212
 		if ((uint32_t)(c - 0x51) < 0x1C)
 		{
 			const int32_t e = c - 0x51;
-			if (e < 6 && engine) var<int16_t>(us(0x1D97712)) = ShakeY(e);
+			if (e < 6 && engine) var<int16_t>(game_addr(game::BATTLE_CAMERA_SHAKE_OFFSET_Y)) = ShakeY(e);
 			const int16_t a[6] = { (int16_t)(X - 7), (int16_t)0xFE73, (int16_t)(Z - 0x523), (int16_t)(X + 0x1F), (int16_t)0xFB53, (int16_t)(Z - 0x93A) };
 			const int16_t b[6] = { (int16_t)(X - 0x20), (int16_t)0xFDF2, (int16_t)(Z - 0x4D4), (int16_t)(X - 0x2D1), (int16_t)0xFC9D, (int16_t)(Z - 0x12E0) };
 			CamLerp(a, b, (int32_t)(((uint32_t)e << 12) / 28));
@@ -1186,7 +1186,7 @@ namespace rave212
 		{
 			if (s == 0)
 			{
-				DecodeModelPrimLayout(us(LAYOUT_Ground), d->burn_l, 0x190);
+				DecodeModelPrimLayout(game_addr(LAYOUT_Ground), d->burn_l, 0x190);
 				GetDefaultEffectPosition(Caster(), d->anchor);
 			}
 			RotationY(0, &arg.m);
@@ -1195,12 +1195,12 @@ namespace rave212
 			arg.m.t[2] = d->anchor[2];
 			arg.morph = morph;
 			arg.depth = -0x80;
-			arg.kind = (const uint8_t *)us(KIND_Ground);
+			arg.kind = (const uint8_t *)game_addr(KIND_Ground);
 			arg.pieces = nullptr;
 			arg.fade = nullptr;
 			*(uint16_t *)&arg.scroll = (uint16_t)(s << 5);
 			Play(d, SITE_GROUND, d->burn_l, &arg);
-			if ((uint32_t)s < 0x28) SpawnRocks(1, d->anchor[0], 0, d->anchor[2], 5, 0xF, 0x1F4, 0x1F4, 0x3E8, 0x3E8, us(ORIG_RockTask));
+			if ((uint32_t)s < 0x28) SpawnRocks(1, d->anchor[0], 0, d->anchor[2], 5, 0xF, 0x1F4, 0x1F4, 0x3E8, 0x3E8, game_addr(ORIG_RockTask));
 		}
 		if ((uint32_t)(c - 0x11) < 0x1C)
 		{
@@ -1219,11 +1219,11 @@ namespace rave212
 			}
 			s3[1] = (int16_t)(s3[1] - 0x64);
 			const int32_t vy = -4 - (CrtRand() & 3);
-			SpawnSprites(1, 0x10, s3[0], s3[1], s3[2], 0x64, -0x32, 0, vy, 0, 0xFF, 0x320, us(ORIG_SparkTask));
+			SpawnSprites(1, 0x10, s3[0], s3[1], s3[2], 0x64, -0x32, 0, vy, 0, 0xFF, 0x320, game_addr(ORIG_SparkTask));
 		}
 		if ((uint32_t)(c - 0x51) < 0x18)
 		{
-			if (c == 0x51) DecodeModelPrimLayout(us(LAYOUT_Bone), d->bone_l, 0x44);
+			if (c == 0x51) DecodeModelPrimLayout(game_addr(LAYOUT_Bone), d->bone_l, 0x44);
 			int16_t p[4];
 			GetEffectSpawnPosition(Caster(), 0x16, 0, p);
 			RotationY(0, &arg.m);
@@ -1232,7 +1232,7 @@ namespace rave212
 			arg.m.t[2] = p[2];
 			arg.morph = morph;
 			arg.depth = -0x80;
-			arg.kind = (const uint8_t *)us(KIND_Bone);
+			arg.kind = (const uint8_t *)game_addr(KIND_Bone);
 			arg.pieces = nullptr;
 			arg.fade = nullptr;
 			Play(d, SITE_BONE, d->bone_l, &arg);
@@ -1240,14 +1240,14 @@ namespace rave212
 		if ((uint32_t)(c - 0x51) < 0xC) DrawGlow(c - 0x51);
 		if ((uint32_t)(c - 0x54) < 0x1A)
 		{
-			if (c == 0x54) DecodeModelPrimLayout(us(LAYOUT_Front), d->front_l, 0x230);
+			if (c == 0x54) DecodeModelPrimLayout(game_addr(LAYOUT_Front), d->front_l, 0x230);
 			RotationY(0, &arg.m);
 			arg.m.t[1] = 0;
 			arg.m.t[0] = *(const int16_t *)(Caster() + 0x1C) - 0xC3;
 			arg.m.t[2] = *(const int16_t *)(Caster() + 0x20) - 0x48F;
 			arg.morph = morph;
 			arg.depth = -0x100;
-			arg.kind = (const uint8_t *)us(KIND_Front);
+			arg.kind = (const uint8_t *)game_addr(KIND_Front);
 			arg.pieces = nullptr;
 			arg.fade = nullptr;
 			Play(d, SITE_FRONT, d->front_l, &arg);
@@ -1255,7 +1255,7 @@ namespace rave212
 		const int32_t f = c - 0x5E;
 		if ((uint32_t)f < 0x46)
 		{
-			if (f == 0) DecodeModelPrimLayout(us(LAYOUT_Burn), d->burn_l, 0x484);
+			if (f == 0) DecodeModelPrimLayout(game_addr(LAYOUT_Burn), d->burn_l, 0x484);
 			RotationY(0x800, &arg.m);
 			if ((uint32_t)f < 0xF)
 			{
@@ -1263,30 +1263,30 @@ namespace rave212
 				arg.m.t[0] = d->box[0];
 				arg.m.t[1] = 0;
 				arg.m.t[2] = d->box[2];
-				arg.pieces = (const uint8_t *)us(KIND_Burn);
+				arg.pieces = (const uint8_t *)game_addr(KIND_Burn);
 			}
 			else
 			{
 				if (f == 0xF)
 				{
 					int16_t box_a[6], box_b[6];
-					ModelBox(us(LAYOUT_Burn) + *(const uint32_t *)(us(LAYOUT_Burn) + 8), box_a);
-					ModelBox(us(LAYOUT_Burn) + *(const uint32_t *)(us(LAYOUT_Burn) + 0xC), box_b);
+					ModelBox(game_addr(LAYOUT_Burn) + *(const uint32_t *)(game_addr(LAYOUT_Burn) + 8), box_a);
+					ModelBox(game_addr(LAYOUT_Burn) + *(const uint32_t *)(game_addr(LAYOUT_Burn) + 0xC), box_b);
 					box_a[3] = box_b[3];
 					CaptureStage(&d->box[4], box_a);
 					B8(Caster(), 0) |= 4;
-					DecodeModelPrimLayout(us(LAYOUT_Burn), d->burn_l, 0x484);
+					DecodeModelPrimLayout(game_addr(LAYOUT_Burn), d->burn_l, 0x484);
 				}
 				arg.m.t[0] = d->box[4];
 				arg.m.t[1] = 0;
 				arg.m.t[2] = d->box[6];
-				arg.pieces = (const uint8_t *)us(KIND_BurnB);
+				arg.pieces = (const uint8_t *)game_addr(KIND_BurnB);
 			}
 			arg.depth = 0;
 			arg.depth2 = 0x180;
 			arg.morph = morph;
-			arg.kind = (const uint8_t *)us(KIND_Burn);
-			arg.fade = (const uint8_t *)us(KIND_BurnB);
+			arg.kind = (const uint8_t *)game_addr(KIND_Burn);
+			arg.fade = (const uint8_t *)game_addr(KIND_BurnB);
 			Play(d, SITE_BURN, d->burn_l, &arg);
 		}
 		else if (f == 0x46)
@@ -1345,7 +1345,7 @@ namespace rave212
 				for (int32_t i = 0; i < TargetCount(); i++)
 				{
 					uint8_t *e = d->recs[i].e;
-					SpriteNode *sp = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_EmberTask));
+					SpriteNode *sp = (SpriteNode *)AddTaskToQueue(QSprites(), game_addr(ORIG_EmberTask));
 					if (!sp) break;
 					const int32_t r = SharedRand();
 					const uint8_t bones = (**(uint8_t ***)(e + 0x64))[0];
@@ -1366,14 +1366,14 @@ namespace rave212
 		if ((uint32_t)t < 0xA)
 		{
 			if (t == 0) InitTaskQueuePool(QRocks(), (void *)(TexBase() + 0xCD0), 0x24, 0x40);
-			uint32_t fn = us(ORIG_RockATask);
+			uint32_t fn = game_addr(ORIG_RockATask);
 			for (int32_t i = 2; i != 0; i--)
 			{
 				switch ((CrtRand() * 3) >> 15)
 				{
-				case 0: fn = us(ORIG_RockATask); break;
-				case 1: fn = us(ORIG_RockBTask); break;
-				case 2: fn = us(ORIG_RockCTask); break;
+				case 0: fn = game_addr(ORIG_RockATask); break;
+				case 1: fn = game_addr(ORIG_RockBTask); break;
+				case 2: fn = game_addr(ORIG_RockCTask); break;
 				}
 				RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), fn);
 				if (!k) break;
@@ -1395,7 +1395,7 @@ namespace rave212
 			}
 			for (int pass = 0; pass < 2; pass++)
 			{
-				SpriteNode *sp = (SpriteNode *)AddTaskToQueue(QSprites(), pass == 0 ? us(ORIG_EmberTask) : us(ORIG_FlameTask));
+				SpriteNode *sp = (SpriteNode *)AddTaskToQueue(QSprites(), pass == 0 ? game_addr(ORIG_EmberTask) : game_addr(ORIG_FlameTask));
 				if (!sp) continue;
 				sp->pos[0] = (int16_t)(CrtRand() * 4700 / 0x8000 + d->box[4] - 0x92E);
 				sp->pos[1] = 0;
@@ -1452,8 +1452,8 @@ namespace rave212
 		d->box[5] = 0;
 		d->box[6] = (int16_t)(mx[2] + 0x10CC);
 		int16_t box_a[6], box_b[6];
-		ModelBox(us(LAYOUT_Burn) + *(const uint32_t *)(us(LAYOUT_Burn) + 8), box_a);
-		ModelBox(us(LAYOUT_Burn) + *(const uint32_t *)(us(LAYOUT_Burn) + 0xC), box_b);
+		ModelBox(game_addr(LAYOUT_Burn) + *(const uint32_t *)(game_addr(LAYOUT_Burn) + 8), box_a);
+		ModelBox(game_addr(LAYOUT_Burn) + *(const uint32_t *)(game_addr(LAYOUT_Burn) + 0xC), box_b);
 		box_a[3] = box_b[3];
 		CaptureStage(d->box, box_a);
 		uint8_t *z = Caster();
@@ -1470,7 +1470,7 @@ namespace rave212
 		Centre()[2] = d->centre[2];
 		static const int32_t bones[3] = { 0xE, 0x12, 0x16 };
 		GhostInit(d->ghosts, 3, bones);
-		BindExternalAnimSet(z, d->bind, us(COM_Anim));
+		BindExternalAnimSet(z, d->bind, game_addr(COM_Anim));
 		QueueChainTransformation(z, 1);
 		StreamStateInit((void *)(TexBase() + 0x1BD0));
 	}
@@ -1500,7 +1500,7 @@ namespace rave212
 				InitTaskQueuePool(QSprites(), (void *)(TexBase() + 0x15D0), 0x18, 0x40);
 				SaveFlags();
 			}
-			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), us(ORIG_DirectorTask));
+			DirectorNode *d = (DirectorNode *)AddTaskToQueue(QDirector(), game_addr(ORIG_DirectorTask));
 			if (d) StartDirector(d);
 		}
 		if (r->state == 0)
@@ -1521,8 +1521,8 @@ namespace rave212
 		if (StreamPreload(1) == 0) return 0;
 		if (r->state == 1)
 		{
-			var<int16_t>(us(0x1D8E038)) = var<int16_t>(us(0x1D977A0));
-			ff8fx::copy<(0x10)>((void *)us(0xB8B7F0), (const void *)us(0xB8B800));
+			var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE)) = var<int16_t>(game_addr(game::Battle_Camera_ReturnView_Param1D8E038));
+			ff8fx::copy<(0x10)>((void *)game_addr(game::Battle_Camera_world_XZ_s16), (const void *)game_addr(game::Battle_Camera_ReturnView_world_XZ_s16));
 			r->state = 2;
 			return 0;
 		}

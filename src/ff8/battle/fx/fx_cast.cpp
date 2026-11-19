@@ -25,12 +25,12 @@ namespace cast
 	using namespace eng;
 	using namespace magc;
 
-	static const uint32_t ORIG_Spawner = 0x574C80;
-	static const uint32_t ORIG_Sparkle = 0x574F50;
-	static const uint32_t ORIG_Trail = 0x5751A0;
-	static const uint32_t ORIG_Glow = 0x575250;
-	static const uint32_t ORIG_Ring = 0x5753A0;
-	static TaskQueue *QUEUE() { return (TaskQueue *)us(0x209FAA8); }
+	static constexpr game::Id ORIG_Spawner = game::sub_574C80;
+	static constexpr game::Id ORIG_Sparkle = game::sub_574F50;
+	static constexpr game::Id ORIG_Trail = game::sub_5751A0;
+	static constexpr game::Id ORIG_Glow = game::sub_575250;
+	static constexpr game::Id ORIG_Ring = game::sub_5753A0;
+	static TaskQueue *QUEUE() { return (TaskQueue *)game_addr(game::TASK_QUEUE_ANIM_SEQ_99_B0_B1_B4_A5); }
 
 #pragma pack(push, 1)
 	struct SpawnerNode
@@ -97,10 +97,10 @@ namespace cast
 	static_assert(sizeof(SparkleNode) == 0x24 && sizeof(TrailNode) == 0x24, "cast nodes");
 
 	inline bool Paused() { return (UpdateFlags() & 1) != 0; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	inline void BdPlaySystemSE3D(int32_t id, int32_t a, const int16_t *pos) { fn<void (__cdecl *)(int32_t, int32_t, const int16_t *)>(us(0x5017A0))(id, a, pos); }
-	inline uint32_t EffectPrimModel(int id) { return fn<uint32_t (__cdecl *)(int)>(us(0x571240))(id); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline void BdPlaySystemSE3D(int32_t id, int32_t a, const int16_t *pos) { fn<void (__cdecl *)(int32_t, int32_t, const int16_t *)>(game_addr(game::BdPlaySystemSE3D))(id, a, pos); }
+	inline uint32_t EffectPrimModel(int id) { return fn<uint32_t (__cdecl *)(int)>(game_addr(game::sub_571240))(id); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
 
 	static int32_t SizeScale(const uint8_t *ent)
 	{
@@ -257,7 +257,7 @@ namespace cast
 				int32_t i = 0;
 				do
 				{
-					RingNode *r = (RingNode *)AddTaskToQueue(QUEUE(), us(ORIG_Ring));
+					RingNode *r = (RingNode *)AddTaskToQueue(QUEUE(), game_addr(ORIG_Ring));
 					r->delay = (int16_t)(i * 3);
 					*(uint32_t *)&r->pos[0] = *(const uint32_t *)&sp->pos[0];
 					*(uint32_t *)&r->pos[2] = *(const uint32_t *)&sp->pos[2];
@@ -275,7 +275,7 @@ namespace cast
 			if (sp->counter != 0) goto done;
 			{
 				const int32_t s = SizeScale(ent);
-				GlowNode *g = (GlowNode *)AddTaskToQueue(QUEUE(), us(ORIG_Glow));
+				GlowNode *g = (GlowNode *)AddTaskToQueue(QUEUE(), game_addr(ORIG_Glow));
 				*(uint32_t *)&g->pos[0] = *(const uint32_t *)&sp->pos[0];
 				*(uint32_t *)&g->pos[2] = *(const uint32_t *)&sp->pos[2];
 				g->pos[1] = *(const int16_t *)(ent + 0x24);
@@ -291,7 +291,7 @@ namespace cast
 				const int32_t radius = r0 * 900 >> 12;
 				for (int32_t i = 0; i < 6; i++)
 				{
-					SparkleNode *s = (SparkleNode *)AddTaskToQueue(QUEUE(), us(ORIG_Sparkle));
+					SparkleNode *s = (SparkleNode *)AddTaskToQueue(QUEUE(), game_addr(ORIG_Sparkle));
 					s->counter = 0;
 					s->delay = (int16_t)(CrtRand() % 6 + i);
 					*(uint32_t *)&s->pos[0] = *(const uint32_t *)&sp->pos[0];
@@ -331,7 +331,7 @@ namespace cast
 		{
 			for (int k = 3; k != 0; k--)
 			{
-				TrailNode *t = (TrailNode *)AddTaskToQueue(QUEUE(), us(ORIG_Trail));
+				TrailNode *t = (TrailNode *)AddTaskToQueue(QUEUE(), game_addr(ORIG_Trail));
 				if (!t) continue;
 				t->left = (int16_t)(CrtRand() % 3 + 4);
 				*(uint32_t *)&t->pos[0] = *(const uint32_t *)&v[0];

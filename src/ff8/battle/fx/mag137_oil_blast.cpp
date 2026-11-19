@@ -27,45 +27,45 @@ namespace oil137
 	using namespace magc;
 	using namespace icec;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2520CC0)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2520CC8)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2520CCC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2520CE4)); }
-	inline TaskQueue *QSprays() { return (TaskQueue *)us(0x2520CE8); }
-	inline TaskQueue *QChunks() { return (TaskQueue *)us(0x2520CF8); }
-	inline TaskQueue *QBlast() { return (TaskQueue *)us(0x2520D08); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::g_mag137_CasterEntity)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g_mag137_MagicBuffer)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_mag137_CastContext)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_mag137_PacketCursor)); }
+	inline TaskQueue *QSprays() { return (TaskQueue *)game_addr(game::g_mag137_QueueSprays); }
+	inline TaskQueue *QChunks() { return (TaskQueue *)game_addr(game::g_mag137_QueueChunks); }
+	inline TaskQueue *QBlast() { return (TaskQueue *)game_addr(game::g_mag137_QueueBlast); }
 
-	static const uint32_t ORIG_MasterTask = 0x6AB900;
-	static const uint32_t ORIG_BlastTask = 0x6ABA50;
-	static const uint32_t ORIG_SprayTask = 0x6AC140;
-	static const uint32_t ORIG_ChunkTask = 0x6AC1F0;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_137_MasterTask;
+	static constexpr game::Id ORIG_BlastTask = game::MAG_137_BlastTask;
+	static constexpr game::Id ORIG_SprayTask = game::MAG_137_SprayTask;
+	static constexpr game::Id ORIG_ChunkTask = game::MAG_137_ChunkTask;
 	static const uint32_t VERTS = 0x1390;
 	static const uint32_t ARENA_A = 0x1658;
 	static const uint32_t ARENA_B = 0x11658;
-	static const uint32_t MESH = 0x11E92F8;
-	static const uint32_t MODEL_Puddle = 0x11EAE10;
-	static const uint32_t MODEL_Spout = 0x11EB4D8;
-	static const uint32_t MODEL_Blast = 0x11ECDC0;
-	static const uint32_t MODEL_Chunk = 0x11EACC0;
-	static const uint32_t SEQ_Spray = 0x11E91A0;
-	static const void *SCALE_MAT() { return (const void *)us(0x11F0360); }
-	static int16_t *SCALE_DIAG() { return (int16_t *)us(0x11F0360); }
-	static const void *SOUND_Blast() { return (const void *)us(0x11F035C); }
+	static constexpr game::Id MESH = game::MAG_137_OilMesh;
+	static constexpr game::Id MODEL_Puddle = game::MAG_137_PuddleLayout;
+	static constexpr game::Id MODEL_Spout = game::MAG_137_SpoutLayout;
+	static constexpr game::Id MODEL_Blast = game::MAG_137_BlastLayout;
+	static constexpr game::Id MODEL_Chunk = game::MAG_137_ChunkModel;
+	static constexpr game::Id SEQ_Spray = game::MAG_137_SpraySeq;
+	static const void *SCALE_MAT() { return (const void *)game_addr(game::MAG_137_MeshScaleMatrix); }
+	static int16_t *SCALE_DIAG() { return (int16_t *)game_addr(game::MAG_137_MeshScaleMatrix); }
+	static const void *SOUND_Blast() { return (const void *)game_addr(game::MAG_137_Sound); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
-	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const void *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const void *, Mat4x3 *)>(us(0x56C090))(a, b, out); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(us(0x56BEF0))(m, v); }
-	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(us(0x6A6020))(pitch, yaw, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(angle, out); }
+	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const void *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const void *, Mat4x3 *)>(game_addr(game::Matrix3x3_MultiplyPSX))(a, b, out); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(game_addr(game::scale3DMatrix))(m, v); }
+	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(game_addr(game::Effect_DirectionFromPitchYaw))(pitch, yaw, out); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -456,7 +456,7 @@ namespace oil137
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x54);
-		*(uint32_t *)h = us(MESH);
+		*(uint32_t *)h = game_addr(MESH);
 		*(uint16_t *)(h + 0xA) = 0;
 		*(uint16_t *)(h + 8) = 0;
 		*(uint16_t *)(h + 0xE) = 0x100;
@@ -498,7 +498,7 @@ namespace oil137
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = us(SEQ_Spray);
+		*(uint32_t *)h = game_addr(SEQ_Spray);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -535,7 +535,7 @@ namespace oil137
 		GteSetRotMatrix(&M);
 		GteSetTransVector(&M);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = us(MODEL_Chunk);
+		*(uint32_t *)h = game_addr(MODEL_Chunk);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -572,8 +572,8 @@ namespace oil137
 				w->puddle1[1] = 0;
 				GetEffectSpawnPosition(Caster(), 0x1C, 0, w->puddle2);
 				w->puddle2[1] = 0;
-				DecodeModelPrimLayout(us(MODEL_Puddle), w->lay1, 0x40);
-				DecodeModelPrimLayout(us(MODEL_Puddle), w->lay2, 0x40);
+				DecodeModelPrimLayout(game_addr(MODEL_Puddle), w->lay1, 0x40);
+				DecodeModelPrimLayout(game_addr(MODEL_Puddle), w->lay2, 0x40);
 			}
 			BlockAt(&arg, w->puddle1);
 			arg.mode = 0;
@@ -589,7 +589,7 @@ namespace oil137
 			{
 				GetEffectSpawnPosition(Caster(), 0x13, 0, w->spout);
 				w->spout[1] = 0;
-				DecodeModelPrimLayout(us(MODEL_Spout), w->layS, 0x1A0);
+				DecodeModelPrimLayout(game_addr(MODEL_Spout), w->layS, 0x1A0);
 			}
 			SpoutBlock(&arg, w->spout);
 			arg.mode = 0;
@@ -613,7 +613,7 @@ namespace oil137
 			MeshRender(&M, (uint16_t)((k & 3) << 5));
 			for (int i = 2; i; i--)
 			{
-				ChunkNode *c = (ChunkNode *)AddTaskToQueue(QChunks(), us(ORIG_ChunkTask));
+				ChunkNode *c = (ChunkNode *)AddTaskToQueue(QChunks(), game_addr(ORIG_ChunkTask));
 				if (!c) continue;
 				ff8fx::copy<(8)>(c->pos, Q);
 				c->frame = 0;
@@ -632,7 +632,7 @@ namespace oil137
 			if (kd == 0)
 			{
 				FloorBasis(w->spout, w->aim, &w->basisD);
-				DecodeModelPrimLayout(us(MODEL_Blast), w->layB, 0x2FC);
+				DecodeModelPrimLayout(game_addr(MODEL_Blast), w->layB, 0x2FC);
 			}
 			w->basisD.t[1] = 0;
 			w->basisD.t[0] = w->aim[0] - (w->basisD.m[0][2] >> 2);
@@ -641,7 +641,7 @@ namespace oil137
 			{
 				for (int i = 0xA; i; i--)
 				{
-					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), us(ORIG_SprayTask));
+					SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), game_addr(ORIG_SprayTask));
 					s->pos[0] = (int16_t)w->basisD.t[0];
 					s->pos[2] = (int16_t)w->basisD.t[2];
 					s->pos[1] = 0;
@@ -672,7 +672,7 @@ namespace oil137
 		InitTaskQueuePool(QBlast(), (void *)(TexBase() + 0xDF0), 0x5A0, 1);
 		InitTaskQueuePool(QChunks(), (void *)(TexBase() + 0x870), 0x2C, 0x20);
 		InitTaskQueuePool(QSprays(), (void *)TexBase(), 0x24, 0x3C);
-		BlastNode *w = (BlastNode *)AddTaskToQueue(QBlast(), us(ORIG_BlastTask));
+		BlastNode *w = (BlastNode *)AddTaskToQueue(QBlast(), game_addr(ORIG_BlastTask));
 		Memset32(&w->counter, 0, 0x165);
 		w->target = target;
 		GetEffectSpawnPosition(target, 0xF1, 0, w->aim);

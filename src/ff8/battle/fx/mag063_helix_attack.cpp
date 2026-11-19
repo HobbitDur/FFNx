@@ -23,45 +23,45 @@ namespace helix063
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25450A4)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25450A8)); }
-	inline uint8_t *&Target() { return var<uint8_t *>(us(0x25450AC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25450F0)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25450FC)); }
-	inline TaskQueue *QMaster() { return (TaskQueue *)us(0x25450B0); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x25450C0); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_063_CastCtx)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_063_CasterEntity)); }
+	inline uint8_t *&Target() { return var<uint8_t *>(game_addr(game::MAG_063_TargetEntity)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_063_PacketCursor)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_063_MagicBuffer)); }
+	inline TaskQueue *QMaster() { return (TaskQueue *)game_addr(game::MAG_063_QMaster); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)game_addr(game::MAG_063_QParticles); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
 
-	static const uint32_t ORIG_RootTask = 0x6E6CB0;
-	static const uint32_t ORIG_MasterTask = 0x6E6E10;
-	static const uint32_t ORIG_ParticleTask = 0x6E7970;
-	static const uint32_t MODEL_Ring = 0x134F87C;
-	static const uint32_t MODEL_Core = 0x134E154;
-	static const uint32_t MODEL_Impact = 0x1350048;
-	static const uint32_t MODEL_Beam = 0x134C2FC;
-	static const uint32_t SEQ_Particle = 0x134C1B8;
-	static const uint32_t POINT_A = 0x13549F8;
-	static const uint32_t POINT_B = 0x1354A00;
-	static const uint32_t OBJS_Plain = 0x1354A08;
-	static const uint32_t OBJS_Impact = 0x1354A28;
-	static const void *SOUND_Start() { return (const void *)us(0x13549F4); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_063_RootTask;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_063_MasterTask;
+	static constexpr game::Id ORIG_ParticleTask = game::MAG_063_ParticleTask;
+	static constexpr game::Id MODEL_Ring = game::unk_134F87C;
+	static constexpr game::Id MODEL_Core = game::unk_134E154;
+	static constexpr game::Id MODEL_Impact = game::unk_1350048;
+	static constexpr game::Id MODEL_Beam = game::unk_134C2FC;
+	static constexpr game::Id SEQ_Particle = game::unk_134C1B8;
+	static constexpr game::Id POINT_A = game::unk_13549F8;
+	static constexpr game::Id POINT_B = game::unk_1354A00;
+	static constexpr game::Id OBJS_Plain = game::a00000000000000;
+	static constexpr game::Id OBJS_Impact = game::a100000;
+	static const void *SOUND_Start() { return (const void *)game_addr(game::unk_13549F4); }
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(x, y); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(angle, out); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatMulScaleDiag(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(us(0x56C220))(a, b); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(us(0x6A6020))(pitch, yaw, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(game_addr(game::CartesianToGameAngle))(x, y); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_063_RotationXMatrix))(angle, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(angle, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatMulScaleDiag(Mat4x3 *a, const int16_t *b) { fn<void (__cdecl *)(Mat4x3 *, const int16_t *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_063_RenderPrimSet))(h, ot, mode, cursor); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_FullScreenTile))(r, g, b, level, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void DirectionFromAngles(int32_t pitch, int32_t yaw, int16_t *out) { fn<void (__cdecl *)(int32_t, int32_t, int16_t *)>(game_addr(game::Effect_DirectionFromPitchYaw))(pitch, yaw, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -247,7 +247,7 @@ namespace helix063
 		GteSetTransVector(m);
 		uint8_t *h = b + 0x50;
 		*(uint32_t *)(h + 0x1C) = 0x30;
-		*(uint32_t *)h = us(MODEL_Beam);
+		*(uint32_t *)h = game_addr(MODEL_Beam);
 		*(uint16_t *)(h + 0x2A) = 0x100;
 		*(uint16_t *)(h + 0x28) = 0x100;
 		*(uint16_t *)(h + 0x30) = 0x100;
@@ -305,7 +305,7 @@ namespace helix063
 	{
 		TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = us(SEQ_Particle);
+		*(uint32_t *)h = game_addr(SEQ_Particle);
 		*(int16_t *)(h + 4) = p->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -344,7 +344,7 @@ namespace helix063
 	static void SpawnParticles(MasterNode *m)
 	{
 		int32_t count = 10;
-		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
+		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_ParticleTask));
 		while (p)
 		{
 			p->pos[0] = m->pos[0];
@@ -365,7 +365,7 @@ namespace helix063
 			p->vel[2] = (int16_t)z;
 			p->acc[2] = Drag((int16_t)z);
 			if (--count == 0) break;
-			p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
+			p = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_ParticleTask));
 		}
 	}
 
@@ -379,8 +379,8 @@ namespace helix063
 		else flash = m->counter >= 0x10 ? 0x8FC : 0;
 		SetScreenFlash(flash, 0);
 		Points pts;
-		CasterPoint(us(POINT_A), pts.p1);
-		CasterPoint(us(POINT_B), pts.p2);
+		CasterPoint(game_addr(POINT_A), pts.p1);
+		CasterPoint(game_addr(POINT_B), pts.p2);
 		int16_t mid[3];
 		mid[0] = (int16_t)(((int32_t)pts.p2[0] + pts.p1[0]) / 2);
 		mid[1] = (int16_t)(((int32_t)pts.p2[1] + pts.p1[1]) / 2);
@@ -396,7 +396,7 @@ namespace helix063
 			arg.m.t[2] = mid[2];
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = (int16_t)0xFF80;
-			arg.objs = us(OBJS_Plain);
+			arg.objs = game_addr(OBJS_Plain);
 			arg.morph = TexBase() + 0x21150;
 			prim::play((prim::Layout *)m->core, PartCallback, (int)&arg, 0);
 		}
@@ -408,7 +408,7 @@ namespace helix063
 			arg.m.t[2] = pts.p1[2];
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = (int16_t)0xFF80;
-			arg.objs = us(OBJS_Plain);
+			arg.objs = game_addr(OBJS_Plain);
 			arg.morph = TexBase() + 0x21150;
 			prim::play((prim::Layout *)m->ring1, PartCallback, (int)&arg, 0);
 			RotY(0, &arg.m);
@@ -452,7 +452,7 @@ namespace helix063
 			arg.m.t[2] = m->pos[2] - mul32(v[2], 500) / len;
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = (int16_t)0xFF80;
-			arg.objs = us(OBJS_Impact);
+			arg.objs = game_addr(OBJS_Impact);
 			arg.scroll = (int16_t)shl32(e, 5);
 			arg.morph = TexBase() + 0x21150;
 			prim::play((prim::Layout *)m->impact, PartCallback, (int)&arg, 0);
@@ -486,12 +486,12 @@ namespace helix063
 			r->started = 1;
 			InitTaskQueuePool(QMaster(), (void *)(TexBase() + 0x348), 0xE08, 1);
 			InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x1C, 0x1E);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), us(ORIG_MasterTask));
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), game_addr(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x37F);
-			DecodeModelPrimLayout(us(MODEL_Ring), m->ring1, 0xE8);
-			DecodeModelPrimLayout(us(MODEL_Ring), m->ring2, 0xE8);
-			DecodeModelPrimLayout(us(MODEL_Core), m->core, 0x6A0);
-			DecodeModelPrimLayout(us(MODEL_Impact), m->impact, 0x580);
+			DecodeModelPrimLayout(game_addr(MODEL_Ring), m->ring1, 0xE8);
+			DecodeModelPrimLayout(game_addr(MODEL_Ring), m->ring2, 0xE8);
+			DecodeModelPrimLayout(game_addr(MODEL_Core), m->core, 0x6A0);
+			DecodeModelPrimLayout(game_addr(MODEL_Impact), m->impact, 0x580);
 			GetDefaultEffectPosition(Target(), m->pos);
 		}
 		int a;

@@ -24,65 +24,65 @@ namespace act
 {
 namespace cura
 {
-	static const Mod MOD_025 = { "cura", 25, 0x889D40, 0x88CF50,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26FCFA0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x889F40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x88A5D0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_025 = { "cura", 25, game::MAG_025_CURA_FL, game::MAG_024_ESUNA_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG025_CURA_emitterQueue, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_025_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_025_StepCounterLimit, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x26E590C;
-	static const uint32_t FRAME_CURSOR = 0x1D8E054;
-	static const uint32_t Q_EMITTER = 0x26FCFA0;
-	static const uint32_t Q_PLAYER = 0x26FD118;
-	static const uint32_t Q_SPRITE = 0x26F6B80;
-	static const uint32_t ARENA_EVEN = 0x26FD110, ARENA_ODD = 0x26FD114;
-	static const uint32_t BLEND_BUFFER = 0x2700360;
-	static const uint32_t OVL_STATE = 0x2700378;
-	static const uint32_t OVL_LIGHT = 0x2700328;
-	static const uint32_t OVL_FIRST = 0x26E5910;
-	static const uint32_t LIT_VERTICES = 0x26F6BA0;
-	static const uint32_t LIGHT_WORDS = 0x1D98992;
-	static const uint32_t TAB_RINGS = 0x1613684, TAB_SPARKLES = 0x16136C0, TAB_PARTICLES = 0x16136FC;
-	static const uint32_t LAYOUT_Aura = 0x1611C20, LAYOUT_Ring = 0x161194C;
-	static const uint32_t SEQ_Glow = 0x1610948, SEQ_Swirl = 0x16109BC, SEQ_SwirlEnd = 0x1610A10, SEQ_Mote = 0x1610AD4;
-	static const uint32_t SEQ_SparkleA = 0x161079C, SEQ_SparkleA2 = 0x1610DAC, SEQ_SparkleB = 0x1610C00, SEQ_SparkleB2 = 0x1610F58;
-	static const uint32_t SOUND_Cura = 0x1610798;
+	static constexpr game::Id PACKET_CURSOR = game::MAG025_CURA_pktCursor;
+	static constexpr game::Id FRAME_CURSOR = game::BATTLE_PACKET_WRITE_CURSOR;
+	static constexpr game::Id Q_EMITTER = game::MAG025_CURA_emitterQueue;
+	static constexpr game::Id Q_PLAYER = game::MAG_025_ModelPlayerQueue;
+	static constexpr game::Id Q_SPRITE = game::MAG025_CURA_particleQueue;
+	static constexpr game::Id ARENA_EVEN = game::MAG_025_ArenaA, ARENA_ODD = game::MAG_025_ArenaB;
+	static constexpr game::Id BLEND_BUFFER = game::g_Cura_BlendBuffer;
+	static constexpr game::Id OVL_STATE = game::g_Cura_OverlayState;
+	static constexpr game::Id OVL_LIGHT = game::MAG_025_LightBlock;
+	static constexpr game::Id OVL_FIRST = game::unk_26E5910;
+	static constexpr game::Id LIT_VERTICES = game::g_Cura_LitVertices;
+	static constexpr game::Id LIGHT_WORDS = game::unk_1D98992;
+	static constexpr game::Id TAB_RINGS = game::unk_1613684, TAB_SPARKLES = game::unk_16136C0, TAB_PARTICLES = game::MAG025_CURA_spawnCountTable;
+	static constexpr game::Id LAYOUT_Aura = game::unk_1611C20, LAYOUT_Ring = game::unk_161194C;
+	static constexpr game::Id SEQ_Glow = game::unk_1610948, SEQ_Swirl = game::unk_16109BC, SEQ_SwirlEnd = game::unk_1610A10, SEQ_Mote = game::unk_1610AD4;
+	static constexpr game::Id SEQ_SparkleA = game::unk_161079C, SEQ_SparkleA2 = game::unk_1610DAC, SEQ_SparkleB = game::unk_1610C00, SEQ_SparkleB2 = game::unk_1610F58;
+	static constexpr game::Id SOUND_Cura = game::unk_1610798;
 
-	static const uint32_t ORIG_Master = 0x889E40;
-	static const uint32_t ORIG_Emitter = 0x889F40;
-	static const uint32_t ORIG_Glow = 0x88A070;
-	static const uint32_t ORIG_Swirl = 0x88A2D0;
-	static const uint32_t ORIG_Mote = 0x88A4E0;
-	static const uint32_t ORIG_Aura = 0x88A740;
-	static const uint32_t ORIG_LightTask = 0x88B3D0;
-	static const uint32_t ORIG_RingSpawner = 0x88B530;
-	static const uint32_t ORIG_Ring = 0x88B690;
-	static const uint32_t ORIG_SparkleSpawner = 0x88B810;
-	static const uint32_t ORIG_Sparkle = 0x88B950;
-	static const uint32_t ORIG_Overlay = 0x88BBD0;
-	static const uint32_t ORIG_ParticleEmitter = 0x88CC70;
-	static const uint32_t ORIG_Particle = 0x88CDA0;
-	static const uint32_t ORIG_DrawCallback = 0x88AF90;
+	static constexpr game::Id ORIG_Master = game::MAG_025_CURA_Tick;
+	static constexpr game::Id ORIG_Emitter = game::MAG_025_EmitterTask;
+	static constexpr game::Id ORIG_Glow = game::MAG_025_Glow_Tick;
+	static constexpr game::Id ORIG_Swirl = game::MAG_025_Swirl_Tick;
+	static constexpr game::Id ORIG_Mote = game::MAG_025_Mote_Tick;
+	static constexpr game::Id ORIG_Aura = game::MAG_025_AuraTask;
+	static constexpr game::Id ORIG_LightTask = game::MAG_025_LightTask;
+	static constexpr game::Id ORIG_RingSpawner = game::MAG_025_RingSpawner;
+	static constexpr game::Id ORIG_Ring = game::MAG_025_Ring_Tick;
+	static constexpr game::Id ORIG_SparkleSpawner = game::MAG_025_SparkleSpawner;
+	static constexpr game::Id ORIG_Sparkle = game::MAG_025_Sparkle_Tick;
+	static constexpr game::Id ORIG_Overlay = game::MAG_025_CURA_Overlay_Tick;
+	static constexpr game::Id ORIG_ParticleEmitter = game::MAG_025_CURA_Emitter_Tick;
+	static constexpr game::Id ORIG_Particle = game::MAG_025_CURA_Particle_Tick;
+	static constexpr game::Id ORIG_DrawCallback = game::MAG_025_PrimDrawCallback;
 
 	namespace cx
 	{
-		inline uint32_t CopyAnchorFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC6E0))(node, out); }
-		inline uint32_t CopyMidpointFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC700))(node, out); }
-		inline uint32_t BoundsBaseY(uint32_t node) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x8DCAF0))(node); }
-		inline uint32_t BuildMatrixFromDirAndUp(uint32_t out, uint32_t dir, uint32_t up) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDA50))(out, dir, up); }
-		inline uint32_t NormalizeVec3(uint32_t in, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BD20))(in, out); }
-		inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t a, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(pos, a, b); }
-		inline uint32_t InitEffectSequenceFromData(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(h, ot, mode, cursor); }
-		inline uint32_t BattleReadAnimation(uint32_t hdr, uint32_t cmd) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x508F90))(hdr, cmd); }
-		inline uint32_t PreBattleReadAnimation(uint32_t hdr, uint32_t cmd, uint32_t anim) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x509440))(hdr, cmd, anim); }
-		inline uint32_t GteSetLightMatrix(uint32_t m) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(m); }
-		inline uint32_t GteSetBackgroundVector(uint32_t r, uint32_t g, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(r, g, b); }
-		inline uint32_t GteMVMVA_LightV0Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		inline uint32_t GteStoreSXY012_PolyGT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E300))(p); }
-		inline uint32_t GteStoreSXY012_PolyFT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2E0))(p); }
-		inline uint32_t GteStoreSXY012_PolyFT3_2(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E320))(p); }
-		inline uint32_t GteReadSXY012(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E2A0))(p); }
-		inline uint32_t GteLoadIR123(uint32_t v) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(v); }
-		inline uint32_t GteGPF() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		inline uint32_t GteGPL() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		inline uint32_t CopyAnchorFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Effect_CopyAnchorXZFromSource))(node, out); }
+		inline uint32_t CopyMidpointFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Effect_CopyMidpointFromSource))(node, out); }
+		inline uint32_t BoundsBaseY(uint32_t node) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::sub_8DCAF0))(node); }
+		inline uint32_t BuildMatrixFromDirAndUp(uint32_t out, uint32_t dir, uint32_t up) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::Effect_BuildMatrixFromDirAndUp))(out, dir, up); }
+		inline uint32_t NormalizeVec3(uint32_t in, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Math_NormalizeVec3_Q12))(in, out); }
+		inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t a, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(pos, a, b); }
+		inline uint32_t InitEffectSequenceFromData(uint32_t h, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(h, ot, mode, cursor); }
+		inline uint32_t BattleReadAnimation(uint32_t hdr, uint32_t cmd) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Battle_ReadAnimation))(hdr, cmd); }
+		inline uint32_t PreBattleReadAnimation(uint32_t hdr, uint32_t cmd, uint32_t anim) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::pre_Battle_ReadAnimation))(hdr, cmd, anim); }
+		inline uint32_t GteSetLightMatrix(uint32_t m) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(m); }
+		inline uint32_t GteSetBackgroundVector(uint32_t r, uint32_t g, uint32_t b) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(r, g, b); }
+		inline uint32_t GteMVMVA_LightV0Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		inline uint32_t GteStoreSXY012_PolyGT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyGT3))(p); }
+		inline uint32_t GteStoreSXY012_PolyFT3(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyFT3))(p); }
+		inline uint32_t GteStoreSXY012_PolyFT3_2(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyFT3_2))(p); }
+		inline uint32_t GteReadSXY012(uint32_t p) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSXY012))(p); }
+		inline uint32_t GteLoadIR123(uint32_t v) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(v); }
+		inline uint32_t GteGPF() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		inline uint32_t GteGPL() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
@@ -95,7 +95,7 @@ namespace cura
 		return 0;
 	}
 
-	static inline uint32_t RenderOT44() { return MEM<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	static inline uint32_t RenderOT44() { return MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
 	static inline uint32_t ArgSlotColour(uint32_t node, uint8_t c)
 	{
@@ -133,7 +133,7 @@ namespace cura
 		U32(h, 0) = U32(node, 0x4C);
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -147,7 +147,7 @@ namespace cura
 		m.t[0] = S16(node, 0x1C);
 		m.t[1] = 0;
 		m.t[2] = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), P(&m), P(&m));
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), P(&m), P(&m));
 		x::GTE_SetRotMatrix_W(P(&m));
 		x::GTE_SetTransVector_W(P(&m));
 		const uint32_t h = x::Field_Alloc(0xB4);
@@ -155,7 +155,7 @@ namespace cura
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 4;
 		U32(h, 0x1C) = U32(colour, 0);
-		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -173,7 +173,7 @@ namespace cura
 		m.t[0] = S16(node, 0x1C);
 		m.t[1] = 0;
 		m.t[2] = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), P(&m), P(&m));
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), P(&m), P(&m));
 		x::GTE_SetRotMatrix_W(P(&m));
 		x::GTE_SetTransVector_W(P(&m));
 		const uint32_t h = x::Field_Alloc(0xB4);
@@ -181,7 +181,7 @@ namespace cura
 		U16(h, 4) = U16(node, 0x50);
 		U16(h, 0x24) = 4;
 		U32(h, 0x1C) = U32(colour, 0);
-		MEM<uint32_t>(us(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = cx::InitEffectSequenceFromData(h, RenderOT44(), 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -377,7 +377,7 @@ namespace cura
 		}
 		if (U32(fp, 0) & 0x20000000)
 			ScrollModelV(U32(h, 0), S16(U32(blk, 0xC), index * 2));
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::Effect_RenderPrimModel(h, RenderOT44(), 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::Effect_RenderPrimModel(h, RenderOT44(), 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 	}
 
@@ -387,8 +387,8 @@ namespace cura
 		U32(st, 0) = first;
 		U16(st, 0xDA) = (uint16_t)slot;
 		U32(st, 4) = light;
-		U32(st, 0xC) = us(FRAME_CURSOR);
-		U32(st, 0x10) = us(PACKET_CURSOR);
+		U32(st, 0xC) = game_addr(FRAME_CURSOR);
+		U32(st, 0x10) = game_addr(PACKET_CURSOR);
 		U16(st, 0xB4) = 0;
 		U16(st, 0xB6) = 0;
 		U16(st, 0xB8) = 0;
@@ -590,7 +590,7 @@ namespace cura
 				U32(h, 0x94) = U16(rec, 0) & 0xFFF;
 				x::GTE_LoadV012(vtx(U32(h, 0x94)), vtx(U32(h, 0x98)), vtx(U32(h, 0x9C)));
 				x::GTE_RTPT();
-				const uint32_t sz1 = MEM<uint32_t>(us(0x1CA8A54)), sz2 = MEM<uint32_t>(us(0x1CA8A58)), sz3 = MEM<uint32_t>(us(0x1CA8A5C));
+				const uint32_t sz1 = MEM<uint32_t>(game_addr(game::GTE_SZ1)), sz2 = MEM<uint32_t>(game_addr(game::GTE_SZ2)), sz3 = MEM<uint32_t>(game_addr(game::GTE_SZ3));
 				x::GTE_NCLIP();
 				x::GTE_ReadMAC0(h + 0x8C);
 				if (S32(h, 0x8C) <= 0)
@@ -662,7 +662,7 @@ namespace cura
 				U32(h, 0x94) = U16(rec, 0) & 0xFFF;
 				x::GTE_LoadV012(vtx(U32(h, 0x94)), vtx(U32(h, 0x98)), vtx(U32(h, 0x9C)));
 				x::GTE_RTPT();
-				const uint32_t sz1 = MEM<uint32_t>(us(0x1CA8A54)), sz2 = MEM<uint32_t>(us(0x1CA8A58)), sz3 = MEM<uint32_t>(us(0x1CA8A5C));
+				const uint32_t sz1 = MEM<uint32_t>(game_addr(game::GTE_SZ1)), sz2 = MEM<uint32_t>(game_addr(game::GTE_SZ2)), sz3 = MEM<uint32_t>(game_addr(game::GTE_SZ3));
 				x::GTE_NCLIP();
 				x::GTE_ReadMAC0(h + 0x8C);
 				if (S32(h, 0x8C) <= 0)
@@ -672,7 +672,7 @@ namespace cura
 				U32(h, 0xA0) = U16(rec, 6) & 0xFFF;
 				x::GTE_LoadV0(vtx(U32(h, 0xA0)));
 				x::GTE_RTPS();
-				const uint32_t sz4 = MEM<uint32_t>(us(0x1CA8A5C));
+				const uint32_t sz4 = MEM<uint32_t>(game_addr(game::GTE_SZ3));
 				x::GTE_ReadSXY2(pk + 0x2C);
 				x::GTE_ReadSXY2(ft + 0x20);
 				x::GTE_AVSZ4();
@@ -761,9 +761,9 @@ namespace cura
 			if (r != 0)
 				cx::PreBattleReadAnimation(anim, cmd, (r & 0xFFFF0000u) | U16(st, 0xD8));
 		}
-		x::ComposeAffineTransform(us(0x1D97778), st + 0x14, st + 0x34);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), st + 0x14, st + 0x34);
 		if ((U8(entity, 0) & 0x20) == 0)
-			U32(U32(st, 0xC), 0) = x::sub_5088A0(entity, MEM<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, U32(U32(st, 0xC), 0));
+			U32(U32(st, 0xC), 0) = x::sub_5088A0(entity, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4040, 0x10, U32(U32(st, 0xC), 0));
 		OverlayLight(st);
 		RenderModel(U32(entity, 0x64), RenderOT44(), st);
 		const uint32_t second = U32(entity, 0x78);
@@ -778,20 +778,20 @@ namespace cura
 		g_mod = &MOD_025;
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x889F00);
-		states[1] = us(0x889F10);
-		states[2] = us(0x88CEF0);
-		states[3] = us(0x88CF20);
-		states[4] = us(0x88CF40);
+		states[0] = game_addr(game::MAG_025_CURA_Root_State0_Advance);
+		states[1] = game_addr(game::MAG_025_CURA_Root_State1_SpawnEmitter);
+		states[2] = game_addr(game::MAG_025_CURA_State2_NextActionLoop);
+		states[3] = game_addr(game::MAG_025_CURA_Root_State3_WaitQueues);
+		states[4] = game_addr(game::MAG_025_CURA_Root_State4_Empty);
 		if (U8(node, 0x5C) & 1)
-			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = MEM<uint32_t>(game_addr(ARENA_ODD));
 		else
-			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = MEM<uint32_t>(game_addr(ARENA_EVEN));
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PLAYER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPRITE)));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_PLAYER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_SPRITE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -828,18 +828,18 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = us(0x889FE0);
-		states[1] = us(0x88BB80);
-		states[2] = us(0x88CBE0);
-		states[3] = us(0x88CC10);
-		states[4] = us(0x88CC40);
-		states[5] = us(0x88CEA0);
-		states[6] = us(0x88CEE0);
+		states[0] = game_addr(game::MAG_025_Emitter_State0_SpawnGlow);
+		states[1] = game_addr(game::MAG_025_Emitter_State1_SpawnOverlay);
+		states[2] = game_addr(game::MAG_025_Emitter_State2_SpawnAuraC00);
+		states[3] = game_addr(game::MAG_025_Emitter_State3_SpawnAuraE00);
+		states[4] = game_addr(game::MAG_025_Emitter_State4_SpawnParticleEmitter);
+		states[5] = game_addr(game::MAG_025_Emitter_State5_Heal);
+		states[6] = game_addr(game::MAG_025_Emitter_State6_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(us(SOUND_Cura), 0, 0x80);
+			x::BdPlaySE(game_addr(SOUND_Cura), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -847,35 +847,35 @@ namespace cura
 
 	static uint32_t __cdecl SpawnFirst(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Glow), 0x84, a1);
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Glow), 0x84, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_RingSpawner), 0xC8, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_SparkleSpawner), 0xC8, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_LightTask), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_RingSpawner), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_SparkleSpawner), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_LightTask), 0xC8, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	static uint32_t __cdecl SpawnOverlay(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0x800;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Overlay), 0xC8, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Overlay), 0xC8, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	static uint32_t __cdecl SpawnAuraC00(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0xC00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 	static uint32_t __cdecl SpawnAuraE00(uint32_t a1)
 	{
-		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Aura), 0xC8, a1);
+		const uint32_t aura = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Aura), 0xC8, a1);
 		U16(aura, 0xC4) = 0xE00;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -885,7 +885,7 @@ namespace cura
 	{
 		if (S16(a1, 0x24) > 0xB)
 		{
-			x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_ParticleEmitter), 0xC8, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_ParticleEmitter), 0xC8, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return a1;
@@ -908,9 +908,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x88A230);
-		states[1] = us(0x88A710);
-		states[2] = us(0x88A730);
+		states[0] = game_addr(game::MAG_025_Glow_State0_SpawnSwirl);
+		states[1] = game_addr(game::MAG_025_Glow_State1_CounterFinish);
+		states[2] = game_addr(game::MAG_025_Glow_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		DrawSprite(node);
 		const uint32_t colour = ArgSlotColour(node, 0x20);
@@ -925,12 +925,12 @@ namespace cura
 		const uint32_t node = a1;
 		cx::CopyAnchorFromSource(node, node + 0x1C);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFA00);
-		U32(node, 0x4C) = us(SEQ_Glow);
+		U32(node, 0x4C) = game_addr(SEQ_Glow);
 		U16(node, 0x52) = 3;
 		uint32_t angle = x::CrtRand() & 0xFFF;
 		for (int i = 8; i != 0; i--)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Swirl), 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Swirl), 0x84, node);
 			S32(t, 0x30) = 0x1000;
 			S32(t, 0x34) = 0x1000;
 			S32(t, 0x38) = 0x1000;
@@ -946,10 +946,10 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x88A610);
-		states[1] = us(0x88A680);
-		states[2] = us(0x88A6E0);
-		states[3] = us(0x88A700);
+		states[0] = game_addr(game::MAG_025_Swirl_State0_Start);
+		states[1] = game_addr(game::MAG_025_Swirl_State1_Loop);
+		states[2] = game_addr(game::MAG_025_Swirl_State2_CounterFinish);
+		states[3] = game_addr(game::MAG_025_Swirl_State3_Empty);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x7C) = (uint16_t)(U16(node, 0x7C) + U16(node, 0x7E));
 		if (S16(node, 0x7C) < 0)
@@ -965,7 +965,7 @@ namespace cura
 		U16(node, 0x1C) = xw;
 		if ((U8(node, 0x26) & 0x10) == 0 && (U8(node, 0x24) & 1) != 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Mote), 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Mote), 0x84, node);
 			RandomOffset(t, 0x80);
 			U16(t, 0x1E) = U16(node, 0x1E);
 			S32(t, 0x30) = 0x1000;
@@ -989,7 +989,7 @@ namespace cura
 		const uint32_t w20 = U32(node, 0x20);
 		U16(node, 0x78) = (uint16_t)(r1 & 0xFFF);
 		const uint32_t w1c = U32(node, 0x1C);
-		U32(node, 0x4C) = us(SEQ_Swirl);
+		U32(node, 0x4C) = game_addr(SEQ_Swirl);
 		U32(node, 0x68) = w1c;
 		U32(node, 0x6C) = w20;
 		U16(node, 0x52) = 1;
@@ -1012,7 +1012,7 @@ namespace cura
 		if (S16(node, 0x24) >= 0x10)
 		{
 			U16(node, 0x26) |= 0x10;
-			U32(node, 0x4C) = us(SEQ_SwirlEnd);
+			U32(node, 0x4C) = game_addr(SEQ_SwirlEnd);
 			U16(node, 0x50) = 0;
 			U16(node, 0x52) = 6;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -1024,9 +1024,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x88A550);
-		states[1] = us(0x88A590);
-		states[2] = us(0x88A600);
+		states[0] = game_addr(game::MAG_025_Mote_State0_Start);
+		states[1] = game_addr(game::MAG_025_Mote_State1_Fall);
+		states[2] = game_addr(game::MAG_025_Mote_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if (S16(node, 0x1E) > 0)
 			U8(node, 0x26) |= 5;
@@ -1039,7 +1039,7 @@ namespace cura
 	static uint32_t __cdecl MoteStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = us(SEQ_Mote);
+		U32(node, 0x4C) = game_addr(SEQ_Mote);
 		U16(node, 0x50) = 0;
 		U16(node, 0x52) = 0xA;
 		const uint32_t r = x::CrtRand();
@@ -1069,7 +1069,7 @@ namespace cura
 		S32(a1, 0x30) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x38) = 0x1000;
-		DecodeLayout(us(LAYOUT_Aura), a1 + 0x60, 0x64);
+		DecodeLayout(game_addr(LAYOUT_Aura), a1 + 0x60, 0x64);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1078,7 +1078,7 @@ namespace cura
 	{
 		U32(fr, FR_BLOCK) = fr + FR_MATRIX;
 		U32(fr, FR_BLOCK + 4) = fr + FR_FLAGS;
-		U32(fr, FR_BLOCK + 8) = MEM<uint32_t>(us(BLEND_BUFFER));
+		U32(fr, FR_BLOCK + 8) = MEM<uint32_t>(game_addr(BLEND_BUFFER));
 	}
 
 	static uint32_t __cdecl AuraPlay(uint32_t a1)
@@ -1095,7 +1095,7 @@ namespace cura
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		FrameLinks(fr);
 		const int left = prim::play((prim::Layout *)(node + 0x60), DrawCallback, (int)(fr + FR_BLOCK), 0);
 		if (left == 0)
@@ -1111,11 +1111,11 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		int32_t i = 0;
-		if (S16(us(TAB_RINGS), S16(node, 0x24) * 2) > 0)
+		if (S16(game_addr(TAB_RINGS), S16(node, 0x24) * 2) > 0)
 		{
 			do
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PLAYER), us(ORIG_Ring), 0xC8, node);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PLAYER), game_addr(ORIG_Ring), 0xC8, node);
 				S32(t, 0x30) = 0x1000;
 				S32(t, 0x34) = 0x1000;
 				S32(t, 0x38) = 0x1000;
@@ -1128,7 +1128,7 @@ namespace cura
 				if (x::CrtRand() & 1)
 					U16(t, 0x5C) = (uint16_t)(0x1000 - U16(t, 0x5C));
 				i++;
-			} while (i < S16(us(TAB_RINGS), S16(node, 0x24) * 2));
+			} while (i < S16(game_addr(TAB_RINGS), S16(node, 0x24) * 2));
 		}
 		if (S16(node, 0x24) >= 0x12)
 		{
@@ -1149,9 +1149,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x88B710);
-		states[1] = us(0x88B740);
-		states[2] = us(0x88B7F0);
+		states[0] = game_addr(game::MAG_025_Ring_State0_Start);
+		states[1] = game_addr(game::MAG_025_Ring_State1_Play);
+		states[2] = game_addr(game::MAG_025_Ring_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t a50 = (uint16_t)(U16(node, 0x58) + U16(node, 0x50));
 		const uint16_t a54 = (uint16_t)(U16(node, 0x5C) + U16(node, 0x54));
@@ -1164,7 +1164,7 @@ namespace cura
 
 	static uint32_t __cdecl RingStart(uint32_t a1)
 	{
-		DecodeLayout(us(LAYOUT_Ring), a1 + 0x60, 0x34);
+		DecodeLayout(game_addr(LAYOUT_Ring), a1 + 0x60, 0x34);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1182,7 +1182,7 @@ namespace cura
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		FrameLinks(fr);
 		const int left = prim::play((prim::Layout *)(node + 0x60), DrawCallback, (int)(fr + FR_BLOCK), 0);
 		if (left == 0)
@@ -1209,9 +1209,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(us(TAB_SPARKLES), S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(game_addr(TAB_SPARKLES), S16(node, 0x24) * 2); i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Sparkle), 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Sparkle), 0x84, node);
 			RandomOffset(t, 0x200);
 			U16(t, 0x1E) = U16(node, 0x1E);
 			S32(t, 0x30) = 0x1000;
@@ -1230,9 +1230,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x88BAF0);
-		states[1] = us(0x88BB40);
-		states[2] = us(0x88BB60);
+		states[0] = game_addr(game::MAG_025_Sparkle_State0_Start);
+		states[1] = game_addr(game::MAG_025_Sparkle_State1_CounterFinish);
+		states[2] = game_addr(game::MAG_025_Sparkle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		DrawSprite(node);
 		const uint32_t angle = (uint32_t)(U16(node, 0x7A) + 0x40) & 0xFFF;
@@ -1250,13 +1250,13 @@ namespace cura
 		const uint32_t node = a1;
 		if (x::CrtRand() & 1)
 		{
-			U32(node, 0x4C) = us(SEQ_SparkleA);
-			U32(node, 0x70) = us(SEQ_SparkleA2);
+			U32(node, 0x4C) = game_addr(SEQ_SparkleA);
+			U32(node, 0x70) = game_addr(SEQ_SparkleA2);
 		}
 		else
 		{
-			U32(node, 0x4C) = us(SEQ_SparkleB);
-			U32(node, 0x70) = us(SEQ_SparkleB2);
+			U32(node, 0x4C) = game_addr(SEQ_SparkleB);
+			U32(node, 0x70) = game_addr(SEQ_SparkleB2);
 		}
 		const uint32_t r = x::CrtRand();
 		U16(node, 0x52) = 0xF;
@@ -1281,9 +1281,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
-		for (int32_t i = 0; i < S16(us(TAB_PARTICLES), S16(node, 0x24) * 2); i++)
+		for (int32_t i = 0; i < S16(game_addr(TAB_PARTICLES), S16(node, 0x24) * 2); i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Particle), 0x84, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Particle), 0x84, node);
 			U16(t, 0x1E) = (uint16_t)(U16(node, 0x1E) - 0x180);
 			RandomOffset(t, 0x200);
 		}
@@ -1299,9 +1299,9 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x88CE10);
-		states[1] = us(0x88CE50);
-		states[2] = us(0x88CE80);
+		states[0] = game_addr(game::MAG_025_CURA_Particle_State0_Init);
+		states[1] = game_addr(game::MAG_025_CURA_Particle_State1_Rise);
+		states[2] = game_addr(game::MAG_025_CURA_Particle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if (S16(node, 0x1E) > 0)
 			U8(node, 0x26) |= 5;
@@ -1314,7 +1314,7 @@ namespace cura
 	static uint32_t __cdecl ParticleStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = us(SEQ_Mote);
+		U32(node, 0x4C) = game_addr(SEQ_Mote);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0xFC00;
 		const uint32_t r = x::CrtRand();
@@ -1338,7 +1338,7 @@ namespace cura
 	static void SetLightWords(uint16_t v)
 	{
 		for (int k = 0; k < 4; k++)
-			U16(us(LIGHT_WORDS), k * 0x2C) = v;
+			U16(game_addr(LIGHT_WORDS), k * 0x2C) = v;
 	}
 
 	static uint32_t __cdecl LightUp(uint32_t a1)
@@ -1380,23 +1380,23 @@ namespace cura
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x88C9E0);
-		states[1] = us(0x88CB80);
-		states[2] = us(0x88CBD0);
+		states[0] = game_addr(game::MAG_025_Overlay_State0_Start);
+		states[1] = game_addr(game::MAG_025_Overlay_State1_Rise);
+		states[2] = game_addr(game::MAG_025_Overlay_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if (U8(node, 0x26) & 8)
 		{
 			alignas(4) uint8_t anchor[8] = {};
 			cx::CopyAnchorFromSource(node, P(anchor));
-			const uint32_t yaw = x::sub_8DD7B0(us(0x1D97778));
+			const uint32_t yaw = x::sub_8DD7B0(game_addr(game::unk_1D97778));
 			U16(node, 0x52) = (uint16_t)yaw;
 			const int32_t s = shl32((int32_t)x::computeSin((uint32_t)(int32_t)(int16_t)yaw), 0xA);
 			U16(node, 0x1C) = (uint16_t)(s / 4096 + S32(P(anchor), 0));
 			const int32_t c = shl32((int32_t)x::computeCosine((uint32_t)(int32_t)S16(node, 0x52)), 0xA);
 			U16(node, 0x20) = (uint16_t)(c / 4096 + S32(P(anchor), 4));
-			U16(us(OVL_STATE), 0xB6) = U16(node, 0x1E);
-			OverlayParams(us(OVL_STATE), node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
-			DrawOverlay(us(OVL_STATE));
+			U16(game_addr(OVL_STATE), 0xB6) = U16(node, 0x1E);
+			OverlayParams(game_addr(OVL_STATE), node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
+			DrawOverlay(game_addr(OVL_STATE));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1406,16 +1406,16 @@ namespace cura
 	static uint32_t __cdecl OverlayStart(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t entity = U8(node, 0x2D) * 0x9Cu + us(0x1D972C0);
+		const uint32_t entity = U8(node, 0x2D) * 0x9Cu + game_addr(game::BattleEntitySlotData);
 		cx::CopyAnchorFromSource(node, node + 0x1C);
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xFA00);
 		U16(node, 0x42) = (uint16_t)Div18(0x100 - (int32_t)S16(node, 0x1E));
-		OverlayInit(us(OVL_STATE), us(OVL_FIRST), us(OVL_LIGHT), us(LIT_VERTICES), entity, U8(node, 0x2D));
+		OverlayInit(game_addr(OVL_STATE), game_addr(OVL_FIRST), game_addr(OVL_LIGHT), game_addr(LIT_VERTICES), entity, U8(node, 0x2D));
 		U8(node, 0x26) |= 8;
 		U8(entity, 0) |= 4;
-		U8(us(OVL_STATE), 0xC4) = 0x40;
-		U8(us(OVL_STATE), 0xC5) = 0x40;
-		U8(us(OVL_STATE), 0xC6) = 0x40;
+		U8(game_addr(OVL_STATE), 0xC4) = 0x40;
+		U8(game_addr(OVL_STATE), 0xC5) = 0x40;
+		U8(game_addr(OVL_STATE), 0xC6) = 0x40;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -1426,7 +1426,7 @@ namespace cura
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x42));
 		if (S16(node, 0x24) >= 0x12)
 		{
-			const uint32_t entity = U8(node, 0x2D) * 0x9Cu + us(0x1D972C0);
+			const uint32_t entity = U8(node, 0x2D) * 0x9Cu + game_addr(game::BattleEntitySlotData);
 			U16(entity, 0) &= 0xFFFB;
 			U8(U32(node, 0x10), 0x63) = 0;
 			U16(node, 0x26) = (uint16_t)((U16(node, 0x26) & 0xFFF7) | 1);
@@ -1435,78 +1435,78 @@ namespace cura
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x889F00, (void *)a_73A0D0, "025 MAG_025_sub_889F00" },
-		{ 0x889F10, (void *)a_73A170, "025 MAG_025_sub_889F10" },
-		{ 0x88A5D0, (void *)a_743C20, "025 sub_88A5D0" },
-		{ 0x88A600, (void *)a_73A6D0, "025 nullsub_1720" },
-		{ 0x88A6E0, (void *)a_743C00, "025 sub_88A6E0" },
-		{ 0x88A700, (void *)a_73A6D0, "025 nullsub_1721" },
-		{ 0x88A710, (void *)a_743C00, "025 sub_88A710" },
-		{ 0x88A730, (void *)a_73A6D0, "025 nullsub_1722" },
-		{ 0x88A740, (void *)a_73A380, "025 MAG_025_sub_88A740" },
-		{ 0x88B3C0, (void *)a_73A6D0, "025 nullsub_1714" },
-		{ 0x88B3D0, (void *)a_73F110, "025 MAG_025_sub_88B3D0" },
-		{ 0x88B440, (void *)a_7335D0, "025 sub_88B440" },
-		{ 0x88B520, (void *)a_73A6D0, "025 nullsub_1723" },
-		{ 0x88B530, (void *)a_73A380, "025 MAG_025_sub_88B530" },
-		{ 0x88B7F0, (void *)a_73A6D0, "025 nullsub_1724" },
-		{ 0x88B800, (void *)a_73A6D0, "025 nullsub_1725" },
-		{ 0x88B810, (void *)a_73A380, "025 MAG_025_sub_88B810" },
-		{ 0x88BB40, (void *)a_743C00, "025 sub_88BB40" },
-		{ 0x88BB60, (void *)a_73A6D0, "025 nullsub_1726" },
-		{ 0x88BB70, (void *)a_73A6D0, "025 nullsub_1727" },
-		{ 0x88CBD0, (void *)a_73A6D0, "025 nullsub_1715" },
-		{ 0x88CC70, (void *)a_73A380, "025 MAG_025_CURA_Emitter_Tick" },
-		{ 0x88CE80, (void *)a_73A6D0, "025 nullsub_1718" },
-		{ 0x88CE90, (void *)a_73A6D0, "025 nullsub_1719" },
-		{ 0x88CEE0, (void *)a_73A6D0, "025 nullsub_1716" },
-		{ 0x88CF40, (void *)a_73A6D0, "025 nullsub_1717" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_025_CURA_Root_State0_Advance, (void *)a_73A0D0, "025 MAG_025_sub_889F00" },
+		{ game::MAG_025_CURA_Root_State1_SpawnEmitter, (void *)a_73A170, "025 MAG_025_sub_889F10" },
+		{ game::MAG_025_StepCounterLimit, (void *)a_743C20, "025 sub_88A5D0" },
+		{ game::MAG_025_Mote_State2_Empty, (void *)a_73A6D0, "025 nullsub_1720" },
+		{ game::MAG_025_Swirl_State2_CounterFinish, (void *)a_743C00, "025 sub_88A6E0" },
+		{ game::MAG_025_Swirl_State3_Empty, (void *)a_73A6D0, "025 nullsub_1721" },
+		{ game::MAG_025_Glow_State1_CounterFinish, (void *)a_743C00, "025 sub_88A710" },
+		{ game::MAG_025_Glow_State2_Empty, (void *)a_73A6D0, "025 nullsub_1722" },
+		{ game::MAG_025_AuraTask, (void *)a_73A380, "025 MAG_025_sub_88A740" },
+		{ game::MAG_025_Aura_State2_Empty, (void *)a_73A6D0, "025 nullsub_1714" },
+		{ game::MAG_025_LightTask, (void *)a_73F110, "025 MAG_025_sub_88B3D0" },
+		{ game::MAG_025_Light_State0_ResetEntityRecords, (void *)a_7335D0, "025 sub_88B440" },
+		{ game::MAG_025_Light_State4_Empty, (void *)a_73A6D0, "025 nullsub_1723" },
+		{ game::MAG_025_RingSpawner, (void *)a_73A380, "025 MAG_025_sub_88B530" },
+		{ game::MAG_025_Ring_State2_Empty, (void *)a_73A6D0, "025 nullsub_1724" },
+		{ game::MAG_025_RingSpawner_State2_Empty, (void *)a_73A6D0, "025 nullsub_1725" },
+		{ game::MAG_025_SparkleSpawner, (void *)a_73A380, "025 MAG_025_sub_88B810" },
+		{ game::MAG_025_Sparkle_State1_CounterFinish, (void *)a_743C00, "025 sub_88BB40" },
+		{ game::MAG_025_Sparkle_State2_Empty, (void *)a_73A6D0, "025 nullsub_1726" },
+		{ game::MAG_025_SparkleSpawner_State2_Empty, (void *)a_73A6D0, "025 nullsub_1727" },
+		{ game::MAG_025_Overlay_State2_Empty, (void *)a_73A6D0, "025 nullsub_1715" },
+		{ game::MAG_025_CURA_Emitter_Tick, (void *)a_73A380, "025 MAG_025_CURA_Emitter_Tick" },
+		{ game::MAG_025_CURA_Particle_State2_Empty, (void *)a_73A6D0, "025 nullsub_1718" },
+		{ game::MAG_025_CURA_Emitter_State2_Empty, (void *)a_73A6D0, "025 nullsub_1719" },
+		{ game::MAG_025_Emitter_State6_Empty, (void *)a_73A6D0, "025 nullsub_1716" },
+		{ game::MAG_025_CURA_Root_State4_Empty, (void *)a_73A6D0, "025 nullsub_1717" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
 		{ ORIG_Master, (void *)Master, "025 Cura Master" },
-		{ 0x88CEF0, (void *)NextAction, "025 NextAction" },
-		{ 0x88CF20, (void *)WaitQueues, "025 WaitQueues" },
+		{ game::MAG_025_CURA_State2_NextActionLoop, (void *)NextAction, "025 NextAction" },
+		{ game::MAG_025_CURA_Root_State3_WaitQueues, (void *)WaitQueues, "025 WaitQueues" },
 		{ ORIG_Emitter, (void *)Emitter, "025 Emitter" },
-		{ 0x889FE0, (void *)SpawnFirst, "025 SpawnFirst" },
-		{ 0x88BB80, (void *)SpawnOverlay, "025 SpawnOverlay" },
-		{ 0x88CBE0, (void *)SpawnAuraC00, "025 SpawnAuraC00" },
-		{ 0x88CC10, (void *)SpawnAuraE00, "025 SpawnAuraE00" },
-		{ 0x88CC40, (void *)SpawnParticleEmitter, "025 SpawnParticleEmitter" },
-		{ 0x88CEA0, (void *)Heal, "025 Heal" },
+		{ game::MAG_025_Emitter_State0_SpawnGlow, (void *)SpawnFirst, "025 SpawnFirst" },
+		{ game::MAG_025_Emitter_State1_SpawnOverlay, (void *)SpawnOverlay, "025 SpawnOverlay" },
+		{ game::MAG_025_Emitter_State2_SpawnAuraC00, (void *)SpawnAuraC00, "025 SpawnAuraC00" },
+		{ game::MAG_025_Emitter_State3_SpawnAuraE00, (void *)SpawnAuraE00, "025 SpawnAuraE00" },
+		{ game::MAG_025_Emitter_State4_SpawnParticleEmitter, (void *)SpawnParticleEmitter, "025 SpawnParticleEmitter" },
+		{ game::MAG_025_Emitter_State5_Heal, (void *)Heal, "025 Heal" },
 		{ ORIG_Glow, (void *)Glow, "025 Glow" },
-		{ 0x88A230, (void *)GlowStart, "025 GlowStart" },
+		{ game::MAG_025_Glow_State0_SpawnSwirl, (void *)GlowStart, "025 GlowStart" },
 		{ ORIG_Swirl, (void *)Swirl, "025 Swirl" },
-		{ 0x88A610, (void *)SwirlStart, "025 SwirlStart" },
-		{ 0x88A680, (void *)SwirlLoop, "025 SwirlLoop" },
+		{ game::MAG_025_Swirl_State0_Start, (void *)SwirlStart, "025 SwirlStart" },
+		{ game::MAG_025_Swirl_State1_Loop, (void *)SwirlLoop, "025 SwirlLoop" },
 		{ ORIG_Mote, (void *)Mote, "025 Mote" },
-		{ 0x88A550, (void *)MoteStart, "025 MoteStart" },
-		{ 0x88A590, (void *)MoteFall, "025 MoteFall" },
-		{ 0x88A7A0, (void *)AuraStart, "025 AuraStart" },
-		{ 0x88A8D0, (void *)AuraPlay, "025 AuraPlay" },
-		{ 0x88B590, (void *)RingSpawnerStart, "025 RingSpawnerStart" },
-		{ 0x88B5B0, (void *)RingSpawn, "025 RingSpawn" },
+		{ game::MAG_025_Mote_State0_Start, (void *)MoteStart, "025 MoteStart" },
+		{ game::MAG_025_Mote_State1_Fall, (void *)MoteFall, "025 MoteFall" },
+		{ game::MAG_025_Aura_State0_Start, (void *)AuraStart, "025 AuraStart" },
+		{ game::MAG_025_Aura_State1_Play, (void *)AuraPlay, "025 AuraPlay" },
+		{ game::MAG_025_RingSpawner_State0_Start, (void *)RingSpawnerStart, "025 RingSpawnerStart" },
+		{ game::MAG_025_RingSpawner_State1_SpawnRing, (void *)RingSpawn, "025 RingSpawn" },
 		{ ORIG_Ring, (void *)Ring, "025 Ring" },
-		{ 0x88B710, (void *)RingStart, "025 RingStart" },
-		{ 0x88B740, (void *)RingPlay, "025 RingPlay" },
-		{ 0x88B870, (void *)SparkleSpawnerStart, "025 SparkleSpawnerStart" },
-		{ 0x88B8C0, (void *)SparkleSpawn, "025 SparkleSpawn" },
+		{ game::MAG_025_Ring_State0_Start, (void *)RingStart, "025 RingStart" },
+		{ game::MAG_025_Ring_State1_Play, (void *)RingPlay, "025 RingPlay" },
+		{ game::MAG_025_SparkleSpawner_State0_Start, (void *)SparkleSpawnerStart, "025 SparkleSpawnerStart" },
+		{ game::MAG_025_SparkleSpawner_State1_SpawnSparkle, (void *)SparkleSpawn, "025 SparkleSpawn" },
 		{ ORIG_Sparkle, (void *)Sparkle, "025 Sparkle" },
-		{ 0x88BAF0, (void *)SparkleStart, "025 SparkleStart" },
-		{ 0x88CCD0, (void *)ParticleEmitterStart, "025 ParticleEmitterStart" },
-		{ 0x88CD20, (void *)ParticleSpawn, "025 ParticleSpawn" },
+		{ game::MAG_025_Sparkle_State0_Start, (void *)SparkleStart, "025 SparkleStart" },
+		{ game::MAG_025_CURA_Emitter_State0_AnchorAndRate, (void *)ParticleEmitterStart, "025 ParticleEmitterStart" },
+		{ game::MAG_025_CURA_Emitter_State1_RiseAndSpawn, (void *)ParticleSpawn, "025 ParticleSpawn" },
 		{ ORIG_Particle, (void *)Particle, "025 Particle" },
-		{ 0x88CE10, (void *)ParticleStart, "025 ParticleStart" },
-		{ 0x88CE50, (void *)ParticleMove, "025 ParticleMove" },
-		{ 0x88B480, (void *)LightUp, "025 LightUp" },
-		{ 0x88B4C0, (void *)LightHold, "025 LightHold" },
-		{ 0x88B4E0, (void *)LightDown, "025 LightDown" },
+		{ game::MAG_025_CURA_Particle_State0_Init, (void *)ParticleStart, "025 ParticleStart" },
+		{ game::MAG_025_CURA_Particle_State1_Rise, (void *)ParticleMove, "025 ParticleMove" },
+		{ game::MAG_025_Light_State1_Up, (void *)LightUp, "025 LightUp" },
+		{ game::MAG_025_Light_State2_WaitTick20, (void *)LightHold, "025 LightHold" },
+		{ game::MAG_025_Light_State3_Down, (void *)LightDown, "025 LightDown" },
 		{ ORIG_Overlay, (void *)Overlay, "025 Overlay" },
-		{ 0x88C9E0, (void *)OverlayStart, "025 OverlayStart" },
-		{ 0x88CB80, (void *)OverlayRise, "025 OverlayRise" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_025_Overlay_State0_Start, (void *)OverlayStart, "025 OverlayStart" },
+		{ game::MAG_025_Overlay_State1_Rise, (void *)OverlayRise, "025 OverlayRise" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

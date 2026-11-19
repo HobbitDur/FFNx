@@ -24,36 +24,36 @@ namespace act
 {
 namespace sigh
 {
-	static const Mod MOD_046 = { "sigh", 46, 0x831B30, 0x836570,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2652798, 0x26527A4, 0x0, 0x0, 0x264EC60, 0x0, 0x0, 0x0, 0x264EC84, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2652370, 0x0, 0x2652610, 0x0, 0x0, 0x0, 0x0, 0x0, 0x265278A, 0x0, 0x0, 0x265279A, 0x0, 0x26527A0, 0x0, 0x26527B0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x832190, 0x832BE0, 0x832C70, 0x832CD0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x832E70, 0x832FB0, 0x832FF0, 0x834280, 0x8342D0, 0x834300, 0x834380, 0x834A70, 0x834AC0, 0x834B60, 0x834C20, 0x835470, 0x835870, 0x835900, 0x0, 0x0, 0x0, 0x0, 0x0, 0x831FE0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x832340, 0x832420, 0x832580, 0x832650, 0x832770, 0x832980, 0x832F30, 0x833080, 0x8336E0, 0x833730, 0x8337C0, 0x833890, 0x834020, 0x834130, 0x8341B0, 0x8341E0, 0x834A00, 0x834A30, 0x834B10, 0x834C30, 0x834D80, 0x835410, 0x835440, 0x835620, 0x835760, 0x0, 0x832BE0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_046 = { "sigh", 46, game::MAG_046_SIGH_FL, game::MAG_045_STARE_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, game::g_Sigh_ActorCursor, game::g_Sigh_ActorPool, {}, {}, game::g_Sigh_FilePtr, {}, {}, {}, game::unk_264EC84, {}, {}, {}, {}, {}, {}, {}, game::MAG_046_ActorSystemQueue, {}, game::MAG_046_EmitterQueue, {}, {}, {}, {}, {}, game::unk_265278A, {}, {}, game::unk_265279A, {}, game::g_Sigh_ScratchSP, {}, game::g_Sigh_ActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_046_DirectorSetup, game::MAG_046_ActSys_Step, game::MAG_046_ActSys_DrawPass, game::MAG_046_Sigh_PrimActorRenderStub, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_046_ActSys_DrawSpritePass, game::MAG_046_ActSys_UpdatePass, game::MAG_046_ActorStep, game::MAG_046_ActSys_UpdateEmitter, game::MAG_046_Particle_LifeCountdown, game::MAG_046_ActSys_EmitterSpawnStep, game::MAG_046_ActSys_SpawnParticles, game::MAG_046_RandVec3, game::MAG_046_JitterAngles3, game::MAG_046_ActSys_AllocParticleSlot, game::MAG_046_GetWord8Minus1, game::MAG_046_Particle_Init, game::MAG_046_SpawnSubEffects, game::MAG_046_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_046_Sigh_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_046_ResetTrailHistory, game::MAG_046_Director_CasterRefPoints, game::MAG_046_FillTrailRows, game::MAG_046_Director_Mode3Setup, game::MAG_046_Director_TargetRefPoints, game::MAG_046_RelocateActorData, game::MAG_046_Sigh_DrawSpriteActor, game::MAG_046_ActorMotion, game::MAG_046_DampValue, game::MAG_046_DampVector, game::MAG_046_Instance_AdvanceTexFrame, game::MAG_046_Instance_BuildTransform, game::MAG_046_MorphVertexBlock, game::MAG_046_Instance_EndOfLifeTest, game::MAG_046_Instance_SpawnFollowUp, game::MAG_046_AllocParticle, game::MAG_046_RandRange, game::MAG_046_RandRangeWide, game::MAG_046_RandAngleJitter, game::MAG_046_Particle_AttachToOwner, game::MAG_046_Actor_InterpolatePosition, game::MAG_046_ParticleList_Append, game::MAG_046_ParticleList_Unlink, game::MAG_046_Particle_PlaceAtAnchorSet, game::MAG_046_Particle_PlaceAtPoint, {}, game::MAG_046_ActSys_Step, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x264EC64;
-	static const uint32_t ACTOR_STATE = 0x26527B0;
-	static const uint32_t SCRATCH_SP = 0x26527A0;
-	static const uint32_t Q_EMITTER = 0x2652610, Q_ACTORS = 0x2652370, Q_SIGH = 0x264ED60, Q_PART = 0x264EFA8, Q_STAGE = 0x2652600;
-	static const uint32_t ORIG_Master = 0x831CB0;
-	static const uint32_t ORIG_Emitter = 0x831FE0;
-	static const uint32_t ORIG_ActorSystem = 0x832100;
-	static const uint32_t ORIG_Sigh = 0x8359C0;
-	static const uint32_t ORIG_Spawner = 0x835E90;
-	static const uint32_t ORIG_Breath = 0x836090;
-	static const uint32_t ACTOR_DATA = 0x15C3398;
-	static const uint32_t MODEL_A = 0x15C0D58, MODEL_B = 0x15C1858;
-	static const uint32_t COLOR_TABLE_A = 0x15BCD10, COLOR_TABLE_B = 0x15C0D14;
-	static const uint32_t BURST_TABLE = 0x15C353C;
-	static const uint32_t FADE_TABLE = 0x15C3550;
-	static const uint32_t FLIPBOOK_0 = 0x15B82A4, FLIPBOOK_1 = 0x15B8438, FLIPBOOK_2 = 0x15B8BA4;
-	static const void *SOUND_Sigh() { return (const void *)us(0x15B82A0); }
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id PACKET_CURSOR = game::g_Sigh_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::g_Sigh_ActorState;
+	static constexpr game::Id SCRATCH_SP = game::g_Sigh_ScratchSP;
+	static constexpr game::Id Q_EMITTER = game::MAG_046_EmitterQueue, Q_ACTORS = game::MAG_046_ActorSystemQueue, Q_SIGH = game::MAG_046_SighQueue, Q_PART = game::MAG_046_BreathQueue, Q_STAGE = game::MAG_046_StageQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_046_Sigh_MasterTask;
+	static constexpr game::Id ORIG_Emitter = game::MAG_046_Sigh_EmitterTask;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_046_Sigh_ActorSystemTask;
+	static constexpr game::Id ORIG_Sigh = game::MAG_046_Sigh_SighTask;
+	static constexpr game::Id ORIG_Spawner = game::MAG_046_Sigh_BreathSpawnerTask;
+	static constexpr game::Id ORIG_Breath = game::MAG_046_Sigh_BreathPuffTask;
+	static constexpr game::Id ACTOR_DATA = game::Sigh_ActorData;
+	static constexpr game::Id MODEL_A = game::Sigh_PrimModelA, MODEL_B = game::Sigh_PrimModelB;
+	static constexpr game::Id COLOR_TABLE_A = game::Sigh_ColorFramesA, COLOR_TABLE_B = game::Sigh_ColorFramesB;
+	static constexpr game::Id BURST_TABLE = game::Sigh_BurstTable;
+	static constexpr game::Id FADE_TABLE = game::Sigh_FadeTable;
+	static constexpr game::Id FLIPBOOK_0 = game::unk_15B82A4, FLIPBOOK_1 = game::unk_15B8438, FLIPBOOK_2 = game::unk_15B8BA4;
+	static const void *SOUND_Sigh() { return (const void *)game_addr(game::Sigh_Sound); }
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(a1, a2, a3); }
-		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(a1, a2, a3, a4); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(a1, a2, a3); }
+		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(a1, a2, a3, a4); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -177,46 +177,46 @@ namespace sigh
 		g_mod = &MOD_046;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x264EC84)) = us(0x2793E58);
-		states[0] = us(0x831E10);
-		states[1] = us(0x831E20);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_264EC84)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_046_Sigh_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_046_Sigh_Master_State1_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = us(0x831E30);
-		states[3] = us(0x831FB0);
-		states[4] = us(0x8363B0);
-		states[5] = us(0x8363F0);
-		states[6] = us(0x8364F0);
-		states[7] = us(0x836500);
-		states[8] = us(0x836530);
-		states[9] = us(0x836540);
-		states[10] = us(0x836560);
+		states[2] = game_addr(game::MAG_046_Sigh_MasterReserveActorPools);
+		states[3] = game_addr(game::MAG_046_Sigh_MasterSpawnEmitters);
+		states[4] = game_addr(game::MAG_046_Sigh_MasterNextAction);
+		states[5] = game_addr(game::MAG_046_Sigh_MasterWaitEnd);
+		states[6] = game_addr(game::MAG_046_Sigh_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_046_Sigh_Master_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_046_Sigh_Master_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_046_Sigh_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_046_Sigh_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2652784));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2651B7C));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x264EC80)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_2652784));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2651B7C));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_264EC80)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2652780));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2651B78));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x264EC80)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_2652780));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2651B78));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_264EC80)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x265279A)) = 0;
-		MEM<uint16_t>(us(0x265278A)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SIGH)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PART)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
+		MEM<uint16_t>(game_addr(game::unk_265279A)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_265278A)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_SIGH)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_PART)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -227,26 +227,26 @@ namespace sigh
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x26527AC));
-		MEM<uint32_t>(us(0x265278C)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_046_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::g_Sigh_ParticlePool)) = p;
 		p += 0x870;
-		MEM<uint32_t>(us(0x26527A4)) = p;
+		MEM<uint32_t>(game_addr(game::g_Sigh_ActorPool)) = p;
 		p += 0x10680;
-		MEM<uint32_t>(us(0x26527AC)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_046_FileArenaCursor)) = p;
 		sg_831E80();
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x831EC0), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_046_Sigh_StageWobbleInTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl sg_831E80(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x265278C)), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26527A4)), 0x10680);
-		MEM<uint16_t>(us(0x264EFA0)) = 0;
-		MEM<uint16_t>(us(0x2652798)) = 0;
-		MEM<uint16_t>(us(0x2652788)) = 0;
-		MEM<uint16_t>(us(0x264EC68)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::g_Sigh_ParticlePool)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::g_Sigh_ActorPool)), 0x10680);
+		MEM<uint16_t>(game_addr(game::g_Sigh_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::g_Sigh_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2652788)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_264EC68)) = 0;
 		return 0;
 	}
 
@@ -261,7 +261,7 @@ namespace sigh
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -271,10 +271,10 @@ namespace sigh
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x832070);
-		states[1] = us(0x836310);
-		states[2] = us(0x836330);
-		states[3] = us(0x8363A0);
+		states[0] = game_addr(game::MAG_046_Sigh_EmitterSpawnActorSystemAndSigh);
+		states[1] = game_addr(game::MAG_046_Sigh_EmitterReleaseMaster);
+		states[2] = game_addr(game::MAG_046_Sigh_EmitterApplyDamage);
+		states[3] = game_addr(game::MAG_046_Sigh_Emitter_State3_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -304,7 +304,7 @@ namespace sigh
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;
 		const uint32_t root = U32(node, 0x10);
-		MEM<uint32_t>(us(0x26527B0)) = st;
+		MEM<uint32_t>(game_addr(game::g_Sigh_ActorState)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x24) = w29c;
@@ -316,7 +316,7 @@ namespace sigh
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(us(0x26527B0));
+			st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -336,41 +336,41 @@ namespace sigh
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		sg_832420();
-		st = MEM<uint32_t>(us(0x26527B0));
+		st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		if (U16(st, 0x24) == 4)
-			callp(us(0x832340), node);
+			callp(game_addr(game::MAG_046_ResetTrailHistory), node);
 		sg_832770();
-		st = MEM<uint32_t>(us(0x26527B0));
+		st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		if (U16(st, 0x24) == 1)
 		{
-			callp(us(0x832580), node);
-			st = MEM<uint32_t>(us(0x26527B0));
+			callp(game_addr(game::MAG_046_FillTrailRows), node);
+			st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(us(0x26527B0));
+			st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
+		uint32_t e2 = game_addr(game::BattleEntitySlotData) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(us(0x26527B0));
+		st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		U32(st, 0) = dist;
 		return 0;
 	}
 
 	uint32_t __cdecl sg_832340(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26527B0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -387,15 +387,15 @@ namespace sigh
 
 	uint32_t __cdecl sg_832420(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -408,7 +408,7 @@ namespace sigh
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -416,7 +416,7 @@ namespace sigh
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -431,7 +431,7 @@ namespace sigh
 
 	uint32_t __cdecl sg_832580(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26527B0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -452,7 +452,7 @@ namespace sigh
 
 	uint32_t __cdecl sg_832770(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -461,11 +461,11 @@ namespace sigh
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+				const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -478,7 +478,7 @@ namespace sigh
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -486,7 +486,7 @@ namespace sigh
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -528,7 +528,7 @@ namespace sigh
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x26527B0), 0) = sys;
+		U32(game_addr(game::g_Sigh_ActorState), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -540,7 +540,7 @@ namespace sigh
 			sg_832FB0();
 			sg_832E70();
 			sg_832C70();
-			sys = U32(us(0x26527B0), 0);
+			sys = U32(game_addr(game::g_Sigh_ActorState), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -553,19 +553,19 @@ namespace sigh
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x265279A), 0) = (uint16_t)(U16(us(0x265279A), 0) + c14);
-		U16(us(0x265278A), 0) = (uint16_t)(U16(us(0x265278A), 0) + c16);
+		U16(game_addr(game::unk_265279A), 0) = (uint16_t)(U16(game_addr(game::unk_265279A), 0) + c14);
+		U16(game_addr(game::unk_265278A), 0) = (uint16_t)(U16(game_addr(game::unk_265278A), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl sg_832C70(void)
 	{
-		uint32_t act = U32(U32(us(0x26527B0), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_Sigh_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x26527B0), 0);
+				uint32_t sys = U32(game_addr(game::g_Sigh_ActorState), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -579,10 +579,10 @@ namespace sigh
 
 	uint32_t __cdecl sg_832CD0(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -602,9 +602,9 @@ namespace sigh
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-			MEM<uint32_t>(us(PACKET_CURSOR)) = sg_832E10(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = sg_832E10(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -619,30 +619,30 @@ namespace sigh
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 				const uint32_t r = sg_832E10(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl sg_832E70(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x26527B0)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::g_Sigh_ActorState)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x26527B0));
+				uint32_t st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -677,26 +677,26 @@ namespace sigh
 	uint32_t __cdecl sg_832F30(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl sg_832FB0(void)
 	{
-		uint32_t act = U32(U32(us(0x26527B0), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_Sigh_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -712,7 +712,7 @@ namespace sigh
 	uint32_t __cdecl sg_832FF0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x26527B0));
+		uint32_t st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -733,7 +733,7 @@ namespace sigh
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x26527B0));
+			st = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -745,7 +745,7 @@ namespace sigh
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x26527B0), 0);
+		uint32_t st = U32(game_addr(game::g_Sigh_ActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -828,8 +828,8 @@ namespace sigh
 
 	uint32_t __cdecl sg_8341E0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x265278C));
-		int32_t idx = MEM<int16_t>(us(0x264EFA0));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::g_Sigh_ParticlePool));
+		int32_t idx = MEM<int16_t>(game_addr(game::g_Sigh_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -839,7 +839,7 @@ namespace sigh
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -854,9 +854,9 @@ namespace sigh
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(us(0x264EFA0)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::g_Sigh_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x264EFA0)) = 0;
+			MEM<uint16_t>(game_addr(game::g_Sigh_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -869,9 +869,9 @@ namespace sigh
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x834C30), a1);
+			callp(game_addr(game::MAG_046_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x834D80), a1);
+			callp(game_addr(game::MAG_046_Actor_InterpolatePosition), a1);
 		sg_834300(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -880,7 +880,7 @@ namespace sigh
 
 	uint32_t __cdecl sg_834300(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x26527B0), 0);
+		uint32_t sys = U32(game_addr(game::g_Sigh_ActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -907,9 +907,9 @@ namespace sigh
 
 	uint32_t __cdecl sg_834380(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x26527A0), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::g_Sigh_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x26527A0), 0) = sp;
+		U32(game_addr(game::g_Sigh_ScratchSP), 0) = sp;
 		uint32_t node = a_7387B0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -919,7 +919,7 @@ namespace sigh
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x26527B0), 0);
+			uint32_t ctx = U32(game_addr(game::g_Sigh_ActorState), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1087,14 +1087,14 @@ namespace sigh
 			}
 		}
 		sg_835870(node, desc);
-		U32(us(0x26527A0), 0) = U32(us(0x26527A0), 0) + 0x50;
+		U32(game_addr(game::g_Sigh_ScratchSP), 0) = U32(game_addr(game::g_Sigh_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl sg_834D80(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x26527B0), 0);
+		const uint32_t st = U32(game_addr(game::g_Sigh_ActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1154,7 +1154,7 @@ namespace sigh
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x26527B0), 0);
+				uint32_t g = U32(game_addr(game::g_Sigh_ActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1164,7 +1164,7 @@ namespace sigh
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x26527B0), 0);
+				uint32_t g = U32(game_addr(game::g_Sigh_ActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1239,7 +1239,7 @@ namespace sigh
 
 	uint32_t __cdecl sg_835900(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x26527B0));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1264,14 +1264,14 @@ namespace sigh
 				do
 				{
 					sg_8341E0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x26527B0));
+					dir = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				sg_8341E0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x26527B0));
+				dir = MEM<uint32_t>(game_addr(game::g_Sigh_ActorState));
 			}
 		}
 		return 0;
@@ -1290,7 +1290,7 @@ namespace sigh
 
 	uint32_t __cdecl sg_835E90(uint32_t a1)
 	{
-		const uint32_t tab[4] = { us(0x835EF0), us(0x835F00), us(0x835F20), us(0x836290) };
+		const uint32_t tab[4] = { game_addr(game::MAG_046_Sigh_BreathSpawner_State0_Advance), game_addr(game::MAG_046_Sigh_BreathSpawnerWait), game_addr(game::MAG_046_Sigh_BreathSpawnerBurst), game_addr(game::MAG_046_Sigh_BreathSpawner_State3_Empty) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -1301,9 +1301,9 @@ namespace sigh
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x836160);
-		states[1] = us(0x8361C0);
-		states[2] = us(0x836280);
+		states[0] = game_addr(game::MAG_046_Sigh_BreathPuffInit);
+		states[1] = game_addr(game::MAG_046_Sigh_BreathPuffMove);
+		states[2] = game_addr(game::MAG_046_Sigh_BreathPuff_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		sg_8360F0(node);
 		const uint8_t status = U8(node, 0x26);
@@ -1318,10 +1318,10 @@ namespace sigh
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0;
 	}
@@ -1331,7 +1331,7 @@ namespace sigh
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x836420), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_046_Sigh_StageWobbleOutTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1355,7 +1355,7 @@ namespace sigh
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1363,8 +1363,8 @@ namespace sigh
 
 	uint32_t __cdecl sg_832070(uint32_t a1)
 	{
-		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0, 0x2D, 0);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_SIGH), us(ORIG_Sigh), 0x8C, a1);
+		a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(ACTOR_DATA), 0, 0x2D, 0);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SIGH), game_addr(ORIG_Sigh), 0x8C, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1389,11 +1389,11 @@ namespace sigh
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x835CF0);
-		states[1] = us(0x835E30);
-		states[2] = us(0x8362A0);
-		states[3] = us(0x8362C0);
-		states[4] = us(0x836300);
+		states[0] = game_addr(game::MAG_046_Sigh_SighSetup);
+		states[1] = game_addr(game::MAG_046_Sigh_SighSpawnBreath);
+		states[2] = game_addr(game::MAG_046_Sigh_SighWaitFade);
+		states[3] = game_addr(game::MAG_046_Sigh_SighFade);
+		states[4] = game_addr(game::MAG_046_Sigh_Sigh_State4_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
@@ -1403,8 +1403,8 @@ namespace sigh
 			const uint32_t s2 = (uint8_t)(U8(node, 0x86) + 6);
 			U16(node, 0x86) = (uint16_t)s2;
 			sg_835C70(0x300, 0x100, 0x20, 0x100, 0x2A0, 0x100, s2);
-			sg_835C20(U32(node, 0x74), MEM<uint32_t>(us(COLOR_TABLE_A) + (uint32_t)(int32_t)S16(node, 0x82) * 4));
-			sg_835C20(U32(node, 0x78), MEM<uint32_t>(us(COLOR_TABLE_B) + (uint32_t)(int32_t)S16(node, 0x82) * 4));
+			sg_835C20(U32(node, 0x74), MEM<uint32_t>(game_addr(COLOR_TABLE_A) + (uint32_t)(int32_t)S16(node, 0x82) * 4));
+			sg_835C20(U32(node, 0x78), MEM<uint32_t>(game_addr(COLOR_TABLE_B) + (uint32_t)(int32_t)S16(node, 0x82) * 4));
 			uint32_t ang = node + 0x7C;
 			for (int k = 3; k != 0; k--, ang += 2)
 			{
@@ -1437,17 +1437,17 @@ namespace sigh
 		S32(m, 0x18) = S16(a1, 0x1E);
 		S32(m, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(m, a1 + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		const uint32_t hdr = x::Field_Alloc(0x58);
 		U32(hdr, 0) = U32(a1, 0x4C);
 		U32(hdr, 8) = U32(a1, 0x40);
 		U32(hdr, 0xC) = (uint32_t)(int32_t)S16(a1, 0x50);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(hdr, 0x1C) = 0xF0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
 		x::Field_Free(0x58);
 		return 0;
 	}
@@ -1513,8 +1513,8 @@ namespace sigh
 		S32(a1, 0x38) = 0x1000;
 		const uint16_t face = U16(ent, 0xE);
 		U16(a1, 0x80) = face;
-		U32(a1, 0x74) = us(MODEL_A);
-		U32(a1, 0x78) = us(MODEL_B);
+		U32(a1, 0x74) = game_addr(MODEL_A);
+		U32(a1, 0x78) = game_addr(MODEL_B);
 		U16(a1, 0x7C) = (uint16_t)(face - 0x155);
 		U16(a1, 0x7E) = (uint16_t)(face + 0x155);
 		uint16_t rect[4];
@@ -1538,7 +1538,7 @@ namespace sigh
 		if (S16(a1, 0x24) < 4)
 			return 0;
 		U8(a1, 0x26) &= 0xFB;
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_Spawner), 0x8C, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_Spawner), 0x8C, a1);
 		const uint16_t px = U16(a1, 0x1C);
 		const uint16_t pz = U16(a1, 0x20);
 		U16(t, 0x1C) = px;
@@ -1567,7 +1567,7 @@ namespace sigh
 		U16(v, 0) = 0;
 		U16(v, 2) = 0;
 		U16(v, 4) = 0xF400;
-		if (MEM<int16_t>(us(BURST_TABLE) + (uint32_t)(int32_t)S16(node, 0x88) * 2) > 0)
+		if (MEM<int16_t>(game_addr(BURST_TABLE) + (uint32_t)(int32_t)S16(node, 0x88) * 2) > 0)
 		{
 			int32_t i = 0;
 			do
@@ -1579,7 +1579,7 @@ namespace sigh
 				r = r % 0x400;
 				r = (r - 0x200) & 0xFFF;
 				x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)(int16_t)r);
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_Breath), 0x8C, node);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_Breath), 0x8C, node);
 				const uint32_t pz = U32(node, 0x20);
 				U32(t, 0x1C) = U32(node, 0x1C);
 				U32(t, 0x20) = pz;
@@ -1598,10 +1598,10 @@ namespace sigh
 				r = (int32_t)x::CrtRand();
 				U16(t, 0x82) = (uint16_t)(-16 - (r & 0xF));
 				i++;
-			} while (i < MEM<int16_t>(us(BURST_TABLE) + (uint32_t)(int32_t)S16(node, 0x88) * 2));
+			} while (i < MEM<int16_t>(game_addr(BURST_TABLE) + (uint32_t)(int32_t)S16(node, 0x88) * 2));
 		}
 		U16(node, 0x88) = (uint16_t)(U16(node, 0x88) + 1);
-		if (MEM<uint16_t>(us(BURST_TABLE) + (uint32_t)(int32_t)S16(node, 0x88) * 2) == 0)
+		if (MEM<uint16_t>(game_addr(BURST_TABLE) + (uint32_t)(int32_t)S16(node, 0x88) * 2) == 0)
 		{
 			U8(node, 0x26) |= 1;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -1613,11 +1613,11 @@ namespace sigh
 	{
 		const int32_t r = (int32_t)x::CrtRand() % 3;
 		if (r == 0)
-			U32(a1, 0x4C) = us(FLIPBOOK_0);
+			U32(a1, 0x4C) = game_addr(FLIPBOOK_0);
 		else if (r == 1)
-			U32(a1, 0x4C) = us(FLIPBOOK_1);
+			U32(a1, 0x4C) = game_addr(FLIPBOOK_1);
 		else if (r == 2)
-			U32(a1, 0x4C) = us(FLIPBOOK_2);
+			U32(a1, 0x4C) = game_addr(FLIPBOOK_2);
 		U16(a1, 0x52) = 0xE;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -1657,7 +1657,7 @@ namespace sigh
 	uint32_t __cdecl sg_8362C0(uint32_t a1)
 	{
 		U16(a1, 0x88) = (uint16_t)(U16(a1, 0x88) + 1);
-		const uint16_t f = MEM<uint16_t>(us(FADE_TABLE) + (uint32_t)(int32_t)S16(a1, 0x88) * 2);
+		const uint16_t f = MEM<uint16_t>(game_addr(FADE_TABLE) + (uint32_t)(int32_t)S16(a1, 0x88) * 2);
 		U16(a1, 0x50) = f;
 		if ((int16_t)f >= 0x1000)
 		{
@@ -1717,107 +1717,107 @@ namespace sigh
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x831E10, (void *)a_73A0D0, "046 MAG_046_sub_831E10" },
-		{ 0x831E20, (void *)a_73A0D0, "046 MAG_046_sub_831E20" },
-		{ 0x831EC0, (void *)a_73A380, "046 MAG_046_sub_831EC0" },
-		{ 0x831F20, (void *)a_7335D0, "046 MAG_046_sub_831F20" },
-		{ 0x831FA0, (void *)a_73A6D0, "046 nullsub_1568" },
-		{ 0x831FB0, (void *)a_73A170, "046 MAG_046_sub_831FB0" },
-		{ 0x8320B0, (void *)a_73C100, "046 MAG_046_sub_8320B0" },
-		{ 0x832100, (void *)a_73A380, "046 MAG_046_sub_832100" },
-		{ 0x832650, (void *)a_73FE90, "046 sub_832650" },
-		{ 0x832980, (void *)a_740210, "046 sub_832980" },
-		{ 0x833080, (void *)a_740910, "046 sub_833080" },
-		{ 0x8336E0, (void *)a_740F70, "046 sub_8336E0" },
-		{ 0x833730, (void *)a_740FC0, "046 sub_833730" },
-		{ 0x8337C0, (void *)a_741050, "046 sub_8337C0" },
-		{ 0x833890, (void *)a_741120, "046 sub_833890" },
-		{ 0x8342D0, (void *)a_741B60, "046 sub_8342D0" },
-		{ 0x834A00, (void *)a_742290, "046 au_re__rand_45" },
-		{ 0x834A30, (void *)a_7422C0, "046 sub_834A30" },
-		{ 0x834A70, (void *)a_742300, "046 sub_834A70" },
-		{ 0x834AC0, (void *)a_742350, "046 sub_834AC0" },
-		{ 0x834B10, (void *)a_7423A0, "046 au_re__rand_45_0" },
-		{ 0x834B60, (void *)a_7387B0, "046 sub_834B60" },
-		{ 0x834C20, (void *)a_7424B0, "046 sub_834C20" },
-		{ 0x834C30, (void *)a_7424C0, "046 sub_834C30" },
-		{ 0x835410, (void *)a_742CA0, "046 sub_835410" },
-		{ 0x835440, (void *)a_742CD0, "046 sub_835440" },
-		{ 0x835470, (void *)a_742D00, "046 sub_835470" },
-		{ 0x835620, (void *)a_742EB0, "046 sub_835620" },
-		{ 0x835760, (void *)a_742FF0, "046 sub_835760" },
-		{ 0x8359B0, (void *)a_73A6D0, "046 nullsub_1569" },
-		{ 0x835EF0, (void *)a_73A0D0, "046 sub_835EF0" },
-		{ 0x836250, (void *)a_743C20, "046 sub_836250" },
-		{ 0x836280, (void *)a_73A6D0, "046 nullsub_1570" },
-		{ 0x836290, (void *)a_73A6D0, "046 nullsub_1571" },
-		{ 0x836300, (void *)a_73A6D0, "046 nullsub_1572" },
-		{ 0x8363A0, (void *)a_73A6D0, "046 nullsub_1573" },
-		{ 0x836420, (void *)a_73A380, "046 MAG_046_sub_836420" },
-		{ 0x8364E0, (void *)a_73A6D0, "046 nullsub_1575" },
-		{ 0x8364F0, (void *)a_747550, "046 MAG_046_sub_8364F0" },
-		{ 0x836500, (void *)a_747560, "046 MAG_046_sub_836500" },
-		{ 0x836530, (void *)a_747590, "046 MAG_046_sub_836530" },
-		{ 0x836540, (void *)a_7475A0, "046 MAG_046_sub_836540" },
-		{ 0x836560, (void *)a_73A6D0, "046 nullsub_1574" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_046_Sigh_Master_State0_Advance, (void *)a_73A0D0, "046 MAG_046_sub_831E10" },
+		{ game::MAG_046_Sigh_Master_State1_Advance, (void *)a_73A0D0, "046 MAG_046_sub_831E20" },
+		{ game::MAG_046_Sigh_StageWobbleInTask, (void *)a_73A380, "046 MAG_046_sub_831EC0" },
+		{ game::MAG_046_Sigh_StageWobbleIn_State0_ResetEntityRecords, (void *)a_7335D0, "046 MAG_046_sub_831F20" },
+		{ game::MAG_046_Sigh_StageWobbleIn_State2_Empty, (void *)a_73A6D0, "046 nullsub_1568" },
+		{ game::MAG_046_Sigh_MasterSpawnEmitters, (void *)a_73A170, "046 MAG_046_sub_831FB0" },
+		{ game::MAG_046_Sigh_SpawnActorSystem, (void *)a_73C100, "046 MAG_046_sub_8320B0" },
+		{ game::MAG_046_Sigh_ActorSystemTask, (void *)a_73A380, "046 MAG_046_sub_832100" },
+		{ game::MAG_046_Director_Mode3Setup, (void *)a_73FE90, "046 sub_832650" },
+		{ game::MAG_046_RelocateActorData, (void *)a_740210, "046 sub_832980" },
+		{ game::MAG_046_ActorMotion, (void *)a_740910, "046 sub_833080" },
+		{ game::MAG_046_DampValue, (void *)a_740F70, "046 sub_8336E0" },
+		{ game::MAG_046_DampVector, (void *)a_740FC0, "046 sub_833730" },
+		{ game::MAG_046_Instance_AdvanceTexFrame, (void *)a_741050, "046 sub_8337C0" },
+		{ game::MAG_046_Instance_BuildTransform, (void *)a_741120, "046 sub_833890" },
+		{ game::MAG_046_Particle_LifeCountdown, (void *)a_741B60, "046 sub_8342D0" },
+		{ game::MAG_046_RandRange, (void *)a_742290, "046 au_re__rand_45" },
+		{ game::MAG_046_RandRangeWide, (void *)a_7422C0, "046 sub_834A30" },
+		{ game::MAG_046_RandVec3, (void *)a_742300, "046 sub_834A70" },
+		{ game::MAG_046_JitterAngles3, (void *)a_742350, "046 sub_834AC0" },
+		{ game::MAG_046_RandAngleJitter, (void *)a_7423A0, "046 au_re__rand_45_0" },
+		{ game::MAG_046_ActSys_AllocParticleSlot, (void *)a_7387B0, "046 sub_834B60" },
+		{ game::MAG_046_GetWord8Minus1, (void *)a_7424B0, "046 sub_834C20" },
+		{ game::MAG_046_Particle_AttachToOwner, (void *)a_7424C0, "046 sub_834C30" },
+		{ game::MAG_046_ParticleList_Append, (void *)a_742CA0, "046 sub_835410" },
+		{ game::MAG_046_ParticleList_Unlink, (void *)a_742CD0, "046 sub_835440" },
+		{ game::MAG_046_Particle_Init, (void *)a_742D00, "046 sub_835470" },
+		{ game::MAG_046_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "046 sub_835620" },
+		{ game::MAG_046_Particle_PlaceAtPoint, (void *)a_742FF0, "046 sub_835760" },
+		{ game::MAG_046_Sigh_ActorSystem_State2_Empty, (void *)a_73A6D0, "046 nullsub_1569" },
+		{ game::MAG_046_Sigh_BreathSpawner_State0_Advance, (void *)a_73A0D0, "046 sub_835EF0" },
+		{ game::MAG_046_Sigh_StepFlipbook, (void *)a_743C20, "046 sub_836250" },
+		{ game::MAG_046_Sigh_BreathPuff_State2_Empty, (void *)a_73A6D0, "046 nullsub_1570" },
+		{ game::MAG_046_Sigh_BreathSpawner_State3_Empty, (void *)a_73A6D0, "046 nullsub_1571" },
+		{ game::MAG_046_Sigh_Sigh_State4_Empty, (void *)a_73A6D0, "046 nullsub_1572" },
+		{ game::MAG_046_Sigh_Emitter_State3_Empty, (void *)a_73A6D0, "046 nullsub_1573" },
+		{ game::MAG_046_Sigh_StageWobbleOutTask, (void *)a_73A380, "046 MAG_046_sub_836420" },
+		{ game::MAG_046_Sigh_StageWobbleOut_State2_Empty, (void *)a_73A6D0, "046 nullsub_1575" },
+		{ game::MAG_046_Sigh_Master_State6_WaitQueuesEmpty, (void *)a_747550, "046 MAG_046_sub_8364F0" },
+		{ game::MAG_046_Sigh_Master_State7_RequestBattleSync, (void *)a_747560, "046 MAG_046_sub_836500" },
+		{ game::MAG_046_Sigh_Master_State8_WaitBattleSyncDone, (void *)a_747590, "046 MAG_046_sub_836530" },
+		{ game::MAG_046_Sigh_Master_State9_Finish, (void *)a_7475A0, "046 MAG_046_sub_836540" },
+		{ game::MAG_046_Sigh_Master_State10_Empty, (void *)a_73A6D0, "046 nullsub_1574" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x831CB0, (void *)sg_831CB0, "046 sg_831CB0" },
-		{ 0x831E30, (void *)sg_831E30, "046 sg_831E30" },
-		{ 0x831E80, (void *)sg_831E80, "046 sg_831E80" },
-		{ 0x831F60, (void *)sg_831F60, "046 sg_831F60" },
-		{ 0x831FE0, (void *)sg_831FE0, "046 sg_831FE0" },
-		{ 0x832070, (void *)sg_832070, "046 sg_832070" },
-		{ 0x832160, (void *)sg_832160, "046 sg_832160" },
-		{ 0x832190, (void *)sg_832190, "046 sg_832190" },
-		{ 0x832340, (void *)sg_832340, "046 sg_832340" },
-		{ 0x832420, (void *)sg_832420, "046 sg_832420" },
-		{ 0x832580, (void *)sg_832580, "046 sg_832580" },
-		{ 0x832770, (void *)sg_832770, "046 sg_832770" },
-		{ 0x832BE0, (void *)sg_832BE0, "046 sg_832BE0" },
-		{ 0x832C70, (void *)sg_832C70, "046 sg_832C70" },
-		{ 0x832CD0, (void *)sg_832CD0, "046 sg_832CD0" },
-		{ 0x832E10, (void *)sg_832E10, "046 sg_832E10" },
-		{ 0x832E70, (void *)sg_832E70, "046 sg_832E70" },
-		{ 0x832F30, (void *)sg_832F30, "046 sg_832F30" },
-		{ 0x832FB0, (void *)sg_832FB0, "046 sg_832FB0" },
-		{ 0x832FF0, (void *)sg_832FF0, "046 sg_832FF0" },
-		{ 0x834020, (void *)sg_834020, "046 sg_834020" },
-		{ 0x834130, (void *)sg_834130, "046 sg_834130" },
-		{ 0x8341B0, (void *)sg_8341B0, "046 sg_8341B0" },
-		{ 0x8341E0, (void *)sg_8341E0, "046 sg_8341E0" },
-		{ 0x834280, (void *)sg_834280, "046 sg_834280" },
-		{ 0x834300, (void *)sg_834300, "046 sg_834300" },
-		{ 0x834380, (void *)sg_834380, "046 sg_834380" },
-		{ 0x834D80, (void *)sg_834D80, "046 sg_834D80" },
-		{ 0x835870, (void *)sg_835870, "046 sg_835870" },
-		{ 0x835900, (void *)sg_835900, "046 sg_835900" },
-		{ 0x835990, (void *)sg_835990, "046 sg_835990" },
-		{ 0x8359C0, (void *)sg_8359C0, "046 sg_8359C0" },
-		{ 0x835B30, (void *)sg_835B30, "046 sg_835B30" },
-		{ 0x835C20, (void *)sg_835C20, "046 sg_835C20" },
-		{ 0x835C70, (void *)sg_835C70, "046 sg_835C70" },
-		{ 0x835CF0, (void *)sg_835CF0, "046 sg_835CF0" },
-		{ 0x835E30, (void *)sg_835E30, "046 sg_835E30" },
-		{ 0x835E90, (void *)sg_835E90, "046 sg_835E90" },
-		{ 0x835F00, (void *)sg_835F00, "046 sg_835F00" },
-		{ 0x835F20, (void *)sg_835F20, "046 sg_835F20" },
-		{ 0x836090, (void *)sg_836090, "046 sg_836090" },
-		{ 0x8360F0, (void *)sg_8360F0, "046 sg_8360F0" },
-		{ 0x836160, (void *)sg_836160, "046 sg_836160" },
-		{ 0x8361C0, (void *)sg_8361C0, "046 sg_8361C0" },
-		{ 0x8362A0, (void *)sg_8362A0, "046 sg_8362A0" },
-		{ 0x8362C0, (void *)sg_8362C0, "046 sg_8362C0" },
-		{ 0x836310, (void *)sg_836310, "046 sg_836310" },
-		{ 0x836330, (void *)sg_836330, "046 sg_836330" },
-		{ 0x8363B0, (void *)sg_8363B0, "046 sg_8363B0" },
-		{ 0x8363F0, (void *)sg_8363F0, "046 sg_8363F0" },
-		{ 0x836480, (void *)sg_836480, "046 sg_836480" },
-		{ 0x8364A0, (void *)sg_8364A0, "046 sg_8364A0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_046_Sigh_MasterTask, (void *)sg_831CB0, "046 sg_831CB0" },
+		{ game::MAG_046_Sigh_MasterReserveActorPools, (void *)sg_831E30, "046 sg_831E30" },
+		{ game::MAG_046_Sigh_ClearActorPools, (void *)sg_831E80, "046 sg_831E80" },
+		{ game::MAG_046_Sigh_StageWobbleRamp, (void *)sg_831F60, "046 sg_831F60" },
+		{ game::MAG_046_Sigh_EmitterTask, (void *)sg_831FE0, "046 sg_831FE0" },
+		{ game::MAG_046_Sigh_EmitterSpawnActorSystemAndSigh, (void *)sg_832070, "046 sg_832070" },
+		{ game::MAG_046_Sigh_ActorSystem_State0_StartActorSystemAtFrame, (void *)sg_832160, "046 sg_832160" },
+		{ game::MAG_046_DirectorSetup, (void *)sg_832190, "046 sg_832190" },
+		{ game::MAG_046_ResetTrailHistory, (void *)sg_832340, "046 sg_832340" },
+		{ game::MAG_046_Director_CasterRefPoints, (void *)sg_832420, "046 sg_832420" },
+		{ game::MAG_046_FillTrailRows, (void *)sg_832580, "046 sg_832580" },
+		{ game::MAG_046_Director_TargetRefPoints, (void *)sg_832770, "046 sg_832770" },
+		{ game::MAG_046_ActSys_Step, (void *)sg_832BE0, "046 sg_832BE0" },
+		{ game::MAG_046_ActSys_DrawPass, (void *)sg_832C70, "046 sg_832C70" },
+		{ game::MAG_046_Sigh_PrimActorRenderStub, (void *)sg_832CD0, "046 sg_832CD0" },
+		{ game::MAG_046_Sigh_PrimActorPrepareHeader, (void *)sg_832E10, "046 sg_832E10" },
+		{ game::MAG_046_ActSys_DrawSpritePass, (void *)sg_832E70, "046 sg_832E70" },
+		{ game::MAG_046_Sigh_DrawSpriteActor, (void *)sg_832F30, "046 sg_832F30" },
+		{ game::MAG_046_ActSys_UpdatePass, (void *)sg_832FB0, "046 sg_832FB0" },
+		{ game::MAG_046_ActorStep, (void *)sg_832FF0, "046 sg_832FF0" },
+		{ game::MAG_046_MorphVertexBlock, (void *)sg_834020, "046 sg_834020" },
+		{ game::MAG_046_Instance_EndOfLifeTest, (void *)sg_834130, "046 sg_834130" },
+		{ game::MAG_046_Instance_SpawnFollowUp, (void *)sg_8341B0, "046 sg_8341B0" },
+		{ game::MAG_046_AllocParticle, (void *)sg_8341E0, "046 sg_8341E0" },
+		{ game::MAG_046_ActSys_UpdateEmitter, (void *)sg_834280, "046 sg_834280" },
+		{ game::MAG_046_ActSys_EmitterSpawnStep, (void *)sg_834300, "046 sg_834300" },
+		{ game::MAG_046_ActSys_SpawnParticles, (void *)sg_834380, "046 sg_834380" },
+		{ game::MAG_046_Actor_InterpolatePosition, (void *)sg_834D80, "046 sg_834D80" },
+		{ game::MAG_046_SpawnSubEffects, (void *)sg_835870, "046 sg_835870" },
+		{ game::MAG_046_Director_SpawnGroupEffects, (void *)sg_835900, "046 sg_835900" },
+		{ game::MAG_046_Sigh_ActorSystem_State1_StepActorSystem, (void *)sg_835990, "046 sg_835990" },
+		{ game::MAG_046_Sigh_SighTask, (void *)sg_8359C0, "046 sg_8359C0" },
+		{ game::MAG_046_Sigh_DrawPrimModel, (void *)sg_835B30, "046 sg_835B30" },
+		{ game::MAG_046_Sigh_ApplyColorFrame, (void *)sg_835C20, "046 sg_835C20" },
+		{ game::MAG_046_Sigh_TextureScrollBlit, (void *)sg_835C70, "046 sg_835C70" },
+		{ game::MAG_046_Sigh_SighSetup, (void *)sg_835CF0, "046 sg_835CF0" },
+		{ game::MAG_046_Sigh_SighSpawnBreath, (void *)sg_835E30, "046 sg_835E30" },
+		{ game::MAG_046_Sigh_BreathSpawnerTask, (void *)sg_835E90, "046 sg_835E90" },
+		{ game::MAG_046_Sigh_BreathSpawnerWait, (void *)sg_835F00, "046 sg_835F00" },
+		{ game::MAG_046_Sigh_BreathSpawnerBurst, (void *)sg_835F20, "046 sg_835F20" },
+		{ game::MAG_046_Sigh_BreathPuffTask, (void *)sg_836090, "046 sg_836090" },
+		{ game::MAG_046_Sigh_DrawBreathPuff, (void *)sg_8360F0, "046 sg_8360F0" },
+		{ game::MAG_046_Sigh_BreathPuffInit, (void *)sg_836160, "046 sg_836160" },
+		{ game::MAG_046_Sigh_BreathPuffMove, (void *)sg_8361C0, "046 sg_8361C0" },
+		{ game::MAG_046_Sigh_SighWaitFade, (void *)sg_8362A0, "046 sg_8362A0" },
+		{ game::MAG_046_Sigh_SighFade, (void *)sg_8362C0, "046 sg_8362C0" },
+		{ game::MAG_046_Sigh_EmitterReleaseMaster, (void *)sg_836310, "046 sg_836310" },
+		{ game::MAG_046_Sigh_EmitterApplyDamage, (void *)sg_836330, "046 sg_836330" },
+		{ game::MAG_046_Sigh_MasterNextAction, (void *)sg_8363B0, "046 sg_8363B0" },
+		{ game::MAG_046_Sigh_MasterWaitEnd, (void *)sg_8363F0, "046 sg_8363F0" },
+		{ game::MAG_046_Sigh_StageWobbleOut_State0_SetAmplitude400, (void *)sg_836480, "046 sg_836480" },
+		{ game::MAG_046_Sigh_StageWobbleOut_State1_FadeOut, (void *)sg_8364A0, "046 sg_8364A0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

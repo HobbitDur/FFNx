@@ -25,49 +25,49 @@ namespace reflect135
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2520DD0)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2520DD8)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2520DDC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2520DF4)); }
-	inline Mat4x3 &Scale() { return var<Mat4x3>(us(0x2520E48)); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2520DF8); }
-	inline TaskQueue *QReflects() { return (TaskQueue *)us(0x2520E08); }
-	inline TaskQueue *QShots() { return (TaskQueue *)us(0x2520E18); }
-	inline TaskQueue *QSweep() { return (TaskQueue *)us(0x2520E28); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::g_ReflectBeam_Caster)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g_ReflectBeam_MagicBuffer)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_ReflectBeam_CastContext)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_ReflectBeam_PacketCursor)); }
+	inline Mat4x3 &Scale() { return var<Mat4x3>(game_addr(game::g_ReflectBeam_BeamScale)); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)game_addr(game::g_ReflectBeam_SpriteQueue); }
+	inline TaskQueue *QReflects() { return (TaskQueue *)game_addr(game::g_ReflectBeam_ReflectQueue); }
+	inline TaskQueue *QShots() { return (TaskQueue *)game_addr(game::g_ReflectBeam_ShotQueue); }
+	inline TaskQueue *QSweep() { return (TaskQueue *)game_addr(game::g_ReflectBeam_SweepQueue); }
 
-	static const uint32_t ORIG_MasterTask = 0x6AEF50;
-	static const uint32_t ORIG_SweepTask = 0x6AF230;
-	static const uint32_t ORIG_ReflectTask = 0x6AF900;
-	static const uint32_t ORIG_BurstTask = 0x6AFB00;
-	static const uint32_t ORIG_GlintTask = 0x6AFB80;
-	static const uint32_t ORIG_SparkTask = 0x6AFC00;
-	static const uint32_t ORIG_ShotTask = 0x6AFD20;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_135_ReflectBeam_MasterTask;
+	static constexpr game::Id ORIG_SweepTask = game::MAG_135_ReflectBeam_SweepTask;
+	static constexpr game::Id ORIG_ReflectTask = game::MAG_135_ReflectBeam_ReflectTask;
+	static constexpr game::Id ORIG_BurstTask = game::MAG_135_ReflectBeam_BurstTask;
+	static constexpr game::Id ORIG_GlintTask = game::MAG_135_ReflectBeam_GlintTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_135_ReflectBeam_SparkTask;
+	static constexpr game::Id ORIG_ShotTask = game::MAG_135_ReflectBeam_ShotTask;
 	static const uint32_t MORPH = 0x2D44;
 	static const uint32_t ARENA_A = 0x2F64;
 	static const uint32_t ARENA_B = 0x1AF64;
-	static const uint32_t MODEL_Sweep = 0x11FDAA4;
-	static const uint32_t MODEL_Reflect = 0x120031C;
-	static const uint32_t MODEL_Shot = 0x11FBF48;
-	static const uint32_t MODEL_ShotHit = 0x1201644;
-	static const uint32_t PRIM_Beam = 0x11FA580;
-	static const uint32_t SEQ_Burst = 0x11FA3C0;
-	static const uint32_t SEQ_Glint = 0x11FA208;
-	static const uint32_t SEQ_Spark = 0x11FA2CC;
-	static const uint32_t SHOT_Bones = 0x1201EA8;
-	static const void *SOUND_Beam() { return (const void *)us(0x1201D88); }
+	static constexpr game::Id MODEL_Sweep = game::unk_11FDAA4;
+	static constexpr game::Id MODEL_Reflect = game::unk_120031C;
+	static constexpr game::Id MODEL_Shot = game::unk_11FBF48;
+	static constexpr game::Id MODEL_ShotHit = game::unk_1201644;
+	static constexpr game::Id PRIM_Beam = game::unk_11FA580;
+	static constexpr game::Id SEQ_Burst = game::unk_11FA3C0;
+	static constexpr game::Id SEQ_Glint = game::unk_11FA208;
+	static constexpr game::Id SEQ_Spark = game::unk_11FA2CC;
+	static constexpr game::Id SHOT_Bones = game::unk_1201EA8;
+	static const void *SOUND_Beam() { return (const void *)game_addr(game::unk_1201D88); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void NormalizeVector16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void NormalizeVector16(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(game_addr(game::VectorNormalS16))(in, out); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -238,7 +238,7 @@ namespace reflect135
 		Scale().m[0][0] = w;
 		Scale().m[2][2] = L;
 		MulMatrix3(M, &Scale());
-		*(uint32_t *)h = us(PRIM_Beam);
+		*(uint32_t *)h = game_addr(PRIM_Beam);
 		ComposeAffineTransform(&Camera(), M, M);
 		GteSetRotMatrix(M);
 		GteSetTransVector(M);
@@ -291,7 +291,7 @@ namespace reflect135
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		SpriteDraw(s->pos, s->counter, us(SEQ_Burst), 0x1770, -0x400);
+		SpriteDraw(s->pos, s->counter, game_addr(SEQ_Burst), 0x1770, -0x400);
 		s->counter++;
 		return s->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -299,7 +299,7 @@ namespace reflect135
 	static uint32_t __cdecl GlintTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		SpriteDraw(s->pos, s->counter, us(SEQ_Glint), 0x800, -0x400);
+		SpriteDraw(s->pos, s->counter, game_addr(SEQ_Glint), 0x800, -0x400);
 		s->counter++;
 		return s->counter < 7 ? 0 : TASK_END;
 	}
@@ -307,7 +307,7 @@ namespace reflect135
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		SpriteDraw(s->pos, s->counter, us(SEQ_Spark), 0x800, -0x200);
+		SpriteDraw(s->pos, s->counter, game_addr(SEQ_Spark), 0x800, -0x200);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
 		s->vel[1] = (int16_t)(s->vel[1] + s->drag[1]);
 		s->vel[2] = (int16_t)(s->vel[2] + s->drag[2]);
@@ -320,7 +320,7 @@ namespace reflect135
 
 	static void DamageEntity(uint8_t *entity)
 	{
-		const int32_t slot = (int32_t)((uint32_t)entity - 0x1D972C0u) / 0x9C;
+		const int32_t slot = (int32_t)((uint32_t)entity - game_addr(game::BattleEntitySlotData)) / 0x9C;
 		for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
 		{
 			uint8_t *t = Ctx()->actions[0].targets + i * TARGET_STRIDE;
@@ -335,7 +335,7 @@ namespace reflect135
 		{
 			if (!(r->counter & 1))
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_GlintTask));
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), game_addr(ORIG_GlintTask));
 				if (s)
 				{
 					s->counter = 0;
@@ -349,7 +349,7 @@ namespace reflect135
 		{
 			if (r->counter < 0x20 && !(r->counter & 3))
 			{
-				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_BurstTask));
+				SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), game_addr(ORIG_BurstTask));
 				if (s)
 				{
 					s->counter = 0;
@@ -362,7 +362,7 @@ namespace reflect135
 			{
 				for (int k = 0; k < 4; k++)
 				{
-					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_SparkTask));
+					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), game_addr(ORIG_SparkTask));
 					if (!s) continue;
 					ff8fx::copy<(4)>(s->pos, r->pos);
 					ff8fx::copy<(4)>(&s->pos[2], &r->pos[2]);
@@ -452,7 +452,7 @@ namespace reflect135
 		Scale().m[2][2] = L;
 		MulMatrix3(m, &Scale());
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = us(PRIM_Beam);
+		*(uint32_t *)h = game_addr(PRIM_Beam);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
@@ -530,7 +530,7 @@ namespace reflect135
 						uint8_t *ent = w->ents[w->next];
 						if (X < *(const int16_t *)(ent + 0x1C))
 						{
-							ReflectNode *r = (ReflectNode *)AddTaskToQueue(QReflects(), us(ORIG_ReflectTask));
+							ReflectNode *r = (ReflectNode *)AddTaskToQueue(QReflects(), game_addr(ORIG_ReflectTask));
 							if (r)
 							{
 								r->counter = 0;
@@ -538,7 +538,7 @@ namespace reflect135
 								r->ent = ent;
 								GetEffectSpawnPosition(ent, 0xF1, 0, r->pos);
 								r->pos[1] = (int16_t)(r->pos[1] + 0x80);
-								DecodeModelPrimLayout(us(MODEL_Reflect), r->layout, 0x310);
+								DecodeModelPrimLayout(game_addr(MODEL_Reflect), r->layout, 0x310);
 							}
 							w->next++;
 						}
@@ -553,14 +553,14 @@ namespace reflect135
 		const int32_t c = w->counter;
 		if ((uint32_t)c < 0x14 && !(c & 3))
 		{
-			ShotNode *s = (ShotNode *)AddTaskToQueue(QShots(), us(ORIG_ShotTask));
+			ShotNode *s = (ShotNode *)AddTaskToQueue(QShots(), game_addr(ORIG_ShotTask));
 			if (s)
 			{
 				s->hit = 0;
 				s->counter = 0;
-				s->bone = (const int16_t *)us(SHOT_Bones) + ((uint32_t)c >> 2) % 3u;
-				DecodeModelPrimLayout(us(MODEL_Shot), s->layout, 0x1F8);
-				DecodeModelPrimLayout(us(MODEL_ShotHit), s->hitlayout, 0x58);
+				s->bone = (const int16_t *)game_addr(SHOT_Bones) + ((uint32_t)c >> 2) % 3u;
+				DecodeModelPrimLayout(game_addr(MODEL_Shot), s->layout, 0x1F8);
+				DecodeModelPrimLayout(game_addr(MODEL_ShotHit), s->hitlayout, 0x58);
 			}
 		}
 		if (w->counter >= 0x39)
@@ -574,7 +574,7 @@ namespace reflect135
 
 	static void StartSweep()
 	{
-		SweepNode *w = (SweepNode *)AddTaskToQueue(QSweep(), us(ORIG_SweepTask));
+		SweepNode *w = (SweepNode *)AddTaskToQueue(QSweep(), game_addr(ORIG_SweepTask));
 		Memset32(&w->counter, 0, 0xB5);
 		const ActionData *act = Ctx()->actions;
 		w->count = act->target_count;
@@ -611,7 +611,7 @@ namespace reflect135
 				}
 			}
 		}
-		DecodeModelPrimLayout(us(MODEL_Sweep), w->layout, 0x2B8);
+		DecodeModelPrimLayout(game_addr(MODEL_Sweep), w->layout, 0x2B8);
 	}
 
 	static uint32_t __cdecl MasterTask(TaskNode *n)

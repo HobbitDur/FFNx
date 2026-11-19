@@ -39,42 +39,42 @@ namespace apocalypse221
 	{
 		c.name = "221 Apocalypse";
 		c.effect_id = 221;
-		c.vm_table = us(0x186D7B4);
-		c.bone_table = us(0x186D3A4);
-		c.prim_table = us(0x186D3EC);
-		c.prim_size = us(0x186D4DC);
-		c.spr_table = us(0x186D570);
-		c.ptype_table = us(0x186D59C);
-		c.pop_table = us(0x186D5B0);
-		c.draw_table = us(0x186D610);
-		c.attr_16A = us(0x186D77A);
-		c.attr_184 = us(0x186D794);
-		c.attr_186 = us(0x186D796);
-		c.attr_194 = us(0x186D7A4);
-		c.attr_19C = us(0x186D7AC);
-		c.desc = us(0x186D234);
-		c.ptr_block = us(0x186D37C);
-		c.queue = us(0x2796BE0);
-		c.file00 = us(0x2796C10);
-		c.file01 = us(0x2796C14);
-		c.tick = us(0xAA5BD0);
-		c.load_cb = us(0xAAEA40);
+		c.vm_table = game_addr(game::funcs_AB2DDC);
+		c.bone_table = game_addr(game::funcs_AAF657);
+		c.prim_table = game_addr(game::funcs_AA9C74);
+		c.prim_size = game_addr(game::unk_186D4DC);
+		c.spr_table = game_addr(game::unk_186D570);
+		c.ptype_table = game_addr(game::unk_186D59C);
+		c.pop_table = game_addr(game::funcs_AAD047);
+		c.draw_table = game_addr(game::unk_186D610);
+		c.attr_16A = game_addr(game::unk_186D77A);
+		c.attr_184 = game_addr(game::unk_186D794);
+		c.attr_186 = game_addr(game::unk_186D796);
+		c.attr_194 = game_addr(game::unk_186D7A4);
+		c.attr_19C = game_addr(game::unk_186D7AC);
+		c.desc = game_addr(game::unk_186D234);
+		c.ptr_block = game_addr(game::unk_186D37C);
+		c.queue = game_addr(game::unk_2796BE0);
+		c.file00 = game_addr(game::unk_2796C10);
+		c.file01 = game_addr(game::unk_2796C14);
+		c.tick = game_addr(game::MAG_221_sub_AA5BD0);
+		c.load_cb = game_addr(game::MAG_221_sub_AAEA40);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static inline uint8_t RowV_186D4FC(int32_t i) { return MEM<uint8_t>(us(0x186D4FC) + i); }
-	static inline uint32_t PieceColour_186D510(int32_t i) { return MEM<uint32_t>(us(0x186D510) + 4 * i); }
+	static inline uint8_t RowV_186D4FC(int32_t i) { return MEM<uint8_t>(game_addr(game::unk_186D4FC) + i); }
+	static inline uint32_t PieceColour_186D510(int32_t i) { return MEM<uint32_t>(game_addr(game::unk_186D510) + 4 * i); }
 
-	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(us(0x1CA8A10) + 4 * reg); }
-	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CC50))(a, b, h); }
+	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(game_addr(game::GTE_VXY0) + 4 * reg); }
+	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetFogNearFar))(a, b, h); }
 	static inline int32_t xl_RotTransPersNormalColor_56CAA0(const void *v, const void *n, const void *c, void *sxy, void *rgb, void *flag)
 	{
-		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(us(0x56CAA0))(v, n, c, sxy, rgb, flag);
+		return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(game_addr(game::GTE_RotTransPersNormalColor))(v, n, c, sxy, rgb, flag);
 	}
-	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56CA30))(n, col, out); }
-	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(game_addr(game::sub_56CA30))(n, col, out); }
+	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(game_addr(game::GTE_RotTrans))(v, out, flag); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(ot, prim); }
 	static inline int32_t div3(int32_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
@@ -357,7 +357,7 @@ namespace apocalypse221
 			x::GteWriteData((int32_t)U16(v, 4), 1);
 			x::GteRTPS();
 			x::GteReadSXY2(o);
-			U16(o, 4) = MEM<uint16_t>(us(0x1CA8A5C));
+			U16(o, 4) = MEM<uint16_t>(game_addr(game::GTE_SZ3));
 		}
 		h_B29450((int32_t)U32(CUR(), 0xCC));
 		const uint8_t *tri = obj + U32(obj, 8) + 4;
@@ -420,7 +420,7 @@ namespace apocalypse221
 			x::GteLoadV012(m, ws + 0xC8, ws + 0xD0);
 			x::GteRTPT();
 			x::GteReadSXY012(pk + 8, pk + 0x10, pk + 0x18);
-			const uint16_t sz = MEM<uint16_t>(us(0x1CA8A5C));
+			const uint16_t sz = MEM<uint16_t>(game_addr(game::GTE_SZ3));
 			U16(m, 0) = sz;
 			xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + (((uint32_t)sz >> 2) & ~3u), pk);
 		}
@@ -629,7 +629,7 @@ namespace apocalypse221
 		apocalypse221::describe(apocalypse221::g_c);
 		init_clone(apocalypse221::g_c, nullptr, 0);
 		apocalypse221::apply_slots(apocalypse221::g_c);
-		register_port(0xAA5BD0, (void *)apocalypse221::SequenceTask, "MAG221 Apocalypse SequenceTick", 221);
+		register_port(game::MAG_221_sub_AA5BD0, (void *)apocalypse221::SequenceTask, "MAG221 Apocalypse SequenceTick", 221);
 	}
 }
 

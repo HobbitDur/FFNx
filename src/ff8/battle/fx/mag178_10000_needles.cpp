@@ -25,41 +25,41 @@ namespace needles178
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2321918)); }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x231AD10)); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x232191C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2341924)); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x2320AF8); }
-	static const uint32_t ARENA0 = 0x2321924, ARENA1 = 0x2331924, ARENA_SIZE = 0x10000;
-	static const uint32_t SPRITE_MATRIX = 0x2341928;
-	static const uint32_t NEEDLES = 0x231AD38, NEEDLES_END = 0x231EED8;
-	static const uint32_t SPARKS = 0x231EED8, SPARKS_END = 0x2320AF8;
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_2321918)); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(game_addr(game::unk_231AD10)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(game_addr(game::unk_232191C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::unk_2341924)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::unk_2320AF8); }
+	static constexpr game::Id ARENA0 = game::unk_2321924, ARENA1 = game::unk_2331924; static const uint32_t ARENA_SIZE = 0x10000;
+	static constexpr game::Id SPRITE_MATRIX = game::unk_2341928;
+	static constexpr game::Id NEEDLES = game::unk_231AD38, NEEDLES_END = game::unk_231EED8;
+	static constexpr game::Id SPARKS = game::unk_231EED8, SPARKS_END = game::unk_2320AF8;
 	static const int NEEDLE_COUNT = 300, SPARK_COUNT = 300;
 
-	static const uint32_t ORIG_RootTask = 0x5CF700;
-	static const uint32_t ORIG_Director = 0x5CEE90;
-	static const uint32_t ORIG_NeedleTask = 0x5CEF50;
-	static const uint32_t NEEDLE_VERTS = 0xD44BC0;
-	static const uint32_t NEEDLE_POLYS = 0xD44BE0;
-	static const uint32_t SEQ_Spark = 0xD44B94;
-	static const uint32_t SPARK_LIFT = 0xD44C34;
-	static const void *SOUND_Needles() { return (const void *)us(0xD44BBC); }
+	static constexpr game::Id ORIG_RootTask = game::au_re_BdlinkTask_11;
+	static constexpr game::Id ORIG_Director = game::MAG_178_sub_5CEE90;
+	static constexpr game::Id ORIG_NeedleTask = game::MAG_178_sub_5CEF50;
+	static constexpr game::Id NEEDLE_VERTS = game::unk_D44BC0;
+	static constexpr game::Id NEEDLE_POLYS = game::unk_D44BE0;
+	static constexpr game::Id SEQ_Spark = game::unk_D44B94;
+	static constexpr game::Id SPARK_LIFT = game::unk_D44C34;
+	static const void *SOUND_Needles() { return (const void *)game_addr(game::unk_D44BBC); }
 	static const int16_t TICK_SPAWN = 0x24, TICK_DAMAGE = 0x55, TICK_LAST = 0x5A;
 	static const int32_t SCALE_RANGE = 0x600, SCALE_BASE = 0x480;
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, frac, out); }
-	inline void GteLoadIRFromMatrixColumn(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(m); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
-	inline void GteStoreIRToMatrixColumn(void *m) { fn<void (__cdecl *)(void *)>(us(0x45E470))(m); }
-	inline void GteLoadV0FromDwords(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x45E060))(v); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t frac, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, frac, out); }
+	inline void GteLoadIRFromMatrixColumn(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadIRFromMatrixColumn))(m); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotIR))(); }
+	inline void GteStoreIRToMatrixColumn(void *m) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreIRToMatrixColumn))(m); }
+	inline void GteLoadV0FromDwords(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(game_addr(game::GTE_LoadV0FromDwords))(v); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteReadOTZ32(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadOTZ))(dst); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -104,8 +104,8 @@ namespace needles178
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "10,000 Needles nodes");
 	static_assert(sizeof(Needle) == 0x38 && sizeof(Spark) == 0x18 && sizeof(PolyRec) == 0x14, "10,000 Needles tables");
 
-	inline Needle *Needles() { return (Needle *)us(NEEDLES); }
-	inline Spark *Sparks() { return (Spark *)us(SPARKS); }
+	inline Needle *Needles() { return (Needle *)game_addr(NEEDLES); }
+	inline Spark *Sparks() { return (Spark *)game_addr(SPARKS); }
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 	inline uint8_t *Target() { return Entity((int)TargetSlot()); }
 	inline int32_t EffectBones(uint8_t *entity) { return **(const uint8_t *const *)*(const uint32_t *)(entity + 0x64); }
@@ -171,7 +171,7 @@ namespace needles178
 
 	static Mat4x3 *SpriteTransform(const int16_t *pos, int16_t scale, int32_t z)
 	{
-		Mat4x3 *m = (Mat4x3 *)us(SPRITE_MATRIX);
+		Mat4x3 *m = (Mat4x3 *)game_addr(SPRITE_MATRIX);
 		m->m[2][2] = scale;
 		m->m[1][1] = scale;
 		m->m[0][0] = scale;
@@ -185,7 +185,7 @@ namespace needles178
 		sxy[1] = (int16_t)(sxy[1] / 8);
 		m->t[0] = sxy[0] - 0xA0;
 		m->t[1] = sxy[1] - 0x6C;
-		m->t[2] = var<int16_t>(us(0x1D8E038)) + z;
+		m->t[2] = var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE)) + z;
 		GteSetRotMatrix(m);
 		return m;
 	}
@@ -198,20 +198,20 @@ namespace needles178
 		GteSetTransVectorCtrl(m);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 	}
-	inline int32_t SparkLift(int16_t left) { return var<int32_t>(us(SPARK_LIFT) + (uint32_t)(int32_t)left * 4); }
+	inline int32_t SparkLift(int16_t left) { return var<int32_t>(game_addr(SPARK_LIFT) + (uint32_t)(int32_t)left * 4); }
 
 	static uint8_t *NeedleBlock()
 	{
 		uint8_t *b = (uint8_t *)FieldAlloc(0xDC);
-		ff8fx::copy<(0x20)>(b + 0x6C, (const void *)us(NEEDLE_VERTS));
-		ff8fx::copy<(0x50)>(b + 0x8C, (const void *)us(NEEDLE_POLYS));
+		ff8fx::copy<(0x20)>(b + 0x6C, (const void *)game_addr(NEEDLE_VERTS));
+		ff8fx::copy<(0x50)>(b + 0x8C, (const void *)game_addr(NEEDLE_POLYS));
 		ff8fx::copy<(0x20)>(b + 0x2C, &Camera());
 		return b;
 	}
 	static uint8_t *SparkHeader()
 	{
 		uint8_t *seq = (uint8_t *)FieldAlloc(0x28);
-		ff8fx::copy<(0x28)>(seq, (const void *)us(SEQ_Spark));
+		ff8fx::copy<(0x28)>(seq, (const void *)game_addr(SEQ_Spark));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint8_t **)h = seq;
 		*(int16_t *)(h + 0x24) = 0;
@@ -221,14 +221,14 @@ namespace needles178
 	static int FreeNeedle()
 	{
 		int i = 0;
-		for (uint32_t a = us(NEEDLES); a < us(NEEDLES_END); a += sizeof(Needle), i++)
+		for (uint32_t a = game_addr(NEEDLES); a < game_addr(NEEDLES_END); a += sizeof(Needle), i++)
 			if (*(uint32_t *)a == 0) return i < NEEDLE_COUNT ? i : -1;
 		return -1;
 	}
 	static int FreeSpark()
 	{
 		int i = 0;
-		for (uint32_t a = us(SPARKS); a < us(SPARKS_END); a += sizeof(Spark), i++)
+		for (uint32_t a = game_addr(SPARKS); a < game_addr(SPARKS_END); a += sizeof(Spark), i++)
 			if (*(uint32_t *)a == 0) return i < SPARK_COUNT ? i : -1;
 		return -1;
 	}
@@ -294,7 +294,7 @@ namespace needles178
 		FieldFree(0x50);
 		uint8_t *b = NeedleBlock();
 		int moved = 0;
-		for (Needle *n = Needles(); (uint32_t)n < us(NEEDLES_END); n++)
+		for (Needle *n = Needles(); (uint32_t)n < game_addr(NEEDLES_END); n++)
 		{
 			if (!(n->active & 1)) continue;
 			DrawNeedle(b, n);
@@ -321,7 +321,7 @@ namespace needles178
 		FieldFree(0xDC);
 		uint8_t *h = SparkHeader();
 		int alive = 0;
-		for (Spark *sp = Sparks(); (uint32_t)sp < us(SPARKS_END); sp++)
+		for (Spark *sp = Sparks(); (uint32_t)sp < game_addr(SPARKS_END); sp++)
 		{
 			if (!(sp->active & 1)) continue;
 			const int16_t left = sp->left;
@@ -349,7 +349,7 @@ namespace needles178
 		if (t->counter == 0) GetEffectSpawnPosition(Target(), 0xF0, 0x1000, t->pos);
 		if (t->counter == TICK_SPAWN)
 		{
-			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_NeedleTask));
+			EffectNode *n = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_NeedleTask));
 			*(uint32_t *)&n->pos[0] = *(const uint32_t *)&t->pos[0];
 			n->counter = 0;
 			*(uint32_t *)&n->pos[2] = *(const uint32_t *)&t->pos[2];
@@ -363,8 +363,8 @@ namespace needles178
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		RootNode *r = (RootNode *)nd;
-		PacketCursor() = us(ARENA1);
-		if (!(r->counter & 1)) PacketCursor() = us(ARENA0);
+		PacketCursor() = game_addr(ARENA1);
+		if (!(r->counter & 1)) PacketCursor() = game_addr(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;

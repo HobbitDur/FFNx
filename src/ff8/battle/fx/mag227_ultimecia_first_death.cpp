@@ -23,22 +23,22 @@ namespace ultimecia227
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexFile() { return var<uint32_t>(us(0x2508700)); }
-	inline uint8_t *&SparkCursor() { return var<uint8_t *>(us(0x2508704)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2508708)); }
-	inline uint32_t &PacketCursor2() { return var<uint32_t>(us(0x250870C)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2508710)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2508714)); }
-	inline TaskQueue *QFeathers() { return (TaskQueue *)us(0x2508718); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2508728); }
-	inline int16_t *CasterPoint() { return (int16_t *)us(0x2508758); }
-	inline int16_t *LayoutPoint() { return (int16_t *)us(0x2508760); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2508768)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(game_addr(game::MAG_227_UltimeciaFirstDeath_TextureFile)); }
+	inline uint8_t *&SparkCursor() { return var<uint8_t *>(game_addr(game::MAG_227_UltimeciaFirstDeath_SparkCursor)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_227_UltimeciaFirstDeath_PacketCursor)); }
+	inline uint32_t &PacketCursor2() { return var<uint32_t>(game_addr(game::MAG_227_UltimeciaFirstDeath_PacketCursor2)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_227_UltimeciaFirstDeath_CastContext)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_227_UltimeciaFirstDeath_CasterEntity)); }
+	inline TaskQueue *QFeathers() { return (TaskQueue *)game_addr(game::MAG_227_UltimeciaFirstDeath_FeathersQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::MAG_227_UltimeciaFirstDeath_MainQueue); }
+	inline int16_t *CasterPoint() { return (int16_t *)game_addr(game::MAG_227_UltimeciaFirstDeath_CasterPoint); }
+	inline int16_t *LayoutPoint() { return (int16_t *)game_addr(game::MAG_227_UltimeciaFirstDeath_LayoutPoint); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_227_UltimeciaFirstDeath_MagicBufferBase)); }
 
-	static const uint32_t ORIG_MasterTask = 0x693840;
-	static const uint32_t ORIG_MainTask = 0x693A10;
-	static const uint32_t ORIG_FeatherTask = 0x694360;
-	static const uint32_t ORIG_PrimCallback = 0x693E20;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_227_UltimeciaFirstDeath_MasterTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_227_UltimeciaFirstDeath_MainTask;
+	static constexpr game::Id ORIG_FeatherTask = game::MAG_227_UltimeciaFirstDeath_FeatherTask;
+	static constexpr game::Id ORIG_PrimCallback = game::MAG_227_UltimeciaFirstDeath_PrimCallback;
 	static const uint32_t POOL_Main = 0x180;
 	static const uint32_t SPARKS = 0x61C;
 	static const uint32_t SPARKS_LAST = 0xE0C;
@@ -46,32 +46,32 @@ namespace ultimecia227
 	static const uint32_t ARENA_A = 0xE24;
 	static const uint32_t ARENA_B = 0x10E24;
 	static const uint32_t ARENA_C = 0x20E24;
-	static const uint32_t LAYOUT_A = 0x112DCF8;
-	static const uint32_t LAYOUT_B = 0x112FE80;
-	static const uint32_t LAYOUT_C = 0x1130368;
-	static const uint32_t MODEL_Feather = 0x112DAA8;
-	static const uint32_t SEQ_Spark = 0x112D2E0;
-	static const uint32_t POINT_Caster = 0x1132018;
-	static const uint32_t POINTS_A = 0x1131660, POINTS_B = 0x1131960, POINTS_C = 0x1131C60;
-	static const void *SOUND_Start() { return (const void *)us(0x112DAA0); }
-	static const void *SOUND_Fall() { return (const void *)us(0x112DAA4); }
-	static const void *SOUND_Voice() { return (const void *)us(0x112D1C8); }
+	static constexpr game::Id LAYOUT_A = game::MAG_227_UltimeciaFirstDeath_LayoutA;
+	static constexpr game::Id LAYOUT_B = game::MAG_227_UltimeciaFirstDeath_LayoutB;
+	static constexpr game::Id LAYOUT_C = game::MAG_227_UltimeciaFirstDeath_LayoutC;
+	static constexpr game::Id MODEL_Feather = game::MAG_227_UltimeciaFirstDeath_ModelFeather;
+	static constexpr game::Id SEQ_Spark = game::MAG_227_UltimeciaFirstDeath_SeqSpark;
+	static constexpr game::Id POINT_Caster = game::unk_1132018;
+	static constexpr game::Id POINTS_A = game::unk_1131660, POINTS_B = game::unk_1131960, POINTS_C = game::unk_1131C60;
+	static const void *SOUND_Start() { return (const void *)game_addr(game::MAG_227_UltimeciaFirstDeath_SoundStart); }
+	static const void *SOUND_Fall() { return (const void *)game_addr(game::MAG_227_UltimeciaFirstDeath_SoundFall); }
+	static const void *SOUND_Voice() { return (const void *)game_addr(game::MAG_227_UltimeciaFirstDeath_SoundVoice); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline uint32_t Flipbook(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x6FC9E0))(h, ot, mode, cursor); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
-	inline void BattleText(int32_t slot, int32_t line, int32_t ticks) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x4876F0))(slot, line, ticks); }
-	inline uint32_t OT() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_065_RotationZMatrix))(angle, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline uint32_t Flipbook(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_065_RenderFlipbook))(h, ot, mode, cursor); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(slot); }
+	inline void BattleText(int32_t slot, int32_t line, int32_t ticks) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::printMonsterRelatedText))(slot, line, ticks); }
+	inline uint32_t OT() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 
 #pragma pack(push, 1)
@@ -260,7 +260,7 @@ namespace ultimecia227
 		if (!s) return;
 		const int32_t i = mul32(CrtRand(), count) / 0x8000;
 		ModelPoint(points + i * 4, s->pos);
-		s->seq = (const uint8_t *)us(SEQ_Spark);
+		s->seq = (const uint8_t *)game_addr(SEQ_Spark);
 		s->vel[0] = (int8_t)((CrtRand() & 3) - 2);
 		s->vel[2] = (int8_t)((CrtRand() & 3) - 2);
 		const int8_t vy = (int8_t)((CrtRand() & 3) + 3);
@@ -352,7 +352,7 @@ namespace ultimecia227
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = us(MODEL_Feather);
+		*(uint32_t *)h = game_addr(MODEL_Feather);
 		*(int32_t *)(h + 0x18) = -0x80;
 		PacketCursor() = RenderPrim2(h, OT() + 0x44, 2, PacketCursor());
 		FieldFree(0x58);
@@ -422,7 +422,7 @@ namespace ultimecia227
 		int16_t pos[3];
 		if ((uint32_t)(c - 0xD4) < 0x32)
 		{
-			if (c == 0xD4) DecodeModelPrimLayout(us(LAYOUT_A), m->layout_a, 0x33C);
+			if (c == 0xD4) DecodeModelPrimLayout(game_addr(LAYOUT_A), m->layout_a, 0x33C);
 			LayoutAPos(m, c, CasterPoint(), pos);
 			Play(m, 0, m->layout_a, pos, -0x80);
 		}
@@ -442,7 +442,7 @@ namespace ultimecia227
 		}
 		if ((uint32_t)(c - 0x104) < 0x12)
 		{
-			if (c == 0x104) DecodeModelPrimLayout(us(LAYOUT_B), m->layout_b, 0xC0);
+			if (c == 0x104) DecodeModelPrimLayout(game_addr(LAYOUT_B), m->layout_b, 0xC0);
 			const uint8_t *e = Caster();
 			pos[0] = (int16_t)(*(const int16_t *)(e + 0x1C) + 0x2C);
 			pos[1] = (int16_t)(*(const int16_t *)(e + 0x1E) - 0x8EE);
@@ -451,7 +451,7 @@ namespace ultimecia227
 		}
 		if ((uint32_t)(c - 0x10C) < 0x10)
 		{
-			if (c == 0x10C) DecodeModelPrimLayout(us(LAYOUT_C), m->layout_c, 0x84);
+			if (c == 0x10C) DecodeModelPrimLayout(game_addr(LAYOUT_C), m->layout_c, 0x84);
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, LayoutPoint());
 			arg.depth = 0;
@@ -467,17 +467,17 @@ namespace ultimecia227
 		{
 			for (int i = 2; i != 0; i--)
 			{
-				SparkSpawn((const int16_t *)us(POINTS_A), 0x60);
-				SparkSpawn((const int16_t *)us(POINTS_B), 0x60);
+				SparkSpawn((const int16_t *)game_addr(POINTS_A), 0x60);
+				SparkSpawn((const int16_t *)game_addr(POINTS_B), 0x60);
 			}
 		}
 		if ((uint32_t)(m->counter - 0xB4) < 0x16)
 		{
-			for (int i = 2; i != 0; i--) SparkSpawn((const int16_t *)us(POINTS_C), 0x77);
+			for (int i = 2; i != 0; i--) SparkSpawn((const int16_t *)game_addr(POINTS_C), 0x77);
 		}
 		if ((uint32_t)(m->counter - 0xDE) < 0x17)
 		{
-			FeatherNode *f = (FeatherNode *)AddTaskToQueue(QFeathers(), us(ORIG_FeatherTask));
+			FeatherNode *f = (FeatherNode *)AddTaskToQueue(QFeathers(), game_addr(ORIG_FeatherTask));
 			if (f)
 			{
 				Memset32(&f->counter, 0, 3);
@@ -488,7 +488,7 @@ namespace ultimecia227
 				f->drz = (int16_t)(-0x25 - (CrtRand() & 0x1F));
 			}
 		}
-		const int32_t slot = (int32_t)((uint32_t)Caster() - 0x1D972C0u) / 0x9C;
+		const int32_t slot = (int32_t)((uint32_t)Caster() - game_addr(game::BattleEntitySlotData)) / 0x9C;
 		switch (m->counter)
 		{
 		case 0x26: BattleText(slot, 0, 0x2A); break;
@@ -526,14 +526,14 @@ namespace ultimecia227
 			ClearSparks();
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x49C, 1);
 			InitTaskQueuePool(QFeathers(), (void *)TexBase(), 0x18, 0x10);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x124);
 			m->voice = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
 		}
 		int main = (int)n;
 		if (ms->started)
 		{
-			ModelPoint((const int16_t *)us(POINT_Caster), CasterPoint());
+			ModelPoint((const int16_t *)game_addr(POINT_Caster), CasterPoint());
 			main = ExecuteTaskQueue(QMain());
 			ExecuteTaskQueue(QFeathers());
 		}

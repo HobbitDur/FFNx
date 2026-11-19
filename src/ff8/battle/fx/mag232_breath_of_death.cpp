@@ -30,26 +30,26 @@ namespace death232
 	{
 		c.name = "232 Breath of Death";
 		c.effect_id = 232;
-		c.vm_table = us(0x1869118);
-		c.bone_table = us(0x1868D88);
-		c.prim_table = us(0x1868DD0);
-		c.prim_size = us(0x1868EC0);
-		c.spr_table = us(0x1868ED4);
-		c.ptype_table = us(0x1868F00);
-		c.pop_table = us(0x1868F14);
-		c.draw_table = us(0x1868F74);
-		c.attr_16A = us(0x18690DE);
-		c.attr_184 = us(0x18690F8);
-		c.attr_186 = us(0x18690FA);
-		c.attr_194 = us(0x1869108);
-		c.attr_19C = us(0x1869110);
-		c.desc = us(0x1868C88);
-		c.ptr_block = us(0x1868D60);
-		c.queue = us(0x2796A58);
-		c.file00 = us(0x2796A6C);
-		c.file01 = us(0x2796A68);
-		c.tick = us(0xA5C950);
-		c.load_cb = us(0xA61EA0);
+		c.vm_table = game_addr(game::GF_232BreathOfDeath_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_232BreathOfDeath_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_A5EB84);
+		c.prim_size = game_addr(game::unk_1868EC0);
+		c.spr_table = game_addr(game::unk_1868ED4);
+		c.ptype_table = game_addr(game::unk_1868F00);
+		c.pop_table = game_addr(game::funcs_A604A7);
+		c.draw_table = game_addr(game::GF_232BreathOfDeath_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_18690DE);
+		c.attr_184 = game_addr(game::unk_18690F8);
+		c.attr_186 = game_addr(game::unk_18690FA);
+		c.attr_194 = game_addr(game::unk_1869108);
+		c.attr_19C = game_addr(game::unk_1869110);
+		c.desc = game_addr(game::GF_232BreathOfDeath_Desc);
+		c.ptr_block = game_addr(game::GF_232BreathOfDeath_PtrBlock);
+		c.queue = game_addr(game::GF_232BreathOfDeath_Queue);
+		c.file00 = game_addr(game::unk_2796A6C);
+		c.file01 = game_addr(game::unk_2796A68);
+		c.tick = game_addr(game::GF_232BreathOfDeath_SequenceTick);
+		c.load_cb = game_addr(game::GF_232BreathOfDeath_LoadCallback);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -63,7 +63,7 @@ namespace gfc
 {
 namespace death232
 {
-	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(us(0x1CA8A10) + 4 * reg); }
+	inline uint32_t &GteData(int reg) { return MEM<uint32_t>(game_addr(game::GTE_VXY0) + 4 * reg); }
 
 	static void __cdecl bh_10_ArcBetweenBones()
 	{
@@ -294,7 +294,7 @@ namespace death232
 		death232::g_c.bone[10] = death232::bh_10_ArcBetweenBones;
 		death232::g_c.prim[58] = death232::pr_58_TintedFT4Abr;
 		death232::g_c.draw[44] = death232::dh_44_AnimatedEntityCopy;
-		register_port(0xA5C950, (void *)death232::SequenceTask, "MAG232 Breath of Death SequenceTick", 232);
+		register_port(game::GF_232BreathOfDeath_SequenceTick, (void *)death232::SequenceTask, "MAG232 Breath of Death SequenceTick", 232);
 	}
 }
 

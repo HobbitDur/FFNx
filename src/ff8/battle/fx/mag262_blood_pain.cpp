@@ -37,57 +37,57 @@ namespace bloodpain262
 	{
 		c.name = "262 Blood Pain";
 		c.effect_id = 262;
-		c.vm_table = us(0x18586A0);
-		c.bone_table = us(0x1858310);
-		c.prim_table = us(0x1858358);
-		c.prim_size = us(0x1858448);
-		c.spr_table = us(0x185845C);
-		c.ptype_table = us(0x1858488);
-		c.pop_table = us(0x185849C);
-		c.draw_table = us(0x18584FC);
-		c.attr_16A = us(0x1858666);
-		c.attr_184 = us(0x1858680);
-		c.attr_186 = us(0x1858682);
-		c.attr_194 = us(0x1858690);
-		c.attr_19C = us(0x1858698);
-		c.desc = us(0x18581A8);
-		c.ptr_block = us(0x18582E8);
-		c.queue = us(0x2795DE0);
-		c.file00 = us(0x2795DF0);
-		c.file01 = us(0x2795DD8);
-		c.tick = us(0x950060);
-		c.load_cb = us(0x955350);
+		c.vm_table = game_addr(game::MAG262_VmOpcodeTable);
+		c.bone_table = game_addr(game::MAG262_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_9522B4);
+		c.prim_size = game_addr(game::unk_1858448);
+		c.spr_table = game_addr(game::unk_185845C);
+		c.ptype_table = game_addr(game::unk_1858488);
+		c.pop_table = game_addr(game::funcs_9538E7);
+		c.draw_table = game_addr(game::MAG262_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_1858666);
+		c.attr_184 = game_addr(game::unk_1858680);
+		c.attr_186 = game_addr(game::unk_1858682);
+		c.attr_194 = game_addr(game::unk_1858690);
+		c.attr_19C = game_addr(game::unk_1858698);
+		c.desc = game_addr(game::MAG262_ResourceDesc);
+		c.ptr_block = game_addr(game::MAG262_PtrBlock);
+		c.queue = game_addr(game::g_MAG262_RootQueue);
+		c.file00 = game_addr(game::g_MAG262_File00);
+		c.file01 = game_addr(game::g_MAG262_File01);
+		c.tick = game_addr(game::MAG_262_SequenceTick);
+		c.load_cb = game_addr(game::MAG_262_LoadCb_ClearBusy);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t COMDATA = 0x187A2A4;
-	static const uint32_t RING = 0x27960C8;
-	static const uint32_t PTS_BASE = 0x2795DF8;
-	static const uint32_t PTS_TIP = 0x2795E38;
-	static const uint32_t SPL_BASE = 0x2795E78;
-	static const uint32_t SPL_TIP = 0x2795F78;
-	static const uint32_t TAIL_BASE = 0x2796078;
-	static const uint32_t DIR_TIP = 0x2796090;
-	static const uint32_t HEAD_BASE = 0x27960A0;
-	static const uint32_t DIR_BASE = 0x27960A8;
+	static constexpr game::Id COMDATA = game::MAG262_LimitAnimSetComData;
+	static constexpr game::Id RING = game::g_MAG262_TrailRing;
+	static constexpr game::Id PTS_BASE = game::g_MAG262_TrailPtsBase;
+	static constexpr game::Id PTS_TIP = game::g_MAG262_TrailPtsTip;
+	static constexpr game::Id SPL_BASE = game::g_MAG262_TrailCurveBase;
+	static constexpr game::Id SPL_TIP = game::g_MAG262_TrailCurveTip;
+	static constexpr game::Id TAIL_BASE = game::g_MAG262_TrailTailBase;
+	static constexpr game::Id DIR_TIP = game::g_MAG262_TrailDirTip;
+	static constexpr game::Id HEAD_BASE = game::g_MAG262_TrailHeadBase;
+	static constexpr game::Id DIR_BASE = game::g_MAG262_TrailDirBase;
 
 	template<typename F> static inline F fx(uint32_t a) { return (F)a; }
 	static inline uint8_t *A(uint32_t a) { return (uint8_t *)a; }
-	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
-	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
-	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m) { return fx<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m); }
-	static inline void xl_SplineSetup(int32_t n, const void *pts, void *work) { fx<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, pts, work); }
-	static inline void xl_SplineEval(int32_t n, const void *work, void *out, int32_t t) { fx<void (__cdecl *)(int32_t, const void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
-	static inline void xl_Normalize(const void *in, void *out) { fx<void (__cdecl *)(const void *, void *)>(us(0x56BC50))(in, out); }
-	static inline void xl_MulVec3x3(const void *m, const void *in, void *out) { fx<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C600))(m, in, out); }
-	static inline void xl_GteReadFLAG(void *dst) { fx<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
-	static inline void xl_GteAVSZ4() { fx<void (__cdecl *)()>(us(0x45E610))(); }
-	static inline void xl_GteSetIR0(int32_t v) { fx<void (__cdecl *)(int32_t)>(us(0x45E150))(v); }
-	static inline void xl_GteLoadRGBC(const void *c) { fx<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-	static inline void xl_GteDPCS() { fx<void (__cdecl *)()>(us(0x45F270))(); }
-	static inline void xl_GteStoreRGB2(void *dst) { fx<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { fx<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { fx<void (__cdecl *)(void *, void *, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(ent, out, data); }
+	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { fx<void (__cdecl *)(void *, int32_t)>(game_addr(game::QueueChainTransformation))(ent, id); }
+	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m) { return fx<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m); }
+	static inline void xl_SplineSetup(int32_t n, const void *pts, void *work) { fx<void (__cdecl *)(int32_t, const void *, void *)>(game_addr(game::Effect_SplineSetup))(n, pts, work); }
+	static inline void xl_SplineEval(int32_t n, const void *work, void *out, int32_t t) { fx<void (__cdecl *)(int32_t, const void *, void *, int32_t)>(game_addr(game::Effect_SplineEval))(n, work, out, t); }
+	static inline void xl_Normalize(const void *in, void *out) { fx<void (__cdecl *)(const void *, void *)>(game_addr(game::NormalizeVectorToFixedPoint))(in, out); }
+	static inline void xl_MulVec3x3(const void *m, const void *in, void *out) { fx<void (__cdecl *)(const void *, const void *, void *)>(game_addr(game::TransformVectorBy3x3Matrix))(m, in, out); }
+	static inline void xl_GteReadFLAG(void *dst) { fx<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	static inline void xl_GteAVSZ4() { fx<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	static inline void xl_GteSetIR0(int32_t v) { fx<void (__cdecl *)(int32_t)>(game_addr(game::GTE_SetIR0))(v); }
+	static inline void xl_GteLoadRGBC(const void *c) { fx<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	static inline void xl_GteDPCS() { fx<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	static inline void xl_GteStoreRGB2(void *dst) { fx<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(dst); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { fx<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(ot, prim); }
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
@@ -95,7 +95,7 @@ namespace bloodpain262
 	{
 		uint8_t *ent = SlotEntity();
 		uint8_t *blk = blob::ArenaAlloc(0x20);
-		xl_BindEntityModelFromComData(ent, blk, us(COMDATA));
+		xl_BindEntityModelFromComData(ent, blk, game_addr(COMDATA));
 		xl_QueueChainTransformation(ent, S16(STREAM(), 2));
 		STREAM() += 4;
 	}
@@ -243,32 +243,32 @@ namespace bloodpain262
 		TipFrom(w, S16(CUR(), 0x94));
 		const int32_t size = U16(data, 2);
 		const int32_t slot = (int32_t)((uint32_t)U16(blk, 0) % (uint32_t)size);
-		uint8_t *e = A(us(RING)) + 0x14 * slot;
+		uint8_t *e = A(game_addr(RING)) + 0x14 * slot;
 		U32(e, 0) = 1;
 		U32(e, 4) = U32(w->base, 0);
 		U32(e, 8) = U32(w->base, 4);
 		U32(e, 0xC) = U32(w->tip, 0);
 		U32(e, 0x10) = U32(w->tip, 4);
-		const int32_t n = TrailGather(A(us(RING)), size, U16(blk, 0), slot, A(us(PTS_BASE)), A(us(PTS_TIP)));
+		const int32_t n = TrailGather(A(game_addr(RING)), size, U16(blk, 0), slot, A(game_addr(PTS_BASE)), A(game_addr(PTS_TIP)));
 		if (n > 1)
 		{
 			uint8_t *work = (uint8_t *)x::FieldAlloc(0x190);
-			TrailCurve(n, A(us(PTS_BASE)), work, A(us(SPL_BASE)));
-			TrailCurve(n, A(us(PTS_TIP)), work, A(us(SPL_TIP)));
+			TrailCurve(n, A(game_addr(PTS_BASE)), work, A(game_addr(SPL_BASE)));
+			TrailCurve(n, A(game_addr(PTS_TIP)), work, A(game_addr(SPL_TIP)));
 			x::FieldFree(0x190);
-			U32(A(us(TAIL_BASE)), 0) = U32(A(us(SPL_TIP)), 0);
-			S32(A(us(DIR_TIP)), 0) = S16(A(us(SPL_TIP)), 0) - S16(A(us(SPL_TIP)), 8);
-			U32(A(us(TAIL_BASE)), 4) = U32(A(us(SPL_TIP)), 4);
-			S32(A(us(DIR_TIP)), 4) = S16(A(us(SPL_TIP)), 2) - S16(A(us(SPL_TIP)), 0xA);
-			S32(A(us(DIR_TIP)), 8) = S16(A(us(SPL_TIP)), 4) - S16(A(us(SPL_TIP)), 0xC);
-			xl_Normalize(A(us(DIR_TIP)), A(us(DIR_TIP)));
-			U32(A(us(HEAD_BASE)), 0) = U32(A(us(SPL_BASE)), 0);
-			U32(A(us(HEAD_BASE)), 4) = U32(A(us(SPL_BASE)), 4);
-			S32(A(us(DIR_BASE)), 0) = S16(A(us(TAIL_BASE)), 0) - S16(A(us(SPL_BASE)), 0);
-			S32(A(us(DIR_BASE)), 4) = S16(A(us(TAIL_BASE)), 2) - S16(A(us(SPL_BASE)), 2);
-			S32(A(us(DIR_BASE)), 8) = S16(A(us(TAIL_BASE)), 4) - S16(A(us(SPL_BASE)), 4);
-			xl_Normalize(A(us(DIR_BASE)), A(us(DIR_BASE)));
-			TrailDraw(A(us(SPL_BASE)), A(us(SPL_TIP)), U32(CUR(), 0xCC), w);
+			U32(A(game_addr(TAIL_BASE)), 0) = U32(A(game_addr(SPL_TIP)), 0);
+			S32(A(game_addr(DIR_TIP)), 0) = S16(A(game_addr(SPL_TIP)), 0) - S16(A(game_addr(SPL_TIP)), 8);
+			U32(A(game_addr(TAIL_BASE)), 4) = U32(A(game_addr(SPL_TIP)), 4);
+			S32(A(game_addr(DIR_TIP)), 4) = S16(A(game_addr(SPL_TIP)), 2) - S16(A(game_addr(SPL_TIP)), 0xA);
+			S32(A(game_addr(DIR_TIP)), 8) = S16(A(game_addr(SPL_TIP)), 4) - S16(A(game_addr(SPL_TIP)), 0xC);
+			xl_Normalize(A(game_addr(DIR_TIP)), A(game_addr(DIR_TIP)));
+			U32(A(game_addr(HEAD_BASE)), 0) = U32(A(game_addr(SPL_BASE)), 0);
+			U32(A(game_addr(HEAD_BASE)), 4) = U32(A(game_addr(SPL_BASE)), 4);
+			S32(A(game_addr(DIR_BASE)), 0) = S16(A(game_addr(TAIL_BASE)), 0) - S16(A(game_addr(SPL_BASE)), 0);
+			S32(A(game_addr(DIR_BASE)), 4) = S16(A(game_addr(TAIL_BASE)), 2) - S16(A(game_addr(SPL_BASE)), 2);
+			S32(A(game_addr(DIR_BASE)), 8) = S16(A(game_addr(TAIL_BASE)), 4) - S16(A(game_addr(SPL_BASE)), 4);
+			xl_Normalize(A(game_addr(DIR_BASE)), A(game_addr(DIR_BASE)));
+			TrailDraw(A(game_addr(SPL_BASE)), A(game_addr(SPL_TIP)), U32(CUR(), 0xCC), w);
 		}
 		x::FieldFree(0x40);
 		U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);
@@ -283,7 +283,7 @@ namespace bloodpain262
 			uint8_t *blk = blob::ArenaAlloc(0x10);
 			PTR(CUR(), 0xBC) = blk;
 			U16(blk, 0) = 0;
-			for (int32_t i = 0; i < (int32_t)U16(data, 2); i++) U32(A(us(RING)), 0x14 * i) = 0;
+			for (int32_t i = 0; i < (int32_t)U16(data, 2); i++) U32(A(game_addr(RING)), 0x14 * i) = 0;
 			b = CUR();
 		}
 		uint8_t *data = PTR(b, 0xB8);
@@ -316,7 +316,7 @@ namespace bloodpain262
 		bloodpain262::describe(bloodpain262::g_c);
 		init_clone(bloodpain262::g_c, nullptr, 0);
 		bloodpain262::apply_slots(bloodpain262::g_c);
-		register_port(0x950060, (void *)bloodpain262::SequenceTask, "MAG262 Blood Pain SequenceTick", 262);
+		register_port(game::MAG_262_SequenceTick, (void *)bloodpain262::SequenceTask, "MAG262 Blood Pain SequenceTick", 262);
 	}
 }
 

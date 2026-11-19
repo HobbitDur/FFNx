@@ -22,23 +22,23 @@ namespace act
 {
 namespace norgpod
 {
-	static const Mod MOD_020 = { "norgpod", 20, 0x89FBA0, 0x8A3280,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2726770, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x89FFB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8A0490, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_020 = { "norgpod", 20, game::MAG_020_NORG_POD_OPENING_FL, game::MAG_019_UNK0_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_020_EmitterQueue, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_020_NorgPod_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_020_SpriteStrip_DrawQuads, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x2721594;
-	static const uint32_t Q_EMITTER = 0x2726770, Q_POD = 0x2721690, Q_CHUNK = 0x2722968, Q_STAGE = 0x2726760;
-	static const uint32_t ORIG_Master = 0x89FD00;
-	static const uint32_t ORIG_Lid = 0x8A0070;
-	static const uint32_t ORIG_Debris = 0x8A01B0;
-	static const uint32_t ORIG_Chunk = 0x8A0990;
-	static const uint32_t SOUND_Open = 0x1629C50;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id PACKET_CURSOR = game::MAG_020_PacketCursor;
+	static constexpr game::Id Q_EMITTER = game::MAG_020_EmitterQueue, Q_POD = game::MAG_020_LidDebrisQueue, Q_CHUNK = game::MAG_020_ChunkQueue, Q_STAGE = game::MAG_020_StageQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_020_NorgPod_MasterTask;
+	static constexpr game::Id ORIG_Lid = game::MAG_020_NorgPod_LidTask;
+	static constexpr game::Id ORIG_Debris = game::MAG_020_NorgPod_DebrisTask;
+	static constexpr game::Id ORIG_Chunk = game::MAG_020_NorgPod_ChunkTask;
+	static constexpr game::Id SOUND_Open = game::unk_1629C50;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
-		static inline uint32_t setMonsterPresence(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x487670)(a1); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(a1, a2); }
+		static inline uint32_t setMonsterPresence(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::setMonsterPresence))(a1); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -397,43 +397,43 @@ namespace norgpod
 		g_mod = &MOD_020;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x27268F4)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x27215B0)) = us(0x2793E58);
-		states[0] = us(0x89FE40);
+		MEM<uint32_t>(game_addr(game::MAG_020_CameraCopyPtr)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::MAG_020_CameraCopyPtr2)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_020_NorgPod_Master_State0_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x89FE50);
-		states[2] = us(0x89FE60);
-		states[3] = us(0x89FF80);
-		states[4] = us(0x8A30E0);
-		states[5] = us(0x8A3120);
-		states[6] = us(0x8A3220);
-		states[7] = us(0x8A3230);
-		states[8] = us(0x8A3240);
-		states[9] = us(0x8A3250);
-		states[10] = us(0x8A3270);
+		states[1] = game_addr(game::MAG_020_NorgPod_Master_State1_Advance);
+		states[2] = game_addr(game::MAG_020_NorgPod_Master_StartLightRampUp);
+		states[3] = game_addr(game::MAG_020_NorgPod_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_020_NorgPod_Master_ActionLoop);
+		states[5] = game_addr(game::MAG_020_NorgPod_Master_StartLightRampDown);
+		states[6] = game_addr(game::MAG_020_NorgPod_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_020_NorgPod_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_020_NorgPod_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_020_NorgPod_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_020_NorgPod_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x27268E4));
-			const uint32_t v2 = MEM<uint32_t>(us(0x27264DC));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x27215AC)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_020_ArenaB));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_020_Arena2B));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_020_PacketCursor2)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x27268E0));
-			const uint32_t v2 = MEM<uint32_t>(us(0x27264D8));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x27215AC)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_020_ArenaA));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_020_Arena2A));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_020_PacketCursor2)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_POD)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_CHUNK)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_POD)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_CHUNK)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -444,7 +444,7 @@ namespace norgpod
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x89FE90), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_020_NorgPod_LightRampUpTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -460,7 +460,7 @@ namespace norgpod
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -470,15 +470,15 @@ namespace norgpod
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x8A0040);
-		states[1] = us(0x8A3070);
-		states[2] = us(0x8A3090);
-		states[3] = us(0x8A30D0);
+		states[0] = game_addr(game::MAG_020_NorgPod_Emitter_SpawnLid);
+		states[1] = game_addr(game::MAG_020_NorgPod_Emitter_ReleaseMaster);
+		states[2] = game_addr(game::MAG_020_NorgPod_Emitter_ApplyDamage);
+		states[3] = game_addr(game::MAG_020_NorgPod_Emitter_State3_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(us(SOUND_Open), 0, 0x80);
+			x::BdPlaySE(game_addr(SOUND_Open), 0, 0x80);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -486,7 +486,7 @@ namespace norgpod
 
 	uint32_t __cdecl np_8A0040(uint32_t a1)
 	{
-		x::Effect_AddTaskAndInitFromCtx(us(Q_POD), us(ORIG_Lid), 0x78, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_POD), game_addr(ORIG_Lid), 0x78, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -543,7 +543,7 @@ namespace norgpod
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x8A3150), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_020_NorgPod_LightRampDownTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -567,7 +567,7 @@ namespace norgpod
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -577,10 +577,10 @@ namespace norgpod
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x8A2D30);
-		states[1] = us(0x8A2F70);
-		states[2] = us(0x8A2FE0);
-		states[3] = us(0x8A3060);
+		states[0] = game_addr(game::MAG_020_NorgPod_Lid_Init);
+		states[1] = game_addr(game::MAG_020_NorgPod_Lid_WaitLaunch);
+		states[2] = game_addr(game::MAG_020_NorgPod_Lid_Flight);
+		states[3] = game_addr(game::MAG_020_NorgPod_Lid_State3_Empty);
 		callp(states[S8(node, 0x29)], node);
 		np_8A00E0(node);
 		const uint8_t status = U8(node, 0x26);
@@ -592,7 +592,7 @@ namespace norgpod
 	{
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2C));
-		const uint32_t slot = x::BdSound_ClaimVoiceSlot(us(0x17F36A0), 1, 0x80);
+		const uint32_t slot = x::BdSound_ClaimVoiceSlot(game_addr(game::unk_17F36A0), 1, 0x80);
 		U16(node, 0x74) = (uint16_t)slot;
 		U32(node, 0x1C) = U32(ent, 0x1C);
 		U32(node, 0x20) = U32(ent, 0x20);
@@ -624,7 +624,7 @@ namespace norgpod
 		bones += 0x10;
 		x::ComposeAffineTransform(blk + 0x40, bones, bones);
 		ff8fx::copy<(8 * 4)>((void *)blk, (const void *)(ent + 0x40));
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(blk);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0x20);
@@ -634,12 +634,12 @@ namespace norgpod
 		x::GTE_LoadIRFromMatrixColumn(blk + 4);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0x24);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(blk + 0x14);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(blk + 0x34);
 		x::ComposeAffineTransform(blk + 0x20, bones, bones);
-		U32(blk, 0x64) = MEM<uint32_t>(us(0x1D98B3C));
+		U32(blk, 0x64) = MEM<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 		const uint8_t shade = U8(ent, 7);
 		U8(blk, 0x8A) = shade;
 		U8(blk, 0x89) = shade;
@@ -651,8 +651,8 @@ namespace norgpod
 		U32(blk, 0x80) = U32(ent, 0x7C);
 		U16(blk, 0x78) = 0x140;
 		U16(blk, 0x7A) = 0xD8;
-		U32(blk, 0x70) = MEM<uint32_t>(us(0x1D969A8));
-		MEM<uint32_t>(us(0x1D8E054)) = x::RenderGeometry(U32(ent, 0x64), blk + 0x60, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, MEM<uint32_t>(us(0x1D8E054)));
+		U32(blk, 0x70) = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = x::RenderGeometry(U32(ent, 0x64), blk + 0x60, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::BattleModel_BuildBoneMatricesFromPose(ent + 0x60);
 		U32(ent, 0x7C) = saved7c;
 		x::Field_Free(0x8C);
@@ -664,13 +664,13 @@ namespace norgpod
 		const uint32_t node = a1;
 		if (S16(node, 0x24) >= 0x22)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x8DDC30), 0x40, node);
-			U32(t, 0x34) = us(0x1629F14);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::Effect_ScreenTintTask), 0x40, node);
+			U32(t, 0x34) = game_addr(game::unk_1629F14);
 			U16(t, 0x38) = 1;
 			U16(node, 0x60) = 0x120;
 			U16(node, 0x62) = 0xFEC0;
 			U16(node, 0x64) = 0x20;
-			gx::QueueChainTransformation(us(0x1D97668), 0xC);
+			gx::QueueChainTransformation(game_addr(game::unk_1D97668), 0xC);
 			const uint8_t st = U8(node, 0x29);
 			U16(node, 0x70) = 0x18;
 			U8(node, 0x29) = (uint8_t)(st + 1);
@@ -710,14 +710,14 @@ namespace norgpod
 	{
 		const uint32_t node = a1;
 		const uint16_t k = U16(node, 0x72);
-		if (MEM<uint16_t>(us(0x1629F88) + (uint32_t)(int32_t)(int16_t)k * 2) != U16(node, 0x24))
+		if (MEM<uint16_t>(game_addr(game::unk_1629F88) + (uint32_t)(int32_t)(int16_t)k * 2) != U16(node, 0x24))
 			return 0;
 		U16(node, 0x72) = (uint16_t)(k + 1);
 		for (int32_t i = 0; i < 4; i++)
 		{
 			const int32_t r = (int32_t)x::CrtRand();
-			const uint32_t off = us(0x1629F28) + (uint32_t)(r % 12) * 8;
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_POD), us(ORIG_Debris), 0x78, node);
+			const uint32_t off = game_addr(game::unk_1629F28) + (uint32_t)(r % 12) * 8;
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_POD), game_addr(ORIG_Debris), 0x78, node);
 			U32(t, 0x1C) = U32(node, 0x1C);
 			U32(t, 0x20) = U32(node, 0x20);
 			U16(t, 0x1C) = (uint16_t)(U16(t, 0x1C) + MEM<uint16_t>(off));
@@ -736,9 +736,9 @@ namespace norgpod
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8A2CB0);
-		states[1] = us(0x8A2CD0);
-		states[2] = us(0x8A2D20);
+		states[0] = game_addr(game::MAG_020_NorgPod_Debris_Init);
+		states[1] = game_addr(game::MAG_020_NorgPod_Debris_Animate);
+		states[2] = game_addr(game::MAG_020_NorgPod_Debris_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t tick = U16(node, 0x24);
 		if (tick == 0 || tick == 1)
@@ -753,7 +753,7 @@ namespace norgpod
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = us(0x1629C54);
+		U32(node, 0x4c) = game_addr(game::unk_1629C54);
 		st++;
 		U16(node, 0x56) = 0xFE00;
 		U16(node, 0x52) = 0xF;
@@ -779,7 +779,7 @@ namespace norgpod
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), mat);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -787,7 +787,7 @@ namespace norgpod
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -797,7 +797,7 @@ namespace norgpod
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -807,11 +807,11 @@ namespace norgpod
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
@@ -824,7 +824,7 @@ namespace norgpod
 		const uint32_t src = a1;
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_CHUNK), us(ORIG_Chunk), 0x98, src);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_CHUNK), game_addr(ORIG_Chunk), 0x98, src);
 			uint32_t v = t + 0x74;
 			for (int k = 2; k != 0; k--, v += 8)
 			{
@@ -843,9 +843,9 @@ namespace norgpod
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8A2C20);
-		states[1] = us(0x8A2C60);
-		states[2] = us(0x8A2CA0);
+		states[0] = game_addr(game::MAG_020_NorgPod_Chunk_Init);
+		states[1] = game_addr(game::MAG_020_NorgPod_Chunk_SpinShrink);
+		states[2] = game_addr(game::MAG_020_NorgPod_Chunk_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		for (int k = 0; k < 2; k++)
 			chunk_move(node + 8 * k);
@@ -864,7 +864,7 @@ namespace norgpod
 	uint32_t __cdecl np_8A2C20(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = us(0x1629E00);
+		U32(node, 0x4C) = game_addr(game::unk_1629E00);
 		U32(node, 0x38) = 0x300;
 		U32(node, 0x34) = 0x300;
 		U32(node, 0x30) = 0x300;
@@ -908,7 +908,7 @@ namespace norgpod
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -927,7 +927,7 @@ namespace norgpod
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = np_8A0BC0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = np_8A0BC0(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1623,67 +1623,67 @@ namespace norgpod
 		return pkt;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x89FE40, (void *)a_73A0D0, "020 MAG_020_sub_89FE40" },
-		{ 0x89FE50, (void *)a_73A0D0, "020 MAG_020_sub_89FE50" },
-		{ 0x89FE90, (void *)a_73A380, "020 MAG_020_sub_89FE90" },
-		{ 0x89FEF0, (void *)a_7335D0, "020 MAG_020_sub_89FEF0" },
-		{ 0x89FF70, (void *)a_73A6D0, "020 nullsub_1769" },
-		{ 0x89FF80, (void *)a_73A170, "020 MAG_020_sub_89FF80" },
-		{ 0x8A0350, (void *)a_7435E0, "020 InitEffectSequenceFromData_c15" },
-		{ 0x8A0490, (void *)a_743720, "020 sub_8A0490" },
-		{ 0x8A1BA0, (void *)a_73D770, "020 sub_8A1BA0" },
-		{ 0x8A1DF0, (void *)a_73D9C0, "020 sub_8A1DF0" },
-		{ 0x8A2CA0, (void *)a_73A6D0, "020 nullsub_1770" },
-		{ 0x8A2CF0, (void *)a_743C20, "020 sub_8A2CF0" },
-		{ 0x8A2D20, (void *)a_73A6D0, "020 nullsub_1771" },
-		{ 0x8A3060, (void *)a_73A6D0, "020 nullsub_1772" },
-		{ 0x8A30D0, (void *)a_73A6D0, "020 nullsub_1773" },
-		{ 0x8A3150, (void *)a_73A380, "020 MAG_020_sub_8A3150" },
-		{ 0x8A3210, (void *)a_73A6D0, "020 nullsub_1775" },
-		{ 0x8A3220, (void *)a_747550, "020 MAG_020_sub_8A3220" },
-		{ 0x8A3230, (void *)a_73A0D0, "020 MAG_020_sub_8A3230" },
-		{ 0x8A3240, (void *)a_73A0D0, "020 MAG_020_sub_8A3240" },
-		{ 0x8A3250, (void *)a_7475A0, "020 MAG_020_sub_8A3250" },
-		{ 0x8A3270, (void *)a_73A6D0, "020 nullsub_1774" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_020_NorgPod_Master_State0_Advance, (void *)a_73A0D0, "020 MAG_020_sub_89FE40" },
+		{ game::MAG_020_NorgPod_Master_State1_Advance, (void *)a_73A0D0, "020 MAG_020_sub_89FE50" },
+		{ game::MAG_020_NorgPod_LightRampUpTask, (void *)a_73A380, "020 MAG_020_sub_89FE90" },
+		{ game::MAG_020_NorgPod_LightRampUp_State0_ResetEntityRecords, (void *)a_7335D0, "020 MAG_020_sub_89FEF0" },
+		{ game::MAG_020_NorgPod_LightRampUp_State2_Empty, (void *)a_73A6D0, "020 nullsub_1769" },
+		{ game::MAG_020_NorgPod_Master_State3_SpawnEmitter, (void *)a_73A170, "020 MAG_020_sub_89FF80" },
+		{ game::InitEffectSequenceFromData_c15, (void *)a_7435E0, "020 InitEffectSequenceFromData_c15" },
+		{ game::MAG_020_SpriteStrip_DrawQuads, (void *)a_743720, "020 sub_8A0490" },
+		{ game::MAG_020_EmitG3, (void *)a_73D770, "020 sub_8A1BA0" },
+		{ game::MAG_020_EmitG4, (void *)a_73D9C0, "020 sub_8A1DF0" },
+		{ game::MAG_020_NorgPod_Chunk_State2_Empty, (void *)a_73A6D0, "020 nullsub_1770" },
+		{ game::MAG_020_StepCounterLimit, (void *)a_743C20, "020 sub_8A2CF0" },
+		{ game::MAG_020_NorgPod_Debris_State2_Empty, (void *)a_73A6D0, "020 nullsub_1771" },
+		{ game::MAG_020_NorgPod_Lid_State3_Empty, (void *)a_73A6D0, "020 nullsub_1772" },
+		{ game::MAG_020_NorgPod_Emitter_State3_Empty, (void *)a_73A6D0, "020 nullsub_1773" },
+		{ game::MAG_020_NorgPod_LightRampDownTask, (void *)a_73A380, "020 MAG_020_sub_8A3150" },
+		{ game::MAG_020_NorgPod_LightRampDown_State2_Empty, (void *)a_73A6D0, "020 nullsub_1775" },
+		{ game::MAG_020_NorgPod_Master_State6_WaitQueuesEmpty, (void *)a_747550, "020 MAG_020_sub_8A3220" },
+		{ game::MAG_020_NorgPod_Master_State7_Advance, (void *)a_73A0D0, "020 MAG_020_sub_8A3230" },
+		{ game::MAG_020_NorgPod_Master_State8_Advance, (void *)a_73A0D0, "020 MAG_020_sub_8A3240" },
+		{ game::MAG_020_NorgPod_Master_State9_Finish, (void *)a_7475A0, "020 MAG_020_sub_8A3250" },
+		{ game::MAG_020_NorgPod_Master_State10_Empty, (void *)a_73A6D0, "020 nullsub_1774" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x89FD00, (void *)np_89FD00, "020 np_89FD00" },
-		{ 0x89FE60, (void *)np_89FE60, "020 np_89FE60" },
-		{ 0x89FF30, (void *)np_89FF30, "020 np_89FF30" },
-		{ 0x89FFB0, (void *)np_89FFB0, "020 np_89FFB0" },
-		{ 0x8A0040, (void *)np_8A0040, "020 np_8A0040" },
-		{ 0x8A0070, (void *)np_8A0070, "020 np_8A0070" },
-		{ 0x8A00E0, (void *)np_8A00E0, "020 np_8A00E0" },
-		{ 0x8A01B0, (void *)np_8A01B0, "020 np_8A01B0" },
-		{ 0x8A0230, (void *)np_8A0230, "020 np_8A0230" },
-		{ 0x8A0900, (void *)np_8A0900, "020 np_8A0900" },
-		{ 0x8A0990, (void *)np_8A0990, "020 np_8A0990" },
-		{ 0x8A0AA0, (void *)np_8A0AA0, "020 np_8A0AA0" },
-		{ 0x8A0BC0, (void *)np_8A0BC0, "020 np_8A0BC0" },
-		{ 0x8A0CF0, (void *)np_8A0CF0, "020 np_8A0CF0" },
-		{ 0x8A0F10, (void *)np_8A0F10, "020 np_8A0F10" },
-		{ 0x8A11A0, (void *)np_8A11A0, "020 np_8A11A0" },
-		{ 0x8A1620, (void *)np_8A1620, "020 np_8A1620" },
-		{ 0x8A20D0, (void *)np_8A20D0, "020 np_8A20D0" },
-		{ 0x8A25D0, (void *)np_8A25D0, "020 np_8A25D0" },
-		{ 0x8A2C20, (void *)np_8A2C20, "020 np_8A2C20" },
-		{ 0x8A2C60, (void *)np_8A2C60, "020 np_8A2C60" },
-		{ 0x8A2CB0, (void *)np_8A2CB0, "020 np_8A2CB0" },
-		{ 0x8A2CD0, (void *)np_8A2CD0, "020 np_8A2CD0" },
-		{ 0x8A2D30, (void *)np_8A2D30, "020 np_8A2D30" },
-		{ 0x8A2D90, (void *)np_8A2D90, "020 np_8A2D90" },
-		{ 0x8A2F70, (void *)np_8A2F70, "020 np_8A2F70" },
-		{ 0x8A2FE0, (void *)np_8A2FE0, "020 np_8A2FE0" },
-		{ 0x8A3070, (void *)np_8A3070, "020 np_8A3070" },
-		{ 0x8A3090, (void *)np_8A3090, "020 np_8A3090" },
-		{ 0x8A30E0, (void *)np_8A30E0, "020 np_8A30E0" },
-		{ 0x8A3120, (void *)np_8A3120, "020 np_8A3120" },
-		{ 0x8A31B0, (void *)np_8A31B0, "020 np_8A31B0" },
-		{ 0x8A31D0, (void *)np_8A31D0, "020 np_8A31D0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_020_NorgPod_MasterTask, (void *)np_89FD00, "020 np_89FD00" },
+		{ game::MAG_020_NorgPod_Master_StartLightRampUp, (void *)np_89FE60, "020 np_89FE60" },
+		{ game::MAG_020_NorgPod_LightRampUp_Step, (void *)np_89FF30, "020 np_89FF30" },
+		{ game::MAG_020_NorgPod_EmitterTask, (void *)np_89FFB0, "020 np_89FFB0" },
+		{ game::MAG_020_NorgPod_Emitter_SpawnLid, (void *)np_8A0040, "020 np_8A0040" },
+		{ game::MAG_020_NorgPod_LidTask, (void *)np_8A0070, "020 np_8A0070" },
+		{ game::MAG_020_NorgPod_Lid_SpawnDebris, (void *)np_8A00E0, "020 np_8A00E0" },
+		{ game::MAG_020_NorgPod_DebrisTask, (void *)np_8A01B0, "020 np_8A01B0" },
+		{ game::MAG_020_NorgPod_Debris_Draw, (void *)np_8A0230, "020 np_8A0230" },
+		{ game::MAG_020_NorgPod_Debris_SpawnChunks, (void *)np_8A0900, "020 np_8A0900" },
+		{ game::MAG_020_NorgPod_ChunkTask, (void *)np_8A0990, "020 np_8A0990" },
+		{ game::MAG_020_NorgPod_Chunk_DrawPiece, (void *)np_8A0AA0, "020 np_8A0AA0" },
+		{ game::MAG_020_NorgPod_RenderPrimModel, (void *)np_8A0BC0, "020 np_8A0BC0" },
+		{ game::MAG_020_NorgPod_FlatTriList, (void *)np_8A0CF0, "020 np_8A0CF0" },
+		{ game::MAG_020_NorgPod_FlatQuadList, (void *)np_8A0F10, "020 np_8A0F10" },
+		{ game::MAG_020_NorgPod_TexTriList, (void *)np_8A11A0, "020 np_8A11A0" },
+		{ game::MAG_020_NorgPod_TexQuadList, (void *)np_8A1620, "020 np_8A1620" },
+		{ game::MAG_020_NorgPod_GouraudTexTriList, (void *)np_8A20D0, "020 np_8A20D0" },
+		{ game::MAG_020_NorgPod_GouraudTexQuadList, (void *)np_8A25D0, "020 np_8A25D0" },
+		{ game::MAG_020_NorgPod_Chunk_Init, (void *)np_8A2C20, "020 np_8A2C20" },
+		{ game::MAG_020_NorgPod_Chunk_SpinShrink, (void *)np_8A2C60, "020 np_8A2C60" },
+		{ game::MAG_020_NorgPod_Debris_Init, (void *)np_8A2CB0, "020 np_8A2CB0" },
+		{ game::MAG_020_NorgPod_Debris_Animate, (void *)np_8A2CD0, "020 np_8A2CD0" },
+		{ game::MAG_020_NorgPod_Lid_Init, (void *)np_8A2D30, "020 np_8A2D30" },
+		{ game::MAG_020_NorgPod_Lid_Draw, (void *)np_8A2D90, "020 np_8A2D90" },
+		{ game::MAG_020_NorgPod_Lid_WaitLaunch, (void *)np_8A2F70, "020 np_8A2F70" },
+		{ game::MAG_020_NorgPod_Lid_Flight, (void *)np_8A2FE0, "020 np_8A2FE0" },
+		{ game::MAG_020_NorgPod_Emitter_ReleaseMaster, (void *)np_8A3070, "020 np_8A3070" },
+		{ game::MAG_020_NorgPod_Emitter_ApplyDamage, (void *)np_8A3090, "020 np_8A3090" },
+		{ game::MAG_020_NorgPod_Master_ActionLoop, (void *)np_8A30E0, "020 np_8A30E0" },
+		{ game::MAG_020_NorgPod_Master_StartLightRampDown, (void *)np_8A3120, "020 np_8A3120" },
+		{ game::MAG_020_NorgPod_LightRampDown_Init, (void *)np_8A31B0, "020 np_8A31B0" },
+		{ game::MAG_020_NorgPod_LightRampDown_Step, (void *)np_8A31D0, "020 np_8A31D0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

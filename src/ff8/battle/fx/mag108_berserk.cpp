@@ -25,42 +25,42 @@ namespace berserk108
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2521AC4)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2521AC8)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2521AE4)); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x2521AE8); }
-	inline TaskQueue *QSwirls() { return (TaskQueue *)us(0x2521AF8); }
-	inline TaskQueue *QMains() { return (TaskQueue *)us(0x2521B08); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::unk_2521AC4)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_2521AC8)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::unk_2521AE4)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)game_addr(game::unk_2521AE8); }
+	inline TaskQueue *QSwirls() { return (TaskQueue *)game_addr(game::unk_2521AF8); }
+	inline TaskQueue *QMains() { return (TaskQueue *)game_addr(game::unk_2521B08); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
 
-	static const uint32_t ORIG_RootTask = 0x6CFD70;
-	static const uint32_t ORIG_MainTask = 0x6CFF60;
-	static const uint32_t ORIG_SwirlTask = 0x6D0C20;
-	static const uint32_t ORIG_ParticleTask = 0x6D1250;
-	static const uint32_t MODEL_Burst = 0x12E7BC0;
-	static const uint32_t MODEL_Glow = 0x12E7010;
-	static const uint32_t PART_Flags = 0x12EC330;
-	static const uint32_t SEQ_Flash = 0x12E6DDC;
-	static const uint32_t SEQ_Ember = 0x12E6E98;
-	static const uint32_t SEQ_Spark = 0x12E6C48;
-	static const uint32_t RAY_Colours = 0x12EC320;
-	static const uint32_t RAY_Unused = 0x2521B28;
-	static const uint32_t TEXWIN_Strip = 0x12EC310;
-	static const uint32_t TEXWIN_Reset = 0x12EC318;
-	static const void *SOUND_Berserk() { return (const void *)us(0x12EC30C); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_108_BERSERK_RootTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_108_BERSERK_MainVisual_Tick;
+	static constexpr game::Id ORIG_SwirlTask = game::MAG_108_SwirlTask;
+	static constexpr game::Id ORIG_ParticleTask = game::MAG_108_ParticleTask;
+	static constexpr game::Id MODEL_Burst = game::unk_12E7BC0;
+	static constexpr game::Id MODEL_Glow = game::unk_12E7010;
+	static constexpr game::Id PART_Flags = game::unk_12EC330;
+	static constexpr game::Id SEQ_Flash = game::unk_12E6DDC;
+	static constexpr game::Id SEQ_Ember = game::unk_12E6E98;
+	static constexpr game::Id SEQ_Spark = game::unk_12E6C48;
+	static constexpr game::Id RAY_Colours = game::unk_12EC320;
+	static constexpr game::Id RAY_Unused = game::unk_2521B28;
+	static constexpr game::Id TEXWIN_Strip = game::unk_12EC310;
+	static constexpr game::Id TEXWIN_Reset = game::unk_12EC318;
+	static const void *SOUND_Berserk() { return (const void *)game_addr(game::unk_12EC30C); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
-	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(int32_t *dst) { fn<void (__cdecl *)(int32_t *)>(us(0x45E3C0))(dst); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a, b, c); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(int32_t *dst) { fn<void (__cdecl *)(int32_t *)>(game_addr(game::GTE_ReadMAC0))(dst); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -581,14 +581,14 @@ namespace berserk108
 			p += 0xC;
 			*(uint32_t *)w = 0x2000000;
 			const uint32_t bucket = ot + (uint32_t)z * 4;
-			*(uint32_t *)(w + 4) = TexWindow(us(TEXWIN_Strip));
+			*(uint32_t *)(w + 4) = TexWindow(game_addr(TEXWIN_Strip));
 			*(uint32_t *)(w + 8) = 0;
 			InsertPrimAutoDepth(bucket, w);
 			InsertPrimAutoDepth(bucket, q);
 			w = p;
 			p += 0xC;
 			*(uint32_t *)w = 0x2000000;
-			*(uint32_t *)(w + 4) = TexWindow(us(TEXWIN_Reset));
+			*(uint32_t *)(w + 4) = TexWindow(game_addr(TEXWIN_Reset));
 			*(uint32_t *)(w + 8) = 0;
 			InsertPrimAutoDepth(bucket, w);
 		}
@@ -627,7 +627,7 @@ namespace berserk108
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(pos, 0x2000, (int32_t)0xFFFFF800);
-		*(uint32_t *)h = us(SEQ_Flash);
+		*(uint32_t *)h = game_addr(SEQ_Flash);
 		*(int16_t *)(h + 4) = (int16_t)e;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -651,7 +651,7 @@ namespace berserk108
 		GteReadMAC123(m.t);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = us(MODEL_Glow);
+		*(uint32_t *)h = game_addr(MODEL_Glow);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -682,7 +682,7 @@ namespace berserk108
 	{
 		ParticleNode *p = (ParticleNode *)n;
 		ParticleDraw(p);
-		if (p->seq == us(SEQ_Ember))
+		if (p->seq == game_addr(SEQ_Ember))
 		{
 			p->vel = (int16_t)(p->vel + p->accel);
 			p->pos[1] = (int16_t)(p->pos[1] + p->vel);
@@ -726,7 +726,7 @@ namespace berserk108
 		const int32_t c0 = m->counter;
 		if ((uint32_t)c0 < 4)
 		{
-			SwirlNode *s = (SwirlNode *)AddTaskToQueue(QSwirls(), us(ORIG_SwirlTask));
+			SwirlNode *s = (SwirlNode *)AddTaskToQueue(QSwirls(), game_addr(ORIG_SwirlTask));
 			if (s)
 			{
 				Memset32(&s->counter, 0, 0x105);
@@ -753,10 +753,10 @@ namespace berserk108
 			for (int32_t k = 3; k; k--)
 			{
 				const int32_t dist = (CrtRand() & 0xFF) + 0x96;
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_ParticleTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 4);
-				p->seq = us(SEQ_Ember);
+				p->seq = game_addr(SEQ_Ember);
 				p->scale = 0x800;
 				p->pos[0] = (int16_t)((mul32(ComputeSin(angle), dist) >> 12) + m->spawn[0]);
 				p->pos[2] = (int16_t)((mul32(ComputeCos(angle), dist) >> 12) + m->spawn[2]);
@@ -770,11 +770,11 @@ namespace berserk108
 		e = m->counter - 9;
 		if ((uint32_t)e < 8 && !(e & 1))
 		{
-			ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
+			ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_ParticleTask));
 			if (p)
 			{
 				Memset32(&p->counter, 0, 4);
-				p->seq = us(SEQ_Spark);
+				p->seq = game_addr(SEQ_Spark);
 				p->scale = 0x1000;
 				const int32_t r1 = CrtRand();
 				p->pos[0] = (int16_t)((r1 & 0x1FF) + m->pos[0] - 0x100);
@@ -786,8 +786,8 @@ namespace berserk108
 		}
 		if ((uint32_t)(m->counter - 0xA) < 8)
 		{
-			const uint32_t *col = (const uint32_t *)us(RAY_Colours);
-			RaySpawn(0x20, m->rays, 8, col, col + 1, col + 2, col + 3, (const void *)us(RAY_Unused), (const void *)(us(RAY_Unused) + 4),
+			const uint32_t *col = (const uint32_t *)game_addr(RAY_Colours);
+			RaySpawn(0x20, m->rays, 8, col, col + 1, col + 2, col + 3, (const void *)game_addr(RAY_Unused), (const void *)(game_addr(RAY_Unused) + 4),
 				0x64, 0xA0, 0xB40, -0x20, 0xA0, 0x40, -0x14);
 		}
 		if (m->counter == 0x11) ScreenFadeTask(0, 1, 1, 0x80);
@@ -796,7 +796,7 @@ namespace berserk108
 			PrimArg arg;
 			*(uint32_t *)&arg.pos[0] = *(const uint32_t *)&m->spawn[0];
 			*(uint32_t *)&arg.pos[2] = *(const uint32_t *)&m->spawn[2];
-			arg.flags = us(PART_Flags);
+			arg.flags = game_addr(PART_Flags);
 			arg.morph = TexBase() + 0x52CC;
 			prim::play((prim::Layout *)m->burst, BurstPart, (int)&arg, 0);
 		}
@@ -851,14 +851,14 @@ namespace berserk108
 				if (busy) r->counter = 0;
 				else
 				{
-					MainNode *m = (MainNode *)AddTaskToQueue(QMains(), us(ORIG_MainTask));
+					MainNode *m = (MainNode *)AddTaskToQueue(QMains(), game_addr(ORIG_MainTask));
 					Memset32(&m->counter, 0, 0x22E);
 					m->action = (int16_t)(uint16_t)r->action;
 					m->entity = entity;
 					GetEffectSpawnPosition(entity, 0xF1, 0, m->spawn);
 					m->spawn[1] = *(const int16_t *)(entity + 0x24);
 					GetDefaultEffectPosition(m->entity, m->pos);
-					DecodeModelPrimLayout(us(MODEL_Burst), m->burst, 0x29C);
+					DecodeModelPrimLayout(game_addr(MODEL_Burst), m->burst, 0x29C);
 					r->action++;
 				}
 			}

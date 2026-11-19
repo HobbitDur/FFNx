@@ -24,25 +24,25 @@ namespace act
 {
 namespace windblast
 {
-	static const Mod MOD_029 = { "windblast", 29, 0x879480, 0x87DAF0,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D6A64, 0x0, 0x26D6B40, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D7340, 0x0, 0x26D7350, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D74CA, 0x26D74CC, 0x0, 0x26D74DA, 0x0, 0x26D74E0, 0x0, 0x26D74F0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x879960, 0x87A3B0, 0x87A440, 0x87A4A0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x87AE50, 0x87AF90, 0x87AFD0, 0x87C260, 0x87C2B0, 0x87C2E0, 0x87C360, 0x87CA50, 0x87CAA0, 0x87CB40, 0x87CC00, 0x87D450, 0x87D850, 0x87D8E0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8797C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x879B10, 0x879BF0, 0x879D50, 0x879E20, 0x879F40, 0x87A150, 0x87AF10, 0x87B060, 0x87B6C0, 0x87B710, 0x87B7A0, 0x87B870, 0x87C000, 0x87C110, 0x87C190, 0x87C1C0, 0x87C9E0, 0x87CA10, 0x87CAF0, 0x87CC10, 0x87CD60, 0x87D3F0, 0x87D420, 0x87D600, 0x87D740, 0x0, 0x87A3B0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_029 = { "windblast", 29, game::MAG_029_WIND_BLAST_FL, game::MAG_028_CURAGA_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::unk_26D6A64, {}, game::unk_26D6B40, {}, {}, {}, {}, {}, game::MAG_029_ActorSystemQueue, {}, game::MAG_029_EmitterQueue, {}, {}, {}, {}, {}, game::unk_26D74CA, game::MAG_029_ParticlePoolPtr, {}, game::unk_26D74DA, {}, game::MAG_029_ScratchSP, {}, game::MAG_029_ActorStatePtr },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_029_DirectorSetup, game::MAG_029_ActSys_Step, game::MAG_029_ActSys_DrawPass, game::MAG_029_ActSys_DrawActorModel, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_029_ActSys_DrawSpritePass, game::MAG_029_ActSys_UpdatePass, game::MAG_029_ActorStep, game::MAG_029_ActSys_UpdateEmitter, game::MAG_029_Particle_LifeCountdown, game::MAG_029_ActSys_EmitterSpawnStep, game::MAG_029_ActSys_SpawnParticles, game::MAG_029_RandVec3, game::MAG_029_JitterAngles3, game::MAG_029_WIND_BLAST_AllocActor80, game::MAG_029_GetWord8Minus1, game::MAG_029_Particle_Init, game::MAG_029_SpawnSubEffects, game::MAG_029_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_029_WIND_BLAST_Emitter_Tick, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_029_ResetTrailHistory, game::MAG_029_Director_CasterRefPoints, game::MAG_029_FillTrailRows, game::MAG_029_Director_Mode3Setup, game::MAG_029_Director_TargetRefPoints, game::MAG_029_RelocateActorData, game::MAG_029_ActSys_DrawActorSprite, game::MAG_029_ActorMotion, game::MAG_029_DampValue, game::MAG_029_DampVector, game::MAG_029_Instance_AdvanceTexFrame, game::MAG_029_Instance_BuildTransform, game::MAG_029_MorphVertexBlock, game::MAG_029_Instance_EndOfLifeTest, game::MAG_029_Instance_SpawnFollowUp, game::MAG_029_AllocParticle, game::MAG_029_RandRange, game::MAG_029_RandRangeWide, game::MAG_029_RandAngleJitter, game::MAG_029_Particle_AttachToOwner, game::MAG_029_Actor_InterpolatePosition, game::MAG_029_ParticleList_Append, game::MAG_029_ParticleList_Unlink, game::MAG_029_Particle_PlaceAtAnchorSet, game::MAG_029_Particle_PlaceAtPoint, {}, game::MAG_029_ActSys_Step, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x26D6A44;
-	static const uint32_t ACTOR_STATE = 0x26D74F0;
-	static const uint32_t SCRATCH_SP = 0x26D74E0;
-	static const uint32_t Q_EMITTER = 0x26D7350, Q_ACTORS = 0x26D7340;
-	static const uint32_t ORIG_Master = 0x8795C0;
-	static const uint32_t ORIG_Emitter = 0x8797C0;
-	static const uint32_t ORIG_ActorSystem = 0x8798D0;
-	static const void *SOUND_WindBlast() { return (const void *)us(0x160DF7C); }
-	static const uint32_t ACTOR_DATA = 0x17D27DC;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_029_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::MAG_029_ActorStatePtr;
+	static constexpr game::Id SCRATCH_SP = game::MAG_029_ScratchSP;
+	static constexpr game::Id Q_EMITTER = game::MAG_029_EmitterQueue, Q_ACTORS = game::MAG_029_ActorSystemQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_029_WIND_BLAST_Tick;
+	static constexpr game::Id ORIG_Emitter = game::MAG_029_WIND_BLAST_Emitter_Tick;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_029_WIND_BLAST_MainVisual_Tick;
+	static const void *SOUND_WindBlast() { return (const void *)game_addr(game::unk_160DF7C); }
+	static constexpr game::Id ACTOR_DATA = game::unk_17D27DC;
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -145,43 +145,43 @@ namespace windblast
 		g_mod = &MOD_029;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x26D6A64)) = us(0x2793E58);
-		states[0] = us(0x8796F0);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_26D6A64)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_029_WIND_BLAST_Master_State0_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x879700);
-		states[2] = us(0x879710);
-		states[3] = us(0x879790);
-		states[4] = us(0x87DA40);
-		states[5] = us(0x87DA80);
-		states[6] = us(0x87DA90);
-		states[7] = us(0x87DAA0);
-		states[8] = us(0x87DAB0);
-		states[9] = us(0x87DAC0);
-		states[10] = us(0x87DAE0);
+		states[1] = game_addr(game::MAG_029_WIND_BLAST_Master_State1_Advance);
+		states[2] = game_addr(game::MAG_029_WIND_BLAST_State02_CarveArenas);
+		states[3] = game_addr(game::MAG_029_WIND_BLAST_State03_SpawnEmitter);
+		states[4] = game_addr(game::MAG_029_WIND_BLAST_State04_ActionLoop);
+		states[5] = game_addr(game::MAG_029_WIND_BLAST_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_029_WIND_BLAST_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_029_WIND_BLAST_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_029_WIND_BLAST_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_029_WIND_BLAST_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_029_WIND_BLAST_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26D74C4));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26D6B4C));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26D6A60)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26D74C4));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26D6B4C));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26D6A60)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26D74C0));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26D6B48));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26D6A60)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26D74C0));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26D6B48));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26D6A60)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x26D74DA)) = 0;
-		MEM<uint16_t>(us(0x26D74CA)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
+		MEM<uint16_t>(game_addr(game::unk_26D74DA)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26D74CA)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ACTORS)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -192,12 +192,12 @@ namespace windblast
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x26D74EC));
-		MEM<uint32_t>(us(0x26D74CC)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_029_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_029_ParticlePoolPtr)) = p;
 		p += 0x10E0;
-		MEM<uint32_t>(us(0x26D74E4)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_029_ActorPoolPtr)) = p;
 		p += 0xD200;
-		MEM<uint32_t>(us(0x26D74EC)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_029_FileArenaCursor)) = p;
 		wb_879750();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -205,12 +205,12 @@ namespace windblast
 
 	uint32_t __cdecl wb_879750(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26D74CC)), 0x10E0);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26D74E4)), 0xD200);
-		MEM<uint16_t>(us(0x26D6B40)) = 0;
-		MEM<uint16_t>(us(0x26D74D8)) = 0;
-		MEM<uint16_t>(us(0x26D74C8)) = 0;
-		MEM<uint16_t>(us(0x26D6A48)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_029_ParticlePoolPtr)), 0x10E0);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_029_ActorPoolPtr)), 0xD200);
+		MEM<uint16_t>(game_addr(game::unk_26D6B40)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_029_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26D74C8)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26D6A48)) = 0;
 		return 0;
 	}
 
@@ -218,10 +218,10 @@ namespace windblast
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x879850);
-		states[1] = us(0x87D9A0);
-		states[2] = us(0x87D9C0);
-		states[3] = us(0x87DA30);
+		states[0] = game_addr(game::MAG_029_WIND_BLAST_Emitter_State0_SpawnMainVisual);
+		states[1] = game_addr(game::MAG_029_WIND_BLAST_Emitter_State1_ReleaseMaster);
+		states[2] = game_addr(game::MAG_029_WIND_BLAST_Emitter_State2_ApplyDamageAllTargets);
+		states[3] = game_addr(game::MAG_029_WIND_BLAST_Emitter_State3_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -234,7 +234,7 @@ namespace windblast
 
 	uint32_t __cdecl wb_879850(uint32_t a1)
 	{
-		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0xC, 0x2D, 1);
+		a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(ACTOR_DATA), 0xC, 0x2D, 1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -307,8 +307,8 @@ namespace windblast
 
 	uint32_t __cdecl wb_87CB40(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x26D74E4));
-		int32_t i = MEM<int16_t>(us(0x26D74D8));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_029_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_029_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -321,7 +321,7 @@ namespace windblast
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -338,9 +338,9 @@ namespace windblast
 		}
 		i++;
 		if (i >= 0x4F)
-			MEM<uint16_t>(us(0x26D74D8)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_029_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x26D74D8)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_029_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
@@ -363,7 +363,7 @@ namespace windblast
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;
 		const uint32_t root = U32(node, 0x10);
-		MEM<uint32_t>(us(0x26D74F0)) = st;
+		MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x24) = w29c;
@@ -375,7 +375,7 @@ namespace windblast
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(us(0x26D74F0));
+			st = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -395,41 +395,41 @@ namespace windblast
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		wb_879BF0();
-		st = MEM<uint32_t>(us(0x26D74F0));
+		st = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 		if (U16(st, 0x24) == 4)
-			callp(us(0x879B10), node);
+			callp(game_addr(game::MAG_029_ResetTrailHistory), node);
 		wb_879F40();
-		st = MEM<uint32_t>(us(0x26D74F0));
+		st = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 		if (U16(st, 0x24) == 1)
 		{
-			callp(us(0x879D50), node);
-			st = MEM<uint32_t>(us(0x26D74F0));
+			callp(game_addr(game::MAG_029_FillTrailRows), node);
+			st = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(us(0x26D74F0));
+			st = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
+		uint32_t e2 = game_addr(game::BattleEntitySlotData) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(us(0x26D74F0));
+		st = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 		U32(st, 0) = dist;
 		return 0;
 	}
 
 	uint32_t __cdecl wb_879B10(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26D74F0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -446,15 +446,15 @@ namespace windblast
 
 	uint32_t __cdecl wb_879BF0(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -467,7 +467,7 @@ namespace windblast
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -475,7 +475,7 @@ namespace windblast
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -490,7 +490,7 @@ namespace windblast
 
 	uint32_t __cdecl wb_879D50(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26D74F0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -511,7 +511,7 @@ namespace windblast
 
 	uint32_t __cdecl wb_879F40(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -520,11 +520,11 @@ namespace windblast
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+				const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -537,7 +537,7 @@ namespace windblast
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -545,7 +545,7 @@ namespace windblast
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -587,7 +587,7 @@ namespace windblast
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x26D74F0), 0) = sys;
+		U32(game_addr(game::MAG_029_ActorStatePtr), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -599,7 +599,7 @@ namespace windblast
 			wb_87AF90();
 			wb_87AE50();
 			wb_87A440();
-			sys = U32(us(0x26D74F0), 0);
+			sys = U32(game_addr(game::MAG_029_ActorStatePtr), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -612,19 +612,19 @@ namespace windblast
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x26D74DA), 0) = (uint16_t)(U16(us(0x26D74DA), 0) + c14);
-		U16(us(0x26D74CA), 0) = (uint16_t)(U16(us(0x26D74CA), 0) + c16);
+		U16(game_addr(game::unk_26D74DA), 0) = (uint16_t)(U16(game_addr(game::unk_26D74DA), 0) + c14);
+		U16(game_addr(game::unk_26D74CA), 0) = (uint16_t)(U16(game_addr(game::unk_26D74CA), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl wb_87A440(void)
 	{
-		uint32_t act = U32(U32(us(0x26D74F0), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_029_ActorStatePtr), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x26D74F0), 0);
+				uint32_t sys = U32(game_addr(game::MAG_029_ActorStatePtr), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -638,10 +638,10 @@ namespace windblast
 
 	uint32_t __cdecl wb_87A4A0(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -661,9 +661,9 @@ namespace windblast
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-			MEM<uint32_t>(us(PACKET_CURSOR)) = wb_87A5E0(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = wb_87A5E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -678,17 +678,17 @@ namespace windblast
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 				const uint32_t r = wb_87A5E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -870,14 +870,14 @@ namespace windblast
 
 	uint32_t __cdecl wb_87AE50(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x26D74F0)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x26D74F0));
+				uint32_t st = MEM<uint32_t>(game_addr(game::MAG_029_ActorStatePtr));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -912,26 +912,26 @@ namespace windblast
 	uint32_t __cdecl wb_87AF10(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl wb_87AF90(void)
 	{
-		uint32_t act = U32(U32(us(0x26D74F0), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_029_ActorStatePtr), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -949,7 +949,7 @@ namespace windblast
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x26D74F0), 0);
+		uint32_t st = U32(game_addr(game::MAG_029_ActorStatePtr), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -996,9 +996,9 @@ namespace windblast
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x87CC10), a1);
+			callp(game_addr(game::MAG_029_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x87CD60), a1);
+			callp(game_addr(game::MAG_029_Actor_InterpolatePosition), a1);
 		wb_87C2E0(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1007,7 +1007,7 @@ namespace windblast
 
 	uint32_t __cdecl wb_87C2E0(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x26D74F0), 0);
+		uint32_t sys = U32(game_addr(game::MAG_029_ActorStatePtr), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1034,9 +1034,9 @@ namespace windblast
 
 	uint32_t __cdecl wb_87C360(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x26D74E0), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::MAG_029_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x26D74E0), 0) = sp;
+		U32(game_addr(game::MAG_029_ScratchSP), 0) = sp;
 		uint32_t node = wb_87CB40(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1046,7 +1046,7 @@ namespace windblast
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x26D74F0), 0);
+			uint32_t ctx = U32(game_addr(game::MAG_029_ActorStatePtr), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1214,14 +1214,14 @@ namespace windblast
 			}
 		}
 		a_743100(node, desc);
-		U32(us(0x26D74E0), 0) = U32(us(0x26D74E0), 0) + 0x50;
+		U32(game_addr(game::MAG_029_ScratchSP), 0) = U32(game_addr(game::MAG_029_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl wb_87CD60(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x26D74F0), 0);
+		const uint32_t st = U32(game_addr(game::MAG_029_ActorStatePtr), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1281,7 +1281,7 @@ namespace windblast
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x26D74F0), 0);
+				uint32_t g = U32(game_addr(game::MAG_029_ActorStatePtr), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1291,7 +1291,7 @@ namespace windblast
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x26D74F0), 0);
+				uint32_t g = U32(game_addr(game::MAG_029_ActorStatePtr), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1344,82 +1344,82 @@ namespace windblast
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x8796F0, (void *)a_73A0D0, "029 MAG_029_sub_8796F0" },
-		{ 0x879700, (void *)a_73A0D0, "029 MAG_029_sub_879700" },
-		{ 0x879790, (void *)a_73A170, "029 MAG_029_sub_879790" },
-		{ 0x879880, (void *)a_73C100, "029 MAG_029_sub_879880" },
-		{ 0x8798D0, (void *)a_73A380, "029 MAG_029_sub_8798D0" },
-		{ 0x879E20, (void *)a_73FE90, "029 sub_879E20" },
-		{ 0x87A150, (void *)a_740210, "029 sub_87A150" },
-		{ 0x87A6A0, (void *)a_735DF0, "029 sub_87A6A0" },
-		{ 0x87AFD0, (void *)a_740880, "029 sub_87AFD0" },
-		{ 0x87B060, (void *)a_740910, "029 sub_87B060" },
-		{ 0x87B6C0, (void *)a_740F70, "029 sub_87B6C0" },
-		{ 0x87B710, (void *)a_740FC0, "029 sub_87B710" },
-		{ 0x87B7A0, (void *)a_741050, "029 sub_87B7A0" },
-		{ 0x87B870, (void *)a_741120, "029 sub_87B870" },
-		{ 0x87C110, (void *)a_7419C0, "029 sub_87C110" },
-		{ 0x87C190, (void *)a_741A40, "029 sub_87C190" },
-		{ 0x87C1C0, (void *)a_741A70, "029 sub_87C1C0" },
-		{ 0x87C2B0, (void *)a_741B60, "029 sub_87C2B0" },
-		{ 0x87C9E0, (void *)a_742290, "029 au_re__rand_57" },
-		{ 0x87CA10, (void *)a_7422C0, "029 sub_87CA10" },
-		{ 0x87CA50, (void *)a_742300, "029 sub_87CA50" },
-		{ 0x87CAA0, (void *)a_742350, "029 sub_87CAA0" },
-		{ 0x87CAF0, (void *)a_7423A0, "029 au_re__rand_57_0" },
-		{ 0x87CC00, (void *)a_7424B0, "029 sub_87CC00" },
-		{ 0x87CC10, (void *)a_7424C0, "029 sub_87CC10" },
-		{ 0x87D3F0, (void *)a_742CA0, "029 sub_87D3F0" },
-		{ 0x87D420, (void *)a_742CD0, "029 sub_87D420" },
-		{ 0x87D450, (void *)a_742D00, "029 sub_87D450" },
-		{ 0x87D600, (void *)a_742EB0, "029 sub_87D600" },
-		{ 0x87D740, (void *)a_742FF0, "029 sub_87D740" },
-		{ 0x87D850, (void *)a_743100, "029 sub_87D850" },
-		{ 0x87D8E0, (void *)a_743190, "029 sub_87D8E0" },
-		{ 0x87D990, (void *)a_73A6D0, "029 nullsub_1691" },
-		{ 0x87DA30, (void *)a_73A6D0, "029 nullsub_1692" },
-		{ 0x87DA40, (void *)a_747500, "029 MAG_029_sub_87DA40" },
-		{ 0x87DA80, (void *)a_73A0D0, "029 MAG_029_sub_87DA80" },
-		{ 0x87DA90, (void *)a_747550, "029 MAG_029_sub_87DA90" },
-		{ 0x87DAA0, (void *)a_73A0D0, "029 MAG_029_sub_87DAA0" },
-		{ 0x87DAB0, (void *)a_73A0D0, "029 MAG_029_sub_87DAB0" },
-		{ 0x87DAC0, (void *)a_7475A0, "029 MAG_029_sub_87DAC0" },
-		{ 0x87DAE0, (void *)a_73A6D0, "029 nullsub_1690" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_029_WIND_BLAST_Master_State0_Advance, (void *)a_73A0D0, "029 MAG_029_sub_8796F0" },
+		{ game::MAG_029_WIND_BLAST_Master_State1_Advance, (void *)a_73A0D0, "029 MAG_029_sub_879700" },
+		{ game::MAG_029_WIND_BLAST_State03_SpawnEmitter, (void *)a_73A170, "029 MAG_029_sub_879790" },
+		{ game::MAG_029_WIND_BLAST_SpawnActorSystem, (void *)a_73C100, "029 MAG_029_sub_879880" },
+		{ game::MAG_029_WIND_BLAST_MainVisual_Tick, (void *)a_73A380, "029 MAG_029_sub_8798D0" },
+		{ game::MAG_029_Director_Mode3Setup, (void *)a_73FE90, "029 sub_879E20" },
+		{ game::MAG_029_RelocateActorData, (void *)a_740210, "029 sub_87A150" },
+		{ game::MAG_029_RenderPolyFT4List, (void *)a_735DF0, "029 sub_87A6A0" },
+		{ game::MAG_029_ActorStep, (void *)a_740880, "029 sub_87AFD0" },
+		{ game::MAG_029_ActorMotion, (void *)a_740910, "029 sub_87B060" },
+		{ game::MAG_029_DampValue, (void *)a_740F70, "029 sub_87B6C0" },
+		{ game::MAG_029_DampVector, (void *)a_740FC0, "029 sub_87B710" },
+		{ game::MAG_029_Instance_AdvanceTexFrame, (void *)a_741050, "029 sub_87B7A0" },
+		{ game::MAG_029_Instance_BuildTransform, (void *)a_741120, "029 sub_87B870" },
+		{ game::MAG_029_Instance_EndOfLifeTest, (void *)a_7419C0, "029 sub_87C110" },
+		{ game::MAG_029_Instance_SpawnFollowUp, (void *)a_741A40, "029 sub_87C190" },
+		{ game::MAG_029_AllocParticle, (void *)a_741A70, "029 sub_87C1C0" },
+		{ game::MAG_029_Particle_LifeCountdown, (void *)a_741B60, "029 sub_87C2B0" },
+		{ game::MAG_029_RandRange, (void *)a_742290, "029 au_re__rand_57" },
+		{ game::MAG_029_RandRangeWide, (void *)a_7422C0, "029 sub_87CA10" },
+		{ game::MAG_029_RandVec3, (void *)a_742300, "029 sub_87CA50" },
+		{ game::MAG_029_JitterAngles3, (void *)a_742350, "029 sub_87CAA0" },
+		{ game::MAG_029_RandAngleJitter, (void *)a_7423A0, "029 au_re__rand_57_0" },
+		{ game::MAG_029_GetWord8Minus1, (void *)a_7424B0, "029 sub_87CC00" },
+		{ game::MAG_029_Particle_AttachToOwner, (void *)a_7424C0, "029 sub_87CC10" },
+		{ game::MAG_029_ParticleList_Append, (void *)a_742CA0, "029 sub_87D3F0" },
+		{ game::MAG_029_ParticleList_Unlink, (void *)a_742CD0, "029 sub_87D420" },
+		{ game::MAG_029_Particle_Init, (void *)a_742D00, "029 sub_87D450" },
+		{ game::MAG_029_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "029 sub_87D600" },
+		{ game::MAG_029_Particle_PlaceAtPoint, (void *)a_742FF0, "029 sub_87D740" },
+		{ game::MAG_029_SpawnSubEffects, (void *)a_743100, "029 sub_87D850" },
+		{ game::MAG_029_Director_SpawnGroupEffects, (void *)a_743190, "029 sub_87D8E0" },
+		{ game::MAG_029_WIND_BLAST_MainVisual_State2_Empty, (void *)a_73A6D0, "029 nullsub_1691" },
+		{ game::MAG_029_WIND_BLAST_Emitter_State3_Empty, (void *)a_73A6D0, "029 nullsub_1692" },
+		{ game::MAG_029_WIND_BLAST_State04_ActionLoop, (void *)a_747500, "029 MAG_029_sub_87DA40" },
+		{ game::MAG_029_WIND_BLAST_Master_State5_Advance, (void *)a_73A0D0, "029 MAG_029_sub_87DA80" },
+		{ game::MAG_029_WIND_BLAST_Master_State6_WaitQueuesEmpty, (void *)a_747550, "029 MAG_029_sub_87DA90" },
+		{ game::MAG_029_WIND_BLAST_Master_State7_Advance, (void *)a_73A0D0, "029 MAG_029_sub_87DAA0" },
+		{ game::MAG_029_WIND_BLAST_Master_State8_Advance, (void *)a_73A0D0, "029 MAG_029_sub_87DAB0" },
+		{ game::MAG_029_WIND_BLAST_Master_State9_Finish, (void *)a_7475A0, "029 MAG_029_sub_87DAC0" },
+		{ game::MAG_029_WIND_BLAST_Master_State10_Empty, (void *)a_73A6D0, "029 nullsub_1690" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x8795C0, (void *)wb_8795C0, "029 wb_8795C0" },
-		{ 0x879710, (void *)wb_879710, "029 wb_879710" },
-		{ 0x879750, (void *)wb_879750, "029 wb_879750" },
-		{ 0x8797C0, (void *)wb_8797C0, "029 wb_8797C0" },
-		{ 0x879850, (void *)wb_879850, "029 wb_879850" },
-		{ 0x879930, (void *)wb_879930, "029 wb_879930" },
-		{ 0x879960, (void *)wb_879960, "029 wb_879960" },
-		{ 0x879B10, (void *)wb_879B10, "029 wb_879B10" },
-		{ 0x879BF0, (void *)wb_879BF0, "029 wb_879BF0" },
-		{ 0x879D50, (void *)wb_879D50, "029 wb_879D50" },
-		{ 0x879F40, (void *)wb_879F40, "029 wb_879F40" },
-		{ 0x87A3B0, (void *)wb_87A3B0, "029 wb_87A3B0" },
-		{ 0x87A440, (void *)wb_87A440, "029 wb_87A440" },
-		{ 0x87A4A0, (void *)wb_87A4A0, "029 wb_87A4A0" },
-		{ 0x87A5E0, (void *)wb_87A5E0, "029 wb_87A5E0" },
-		{ 0x87A940, (void *)wb_87A940, "029 wb_87A940" },
-		{ 0x87AB70, (void *)wb_87AB70, "029 wb_87AB70" },
-		{ 0x87AE50, (void *)wb_87AE50, "029 wb_87AE50" },
-		{ 0x87AF10, (void *)wb_87AF10, "029 wb_87AF10" },
-		{ 0x87AF90, (void *)wb_87AF90, "029 wb_87AF90" },
-		{ 0x87C000, (void *)wb_87C000, "029 wb_87C000" },
-		{ 0x87C260, (void *)wb_87C260, "029 wb_87C260" },
-		{ 0x87C2E0, (void *)wb_87C2E0, "029 wb_87C2E0" },
-		{ 0x87C360, (void *)wb_87C360, "029 wb_87C360" },
-		{ 0x87CB40, (void *)wb_87CB40, "029 wb_87CB40" },
-		{ 0x87CD60, (void *)wb_87CD60, "029 wb_87CD60" },
-		{ 0x87D970, (void *)wb_87D970, "029 wb_87D970" },
-		{ 0x87D9A0, (void *)wb_87D9A0, "029 wb_87D9A0" },
-		{ 0x87D9C0, (void *)wb_87D9C0, "029 wb_87D9C0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_029_WIND_BLAST_Tick, (void *)wb_8795C0, "029 wb_8795C0" },
+		{ game::MAG_029_WIND_BLAST_State02_CarveArenas, (void *)wb_879710, "029 wb_879710" },
+		{ game::MAG_029_WIND_BLAST_ClearActorPools, (void *)wb_879750, "029 wb_879750" },
+		{ game::MAG_029_WIND_BLAST_Emitter_Tick, (void *)wb_8797C0, "029 wb_8797C0" },
+		{ game::MAG_029_WIND_BLAST_Emitter_State0_SpawnMainVisual, (void *)wb_879850, "029 wb_879850" },
+		{ game::MAG_029_WIND_BLAST_MainVisual_State0_StartActorSystemAtFrame, (void *)wb_879930, "029 wb_879930" },
+		{ game::MAG_029_DirectorSetup, (void *)wb_879960, "029 wb_879960" },
+		{ game::MAG_029_ResetTrailHistory, (void *)wb_879B10, "029 wb_879B10" },
+		{ game::MAG_029_Director_CasterRefPoints, (void *)wb_879BF0, "029 wb_879BF0" },
+		{ game::MAG_029_FillTrailRows, (void *)wb_879D50, "029 wb_879D50" },
+		{ game::MAG_029_Director_TargetRefPoints, (void *)wb_879F40, "029 wb_879F40" },
+		{ game::MAG_029_ActSys_Step, (void *)wb_87A3B0, "029 wb_87A3B0" },
+		{ game::MAG_029_ActSys_DrawPass, (void *)wb_87A440, "029 wb_87A440" },
+		{ game::MAG_029_ActSys_DrawActorModel, (void *)wb_87A4A0, "029 wb_87A4A0" },
+		{ game::MAG_029_WIND_BLAST_RenderPrimModel3Lists, (void *)wb_87A5E0, "029 wb_87A5E0" },
+		{ game::MAG_029_PrimList_G3, (void *)wb_87A940, "029 wb_87A940" },
+		{ game::MAG_029_PrimList_GT4, (void *)wb_87AB70, "029 wb_87AB70" },
+		{ game::MAG_029_ActSys_DrawSpritePass, (void *)wb_87AE50, "029 wb_87AE50" },
+		{ game::MAG_029_ActSys_DrawActorSprite, (void *)wb_87AF10, "029 wb_87AF10" },
+		{ game::MAG_029_ActSys_UpdatePass, (void *)wb_87AF90, "029 wb_87AF90" },
+		{ game::MAG_029_MorphVertexBlock, (void *)wb_87C000, "029 wb_87C000" },
+		{ game::MAG_029_ActSys_UpdateEmitter, (void *)wb_87C260, "029 wb_87C260" },
+		{ game::MAG_029_ActSys_EmitterSpawnStep, (void *)wb_87C2E0, "029 wb_87C2E0" },
+		{ game::MAG_029_ActSys_SpawnParticles, (void *)wb_87C360, "029 wb_87C360" },
+		{ game::MAG_029_WIND_BLAST_AllocActor80, (void *)wb_87CB40, "029 wb_87CB40" },
+		{ game::MAG_029_Actor_InterpolatePosition, (void *)wb_87CD60, "029 wb_87CD60" },
+		{ game::MAG_029_WIND_BLAST_MainVisual_State1_StepActorSystem, (void *)wb_87D970, "029 wb_87D970" },
+		{ game::MAG_029_WIND_BLAST_Emitter_State1_ReleaseMaster, (void *)wb_87D9A0, "029 wb_87D9A0" },
+		{ game::MAG_029_WIND_BLAST_Emitter_State2_ApplyDamageAllTargets, (void *)wb_87D9C0, "029 wb_87D9C0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

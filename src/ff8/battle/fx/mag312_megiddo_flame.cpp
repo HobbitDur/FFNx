@@ -22,8 +22,11 @@ namespace megiddo
 {
 	struct D312
 	{
-		static constexpr uint32_t CODE = 0x48300, GLOB = 0x182398, DATA = 0x989F0;
-		static constexpr uint32_t CAMERA = 0xCD8D90;
+		// A copy of Megiddo Flame 166: its code, globals and data are at the same distance from 166's in every release
+		static uint32_t code() { return game_addr(game::MAG_166_MegiddoFlame_Root) - game_addr(game::MAG_312_MegiddoFlame_Root); }
+		static uint32_t glob() { return game_addr(game::unk_23BF038) - game_addr(game::unk_223CCA0); }
+		static uint32_t data() { return game_addr(game::unk_D78048) - game_addr(game::unk_CDF658); }
+		static constexpr game::Id CAMERA = game::MAG312_MEGIDDO_FLAME_MOBILE_TYPE_8_cameraAnim;
 		static constexpr int32_t BONE = 0xA;
 		static constexpr int32_t RMODE = 2;
 		static constexpr int EFFECT = 312;

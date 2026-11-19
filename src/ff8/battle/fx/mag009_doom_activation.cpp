@@ -22,39 +22,39 @@ namespace act
 {
 namespace doomact
 {
-	static const Mod MOD_009 = { "doomactivation", 9, 0x8C0360, 0x8C4960,
-		{ 0x0, 0x0, 0x1634B7C, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x274EFE8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2757450, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8C06D0, 0x8C0750, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8C0910, 0x0, 0x8C09B0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8C4160, 0x0, 0x8C4800, 0x8C4840, 0x8C4860, 0x8C4880, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_009 = { "doomactivation", 9, game::MAG_009_DOOM_ACTIVATION_FL, game::MAG_008_DOOM_FL,
+		{ {}, {}, game::unk_1634B7C, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_009_DoomActivation_TextureFile, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::unk_2757450, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_009_EmitterTask, game::MAG_009_Emitter_State0_InitDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_009_DirSyncGate, {}, game::MAG_009_DirPhaseGE, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_009_SpriteStrip_DrawQuads, {}, game::MAG_009_Emitter_State1_ApplyDamage, game::MAG_009_Emitter_State2_WaitChildren, game::MAG_009_Emitter_State3_Finish, game::MAG_009_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t DIR_PTR = 0x1634B7C;
-	static const uint32_t PHASE_DATA = DIR_PTR;
-	static const uint32_t PACKET_CURSOR = 0x274EFEC;
-	static const uint32_t FRAME_CURSOR = 0x1D8E054;
-	static const uint32_t SOUND = 0x1634B80;
-	static const uint32_t BLEND_BUF = 0x2758178;
-	static const uint32_t PRIM_CB = 0x8C0DC0;
-	static const uint32_t ANCHOR = 0x27571B8;
-	static const uint32_t BODY_CTX = 0x274EFF0;
-	static const uint32_t BODY_VERTS = 0x274F638;
-	static const uint32_t BODY_BLOCK = 0x27584D0;
-	static const uint32_t Q_EMITTER = 0x2757450, Q_DIRECTOR = 0x274F128, Q_PHASE = 0x274F230, Q_PARTICLE = 0x274F628, Q_PRIM = 0x27571A0, Q_TINT = 0x2757440;
-	static const uint32_t ORIG_Master = 0x8C0500;
-	static const uint32_t ORIG_DarkenIn = 0x8C32D0;
-	static const uint32_t ORIG_DoomModel = 0x8C0BC0;
-	static const uint32_t ORIG_Sink = 0x8C3490;
-	static const uint32_t ORIG_DarkenOut = 0x8C33C0;
-	static const uint32_t ORIG_SinkModel = 0x8C3C30;
-	static const uint32_t ORIG_Spawner = 0x8C3D40;
-	static const uint32_t ORIG_Particle = 0x8C3E00;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id DIR_PTR = game::unk_1634B7C;
+	static constexpr game::Id PHASE_DATA = DIR_PTR;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_009_DoomActivation_PacketCursors;
+	static constexpr game::Id FRAME_CURSOR = game::BATTLE_PACKET_WRITE_CURSOR;
+	static constexpr game::Id SOUND = game::unk_1634B80;
+	static constexpr game::Id BLEND_BUF = game::MAG_009_DoomActivation_BlendBuffer;
+	static constexpr game::Id PRIM_CB = game::MAG_009_PrimPlayer_DrawCallback;
+	static constexpr game::Id ANCHOR = game::MAG_009_DoomActivation_SinkingAnchor;
+	static constexpr game::Id BODY_CTX = game::MAG_009_DoomActivation_RenderContext;
+	static constexpr game::Id BODY_VERTS = game::MAG_009_DoomActivation_VertexScratch;
+	static constexpr game::Id BODY_BLOCK = game::MAG_009_DoomActivation_RenderBlock;
+	static constexpr game::Id Q_EMITTER = game::unk_2757450, Q_DIRECTOR = game::unk_274F128, Q_PHASE = game::unk_274F230, Q_PARTICLE = game::unk_274F628, Q_PRIM = game::unk_27571A0, Q_TINT = game::unk_2757440;
+	static constexpr game::Id ORIG_Master = game::MAG_009_Master_Task;
+	static constexpr game::Id ORIG_DarkenIn = game::MAG_009_StageDarkenIn_Task;
+	static constexpr game::Id ORIG_DoomModel = game::MAG_009_DoomModel_Task;
+	static constexpr game::Id ORIG_Sink = game::MAG_009_Sink_Task;
+	static constexpr game::Id ORIG_DarkenOut = game::MAG_009_StageDarkenOut_Task;
+	static constexpr game::Id ORIG_SinkModel = game::MAG_009_SinkModel_Task;
+	static constexpr game::Id ORIG_Spawner = game::MAG_009_ParticleSpawner_Task;
+	static constexpr game::Id ORIG_Particle = game::MAG_009_Particle_Task;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		static inline uint32_t GTE_LoadV012Dwords(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E020))(a1); }
-		static inline uint32_t GTE_StoreSXY012_PolyGT3(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E300))(a1); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(a1); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(a1, a2, a3); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		static inline uint32_t GTE_LoadV012Dwords(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadV012Dwords))(a1); }
+		static inline uint32_t GTE_StoreSXY012_PolyGT3(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyGT3))(a1); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -352,7 +352,7 @@ namespace doomact
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -362,8 +362,8 @@ namespace doomact
 	static inline void da_sink_step(uint32_t node)
 	{
 		const uint16_t v = U16(node, 0x6E);
-		MEM<uint16_t>(us(BODY_CTX) + 0x54) = (uint16_t)(MEM<uint16_t>(us(BODY_CTX) + 0x54) + v);
-		MEM<uint16_t>(us(ANCHOR) + 2) = (uint16_t)(MEM<uint16_t>(us(ANCHOR) + 2) + v);
+		MEM<uint16_t>(game_addr(BODY_CTX) + 0x54) = (uint16_t)(MEM<uint16_t>(game_addr(BODY_CTX) + 0x54) + v);
+		MEM<uint16_t>(game_addr(ANCHOR) + 2) = (uint16_t)(MEM<uint16_t>(game_addr(ANCHOR) + 2) + v);
 	}
 	static inline void da_particle_place(uint32_t node)
 	{
@@ -378,9 +378,9 @@ namespace doomact
 		U16(vin, 2) = 0;
 		U16(vin, 4) = 0xC0;
 		x::matrixMultiplyVector(M, vin, vout);
-		U16(node, 0x1C) = (uint16_t)(MEM<uint16_t>(us(ANCHOR)) + U16(vout, 0));
-		U16(node, 0x1E) = (uint16_t)(MEM<uint16_t>(us(ANCHOR) + 2) + U16(vout, 2));
-		U16(node, 0x20) = (uint16_t)(MEM<uint16_t>(us(ANCHOR) + 4) + U16(vout, 4));
+		U16(node, 0x1C) = (uint16_t)(MEM<uint16_t>(game_addr(ANCHOR)) + U16(vout, 0));
+		U16(node, 0x1E) = (uint16_t)(MEM<uint16_t>(game_addr(ANCHOR) + 2) + U16(vout, 2));
+		U16(node, 0x20) = (uint16_t)(MEM<uint16_t>(game_addr(ANCHOR) + 4) + U16(vout, 4));
 	}
 
 	uint32_t __cdecl da_8C0500(uint32_t a1);
@@ -443,38 +443,38 @@ namespace doomact
 		g_mod = &MOD_009;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x27584C4)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x274F150)) = us(0x2793E58);
-		states[0] = us(0x8C0670);
-		states[1] = us(0x8C0680);
-		states[2] = us(0x8C0690);
-		states[3] = us(0x8C06A0);
-		states[4] = us(0x8C4890);
-		states[5] = us(0x8C48D0);
-		states[6] = us(0x8C48E0);
-		states[7] = us(0x8C48F0);
-		states[8] = us(0x8C4920);
-		states[9] = us(0x8C4930);
-		states[10] = us(0x8C4950);
+		MEM<uint32_t>(game_addr(game::unk_27584C4)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_274F150)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_009_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_009_Master_State1_Advance);
+		states[2] = game_addr(game::MAG_009_Master_State2_WaitNoChildren);
+		states[3] = game_addr(game::MAG_009_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_009_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_009_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_009_Master_State6);
+		states[7] = game_addr(game::MAG_009_Master_State7_Request);
+		states[8] = game_addr(game::MAG_009_Master_State8_WaitRequest);
+		states[9] = game_addr(game::MAG_009_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_009_Master_State10_Empty);
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			MEM<uint32_t>(us(0x274EFEC)) = MEM<uint32_t>(us(0x27575C4));
-			MEM<uint32_t>(us(0x274F14C)) = MEM<uint32_t>(us(0x27571B4));
+			MEM<uint32_t>(game_addr(game::MAG_009_DoomActivation_PacketCursors)) = MEM<uint32_t>(game_addr(game::unk_27575C4));
+			MEM<uint32_t>(game_addr(game::unk_274F14C)) = MEM<uint32_t>(game_addr(game::unk_27571B4));
 		}
 		else
 		{
-			MEM<uint32_t>(us(0x274EFEC)) = MEM<uint32_t>(us(0x27575C0));
-			MEM<uint32_t>(us(0x274F14C)) = MEM<uint32_t>(us(0x27571B0));
+			MEM<uint32_t>(game_addr(game::MAG_009_DoomActivation_PacketCursors)) = MEM<uint32_t>(game_addr(game::unk_27575C0));
+			MEM<uint32_t>(game_addr(game::unk_274F14C)) = MEM<uint32_t>(game_addr(game::unk_27571B0));
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		static const uint32_t queues[7] = { us(0x2757450), us(0x274F128), us(0x2758160), us(0x274F230), us(0x274F628), us(0x27571A0), us(0x2757440) };
+		static constexpr game::Id queues[7] = { game::unk_2757450, game::unk_274F128, game::unk_2758160, game::unk_274F230, game::unk_274F628, game::unk_27571A0, game::unk_2757440 };
 		for (int i = 0; i < 7; i++)
 		{
-			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
+			const uint32_t n = x::ExecuteTaskQueue(game_addr(queues[i]));
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -493,15 +493,15 @@ namespace doomact
 	uint32_t __cdecl da_8C0750(uint32_t a1)
 	{
 		da_8C0780(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x274F128), us(0x8C0800), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_274F128), game_addr(game::MAG_009_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl da_8C0780(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -511,7 +511,7 @@ namespace doomact
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -519,17 +519,17 @@ namespace doomact
 	{
 		const uint32_t node = a1;
 		uint32_t states[11];
-		states[0] = us(0x8C08F0);
-		states[1] = us(0x8C0940);
-		states[2] = us(0x8C0960);
-		states[3] = us(0x8C0980);
-		states[4] = us(0x8C09D0);
-		states[5] = us(0x8C09F0);
-		states[6] = us(0x8C0A10);
-		states[7] = us(0x8C0A30);
-		states[8] = us(0x8C0A50);
-		states[9] = us(0x8C0A70);
-		states[10] = us(0x8C0A90);
+		states[0] = game_addr(game::MAG_009_Director_State0_RequestPhase1);
+		states[1] = game_addr(game::MAG_009_Director_State1_WaitFrame5);
+		states[2] = game_addr(game::MAG_009_Director_State2_RequestPhase2);
+		states[3] = game_addr(game::MAG_009_Director_State3_PlaySoundAtPhase2);
+		states[4] = game_addr(game::MAG_009_Director_State4_WaitFrame20);
+		states[5] = game_addr(game::MAG_009_Director_State5_RequestPhase3);
+		states[6] = game_addr(game::MAG_009_Director_State6_WaitPhase3);
+		states[7] = game_addr(game::MAG_009_Director_State7_WaitPhase4);
+		states[8] = game_addr(game::MAG_009_Director_State8_RequestPhase5);
+		states[9] = game_addr(game::MAG_009_Director_State9_Finish);
+		states[10] = game_addr(game::MAG_009_Director_State10_Empty);
 		da_8C08A0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -560,7 +560,7 @@ namespace doomact
 
 	uint32_t __cdecl da_8C0940(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 5)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) >= 5)
 			next_state(a1);
 		return 0;
 	}
@@ -569,14 +569,14 @@ namespace doomact
 	{
 		if (a_73B7E0(2) == 0)
 			return 0;
-		x::BdPlaySE(us(SOUND), 0, 0x80);
+		x::BdPlaySE(game_addr(SOUND), 0, 0x80);
 		next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl da_8C09D0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x20)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) >= 0x20)
 			next_state(a1);
 		return 0;
 	}
@@ -590,23 +590,23 @@ namespace doomact
 
 	uint32_t __cdecl da_8C0AB0(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40) - 1;
 		switch (ph)
 		{
 		case 0:
-			return x::Effect_AddTaskAndInitFromCtx(us(Q_PHASE), us(ORIG_DarkenIn), 0x7C, a1);
+			return x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PHASE), game_addr(ORIG_DarkenIn), 0x7C, a1);
 		case 1:
 		{
-			da_8C0B70(a1, us(ORIG_DoomModel), us(0x18155F0), 0x348, 0, 0);
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_TINT), us(0x8DDC30), 0x40, a1);
-			U32(t, 0x34) = us(0x1634F00);
+			da_8C0B70(a1, game_addr(ORIG_DoomModel), game_addr(game::unk_18155F0), 0x348, 0, 0);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TINT), game_addr(game::Effect_ScreenTintTask), 0x40, a1);
+			U32(t, 0x34) = game_addr(game::unk_1634F00);
 			U16(t, 0x38) = 0x11;
 			return t;
 		}
 		case 2:
-			return x::Effect_AddTaskAndInitFromCtx(us(Q_PHASE), us(ORIG_Sink), 0x7C, a1);
+			return x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PHASE), game_addr(ORIG_Sink), 0x7C, a1);
 		case 3:
-			return x::Effect_AddTaskAndInitFromCtx(us(Q_PHASE), us(ORIG_DarkenOut), 0x7C, a1);
+			return x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PHASE), game_addr(ORIG_DarkenOut), 0x7C, a1);
 		default:
 			return (uint32_t)ph;
 		}
@@ -614,7 +614,7 @@ namespace doomact
 
 	uint32_t __cdecl da_8C0B70(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), a2, 0x3E4, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PRIM), a2, 0x3E4, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -655,7 +655,7 @@ namespace doomact
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
 		U16(L, 0x54) = U16(node, 0x86);
 		U32(L, 0x44) = U32(node, 0x7C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -663,10 +663,10 @@ namespace doomact
 		U16(L, 0x52) = U16(node, 0x92);
 		U16(L, 0x4E) = U16(node, 0x8E);
 		U16(L, 0x50) = U16(node, 0x90);
-		U32(L, 0x48) = us(BLEND_BUF);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
+		return prim_play(node + 0x94, game_addr(PRIM_CB), L, 0);
 	}
 
 	uint32_t __cdecl da_8C0DC0(uint32_t a1, uint32_t a2, uint32_t a3)
@@ -779,20 +779,20 @@ namespace doomact
 			U32(hdr, 8) = U32(rec, 0x20);
 			U32(hdr, 0x14) = fl | 0xC0;
 		}
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
 		U16(hdr, 0x1E) = 0;
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		const uint32_t cursor = MEM<uint32_t>(us(FRAME_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(FRAME_CURSOR));
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		MEM<uint32_t>(us(FRAME_CURSOR)) = da_8C1080(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(FRAME_CURSOR)) = da_8C1080(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1529,7 +1529,7 @@ namespace doomact
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1556,7 +1556,7 @@ namespace doomact
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1565,11 +1565,11 @@ namespace doomact
 	uint32_t __cdecl da_8C3490(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t states[7] = { us(0x8C3B30), us(0x8C3B80), us(0x8C46F0), us(0x8C4720), us(0x8C47A0), us(0x8C47D0), us(0x8C47F0) };
+		const uint32_t states[7] = { game_addr(game::MAG_009_Sink_State0_HideTarget), game_addr(game::MAG_009_Sink_State1_Setup), game_addr(game::MAG_009_Sink_State2_Sink), game_addr(game::MAG_009_Sink_State3_SinkFadeOut), game_addr(game::MAG_009_Sink_State4_SinkOn), game_addr(game::MAG_009_Sink_State5_RequestPhase4), game_addr(game::MAG_009_Sink_State6_Empty) };
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 8) != 0)
 		{
-			da_8C3520(us(BODY_CTX));
+			da_8C3520(game_addr(BODY_CTX));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1585,7 +1585,7 @@ namespace doomact
 		S32(ctx, 0x18) = add32(S32(ctx, 0x18), dy);
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(ctx);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(ctx + 0x20);
@@ -1595,17 +1595,17 @@ namespace doomact
 		x::GTE_LoadIRFromMatrixColumn(ctx + 4);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(ctx + 0x24);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(ctx + 0x14);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(ctx + 0x34);
 		const uint32_t cur = U32(ctx, 0x4C);
-		const uint32_t ot_shadow = MEM<uint32_t>(us(0x1D8E04C)) + 0x4040;
+		const uint32_t ot_shadow = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4040;
 		U32(cur, 0) = x::sub_5088A0(ent, ot_shadow, 0x10, U32(cur, 0));
-		da_8C3620(U32(ent, 0x64), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, ctx);
+		da_8C3620(U32(ent, 0x64), MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, ctx);
 		const uint32_t part2 = U32(ent, 0x78);
 		if (part2 != 0)
-			da_8C3620(U32(part2, 4), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, ctx);
+			da_8C3620(U32(part2, 4), MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, ctx);
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		return 0;
 	}
@@ -1783,7 +1783,7 @@ namespace doomact
 		const uint16_t w = U16(ent, 0);
 		U32(node, 0x74) = w;
 		U16(ent, 0) = (uint16_t)(w | 8);
-		x::GetEffectSpawnPosition(ent, 0xF1, 0, us(ANCHOR));
+		x::GetEffectSpawnPosition(ent, 0xF1, 0, game_addr(ANCHOR));
 		next_state(node);
 		return 0;
 	}
@@ -1792,16 +1792,16 @@ namespace doomact
 	{
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2D));
-		da_8C4690(us(BODY_CTX), us(BODY_VERTS), us(BODY_BLOCK), ent);
+		da_8C4690(game_addr(BODY_CTX), game_addr(BODY_VERTS), game_addr(BODY_BLOCK), ent);
 		const uint16_t top = U16(ent, 0x3C);
 		U8(node, 0x26) |= 8;
 		const int32_t sum = (int32_t)S16(ent, 0x36) + (int32_t)(int16_t)top;
-		MEM<uint16_t>(us(BODY_CTX) + 0x5A) = (uint16_t)(top - U16(ent, 0x1E));
-		MEM<uint16_t>(us(BODY_CTX) + 0x58) = (uint16_t)(sum / 2);
-		MEM<uint16_t>(us(BODY_CTX) + 0x56) = 0x40;
+		MEM<uint16_t>(game_addr(BODY_CTX) + 0x5A) = (uint16_t)(top - U16(ent, 0x1E));
+		MEM<uint16_t>(game_addr(BODY_CTX) + 0x58) = (uint16_t)(sum / 2);
+		MEM<uint16_t>(game_addr(BODY_CTX) + 0x56) = 0x40;
 		U16(node, 0x6E) = 0xFFD8;
-		da_8C0B70(node, us(ORIG_SinkModel), us(0x1817EE8), 0x80, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PARTICLE), us(ORIG_Spawner), 0x5C, node);
+		da_8C0B70(node, game_addr(ORIG_SinkModel), game_addr(game::unk_1817EE8), 0x80, 0, 0);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PARTICLE), game_addr(ORIG_Spawner), 0x5C, node);
 		U16(node, 0x78) = 0x10;
 		next_state(node);
 		return 0;
@@ -1825,8 +1825,8 @@ namespace doomact
 	uint32_t __cdecl da_8C3CF0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t w1c = MEM<uint32_t>(us(0x27571B8));
-		const uint32_t w20 = MEM<uint32_t>(us(0x27571BC));
+		const uint32_t w1c = MEM<uint32_t>(game_addr(game::MAG_009_DoomActivation_SinkingAnchor));
+		const uint32_t w20 = MEM<uint32_t>(game_addr(game::unk_27571BC));
 		U32(node, 0x1C) = w1c;
 		U32(node, 0x20) = w20;
 		const uint32_t r = da_8C0C90(node);
@@ -1840,7 +1840,7 @@ namespace doomact
 
 	uint32_t __cdecl da_8C3D40(uint32_t a1)
 	{
-		const uint32_t states[2] = { us(0x8C3D90), us(0x8C4680) };
+		const uint32_t states[2] = { game_addr(game::MAG_009_ParticleSpawner_State0_Emit), game_addr(game::MAG_009_ParticleSpawner_State1_Empty) };
 		callp(states[S8(a1, 0x29)], a1);
 		return task_end(a1);
 	}
@@ -1848,7 +1848,7 @@ namespace doomact
 	uint32_t __cdecl da_8C3D90(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		int32_t n = MEM<uint8_t>(us(0x1634EF4) + (uint32_t)(int32_t)S16(node, 0x24));
+		int32_t n = MEM<uint8_t>(game_addr(game::unk_1634EF4) + (uint32_t)(int32_t)S16(node, 0x24));
 		if (a_73B7E0(4) != 0 || n == 0xFF)
 		{
 			U8(node, 0x26) |= 1;
@@ -1856,14 +1856,14 @@ namespace doomact
 			return 0;
 		}
 		for (; n > 0; n--)
-			x::Effect_AddTaskAndInitFromCtx(us(Q_PARTICLE), us(ORIG_Particle), 0x5C, node);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PARTICLE), game_addr(ORIG_Particle), 0x5C, node);
 		return 0;
 	}
 
 	uint32_t __cdecl da_8C3E00(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t states[3] = { us(0x8C45D0), us(0x8C4620), us(0x8C4670) };
+		const uint32_t states[3] = { game_addr(game::MAG_009_Particle_State0_Init), game_addr(game::MAG_009_Particle_State1_Animate), game_addr(game::MAG_009_Particle_State2_Empty) };
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x42) = (uint16_t)(U16(node, 0x42) + 0x100);
 		da_particle_place(node);
@@ -1879,7 +1879,7 @@ namespace doomact
 			return 0;
 		uint32_t hdr = x::Field_Alloc(0xD8);
 		uint32_t m = hdr + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), m);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), m);
 		int32_t px = S16(a1, 0x1C);
 		int32_t py = S16(a1, 0x1E);
 		int32_t pz = S16(a1, 0x20);
@@ -1887,7 +1887,7 @@ namespace doomact
 		S32(hdr, 0xD0) = py;
 		S32(hdr, 0xD4) = pz;
 		S32(vec, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(m);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(m);
@@ -1897,7 +1897,7 @@ namespace doomact
 		x::GTE_LoadIRFromMatrixColumn(hdr + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(hdr + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(vec);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(vec);
@@ -1907,12 +1907,12 @@ namespace doomact
 		uint16_t frame = U16(a1, 0x50);
 		uint16_t depth = U16(a1, 0x56);
 		U32(hdr, 0) = data;
-		uint32_t cursor = U32(us(0x1D8E054), 0);
+		uint32_t cursor = U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0);
 		U16(hdr, 4) = frame;
-		uint32_t ot = U32(us(0x1D8E04C), 0) + 0x44;
+		uint32_t ot = U32(game_addr(game::g_Battle_FrameRenderListBase), 0) + 0x44;
 		U16(hdr, 0x24) = 0;
 		U16(hdr, 0xB4) = depth;
-		U32(us(0x1D8E054), 0) = a_7435E0(hdr, ot, 2, cursor);
+		U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0) = a_7435E0(hdr, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
@@ -1920,7 +1920,7 @@ namespace doomact
 	uint32_t __cdecl da_8C45D0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = us(0x1634B84);
+		U32(node, 0x4C) = game_addr(game::unk_1634B84);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x40) = (uint16_t)(x::CrtRand() & 0xFFF);
 		U16(node, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -1946,8 +1946,8 @@ namespace doomact
 		x::MAG_007_sub_8DCC00(ctx, 0x5C);
 		U32(ctx, 0x48) = a4;
 		U32(ctx, 0x40) = a2;
-		U32(ctx, 0x4C) = us(PACKET_CURSOR);
-		U32(ctx, 0x50) = us(PACKET_CURSOR);
+		U32(ctx, 0x4C) = game_addr(PACKET_CURSOR);
+		U32(ctx, 0x50) = game_addr(PACKET_CURSOR);
 		U32(a3, 4) = a2;
 		U32(ctx, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -1976,17 +1976,17 @@ namespace doomact
 		const uint32_t node = a1;
 		const uint32_t ent = ENT(U8(node, 0x2D));
 		da_sink_step(node);
-		const int16_t level = (int16_t)(MEM<uint16_t>(us(BODY_CTX) + 0x56) - 0x10);
-		MEM<uint16_t>(us(BODY_CTX) + 0x56) = (uint16_t)level;
+		const int16_t level = (int16_t)(MEM<uint16_t>(game_addr(BODY_CTX) + 0x56) - 0x10);
+		MEM<uint16_t>(game_addr(BODY_CTX) + 0x56) = (uint16_t)level;
 		if (level > 0)
 			return 0;
 		const uint16_t keep = (uint16_t)((U8(node, 0x74) ^ U8(ent, 0)) & 8);
 		U8(node, 0x26) &= 0xF7;
-		MEM<uint16_t>(us(BODY_CTX) + 0x56) = 0;
+		MEM<uint16_t>(game_addr(BODY_CTX) + 0x56) = 0;
 		U16(node, 0x78) = 0xA;
 		U16(ent, 0) = (uint16_t)(U16(ent, 0) ^ keep);
 		next_state(node);
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x48) = 1;
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x48) = 1;
 		return 0;
 	}
 
@@ -2011,7 +2011,7 @@ namespace doomact
 
 	uint32_t __cdecl da_8C4800(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x1634B7C));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::unk_1634B7C));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -2025,98 +2025,98 @@ namespace doomact
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x8C0670, (void *)a_73A0D0, "009 MAG_009_sub_8C0670" },
-		{ 0x8C0680, (void *)a_73A0D0, "009 MAG_009_sub_8C0680" },
-		{ 0x8C06A0, (void *)a_73A170, "009 MAG_009_sub_8C06A0" },
-		{ 0x8C06D0, (void *)a_73A1A0, "009 MAG_009_sub_8C06D0" },
-		{ 0x8C08F0, (void *)a_73B790, "009 sub_8C08F0" },
-		{ 0x8C0910, (void *)a_73B640, "009 sub_8C0910" },
-		{ 0x8C0960, (void *)a_73B8A0, "009 sub_8C0960" },
-		{ 0x8C09B0, (void *)a_73B7E0, "009 sub_8C09B0" },
-		{ 0x8C09F0, (void *)a_733B70, "009 sub_8C09F0" },
-		{ 0x8C0A30, (void *)a_733760, "009 sub_8C0A30" },
-		{ 0x8C0A50, (void *)a_73B620, "009 sub_8C0A50" },
-		{ 0x8C0A70, (void *)a_7475A0, "009 sub_8C0A70" },
-		{ 0x8C0A90, (void *)a_73A6D0, "009 nullsub_1823" },
-		{ 0x8C0AA0, (void *)a_73A6D0, "009 nullsub_1824" },
-		{ 0x8C0BC0, (void *)a_73A380, "009 sub_8C0BC0" },
-		{ 0x8C2140, (void *)a_73D770, "009 sub_8C2140" },
-		{ 0x8C2390, (void *)a_73D9C0, "009 sub_8C2390" },
-		{ 0x8C32C0, (void *)a_73A6D0, "009 nullsub_1825" },
-		{ 0x8C32D0, (void *)a_73A380, "009 sub_8C32D0" },
-		{ 0x8C3330, (void *)a_7335D0, "009 sub_8C3330" },
-		{ 0x8C33B0, (void *)a_73A6D0, "009 nullsub_1826" },
-		{ 0x8C33C0, (void *)a_73A380, "009 sub_8C33C0" },
-		{ 0x8C3480, (void *)a_73A6D0, "009 nullsub_1827" },
-		{ 0x8C3C30, (void *)a_73A380, "009 sub_8C3C30" },
-		{ 0x8C3D30, (void *)a_73A6D0, "009 nullsub_1828" },
-		{ 0x8C4020, (void *)a_7435E0, "009 InitEffectSequenceFromData_c17" },
-		{ 0x8C4160, (void *)a_743720, "009 sub_8C4160" },
-		{ 0x8C4640, (void *)a_743C20, "009 sub_8C4640" },
-		{ 0x8C4670, (void *)a_73A6D0, "009 nullsub_1829" },
-		{ 0x8C4680, (void *)a_73A6D0, "009 nullsub_1830" },
-		{ 0x8C47F0, (void *)a_73A6D0, "009 nullsub_1831" },
-		{ 0x8C4840, (void *)a_7474B0, "009 MAG_009_sub_8C4840" },
-		{ 0x8C4860, (void *)a_7474D0, "009 MAG_009_sub_8C4860" },
-		{ 0x8C4880, (void *)a_73A6D0, "009 nullsub_1832" },
-		{ 0x8C4890, (void *)a_747500, "009 MAG_009_sub_8C4890" },
-		{ 0x8C48D0, (void *)a_73A0D0, "009 MAG_009_sub_8C48D0" },
-		{ 0x8C48E0, (void *)a_747550, "009 MAG_009_sub_8C48E0" },
-		{ 0x8C48F0, (void *)a_747560, "009 MAG_009_sub_8C48F0" },
-		{ 0x8C4920, (void *)a_747590, "009 MAG_009_sub_8C4920" },
-		{ 0x8C4930, (void *)a_7475A0, "009 MAG_009_sub_8C4930" },
-		{ 0x8C4950, (void *)a_73A6D0, "009 nullsub_1822" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_009_Master_State0_Advance, (void *)a_73A0D0, "009 MAG_009_sub_8C0670" },
+		{ game::MAG_009_Master_State1_Advance, (void *)a_73A0D0, "009 MAG_009_sub_8C0680" },
+		{ game::MAG_009_Master_State3_SpawnEmitter, (void *)a_73A170, "009 MAG_009_sub_8C06A0" },
+		{ game::MAG_009_EmitterTask, (void *)a_73A1A0, "009 MAG_009_sub_8C06D0" },
+		{ game::MAG_009_Director_State0_RequestPhase1, (void *)a_73B790, "009 sub_8C08F0" },
+		{ game::MAG_009_DirSyncGate, (void *)a_73B640, "009 sub_8C0910" },
+		{ game::MAG_009_Director_State2_RequestPhase2, (void *)a_73B8A0, "009 sub_8C0960" },
+		{ game::MAG_009_DirPhaseGE, (void *)a_73B7E0, "009 sub_8C09B0" },
+		{ game::MAG_009_Director_State5_RequestPhase3, (void *)a_733B70, "009 sub_8C09F0" },
+		{ game::MAG_009_Director_State7_WaitPhase4, (void *)a_733760, "009 sub_8C0A30" },
+		{ game::MAG_009_Director_State8_RequestPhase5, (void *)a_73B620, "009 sub_8C0A50" },
+		{ game::MAG_009_Director_State9_Finish, (void *)a_7475A0, "009 sub_8C0A70" },
+		{ game::MAG_009_Director_State10_Empty, (void *)a_73A6D0, "009 nullsub_1823" },
+		{ game::MAG_009_St_Empty, (void *)a_73A6D0, "009 nullsub_1824" },
+		{ game::MAG_009_DoomModel_Task, (void *)a_73A380, "009 sub_8C0BC0" },
+		{ game::MAG_009_EmitG3, (void *)a_73D770, "009 sub_8C2140" },
+		{ game::MAG_009_EmitG4, (void *)a_73D9C0, "009 sub_8C2390" },
+		{ game::MAG_009_PrimModel_State2_Empty, (void *)a_73A6D0, "009 nullsub_1825" },
+		{ game::MAG_009_StageDarkenIn_Task, (void *)a_73A380, "009 sub_8C32D0" },
+		{ game::MAG_009_StageDarkenIn_State0_Clear, (void *)a_7335D0, "009 sub_8C3330" },
+		{ game::MAG_009_StageDarkenIn_State2_Empty, (void *)a_73A6D0, "009 nullsub_1826" },
+		{ game::MAG_009_StageDarkenOut_Task, (void *)a_73A380, "009 sub_8C33C0" },
+		{ game::MAG_009_StageDarkenOut_State2_Empty, (void *)a_73A6D0, "009 nullsub_1827" },
+		{ game::MAG_009_SinkModel_Task, (void *)a_73A380, "009 sub_8C3C30" },
+		{ game::MAG_009_SinkModel_State2_Empty, (void *)a_73A6D0, "009 nullsub_1828" },
+		{ game::InitEffectSequenceFromData_c17, (void *)a_7435E0, "009 InitEffectSequenceFromData_c17" },
+		{ game::MAG_009_SpriteStrip_DrawQuads, (void *)a_743720, "009 sub_8C4160" },
+		{ game::MAG_009_StepCounterLimit, (void *)a_743C20, "009 sub_8C4640" },
+		{ game::MAG_009_Particle_State2_Empty, (void *)a_73A6D0, "009 nullsub_1829" },
+		{ game::MAG_009_ParticleSpawner_State1_Empty, (void *)a_73A6D0, "009 nullsub_1830" },
+		{ game::MAG_009_Sink_State6_Empty, (void *)a_73A6D0, "009 nullsub_1831" },
+		{ game::MAG_009_Emitter_State2_WaitChildren, (void *)a_7474B0, "009 MAG_009_sub_8C4840" },
+		{ game::MAG_009_Emitter_State3_Finish, (void *)a_7474D0, "009 MAG_009_sub_8C4860" },
+		{ game::MAG_009_Emitter_State4_Empty, (void *)a_73A6D0, "009 nullsub_1832" },
+		{ game::MAG_009_Master_State4_NextTargetLoop, (void *)a_747500, "009 MAG_009_sub_8C4890" },
+		{ game::MAG_009_Master_State5_Advance, (void *)a_73A0D0, "009 MAG_009_sub_8C48D0" },
+		{ game::MAG_009_Master_State6, (void *)a_747550, "009 MAG_009_sub_8C48E0" },
+		{ game::MAG_009_Master_State7_Request, (void *)a_747560, "009 MAG_009_sub_8C48F0" },
+		{ game::MAG_009_Master_State8_WaitRequest, (void *)a_747590, "009 MAG_009_sub_8C4920" },
+		{ game::MAG_009_Master_State9_Finish, (void *)a_7475A0, "009 MAG_009_sub_8C4930" },
+		{ game::MAG_009_Master_State10_Empty, (void *)a_73A6D0, "009 nullsub_1822" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x8C0500, (void *)da_8C0500, "009 da_8C0500" },
-		{ 0x8C0690, (void *)da_8C0690, "009 da_8C0690" },
-		{ 0x8C0750, (void *)da_8C0750, "009 da_8C0750" },
-		{ 0x8C0780, (void *)da_8C0780, "009 da_8C0780" },
-		{ 0x8C0800, (void *)da_8C0800, "009 da_8C0800" },
-		{ 0x8C08A0, (void *)da_8C08A0, "009 da_8C08A0" },
-		{ 0x8C0940, (void *)da_8C0940, "009 da_8C0940" },
-		{ 0x8C0980, (void *)da_8C0980, "009 da_8C0980" },
-		{ 0x8C09D0, (void *)da_8C09D0, "009 da_8C09D0" },
-		{ 0x8C0A10, (void *)da_8C0A10, "009 da_8C0A10" },
-		{ 0x8C0AB0, (void *)da_8C0AB0, "009 da_8C0AB0" },
-		{ 0x8C0B70, (void *)da_8C0B70, "009 da_8C0B70" },
-		{ 0x8C0C20, (void *)da_8C0C20, "009 da_8C0C20" },
-		{ 0x8C0C90, (void *)da_8C0C90, "009 da_8C0C90" },
-		{ 0x8C0DC0, (void *)da_8C0DC0, "009 da_8C0DC0" },
-		{ 0x8C1080, (void *)da_8C1080, "009 da_8C1080" },
-		{ 0x8C11B0, (void *)da_8C11B0, "009 da_8C11B0" },
-		{ 0x8C13D0, (void *)da_8C13D0, "009 da_8C13D0" },
-		{ 0x8C1660, (void *)da_8C1660, "009 da_8C1660" },
-		{ 0x8C1B50, (void *)da_8C1B50, "009 da_8C1B50" },
-		{ 0x8C2670, (void *)da_8C2670, "009 da_8C2670" },
-		{ 0x8C2BD0, (void *)da_8C2BD0, "009 da_8C2BD0" },
-		{ 0x8C32A0, (void *)da_8C32A0, "009 da_8C32A0" },
-		{ 0x8C3370, (void *)da_8C3370, "009 da_8C3370" },
-		{ 0x8C3420, (void *)da_8C3420, "009 da_8C3420" },
-		{ 0x8C3440, (void *)da_8C3440, "009 da_8C3440" },
-		{ 0x8C3490, (void *)da_8C3490, "009 da_8C3490" },
-		{ 0x8C3520, (void *)da_8C3520, "009 da_8C3520" },
-		{ 0x8C3620, (void *)da_8C3620, "009 da_8C3620" },
-		{ 0x8C3B30, (void *)da_8C3B30, "009 da_8C3B30" },
-		{ 0x8C3B80, (void *)da_8C3B80, "009 da_8C3B80" },
-		{ 0x8C3C90, (void *)da_8C3C90, "009 da_8C3C90" },
-		{ 0x8C3CF0, (void *)da_8C3CF0, "009 da_8C3CF0" },
-		{ 0x8C3D40, (void *)da_8C3D40, "009 da_8C3D40" },
-		{ 0x8C3D90, (void *)da_8C3D90, "009 da_8C3D90" },
-		{ 0x8C3E00, (void *)da_8C3E00, "009 da_8C3E00" },
-		{ 0x8C3F00, (void *)da_8C3F00, "009 da_8C3F00" },
-		{ 0x8C45D0, (void *)da_8C45D0, "009 da_8C45D0" },
-		{ 0x8C4620, (void *)da_8C4620, "009 da_8C4620" },
-		{ 0x8C4690, (void *)da_8C4690, "009 da_8C4690" },
-		{ 0x8C46F0, (void *)da_8C46F0, "009 da_8C46F0" },
-		{ 0x8C4720, (void *)da_8C4720, "009 da_8C4720" },
-		{ 0x8C47A0, (void *)da_8C47A0, "009 da_8C47A0" },
-		{ 0x8C47D0, (void *)da_8C47D0, "009 da_8C47D0" },
-		{ 0x8C4800, (void *)da_8C4800, "009 da_8C4800" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_009_Master_Task, (void *)da_8C0500, "009 da_8C0500" },
+		{ game::MAG_009_Master_State2_WaitNoChildren, (void *)da_8C0690, "009 da_8C0690" },
+		{ game::MAG_009_Emitter_State0_InitDirector, (void *)da_8C0750, "009 da_8C0750" },
+		{ game::MAG_009_InitDirectorBlock, (void *)da_8C0780, "009 da_8C0780" },
+		{ game::MAG_009_DirectorTask, (void *)da_8C0800, "009 da_8C0800" },
+		{ game::MAG_009_Director_PhaseBookkeeping, (void *)da_8C08A0, "009 da_8C08A0" },
+		{ game::MAG_009_Director_State1_WaitFrame5, (void *)da_8C0940, "009 da_8C0940" },
+		{ game::MAG_009_Director_State3_PlaySoundAtPhase2, (void *)da_8C0980, "009 da_8C0980" },
+		{ game::MAG_009_Director_State4_WaitFrame20, (void *)da_8C09D0, "009 da_8C09D0" },
+		{ game::MAG_009_Director_State6_WaitPhase3, (void *)da_8C0A10, "009 da_8C0A10" },
+		{ game::MAG_009_Director_StartPhase, (void *)da_8C0AB0, "009 da_8C0AB0" },
+		{ game::MAG_009_SpawnPrimModelTask, (void *)da_8C0B70, "009 da_8C0B70" },
+		{ game::MAG_009_DoomModel_State0_Init, (void *)da_8C0C20, "009 da_8C0C20" },
+		{ game::MAG_009_PlayPrimModel, (void *)da_8C0C90, "009 da_8C0C90" },
+		{ game::MAG_009_PrimPlayer_DrawCallback, (void *)da_8C0DC0, "009 da_8C0DC0" },
+		{ game::MAG_009_RenderPrimModel, (void *)da_8C1080, "009 da_8C1080" },
+		{ game::MAG_009_PrimList_FlatTri, (void *)da_8C11B0, "009 da_8C11B0" },
+		{ game::MAG_009_PrimList_FlatQuad, (void *)da_8C13D0, "009 da_8C13D0" },
+		{ game::MAG_009_PrimList_TexTri, (void *)da_8C1660, "009 da_8C1660" },
+		{ game::MAG_009_PrimList_TexQuad, (void *)da_8C1B50, "009 da_8C1B50" },
+		{ game::MAG_009_PrimList_GT3Scroll, (void *)da_8C2670, "009 da_8C2670" },
+		{ game::MAG_009_PrimList_GT4Scroll, (void *)da_8C2BD0, "009 da_8C2BD0" },
+		{ game::MAG_009_PrimModel_State1_Play, (void *)da_8C32A0, "009 da_8C32A0" },
+		{ game::MAG_009_StageDarkenIn_State1_RampUp, (void *)da_8C3370, "009 da_8C3370" },
+		{ game::MAG_009_StageDarkenOut_State0_Hold, (void *)da_8C3420, "009 da_8C3420" },
+		{ game::MAG_009_StageDarkenOut_State1_FadeOut, (void *)da_8C3440, "009 da_8C3440" },
+		{ game::MAG_009_Sink_Task, (void *)da_8C3490, "009 da_8C3490" },
+		{ game::MAG_009_Sink_DrawTargetModel, (void *)da_8C3520, "009 da_8C3520" },
+		{ game::MAG_009_Sink_RenderModelPart, (void *)da_8C3620, "009 da_8C3620" },
+		{ game::MAG_009_Sink_State0_HideTarget, (void *)da_8C3B30, "009 da_8C3B30" },
+		{ game::MAG_009_Sink_State1_Setup, (void *)da_8C3B80, "009 da_8C3B80" },
+		{ game::MAG_009_SinkModel_State0_Init, (void *)da_8C3C90, "009 da_8C3C90" },
+		{ game::MAG_009_SinkModel_State1_FollowAnchor, (void *)da_8C3CF0, "009 da_8C3CF0" },
+		{ game::MAG_009_ParticleSpawner_Task, (void *)da_8C3D40, "009 da_8C3D40" },
+		{ game::MAG_009_ParticleSpawner_State0_Emit, (void *)da_8C3D90, "009 da_8C3D90" },
+		{ game::MAG_009_Particle_Task, (void *)da_8C3E00, "009 da_8C3E00" },
+		{ game::MAG_009_Particle_DrawSprite, (void *)da_8C3F00, "009 da_8C3F00" },
+		{ game::MAG_009_Particle_State0_Init, (void *)da_8C45D0, "009 da_8C45D0" },
+		{ game::MAG_009_Particle_State1_Animate, (void *)da_8C4620, "009 da_8C4620" },
+		{ game::MAG_009_Sink_InitRenderContext, (void *)da_8C4690, "009 da_8C4690" },
+		{ game::MAG_009_Sink_State2_Sink, (void *)da_8C46F0, "009 da_8C46F0" },
+		{ game::MAG_009_Sink_State3_SinkFadeOut, (void *)da_8C4720, "009 da_8C4720" },
+		{ game::MAG_009_Sink_State4_SinkOn, (void *)da_8C47A0, "009 da_8C47A0" },
+		{ game::MAG_009_Sink_State5_RequestPhase4, (void *)da_8C47D0, "009 da_8C47D0" },
+		{ game::MAG_009_Emitter_State1_ApplyDamage, (void *)da_8C4800, "009 da_8C4800" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

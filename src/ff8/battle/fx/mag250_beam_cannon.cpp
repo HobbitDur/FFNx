@@ -39,26 +39,26 @@ namespace beam250
 	{
 		c.name = "250 Beam Cannon";
 		c.effect_id = 250;
-		c.vm_table = us(0x185DFE4);
-		c.bone_table = us(0x185DC54);
-		c.prim_table = us(0x185DC9C);
-		c.prim_size = us(0x185DD8C);
-		c.spr_table = us(0x185DDA0);
-		c.ptype_table = us(0x185DDCC);
-		c.pop_table = us(0x185DDE0);
-		c.draw_table = us(0x185DE40);
-		c.attr_16A = us(0x185DFAA);
-		c.attr_184 = us(0x185DFC4);
-		c.attr_186 = us(0x185DFC6);
-		c.attr_194 = us(0x185DFD4);
-		c.attr_19C = us(0x185DFDC);
-		c.desc = us(0x185DB38);
-		c.ptr_block = us(0x185DC2C);
-		c.queue = us(0x2796668);
-		c.file00 = us(0x2796678);
-		c.file01 = us(0x2796660);
-		c.tick = us(0x9AC660);
-		c.load_cb = us(0x9B2E00);
+		c.vm_table = game_addr(game::funcs_9B6E3C);
+		c.bone_table = game_addr(game::funcs_9B3A17);
+		c.prim_table = game_addr(game::funcs_9AF654);
+		c.prim_size = game_addr(game::unk_185DD8C);
+		c.spr_table = game_addr(game::unk_185DDA0);
+		c.ptype_table = game_addr(game::unk_185DDCC);
+		c.pop_table = game_addr(game::funcs_9B1407);
+		c.draw_table = game_addr(game::unk_185DE40);
+		c.attr_16A = game_addr(game::unk_185DFAA);
+		c.attr_184 = game_addr(game::unk_185DFC4);
+		c.attr_186 = game_addr(game::unk_185DFC6);
+		c.attr_194 = game_addr(game::unk_185DFD4);
+		c.attr_19C = game_addr(game::unk_185DFDC);
+		c.desc = game_addr(game::unk_185DB38);
+		c.ptr_block = game_addr(game::unk_185DC2C);
+		c.queue = game_addr(game::unk_2796668);
+		c.file00 = game_addr(game::unk_2796678);
+		c.file01 = game_addr(game::unk_2796660);
+		c.tick = game_addr(game::MAG_250_sub_9AC660);
+		c.load_cb = game_addr(game::MAG_250_sub_9B2E00);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -92,7 +92,7 @@ namespace beam250
 		beam250::describe(beam250::g_c);
 		init_clone(beam250::g_c, nullptr, 0);
 		beam250::apply_slots(beam250::g_c);
-		register_port(0x9AC660, (void *)beam250::SequenceTask, "MAG250 Beam Cannon SequenceTick", 250);
+		register_port(game::MAG_250_sub_9AC660, (void *)beam250::SequenceTask, "MAG250 Beam Cannon SequenceTick", 250);
 	}
 }
 

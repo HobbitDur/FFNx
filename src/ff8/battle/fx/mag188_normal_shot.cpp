@@ -25,51 +25,51 @@ namespace shot188
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &EndTick() { return var<int32_t>(us(0x22B2A38)); }
-	inline int32_t &ModuleTick() { return var<int32_t>(us(0x22B2A3C)); }
-	inline uint32_t &Flags() { return var<uint32_t>(us(0x22B5578)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x22B63A0)); }
-	inline int32_t &CasterSlot() { return var<int32_t>(us(0x22B7348)); }
-	inline int32_t &ImpactCount() { return var<int32_t>(us(0x22B75E8)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x22B75EC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x22B75F0)); }
-	inline TaskQueue *QShots() { return (TaskQueue *)us(0x22B38A8); }
-	inline TaskQueue *QAux() { return (TaskQueue *)us(0x22B5580); }
-	static const uint32_t PARTS_A = 0x22B38B8, PARTS_B = 0x22B46E8;
-	static const uint32_t SHOTS = 0x22B63A8;
-	static const uint32_t BIND_OUT = 0x22B46C8;
-	static const uint32_t BONES_NOW = 0x22B54F8;
-	static const uint32_t GHOSTS = 0x22B7350, GHOSTS_END = 0x22B75E4;
+	inline int32_t &EndTick() { return var<int32_t>(game_addr(game::MAG_188_NORMALSHOT_AfterimageEndTick)); }
+	inline int32_t &ModuleTick() { return var<int32_t>(game_addr(game::MAG_188_NORMALSHOT_ModuleTick)); }
+	inline uint32_t &Flags() { return var<uint32_t>(game_addr(game::MAG_188_NORMALSHOT_Flags)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_188_NORMALSHOT_Ctx)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(game_addr(game::MAG_188_NORMALSHOT_CasterSlot)); }
+	inline int32_t &ImpactCount() { return var<int32_t>(game_addr(game::MAG_188_NORMALSHOT_ImpactCount)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_188_NORMALSHOT_TexBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_188_NORMALSHOT_PacketCursor)); }
+	inline TaskQueue *QShots() { return (TaskQueue *)game_addr(game::MAG_188_NORMALSHOT_ShotQueue); }
+	inline TaskQueue *QAux() { return (TaskQueue *)game_addr(game::MAG_188_NORMALSHOT_AuxQueue); }
+	static constexpr game::Id PARTS_A = game::MAG_188_NORMALSHOT_SparksA, PARTS_B = game::MAG_188_NORMALSHOT_SparksB;
+	static constexpr game::Id SHOTS = game::MAG_188_NORMALSHOT_ShotRecords;
+	static constexpr game::Id BIND_OUT = game::MAG_188_NORMALSHOT_BindBlock;
+	static constexpr game::Id BONES_NOW = game::MAG_188_NORMALSHOT_WeaponBonesNow;
+	static constexpr game::Id GHOSTS = game::MAG_188_NORMALSHOT_GhostSlots, GHOSTS_END = game::MAG_188_NORMALSHOT_ShotCount;
 	static const uint32_t ARENA_ODD = 0xC000;
 
-	static const uint32_t ORIG_RootTask = 0x5BF650;
-	static const uint32_t ORIG_StartTask = 0x5BF220;
-	static const uint32_t ORIG_ShotTask = 0x5BE4D0;
-	static const uint32_t ORIG_EndTask = 0x5BF100;
-	static const uint32_t ORIG_FadeOutTask = 0x5BF1C0;
-	static const uint32_t ORIG_FadeInTask = 0x5BF310;
-	static const uint32_t ORIG_AfterimageTask = 0x5BF360;
-	static const uint32_t ORIG_FlashTask = 0x5BE980;
-	static const uint32_t ORIG_Flash2Task = 0x5BEAC0;
-	static const uint32_t ORIG_SmokeTask = 0x5BEC30;
-	static const uint32_t ORIG_GroundSmokeTask = 0x5BECD0;
-	static const uint32_t ORIG_ImpactTask = 0x5BEDE0;
+	static constexpr game::Id ORIG_RootTask = game::MAG_188_NORMALSHOT_RootTask;
+	static constexpr game::Id ORIG_StartTask = game::MAG_188_NORMALSHOT_StartTask;
+	static constexpr game::Id ORIG_ShotTask = game::MAG_188_NORMALSHOT_ShotTask;
+	static constexpr game::Id ORIG_EndTask = game::MAG_188_NORMALSHOT_EndTask;
+	static constexpr game::Id ORIG_FadeOutTask = game::MAG_188_NORMALSHOT_FadeOutTask;
+	static constexpr game::Id ORIG_FadeInTask = game::MAG_188_NORMALSHOT_FadeInTask;
+	static constexpr game::Id ORIG_AfterimageTask = game::MAG_188_NORMALSHOT_AfterimageTask;
+	static constexpr game::Id ORIG_FlashTask = game::MAG_188_NORMALSHOT_FlashTask;
+	static constexpr game::Id ORIG_Flash2Task = game::MAG_188_NORMALSHOT_Flash2Task;
+	static constexpr game::Id ORIG_SmokeTask = game::MAG_188_NORMALSHOT_SmokeTask;
+	static constexpr game::Id ORIG_GroundSmokeTask = game::MAG_188_NORMALSHOT_GroundSmokeTask;
+	static constexpr game::Id ORIG_ImpactTask = game::MAG_188_NORMALSHOT_ImpactTask;
 
-	static const uint32_t ANIM_DATA = 0xD1B4B8;
-	static const uint32_t MODEL_Flash = 0xD1D0F0, MODEL_Flash2 = 0xD1D638;
-	static const uint32_t SEQ_Smoke = 0xD1CA28, SEQ_GroundSmoke = 0xD1CB00, SEQ_Impact = 0xD1CB74, SEQ_Spark = 0xD1CF44;
-	static const void *SOUND_Gun() { return (const void *)us(0xD1DA28); }
-	static const int32_t *MUZZLE_REF() { return (const int32_t *)us(0xD1DA30); }
-	static const uint32_t *GHOST_COLOURS() { return (const uint32_t *)us(0xD1DA40); }
+	static constexpr game::Id ANIM_DATA = game::MAG_188_NORMAL_SHOT_AnimSet;
+	static constexpr game::Id MODEL_Flash = game::unk_D1D0F0, MODEL_Flash2 = game::unk_D1D638;
+	static constexpr game::Id SEQ_Smoke = game::unk_D1CA28, SEQ_GroundSmoke = game::unk_D1CB00, SEQ_Impact = game::unk_D1CB74, SEQ_Spark = game::unk_D1CF44;
+	static const void *SOUND_Gun() { return (const void *)game_addr(game::unk_D1DA28); }
+	static const int32_t *MUZZLE_REF() { return (const int32_t *)game_addr(game::unk_D1DA30); }
+	static const uint32_t *GHOST_COLOURS() { return (const uint32_t *)game_addr(game::unk_D1DA40); }
 
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t angle, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, angle, out); }
-	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(us(0x56BC50))(in, out); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(model, ctx, ot, a, cursor); }
-	inline uint32_t &FramePackets() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t angle, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, angle, out); }
+	inline int32_t Normalize(const int32_t *in, int32_t *out) { return fn<int32_t (__cdecl *)(const int32_t *, int32_t *)>(game_addr(game::NormalizeVectorToFixedPoint))(in, out); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void GteMatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline uint32_t RenderGeometry(uint32_t model, void *ctx, uint32_t ot, int32_t a, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(game_addr(game::RenderGeometry))(model, ctx, ot, a, cursor); }
+	inline uint32_t &FramePackets() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -113,8 +113,8 @@ namespace shot188
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Normal Shot nodes");
 	static_assert(sizeof(ShotRec) == 0x28 && sizeof(Particle) == 0x18 && sizeof(Ghost) == 0x84, "Normal Shot records");
 
-	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(us(SHOTS) + 0x28 * i); }
-	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(us(GHOSTS) + 0x84 * i); }
+	inline ShotRec *Shot(int32_t i) { return (ShotRec *)(game_addr(SHOTS) + 0x28 * i); }
+	inline Ghost *GhostSlot(int32_t i) { return (Ghost *)(game_addr(GHOSTS) + 0x84 * i); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
 	inline Node *AddTask(TaskQueue *q, uint32_t fn) { return (Node *)AddTaskToQueue(q, fn); }
 }
@@ -178,11 +178,11 @@ namespace shot188
 			ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), m);
 			*(uint16_t *)(h + 0x34) = 0;
 			*(uint16_t *)(h + 0x36) = 0;
-			*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0x1D98B3C));
+			*(uint32_t *)(h + 0x24) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 			*(uint32_t *)(h + 0x3C) = *(const uint32_t *)(entity + 0x28);
 			*(uint16_t *)(h + 0x38) = 0x140;
 			*(uint16_t *)(h + 0x3A) = 0xD8;
-			*(uint32_t *)(h + 0x30) = var<uint32_t>(us(0x1D969A8));
+			*(uint32_t *)(h + 0x30) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 			*(uint32_t *)(h + 0x40) = 0xFFFFFFFF;
 			const uint8_t c = entity[7];
 			h[0x4A] = c;
@@ -246,7 +246,7 @@ namespace shot188
 	{
 		TransformCameraByShadowRotation(Shot(n->f0E)->pos, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = us(SEQ_Smoke);
+		*(uint32_t *)h = game_addr(SEQ_Smoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -274,7 +274,7 @@ namespace shot188
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = us(SEQ_GroundSmoke);
+		*(uint32_t *)h = game_addr(SEQ_GroundSmoke);
 		*(int16_t *)(h + 4) = n->counter;
 		*(int16_t *)(h + 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -285,7 +285,7 @@ namespace shot188
 	static void ImpactFlashDraw(const Node *n, uint8_t *h)
 	{
 		*(int16_t *)(h + 4) = n->counter;
-		*(uint32_t *)h = us(SEQ_Impact);
+		*(uint32_t *)h = game_addr(SEQ_Impact);
 		*(int16_t *)(h + 0x24) = 8;
 		TransformCameraByShadowRotation(n->pos, n->f1C, -(int32_t)n->pos[3]);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -306,12 +306,12 @@ namespace shot188
 		e->vel[1] = (int16_t)(e->vel[1] - (int16_t)(e->vel[1] >> 2));
 		e->vel[2] = (int16_t)(e->vel[2] - (int16_t)(e->vel[2] >> 2));
 	}
-	inline Particle *Sparks(const Node *n) { return (Particle *)((n->f0E & 1) ? us(PARTS_B) : us(PARTS_A)); }
+	inline Particle *Sparks(const Node *n) { return (Particle *)((n->f0E & 1) ? game_addr(PARTS_B) : game_addr(PARTS_A)); }
 
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		MuzzleModel(n, us(MODEL_Flash), n->counter == 1, 0xC00);
+		MuzzleModel(n, game_addr(MODEL_Flash), n->counter == 1, 0xC00);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return n->counter >= 2 ? TASK_END : 0;
@@ -320,7 +320,7 @@ namespace shot188
 	static uint32_t __cdecl Flash2Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		MuzzleModel(n, us(MODEL_Flash2), n->counter >= 1, Flash2Fade(n->counter));
+		MuzzleModel(n, game_addr(MODEL_Flash2), n->counter >= 1, Flash2Fade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
 		n->f1C = (int16_t)(n->f1C + step);
@@ -354,7 +354,7 @@ namespace shot188
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 0x10) ImpactFlashDraw(n, h);
 		*(int16_t *)(h + 0x24) = 8;
-		*(uint32_t *)h = us(SEQ_Spark);
+		*(uint32_t *)h = game_addr(SEQ_Spark);
 		int32_t alive = 0;
 		const int32_t id = n->f0E + 1;
 		for (Particle *e = arr; e < arr + 150; e++)
@@ -432,23 +432,23 @@ namespace shot188
 			int32_t axis[3];
 			const int32_t angle = RotationBetweenVectors(MUZZLE_REF(), dir, axis);
 			BuildAxisAngleRotationMatrix(angle, &s->m, axis);
-			Node *f = AddTask(QAux(), us(ORIG_FlashTask));
+			Node *f = AddTask(QAux(), game_addr(ORIG_FlashTask));
 			f->counter = 0;
 			f->f0E = n->f0E;
 			f->f18 = (int16_t)(CrtRand() % 0x1000);
 			f->f1C = (int16_t)(CrtRand() % 0x500 + 0x900);
-			Node *g = AddTask(QAux(), us(ORIG_Flash2Task));
+			Node *g = AddTask(QAux(), game_addr(ORIG_Flash2Task));
 			g->counter = 0;
 			g->f0E = n->f0E;
 			g->f18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t third = (int16_t)((CrtRand() % 0x600 + 0x800) / 3);
 			g->f1E = third;
 			g->f1C = third;
-			Node *k = AddTask(QAux(), us(ORIG_SmokeTask));
+			Node *k = AddTask(QAux(), game_addr(ORIG_SmokeTask));
 			k->counter = 0;
 			k->f0E = n->f0E;
 			k->f1C = (int16_t)(CrtRand() % 0x700 + 0x400);
-			Node *d = AddTask(QAux(), us(ORIG_GroundSmokeTask));
+			Node *d = AddTask(QAux(), game_addr(ORIG_GroundSmokeTask));
 			d->counter = 0;
 			d->f0E = n->f0E;
 			d->f1C = (int16_t)(mul32((int32_t)k->f1C * 9, 0x200) >> 12);
@@ -459,7 +459,7 @@ namespace shot188
 			int32_t bone = 0;
 			const uint8_t anchors = ***(const uint8_t ***)(t + 0x64);
 			if (anchors) bone = CrtRand() % anchors;
-			Node *i = AddTask(QAux(), us(ORIG_ImpactTask));
+			Node *i = AddTask(QAux(), game_addr(ORIG_ImpactTask));
 			i->f0E = (int16_t)ImpactCount();
 			ImpactCount()++;
 			i->counter = 0;
@@ -501,7 +501,7 @@ namespace shot188
 		g->used = 1;
 		uint8_t *e = Caster();
 		BoneSnapshot(*(uint8_t **)(e + 0x78), g->bones);
-		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)us(BONES_NOW));
+		BoneSnapshot(*(uint8_t **)(Caster() + 0x78), (uint8_t *)game_addr(BONES_NOW));
 		const uint32_t colour = *(const uint32_t *)(Caster() + 0x28);
 		int32_t slot = c - 1 >= 0 ? (c - 1) % 5 : 0;
 		const int32_t end = EndTick();
@@ -516,7 +516,7 @@ namespace shot188
 			GhostDraw(Caster());
 			if (--slot < 0) slot = 4;
 		}
-		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)us(BONES_NOW));
+		BoneRestore(*(uint8_t **)(Caster() + 0x78), (const uint8_t *)game_addr(BONES_NOW));
 		*(uint32_t *)(Caster() + 0x28) = colour;
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -529,15 +529,15 @@ namespace shot188
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
 		{
-			BindExternalAnimSet(Caster(), us(BIND_OUT), us(ANIM_DATA));
+			BindExternalAnimSet(Caster(), game_addr(BIND_OUT), game_addr(ANIM_DATA));
 			QueueChainTransformation(Caster(), 1);
-			Node *f = AddTask(QAux(), us(ORIG_FadeInTask));
+			Node *f = AddTask(QAux(), game_addr(ORIG_FadeInTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;
-			AddTask(QAux(), us(ORIG_AfterimageTask))->counter = 0;
+			AddTask(QAux(), game_addr(ORIG_AfterimageTask))->counter = 0;
 			EndTick() = 999999;
-			for (uint32_t a = us(GHOSTS); a < us(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
+			for (uint32_t a = game_addr(GHOSTS); a < game_addr(GHOSTS_END); a += 0x84) *(int32_t *)a = 0;
 		}
 		n->counter++;
 		if (n->counter < 7) return 0;
@@ -554,7 +554,7 @@ namespace shot188
 		if (n->counter == 0)
 		{
 			QueueChainTransformation(Caster(), 2);
-			Node *f = AddTask(QAux(), us(ORIG_FadeOutTask));
+			Node *f = AddTask(QAux(), game_addr(ORIG_FadeOutTask));
 			f->counter = 0;
 			f->f0E = 8;
 			f->f18 = 0x800;

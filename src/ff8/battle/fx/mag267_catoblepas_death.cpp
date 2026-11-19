@@ -37,31 +37,31 @@ namespace catoblepas267
 	{
 		c.name = "267 Catoblepas death";
 		c.effect_id = 267;
-		c.vm_table = us(0x1855390);
-		c.bone_table = us(0x1855000);
-		c.prim_table = us(0x1855048);
-		c.prim_size = us(0x1855138);
-		c.spr_table = us(0x185514C);
-		c.ptype_table = us(0x1855178);
-		c.pop_table = us(0x185518C);
-		c.draw_table = us(0x18551EC);
-		c.attr_16A = us(0x1855356);
-		c.attr_184 = us(0x1855370);
-		c.attr_186 = us(0x1855372);
-		c.attr_194 = us(0x1855380);
-		c.attr_19C = us(0x1855388);
-		c.desc = us(0x1854E84);
-		c.ptr_block = us(0x1854FD8);
-		c.queue = us(0x2795CC0);
-		c.file00 = us(0x2795CD4);
-		c.file01 = us(0x2795CD0);
-		c.tick = us(0x912660);
-		c.load_cb = us(0x91B060);
+		c.vm_table = game_addr(game::funcs_91F09C);
+		c.bone_table = game_addr(game::funcs_91BC77);
+		c.prim_table = game_addr(game::funcs_917594);
+		c.prim_size = game_addr(game::unk_1855138);
+		c.spr_table = game_addr(game::unk_185514C);
+		c.ptype_table = game_addr(game::unk_1855178);
+		c.pop_table = game_addr(game::funcs_919607);
+		c.draw_table = game_addr(game::unk_18551EC);
+		c.attr_16A = game_addr(game::unk_1855356);
+		c.attr_184 = game_addr(game::unk_1855370);
+		c.attr_186 = game_addr(game::unk_1855372);
+		c.attr_194 = game_addr(game::unk_1855380);
+		c.attr_19C = game_addr(game::unk_1855388);
+		c.desc = game_addr(game::unk_1854E84);
+		c.ptr_block = game_addr(game::unk_1854FD8);
+		c.queue = game_addr(game::unk_2795CC0);
+		c.file00 = game_addr(game::unk_2795CD4);
+		c.file01 = game_addr(game::unk_2795CD0);
+		c.tick = game_addr(game::MAG_267_sub_912660);
+		c.load_cb = game_addr(game::MAG_267_sub_91B060);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t DIS_KEYS = 0x2795CE8;
+	static constexpr game::Id DIS_KEYS = game::unk_2795CE8;
 	static const uint16_t DIS_RET16 = 0x393E;
 #include "gfc_disintegrate.inc"
 
@@ -97,7 +97,7 @@ namespace catoblepas267
 		catoblepas267::describe(catoblepas267::g_c);
 		init_clone(catoblepas267::g_c, nullptr, 0);
 		catoblepas267::apply_slots(catoblepas267::g_c);
-		register_port(0x912660, (void *)catoblepas267::SequenceTask, "MAG267 Catoblepas death SequenceTick", 267);
+		register_port(game::MAG_267_sub_912660, (void *)catoblepas267::SequenceTask, "MAG267 Catoblepas death SequenceTick", 267);
 	}
 }
 

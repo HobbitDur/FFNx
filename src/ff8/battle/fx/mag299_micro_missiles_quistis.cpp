@@ -23,47 +23,47 @@ namespace micromissiles299
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507814)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507818)); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507820); }
-	inline TaskQueue *QHits() { return (TaskQueue *)us(0x2507830); }
-	inline TaskQueue *QMissiles() { return (TaskQueue *)us(0x2507840); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507874)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507878)); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_299_MICRO_MISSILES_QUISTIS_Context)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_299_MICRO_MISSILES_QUISTIS_Caster)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)game_addr(game::MAG_299_MICRO_MISSILES_QUISTIS_SparkQueue); }
+	inline TaskQueue *QHits() { return (TaskQueue *)game_addr(game::MAG_299_MICRO_MISSILES_QUISTIS_HitQueue); }
+	inline TaskQueue *QMissiles() { return (TaskQueue *)game_addr(game::MAG_299_MICRO_MISSILES_QUISTIS_MissileQueue); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_299_MICRO_MISSILES_QUISTIS_PacketCursor)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_299_MICRO_MISSILES_QUISTIS_MagicBuffer)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	static const uint32_t ORIG_MasterTask = 0x66FD70;
-	static const uint32_t ORIG_MissileTask = 0x6700C0;
-	static const uint32_t ORIG_HitTask = 0x670870;
-	static const uint32_t ORIG_SparkTask = 0x6707B0;
-	static const uint32_t ORIG_PrimCallback = 0x670570;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_299_MICRO_MISSILES_QUISTIS_MasterTask;
+	static constexpr game::Id ORIG_MissileTask = game::MAG_299_MICRO_MISSILES_QUISTIS_MissileTask;
+	static constexpr game::Id ORIG_HitTask = game::MAG_299_MICRO_MISSILES_QUISTIS_HitTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_299_MICRO_MISSILES_QUISTIS_SparkTask;
+	static constexpr game::Id ORIG_PrimCallback = game::MAG_299_MICRO_MISSILES_QUISTIS_PrimCallback;
 	static const uint32_t POOL_Hits = 0xD80, POOL_Missiles = 0x1518;
 	static const uint32_t BIND_Block = 0x4560;
 	static const uint32_t MORPH = 0x4580;
 	static const uint32_t ARENA_A = 0x4780, ARENA_B = 0x14780;
-	static const uint32_t COM_Anim = 0x1047120;
-	static const uint32_t CAMERA_Anim = 0x104DF68;
-	static const uint32_t MODEL_Missile = 0x10490A8;
-	static const uint32_t MODEL_Hit = 0x104B63C;
-	static const uint32_t MODEL_Miss = 0x104C910;
-	static const uint32_t SEQ_Trail = 0x1048DD8;
-	static const uint32_t SEQ_Flash = 0x1048F1C;
-	static const uint32_t SEQ_Spark = 0x1048C94;
-	static const void *SOUND_Launch() { return (const void *)us(0x104E2FC); }
+	static constexpr game::Id COM_Anim = game::MAG_299_MICRO_MISSILES_QUISTIS_CasterAnimSet;
+	static constexpr game::Id CAMERA_Anim = game::MAG_299_MICRO_MISSILES_QUISTIS_CameraAnim;
+	static constexpr game::Id MODEL_Missile = game::MAG_299_MICRO_MISSILES_QUISTIS_MissileLayout;
+	static constexpr game::Id MODEL_Hit = game::MAG_299_MICRO_MISSILES_QUISTIS_HitLayout;
+	static constexpr game::Id MODEL_Miss = game::MAG_299_MICRO_MISSILES_QUISTIS_MissLayout;
+	static constexpr game::Id SEQ_Trail = game::MAG_299_MICRO_MISSILES_QUISTIS_TrailSequence;
+	static constexpr game::Id SEQ_Flash = game::MAG_299_MICRO_MISSILES_QUISTIS_FlashSequence;
+	static constexpr game::Id SEQ_Spark = game::MAG_299_MICRO_MISSILES_QUISTIS_SparkSequence;
+	static const void *SOUND_Launch() { return (const void *)game_addr(game::MAG_299_MICRO_MISSILES_QUISTIS_Sound); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
-	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(us(0x56C090))(a, b, out); }
-	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *v, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(us(0x56C3D0))(m, v, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_065_RotationZMatrix))(angle, out); }
+	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(game_addr(game::Matrix3x3_MultiplyPSX))(a, b, out); }
+	inline void Apply3DTransform(const Mat4x3 *m, const int16_t *v, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int32_t *)>(game_addr(game::apply3DTransform))(m, v, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -186,7 +186,7 @@ namespace micromissiles299
 		view.t[2] = (int32_t)((uint32_t)view.t[2] + (uint32_t)Camera().t[2]);
 		GteSetRotMatrixCtrl(&view);
 		GteSetTransVectorCtrl(&view);
-		*(uint32_t *)h = us(SEQ_Trail);
+		*(uint32_t *)h = game_addr(SEQ_Trail);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -237,7 +237,7 @@ namespace micromissiles299
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Flash);
+		*(uint32_t *)h = game_addr(SEQ_Flash);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -248,7 +248,7 @@ namespace micromissiles299
 	{
 		TransformCameraByShadowRotation(s->pos, 0x400, -0x100);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Spark);
+		*(uint32_t *)h = game_addr(SEQ_Spark);
 		*(int16_t *)(h + 4) = s->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -407,7 +407,7 @@ namespace micromissiles299
 		m->t = (int16_t)(m->t + m->step);
 		if (m->t >= 0x1000 && m->type != -1)
 		{
-			HitNode *hit = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
+			HitNode *hit = (HitNode *)AddTaskToQueue(QHits(), game_addr(ORIG_HitTask));
 			if (hit)
 			{
 				hit->counter = 0;
@@ -418,15 +418,15 @@ namespace micromissiles299
 				hit->m.t[2] = m->cur[2];
 				if (m->type <= 1)
 				{
-					DecodeModelPrimLayout(us(MODEL_Hit), hit->layout, 0xA0);
+					DecodeModelPrimLayout(game_addr(MODEL_Hit), hit->layout, 0xA0);
 					if (m->type == 0) QueueChainTransformation(Entity(Ctx()->actions[0].targets[0]), 5);
 					else ApplyActionResultToTarget(Ctx()->actions[0].targets);
 				}
-				else DecodeModelPrimLayout(us(MODEL_Miss), hit->layout, 0x114);
+				else DecodeModelPrimLayout(game_addr(MODEL_Miss), hit->layout, 0x114);
 			}
 			for (int k = 0; k < 0x10; k++)
 			{
-				SparkNode *sp = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+				SparkNode *sp = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 				if (!sp) continue;
 				ff8fx::copy<(4)>(sp->pos, m->cur);
 				ff8fx::copy<(4)>(&sp->pos[2], &m->cur[2]);
@@ -458,7 +458,7 @@ namespace micromissiles299
 		pos[0] = (int16_t)(pos[0] + off[0]);
 		pos[2] = (int16_t)(pos[2] + off[2]);
 		pos[1] = (int16_t)(*(const int16_t *)(caster + 0x24) - 0x26C);
-		MissileNode *m = (MissileNode *)AddTaskToQueue(QMissiles(), us(ORIG_MissileTask));
+		MissileNode *m = (MissileNode *)AddTaskToQueue(QMissiles(), game_addr(ORIG_MissileTask));
 		ff8fx::copy<(4)>(m->cur, pos);
 		ff8fx::copy<(4)>(&m->cur[2], &pos[2]);
 		ff8fx::copy<(4)>(m->start, pos);
@@ -479,7 +479,7 @@ namespace micromissiles299
 		int32_t v[3] = { (int32_t)pos[0] - aim[0], (int32_t)aim[1] - pos[1], (int32_t)aim[2] - pos[2] };
 		Mat4x3 basis;
 		m->dist = (int16_t)BuildOrthonormalBasis(v, &basis);
-		DecodeModelPrimLayout(us(MODEL_Missile), m->layout, 0x7D8);
+		DecodeModelPrimLayout(game_addr(MODEL_Missile), m->layout, 0x7D8);
 		RotZ(shl32(k, 8) - 0x280, Frame(m));
 		Matrix3x3MultiplyPSX(&basis, Frame(m), Frame(m));
 		m->pad1E = (int16_t)((uint32_t)m >> 16);
@@ -503,7 +503,7 @@ namespace micromissiles299
 			InitTaskQueuePool(QMissiles(), (void *)(TexBase() + POOL_Missiles), 0x80C, 6);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x144, 6);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x24, 0x60);
-			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, us(COM_Anim));
+			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, game_addr(COM_Anim));
 			QueueChainTransformation(Caster(), 2);
 		}
 		const int32_t c = mn->counter - 0xA;

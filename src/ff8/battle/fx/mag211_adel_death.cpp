@@ -37,31 +37,31 @@ namespace adel211
 	{
 		c.name = "211 Adel Death";
 		c.effect_id = 211;
-		c.vm_table = us(0x186F6B4);
-		c.bone_table = us(0x186F324);
-		c.prim_table = us(0x186F36C);
-		c.prim_size = us(0x186F45C);
-		c.spr_table = us(0x186F470);
-		c.ptype_table = us(0x186F49C);
-		c.pop_table = us(0x186F4B0);
-		c.draw_table = us(0x186F510);
-		c.attr_16A = us(0x186F67A);
-		c.attr_184 = us(0x186F694);
-		c.attr_186 = us(0x186F696);
-		c.attr_194 = us(0x186F6A4);
-		c.attr_19C = us(0x186F6AC);
-		c.desc = us(0x186F1B0);
-		c.ptr_block = us(0x186F2FC);
-		c.queue = us(0x2796C88);
-		c.file00 = us(0x2796CBC);
-		c.file01 = us(0x2796CB8);
-		c.tick = us(0xACA790);
-		c.load_cb = us(0xAD3300);
+		c.vm_table = game_addr(game::funcs_AD73BC);
+		c.bone_table = game_addr(game::funcs_AD3F17);
+		c.prim_table = game_addr(game::funcs_ACF834);
+		c.prim_size = game_addr(game::unk_186F45C);
+		c.spr_table = game_addr(game::unk_186F470);
+		c.ptype_table = game_addr(game::unk_186F49C);
+		c.pop_table = game_addr(game::funcs_AD18A7);
+		c.draw_table = game_addr(game::unk_186F510);
+		c.attr_16A = game_addr(game::unk_186F67A);
+		c.attr_184 = game_addr(game::unk_186F694);
+		c.attr_186 = game_addr(game::unk_186F696);
+		c.attr_194 = game_addr(game::unk_186F6A4);
+		c.attr_19C = game_addr(game::unk_186F6AC);
+		c.desc = game_addr(game::unk_186F1B0);
+		c.ptr_block = game_addr(game::unk_186F2FC);
+		c.queue = game_addr(game::unk_2796C88);
+		c.file00 = game_addr(game::unk_2796CBC);
+		c.file01 = game_addr(game::unk_2796CB8);
+		c.tick = game_addr(game::MAG_211_sub_ACA790);
+		c.load_cb = game_addr(game::MAG_211_sub_AD3300);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t DIS_KEYS = 0x2796CA8;
+	static constexpr game::Id DIS_KEYS = game::unk_2796CA8;
 	static const uint16_t DIS_RET16 = 0xBA6E;
 #include "gfc_disintegrate.inc"
 
@@ -101,7 +101,7 @@ namespace adel211
 		adel211::describe(adel211::g_c);
 		init_clone(adel211::g_c, nullptr, 0);
 		adel211::apply_slots(adel211::g_c);
-		register_port(0xACA790, (void *)adel211::SequenceTask, "MAG211 Adel Death SequenceTick", 211);
+		register_port(game::MAG_211_sub_ACA790, (void *)adel211::SequenceTask, "MAG211 Adel Death SequenceTick", 211);
 	}
 }
 

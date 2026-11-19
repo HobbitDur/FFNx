@@ -22,30 +22,30 @@ namespace act
 {
 namespace heartbreak
 {
-	static const Mod MOD_031 = { "heartbreak", 31, 0x86C9C0, 0x8735D0,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D2DB8, 0x26D33D4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26CDDB0, 0x0, 0x26D10A0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D2990, 0x0, 0x26D2C30, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D2DAA, 0x26D2DAC, 0x0, 0x26D33C8, 0x0, 0x26D33D0, 0x0, 0x26D33E0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x86D260, 0x86DCB0, 0x86DD40, 0x86DDA0, 0x0, 0x86E020, 0x86E230, 0x86E4B0, 0x86E6F0, 0x86E990, 0x86EBC0, 0x86EE80, 0x86F0E0, 0x86F3C0, 0x86F500, 0x86F540, 0x8707D0, 0x870820, 0x870850, 0x8708D0, 0x870FC0, 0x871010, 0x8710B0, 0x871170, 0x8719C0, 0x871DC0, 0x871E50, 0x0, 0x0, 0x0, 0x0, 0x0, 0x86CE90, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x86D410, 0x86D4F0, 0x86D650, 0x86D720, 0x86D840, 0x86DA50, 0x86F480, 0x86F5D0, 0x86FC30, 0x86FC80, 0x86FD10, 0x86FDE0, 0x870570, 0x870680, 0x870700, 0x870730, 0x870F50, 0x870F80, 0x871060, 0x871180, 0x8712D0, 0x871960, 0x871990, 0x871B70, 0x871CB0, 0x0, 0x86DCB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_031 = { "heartbreak", 31, game::MAG_031_HEARTBREAK_FL, game::MAG_030_COUNTER_LASEREYE_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_031_ActorCursor, game::MAG_031_ActorPoolPtr, {}, {}, {}, {}, {}, {}, game::unk_26CDDB0, {}, game::MAG_031_ParticleCursor, {}, {}, {}, {}, {}, game::MAG_031_ActorSystemQueue, {}, game::MAG_031_EmitterQueue, {}, {}, {}, {}, {}, game::unk_26D2DAA, game::MAG_031_ParticlePoolPtr, {}, game::unk_26D33C8, {}, game::g_Heartbreak_ScratchSP, {}, game::g_Heartbreak_ActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_031_DirectorSetup, game::MAG_031_Heartbreak_ActorSystem_Step, game::MAG_031_ActSys_DrawPass, game::MAG_031_ActSys_DrawActorModel, {}, game::MAG_031_MeshEmitF3, game::MAG_031_MeshEmitF4, game::MAG_031_RenderPolyFT3List, game::MAG_031_RenderPolyFT4List, game::MAG_031_PrimList_G3, game::MAG_031_PrimList_G4, game::MAG_031_PrimList_GT3, game::MAG_031_PrimList_GT4, game::MAG_031_ActSys_DrawSpritePass, game::MAG_031_ActSys_UpdatePass, game::MAG_031_ActorStep, game::MAG_031_ActSys_UpdateEmitter, game::MAG_031_Particle_LifeCountdown, game::MAG_031_ActSys_EmitterSpawnStep, game::MAG_031_ActSys_SpawnParticles, game::MAG_031_RandVec3, game::MAG_031_JitterAngles3, game::MAG_031_ActSys_AllocParticleSlot, game::MAG_031_GetWord8Minus1, game::MAG_031_Particle_Init, game::MAG_031_SpawnSubEffects, game::MAG_031_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_031_Heartbreak_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_031_ResetTrailHistory, game::MAG_031_Director_CasterRefPoints, game::MAG_031_FillTrailRows, game::MAG_031_Director_Mode3Setup, game::MAG_031_Director_TargetRefPoints, game::MAG_031_RelocateActorData, game::MAG_031_ActSys_DrawActorSprite, game::MAG_031_ActorMotion, game::MAG_031_DampValue, game::MAG_031_DampVector, game::MAG_031_Instance_AdvanceTexFrame, game::MAG_031_Instance_BuildTransform, game::MAG_031_MorphVertexBlock, game::MAG_031_Instance_EndOfLifeTest, game::MAG_031_Instance_SpawnFollowUp, game::MAG_031_AllocParticle, game::MAG_031_RandRange, game::MAG_031_RandRangeWide, game::MAG_031_RandAngleJitter, game::MAG_031_Particle_AttachToOwner, game::MAG_031_Actor_InterpolatePosition, game::MAG_031_ParticleList_Append, game::MAG_031_ParticleList_Unlink, game::MAG_031_Particle_PlaceAtAnchorSet, game::MAG_031_Particle_PlaceAtPoint, {}, game::MAG_031_Heartbreak_ActorSystem_Step, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x26CDD90;
-	static const uint32_t ACTOR_STATE = 0x26D33E0;
-	static const uint32_t SCRATCH_SP = 0x26D33D0;
-	static const uint32_t BLEND_BUF = 0x26D2DC0;
-	static const uint32_t Q_EMITTER = 0x26D2C30, Q_FLASH = 0x26CDCC8, Q_ACTORS = 0x26D2990;
-	static const uint32_t Q_PRIM = 0x26D2188, Q_PART = 0x26CDE90, Q_STAGE = 0x26D2C20;
-	static const uint32_t ORIG_Master = 0x86CB50;
-	static const uint32_t ORIG_Emitter = 0x86CE90;
-	static const uint32_t ORIG_Flash = 0x86CF60;
-	static const uint32_t ORIG_ActorSystem = 0x86D1D0;
-	static const uint32_t ORIG_Shake = 0x86D100;
-	static const uint32_t ORIG_Heart = 0x871F60, ORIG_Ring = 0x872920, ORIG_Arrow = 0x872B10, ORIG_Burst = 0x8731D0;
-	static const uint32_t ORIG_Spawner = 0x872170, ORIG_SparkA = 0x8723E0, ORIG_SparkB = 0x873010, ORIG_SparkC = 0x8730C0;
-	static const uint32_t PRIM_CB = 0x872700;
-	static const uint32_t SOUND_Heartbreak = 0x15F8DF0;
-	static const uint32_t ACTOR_DATA = 0x160D188;
-	static const uint32_t FLASH_SCRIPT_1 = 0x15F8DC8, FLASH_SCRIPT_2 = 0x15F8DD8;
-	static const uint32_t FLIGHT_T = 0x160D3B4;
-	static const uint32_t ARC_HEIGHT = 0x160D3C8;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id PACKET_CURSOR = game::g_Heartbreak_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::g_Heartbreak_ActorState;
+	static constexpr game::Id SCRATCH_SP = game::g_Heartbreak_ScratchSP;
+	static constexpr game::Id BLEND_BUF = game::g_Heartbreak_BlendBuffer;
+	static constexpr game::Id Q_EMITTER = game::MAG_031_EmitterQueue, Q_FLASH = game::MAG_031_ScreenFlashQueue, Q_ACTORS = game::MAG_031_ActorSystemQueue;
+	static constexpr game::Id Q_PRIM = game::MAG_031_PrimModelQueue, Q_PART = game::MAG_031_SparkQueue, Q_STAGE = game::MAG_031_StageLightQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_031_Heartbreak_MasterTask;
+	static constexpr game::Id ORIG_Emitter = game::MAG_031_Heartbreak_EmitterTask;
+	static constexpr game::Id ORIG_Flash = game::MAG_031_Heartbreak_ScreenFlashTask;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_031_Heartbreak_ActorSystemTask;
+	static constexpr game::Id ORIG_Shake = game::MAG_031_Heartbreak_ShakeTask;
+	static constexpr game::Id ORIG_Heart = game::MAG_031_Heartbreak_HeartTask, ORIG_Ring = game::MAG_031_Heartbreak_RingTask, ORIG_Arrow = game::MAG_031_Heartbreak_ArrowTask, ORIG_Burst = game::MAG_031_Heartbreak_BurstTask;
+	static constexpr game::Id ORIG_Spawner = game::MAG_031_Heartbreak_SparkSpawnerTask, ORIG_SparkA = game::MAG_031_Heartbreak_SparkTask, ORIG_SparkB = game::MAG_031_Heartbreak_StaticSparkTask, ORIG_SparkC = game::MAG_031_Heartbreak_RisingSparkTask;
+	static constexpr game::Id PRIM_CB = game::MAG_031_Heartbreak_PrimDrawCallback;
+	static constexpr game::Id SOUND_Heartbreak = game::unk_15F8DF0;
+	static constexpr game::Id ACTOR_DATA = game::unk_160D188;
+	static constexpr game::Id FLASH_SCRIPT_1 = game::unk_15F8DC8, FLASH_SCRIPT_2 = game::unk_15F8DD8;
+	static constexpr game::Id FLIGHT_T = game::g_Heartbreak_ArrowFlightT;
+	static constexpr game::Id ARC_HEIGHT = game::g_Heartbreak_ArrowArcHeight;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 	static uint32_t g_shadow[27];
 	static uint32_t g_sprite_ebp;
 	static inline void shadow_copy(int d, uint32_t src, int n)
@@ -65,22 +65,22 @@ namespace heartbreak
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DEA0))(a1); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
-		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a1, a2, a3); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
-		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(us(0x4607D0))(); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
-		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(a1, a2); }
-		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(a1, a2, a3); }
-		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(a1, a2, a3, a4); }
-		static inline uint32_t sub_8DDB90(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDB90))(a1, a2, a3); }
-		static inline uint32_t sub_8DE8F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x8DE8F0))(a1, a2, a3, a4); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::sub_45DEA0))(a1); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(a1); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(a1, a2, a3); }
+		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a1, a2, a3); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSZ3))(a1); }
+		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_ColorV0))(); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(a1, a2); }
+		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::VectorNormalS16))(a1, a2); }
+		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(a1, a2, a3); }
+		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(a1, a2, a3, a4); }
+		static inline uint32_t sub_8DDB90(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::sub_8DDB90))(a1, a2, a3); }
+		static inline uint32_t sub_8DE8F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::Effect_GetBoneCameraPosition))(a1, a2, a3, a4); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -142,8 +142,8 @@ namespace heartbreak
 
 	static void FlashDraw(uint32_t colour)
 	{
-		const uint32_t bucket = MEM<uint32_t>(us(0x1D8E04C)) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t bucket = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x1C;
+		uint32_t pkt = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U32(pkt, 4) = colour;
 		U32(pkt, 0) = 0x5000000;
 		U8(pkt, 7) = 0x2A;
@@ -156,7 +156,7 @@ namespace heartbreak
 		const uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
 		x::sub_45BFC0(pkt, 0, 0, tpage, 0);
 		x::SSIGPU_InsertPrimAutoDepth(bucket, pkt);
-		MEM<uint32_t>(us(PACKET_CURSOR)) = pkt + 0xC;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = pkt + 0xC;
 	}
 
 	uint32_t __cdecl hb_86CB50(uint32_t a1);
@@ -247,47 +247,47 @@ namespace heartbreak
 		g_mod = &MOD_031;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x26CDDB0)) = us(0x2793E58);
-		states[0] = us(0x86CCC0);
-		states[1] = us(0x86CCD0);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_26CDDB0)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_031_Heartbreak_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_031_Heartbreak_Master_State1_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = us(0x86CCE0);
-		states[3] = us(0x86CE60);
-		states[4] = us(0x873430);
-		states[5] = us(0x873470);
-		states[6] = us(0x873570);
-		states[7] = us(0x873580);
-		states[8] = us(0x873590);
-		states[9] = us(0x8735A0);
-		states[10] = us(0x8735C0);
+		states[2] = game_addr(game::MAG_031_Heartbreak_Master_ReservePools);
+		states[3] = game_addr(game::MAG_031_Heartbreak_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_031_Heartbreak_Master_State4_ActionLoop);
+		states[5] = game_addr(game::MAG_031_Heartbreak_Master_State5_WaitThenLightRampDown);
+		states[6] = game_addr(game::MAG_031_Heartbreak_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_031_Heartbreak_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_031_Heartbreak_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_031_Heartbreak_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_031_Heartbreak_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26D2DA4));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26D219C));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26CDDAC)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26D2DA4));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26D219C));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26CDDAC)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26D2DA0));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26D2198));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26CDDAC)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26D2DA0));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26D2198));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26CDDAC)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x26D33C8)) = 0;
-		MEM<uint16_t>(us(0x26D2DAA)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_FLASH)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PRIM)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PART)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
+		MEM<uint16_t>(game_addr(game::unk_26D33C8)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26D2DAA)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_FLASH)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_PART)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -305,7 +305,7 @@ namespace heartbreak
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -347,8 +347,8 @@ namespace heartbreak
 	{
 		const uint32_t node = a1;
 		uint32_t states[2];
-		states[0] = us(0x86D150);
-		states[1] = us(0x86D170);
+		states[0] = game_addr(game::MAG_031_Heartbreak_Shake_State0_Finish);
+		states[1] = game_addr(game::MAG_031_Heartbreak_Shake_State1_Empty);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -374,7 +374,7 @@ namespace heartbreak
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;
 		const uint32_t root = U32(node, 0x10);
-		MEM<uint32_t>(us(0x26D33E0)) = st;
+		MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x24) = w29c;
@@ -386,7 +386,7 @@ namespace heartbreak
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(us(0x26D33E0));
+			st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -406,41 +406,41 @@ namespace heartbreak
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		hb_86D4F0();
-		st = MEM<uint32_t>(us(0x26D33E0));
+		st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		if (U16(st, 0x24) == 4)
-			callp(us(0x86D410), node);
+			callp(game_addr(game::MAG_031_ResetTrailHistory), node);
 		hb_86D840();
-		st = MEM<uint32_t>(us(0x26D33E0));
+		st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		if (U16(st, 0x24) == 1)
 		{
-			callp(us(0x86D650), node);
-			st = MEM<uint32_t>(us(0x26D33E0));
+			callp(game_addr(game::MAG_031_FillTrailRows), node);
+			st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(us(0x26D33E0));
+			st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
+		uint32_t e2 = game_addr(game::BattleEntitySlotData) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(us(0x26D33E0));
+		st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		U32(st, 0) = dist;
 		return 0;
 	}
 
 	uint32_t __cdecl hb_86D410(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26D33E0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -457,15 +457,15 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_86D4F0(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -478,7 +478,7 @@ namespace heartbreak
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -486,7 +486,7 @@ namespace heartbreak
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -501,7 +501,7 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_86D650(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26D33E0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -522,7 +522,7 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_86D840(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -531,11 +531,11 @@ namespace heartbreak
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+				const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -548,7 +548,7 @@ namespace heartbreak
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -556,7 +556,7 @@ namespace heartbreak
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -598,7 +598,7 @@ namespace heartbreak
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x26D33E0), 0) = sys;
+		U32(game_addr(game::g_Heartbreak_ActorState), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -610,7 +610,7 @@ namespace heartbreak
 			hb_86F500();
 			hb_86F3C0();
 			hb_86DD40();
-			sys = U32(us(0x26D33E0), 0);
+			sys = U32(game_addr(game::g_Heartbreak_ActorState), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -623,19 +623,19 @@ namespace heartbreak
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x26D33C8), 0) = (uint16_t)(U16(us(0x26D33C8), 0) + c14);
-		U16(us(0x26D2DAA), 0) = (uint16_t)(U16(us(0x26D2DAA), 0) + c16);
+		U16(game_addr(game::unk_26D33C8), 0) = (uint16_t)(U16(game_addr(game::unk_26D33C8), 0) + c14);
+		U16(game_addr(game::unk_26D2DAA), 0) = (uint16_t)(U16(game_addr(game::unk_26D2DAA), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl hb_86DD40(void)
 	{
-		uint32_t act = U32(U32(us(0x26D33E0), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_Heartbreak_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x26D33E0), 0);
+				uint32_t sys = U32(game_addr(game::g_Heartbreak_ActorState), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -649,10 +649,10 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_86DDA0(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -672,9 +672,9 @@ namespace heartbreak
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-			MEM<uint32_t>(us(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -689,17 +689,17 @@ namespace heartbreak
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1204,15 +1204,15 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_86F3C0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x26D33E0)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState)), 0x2C);
 		if (act == 0)
 			return 0;
-		uint32_t ebp = us(Q_ACTORS);
+		uint32_t ebp = game_addr(Q_ACTORS);
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x26D33E0));
+				uint32_t st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1254,27 +1254,27 @@ namespace heartbreak
 	uint32_t __cdecl hb_86F480(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
-		shadow5(7, hdr, g_sprite_ebp, act + 0xAC, us(0x86F4DD), hdr);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
+		shadow5(7, hdr, g_sprite_ebp, act + 0xAC, game_addr(game::sub_86F4DD), hdr);
 		return 0;
 	}
 
 	uint32_t __cdecl hb_86F500(void)
 	{
-		uint32_t act = U32(U32(us(0x26D33E0), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_Heartbreak_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1290,7 +1290,7 @@ namespace heartbreak
 	uint32_t __cdecl hb_86F540(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x26D33E0));
+		uint32_t st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1311,7 +1311,7 @@ namespace heartbreak
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x26D33E0));
+			st = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1323,7 +1323,7 @@ namespace heartbreak
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x26D33E0), 0);
+		uint32_t st = U32(game_addr(game::g_Heartbreak_ActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1406,8 +1406,8 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_870730(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x26D2DAC));
-		int32_t idx = MEM<int16_t>(us(0x26D10A0));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_031_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_031_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1417,7 +1417,7 @@ namespace heartbreak
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1432,9 +1432,9 @@ namespace heartbreak
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(us(0x26D10A0)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_031_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x26D10A0)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_031_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -1447,9 +1447,9 @@ namespace heartbreak
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x871180), a1);
+			callp(game_addr(game::MAG_031_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x8712D0), a1);
+			callp(game_addr(game::MAG_031_Actor_InterpolatePosition), a1);
 		hb_870850(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1458,7 +1458,7 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_870850(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x26D33E0), 0);
+		uint32_t sys = U32(game_addr(game::g_Heartbreak_ActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1485,9 +1485,9 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_8708D0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x26D33D0), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::g_Heartbreak_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x26D33D0), 0) = sp;
+		U32(game_addr(game::g_Heartbreak_ScratchSP), 0) = sp;
 		uint32_t node = hb_8710B0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1497,7 +1497,7 @@ namespace heartbreak
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x26D33E0), 0);
+			uint32_t ctx = U32(game_addr(game::g_Heartbreak_ActorState), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1665,14 +1665,14 @@ namespace heartbreak
 			}
 		}
 		hb_871DC0(node, desc);
-		U32(us(0x26D33D0), 0) = U32(us(0x26D33D0), 0) + 0x50;
+		U32(game_addr(game::g_Heartbreak_ScratchSP), 0) = U32(game_addr(game::g_Heartbreak_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl hb_8710B0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x26D33D4));
-		int32_t i = MEM<int16_t>(us(0x26D2DB8));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_031_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_031_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1685,7 +1685,7 @@ namespace heartbreak
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1702,16 +1702,16 @@ namespace heartbreak
 		}
 		i++;
 		if (i >= 0x31)
-			MEM<uint16_t>(us(0x26D2DB8)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_031_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x26D2DB8)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_031_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl hb_8712D0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x26D33E0), 0);
+		const uint32_t st = U32(game_addr(game::g_Heartbreak_ActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1771,7 +1771,7 @@ namespace heartbreak
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x26D33E0), 0);
+				uint32_t g = U32(game_addr(game::g_Heartbreak_ActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1781,7 +1781,7 @@ namespace heartbreak
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x26D33E0), 0);
+				uint32_t g = U32(game_addr(game::g_Heartbreak_ActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1856,7 +1856,7 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_871E50(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x26D33E0));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1881,14 +1881,14 @@ namespace heartbreak
 				do
 				{
 					hb_870730(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x26D33E0));
+					dir = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				hb_870730(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x26D33E0));
+				dir = MEM<uint32_t>(game_addr(game::g_Heartbreak_ActorState));
 			}
 		}
 		return 0;
@@ -1912,17 +1912,17 @@ namespace heartbreak
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0;
 	}
 
 	uint32_t __cdecl hb_872920(uint32_t a1)
 	{
-		const uint32_t tab[4] = { us(0x872980), us(0x872990), us(0x8729F0), us(0x872B00) };
+		const uint32_t tab[4] = { game_addr(game::MAG_031_Heartbreak_Ring_Wait), game_addr(game::MAG_031_Heartbreak_Ring_Init), game_addr(game::MAG_031_Heartbreak_Ring_Play), game_addr(game::MAG_031_Heartbreak_Ring_State3_Empty) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -1931,7 +1931,7 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_872B10(uint32_t a1)
 	{
-		const uint32_t tab[4] = { us(0x872B70), us(0x872B80), us(0x872CB0), us(0x8731C0) };
+		const uint32_t tab[4] = { game_addr(game::MAG_031_Heartbreak_Arrow_Wait), game_addr(game::MAG_031_Heartbreak_Arrow_Init), game_addr(game::MAG_031_Heartbreak_Arrow_Fly), game_addr(game::MAG_031_Heartbreak_Arrow_State3_Empty) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -1965,9 +1965,9 @@ namespace heartbreak
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x873070);
-		states[1] = us(0x873090);
-		states[2] = us(0x8730B0);
+		states[0] = game_addr(game::MAG_031_Heartbreak_StaticSpark_Init);
+		states[1] = game_addr(game::MAG_031_Heartbreak_StaticSpark_State1_CounterFinish);
+		states[2] = game_addr(game::MAG_031_Heartbreak_StaticSpark_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		hb_872440(node);
 		const uint8_t status = U8(node, 0x26);
@@ -1979,9 +1979,9 @@ namespace heartbreak
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x873120);
-		states[1] = us(0x873150);
-		states[2] = us(0x8731B0);
+		states[0] = game_addr(game::MAG_031_Heartbreak_RisingSpark_Init);
+		states[1] = game_addr(game::MAG_031_Heartbreak_RisingSpark_Motion);
+		states[2] = game_addr(game::MAG_031_Heartbreak_RisingSpark_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		hb_872440(node);
 		const uint8_t status = U8(node, 0x26);
@@ -1991,7 +1991,7 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_8731D0(uint32_t a1)
 	{
-		const uint32_t tab[4] = { us(0x873230), us(0x873240), us(0x873350), us(0x8733B0) };
+		const uint32_t tab[4] = { game_addr(game::MAG_031_Heartbreak_Burst_Wait), game_addr(game::MAG_031_Heartbreak_Burst_Init), game_addr(game::MAG_031_Heartbreak_Burst_Play), game_addr(game::MAG_031_Heartbreak_Burst_State3_Empty) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -2050,7 +2050,7 @@ namespace heartbreak
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x8734A0), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_031_Heartbreak_LightRampDownTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -2074,7 +2074,7 @@ namespace heartbreak
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -2084,26 +2084,26 @@ namespace heartbreak
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x26D33DC));
-		MEM<uint32_t>(us(0x26D2DAC)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_031_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_031_ParticlePoolPtr)) = p;
 		p += 0x438;
-		MEM<uint32_t>(us(0x26D33D4)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_031_ActorPoolPtr)) = p;
 		p += 0x8340;
-		MEM<uint32_t>(us(0x26D33DC)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_031_FileArenaCursor)) = p;
 		hb_86CD30();
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x86CD70), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_031_Heartbreak_LightRampUpTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl hb_86CD30(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26D2DAC)), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26D33D4)), 0x8340);
-		MEM<uint16_t>(us(0x26D10A0)) = 0;
-		MEM<uint16_t>(us(0x26D2DB8)) = 0;
-		MEM<uint16_t>(us(0x26D2DA8)) = 0;
-		MEM<uint16_t>(us(0x26CDD94)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_031_ParticlePoolPtr)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_031_ActorPoolPtr)), 0x8340);
+		MEM<uint16_t>(game_addr(game::MAG_031_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_031_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26D2DA8)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26CDD94)) = 0;
 		return 0;
 	}
 
@@ -2111,28 +2111,28 @@ namespace heartbreak
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x86D060);
-		states[1] = us(0x8733C0);
-		states[2] = us(0x8733E0);
-		states[3] = us(0x873420);
+		states[0] = game_addr(game::MAG_031_Heartbreak_Emitter_SpawnParts);
+		states[1] = game_addr(game::MAG_031_Heartbreak_Emitter_ReleaseMaster);
+		states[2] = game_addr(game::MAG_031_Heartbreak_Emitter_ApplyDamage);
+		states[3] = game_addr(game::MAG_031_Heartbreak_Emitter_State3_Empty);
 		const uint32_t ent = ENT(U8(node, 0x2D));
-		const uint32_t fa = MEM<uint32_t>(us(0x1D999C4));
+		const uint32_t fa = MEM<uint32_t>(game_addr(game::GLOBAL_MEMORY_POOL));
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		if ((U8(ent, 0) & 2) != 0)
 		{
-			static const uint32_t w[9] = { 0x43300000, us(0x56C843), 0, 0, us(0x50225A), 0x34, us(0x1D97708), 0, 0 };
+			static const uint32_t w[9] = { 0x43300000, game_addr(game::sub_56C843), 0, 0, game_addr(game::sub_50225A), 0x34, game_addr(game::BATTLE_EFFECT_BONE_OFFSET), 0, 0 };
 			for (int k = 0; k < 9; k++) g_shadow[k] = w[k];
 			g_shadow[2] = g_shadow[8] = fa + 0x30;
 			g_shadow[3] = g_shadow[7] = fa + 0x20;
 		}
-		const uint32_t fb = MEM<uint32_t>(us(0x1D999C4));
+		const uint32_t fb = MEM<uint32_t>(game_addr(game::GLOBAL_MEMORY_POOL));
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		const uint32_t skel = U32(U32(ent, 0x64), 0);
 		const uint32_t bones = U8(skel, 0);
 		if (bones > 1)
 		{
 			const uint32_t last = skel + 0x20 + 0x30 * (bones - 1);
-			g_shadow[9] = us(0x45DE3D);
+			g_shadow[9] = game_addr(game::sub_45DE3D);
 			g_shadow[10] = U32(last, 0x10);
 			g_shadow[11] = (uint32_t)(int32_t)S16(last, 0x10);
 			g_shadow[22] = fb + 0x28;
@@ -2140,16 +2140,16 @@ namespace heartbreak
 		}
 		callp(states[S8(node, 0x29)], node);
 		if (U16(node, 0x24) == 0)
-			x::BdPlaySE(us(SOUND_Heartbreak), 0, 0x80);
+			x::BdPlaySE(game_addr(SOUND_Heartbreak), 0, 0x80);
 		if (U16(node, 0x24) == 0x11)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_FLASH), us(ORIG_Flash), 0x3C, node);
-			U32(t, 0x30) = us(FLASH_SCRIPT_1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_FLASH), game_addr(ORIG_Flash), 0x3C, node);
+			U32(t, 0x30) = game_addr(FLASH_SCRIPT_1);
 		}
 		if (U16(node, 0x24) == 0x1A)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_FLASH), us(ORIG_Flash), 0x3C, node);
-			U32(t, 0x30) = us(FLASH_SCRIPT_2);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_FLASH), game_addr(ORIG_Flash), 0x3C, node);
+			U32(t, 0x30) = game_addr(FLASH_SCRIPT_2);
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2158,19 +2158,19 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_86D060(uint32_t a1)
 	{
-		hb_871F10(a1, us(ORIG_Heart), us(0x15F98F8), 0x100, 0, 0);
-		hb_871F10(a1, us(ORIG_Ring), us(0x1602658), 0x2C, 1, 0);
-		hb_871F10(a1, us(ORIG_Arrow), us(0x1608024), 0x7C, 2, 0);
-		hb_871F10(a1, us(ORIG_Burst), us(0x160AF24), 0x6C, 3, 0);
-		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0, 0x2D, 0);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_Shake), 0x80, a1);
+		hb_871F10(a1, game_addr(ORIG_Heart), game_addr(game::unk_15F98F8), 0x100, 0, 0);
+		hb_871F10(a1, game_addr(ORIG_Ring), game_addr(game::unk_1602658), 0x2C, 1, 0);
+		hb_871F10(a1, game_addr(ORIG_Arrow), game_addr(game::unk_1608024), 0x7C, 2, 0);
+		hb_871F10(a1, game_addr(ORIG_Burst), game_addr(game::unk_160AF24), 0x6C, 3, 0);
+		a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(ACTOR_DATA), 0, 0x2D, 0);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_Shake), 0x80, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl hb_871F10(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), a2, 0x1B0, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PRIM), a2, 0x1B0, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -2229,25 +2229,25 @@ namespace heartbreak
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
 		ff8fx::copy<(0x20)>(pl, fr);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
-		U32(L, 0x48) = us(BLEND_BUF);
-		if (prim_play(node + 0x94, us(PRIM_CB), L, 0) == 0)
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
+		if (prim_play(node + 0x94, game_addr(PRIM_CB), L, 0) == 0)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_Spawner), 0x80, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_Spawner), 0x80, node);
 			U8(node, 0x26) |= 1;
 			const uint8_t st = U8(node, 0x29);
 			ff8fx::copy<(0x20)>((void *)(t + 0x58), pl);
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		shadow_copy(0, L, 8);
-		g_shadow[18] = us(BLEND_BUF);
+		g_shadow[18] = game_addr(BLEND_BUF);
 		shadow_copy(23, place, 4);
 		return 0;
 	}
 
 	uint32_t __cdecl hb_872310(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_SparkA), 0x80, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_SparkA), 0x80, a1);
 		const uint32_t w20 = U32(a1, 0x20);
 		U32(t, 0x1C) = U32(a1, 0x1C);
 		U32(t, 0x20) = w20;
@@ -2273,17 +2273,17 @@ namespace heartbreak
 		for (int i = n1; i != 0; i--)
 		{
 			const int32_t r = (int32_t)x::CrtRand();
-			hb_872310(node, us(0x15F95E0), 7, (uint32_t)(r % 0xC00 + 0x400));
+			hb_872310(node, game_addr(game::unk_15F95E0), 7, (uint32_t)(r % 0xC00 + 0x400));
 		}
 		for (int i = n2; i != 0; i--)
 		{
 			const int32_t r = (int32_t)x::CrtRand();
-			hb_872310(node, us(0x15F96BC), 8, (uint32_t)(r % 0x1800 + 0x800));
+			hb_872310(node, game_addr(game::unk_15F96BC), 8, (uint32_t)(r % 0x1800 + 0x800));
 		}
 		for (int i = n3; i != 0; i--)
 		{
 			const int32_t r = (int32_t)x::CrtRand();
-			hb_872310(node, us(0x15F95E0), 7, (uint32_t)(r % 0x1000 + 0x800));
+			hb_872310(node, game_addr(game::unk_15F95E0), 7, (uint32_t)(r % 0x1000 + 0x800));
 		}
 	}
 
@@ -2313,8 +2313,8 @@ namespace heartbreak
 	{
 		const uint32_t node = a1;
 		uint32_t states[2];
-		states[0] = us(0x8724B0);
-		states[1] = us(0x8725A0);
+		states[0] = game_addr(game::MAG_031_Heartbreak_Spark_Motion);
+		states[1] = game_addr(game::MAG_031_Heartbreak_Spark_State1_Empty);
 		callp(states[S8(node, 0x29)], node);
 		hb_872440(node);
 		const uint8_t status = U8(node, 0x26);
@@ -2381,9 +2381,9 @@ namespace heartbreak
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
-		U32(L, 0x48) = us(BLEND_BUF);
-		if (prim_play(node + 0x94, us(PRIM_CB), L, 0) == 0)
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
+		if (prim_play(node + 0x94, game_addr(PRIM_CB), L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
 			U8(node, 0x26) |= 1;
@@ -2392,7 +2392,7 @@ namespace heartbreak
 		g_shadow[5] = g_front_vec[0] | (uint32_t)g_front_vec[1] << 16;
 		g_shadow[6] = (g_shadow[6] & 0xFFFF0000) | g_front_vec[2];
 		shadow_copy(7, L, 8);
-		g_shadow[25] = us(BLEND_BUF);
+		g_shadow[25] = game_addr(BLEND_BUF);
 		return 0;
 	}
 
@@ -2448,7 +2448,7 @@ namespace heartbreak
 		const uint16_t sy = U16(node, 0x19E);
 		const int32_t p = mul32((int32_t)S16(node, 0x1A6) - (int32_t)(int16_t)sy, t);
 		const uint16_t q = (uint16_t)(add32(p, (p >> 31) & 0xFFF) >> 12);
-		U16(node, 0x1E) = (uint16_t)((uint16_t)(q - MEM<uint16_t>(us(ARC_HEIGHT) + (uint32_t)k * 2)) + sy);
+		U16(node, 0x1E) = (uint16_t)((uint16_t)(q - MEM<uint16_t>(game_addr(ARC_HEIGHT) + (uint32_t)k * 2)) + sy);
 	}
 
 	static inline void arrow_matrix(uint32_t node, uint32_t ent, uint32_t m)
@@ -2469,7 +2469,7 @@ namespace heartbreak
 		const uint32_t w20 = U32(node, 0x20);
 		U32(node, 0x194) = U32(node, 0x1C);
 		U32(node, 0x198) = w20;
-		const uint16_t t = MEM<uint16_t>(us(FLIGHT_T) + (uint32_t)k * 2);
+		const uint16_t t = MEM<uint16_t>(game_addr(FLIGHT_T) + (uint32_t)k * 2);
 		U16(node, 0x1AC) = t;
 		if ((int16_t)t >= 0x1000)
 		{
@@ -2481,43 +2481,43 @@ namespace heartbreak
 		arrow_pos(node, k, (int16_t)t);
 		U16(node, 0x1AE) = (uint16_t)(U16(node, 0x1AE) + 1);
 		arrow_matrix(node, ent, L);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
-		U32(L, 0x48) = us(BLEND_BUF);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
 		if ((U8(node, 0x26) & 1) == 0)
 		{
-			prim_play(node + 0x94, us(PRIM_CB), L, 0);
+			prim_play(node + 0x94, game_addr(PRIM_CB), L, 0);
 		}
-		uint32_t p = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_SparkB), 0x80, node);
+		uint32_t p = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_SparkB), 0x80, node);
 		uint32_t w = U32(node, 0x20);
 		U32(p, 0x1C) = U32(node, 0x1C);
 		U32(p, 0x20) = w;
 		uint32_t r = x::CrtRand();
 		U16(p, 0x1E) = (uint16_t)(U16(p, 0x1E) + (uint16_t)((r & 0xFF) - 0x80));
-		p = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_SparkB), 0x80, node);
+		p = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_SparkB), 0x80, node);
 		U16(p, 0x1C) = (uint16_t)(((int32_t)S16(node, 0x194) + S16(node, 0x1C)) / 2);
 		U16(p, 0x1E) = (uint16_t)(((int32_t)S16(node, 0x196) + S16(node, 0x1E)) / 2);
 		U16(p, 0x20) = (uint16_t)(((int32_t)S16(node, 0x198) + S16(node, 0x20)) / 2);
 		r = x::CrtRand();
 		U16(p, 0x1E) = (uint16_t)(U16(p, 0x1E) + (uint16_t)((r & 0xFF) - 0x80));
-		p = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_SparkC), 0x80, node);
+		p = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_SparkC), 0x80, node);
 		w = U32(node, 0x20);
 		U32(p, 0x1C) = U32(node, 0x1C);
 		U32(p, 0x20) = w;
 		hb_872F60(p, 0x80);
-		p = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_SparkC), 0x80, node);
+		p = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PART), game_addr(ORIG_SparkC), 0x80, node);
 		U16(p, 0x1C) = (uint16_t)(((int32_t)S16(node, 0x194) + S16(node, 0x1C)) / 2);
 		U16(p, 0x1E) = (uint16_t)(((int32_t)S16(node, 0x196) + S16(node, 0x1E)) / 2);
 		U16(p, 0x20) = (uint16_t)(((int32_t)S16(node, 0x198) + S16(node, 0x20)) / 2);
 		hb_872F60(p, 0x80);
 		shadow_copy(7, L, 8);
-		g_shadow[25] = us(BLEND_BUF);
+		g_shadow[25] = game_addr(BLEND_BUF);
 		return 0;
 	}
 
 	uint32_t __cdecl hb_873070(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = us(0x15F9250);
+		U32(a1, 0x4C) = game_addr(game::unk_15F9250);
 		U16(a1, 0x52) = 0x12;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
@@ -2525,7 +2525,7 @@ namespace heartbreak
 
 	uint32_t __cdecl hb_873120(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x15F944C);
+		U32(a1, 0x4C) = game_addr(game::unk_15F944C);
 		U16(a1, 0x52) = 0xE;
 		const uint32_t r = x::CrtRand();
 		U16(a1, 0x7A) = (uint16_t)(0 - (r & 0x1FF));
@@ -2577,14 +2577,14 @@ namespace heartbreak
 		S32(node, 0x44) = S16(node, 0x1C);
 		S32(node, 0x48) = S16(node, 0x1E);
 		S32(node, 0x4C) = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), M, L);
-		U32(L, 0x48) = us(BLEND_BUF);
-		prim_play(node + 0x94, us(PRIM_CB), L, 0);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), M, L);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
+		prim_play(node + 0x94, game_addr(PRIM_CB), L, 0);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		g_shadow[5] = U16(vec, 0) | (uint32_t)U16(vec, 2) << 16;
 		g_shadow[6] = (g_shadow[6] & 0xFFFF0000) | U16(vec, 4);
 		shadow_copy(7, L, 8);
-		g_shadow[25] = us(BLEND_BUF);
+		g_shadow[25] = game_addr(BLEND_BUF);
 		return 0;
 	}
 
@@ -2593,16 +2593,16 @@ namespace heartbreak
 		const uint32_t node = a1;
 		alignas(4) uint8_t fr[0x5C] = {};
 		const uint32_t L = P(fr);
-		x::ComposeAffineTransform(us(0x1D97778), node + 0x30, L);
-		U32(L, 0x48) = us(BLEND_BUF);
-		if (prim_play(node + 0x94, us(PRIM_CB), L, 0) == 0)
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), node + 0x30, L);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
+		if (prim_play(node + 0x94, game_addr(PRIM_CB), L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
 			U8(node, 0x26) |= 1;
 			U8(node, 0x29) = (uint8_t)(st + 1);
 		}
 		shadow_copy(7, L, 8);
-		g_shadow[25] = us(BLEND_BUF);
+		g_shadow[25] = game_addr(BLEND_BUF);
 		return 0;
 	}
 
@@ -2690,145 +2690,145 @@ namespace heartbreak
 			U32(hdr, 0x1C) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x58);
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x86CCC0, (void *)a_73A0D0, "031 MAG_031_sub_86CCC0" },
-		{ 0x86CCD0, (void *)a_73A0D0, "031 MAG_031_sub_86CCD0" },
-		{ 0x86CD70, (void *)a_73A380, "031 MAG_031_sub_86CD70" },
-		{ 0x86CDD0, (void *)a_7335D0, "031 MAG_031_sub_86CDD0" },
-		{ 0x86CE50, (void *)a_73A6D0, "031 nullsub_1669" },
-		{ 0x86CE60, (void *)a_73A170, "031 MAG_031_sub_86CE60" },
-		{ 0x86D150, (void *)a_7475A0, "031 sub_86D150" },
-		{ 0x86D170, (void *)a_73A6D0, "031 nullsub_1672" },
-		{ 0x86D180, (void *)a_73C100, "031 MAG_031_sub_86D180" },
-		{ 0x86D1D0, (void *)a_73A380, "031 MAG_031_sub_86D1D0" },
-		{ 0x86D720, (void *)a_73FE90, "031 sub_86D720" },
-		{ 0x86DA50, (void *)a_740210, "031 sub_86DA50" },
-		{ 0x86DEE0, (void *)a_7355E0, "031 sub_86DEE0" },
-		{ 0x86E4B0, (void *)a_735BB0, "031 sub_86E4B0" },
-		{ 0x86E6F0, (void *)a_735DF0, "031 sub_86E6F0" },
-		{ 0x86F5D0, (void *)a_740910, "031 sub_86F5D0" },
-		{ 0x86FC30, (void *)a_740F70, "031 sub_86FC30" },
-		{ 0x86FC80, (void *)a_740FC0, "031 sub_86FC80" },
-		{ 0x86FD10, (void *)a_741050, "031 sub_86FD10" },
-		{ 0x86FDE0, (void *)a_741120, "031 sub_86FDE0" },
-		{ 0x870820, (void *)a_741B60, "031 sub_870820" },
-		{ 0x870F50, (void *)a_742290, "031 au_re__rand_54" },
-		{ 0x870F80, (void *)a_7422C0, "031 sub_870F80" },
-		{ 0x870FC0, (void *)a_742300, "031 sub_870FC0" },
-		{ 0x871010, (void *)a_742350, "031 sub_871010" },
-		{ 0x871060, (void *)a_7423A0, "031 au_re__rand_54_0" },
-		{ 0x871170, (void *)a_7424B0, "031 sub_871170" },
-		{ 0x871180, (void *)a_7424C0, "031 sub_871180" },
-		{ 0x871960, (void *)a_742CA0, "031 sub_871960" },
-		{ 0x871990, (void *)a_742CD0, "031 sub_871990" },
-		{ 0x8719C0, (void *)a_742D00, "031 sub_8719C0" },
-		{ 0x871B70, (void *)a_742EB0, "031 sub_871B70" },
-		{ 0x871CB0, (void *)a_742FF0, "031 sub_871CB0" },
-		{ 0x871F00, (void *)a_73A6D0, "031 nullsub_1673" },
-		{ 0x871F60, (void *)a_73A380, "031 MAG_031_sub_871F60" },
-		{ 0x872170, (void *)a_73A380, "031 sub_872170" },
-		{ 0x872570, (void *)a_743C20, "031 sub_872570" },
-		{ 0x8725A0, (void *)a_73A6D0, "031 nullsub_1674" },
-		{ 0x8726F0, (void *)a_73A6D0, "031 nullsub_1675" },
-		{ 0x872910, (void *)a_73A6D0, "031 nullsub_1676" },
-		{ 0x872B00, (void *)a_73A6D0, "031 nullsub_1677" },
-		{ 0x873090, (void *)a_743C00, "031 sub_873090" },
-		{ 0x8730B0, (void *)a_73A6D0, "031 nullsub_1678" },
-		{ 0x8731B0, (void *)a_73A6D0, "031 nullsub_1679" },
-		{ 0x8731C0, (void *)a_73A6D0, "031 nullsub_1680" },
-		{ 0x8733B0, (void *)a_73A6D0, "031 nullsub_1681" },
-		{ 0x873420, (void *)a_73A6D0, "031 nullsub_1670" },
-		{ 0x8734A0, (void *)a_73A380, "031 MAG_031_sub_8734A0" },
-		{ 0x873560, (void *)a_73A6D0, "031 nullsub_1682" },
-		{ 0x873570, (void *)a_747550, "031 MAG_031_sub_873570" },
-		{ 0x873580, (void *)a_73A0D0, "031 MAG_031_sub_873580" },
-		{ 0x873590, (void *)a_73A0D0, "031 MAG_031_sub_873590" },
-		{ 0x8735A0, (void *)a_7475A0, "031 MAG_031_sub_8735A0" },
-		{ 0x8735C0, (void *)a_73A6D0, "031 nullsub_1671" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_031_Heartbreak_Master_State0_Advance, (void *)a_73A0D0, "031 MAG_031_sub_86CCC0" },
+		{ game::MAG_031_Heartbreak_Master_State1_Advance, (void *)a_73A0D0, "031 MAG_031_sub_86CCD0" },
+		{ game::MAG_031_Heartbreak_LightRampUpTask, (void *)a_73A380, "031 MAG_031_sub_86CD70" },
+		{ game::MAG_031_Heartbreak_LightRampUp_State0_ResetEntityRecords, (void *)a_7335D0, "031 MAG_031_sub_86CDD0" },
+		{ game::MAG_031_Heartbreak_LightRampUp_State2_Empty, (void *)a_73A6D0, "031 nullsub_1669" },
+		{ game::MAG_031_Heartbreak_Master_State3_SpawnEmitter, (void *)a_73A170, "031 MAG_031_sub_86CE60" },
+		{ game::MAG_031_Heartbreak_Shake_State0_Finish, (void *)a_7475A0, "031 sub_86D150" },
+		{ game::MAG_031_Heartbreak_Shake_State1_Empty, (void *)a_73A6D0, "031 nullsub_1672" },
+		{ game::MAG_031_SpawnChildTask, (void *)a_73C100, "031 MAG_031_sub_86D180" },
+		{ game::MAG_031_Heartbreak_ActorSystemTask, (void *)a_73A380, "031 MAG_031_sub_86D1D0" },
+		{ game::MAG_031_Director_Mode3Setup, (void *)a_73FE90, "031 sub_86D720" },
+		{ game::MAG_031_RelocateActorData, (void *)a_740210, "031 sub_86DA50" },
+		{ game::MAG_031_RenderPrimModel, (void *)a_7355E0, "031 sub_86DEE0" },
+		{ game::MAG_031_RenderPolyFT3List, (void *)a_735BB0, "031 sub_86E4B0" },
+		{ game::MAG_031_RenderPolyFT4List, (void *)a_735DF0, "031 sub_86E6F0" },
+		{ game::MAG_031_ActorMotion, (void *)a_740910, "031 sub_86F5D0" },
+		{ game::MAG_031_DampValue, (void *)a_740F70, "031 sub_86FC30" },
+		{ game::MAG_031_DampVector, (void *)a_740FC0, "031 sub_86FC80" },
+		{ game::MAG_031_Instance_AdvanceTexFrame, (void *)a_741050, "031 sub_86FD10" },
+		{ game::MAG_031_Instance_BuildTransform, (void *)a_741120, "031 sub_86FDE0" },
+		{ game::MAG_031_Particle_LifeCountdown, (void *)a_741B60, "031 sub_870820" },
+		{ game::MAG_031_RandRange, (void *)a_742290, "031 au_re__rand_54" },
+		{ game::MAG_031_RandRangeWide, (void *)a_7422C0, "031 sub_870F80" },
+		{ game::MAG_031_RandVec3, (void *)a_742300, "031 sub_870FC0" },
+		{ game::MAG_031_JitterAngles3, (void *)a_742350, "031 sub_871010" },
+		{ game::MAG_031_RandAngleJitter, (void *)a_7423A0, "031 au_re__rand_54_0" },
+		{ game::MAG_031_GetWord8Minus1, (void *)a_7424B0, "031 sub_871170" },
+		{ game::MAG_031_Particle_AttachToOwner, (void *)a_7424C0, "031 sub_871180" },
+		{ game::MAG_031_ParticleList_Append, (void *)a_742CA0, "031 sub_871960" },
+		{ game::MAG_031_ParticleList_Unlink, (void *)a_742CD0, "031 sub_871990" },
+		{ game::MAG_031_Particle_Init, (void *)a_742D00, "031 sub_8719C0" },
+		{ game::MAG_031_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "031 sub_871B70" },
+		{ game::MAG_031_Particle_PlaceAtPoint, (void *)a_742FF0, "031 sub_871CB0" },
+		{ game::MAG_031_Heartbreak_ActorSystem_State2_Empty, (void *)a_73A6D0, "031 nullsub_1673" },
+		{ game::MAG_031_Heartbreak_HeartTask, (void *)a_73A380, "031 MAG_031_sub_871F60" },
+		{ game::MAG_031_Heartbreak_SparkSpawnerTask, (void *)a_73A380, "031 sub_872170" },
+		{ game::MAG_031_StepCounterLimit, (void *)a_743C20, "031 sub_872570" },
+		{ game::MAG_031_Heartbreak_Spark_State1_Empty, (void *)a_73A6D0, "031 nullsub_1674" },
+		{ game::MAG_031_Heartbreak_SparkSpawner_State2_Empty, (void *)a_73A6D0, "031 nullsub_1675" },
+		{ game::MAG_031_Heartbreak_Heart_State2_Empty, (void *)a_73A6D0, "031 nullsub_1676" },
+		{ game::MAG_031_Heartbreak_Ring_State3_Empty, (void *)a_73A6D0, "031 nullsub_1677" },
+		{ game::MAG_031_Heartbreak_StaticSpark_State1_CounterFinish, (void *)a_743C00, "031 sub_873090" },
+		{ game::MAG_031_Heartbreak_StaticSpark_State2_Empty, (void *)a_73A6D0, "031 nullsub_1678" },
+		{ game::MAG_031_Heartbreak_RisingSpark_State2_Empty, (void *)a_73A6D0, "031 nullsub_1679" },
+		{ game::MAG_031_Heartbreak_Arrow_State3_Empty, (void *)a_73A6D0, "031 nullsub_1680" },
+		{ game::MAG_031_Heartbreak_Burst_State3_Empty, (void *)a_73A6D0, "031 nullsub_1681" },
+		{ game::MAG_031_Heartbreak_Emitter_State3_Empty, (void *)a_73A6D0, "031 nullsub_1670" },
+		{ game::MAG_031_Heartbreak_LightRampDownTask, (void *)a_73A380, "031 MAG_031_sub_8734A0" },
+		{ game::MAG_031_Heartbreak_LightRampDown_State2_Empty, (void *)a_73A6D0, "031 nullsub_1682" },
+		{ game::MAG_031_Heartbreak_Master_State6_WaitQueuesEmpty, (void *)a_747550, "031 MAG_031_sub_873570" },
+		{ game::MAG_031_Heartbreak_Master_State7_Advance, (void *)a_73A0D0, "031 MAG_031_sub_873580" },
+		{ game::MAG_031_Heartbreak_Master_State8_Advance, (void *)a_73A0D0, "031 MAG_031_sub_873590" },
+		{ game::MAG_031_Heartbreak_Master_State9_Finish, (void *)a_7475A0, "031 MAG_031_sub_8735A0" },
+		{ game::MAG_031_Heartbreak_Master_State10_Empty, (void *)a_73A6D0, "031 nullsub_1671" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x86CB50, (void *)hb_86CB50, "031 hb_86CB50" },
-		{ 0x86CCE0, (void *)hb_86CCE0, "031 hb_86CCE0" },
-		{ 0x86CD30, (void *)hb_86CD30, "031 hb_86CD30" },
-		{ 0x86CE10, (void *)hb_86CE10, "031 hb_86CE10" },
-		{ 0x86CE90, (void *)hb_86CE90, "031 hb_86CE90" },
-		{ 0x86CF60, (void *)hb_86CF60, "031 hb_86CF60" },
-		{ 0x86D060, (void *)hb_86D060, "031 hb_86D060" },
-		{ 0x86D100, (void *)hb_86D100, "031 hb_86D100" },
-		{ 0x86D230, (void *)hb_86D230, "031 hb_86D230" },
-		{ 0x86D260, (void *)hb_86D260, "031 hb_86D260" },
-		{ 0x86D410, (void *)hb_86D410, "031 hb_86D410" },
-		{ 0x86D4F0, (void *)hb_86D4F0, "031 hb_86D4F0" },
-		{ 0x86D650, (void *)hb_86D650, "031 hb_86D650" },
-		{ 0x86D840, (void *)hb_86D840, "031 hb_86D840" },
-		{ 0x86DCB0, (void *)hb_86DCB0, "031 hb_86DCB0" },
-		{ 0x86DD40, (void *)hb_86DD40, "031 hb_86DD40" },
-		{ 0x86DDA0, (void *)hb_86DDA0, "031 hb_86DDA0" },
-		{ 0x86E020, (void *)hb_86E020, "031 hb_86E020" },
-		{ 0x86E230, (void *)hb_86E230, "031 hb_86E230" },
-		{ 0x86E990, (void *)hb_86E990, "031 hb_86E990" },
-		{ 0x86EBC0, (void *)hb_86EBC0, "031 hb_86EBC0" },
-		{ 0x86EE80, (void *)hb_86EE80, "031 hb_86EE80" },
-		{ 0x86F0E0, (void *)hb_86F0E0, "031 hb_86F0E0" },
-		{ 0x86F3C0, (void *)hb_86F3C0, "031 hb_86F3C0" },
-		{ 0x86F480, (void *)hb_86F480, "031 hb_86F480" },
-		{ 0x86F500, (void *)hb_86F500, "031 hb_86F500" },
-		{ 0x86F540, (void *)hb_86F540, "031 hb_86F540" },
-		{ 0x870570, (void *)hb_870570, "031 hb_870570" },
-		{ 0x870680, (void *)hb_870680, "031 hb_870680" },
-		{ 0x870700, (void *)hb_870700, "031 hb_870700" },
-		{ 0x870730, (void *)hb_870730, "031 hb_870730" },
-		{ 0x8707D0, (void *)hb_8707D0, "031 hb_8707D0" },
-		{ 0x870850, (void *)hb_870850, "031 hb_870850" },
-		{ 0x8708D0, (void *)hb_8708D0, "031 hb_8708D0" },
-		{ 0x8710B0, (void *)hb_8710B0, "031 hb_8710B0" },
-		{ 0x8712D0, (void *)hb_8712D0, "031 hb_8712D0" },
-		{ 0x871DC0, (void *)hb_871DC0, "031 hb_871DC0" },
-		{ 0x871E50, (void *)hb_871E50, "031 hb_871E50" },
-		{ 0x871EE0, (void *)hb_871EE0, "031 hb_871EE0" },
-		{ 0x871F10, (void *)hb_871F10, "031 hb_871F10" },
-		{ 0x871FC0, (void *)hb_871FC0, "031 hb_871FC0" },
-		{ 0x872020, (void *)hb_872020, "031 hb_872020" },
-		{ 0x8721D0, (void *)hb_8721D0, "031 hb_8721D0" },
-		{ 0x872310, (void *)hb_872310, "031 hb_872310" },
-		{ 0x8723E0, (void *)hb_8723E0, "031 hb_8723E0" },
-		{ 0x872440, (void *)hb_872440, "031 hb_872440" },
-		{ 0x8724B0, (void *)hb_8724B0, "031 hb_8724B0" },
-		{ 0x8725B0, (void *)hb_8725B0, "031 hb_8725B0" },
-		{ 0x872700, (void *)hb_872700, "031 hb_872700" },
-		{ 0x872920, (void *)hb_872920, "031 hb_872920" },
-		{ 0x872980, (void *)hb_872980, "031 hb_872980" },
-		{ 0x872990, (void *)hb_872990, "031 hb_872990" },
-		{ 0x8729F0, (void *)hb_8729F0, "031 hb_8729F0" },
-		{ 0x872B10, (void *)hb_872B10, "031 hb_872B10" },
-		{ 0x872B70, (void *)hb_872B70, "031 hb_872B70" },
-		{ 0x872B80, (void *)hb_872B80, "031 hb_872B80" },
-		{ 0x872CB0, (void *)hb_872CB0, "031 hb_872CB0" },
-		{ 0x872F60, (void *)hb_872F60, "031 hb_872F60" },
-		{ 0x873010, (void *)hb_873010, "031 hb_873010" },
-		{ 0x873070, (void *)hb_873070, "031 hb_873070" },
-		{ 0x8730C0, (void *)hb_8730C0, "031 hb_8730C0" },
-		{ 0x873120, (void *)hb_873120, "031 hb_873120" },
-		{ 0x873150, (void *)hb_873150, "031 hb_873150" },
-		{ 0x8731D0, (void *)hb_8731D0, "031 hb_8731D0" },
-		{ 0x873230, (void *)hb_873230, "031 hb_873230" },
-		{ 0x873240, (void *)hb_873240, "031 hb_873240" },
-		{ 0x873350, (void *)hb_873350, "031 hb_873350" },
-		{ 0x8733C0, (void *)hb_8733C0, "031 hb_8733C0" },
-		{ 0x8733E0, (void *)hb_8733E0, "031 hb_8733E0" },
-		{ 0x873430, (void *)hb_873430, "031 hb_873430" },
-		{ 0x873470, (void *)hb_873470, "031 hb_873470" },
-		{ 0x873500, (void *)hb_873500, "031 hb_873500" },
-		{ 0x873520, (void *)hb_873520, "031 hb_873520" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_031_Heartbreak_MasterTask, (void *)hb_86CB50, "031 hb_86CB50" },
+		{ game::MAG_031_Heartbreak_Master_ReservePools, (void *)hb_86CCE0, "031 hb_86CCE0" },
+		{ game::MAG_031_Heartbreak_ClearActorPools, (void *)hb_86CD30, "031 hb_86CD30" },
+		{ game::MAG_031_Heartbreak_LightRampUp_State1_RampUp, (void *)hb_86CE10, "031 hb_86CE10" },
+		{ game::MAG_031_Heartbreak_EmitterTask, (void *)hb_86CE90, "031 hb_86CE90" },
+		{ game::MAG_031_Heartbreak_ScreenFlashTask, (void *)hb_86CF60, "031 hb_86CF60" },
+		{ game::MAG_031_Heartbreak_Emitter_SpawnParts, (void *)hb_86D060, "031 hb_86D060" },
+		{ game::MAG_031_Heartbreak_ShakeTask, (void *)hb_86D100, "031 hb_86D100" },
+		{ game::MAG_031_Heartbreak_ActorSystem_State0_StartActorSystemAtFrame, (void *)hb_86D230, "031 hb_86D230" },
+		{ game::MAG_031_DirectorSetup, (void *)hb_86D260, "031 hb_86D260" },
+		{ game::MAG_031_ResetTrailHistory, (void *)hb_86D410, "031 hb_86D410" },
+		{ game::MAG_031_Director_CasterRefPoints, (void *)hb_86D4F0, "031 hb_86D4F0" },
+		{ game::MAG_031_FillTrailRows, (void *)hb_86D650, "031 hb_86D650" },
+		{ game::MAG_031_Director_TargetRefPoints, (void *)hb_86D840, "031 hb_86D840" },
+		{ game::MAG_031_Heartbreak_ActorSystem_Step, (void *)hb_86DCB0, "031 hb_86DCB0" },
+		{ game::MAG_031_ActSys_DrawPass, (void *)hb_86DD40, "031 hb_86DD40" },
+		{ game::MAG_031_ActSys_DrawActorModel, (void *)hb_86DDA0, "031 hb_86DDA0" },
+		{ game::MAG_031_MeshEmitF3, (void *)hb_86E020, "031 hb_86E020" },
+		{ game::MAG_031_MeshEmitF4, (void *)hb_86E230, "031 hb_86E230" },
+		{ game::MAG_031_PrimList_G3, (void *)hb_86E990, "031 hb_86E990" },
+		{ game::MAG_031_PrimList_G4, (void *)hb_86EBC0, "031 hb_86EBC0" },
+		{ game::MAG_031_PrimList_GT3, (void *)hb_86EE80, "031 hb_86EE80" },
+		{ game::MAG_031_PrimList_GT4, (void *)hb_86F0E0, "031 hb_86F0E0" },
+		{ game::MAG_031_ActSys_DrawSpritePass, (void *)hb_86F3C0, "031 hb_86F3C0" },
+		{ game::MAG_031_ActSys_DrawActorSprite, (void *)hb_86F480, "031 hb_86F480" },
+		{ game::MAG_031_ActSys_UpdatePass, (void *)hb_86F500, "031 hb_86F500" },
+		{ game::MAG_031_ActorStep, (void *)hb_86F540, "031 hb_86F540" },
+		{ game::MAG_031_MorphVertexBlock, (void *)hb_870570, "031 hb_870570" },
+		{ game::MAG_031_Instance_EndOfLifeTest, (void *)hb_870680, "031 hb_870680" },
+		{ game::MAG_031_Instance_SpawnFollowUp, (void *)hb_870700, "031 hb_870700" },
+		{ game::MAG_031_AllocParticle, (void *)hb_870730, "031 hb_870730" },
+		{ game::MAG_031_ActSys_UpdateEmitter, (void *)hb_8707D0, "031 hb_8707D0" },
+		{ game::MAG_031_ActSys_EmitterSpawnStep, (void *)hb_870850, "031 hb_870850" },
+		{ game::MAG_031_ActSys_SpawnParticles, (void *)hb_8708D0, "031 hb_8708D0" },
+		{ game::MAG_031_ActSys_AllocParticleSlot, (void *)hb_8710B0, "031 hb_8710B0" },
+		{ game::MAG_031_Actor_InterpolatePosition, (void *)hb_8712D0, "031 hb_8712D0" },
+		{ game::MAG_031_SpawnSubEffects, (void *)hb_871DC0, "031 hb_871DC0" },
+		{ game::MAG_031_Director_SpawnGroupEffects, (void *)hb_871E50, "031 hb_871E50" },
+		{ game::MAG_031_Heartbreak_ActorSystem_State1_StepActorSystem, (void *)hb_871EE0, "031 hb_871EE0" },
+		{ game::MAG_031_Heartbreak_SpawnPrimTask, (void *)hb_871F10, "031 hb_871F10" },
+		{ game::MAG_031_Heartbreak_Heart_Init, (void *)hb_871FC0, "031 hb_871FC0" },
+		{ game::MAG_031_Heartbreak_Heart_Play, (void *)hb_872020, "031 hb_872020" },
+		{ game::MAG_031_Heartbreak_SparkSpawner_Burst1, (void *)hb_8721D0, "031 hb_8721D0" },
+		{ game::MAG_031_Heartbreak_SpawnSpark, (void *)hb_872310, "031 hb_872310" },
+		{ game::MAG_031_Heartbreak_SparkTask, (void *)hb_8723E0, "031 hb_8723E0" },
+		{ game::MAG_031_Heartbreak_DrawSparkSprite, (void *)hb_872440, "031 hb_872440" },
+		{ game::MAG_031_Heartbreak_Spark_Motion, (void *)hb_8724B0, "031 hb_8724B0" },
+		{ game::MAG_031_Heartbreak_SparkSpawner_Burst2, (void *)hb_8725B0, "031 hb_8725B0" },
+		{ game::MAG_031_Heartbreak_PrimDrawCallback, (void *)hb_872700, "031 hb_872700" },
+		{ game::MAG_031_Heartbreak_RingTask, (void *)hb_872920, "031 hb_872920" },
+		{ game::MAG_031_Heartbreak_Ring_Wait, (void *)hb_872980, "031 hb_872980" },
+		{ game::MAG_031_Heartbreak_Ring_Init, (void *)hb_872990, "031 hb_872990" },
+		{ game::MAG_031_Heartbreak_Ring_Play, (void *)hb_8729F0, "031 hb_8729F0" },
+		{ game::MAG_031_Heartbreak_ArrowTask, (void *)hb_872B10, "031 hb_872B10" },
+		{ game::MAG_031_Heartbreak_Arrow_Wait, (void *)hb_872B70, "031 hb_872B70" },
+		{ game::MAG_031_Heartbreak_Arrow_Init, (void *)hb_872B80, "031 hb_872B80" },
+		{ game::MAG_031_Heartbreak_Arrow_Fly, (void *)hb_872CB0, "031 hb_872CB0" },
+		{ game::MAG_031_Heartbreak_RandomOffset, (void *)hb_872F60, "031 hb_872F60" },
+		{ game::MAG_031_Heartbreak_StaticSparkTask, (void *)hb_873010, "031 hb_873010" },
+		{ game::MAG_031_Heartbreak_StaticSpark_Init, (void *)hb_873070, "031 hb_873070" },
+		{ game::MAG_031_Heartbreak_RisingSparkTask, (void *)hb_8730C0, "031 hb_8730C0" },
+		{ game::MAG_031_Heartbreak_RisingSpark_Init, (void *)hb_873120, "031 hb_873120" },
+		{ game::MAG_031_Heartbreak_RisingSpark_Motion, (void *)hb_873150, "031 hb_873150" },
+		{ game::MAG_031_Heartbreak_BurstTask, (void *)hb_8731D0, "031 hb_8731D0" },
+		{ game::MAG_031_Heartbreak_Burst_Wait, (void *)hb_873230, "031 hb_873230" },
+		{ game::MAG_031_Heartbreak_Burst_Init, (void *)hb_873240, "031 hb_873240" },
+		{ game::MAG_031_Heartbreak_Burst_Play, (void *)hb_873350, "031 hb_873350" },
+		{ game::MAG_031_Heartbreak_Emitter_ReleaseMaster, (void *)hb_8733C0, "031 hb_8733C0" },
+		{ game::MAG_031_Heartbreak_Emitter_ApplyDamage, (void *)hb_8733E0, "031 hb_8733E0" },
+		{ game::MAG_031_Heartbreak_Master_State4_ActionLoop, (void *)hb_873430, "031 hb_873430" },
+		{ game::MAG_031_Heartbreak_Master_State5_WaitThenLightRampDown, (void *)hb_873470, "031 hb_873470" },
+		{ game::MAG_031_Heartbreak_LightRampDown_State0_SetAmplitude400, (void *)hb_873500, "031 hb_873500" },
+		{ game::MAG_031_Heartbreak_LightRampDown_State1_FadeOut, (void *)hb_873520, "031 hb_873520" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

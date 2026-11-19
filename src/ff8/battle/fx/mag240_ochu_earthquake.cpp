@@ -28,43 +28,43 @@ namespace ochu_quake
 	{
 		c.name = "240 Ochu Earthquake";
 		c.effect_id = 240;
-		c.vm_table = us(0x1864228);
-		c.bone_table = us(0x1863E48);
-		c.prim_table = us(0x1863E90);
-		c.prim_size = us(0x1863F80);
-		c.spr_table = us(0x1863FE4);
-		c.ptype_table = us(0x1864010);
-		c.pop_table = us(0x1864024);
-		c.draw_table = us(0x1864084);
-		c.attr_16A = us(0x18641EE);
-		c.attr_184 = us(0x1864208);
-		c.attr_186 = us(0x186420A);
-		c.attr_194 = us(0x1864218);
-		c.attr_19C = us(0x1864220);
-		c.desc = us(0x1863D68);
-		c.ptr_block = us(0x1863E20);
-		c.queue = us(0x27968A0);
-		c.file00 = us(0x2796898);
-		c.file01 = us(0x279689C);
-		c.tick = us(0xA0B9D0);
-		c.load_cb = us(0xA114B0);
+		c.vm_table = game_addr(game::MAG_240_VmOpcodeTable);
+		c.bone_table = game_addr(game::MAG_240_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_A0D8A4);
+		c.prim_size = game_addr(game::unk_1863F80);
+		c.spr_table = game_addr(game::unk_1863FE4);
+		c.ptype_table = game_addr(game::unk_1864010);
+		c.pop_table = game_addr(game::funcs_A0FAB7);
+		c.draw_table = game_addr(game::MAG_240_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_18641EE);
+		c.attr_184 = game_addr(game::unk_1864208);
+		c.attr_186 = game_addr(game::unk_186420A);
+		c.attr_194 = game_addr(game::unk_1864218);
+		c.attr_19C = game_addr(game::unk_1864220);
+		c.desc = game_addr(game::MAG_240_Desc);
+		c.ptr_block = game_addr(game::MAG_240_PtrBlock);
+		c.queue = game_addr(game::unk_27968A0);
+		c.file00 = game_addr(game::unk_2796898);
+		c.file01 = game_addr(game::unk_279689C);
+		c.tick = game_addr(game::MAG_240_GfCinematic_SequenceTick);
+		c.load_cb = game_addr(game::MAG_240_LoadBattleFile_Callback);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t PIECE_DRAW_TABLE = 0x1863F94, PIECE_INIT_TABLE = 0x1863FBC;
-	static inline VoidFn *PieceDraw() { return g_c.bigtab + (us(PIECE_DRAW_TABLE) - us(0x1863E48)) / 4; }
-	static inline VoidFn *PieceInit() { return g_c.bigtab + (us(PIECE_INIT_TABLE) - us(0x1863E48)) / 4; }
+	static constexpr game::Id PIECE_DRAW_TABLE = game::MAG_240_PieceDrawTable, PIECE_INIT_TABLE = game::MAG_240_PieceInitTable;
+	static inline VoidFn *PieceDraw() { return g_c.bigtab + (game_addr(PIECE_DRAW_TABLE) - game_addr(game::MAG_240_BoneHandlerTable)) / 4; }
+	static inline VoidFn *PieceInit() { return g_c.bigtab + (game_addr(PIECE_INIT_TABLE) - game_addr(game::MAG_240_BoneHandlerTable)) / 4; }
 
-	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(us(0xB65150))(); }
-	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
-	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56CA30))(n, col, out); }
-	static inline void xl_GteLoadV012Block(const void *v) { x::f<void (__cdecl *)(const void *)>(us(0x45E020))(v); }
+	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(game_addr(game::xorEAX_6))(); }
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::TransformWorldCoordinateToProjectedSpace))(v, sxy, p, flag); }
+	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(game_addr(game::sub_56CA30))(n, col, out); }
+	static inline void xl_GteLoadV012Block(const void *v) { x::f<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV012Dwords))(v); }
 	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim)
 	{
-		x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim);
+		x::f<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(ot, prim);
 	}
-	static inline int32_t GteOTZ() { return MEM<int32_t>(us(0x1CA8A2C)); }
+	static inline int32_t GteOTZ() { return MEM<int32_t>(game_addr(game::GTE_OTZ)); }
 
 	static inline int16_t Div3(int32_t s) { return (int16_t)(s / 3); }
 
@@ -365,7 +365,7 @@ namespace ochu_quake
 		ochu_quake::g_c.draw[34] = ochu_quake::dh_34_MeshOnNode;
 		ochu_quake::PieceDraw()[9] = ochu_quake::pd_09_DrawPiecesGT3;
 		ochu_quake::PieceInit()[9] = ochu_quake::pi_09_PieceCentroids;
-		register_port(0xA0B9D0, (void *)ochu_quake::SequenceTask, "MAG240 Ochu Earthquake SequenceTick", 240);
+		register_port(game::MAG_240_GfCinematic_SequenceTick, (void *)ochu_quake::SequenceTask, "MAG240 Ochu Earthquake SequenceTick", 240);
 	}
 }
 

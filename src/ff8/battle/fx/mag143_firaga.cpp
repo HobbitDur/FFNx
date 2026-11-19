@@ -25,27 +25,27 @@ namespace firaga143
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(us(0x24BECE0)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24BFB10)); }
-	inline int16_t *Anchor(int action) { return (int16_t *)(us(0x24BFB20) + 8 * action); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x24BFB38)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24BFB3C)); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(game_addr(game::MAG143_effectQueues)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG143_castContextPtr)); }
+	inline int16_t *Anchor(int action) { return (int16_t *)(game_addr(game::MAG143_targetEffectPos) + 8 * action); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(game_addr(game::MAG143_primBufferBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG143_primBufferCursor)); }
 
-	static const uint32_t ORIG_RootTask = 0x61CDA0;
-	static const uint32_t ORIG_Director = 0x61C0A0;
-	static const uint32_t ORIG_AreaFlameTask = 0x61C6B0;
-	static const uint32_t ORIG_BurstTask = 0x61C870;
-	static const uint32_t ORIG_FlameSwirlTask = 0x61C9C0;
-	static const uint32_t ORIG_FireballTask = 0x61CB10;
-	static const uint32_t ORIG_SparkTask = 0x61CBB0;
-	static const void *SEQ_AreaFlame() { return (const void *)us(0xDDA594); }
-	static const void *MODEL_Burst() { return (const void *)us(0xDDD208); }
-	static const void *MODEL_FlameSwirl() { return (const void *)us(0xDDA740); }
-	static const void *MODEL_Fireball() { return (const void *)us(0xDDC578); }
-	static const void *MODEL_Spark() { return (const void *)us(0xDDCE48); }
-	static const void *SOUND_Firaga() { return (const void *)us(0xDDD8F0); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_143_FIRAGA_RootTask_RunEffectQueue;
+	static constexpr game::Id ORIG_Director = game::MAG_143_FIRAGA_Director_Tick;
+	static constexpr game::Id ORIG_AreaFlameTask = game::MAG_143_FIRAGA_AreaFlame_Tick;
+	static constexpr game::Id ORIG_BurstTask = game::MAG_143_FIRAGA_Burst_Tick;
+	static constexpr game::Id ORIG_FlameSwirlTask = game::MAG_143_FIRAGA_FlameSwirl_Tick;
+	static constexpr game::Id ORIG_FireballTask = game::MAG_143_FIRAGA_TargetFireball_Tick;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_143_FIRAGA_SparkParticle_Tick;
+	static const void *SEQ_AreaFlame() { return (const void *)game_addr(game::unk_DDA594); }
+	static const void *MODEL_Burst() { return (const void *)game_addr(game::unk_DDD208); }
+	static const void *MODEL_FlameSwirl() { return (const void *)game_addr(game::MAG143_primModel_FlameSwirl); }
+	static const void *MODEL_Fireball() { return (const void *)game_addr(game::MAG143_primModel_TargetFireball); }
+	static const void *MODEL_Spark() { return (const void *)game_addr(game::MAG143_primModel_Spark); }
+	static const void *SOUND_Firaga() { return (const void *)game_addr(game::MAG143_soundDef); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
 	struct RootNode { TaskNode hdr; uint16_t counter; };
 	struct DirectorNode
@@ -141,7 +141,7 @@ namespace firaga143
 			int32_t count = d->counter / 6 + 1;
 			for (; count > 0; count--)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, us(ORIG_SparkTask));
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_SparkTask));
 				s->counter = 0;
 				s->action = d->action;
 				int32_t dir[4] = {}, axis[4] = {};
@@ -161,7 +161,7 @@ namespace firaga143
 		}
 		if (d->counter == 4)
 		{
-			ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_FireballTask));
+			ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_FireballTask));
 			f->action = d->action;
 			f->counter = 0;
 			f->scale = 0;
@@ -172,7 +172,7 @@ namespace firaga143
 		if (d->counter == 0x21)
 		{
 			Anchor(d->action)[3] = 0;
-			ModelNode *s = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameSwirlTask));
+			ModelNode *s = (ModelNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_FlameSwirlTask));
 			s->counter = 0;
 			ff8fx::copy<(8)>(s->pos, Anchor(d->action));
 			s->yaw = (int16_t)(CrtRand() % 4096);
@@ -180,7 +180,7 @@ namespace firaga143
 			s->scale = 0x355;
 			s->scale_vel = 0x355;
 			s->yaw_vel = (int16_t)(r + 0x3C);
-			s = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameSwirlTask));
+			s = (ModelNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_FlameSwirlTask));
 			ff8fx::copy<(4)>(s->pos, Anchor(d->action));
 			s->counter = 0;
 			ff8fx::copy<(4)>(&s->pos[2], &Anchor(d->action)[2]);
@@ -191,7 +191,7 @@ namespace firaga143
 		}
 		if (d->counter == 0x21)
 		{
-			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_BurstTask));
+			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_BurstTask));
 			b->counter = 0;
 			ff8fx::copy<(8)>(b->pos, Anchor(d->action));
 			b->scale = 0x555;
@@ -204,7 +204,7 @@ namespace firaga143
 			int32_t half = spread >> 1;
 			for (int k = 0; k < 2; k++)
 			{
-				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, us(ORIG_AreaFlameTask));
+				FlameNode *f = (FlameNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_AreaFlameTask));
 				f->frame = 0;
 				f->delay = (int16_t)(CrtRand() % 6 + k);
 				ff8fx::copy<(8)>(f->pos, Anchor(d->action));
@@ -227,7 +227,7 @@ namespace firaga143
 			int next = d->action + 1;
 			if (next <= acts[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, us(ORIG_Director));
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_Director));
 				t->counter = 0;
 				t->action = (int16_t)next;
 				t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];

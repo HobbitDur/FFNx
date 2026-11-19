@@ -23,40 +23,40 @@ namespace gg305
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x2245650)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2247778)); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x224777C)); }
-	inline int16_t *Muzzle() { return (int16_t *)us(0x2247788); }
-	inline uint32_t &Cursor() { return var<uint32_t>(us(0x2257790)); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)us(0x2246958); }
-	static const uint32_t ARENA_A = 0x224F790, ARENA_B = 0x2247790;
+	inline uint32_t &TargetSlot() { return var<uint32_t>(game_addr(game::MAG_305_GATLING_GUN_QUISTIS_TargetSlot)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_305_GATLING_GUN_QUISTIS_CastContext)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(game_addr(game::MAG_305_GATLING_GUN_QUISTIS_CasterSlot)); }
+	inline int16_t *Muzzle() { return (int16_t *)game_addr(game::MAG_305_GATLING_GUN_QUISTIS_Muzzle); }
+	inline uint32_t &Cursor() { return var<uint32_t>(game_addr(game::MAG_305_GATLING_GUN_QUISTIS_PacketCursor)); }
+	inline TaskQueue *QEffects() { return (TaskQueue *)game_addr(game::MAG_305_GATLING_GUN_QUISTIS_EffectQueue); }
+	static constexpr game::Id ARENA_A = game::MAG_305_GATLING_GUN_QUISTIS_PacketArena1, ARENA_B = game::MAG_305_GATLING_GUN_QUISTIS_PacketArena0;
 
-	static const uint32_t ORIG_RootTask = 0x5A6BC0;
-	static const uint32_t ORIG_MasterTask = 0x5A5890;
-	static const uint32_t ORIG_MuzzleTask = 0x5A5C50;
-	static const uint32_t ORIG_SmokeTask = 0x5A5DA0;
-	static const uint32_t ORIG_MissTask = 0x5A6070;
-	static const uint32_t ORIG_ImpactTask = 0x5A6160;
-	static const uint32_t ORIG_FlashTask = 0x5A62A0;
-	static const uint32_t ORIG_DustTask = 0x5A6330;
-	static const uint32_t ORIG_HitTask = 0x5A6580;
-	static const uint32_t ORIG_SparkTask = 0x5A6750;
-	static const uint32_t ORIG_SparksTask = 0x5A68C0;
-	static const uint32_t MODEL_Muzzle = 0xCED698;
-	static const uint32_t MODEL_Impact = 0xCED998;
-	static const uint32_t MODEL_Spark = 0xCEDC60;
-	static const uint32_t SEQ_Smoke = 0xCED358;
-	static const uint32_t SEQ_Flash = 0xCED15C;
-	static const uint32_t SEQ_Sparks = 0xCED504;
-	static const void *SOUND_Gun() { return (const void *)us(0xCEDF28); }
-	static const uint32_t BIND_Block = 0x2245FD8;
-	static const uint32_t COM_Anim = 0xCEB5E8;
+	static constexpr game::Id ORIG_RootTask = game::MAG_305_GATLING_GUN_QUISTIS_RootTask;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_305_GATLING_GUN_QUISTIS_DirectorTask;
+	static constexpr game::Id ORIG_MuzzleTask = game::MAG_305_GATLING_GUN_QUISTIS_MuzzleTask;
+	static constexpr game::Id ORIG_SmokeTask = game::MAG_305_GATLING_GUN_QUISTIS_SmokeTask;
+	static constexpr game::Id ORIG_MissTask = game::MAG_305_GATLING_GUN_QUISTIS_MissTask;
+	static constexpr game::Id ORIG_ImpactTask = game::MAG_305_GATLING_GUN_QUISTIS_ImpactTask;
+	static constexpr game::Id ORIG_FlashTask = game::MAG_305_GATLING_GUN_QUISTIS_FlashTask;
+	static constexpr game::Id ORIG_DustTask = game::MAG_305_GATLING_GUN_QUISTIS_DustTask;
+	static constexpr game::Id ORIG_HitTask = game::MAG_305_GATLING_GUN_QUISTIS_HitTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_305_GATLING_GUN_QUISTIS_SparkTask;
+	static constexpr game::Id ORIG_SparksTask = game::MAG_305_GATLING_GUN_QUISTIS_SparksTask;
+	static constexpr game::Id MODEL_Muzzle = game::MAG_305_GATLING_GUN_QUISTIS_ModelMuzzle;
+	static constexpr game::Id MODEL_Impact = game::MAG_305_GATLING_GUN_QUISTIS_ModelImpact;
+	static constexpr game::Id MODEL_Spark = game::MAG_305_GATLING_GUN_QUISTIS_ModelSpark;
+	static constexpr game::Id SEQ_Smoke = game::MAG_305_GATLING_GUN_QUISTIS_SeqSmoke;
+	static constexpr game::Id SEQ_Flash = game::MAG_305_GATLING_GUN_QUISTIS_SeqFlash;
+	static constexpr game::Id SEQ_Sparks = game::MAG_305_GATLING_GUN_QUISTIS_SeqSparks;
+	static const void *SOUND_Gun() { return (const void *)game_addr(game::MAG_305_GATLING_GUN_QUISTIS_SoundFire); }
+	static constexpr game::Id BIND_Block = game::MAG_305_GATLING_GUN_QUISTIS_BindBlock;
+	static constexpr game::Id COM_Anim = game::MAG_305_GATLING_GUN_QUISTIS_AnimSetCom;
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -93,8 +93,8 @@ namespace gg305
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(Node) == 0x24, "Gatling Gun (Quistis) nodes");
 	static_assert(sizeof(Particle) == 0x18, "Gatling Gun (Quistis) records");
 
-	inline Particle *PartsA() { return (Particle *)us(0x2245FF8); }
-	inline Particle *PartsB() { return (Particle *)us(0x2245678); }
+	inline Particle *PartsA() { return (Particle *)game_addr(game::MAG_305_GATLING_GUN_QUISTIS_ParticlesA); }
+	inline Particle *PartsB() { return (Particle *)game_addr(game::MAG_305_GATLING_GUN_QUISTIS_ParticlesB); }
 	inline int16_t *EntPos(int32_t slot) { return (int16_t *)(Entity(slot) + 0x1C); }
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
 	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), fn); }
@@ -138,7 +138,7 @@ namespace gg305
 		ComposeAffineTransform(&Camera(), &m, &m);
 		TransformCameraByShadowRotation(&n->f10, 0, -((int32_t)n->f1C >> 3));
 		GteSetRotMatrix(&m);
-		ModelDraw(us(MODEL_Muzzle), faded, fade, 2);
+		ModelDraw(game_addr(MODEL_Muzzle), faded, fade, 2);
 	}
 	static int32_t MuzzleFade(int32_t c) { return shl32(c, 11); }
 
@@ -160,7 +160,7 @@ namespace gg305
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(us(MODEL_Impact), faded, fade, 1);
+		ModelDraw(game_addr(MODEL_Impact), faded, fade, 1);
 	}
 	static int32_t ImpactFade(int32_t c) { return shl32(c, 9); }
 
@@ -188,7 +188,7 @@ namespace gg305
 		MatrixMultiply3(&m, &roll);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		ModelDraw(us(MODEL_Spark), faded, fade, 1);
+		ModelDraw(game_addr(MODEL_Spark), faded, fade, 1);
 	}
 	static int32_t SparkFade(int32_t c) { return shl32(c, 10) - 0x400; }
 
@@ -197,7 +197,7 @@ namespace gg305
 		TransformCameraByShadowRotation(&n->f10, n->f1C, -((int32_t)n->f1C >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 4) = frame;
-		*(uint32_t *)h = us(SEQ_Flash);
+		*(uint32_t *)h = game_addr(SEQ_Flash);
 		*(int16_t *)(h + 0x24) = 0;
 		Cursor() = InitEffectSequenceFromData(h, RenderOT(), 2, Cursor());
 		FieldFree(0xB4);
@@ -258,7 +258,7 @@ namespace gg305
 		Node *n = (Node *)n_;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = us(SEQ_Smoke);
+		*(uint32_t *)h = game_addr(SEQ_Smoke);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
@@ -319,20 +319,20 @@ namespace gg305
 			n->f0E--;
 			return 0;
 		}
-		Node *a = AddTask(us(ORIG_ImpactTask));
+		Node *a = AddTask(game_addr(ORIG_ImpactTask));
 		*(uint32_t *)&a->f10 = rd32(&n->f10);
 		a->counter = 0;
 		*(uint32_t *)&a->f14 = rd32(&n->f14);
 		a->f18 = (int16_t)(CrtRand() % 0x800);
 		a->f1C = 0x400;
 		a->f1E = 0x100;
-		Node *f = AddTask(us(ORIG_FlashTask));
+		Node *f = AddTask(game_addr(ORIG_FlashTask));
 		*(uint32_t *)&f->f10 = rd32(&n->f10);
 		*(uint32_t *)&f->f14 = rd32(&n->f14);
 		f->counter = 0;
 		f->f12 = (int16_t)0xFF38;
 		f->f1C = (int16_t)(CrtRand() % 0x900 + 0xC00);
-		Node *d = AddTask(us(ORIG_DustTask));
+		Node *d = AddTask(game_addr(ORIG_DustTask));
 		d->f0E = (int16_t)(1 << (n->f18 & 31));
 		*(uint32_t *)&d->f10 = rd32(&n->f10);
 		d->counter = 0;
@@ -366,7 +366,7 @@ namespace gg305
 		Node *n = (Node *)n_;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = us(SEQ_Smoke);
+		*(uint32_t *)h = game_addr(SEQ_Smoke);
 		*(uint32_t *)(h + 0x1C) = 0x404040;
 		*(int16_t *)(h + 0x24) = 4;
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
@@ -429,7 +429,7 @@ namespace gg305
 		TransformVectorBy3x3Matrix((const Mat4x3 *)(Entity(TargetSlot()) + 0x40), v, v);
 		NormalizeVector(v, v);
 		const int32_t r = CrtRand() % 0xD2 + 0x3C;
-		Node *s = AddTask(us(ORIG_SparkTask));
+		Node *s = AddTask(game_addr(ORIG_SparkTask));
 		s->counter = 0;
 		s->f10 = (int16_t)((mul32(r, v[0]) >> 12) + n->f10);
 		s->f12 = n->f12;
@@ -439,12 +439,12 @@ namespace gg305
 		const int16_t scale = (int16_t)(CrtRand() % 0x360 + 0x440);
 		s->f1C = scale;
 		s->f1E = (int16_t)((int32_t)scale / 4);
-		Node *f = AddTask(us(ORIG_FlashTask));
+		Node *f = AddTask(game_addr(ORIG_FlashTask));
 		*(uint32_t *)&f->f10 = rd32(&s->f10);
 		f->counter = 0;
 		*(uint32_t *)&f->f14 = rd32(&s->f14);
 		f->f1C = (int16_t)(CrtRand() % 0xC00 + 0x1100);
-		Node *g = AddTask(us(ORIG_SparksTask));
+		Node *g = AddTask(game_addr(ORIG_SparksTask));
 		g->f0E = (int16_t)(1 << (n->f18 & 31));
 		g->counter = 0;
 		*(uint32_t *)&g->f10 = rd32(&s->f10);
@@ -469,7 +469,7 @@ namespace gg305
 		Node *n = (Node *)n_;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = us(SEQ_Sparks);
+		*(uint32_t *)h = game_addr(SEQ_Sparks);
 		*(int16_t *)(h + 0x24) = 1;
 		for (Particle *e = PartsB(); e < PartsB() + 100; e++)
 		{
@@ -537,12 +537,12 @@ namespace gg305
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 1)
 		{
-			BindEntityModelFromComData(Entity(CasterSlot()), us(BIND_Block), us(COM_Anim));
+			BindEntityModelFromComData(Entity(CasterSlot()), game_addr(BIND_Block), game_addr(COM_Anim));
 			QueueChainTransformation(Entity(CasterSlot()), 1);
 		}
 		if (n->counter >= 9 && n->counter <= 0x20 && (n->counter & 1))
 		{
-			Node *m = AddTask(us(ORIG_MuzzleTask));
+			Node *m = AddTask(game_addr(ORIG_MuzzleTask));
 			*(uint32_t *)&m->f10 = rd32(&Muzzle()[0]);
 			m->counter = 0;
 			*(uint32_t *)&m->f14 = rd32(&Muzzle()[2]);
@@ -550,7 +550,7 @@ namespace gg305
 			m->f1A = (int16_t)(CrtRand() % 0x800);
 			m->f1C = (int16_t)(CrtRand() % 0x280 + 0x600);
 		}
-		if (n->counter == 9) AddTask(us(ORIG_SmokeTask))->counter = 0;
+		if (n->counter == 9) AddTask(game_addr(ORIG_SmokeTask))->counter = 0;
 		if (n->counter == 8)
 		{
 			int16_t t[4];
@@ -559,7 +559,7 @@ namespace gg305
 			const int16_t dz = (int16_t)(((int32_t)t[2] - Muzzle()[2]) / 6);
 			for (int k = 1; k <= 5; k++)
 			{
-				Node *a = AddTask(us(ORIG_MissTask));
+				Node *a = AddTask(game_addr(ORIG_MissTask));
 				a->counter = 0;
 				a->f0E = (int16_t)(2 * k);
 				a->f12 = 0;
@@ -576,7 +576,7 @@ namespace gg305
 			const int16_t dy = (int16_t)(((int32_t)*(const int16_t *)(e + 0x36) - *(const int16_t *)(e + 0x3C)) / 8);
 			for (int k = 1; k <= 7; k++)
 			{
-				Node *h = AddTask(us(ORIG_HitTask));
+				Node *h = AddTask(game_addr(ORIG_HitTask));
 				h->counter = 0;
 				h->f0E = (int16_t)(2 * k);
 				h->f10 = t[0];
@@ -599,8 +599,8 @@ namespace gg305
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		Cursor() = us(ARENA_A);
-		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = us(ARENA_B);
+		Cursor() = game_addr(ARENA_A);
+		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = game_addr(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
 		r->counter++;
 		return a ? 0 : TASK_END;

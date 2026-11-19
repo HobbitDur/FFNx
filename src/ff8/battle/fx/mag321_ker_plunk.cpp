@@ -33,36 +33,34 @@ namespace kerplunk321
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	inline TaskQueue *RootQueue() { return (TaskQueue *)us(0x221BC90); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x221C600); }
-	inline uint32_t &Ctx() { return var<uint32_t>(us(0x221D51C)); }
-	inline int32_t &CasterSlot() { return var<int32_t>(us(0x221D520)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2239528)); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(us(0x223952C)); }
-	inline uint32_t Saved(int slot) { return us(0x221D420) + (uint32_t)slot * 0x24; }
-	static const uint32_t PARTS = 0x221BCA0, PARTS_END = 0x221C600;
-	static const uint32_t ARENA_A = 0x221D528, ARENA_B = 0x222B528;
+	inline TaskQueue *RootQueue() { return (TaskQueue *)game_addr(game::MAG_321_KerPlunk_RootQueue); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::MAG_321_KerPlunk_EffectQueue); }
+	inline uint32_t &Ctx() { return var<uint32_t>(game_addr(game::MAG_321_KerPlunk_CastContext)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(game_addr(game::MAG_321_KerPlunk_CasterSlot)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_321_KerPlunk_PacketCursor)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(game_addr(game::MAG_321_KerPlunk_VoiceSlot)); }
+	inline uint32_t Saved(int slot) { return game_addr(game::unk_221D420) + (uint32_t)slot * 0x24; }
+	static constexpr game::Id PARTS = game::unk_221BCA0, PARTS_END = game::MAG_321_KerPlunk_EffectQueue;
+	static constexpr game::Id ARENA_A = game::unk_221D528, ARENA_B = game::unk_222B528;
 
-	static const uint32_t ORIG_Root = 0x598D00, ORIG_TexRestore = 0x598D60, ORIG_Director = 0x597AB0, ORIG_Ring = 0x597E30,
-		ORIG_Dust = 0x597F90, ORIG_Debris = 0x598230, ORIG_Flash = 0x598570, ORIG_Lift = 0x5985C0, ORIG_Burst = 0x5988B0,
-		ORIG_TargetRing = 0x598B90;
-	static const uint32_t MODEL_Ring = 0xCD153C, MODEL_TargetRing = 0xCD1D5C, MODEL_Debris = 0xCD1C24, SEQ_Dust = 0xCD1390;
-	static const uint32_t SOUND_Loop = 0xCD29DC, SOUND_Start = 0xCD2AF0, SOUND_End = 0xCD2AF4;
+	static constexpr game::Id ORIG_Root = game::MAG_321_KerPlunk_Root, ORIG_TexRestore = game::MAG_321_KerPlunk_TexRestoreTask, ORIG_Director = game::MAG_321_KerPlunk_Director, ORIG_Ring = game::MAG_321_KerPlunk_Rings, ORIG_Dust = game::MAG_321_KerPlunk_Dust, ORIG_Debris = game::MAG_321_KerPlunk_Debris, ORIG_Flash = game::MAG_321_KerPlunk_Flash, ORIG_Lift = game::MAG_321_KerPlunk_Lift, ORIG_Burst = game::MAG_321_KerPlunk_Burst, ORIG_TargetRing = game::MAG_321_KerPlunk_TargetRing;
+	static constexpr game::Id MODEL_Ring = game::MAG_321_KerPlunk_ModelRing, MODEL_TargetRing = game::unk_CD1D5C, MODEL_Debris = game::unk_CD1C24, SEQ_Dust = game::unk_CD1390;
+	static constexpr game::Id SOUND_Loop = game::MAG_321_KerPlunk_SoundLoop, SOUND_Start = game::unk_CD2AF0, SOUND_End = game::unk_CD2AF4;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(us(0x56BEF0))(m, v); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void CentrePosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(us(0x5020A0))(mask, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline void ScreenFeedback(int32_t a, int32_t r, int32_t g, int32_t b, int32_t n) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(us(0x47CF50))(a, r, g, b, n); }
-	inline int32_t VoiceActive(uint32_t v) { return fn<int32_t (__cdecl *)(uint32_t)>(us(0x4A2900))(v); }
-	inline void VoiceRelease(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(v); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
-	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
-	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
+	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(game_addr(game::scale3DMatrix))(m, v); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void CentrePosition(uint32_t mask, int16_t *out) { fn<void (__cdecl *)(uint32_t, int16_t *)>(game_addr(game::CalculateCenterPosition))(mask, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline void ScreenFeedback(int32_t a, int32_t r, int32_t g, int32_t b, int32_t n) { fn<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(game_addr(game::Battle_RequestScreenFeedback))(a, r, g, b, n); }
+	inline int32_t VoiceActive(uint32_t v) { return fn<int32_t (__cdecl *)(uint32_t)>(game_addr(game::BdSound_IsVoiceSlotActive))(v); }
+	inline void VoiceRelease(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(v); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetLightMatrix))(m); }
+	inline void GteMVMVA_LightV0Bk() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+	inline void GteSetBKFromMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetBackColorFromTrans))(m); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(game_addr(game::GTE_SetRotScale))(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(game_addr(game::GTE_SetTransFromVec32))(v); }
 
 	enum { P_MASK = 0, P_FRAME = 4, P_SIZE = 6, P_POS = 8 };
 }
@@ -81,7 +79,7 @@ namespace kerplunk321
 
 	static uint32_t FreeParticle()
 	{
-		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
+		for (uint32_t p = game_addr(PARTS); p < game_addr(PARTS_END); p += 0x18)
 			if (!U32(p, P_MASK)) return p;
 		return 0;
 	}
@@ -117,13 +115,13 @@ namespace kerplunk321
 	{
 		const int32_t s = S16(n, 0x1C);
 		const int32_t sc[3] = { s, s, s };
-		RingDraw(n, us(MODEL_Ring), sc, 0xC, fade);
+		RingDraw(n, game_addr(MODEL_Ring), sc, 0xC, fade);
 	}
 
 	static void TargetRingDraw(uint32_t n, int32_t fade)
 	{
 		const int32_t sc[3] = { S16(n, 0x1C), S16(n, 0x20), S16(n, 0x1C) };
-		RingDraw(n, us(MODEL_TargetRing), sc, 6, fade);
+		RingDraw(n, game_addr(MODEL_TargetRing), sc, 6, fade);
 	}
 
 	static uint32_t __cdecl RingTask(TaskNode *tn)
@@ -166,7 +164,7 @@ namespace kerplunk321
 	{
 		U16(h, 0x24) = 0;
 		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
-		U32(h, 0) = us(SEQ_Dust);
+		U32(h, 0) = game_addr(SEQ_Dust);
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBKFromMatrix((const void *)(w + 8));
 	}
@@ -213,7 +211,7 @@ namespace kerplunk321
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
 		SeqSetup(h, w);
-		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
+		for (uint32_t p = game_addr(PARTS); p < game_addr(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 1)) continue;
 			SeqDraw(h, w, p);
@@ -263,7 +261,7 @@ namespace kerplunk321
 		int alive = 0;
 		SeqSetup(h, w);
 		const uint32_t mask = (uint32_t)(int32_t)S16(n, 0xE);
-		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
+		for (uint32_t p = game_addr(PARTS); p < game_addr(PARTS_END); p += 0x18)
 		{
 			if (!(mask & U32(p, P_MASK))) continue;
 			SeqDraw(h, w, p);
@@ -310,7 +308,7 @@ namespace kerplunk321
 	static void DebrisSetup(uint32_t h, uint32_t w)
 	{
 		ff8fx::copy<(0x20)>((void *)(w + 8), (const void *)&Camera());
-		U32(h, 0) = us(MODEL_Debris);
+		U32(h, 0) = game_addr(MODEL_Debris);
 		U32(h, 0x1C) = 0x30;
 		U16(w, 2) = 0;
 	}
@@ -349,7 +347,7 @@ namespace kerplunk321
 		const uint32_t h = P(FieldAlloc(0x58));
 		int alive = 0;
 		DebrisSetup(h, w);
-		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
+		for (uint32_t p = game_addr(PARTS); p < game_addr(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 2)) continue;
 			const int16_t f = S16(p, P_FRAME);
@@ -423,7 +421,7 @@ namespace kerplunk321
 		if (DrawOnly()) return 0;
 		if (S16(n, 0xC) == 0x42)
 		{
-			const uint32_t t = NewTask(us(ORIG_Burst));
+			const uint32_t t = NewTask(game_addr(ORIG_Burst));
 			S16(t, 0x12) = 0;
 			S16(t, 0x10) = S16(n, 0x10);
 			S16(t, 0x14) = S16(n, 0x14);
@@ -449,33 +447,33 @@ namespace kerplunk321
 			S16(n, 0x10) = (int16_t)(S16(n, 0x10) + (mul32(sn, -2800) >> 12));
 			const int32_t cs = ComputeCos(*(const int16_t *)(caster + 0xE));
 			S16(n, 0x14) = (int16_t)(S16(n, 0x14) + (mul32(cs, -2800) >> 12));
-			VoiceSlot() = ClaimVoiceSlot((const void *)us(SOUND_Loop), 1, 0x80);
+			VoiceSlot() = ClaimVoiceSlot((const void *)game_addr(SOUND_Loop), 1, 0x80);
 		}
 		if (S16(n, 0xC) == 0x18)
 		{
 			for (int i = 0; i < 3; i++)
 			{
-				const uint32_t t = P(AddTaskToQueue(EffectQueue(), us(ORIG_Ring)));
+				const uint32_t t = P(AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring)));
 				S16(t, 0xE) = (int16_t)(3 * i);
 				U32(t, 0x10) = U32(n, 0x10);
 				S16(t, 0xC) = 0;
 				U32(t, 0x14) = U32(n, 0x14);
 				S16(t, 0x1E) = S16(t, 0x1C) = 0x5CC;
 			}
-			uint32_t t = P(AddTaskToQueue(EffectQueue(), us(ORIG_Dust)));
+			uint32_t t = P(AddTaskToQueue(EffectQueue(), game_addr(ORIG_Dust)));
 			U32(t, 0x10) = U32(n, 0x10);
 			S16(t, 0xC) = 0;
 			U32(t, 0x14) = U32(n, 0x14);
-			t = P(AddTaskToQueue(EffectQueue(), us(ORIG_Debris)));
+			t = P(AddTaskToQueue(EffectQueue(), game_addr(ORIG_Debris)));
 			U32(t, 0x10) = U32(n, 0x10);
 			S16(t, 0xC) = 0;
 			U32(t, 0x14) = U32(n, 0x14);
-			NewTask(us(ORIG_Flash));
+			NewTask(game_addr(ORIG_Flash));
 			const uint32_t tg = U32(Ctx(), 4);
 			for (int k = 0; k < U8(tg, 0x10); k++)
 			{
 				const int slot = *(const uint8_t *)(U32(tg, 8) + (uint32_t)k * 0x18);
-				const uint32_t l = NewTask(us(ORIG_Lift));
+				const uint32_t l = NewTask(game_addr(ORIG_Lift));
 				S16(l, 0xE) = (int16_t)slot;
 				GetDefaultEffectPosition(Entity(slot), (int16_t *)(l + 0x10));
 				int32_t v = shl32(CrtRand() % 3 + 1, 12);
@@ -483,7 +481,7 @@ namespace kerplunk321
 				if (v & 1) S16(l, 0x18) = (int16_t)-v;
 				S16(l, 0x1A) = (int16_t)k;
 				S16(l, 0x20) = (int16_t)(-0x1770 - CrtRand() % 0x9C4);
-				const uint32_t r = NewTask(us(ORIG_TargetRing));
+				const uint32_t r = NewTask(game_addr(ORIG_TargetRing));
 				S16(r, 0xE) = 1;
 				S16(r, 0x10) = S16(l, 0x10);
 				S16(r, 0x12) = 0;
@@ -493,12 +491,12 @@ namespace kerplunk321
 				S16(r, 0x20) = S16(r, 0x22) = (int16_t)((CrtRand() % 0x800 + 0x1800) / 8);
 			}
 		}
-		if (S16(n, 0xC) == 1) BdPlaySE((const void *)us(SOUND_Start), 0, 0x80);
+		if (S16(n, 0xC) == 1) BdPlaySE((const void *)game_addr(SOUND_Start), 0, 0x80);
 		if (S16(n, 0xC) == 0x5C)
 		{
 			int16_t at[4];
 			CentrePosition(U16(Ctx(), 2), at);
-			BdPlaySE3D((const void *)us(SOUND_End), 0, at);
+			BdPlaySE3D((const void *)game_addr(SOUND_End), 0, at);
 		}
 		if (S16(n, 0xC) == 0x61 && VoiceActive(VoiceSlot())) VoiceRelease(VoiceSlot());
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -508,11 +506,11 @@ namespace kerplunk321
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		PacketCursor() = (U8(n, 0xC) & 1) ? us(ARENA_B) : us(ARENA_A);
+		PacketCursor() = (U8(n, 0xC) & 1) ? game_addr(ARENA_B) : game_addr(ARENA_A);
 		const int running = ExecuteTaskQueue(EffectQueue());
 		if (!running)
 		{
-			const uint32_t w = P(AddTaskToQueue(RootQueue(), us(ORIG_TexRestore)));
+			const uint32_t w = P(AddTaskToQueue(RootQueue(), game_addr(ORIG_TexRestore)));
 			S16(w, 0xC) = 0;
 			S16(w, 0xE) = 0;
 		}
@@ -523,7 +521,7 @@ namespace kerplunk321
 	static uint32_t __cdecl TexRestoreTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		if (S16(n, 0xC) == 1) TextureRestoreTask((void *)us(ARENA_A), (void *)(n + 0xE));
+		if (S16(n, 0xC) == 1) TextureRestoreTask((void *)game_addr(ARENA_A), (void *)(n + 0xE));
 		const int16_t done = S16(n, 0xE);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return done ? TASK_END : 0;

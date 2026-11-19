@@ -18,21 +18,21 @@
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m);
 	}
-	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
-	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
-	static inline void xl_ProjectVertexGroup_50FD40(uint8_t **stream, uint8_t **out) { x::f<void (__cdecl *)(uint8_t **, uint8_t **)>(us(0x50FD40))(stream, out); }
+	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(game_addr(game::GTE_RotTrans))(v, out, flag); }
+	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::TransformWorldCoordinateToProjectedSpace))(v, sxy, p, flag); }
+	static inline void xl_ProjectVertexGroup_50FD40(uint8_t **stream, uint8_t **out) { x::f<void (__cdecl *)(uint8_t **, uint8_t **)>(game_addr(game::BattleModel_ProjectVerticesWithGTE))(stream, out); }
 	static inline int32_t div3(int32_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
 		return hi + (int32_t)((uint32_t)hi >> 31);
 	}
 
-	inline int32_t &KEY70() { return MEM<int32_t>(DIS_KEYS + 0); }
-	inline int32_t &KEY74() { return MEM<int32_t>(DIS_KEYS + 4); }
-	inline int32_t &KEY78() { return MEM<int32_t>(DIS_KEYS + 8); }
-	inline int32_t &KEY7C() { return MEM<int32_t>(DIS_KEYS + 12); }
+	inline int32_t &KEY70() { return MEM<int32_t>(game_addr(DIS_KEYS) + 0); }
+	inline int32_t &KEY74() { return MEM<int32_t>(game_addr(DIS_KEYS) + 4); }
+	inline int32_t &KEY78() { return MEM<int32_t>(game_addr(DIS_KEYS) + 8); }
+	inline int32_t &KEY7C() { return MEM<int32_t>(game_addr(DIS_KEYS) + 12); }
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
@@ -390,10 +390,10 @@
 
 	static void InsertPrim_B4DDD0(int32_t z, void *prim);
 
-	static inline void xl_Cross_56BBF0(const void *a, const void *b, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56BBF0))(a, b, out); }
-	static inline void xl_Normalize_56BD20(const void *in, void *out) { x::f<void (__cdecl *)(const void *, void *)>(us(0x56BD20))(in, out); }
-	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56CB30))(s0, s1, s2); }
-	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56CA30))(n, col, out); }
+	static inline void xl_Cross_56BBF0(const void *a, const void *b, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(game_addr(game::FixedPointCrossProduct))(a, b, out); }
+	static inline void xl_Normalize_56BD20(const void *in, void *out) { x::f<void (__cdecl *)(const void *, void *)>(game_addr(game::Math_NormalizeVec3_Q12))(in, out); }
+	static inline int32_t xl_NClip_56CB30(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_NormalClip3))(s0, s1, s2); }
+	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(game_addr(game::sub_56CA30))(n, col, out); }
 
 	static void PolygonValues_B4D5F0(uint8_t *hdr, uint8_t *out)
 	{
@@ -501,9 +501,9 @@
 					x::GteWriteData((int32_t)(((uint32_t)U16(s, 2) << 16) | U16(s, 0)), 0);
 					x::GteWriteData((int32_t)U16(s, 4), 1);
 					x::GteMVMVA_RotV0Tr();
-					U16(o, 0) = MEM<uint16_t>(us(0x1CA8A74));
-					U16(o, 2) = (uint16_t)MEM<uint32_t>(us(0x1CA8A78));
-					U16(o, 4) = (uint16_t)MEM<uint32_t>(us(0x1CA8A7C));
+					U16(o, 0) = MEM<uint16_t>(game_addr(game::GTE_MAC123));
+					U16(o, 2) = (uint16_t)MEM<uint32_t>(game_addr(game::unk_1CA8A78));
+					U16(o, 4) = (uint16_t)MEM<uint32_t>(game_addr(game::unk_1CA8A7C));
 					o += 8;
 					s += 6;
 				}
@@ -826,9 +826,9 @@
 		uint8_t *bones = PTR(blk, 0x30) + 0x10;
 		uint8_t *tab = PTR(blk, 0x34) + 4;
 		const int32_t nobj = S32(tab, -4);
-		if (MEM<uint8_t>(us(0xB8BA03)) != 0xFF)
+		if (MEM<uint8_t>(game_addr(game::some_entity_slot_id)) != 0xFF)
 		{
-			U32(blk, 0x5C) = MEM<uint32_t>(us(0xB8BA00));
+			U32(blk, 0x5C) = MEM<uint32_t>(game_addr(game::unk_B8BA00));
 			U8(blk, 0x5F) = 0;
 		}
 		x::GteSetBackColor3(U8(blk, 0x5C), U8(blk, 0x5D), U8(blk, 0x5E));

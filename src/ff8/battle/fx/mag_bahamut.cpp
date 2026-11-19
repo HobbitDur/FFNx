@@ -24,14 +24,14 @@ namespace gfc
 {
 namespace part_bahamut
 {
-	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CC50))(a, b, h); }
-	static inline int32_t xl_RotTransPers_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
-	static inline int32_t xl_RotTransPersDiv8_56C8C0(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C8C0))(v, sxy, p, flag); }
-	static inline int32_t xl_RotTransPersNormalCol_56CAA0(const void *v, const void *normal, const void *rgbc, void *sxy, void *rgb, void *flag) { return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(us(0x56CAA0))(v, normal, rgbc, sxy, rgb, flag); }
-	static inline uint32_t xl_ScaleColour_B66A20(uint32_t colour, int32_t k) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(us(0xB66A20))(colour, k); }
-	static inline void xl_InsertPrimAutoDepth_45C7A0(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_SetFogNearFar_56CC50(int32_t a, int32_t b, int32_t h) { x::f<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetFogNearFar))(a, b, h); }
+	static inline int32_t xl_RotTransPers_56C880(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::TransformWorldCoordinateToProjectedSpace))(v, sxy, p, flag); }
+	static inline int32_t xl_RotTransPersDiv8_56C8C0(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::GTE_RotTransPersDiv8))(v, sxy, p, flag); }
+	static inline int32_t xl_RotTransPersNormalCol_56CAA0(const void *v, const void *normal, const void *rgbc, void *sxy, void *rgb, void *flag) { return x::f<int32_t (__cdecl *)(const void *, const void *, const void *, void *, void *, void *)>(game_addr(game::GTE_RotTransPersNormalColor))(v, normal, rgbc, sxy, rgb, flag); }
+	static inline uint32_t xl_ScaleColour_B66A20(uint32_t colour, int32_t k) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(game_addr(game::GfCinematic_ScaleColourGPF))(colour, k); }
+	static inline void xl_InsertPrimAutoDepth_45C7A0(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(ot, prim); }
 
-	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
+	static inline uint8_t *ZEROVEC() { return (uint8_t *)game_addr(game::unk_27971E4); }
 
 	static void __cdecl dh_40_LitScrollGrid()
 	{
@@ -635,26 +635,26 @@ namespace bahamut
 	{
 		c.name = "202 Bahamut";
 		c.effect_id = 202;
-		c.vm_table = us(0x187435C);
-		c.bone_table = us(0x1873FCC);
-		c.prim_table = us(0x1874014);
-		c.prim_size = us(0x1874104);
-		c.spr_table = us(0x1874118);
-		c.ptype_table = us(0x1874144);
-		c.pop_table = us(0x1874158);
-		c.draw_table = us(0x18741B8);
-		c.attr_16A = us(0x1874322);
-		c.attr_184 = us(0x187433C);
-		c.attr_186 = us(0x187433E);
-		c.attr_194 = us(0x187434C);
-		c.attr_19C = us(0x1874354);
-		c.desc = us(0x1873A60);
-		c.ptr_block = us(0x1873FA4);
-		c.queue = us(0x2796DE0);
-		c.file00 = us(0x2796E14);
-		c.file01 = us(0x2796E10);
-		c.tick = us(0xB19010);
-		c.load_cb = us(0xB21090);
+		c.vm_table = game_addr(game::GF_202Bahamut_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_202Bahamut_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_B1D064);
+		c.prim_size = game_addr(game::unk_1874104);
+		c.spr_table = game_addr(game::unk_1874118);
+		c.ptype_table = game_addr(game::unk_1874144);
+		c.pop_table = game_addr(game::funcs_B1F697);
+		c.draw_table = game_addr(game::GF_202Bahamut_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_1874322);
+		c.attr_184 = game_addr(game::unk_187433C);
+		c.attr_186 = game_addr(game::unk_187433E);
+		c.attr_194 = game_addr(game::unk_187434C);
+		c.attr_19C = game_addr(game::unk_1874354);
+		c.desc = game_addr(game::unk_1873A60);
+		c.ptr_block = game_addr(game::unk_1873FA4);
+		c.queue = game_addr(game::unk_2796DE0);
+		c.file00 = game_addr(game::unk_2796E14);
+		c.file01 = game_addr(game::unk_2796E10);
+		c.tick = game_addr(game::GF_202Bahamut_SequenceTick);
+		c.load_cb = game_addr(game::MAG_202_sub_B21090);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -674,7 +674,7 @@ namespace bahamut
 		apply_bahamut(bahamut::g_c);
 		apply_shared_ribbon(bahamut::g_c);
 		apply_shared_misc(bahamut::g_c);
-		register_port(0xB19010, (void *)bahamut::SequenceTask, "GFC202 Bahamut SequenceTick", 202);
+		register_port(game::GF_202Bahamut_SequenceTick, (void *)bahamut::SequenceTask, "GFC202 Bahamut SequenceTick", 202);
 	}
 }
 

@@ -23,33 +23,33 @@ namespace whitewind226
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2508774)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2508778)); }
-	inline TaskQueue *QScene() { return (TaskQueue *)us(0x2508780); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x25087A0); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25087C4)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25087C8)); }
-	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(us(0x25087D0)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_226_WhiteWind_CastContext)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_226_WhiteWind_CasterEntity)); }
+	inline TaskQueue *QScene() { return (TaskQueue *)game_addr(game::MAG_226_WhiteWind_SceneQueue); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)game_addr(game::MAG_226_WhiteWind_TargetQueue); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_226_WhiteWind_PacketCursor)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_226_WhiteWind_MagicBufferBase)); }
+	inline Mat4x3 &ModMatrix() { return var<Mat4x3>(game_addr(game::MAG_226_WhiteWind_CameraMatrix)); }
 
-	static const uint32_t ORIG_RootTask = 0x6945D0;
-	static const uint32_t ORIG_SceneTask = 0x6946D0;
-	static const uint32_t ORIG_TargetTask = 0x694D40;
-	static const uint32_t MODEL_Caster = 0x1134B2C;
-	static const uint32_t MODEL_Sweep = 0x11340C4;
-	static const uint32_t MODEL_Target = 0x113202C;
-	static const void *SOUND_Wind() { return (const void *)us(0x11355CC); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_226_WhiteWind_RootTask;
+	static constexpr game::Id ORIG_SceneTask = game::MAG_226_WhiteWind_SceneTask;
+	static constexpr game::Id ORIG_TargetTask = game::MAG_226_WhiteWind_TargetTask;
+	static constexpr game::Id MODEL_Caster = game::MAG_226_WhiteWind_CasterLayout;
+	static constexpr game::Id MODEL_Sweep = game::MAG_226_WhiteWind_SweepLayout;
+	static constexpr game::Id MODEL_Target = game::MAG_226_WhiteWind_TargetLayout;
+	static const void *SOUND_Wind() { return (const void *)game_addr(game::MAG_226_WhiteWind_SoundWind); }
 	static const uint32_t MORPH = 0xAEC;
 	static const uint32_t ARENA_A = 0xECC;
 	static const uint32_t ARENA_B = 0x10ECC;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -207,7 +207,7 @@ namespace whitewind226
 
 	static void ApplyResult(const uint8_t *entity)
 	{
-		const int32_t slot = (int32_t)((uint32_t)entity - 0x1D972C0u) / 0x9C;
+		const int32_t slot = (int32_t)((uint32_t)entity - game_addr(game::BattleEntitySlotData)) / 0x9C;
 		for (int i = 0; i < Ctx()->actions[0].target_count; i++)
 		{
 			uint8_t *rec = Ctx()->actions[0].targets + i * TARGET_STRIDE;
@@ -252,7 +252,7 @@ namespace whitewind226
 			{
 				GetDefaultEffectPosition(Caster(), s->caster);
 				s->caster[1] = AnchorY(Caster());
-				DecodeModelPrimLayout(us(MODEL_Caster), s->lay_caster, 0x188);
+				DecodeModelPrimLayout(game_addr(MODEL_Caster), s->lay_caster, 0x188);
 			}
 			arg.m.t[0] = s->caster[0];
 			arg.m.t[1] = s->caster[1];
@@ -279,7 +279,7 @@ namespace whitewind226
 				s->sweep[0] = 0;
 				s->sweep[2] = (int16_t)((int32_t)s->sweep[2] / (int32_t)a->target_count);
 				s->sweep[1] = AnchorY(Caster());
-				DecodeModelPrimLayout(us(MODEL_Sweep), s->lay_sweep, 0x194);
+				DecodeModelPrimLayout(game_addr(MODEL_Sweep), s->lay_sweep, 0x194);
 			}
 			arg.m.t[0] = s->sweep[0];
 			arg.m.t[1] = s->sweep[1];
@@ -305,14 +305,14 @@ namespace whitewind226
 			const uint32_t i = (uint32_t)k >> 2;
 			if (i < Ctx()->actions[0].target_count)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), game_addr(ORIG_TargetTask));
 				if (t)
 				{
 					uint8_t *e = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
 					t->entity = e;
 					GetDefaultEffectPosition(e, t->pos);
 					t->pos[1] = AnchorY(e);
-					DecodeModelPrimLayout(us(MODEL_Target), t->layout, 0x278);
+					DecodeModelPrimLayout(game_addr(MODEL_Target), t->layout, 0x278);
 				}
 			}
 		}
@@ -338,7 +338,7 @@ namespace whitewind226
 			r->started = 1;
 			InitTaskQueuePool(QScene(), (void *)(TexBase() + 0x7B0), 0x33C, 1);
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0x290, 3);
-			((SceneNode *)AddTaskToQueue(QScene(), us(ORIG_SceneTask)))->counter = 0;
+			((SceneNode *)AddTaskToQueue(QScene(), game_addr(ORIG_SceneTask)))->counter = 0;
 		}
 		int a, b;
 		if (r->started)

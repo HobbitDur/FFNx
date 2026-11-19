@@ -27,61 +27,61 @@ namespace oil136
 	using namespace magc;
 	using namespace icec;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2520D28)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2520D30)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2520D34)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2520D4C)); }
-	inline Mat4x3 &ZeroMatrix() { return var<Mat4x3>(us(0x2520DB0)); }
-	inline TaskQueue *QFalls() { return (TaskQueue *)us(0x2520D50); }
-	inline TaskQueue *QSplats() { return (TaskQueue *)us(0x2520D60); }
-	inline TaskQueue *QStreams() { return (TaskQueue *)us(0x2520D70); }
-	inline TaskQueue *QSprays() { return (TaskQueue *)us(0x2520D80); }
-	inline TaskQueue *QShot() { return (TaskQueue *)us(0x2520D90); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::g_Mag136_CasterEntity)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g_Mag136_MagicBufferBase)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_Mag136_CastContext)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_Mag136_PacketCursor)); }
+	inline Mat4x3 &ZeroMatrix() { return var<Mat4x3>(game_addr(game::g_Mag136_ZeroMatrix)); }
+	inline TaskQueue *QFalls() { return (TaskQueue *)game_addr(game::g_Mag136_QueueFalls); }
+	inline TaskQueue *QSplats() { return (TaskQueue *)game_addr(game::g_Mag136_QueueSplats); }
+	inline TaskQueue *QStreams() { return (TaskQueue *)game_addr(game::g_Mag136_QueueStreams); }
+	inline TaskQueue *QSprays() { return (TaskQueue *)game_addr(game::g_Mag136_QueueSprays); }
+	inline TaskQueue *QShot() { return (TaskQueue *)game_addr(game::g_Mag136_QueueShot); }
 
-	static const uint32_t ORIG_MasterTask = 0x6AD250;
-	static const uint32_t ORIG_ShotTask = 0x6AD480;
-	static const uint32_t ORIG_FallTask = 0x6AE050;
-	static const uint32_t ORIG_SplatTask = 0x6AE190;
-	static const uint32_t ORIG_StreamTask = 0x6AE210;
-	static const uint32_t ORIG_SprayTask = 0x6AE300;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_136_OilShot_MasterTask;
+	static constexpr game::Id ORIG_ShotTask = game::MAG_136_OilShot_ShotTask;
+	static constexpr game::Id ORIG_FallTask = game::MAG_136_OilShot_FallTask;
+	static constexpr game::Id ORIG_SplatTask = game::MAG_136_OilShot_SplatTask;
+	static constexpr game::Id ORIG_StreamTask = game::MAG_136_OilShot_StreamTask;
+	static constexpr game::Id ORIG_SprayTask = game::MAG_136_OilShot_SprayTask;
 	static const uint32_t VERTS = 0x3E0C;
 	static const uint32_t ARENA_A = 0x416C;
 	static const uint32_t ARENA_B = 0x1C16C;
-	static uint8_t *MESH() { return (uint8_t *)us(0x11F2684); }
-	static const uint32_t MODEL_Mouth = 0x11F40F4;
-	static const uint32_t MODEL_Hit = 0x11F5A90;
-	static const uint32_t MODEL_Pool = 0x11F4E1C;
-	static const uint32_t MODEL_Stream = 0x11F342C;
-	static const uint32_t MODEL_Fall = 0x11F7D84;
-	static const uint32_t MODEL_Splash = 0x11F74FC;
-	static const uint32_t SEQ_Spray = 0x11F2390;
-	static const uint32_t SEQ_Splat = 0x11F24D8;
-	static const int16_t *MOUTH() { return (const int16_t *)us(0x11F81F0); }
-	static const void *SCALE_Z() { return (const void *)us(0x11F81D0); }
-	static int16_t &ScaleZ() { return *(int16_t *)us(0x11F81E0); }
-	static const int32_t *WOBBLE() { return (const int32_t *)us(0x11F81F8); }
-	static const void *SOUND_Shot() { return (const void *)us(0x11F81CC); }
+	static uint8_t *MESH() { return (uint8_t *)game_addr(game::Mag136_OilMesh); }
+	static constexpr game::Id MODEL_Mouth = game::unk_11F40F4;
+	static constexpr game::Id MODEL_Hit = game::unk_11F5A90;
+	static constexpr game::Id MODEL_Pool = game::unk_11F4E1C;
+	static constexpr game::Id MODEL_Stream = game::unk_11F342C;
+	static constexpr game::Id MODEL_Fall = game::unk_11F7D84;
+	static constexpr game::Id MODEL_Splash = game::unk_11F74FC;
+	static constexpr game::Id SEQ_Spray = game::unk_11F2390;
+	static constexpr game::Id SEQ_Splat = game::unk_11F24D8;
+	static const int16_t *MOUTH() { return (const int16_t *)game_addr(game::Mag136_MouthBonePoint); }
+	static const void *SCALE_Z() { return (const void *)game_addr(game::Mag136_MeshScaleMatrix); }
+	static int16_t &ScaleZ() { return *(int16_t *)game_addr(game::unk_11F81E0); }
+	static const int32_t *WOBBLE() { return (const int32_t *)game_addr(game::Mag136_WobbleTable); }
+	static const void *SOUND_Shot() { return (const void *)game_addr(game::unk_11F81CC); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(angle, out); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
-	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(us(0x56C090))(a, b, out); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline void GteZeroTrans() { fn<void (__cdecl *)()>(us(0x704070))(); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
-	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(us(0x56BEF0))(m, v); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_063_RotationXMatrix))(angle, out); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_065_RotationZMatrix))(angle, out); }
+	inline void Matrix3x3MultiplyPSX(const Mat4x3 *a, const Mat4x3 *b, Mat4x3 *out) { fn<void (__cdecl *)(const Mat4x3 *, const Mat4x3 *, Mat4x3 *)>(game_addr(game::Matrix3x3_MultiplyPSX))(a, b, out); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline void GteZeroTrans() { fn<void (__cdecl *)()>(game_addr(game::GTE_ZeroTranslation))(); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(dst); }
+	inline void ScaleMatrix(Mat4x3 *m, const int32_t *v) { fn<void (__cdecl *)(Mat4x3 *, const int32_t *)>(game_addr(game::scale3DMatrix))(m, v); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -563,7 +563,7 @@ namespace oil136
 	{
 		TransformCameraByShadowRotation(pos, scale, -(scale >> 2));
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Spray);
+		*(uint32_t *)h = game_addr(SEQ_Spray);
 		*(int16_t *)(h + 4) = frame;
 		*(int32_t *)(h + 8) = angle;
 		*(int16_t *)(h + 0x24) = 1;
@@ -587,7 +587,7 @@ namespace oil136
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Splat);
+		*(uint32_t *)h = game_addr(SEQ_Splat);
 		*(int16_t *)(h + 4) = frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -636,7 +636,7 @@ namespace oil136
 			{
 				d->pos[1] = 0;
 				d->landed = 1;
-				DecodeModelPrimLayout(us(MODEL_Splash), d->layout, 0xA8);
+				DecodeModelPrimLayout(game_addr(MODEL_Splash), d->layout, 0xA8);
 			}
 		}
 		return 0;
@@ -703,7 +703,7 @@ namespace oil136
 		{
 			BonePoint(MOUTH(), P);
 			RotXY(*(const int16_t *)(Caster() + 0xE), -0x200, &M);
-			SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), us(ORIG_SprayTask));
+			SprayNode *s = (SprayNode *)AddTaskToQueue(QSprays(), game_addr(ORIG_SprayTask));
 			if (s)
 			{
 				s->angle = (int16_t)CrtRand();
@@ -750,7 +750,7 @@ namespace oil136
 				WobbleMesh(MESH(), sine, (int16_t *)(TexBase() + VERTS));
 				StreamPoint(w, s, sine, P);
 				StreamBasis(P, w->prev, &M);
-				StreamNode *d = (StreamNode *)AddTaskToQueue(QStreams(), us(ORIG_StreamTask));
+				StreamNode *d = (StreamNode *)AddTaskToQueue(QStreams(), game_addr(ORIG_StreamTask));
 				ff8fx::copy<(8)>(w->prev, P);
 				if (d)
 				{
@@ -767,7 +767,7 @@ namespace oil136
 					d->vel[1] = (int16_t)(ComputeSin(r) >> 8);
 					d->vel[2] = 0x32;
 					MatrixMultiplyVector(&M, d->vel, d->vel);
-					DecodeModelPrimLayout(us(MODEL_Stream), d->layout, 0xA8);
+					DecodeModelPrimLayout(game_addr(MODEL_Stream), d->layout, 0xA8);
 				}
 				ScaleZ() = MeshScaleZ(s, sine);
 				MulMatrix3(&M, SCALE_Z());
@@ -788,7 +788,7 @@ namespace oil136
 			Play(w->hit, &arg);
 			if ((uint32_t)h < 0x10 && !(h & 1))
 			{
-				FallNode *f = (FallNode *)AddTaskToQueue(QFalls(), us(ORIG_FallTask));
+				FallNode *f = (FallNode *)AddTaskToQueue(QFalls(), game_addr(ORIG_FallTask));
 				if (f)
 				{
 					ff8fx::copy<(8)>(f->pos, w->pos);
@@ -798,12 +798,12 @@ namespace oil136
 					f->vel[0] = (int16_t)(mul32(ComputeSin(a), sp) >> 12);
 					f->vel[2] = (int16_t)(mul32(ComputeCos(a), sp) >> 12);
 					f->vel[1] = (int16_t)(-0x40 - (CrtRand() & 0x7F));
-					DecodeModelPrimLayout(us(MODEL_Fall), f->layout, 0x50);
+					DecodeModelPrimLayout(game_addr(MODEL_Fall), f->layout, 0x50);
 				}
 			}
 			if ((uint32_t)h >= 4 && (uint32_t)h < 0x14)
 			{
-				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), us(ORIG_SplatTask));
+				SplatNode *s = (SplatNode *)AddTaskToQueue(QSplats(), game_addr(ORIG_SplatTask));
 				if (s)
 				{
 					ff8fx::copy<(8)>(s->pos, w->pos);
@@ -844,13 +844,13 @@ namespace oil136
 		InitTaskQueuePool(QStreams(), (void *)(TexBase() + 0x2C60), 0xC4, 0x10);
 		InitTaskQueuePool(QSplats(), (void *)(TexBase() + 0x2BC0), 0x14, 8);
 		InitTaskQueuePool(QFalls(), (void *)TexBase(), 0x2BC, 0x10);
-		ShotNode *w = (ShotNode *)AddTaskToQueue(QShot(), us(ORIG_ShotTask));
+		ShotNode *w = (ShotNode *)AddTaskToQueue(QShot(), game_addr(ORIG_ShotTask));
 		Memset32(&w->counter, 0, 0x118);
 		w->target = target;
 		GetDefaultEffectPosition(target, w->pos);
-		DecodeModelPrimLayout(us(MODEL_Mouth), w->mouth, 0xC8);
-		DecodeModelPrimLayout(us(MODEL_Hit), w->hit, 0x1F4);
-		DecodeModelPrimLayout(us(MODEL_Pool), w->pool, 0x184);
+		DecodeModelPrimLayout(game_addr(MODEL_Mouth), w->mouth, 0xC8);
+		DecodeModelPrimLayout(game_addr(MODEL_Hit), w->hit, 0x1F4);
+		DecodeModelPrimLayout(game_addr(MODEL_Pool), w->pool, 0x184);
 		NormalizeMesh(MESH());
 	}
 

@@ -24,45 +24,45 @@ namespace act
 {
 namespace dribble
 {
-	static const Mod MOD_041 = { "dribble", 41, 0x8465A0, 0x84D010,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x268F1B8, 0x0, 0x26903D8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2690BD8, 0x0, 0x26988E8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2698A8E, 0x2698A90, 0x0, 0x2698A9E, 0x0, 0x2698AA4, 0x0, 0x2698AB4 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x846AB0, 0x847500, 0x8476F0, 0x847750, 0x0, 0x8479D0, 0x847BE0, 0x847E60, 0x8480A0, 0x848340, 0x848570, 0x848830, 0x848A90, 0x848D70, 0x848EB0, 0x848EF0, 0x84A180, 0x84A1D0, 0x84A200, 0x84A280, 0x84A970, 0x84A9C0, 0x84AA60, 0x84AB20, 0x84B370, 0x84B770, 0x84B800, 0x0, 0x0, 0x0, 0x0, 0x0, 0x846900, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x846C60, 0x846D40, 0x846EA0, 0x846F70, 0x847090, 0x8472A0, 0x848E30, 0x848F80, 0x8495E0, 0x849630, 0x8496C0, 0x849790, 0x849F20, 0x84A030, 0x84A0B0, 0x84A0E0, 0x84A900, 0x84A930, 0x84AA10, 0x84AB30, 0x84AC80, 0x84B310, 0x84B340, 0x84B520, 0x84B660, 0x0, 0x847500, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_041 = { "dribble", 41, game::MAG_041_DRIBBLE_FL, game::MAG_040_SCAN_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::unk_268F1B8, {}, game::MAG_041_ParticleCursor, {}, {}, {}, {}, {}, game::MAG_041_ActorSystemQueue, {}, game::MAG_041_EmitterQueue, {}, {}, {}, {}, {}, game::unk_2698A8E, game::MAG_041_ParticlePoolPtr, {}, game::unk_2698A9E, {}, game::g_Dribble_ScratchSP, {}, game::g_Dribble_ActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_041_DirectorSetup, game::MAG_041_Dribble_ActorSystem_Step, game::MAG_041_ActSys_DrawPass, game::MAG_041_ActSys_DrawActorModel, {}, game::MAG_041_MeshEmitF3, game::MAG_041_MeshEmitF4, game::MAG_041_RenderPolyFT3List, game::MAG_041_RenderPolyFT4List, game::MAG_041_PrimList_G3, game::MAG_041_PrimList_G4, game::MAG_041_PrimList_GT3, game::MAG_041_PrimList_GT4, game::MAG_041_ActSys_DrawSpritePass, game::MAG_041_ActSys_UpdatePass, game::MAG_041_ActorStep, game::MAG_041_ActSys_UpdateEmitter, game::MAG_041_Particle_LifeCountdown, game::MAG_041_ActSys_EmitterSpawnStep, game::MAG_041_ActSys_SpawnParticles, game::MAG_041_RandVec3, game::MAG_041_JitterAngles3, game::MAG_041_ActSys_AllocParticleSlot, game::MAG_041_GetWord8Minus1, game::MAG_041_Particle_Init, game::MAG_041_SpawnSubEffects, game::MAG_041_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_041_Dribble_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_041_ResetTrailHistory, game::MAG_041_Director_CasterRefPoints, game::MAG_041_FillTrailRows, game::MAG_041_Director_Mode3Setup, game::MAG_041_Director_TargetRefPoints, game::MAG_041_RelocateActorData, game::MAG_041_ActSys_DrawActorSprite, game::MAG_041_ActorMotion, game::MAG_041_DampValue, game::MAG_041_DampVector, game::MAG_041_Instance_AdvanceTexFrame, game::MAG_041_Instance_BuildTransform, game::MAG_041_MorphVertexBlock, game::MAG_041_Instance_EndOfLifeTest, game::MAG_041_Instance_SpawnFollowUp, game::MAG_041_AllocParticle, game::MAG_041_RandRange, game::MAG_041_RandRangeWide, game::MAG_041_RandAngleJitter, game::MAG_041_Particle_AttachToOwner, game::MAG_041_Actor_InterpolatePosition, game::MAG_041_ParticleList_Append, game::MAG_041_ParticleList_Unlink, game::MAG_041_Particle_PlaceAtAnchorSet, game::MAG_041_Particle_PlaceAtPoint, {}, game::MAG_041_Dribble_ActorSystem_Step, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x267B85C;
-	static const uint32_t ACTOR_STATE = 0x2698AB4;
-	static const uint32_t SCRATCH_SP = 0x2698AA4;
-	static const uint32_t BLK = 0x267B868;
-	static const uint32_t Q_EMITTER = 0x26988E8, Q_ACTORS = 0x2690BD8, Q_TASKS = 0x268F298;
-	static const uint32_t ORIG_Master = 0x8466F0;
-	static const uint32_t ORIG_Emitter = 0x846900;
-	static const uint32_t ORIG_ActorSystem = 0x846A20;
-	static const uint32_t ORIG_Spawner = 0x84B8C0;
-	static const uint32_t ORIG_Dribble = 0x84B950;
-	static const uint32_t ORIG_DustSpawner = 0x84C8E0;
-	static const uint32_t ORIG_Dust = 0x84CA70;
-	static const void *SOUND_Grab() { return (const void *)us(0x15CA5A8); }
-	static const void *SOUND_Land() { return (const void *)us(0x15CA5AC); }
-	static const uint32_t ACTOR_DATA = 0x15CD8B0;
-	static const uint32_t RADIUS_TABLE = 0x15CDC80;
-	static const uint32_t DUST_FLIPBOOK = 0x15CA5B0;
+	static constexpr game::Id PACKET_CURSOR = game::g_Dribble_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::g_Dribble_ActorState;
+	static constexpr game::Id SCRATCH_SP = game::g_Dribble_ScratchSP;
+	static constexpr game::Id BLK = game::g_Dribble_BallBlock;
+	static constexpr game::Id Q_EMITTER = game::MAG_041_EmitterQueue, Q_ACTORS = game::MAG_041_ActorSystemQueue, Q_TASKS = game::MAG_041_DribbleQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_041_Dribble_MasterTask;
+	static constexpr game::Id ORIG_Emitter = game::MAG_041_Dribble_EmitterTask;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_041_Dribble_ActorSystemTask;
+	static constexpr game::Id ORIG_Spawner = game::MAG_041_Dribble_SpawnerTask;
+	static constexpr game::Id ORIG_Dribble = game::MAG_041_Dribble_BallTask;
+	static constexpr game::Id ORIG_DustSpawner = game::MAG_041_Dribble_DustSpawnerTask;
+	static constexpr game::Id ORIG_Dust = game::MAG_041_Dribble_DustTask;
+	static const void *SOUND_Grab() { return (const void *)game_addr(game::unk_15CA5A8); }
+	static const void *SOUND_Land() { return (const void *)game_addr(game::unk_15CA5AC); }
+	static constexpr game::Id ACTOR_DATA = game::unk_15CD8B0;
+	static constexpr game::Id RADIUS_TABLE = game::Dribble_BallRadiusTable;
+	static constexpr game::Id DUST_FLIPBOOK = game::unk_15CA5B0;
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DEA0))(a1); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
-		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a1, a2, a3); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
-		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(us(0x4607D0))(); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
-		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(a1, a2); }
-		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(a1, a2, a3); }
-		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(a1, a2, a3, a4); }
-		static inline uint32_t sub_8DDB90(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDB90))(a1, a2, a3); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::sub_45DEA0))(a1); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(a1); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(a1, a2, a3); }
+		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a1, a2, a3); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSZ3))(a1); }
+		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_ColorV0))(); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(a1, a2); }
+		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::VectorNormalS16))(a1, a2); }
+		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(a1, a2, a3); }
+		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(a1, a2, a3, a4); }
+		static inline uint32_t sub_8DDB90(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::sub_8DDB90))(a1, a2, a3); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -198,44 +198,44 @@ namespace dribble
 		g_mod = &MOD_041;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x268F1B8)) = us(0x2793E58);
-		states[0] = us(0x846830);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_268F1B8)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_041_Dribble_Master_State0_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x846840);
-		states[2] = us(0x846850);
-		states[3] = us(0x8468D0);
-		states[4] = us(0x84CF60);
-		states[5] = us(0x84CFA0);
-		states[6] = us(0x84CFB0);
-		states[7] = us(0x84CFC0);
-		states[8] = us(0x84CFD0);
-		states[9] = us(0x84CFE0);
-		states[10] = us(0x84D000);
+		states[1] = game_addr(game::MAG_041_Dribble_Master_State1_Advance);
+		states[2] = game_addr(game::MAG_041_Dribble_Master_AllocActorPools);
+		states[3] = game_addr(game::MAG_041_Dribble_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_041_Dribble_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_041_Dribble_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_041_Dribble_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_041_Dribble_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_041_Dribble_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_041_Dribble_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_041_Dribble_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2698A5C));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26903E4));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x268F1B4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_2698A5C));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26903E4));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_268F1B4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2698A58));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26903E0));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x268F1B4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_2698A58));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26903E0));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_268F1B4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x2698A9E)) = 0;
-		MEM<uint16_t>(us(0x2698A8E)) = 0;
-		static const uint32_t queues[3] = { us(Q_EMITTER), us(Q_ACTORS), us(Q_TASKS) };
+		MEM<uint16_t>(game_addr(game::unk_2698A9E)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2698A8E)) = 0;
+		static constexpr game::Id queues[3] = { Q_EMITTER, Q_ACTORS, Q_TASKS };
 		for (int i = 0; i < 3; i++)
-			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
+			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(queues[i])));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -244,12 +244,12 @@ namespace dribble
 
 	uint32_t __cdecl db_846890(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2698A90)), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2698AA8)), 0x8340);
-		MEM<uint16_t>(us(0x26903D8)) = 0;
-		MEM<uint16_t>(us(0x2698A9C)) = 0;
-		MEM<uint16_t>(us(0x2698A8C)) = 0;
-		MEM<uint16_t>(us(0x267B860)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_041_ParticlePoolPtr)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_041_ActorPoolPtr)), 0x8340);
+		MEM<uint16_t>(game_addr(game::MAG_041_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_041_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2698A8C)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_267B860)) = 0;
 		return 0;
 	}
 
@@ -272,7 +272,7 @@ namespace dribble
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;
 		const uint32_t root = U32(node, 0x10);
-		MEM<uint32_t>(us(0x2698AB4)) = st;
+		MEM<uint32_t>(game_addr(game::g_Dribble_ActorState)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x24) = w29c;
@@ -284,7 +284,7 @@ namespace dribble
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(us(0x2698AB4));
+			st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -304,41 +304,41 @@ namespace dribble
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		db_846D40();
-		st = MEM<uint32_t>(us(0x2698AB4));
+		st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		if (U16(st, 0x24) == 4)
-			callp(us(0x846C60), node);
+			callp(game_addr(game::MAG_041_ResetTrailHistory), node);
 		db_847090();
-		st = MEM<uint32_t>(us(0x2698AB4));
+		st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		if (U16(st, 0x24) == 1)
 		{
-			callp(us(0x846EA0), node);
-			st = MEM<uint32_t>(us(0x2698AB4));
+			callp(game_addr(game::MAG_041_FillTrailRows), node);
+			st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(us(0x2698AB4));
+			st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
+		uint32_t e2 = game_addr(game::BattleEntitySlotData) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(us(0x2698AB4));
+		st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		U32(st, 0) = dist;
 		return 0;
 	}
 
 	uint32_t __cdecl db_846C60(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x2698AB4));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -355,15 +355,15 @@ namespace dribble
 
 	uint32_t __cdecl db_846D40(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -376,7 +376,7 @@ namespace dribble
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -384,7 +384,7 @@ namespace dribble
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -399,7 +399,7 @@ namespace dribble
 
 	uint32_t __cdecl db_846EA0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x2698AB4));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -420,7 +420,7 @@ namespace dribble
 
 	uint32_t __cdecl db_847090(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -429,11 +429,11 @@ namespace dribble
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+				const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -446,7 +446,7 @@ namespace dribble
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -454,7 +454,7 @@ namespace dribble
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -494,12 +494,12 @@ namespace dribble
 
 	uint32_t __cdecl db_8476F0(void)
 	{
-		uint32_t act = U32(U32(us(0x2698AB4), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_Dribble_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x2698AB4), 0);
+				uint32_t sys = U32(game_addr(game::g_Dribble_ActorState), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -513,10 +513,10 @@ namespace dribble
 
 	uint32_t __cdecl db_847750(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -536,9 +536,9 @@ namespace dribble
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-			MEM<uint32_t>(us(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -553,17 +553,17 @@ namespace dribble
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1068,14 +1068,14 @@ namespace dribble
 
 	uint32_t __cdecl db_848D70(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x2698AB4)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::g_Dribble_ActorState)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x2698AB4));
+				uint32_t st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1110,26 +1110,26 @@ namespace dribble
 	uint32_t __cdecl db_848E30(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl db_848EB0(void)
 	{
-		uint32_t act = U32(U32(us(0x2698AB4), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_Dribble_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1145,7 +1145,7 @@ namespace dribble
 	uint32_t __cdecl db_848EF0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x2698AB4));
+		uint32_t st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1166,7 +1166,7 @@ namespace dribble
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x2698AB4));
+			st = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1178,7 +1178,7 @@ namespace dribble
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x2698AB4), 0);
+		uint32_t st = U32(game_addr(game::g_Dribble_ActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1261,8 +1261,8 @@ namespace dribble
 
 	uint32_t __cdecl db_84A0E0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2698A90));
-		int32_t idx = MEM<int16_t>(us(0x26903D8));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_041_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_041_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1272,7 +1272,7 @@ namespace dribble
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1287,9 +1287,9 @@ namespace dribble
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(us(0x26903D8)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_041_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x26903D8)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_041_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -1302,9 +1302,9 @@ namespace dribble
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x84AB30), a1);
+			callp(game_addr(game::MAG_041_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x84AC80), a1);
+			callp(game_addr(game::MAG_041_Actor_InterpolatePosition), a1);
 		db_84A200(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1313,7 +1313,7 @@ namespace dribble
 
 	uint32_t __cdecl db_84A200(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x2698AB4), 0);
+		uint32_t sys = U32(game_addr(game::g_Dribble_ActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1340,9 +1340,9 @@ namespace dribble
 
 	uint32_t __cdecl db_84A280(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x2698AA4), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::g_Dribble_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x2698AA4), 0) = sp;
+		U32(game_addr(game::g_Dribble_ScratchSP), 0) = sp;
 		uint32_t node = db_84AA60(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1352,7 +1352,7 @@ namespace dribble
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x2698AB4), 0);
+			uint32_t ctx = U32(game_addr(game::g_Dribble_ActorState), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1520,14 +1520,14 @@ namespace dribble
 			}
 		}
 		db_84B770(node, desc);
-		U32(us(0x2698AA4), 0) = U32(us(0x2698AA4), 0) + 0x50;
+		U32(game_addr(game::g_Dribble_ScratchSP), 0) = U32(game_addr(game::g_Dribble_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl db_84AA60(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2698AA8));
-		int32_t i = MEM<int16_t>(us(0x2698A9C));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_041_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_041_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1540,7 +1540,7 @@ namespace dribble
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1557,16 +1557,16 @@ namespace dribble
 		}
 		i++;
 		if (i >= 0x31)
-			MEM<uint16_t>(us(0x2698A9C)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_041_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x2698A9C)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_041_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl db_84AC80(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x2698AB4), 0);
+		const uint32_t st = U32(game_addr(game::g_Dribble_ActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1626,7 +1626,7 @@ namespace dribble
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x2698AB4), 0);
+				uint32_t g = U32(game_addr(game::g_Dribble_ActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1636,7 +1636,7 @@ namespace dribble
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x2698AB4), 0);
+				uint32_t g = U32(game_addr(game::g_Dribble_ActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1711,7 +1711,7 @@ namespace dribble
 
 	uint32_t __cdecl db_84B800(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x2698AB4));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1736,14 +1736,14 @@ namespace dribble
 				do
 				{
 					db_84A0E0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x2698AB4));
+					dir = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				db_84A0E0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x2698AB4));
+				dir = MEM<uint32_t>(game_addr(game::g_Dribble_ActorState));
 			}
 		}
 		return 0;
@@ -1767,10 +1767,10 @@ namespace dribble
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0;
 	}
@@ -1779,12 +1779,12 @@ namespace dribble
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x2698AB0));
-		MEM<uint32_t>(us(0x2698A90)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_041_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_041_ParticlePoolPtr)) = p;
 		p += 0x870;
-		MEM<uint32_t>(us(0x2698AA8)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_041_ActorPoolPtr)) = p;
 		p += 0x8340;
-		MEM<uint32_t>(us(0x2698AB0)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_041_FileArenaCursor)) = p;
 		db_846890();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -1794,10 +1794,10 @@ namespace dribble
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x846990);
-		states[1] = us(0x84CEF0);
-		states[2] = us(0x84CF10);
-		states[3] = us(0x84CF50);
+		states[0] = game_addr(game::MAG_041_Dribble_Emitter_SpawnActorsAndDribble);
+		states[1] = game_addr(game::MAG_041_Dribble_Emitter_ReleaseMaster);
+		states[2] = game_addr(game::MAG_041_Dribble_Emitter_ApplyDamage);
+		states[3] = game_addr(game::MAG_041_Dribble_Emitter_State3_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -1810,8 +1810,8 @@ namespace dribble
 
 	uint32_t __cdecl db_846990(uint32_t a1)
 	{
-		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0xF, 0x2D, 0);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Spawner), 0xDC, a1);
+		a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(ACTOR_DATA), 0xF, 0x2D, 0);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Spawner), 0xDC, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -1843,13 +1843,13 @@ namespace dribble
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		MEM<uint32_t>(us(ACTOR_STATE)) = sys;
+		MEM<uint32_t>(game_addr(ACTOR_STATE)) = sys;
 		int16_t pos[4] = { 0, 0, 0, 0 };
 		const uint32_t pp = P(pos);
 		if (U16(sys, 0x24) != 2)
 		{
-			x::GetEffectSpawnPosition(us(0x1D972C0) + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x18, 0, pp);
-			sys = MEM<uint32_t>(us(ACTOR_STATE));
+			x::GetEffectSpawnPosition(game_addr(game::BattleEntitySlotData) + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x18, 0, pp);
+			sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S16(pp, 4) = (int16_t)(U16(pp, 4) + 0x100);
 		S32(sys, 0x114) = shl32(S16(pp, 0), 16);
@@ -1857,8 +1857,8 @@ namespace dribble
 		S32(sys, 0x11C) = shl32(S16(pp, 4), 16);
 		if (U16(sys, 0x24) != 2)
 		{
-			x::GetEffectSpawnPosition(us(0x1D972C0) + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x15, 0, pp);
-			sys = MEM<uint32_t>(us(ACTOR_STATE));
+			x::GetEffectSpawnPosition(game_addr(game::BattleEntitySlotData) + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x15, 0, pp);
+			sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S16(pp, 4) = (int16_t)(U16(pp, 4) + 0x100);
 		S32(sys, 0x154) = shl32(S16(pp, 0), 16);
@@ -1869,8 +1869,8 @@ namespace dribble
 		S32(sys, 0xDC) = add32(S32(sys, 0x11C), S32(sys, 0x15C)) / 2;
 		if (U16(sys, 0x24) != 2)
 		{
-			x::GetEffectSpawnPosition(us(0x1D972C0) + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x18, 0, pp);
-			sys = MEM<uint32_t>(us(ACTOR_STATE));
+			x::GetEffectSpawnPosition(game_addr(game::BattleEntitySlotData) + (uint32_t)((int32_t)S16(sys, 0x1E) * 0x9C), 0x18, 0, pp);
+			sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S16(pp, 4) = (int16_t)(U16(pp, 4) + 0x100);
 		S32(sys, 0x204) = shl32(S16(pp, 0), 16);
@@ -1887,7 +1887,7 @@ namespace dribble
 			db_848EB0();
 			db_848D70();
 			db_8476F0();
-			sys = MEM<uint32_t>(us(ACTOR_STATE));
+			sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1900,8 +1900,8 @@ namespace dribble
 		}
 		const uint16_t c14 = U16(sys, 0x14);
 		const uint16_t c16 = U16(sys, 0x16);
-		MEM<uint16_t>(us(0x2698A9E)) = (uint16_t)(MEM<uint16_t>(us(0x2698A9E)) + c14);
-		MEM<uint16_t>(us(0x2698A8E)) = (uint16_t)(MEM<uint16_t>(us(0x2698A8E)) + c16);
+		MEM<uint16_t>(game_addr(game::unk_2698A9E)) = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_2698A9E)) + c14);
+		MEM<uint16_t>(game_addr(game::unk_2698A8E)) = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_2698A8E)) + c16);
 		return done;
 	}
 
@@ -1909,7 +1909,7 @@ namespace dribble
 	{
 		if (S16(a1, 0x24) >= 8)
 		{
-			x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Dribble), 0xDC, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Dribble), 0xDC, a1);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -1919,31 +1919,31 @@ namespace dribble
 	{
 		const uint32_t node = a1;
 		uint32_t states[11];
-		states[0] = us(0x84C220);
-		states[1] = us(0x84C610);
-		states[2] = us(0x84C650);
-		states[3] = us(0x84C6B0);
-		states[4] = us(0x84C6F0);
-		states[5] = us(0x84C7A0);
-		states[6] = us(0x84CCE0);
-		states[7] = us(0x84CD20);
-		states[8] = us(0x84CDE0);
-		states[9] = us(0x84CE70);
-		states[10] = us(0x84CEB0);
+		states[0] = game_addr(game::MAG_041_Dribble_Ball_Setup);
+		states[1] = game_addr(game::MAG_041_Dribble_Ball_Grab);
+		states[2] = game_addr(game::MAG_041_Dribble_Ball_Morph);
+		states[3] = game_addr(game::MAG_041_Dribble_Ball_Hold);
+		states[4] = game_addr(game::MAG_041_Dribble_Ball_Bounce);
+		states[5] = game_addr(game::MAG_041_Dribble_Ball_Flight);
+		states[6] = game_addr(game::MAG_041_Dribble_Ball_GiveBackTarget);
+		states[7] = game_addr(game::MAG_041_Dribble_Target_TurnAndWalkBack);
+		states[8] = game_addr(game::MAG_041_Dribble_Target_WalkBack);
+		states[9] = game_addr(game::MAG_041_Dribble_Ball_End);
+		states[10] = game_addr(game::MAG_041_Dribble_Ball_State10_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 8) != 0)
 		{
-			const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(node, 0x2D) * 0x9C;
-			const int16_t px = (int16_t)(MEM<uint16_t>(us(BLK) + 0x7C) - MEM<uint16_t>(us(BLK) + 0x74));
+			const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(node, 0x2D) * 0x9C;
+			const int16_t px = (int16_t)(MEM<uint16_t>(game_addr(BLK) + 0x7C) - MEM<uint16_t>(game_addr(BLK) + 0x74));
 			S16(ent, 0x1C) = px;
 			S32(ent, 0x54) = px;
-			const int16_t py = (int16_t)(MEM<uint16_t>(us(BLK) + 0x7E) - MEM<uint16_t>(us(BLK) + 0x76));
+			const int16_t py = (int16_t)(MEM<uint16_t>(game_addr(BLK) + 0x7E) - MEM<uint16_t>(game_addr(BLK) + 0x76));
 			S16(ent, 0x1E) = py;
 			S32(ent, 0x58) = py;
-			const int16_t pz = (int16_t)(MEM<uint16_t>(us(BLK) + 0x80) - MEM<uint16_t>(us(BLK) + 0x78));
+			const int16_t pz = (int16_t)(MEM<uint16_t>(game_addr(BLK) + 0x80) - MEM<uint16_t>(game_addr(BLK) + 0x78));
 			S16(ent, 0x20) = pz;
 			S32(ent, 0x5C) = pz;
-			db_84BA60(us(BLK));
+			db_84BA60(game_addr(BLK));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1952,11 +1952,11 @@ namespace dribble
 
 	uint32_t __cdecl db_84BA60(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)((int32_t)S16(a1, 0xB0) * 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)((int32_t)S16(a1, 0xB0) * 0x9C);
 		ff8fx::copy<(0x20)>((void *)(a1 + 0x20), (const void *)(ent + 0x40));
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(a1 + 0x20);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(a1 + 0x40);
@@ -1966,20 +1966,20 @@ namespace dribble
 		x::GTE_LoadIRFromMatrixColumn(a1 + 0x24);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(a1 + 0x44);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(a1 + 0x34);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(a1 + 0x54);
 		uint32_t cp = U32(a1, 0x6C);
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x4040;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4040;
 		const uint32_t r = x::sub_5088A0(ent, ot, 0x10, U32(cp, 0));
 		cp = U32(a1, 0x6C);
-		const uint32_t ot44 = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot44 = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(cp, 0) = r;
 		db_84BB70(U32(ent, 0x64), ot44, 4, a1);
 		const uint32_t wpn = U32(ent, 0x78);
 		if (wpn != 0)
-			db_84BB70(U32(wpn, 4), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, a1);
+			db_84BB70(U32(wpn, 4), MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, a1);
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		return 0;
 	}
@@ -2203,22 +2203,22 @@ namespace dribble
 	{
 		const uint32_t node = a1;
 		const uint32_t slot = U8(node, 0x2D);
-		const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
-		db_84C2D0(us(BLK), us(0x267B920), us(0x2698A60), us(0x2690BE8), ent, slot);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
+		db_84C2D0(game_addr(BLK), game_addr(game::unk_267B920), game_addr(game::unk_2698A60), game_addr(game::unk_2690BE8), ent, slot);
 		U8(ent, 0) |= 4;
 		const uint32_t p0 = U32(ent, 0x1C);
 		const uint32_t p1 = U32(ent, 0x20);
 		U8(node, 0x26) |= 8;
-		MEM<uint32_t>(us(0x267B8F4)) = p0;
-		MEM<uint32_t>(us(0x267B8F8)) = p1;
+		MEM<uint32_t>(game_addr(game::unk_267B8F4)) = p0;
+		MEM<uint32_t>(game_addr(game::unk_267B8F8)) = p1;
 		if ((uint8_t)x::CrtRand() == 0)
 		{
-			MEM<uint16_t>(us(BLK) + 0xB4) = 1;
-			MEM<uint16_t>(us(BLK) + 0x9E) = 0x800;
+			MEM<uint16_t>(game_addr(BLK) + 0xB4) = 1;
+			MEM<uint16_t>(game_addr(BLK) + 0x9E) = 0x800;
 		}
-		db_84C3A0(node, us(BLK));
-		db_84C350(node, us(BLK));
-		db_84C460(node, us(BLK));
+		db_84C3A0(node, game_addr(BLK));
+		db_84C350(node, game_addr(BLK));
+		db_84C460(node, game_addr(BLK));
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -2228,8 +2228,8 @@ namespace dribble
 		x::MAG_007_sub_8DCC00(a1, 0xB8);
 		U32(a1, 0x68) = a5;
 		U32(a1, 0x60) = a2;
-		U32(a1, 0x6C) = us(0x1D8E054);
-		U32(a1, 0x70) = us(0x1D8E054);
+		U32(a1, 0x6C) = game_addr(game::BATTLE_PACKET_WRITE_CURSOR);
+		U32(a1, 0x70) = game_addr(game::BATTLE_PACKET_WRITE_CURSOR);
 		U16(a1, 0xB0) = (uint16_t)a6;
 		U32(a3, 4) = a4;
 		U32(a1, 0x64) = a3;
@@ -2250,7 +2250,7 @@ namespace dribble
 		const int16_t t = S16(a1, 0x24);
 		if (t > 0x38)
 			return 0;
-		const uint16_t ry = MEM<uint16_t>(us(RADIUS_TABLE) + (uint32_t)((int32_t)t * 6));
+		const uint16_t ry = MEM<uint16_t>(game_addr(RADIUS_TABLE) + (uint32_t)((int32_t)t * 6));
 		const uint16_t rxz = (uint16_t)(0x200 - ry);
 		U16(a2, 0xAC) = ry;
 		U16(a2, 0xAE) = rxz;
@@ -2260,7 +2260,7 @@ namespace dribble
 
 	uint32_t __cdecl db_84C3A0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2D) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		const uint32_t save1c = U32(ent, 0x1C);
 		uint32_t mtx[8];
 		ff8fx::copy<(0x20)>(mtx, (const void *)(ent + 0x40));
@@ -2282,7 +2282,7 @@ namespace dribble
 
 	uint32_t __cdecl db_84C460(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t caster = us(0x1D972C0) + (uint32_t)U8(U32(a1, 0xC), 0) * 0x9C;
+		const uint32_t caster = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(U32(a1, 0xC), 0) * 0x9C;
 		const uint32_t blk = a2;
 		alignas(4) uint8_t loc[0x58];
 		ff8fx::fill<(sizeof(loc))>(loc, 0);
@@ -2325,101 +2325,101 @@ namespace dribble
 
 	uint32_t __cdecl db_84C610(uint32_t a1)
 	{
-		db_84C3A0(a1, us(BLK));
+		db_84C3A0(a1, game_addr(BLK));
 		if (S16(a1, 0x24) >= 0x13)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
-		db_84C350(a1, us(BLK));
-		db_84C460(a1, us(BLK));
+		db_84C350(a1, game_addr(BLK));
+		db_84C460(a1, game_addr(BLK));
 		return 0;
 	}
 
 	uint32_t __cdecl db_84C650(uint32_t a1)
 	{
-		db_84C3A0(a1, us(BLK));
-		const uint16_t m = (uint16_t)(MEM<uint16_t>(us(BLK) + 0xA8) + 0x200);
-		MEM<uint16_t>(us(BLK) + 0xA8) = m;
+		db_84C3A0(a1, game_addr(BLK));
+		const uint16_t m = (uint16_t)(MEM<uint16_t>(game_addr(BLK) + 0xA8) + 0x200);
+		MEM<uint16_t>(game_addr(BLK) + 0xA8) = m;
 		if ((int16_t)m >= 0x1000)
 		{
-			MEM<uint16_t>(us(BLK) + 0xA8) = 0x1000;
+			MEM<uint16_t>(game_addr(BLK) + 0xA8) = 0x1000;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		db_84C350(a1, us(BLK));
-		db_84C460(a1, us(BLK));
+		db_84C350(a1, game_addr(BLK));
+		db_84C460(a1, game_addr(BLK));
 		return 0;
 	}
 
 	uint32_t __cdecl db_84C6B0(uint32_t a1)
 	{
-		db_84C3A0(a1, us(BLK));
-		db_84C350(a1, us(BLK));
-		db_84C460(a1, us(BLK));
+		db_84C3A0(a1, game_addr(BLK));
+		db_84C350(a1, game_addr(BLK));
+		db_84C460(a1, game_addr(BLK));
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl db_84C6F0(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2D) * 0x9C;
-		db_84C3A0(a1, us(BLK));
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2D) * 0x9C;
+		db_84C3A0(a1, game_addr(BLK));
 		if (S16(a1, 0x24) >= 0x33)
 		{
 			gx::QueueChainTransformation(ent, 6);
 			const int32_t f = S16(ent, 0xE);
-			MEM<uint16_t>(us(BLK) + 0x96) = 0xFE00;
+			MEM<uint16_t>(game_addr(BLK) + 0x96) = 0xFE00;
 			const int32_t s = (int32_t)x::computeSin((uint32_t)f);
-			MEM<uint16_t>(us(BLK) + 0x94) = (uint16_t)(shl32(s, 7) / 4096);
+			MEM<uint16_t>(game_addr(BLK) + 0x94) = (uint16_t)(shl32(s, 7) / 4096);
 			const int32_t c = (int32_t)x::computeCosine((uint32_t)(int32_t)S16(ent, 0xE));
-			MEM<uint16_t>(us(BLK) + 0xB2) = 0;
-			MEM<uint16_t>(us(BLK) + 0x98) = (uint16_t)(shl32(c, 7) / 4096);
+			MEM<uint16_t>(game_addr(BLK) + 0xB2) = 0;
+			MEM<uint16_t>(game_addr(BLK) + 0x98) = (uint16_t)(shl32(c, 7) / 4096);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		db_84C350(a1, us(BLK));
-		db_84C460(a1, us(BLK));
+		db_84C350(a1, game_addr(BLK));
+		db_84C460(a1, game_addr(BLK));
 		return 0;
 	}
 
 	uint32_t __cdecl db_84C7A0(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2D) * 0x9C;
-		db_84C3A0(a1, us(BLK));
-		const uint16_t t = MEM<uint16_t>(us(BLK) + 0xB2);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2D) * 0x9C;
+		db_84C3A0(a1, game_addr(BLK));
+		const uint16_t t = MEM<uint16_t>(game_addr(BLK) + 0xB2);
 		if ((int16_t)t <= 0x10)
 		{
-			MEM<uint16_t>(us(BLK) + 0x9C) = (uint16_t)((uint16_t)(t * 0xFF00u) & 0xFFF);
-			if (MEM<uint16_t>(us(BLK) + 0xB4) == 1)
-				MEM<uint16_t>(us(BLK) + 0x9E) = (uint16_t)((uint16_t)(0x10 - t) << 7);
+			MEM<uint16_t>(game_addr(BLK) + 0x9C) = (uint16_t)((uint16_t)(t * 0xFF00u) & 0xFFF);
+			if (MEM<uint16_t>(game_addr(BLK) + 0xB4) == 1)
+				MEM<uint16_t>(game_addr(BLK) + 0x9E) = (uint16_t)((uint16_t)(0x10 - t) << 7);
 		}
-		const uint16_t m = (uint16_t)(MEM<uint16_t>(us(BLK) + 0xA8) + 0xFF00);
-		MEM<uint16_t>(us(BLK) + 0xA8) = m;
+		const uint16_t m = (uint16_t)(MEM<uint16_t>(game_addr(BLK) + 0xA8) + 0xFF00);
+		MEM<uint16_t>(game_addr(BLK) + 0xA8) = m;
 		if ((int16_t)m <= 0)
-			MEM<uint16_t>(us(BLK) + 0xA8) = 0;
-		const uint16_t vx = MEM<uint16_t>(us(BLK) + 0x94);
-		const uint16_t vz = MEM<uint16_t>(us(BLK) + 0x98);
-		MEM<uint16_t>(us(BLK) + 0x7C) = (uint16_t)(MEM<uint16_t>(us(BLK) + 0x7C) + vx);
-		const uint16_t vy = (uint16_t)(MEM<uint16_t>(us(BLK) + 0x96) + 0x30);
-		MEM<uint16_t>(us(BLK) + 0x80) = (uint16_t)(MEM<uint16_t>(us(BLK) + 0x80) + vz);
-		MEM<uint16_t>(us(BLK) + 0x7E) = (uint16_t)(MEM<uint16_t>(us(BLK) + 0x7E) + vy);
-		MEM<uint16_t>(us(BLK) + 0x96) = vy;
-		if ((int16_t)vy > 0 && (int16_t)MEM<uint16_t>(us(BLK) + 0x7E) >= (int16_t)MEM<uint16_t>(us(BLK) + 0x76))
+			MEM<uint16_t>(game_addr(BLK) + 0xA8) = 0;
+		const uint16_t vx = MEM<uint16_t>(game_addr(BLK) + 0x94);
+		const uint16_t vz = MEM<uint16_t>(game_addr(BLK) + 0x98);
+		MEM<uint16_t>(game_addr(BLK) + 0x7C) = (uint16_t)(MEM<uint16_t>(game_addr(BLK) + 0x7C) + vx);
+		const uint16_t vy = (uint16_t)(MEM<uint16_t>(game_addr(BLK) + 0x96) + 0x30);
+		MEM<uint16_t>(game_addr(BLK) + 0x80) = (uint16_t)(MEM<uint16_t>(game_addr(BLK) + 0x80) + vz);
+		MEM<uint16_t>(game_addr(BLK) + 0x7E) = (uint16_t)(MEM<uint16_t>(game_addr(BLK) + 0x7E) + vy);
+		MEM<uint16_t>(game_addr(BLK) + 0x96) = vy;
+		if ((int16_t)vy > 0 && (int16_t)MEM<uint16_t>(game_addr(BLK) + 0x7E) >= (int16_t)MEM<uint16_t>(game_addr(BLK) + 0x76))
 		{
 			gx::QueueChainTransformation(ent, 6);
-			const uint16_t ground = MEM<uint16_t>(us(BLK) + 0x76);
-			MEM<uint16_t>(us(BLK) + 0x7E) = ground;
-			const uint32_t n = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_DustSpawner), 0xDC, a1);
+			const uint16_t ground = MEM<uint16_t>(game_addr(BLK) + 0x76);
+			MEM<uint16_t>(game_addr(BLK) + 0x7E) = ground;
+			const uint32_t n = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_DustSpawner), 0xDC, a1);
 			U32(n, 0x1C) = U32(ent, 0x1C);
 			U32(n, 0x20) = U32(ent, 0x20);
 			U16(n, 0x1E) = 0;
 			x::BdPlaySE(P(SOUND_Land()), 1, 0x80);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
-		MEM<uint16_t>(us(BLK) + 0xB2) = (uint16_t)(MEM<uint16_t>(us(BLK) + 0xB2) + 1);
-		db_84C350(a1, us(BLK));
+		MEM<uint16_t>(game_addr(BLK) + 0xB2) = (uint16_t)(MEM<uint16_t>(game_addr(BLK) + 0xB2) + 1);
+		db_84C350(a1, game_addr(BLK));
 		return 0;
 	}
 
 	uint32_t __cdecl db_84CCE0(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2D) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		U8(a1, 0x26) &= 0xF7;
 		U16(ent, 0) &= 0xFFFB;
 		U16(ent, 0x1E) = U16(ent, 0x24);
@@ -2429,36 +2429,36 @@ namespace dribble
 
 	uint32_t __cdecl db_84CD20(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2D) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		const uint16_t fl = U16(ent, 0);
-		MEM<uint32_t>(us(0x267B90C)) = fl;
+		MEM<uint32_t>(game_addr(game::unk_267B90C)) = fl;
 		U16(ent, 0) = (uint16_t)(fl | 0x1000);
 		if (U8(U32(ent, 0x74), 0) == 6)
 			return 0;
 		gx::QueueChainTransformation(ent, 0x1A);
 		const uint16_t facing = (uint16_t)((U16(ent, 0xE) - 0x800) & 0xFFF);
-		MEM<uint16_t>(us(BLK) + 0xB2) = 0xA;
+		MEM<uint16_t>(game_addr(BLK) + 0xB2) = 0xA;
 		U16(ent, 0xE) = facing;
-		MEM<uint16_t>(us(BLK) + 0x94) = (uint16_t)(sub32(MEM<int16_t>(us(0x267B8F4)), S16(ent, 0x1C)) / 10);
-		MEM<uint16_t>(us(BLK) + 0x98) = (uint16_t)(sub32(MEM<int16_t>(us(0x267B8F8)), S16(ent, 0x20)) / 10);
+		MEM<uint16_t>(game_addr(BLK) + 0x94) = (uint16_t)(sub32(MEM<int16_t>(game_addr(game::unk_267B8F4)), S16(ent, 0x1C)) / 10);
+		MEM<uint16_t>(game_addr(BLK) + 0x98) = (uint16_t)(sub32(MEM<int16_t>(game_addr(game::unk_267B8F8)), S16(ent, 0x20)) / 10);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl db_84CDE0(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2D) * 0x9C;
-		const uint16_t vx = MEM<uint16_t>(us(BLK) + 0x94);
-		const uint16_t vz = MEM<uint16_t>(us(BLK) + 0x98);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2D) * 0x9C;
+		const uint16_t vx = MEM<uint16_t>(game_addr(BLK) + 0x94);
+		const uint16_t vz = MEM<uint16_t>(game_addr(BLK) + 0x98);
 		U16(ent, 0x1C) = (uint16_t)(U16(ent, 0x1C) + vx);
 		U16(ent, 0x20) = (uint16_t)(U16(ent, 0x20) + vz);
-		const uint16_t t = (uint16_t)(MEM<uint16_t>(us(BLK) + 0xB2) - 1);
-		MEM<uint16_t>(us(BLK) + 0xB2) = t;
+		const uint16_t t = (uint16_t)(MEM<uint16_t>(game_addr(BLK) + 0xB2) - 1);
+		MEM<uint16_t>(game_addr(BLK) + 0xB2) = t;
 		if ((int16_t)t > 0)
 			return 0;
 		gx::QueueChainTransformation(ent, U8(U32(ent, 0x74), 2));
-		U32(ent, 0x1C) = MEM<uint32_t>(us(0x267B8F4));
-		U32(ent, 0x20) = MEM<uint32_t>(us(0x267B8F8));
+		U32(ent, 0x1C) = MEM<uint32_t>(game_addr(game::unk_267B8F4));
+		U32(ent, 0x20) = MEM<uint32_t>(game_addr(game::unk_267B8F8));
 		U16(ent, 0xE) = (uint16_t)((U16(ent, 0xE) - 0x800) & 0xFFF);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -2466,9 +2466,9 @@ namespace dribble
 
 	uint32_t __cdecl db_84CE70(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2D) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2D) * 0x9C;
 		U8(a1, 0x26) |= 1;
-		const uint16_t d = (uint16_t)((U16(ent, 0) ^ MEM<uint16_t>(us(0x267B90C))) & 0x1000);
+		const uint16_t d = (uint16_t)((U16(ent, 0) ^ MEM<uint16_t>(game_addr(game::unk_267B90C))) & 0x1000);
 		U16(ent, 0) ^= d;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -2476,7 +2476,7 @@ namespace dribble
 
 	uint32_t __cdecl db_84C940(uint32_t a1)
 	{
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Dust), 0xDC, a1);
+		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Dust), 0xDC, a1);
 		U16(n, 0xD8) = 8;
 		uint32_t vel = n + 0x98;
 		for (int32_t i = 0; i < S16(n, 0xD8); i++, vel += 8)
@@ -2511,9 +2511,9 @@ namespace dribble
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x84CB70);
-		states[1] = us(0x84CB90);
-		states[2] = us(0x84CCA0);
+		states[0] = game_addr(game::MAG_041_Dribble_Dust_Init);
+		states[1] = game_addr(game::MAG_041_Dribble_Dust_Move);
+		states[2] = game_addr(game::MAG_041_Dribble_Dust_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		for (int32_t i = 0; i < S16(node, 0xD8); i++)
 		{
@@ -2529,7 +2529,7 @@ namespace dribble
 	uint32_t __cdecl db_84CB70(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = us(DUST_FLIPBOOK);
+		U32(a1, 0x4C) = game_addr(DUST_FLIPBOOK);
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return 0;
@@ -2556,119 +2556,119 @@ namespace dribble
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x846830, (void *)a_73A0D0, "041 MAG_041_sub_846830" },
-		{ 0x846840, (void *)a_73A0D0, "041 MAG_041_sub_846840" },
-		{ 0x8468D0, (void *)a_73A170, "041 MAG_041_sub_8468D0" },
-		{ 0x8469D0, (void *)a_73C100, "041 MAG_041_sub_8469D0" },
-		{ 0x846A20, (void *)a_73A380, "041 MAG_041_sub_846A20" },
-		{ 0x846F70, (void *)a_73FE90, "041 sub_846F70" },
-		{ 0x8472A0, (void *)a_740210, "041 sub_8472A0" },
-		{ 0x847890, (void *)a_7355E0, "041 sub_847890" },
-		{ 0x847E60, (void *)a_735BB0, "041 sub_847E60" },
-		{ 0x8480A0, (void *)a_735DF0, "041 sub_8480A0" },
-		{ 0x848F80, (void *)a_740910, "041 sub_848F80" },
-		{ 0x8495E0, (void *)a_740F70, "041 sub_8495E0" },
-		{ 0x849630, (void *)a_740FC0, "041 sub_849630" },
-		{ 0x8496C0, (void *)a_741050, "041 sub_8496C0" },
-		{ 0x849790, (void *)a_741120, "041 sub_849790" },
-		{ 0x84A1D0, (void *)a_741B60, "041 sub_84A1D0" },
-		{ 0x84A900, (void *)a_742290, "041 au_re__rand_49" },
-		{ 0x84A930, (void *)a_7422C0, "041 sub_84A930" },
-		{ 0x84A970, (void *)a_742300, "041 sub_84A970" },
-		{ 0x84A9C0, (void *)a_742350, "041 sub_84A9C0" },
-		{ 0x84AA10, (void *)a_7423A0, "041 au_re__rand_49_0" },
-		{ 0x84AB20, (void *)a_7424B0, "041 sub_84AB20" },
-		{ 0x84AB30, (void *)a_7424C0, "041 sub_84AB30" },
-		{ 0x84B310, (void *)a_742CA0, "041 sub_84B310" },
-		{ 0x84B340, (void *)a_742CD0, "041 sub_84B340" },
-		{ 0x84B370, (void *)a_742D00, "041 sub_84B370" },
-		{ 0x84B520, (void *)a_742EB0, "041 sub_84B520" },
-		{ 0x84B660, (void *)a_742FF0, "041 sub_84B660" },
-		{ 0x84B8B0, (void *)a_73A6D0, "041 nullsub_1599" },
-		{ 0x84B8C0, (void *)a_73A380, "041 MAG_041_sub_84B8C0" },
-		{ 0x84C8E0, (void *)a_73A380, "041 sub_84C8E0" },
-		{ 0x84CC70, (void *)a_743C20, "041 sub_84CC70" },
-		{ 0x84CCA0, (void *)a_73A6D0, "041 nullsub_1600" },
-		{ 0x84CCB0, (void *)a_7475A0, "041 sub_84CCB0" },
-		{ 0x84CCD0, (void *)a_73A6D0, "041 nullsub_1601" },
-		{ 0x84CEB0, (void *)a_73A6D0, "041 nullsub_1602" },
-		{ 0x84CEC0, (void *)a_7475A0, "041 sub_84CEC0" },
-		{ 0x84CEE0, (void *)a_73A6D0, "041 nullsub_1603" },
-		{ 0x84CF50, (void *)a_73A6D0, "041 nullsub_1604" },
-		{ 0x84CF60, (void *)a_747500, "041 MAG_041_sub_84CF60" },
-		{ 0x84CFA0, (void *)a_73A0D0, "041 MAG_041_sub_84CFA0" },
-		{ 0x84CFB0, (void *)a_747550, "041 MAG_041_sub_84CFB0" },
-		{ 0x84CFC0, (void *)a_73A0D0, "041 MAG_041_sub_84CFC0" },
-		{ 0x84CFD0, (void *)a_73A0D0, "041 MAG_041_sub_84CFD0" },
-		{ 0x84CFE0, (void *)a_7475A0, "041 MAG_041_sub_84CFE0" },
-		{ 0x84D000, (void *)a_73A6D0, "041 nullsub_1598" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_041_Dribble_Master_State0_Advance, (void *)a_73A0D0, "041 MAG_041_sub_846830" },
+		{ game::MAG_041_Dribble_Master_State1_Advance, (void *)a_73A0D0, "041 MAG_041_sub_846840" },
+		{ game::MAG_041_Dribble_Master_State3_SpawnEmitter, (void *)a_73A170, "041 MAG_041_sub_8468D0" },
+		{ game::MAG_041_SpawnChildTask, (void *)a_73C100, "041 MAG_041_sub_8469D0" },
+		{ game::MAG_041_Dribble_ActorSystemTask, (void *)a_73A380, "041 MAG_041_sub_846A20" },
+		{ game::MAG_041_Director_Mode3Setup, (void *)a_73FE90, "041 sub_846F70" },
+		{ game::MAG_041_RelocateActorData, (void *)a_740210, "041 sub_8472A0" },
+		{ game::MAG_041_RenderPrimModel, (void *)a_7355E0, "041 sub_847890" },
+		{ game::MAG_041_RenderPolyFT3List, (void *)a_735BB0, "041 sub_847E60" },
+		{ game::MAG_041_RenderPolyFT4List, (void *)a_735DF0, "041 sub_8480A0" },
+		{ game::MAG_041_ActorMotion, (void *)a_740910, "041 sub_848F80" },
+		{ game::MAG_041_DampValue, (void *)a_740F70, "041 sub_8495E0" },
+		{ game::MAG_041_DampVector, (void *)a_740FC0, "041 sub_849630" },
+		{ game::MAG_041_Instance_AdvanceTexFrame, (void *)a_741050, "041 sub_8496C0" },
+		{ game::MAG_041_Instance_BuildTransform, (void *)a_741120, "041 sub_849790" },
+		{ game::MAG_041_Particle_LifeCountdown, (void *)a_741B60, "041 sub_84A1D0" },
+		{ game::MAG_041_RandRange, (void *)a_742290, "041 au_re__rand_49" },
+		{ game::MAG_041_RandRangeWide, (void *)a_7422C0, "041 sub_84A930" },
+		{ game::MAG_041_RandVec3, (void *)a_742300, "041 sub_84A970" },
+		{ game::MAG_041_JitterAngles3, (void *)a_742350, "041 sub_84A9C0" },
+		{ game::MAG_041_RandAngleJitter, (void *)a_7423A0, "041 au_re__rand_49_0" },
+		{ game::MAG_041_GetWord8Minus1, (void *)a_7424B0, "041 sub_84AB20" },
+		{ game::MAG_041_Particle_AttachToOwner, (void *)a_7424C0, "041 sub_84AB30" },
+		{ game::MAG_041_ParticleList_Append, (void *)a_742CA0, "041 sub_84B310" },
+		{ game::MAG_041_ParticleList_Unlink, (void *)a_742CD0, "041 sub_84B340" },
+		{ game::MAG_041_Particle_Init, (void *)a_742D00, "041 sub_84B370" },
+		{ game::MAG_041_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "041 sub_84B520" },
+		{ game::MAG_041_Particle_PlaceAtPoint, (void *)a_742FF0, "041 sub_84B660" },
+		{ game::MAG_041_Dribble_ActorSystem_State2_Empty, (void *)a_73A6D0, "041 nullsub_1599" },
+		{ game::MAG_041_Dribble_SpawnerTask, (void *)a_73A380, "041 MAG_041_sub_84B8C0" },
+		{ game::MAG_041_Dribble_DustSpawnerTask, (void *)a_73A380, "041 sub_84C8E0" },
+		{ game::MAG_041_StepCounterLimit, (void *)a_743C20, "041 sub_84CC70" },
+		{ game::MAG_041_Dribble_Dust_State2_Empty, (void *)a_73A6D0, "041 nullsub_1600" },
+		{ game::MAG_041_Dribble_DustSpawner_State1_Finish, (void *)a_7475A0, "041 sub_84CCB0" },
+		{ game::MAG_041_Dribble_DustSpawner_State2_Empty, (void *)a_73A6D0, "041 nullsub_1601" },
+		{ game::MAG_041_Dribble_Ball_State10_Empty, (void *)a_73A6D0, "041 nullsub_1602" },
+		{ game::MAG_041_Dribble_Spawner_State1_Finish, (void *)a_7475A0, "041 sub_84CEC0" },
+		{ game::MAG_041_Dribble_Spawner_State2_Empty, (void *)a_73A6D0, "041 nullsub_1603" },
+		{ game::MAG_041_Dribble_Emitter_State3_Empty, (void *)a_73A6D0, "041 nullsub_1604" },
+		{ game::MAG_041_Dribble_Master_State4_NextTargetLoop, (void *)a_747500, "041 MAG_041_sub_84CF60" },
+		{ game::MAG_041_Dribble_Master_State5_Advance, (void *)a_73A0D0, "041 MAG_041_sub_84CFA0" },
+		{ game::MAG_041_Dribble_Master_State6_WaitQueuesEmpty, (void *)a_747550, "041 MAG_041_sub_84CFB0" },
+		{ game::MAG_041_Dribble_Master_State7_Advance, (void *)a_73A0D0, "041 MAG_041_sub_84CFC0" },
+		{ game::MAG_041_Dribble_Master_State8_Advance, (void *)a_73A0D0, "041 MAG_041_sub_84CFD0" },
+		{ game::MAG_041_Dribble_Master_State9_Finish, (void *)a_7475A0, "041 MAG_041_sub_84CFE0" },
+		{ game::MAG_041_Dribble_Master_State10_Empty, (void *)a_73A6D0, "041 nullsub_1598" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x8466F0, (void *)db_8466F0, "041 db_8466F0" },
-		{ 0x846850, (void *)db_846850, "041 db_846850" },
-		{ 0x846890, (void *)db_846890, "041 db_846890" },
-		{ 0x846900, (void *)db_846900, "041 db_846900" },
-		{ 0x846990, (void *)db_846990, "041 db_846990" },
-		{ 0x846A80, (void *)db_846A80, "041 db_846A80" },
-		{ 0x846AB0, (void *)db_846AB0, "041 db_846AB0" },
-		{ 0x846C60, (void *)db_846C60, "041 db_846C60" },
-		{ 0x846D40, (void *)db_846D40, "041 db_846D40" },
-		{ 0x846EA0, (void *)db_846EA0, "041 db_846EA0" },
-		{ 0x847090, (void *)db_847090, "041 db_847090" },
-		{ 0x847500, (void *)db_847500, "041 db_847500" },
-		{ 0x8476F0, (void *)db_8476F0, "041 db_8476F0" },
-		{ 0x847750, (void *)db_847750, "041 db_847750" },
-		{ 0x8479D0, (void *)db_8479D0, "041 db_8479D0" },
-		{ 0x847BE0, (void *)db_847BE0, "041 db_847BE0" },
-		{ 0x848340, (void *)db_848340, "041 db_848340" },
-		{ 0x848570, (void *)db_848570, "041 db_848570" },
-		{ 0x848830, (void *)db_848830, "041 db_848830" },
-		{ 0x848A90, (void *)db_848A90, "041 db_848A90" },
-		{ 0x848D70, (void *)db_848D70, "041 db_848D70" },
-		{ 0x848E30, (void *)db_848E30, "041 db_848E30" },
-		{ 0x848EB0, (void *)db_848EB0, "041 db_848EB0" },
-		{ 0x848EF0, (void *)db_848EF0, "041 db_848EF0" },
-		{ 0x849F20, (void *)db_849F20, "041 db_849F20" },
-		{ 0x84A030, (void *)db_84A030, "041 db_84A030" },
-		{ 0x84A0B0, (void *)db_84A0B0, "041 db_84A0B0" },
-		{ 0x84A0E0, (void *)db_84A0E0, "041 db_84A0E0" },
-		{ 0x84A180, (void *)db_84A180, "041 db_84A180" },
-		{ 0x84A200, (void *)db_84A200, "041 db_84A200" },
-		{ 0x84A280, (void *)db_84A280, "041 db_84A280" },
-		{ 0x84AA60, (void *)db_84AA60, "041 db_84AA60" },
-		{ 0x84AC80, (void *)db_84AC80, "041 db_84AC80" },
-		{ 0x84B770, (void *)db_84B770, "041 db_84B770" },
-		{ 0x84B800, (void *)db_84B800, "041 db_84B800" },
-		{ 0x84B890, (void *)db_84B890, "041 db_84B890" },
-		{ 0x84B920, (void *)db_84B920, "041 db_84B920" },
-		{ 0x84B950, (void *)db_84B950, "041 db_84B950" },
-		{ 0x84BA60, (void *)db_84BA60, "041 db_84BA60" },
-		{ 0x84BB70, (void *)db_84BB70, "041 db_84BB70" },
-		{ 0x84C220, (void *)db_84C220, "041 db_84C220" },
-		{ 0x84C2D0, (void *)db_84C2D0, "041 db_84C2D0" },
-		{ 0x84C350, (void *)db_84C350, "041 db_84C350" },
-		{ 0x84C3A0, (void *)db_84C3A0, "041 db_84C3A0" },
-		{ 0x84C460, (void *)db_84C460, "041 db_84C460" },
-		{ 0x84C610, (void *)db_84C610, "041 db_84C610" },
-		{ 0x84C650, (void *)db_84C650, "041 db_84C650" },
-		{ 0x84C6B0, (void *)db_84C6B0, "041 db_84C6B0" },
-		{ 0x84C6F0, (void *)db_84C6F0, "041 db_84C6F0" },
-		{ 0x84C7A0, (void *)db_84C7A0, "041 db_84C7A0" },
-		{ 0x84C940, (void *)db_84C940, "041 db_84C940" },
-		{ 0x84CA70, (void *)db_84CA70, "041 db_84CA70" },
-		{ 0x84CB00, (void *)db_84CB00, "041 db_84CB00" },
-		{ 0x84CB70, (void *)db_84CB70, "041 db_84CB70" },
-		{ 0x84CB90, (void *)db_84CB90, "041 db_84CB90" },
-		{ 0x84CCE0, (void *)db_84CCE0, "041 db_84CCE0" },
-		{ 0x84CD20, (void *)db_84CD20, "041 db_84CD20" },
-		{ 0x84CDE0, (void *)db_84CDE0, "041 db_84CDE0" },
-		{ 0x84CE70, (void *)db_84CE70, "041 db_84CE70" },
-		{ 0x84CEF0, (void *)db_84CEF0, "041 db_84CEF0" },
-		{ 0x84CF10, (void *)db_84CF10, "041 db_84CF10" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_041_Dribble_MasterTask, (void *)db_8466F0, "041 db_8466F0" },
+		{ game::MAG_041_Dribble_Master_AllocActorPools, (void *)db_846850, "041 db_846850" },
+		{ game::MAG_041_Dribble_ClearActorPools, (void *)db_846890, "041 db_846890" },
+		{ game::MAG_041_Dribble_EmitterTask, (void *)db_846900, "041 db_846900" },
+		{ game::MAG_041_Dribble_Emitter_SpawnActorsAndDribble, (void *)db_846990, "041 db_846990" },
+		{ game::MAG_041_Dribble_ActorSystem_State0_StartActorSystemAtFrame, (void *)db_846A80, "041 db_846A80" },
+		{ game::MAG_041_DirectorSetup, (void *)db_846AB0, "041 db_846AB0" },
+		{ game::MAG_041_ResetTrailHistory, (void *)db_846C60, "041 db_846C60" },
+		{ game::MAG_041_Director_CasterRefPoints, (void *)db_846D40, "041 db_846D40" },
+		{ game::MAG_041_FillTrailRows, (void *)db_846EA0, "041 db_846EA0" },
+		{ game::MAG_041_Director_TargetRefPoints, (void *)db_847090, "041 db_847090" },
+		{ game::MAG_041_Dribble_ActorSystem_Step, (void *)db_847500, "041 db_847500" },
+		{ game::MAG_041_ActSys_DrawPass, (void *)db_8476F0, "041 db_8476F0" },
+		{ game::MAG_041_ActSys_DrawActorModel, (void *)db_847750, "041 db_847750" },
+		{ game::MAG_041_MeshEmitF3, (void *)db_8479D0, "041 db_8479D0" },
+		{ game::MAG_041_MeshEmitF4, (void *)db_847BE0, "041 db_847BE0" },
+		{ game::MAG_041_PrimList_G3, (void *)db_848340, "041 db_848340" },
+		{ game::MAG_041_PrimList_G4, (void *)db_848570, "041 db_848570" },
+		{ game::MAG_041_PrimList_GT3, (void *)db_848830, "041 db_848830" },
+		{ game::MAG_041_PrimList_GT4, (void *)db_848A90, "041 db_848A90" },
+		{ game::MAG_041_ActSys_DrawSpritePass, (void *)db_848D70, "041 db_848D70" },
+		{ game::MAG_041_ActSys_DrawActorSprite, (void *)db_848E30, "041 db_848E30" },
+		{ game::MAG_041_ActSys_UpdatePass, (void *)db_848EB0, "041 db_848EB0" },
+		{ game::MAG_041_ActorStep, (void *)db_848EF0, "041 db_848EF0" },
+		{ game::MAG_041_MorphVertexBlock, (void *)db_849F20, "041 db_849F20" },
+		{ game::MAG_041_Instance_EndOfLifeTest, (void *)db_84A030, "041 db_84A030" },
+		{ game::MAG_041_Instance_SpawnFollowUp, (void *)db_84A0B0, "041 db_84A0B0" },
+		{ game::MAG_041_AllocParticle, (void *)db_84A0E0, "041 db_84A0E0" },
+		{ game::MAG_041_ActSys_UpdateEmitter, (void *)db_84A180, "041 db_84A180" },
+		{ game::MAG_041_ActSys_EmitterSpawnStep, (void *)db_84A200, "041 db_84A200" },
+		{ game::MAG_041_ActSys_SpawnParticles, (void *)db_84A280, "041 db_84A280" },
+		{ game::MAG_041_ActSys_AllocParticleSlot, (void *)db_84AA60, "041 db_84AA60" },
+		{ game::MAG_041_Actor_InterpolatePosition, (void *)db_84AC80, "041 db_84AC80" },
+		{ game::MAG_041_SpawnSubEffects, (void *)db_84B770, "041 db_84B770" },
+		{ game::MAG_041_Director_SpawnGroupEffects, (void *)db_84B800, "041 db_84B800" },
+		{ game::MAG_041_Dribble_ActorSystem_State1_StepActorSystem, (void *)db_84B890, "041 db_84B890" },
+		{ game::MAG_041_Dribble_Spawner_SpawnDribble, (void *)db_84B920, "041 db_84B920" },
+		{ game::MAG_041_Dribble_BallTask, (void *)db_84B950, "041 db_84B950" },
+		{ game::MAG_041_Dribble_DrawTargetAsBall, (void *)db_84BA60, "041 db_84BA60" },
+		{ game::MAG_041_Dribble_RenderBallModel, (void *)db_84BB70, "041 db_84BB70" },
+		{ game::MAG_041_Dribble_Ball_Setup, (void *)db_84C220, "041 db_84C220" },
+		{ game::MAG_041_Dribble_InitBallBlock, (void *)db_84C2D0, "041 db_84C2D0" },
+		{ game::MAG_041_Dribble_Ball_RadiiFromTable, (void *)db_84C350, "041 db_84C350" },
+		{ game::MAG_041_Dribble_Ball_TargetPivot, (void *)db_84C3A0, "041 db_84C3A0" },
+		{ game::MAG_041_Dribble_Ball_PositionInHand, (void *)db_84C460, "041 db_84C460" },
+		{ game::MAG_041_Dribble_Ball_Grab, (void *)db_84C610, "041 db_84C610" },
+		{ game::MAG_041_Dribble_Ball_Morph, (void *)db_84C650, "041 db_84C650" },
+		{ game::MAG_041_Dribble_Ball_Hold, (void *)db_84C6B0, "041 db_84C6B0" },
+		{ game::MAG_041_Dribble_Ball_Bounce, (void *)db_84C6F0, "041 db_84C6F0" },
+		{ game::MAG_041_Dribble_Ball_Flight, (void *)db_84C7A0, "041 db_84C7A0" },
+		{ game::MAG_041_Dribble_SpawnDust, (void *)db_84C940, "041 db_84C940" },
+		{ game::MAG_041_Dribble_DustTask, (void *)db_84CA70, "041 db_84CA70" },
+		{ game::MAG_041_Dribble_DrawDustPuff, (void *)db_84CB00, "041 db_84CB00" },
+		{ game::MAG_041_Dribble_Dust_Init, (void *)db_84CB70, "041 db_84CB70" },
+		{ game::MAG_041_Dribble_Dust_Move, (void *)db_84CB90, "041 db_84CB90" },
+		{ game::MAG_041_Dribble_Ball_GiveBackTarget, (void *)db_84CCE0, "041 db_84CCE0" },
+		{ game::MAG_041_Dribble_Target_TurnAndWalkBack, (void *)db_84CD20, "041 db_84CD20" },
+		{ game::MAG_041_Dribble_Target_WalkBack, (void *)db_84CDE0, "041 db_84CDE0" },
+		{ game::MAG_041_Dribble_Ball_End, (void *)db_84CE70, "041 db_84CE70" },
+		{ game::MAG_041_Dribble_Emitter_ReleaseMaster, (void *)db_84CEF0, "041 db_84CEF0" },
+		{ game::MAG_041_Dribble_Emitter_ApplyDamage, (void *)db_84CF10, "041 db_84CF10" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

@@ -23,23 +23,23 @@ namespace griever344
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24E0BC0)); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x24E0BC4)); }
-	inline uint8_t &FanfareDone() { return var<uint8_t>(us(0x24DFD98)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24F0BC8)); }
-	inline TaskQueue *QCue() { return (TaskQueue *)us(0x24DFDA0); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_344_Griever368_CastContext)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(game_addr(game::MAG_344_Griever368_CasterSlot)); }
+	inline uint8_t &FanfareDone() { return var<uint8_t>(game_addr(game::MAG_344_Griever368_FanfareDone)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_344_Griever368_PacketCursor)); }
+	inline TaskQueue *QCue() { return (TaskQueue *)game_addr(game::MAG_344_Griever368_CueQueue); }
 
-	static const uint32_t ORIG_RootTask = 0x62A7A0;
-	static const uint32_t ORIG_CueTask = 0x62A6D0;
-	static const uint32_t ARENA_A = 0x24E8BC8;
-	static const uint32_t ARENA_B = 0x24E0BC8;
-	static const uint32_t FANFARE_DATA = 0xDEE388;
-	static const uint32_t CAMERA_ANIM = 0xE106D8;
+	static constexpr game::Id ORIG_RootTask = game::MAG_344_Griever368_RootTask;
+	static constexpr game::Id ORIG_CueTask = game::MAG_344_Griever368_CueTask;
+	static constexpr game::Id ARENA_A = game::unk_24E8BC8;
+	static constexpr game::Id ARENA_B = game::MAG_344_Griever368_PacketArenas;
+	static constexpr game::Id FANFARE_DATA = game::unk_DEE388;
+	static constexpr game::Id CAMERA_ANIM = game::MAG344_FINAL_BATTLE_MUSIC_cameraAnim;
 
-	inline void Music_SetVolumeTrans(uint32_t a1, uint32_t a2, uint32_t a3) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x46BBC0))(a1, a2, a3); }
-	inline void QueueChainTransformation(uint8_t *entity, uint32_t chain) { fn<void (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, chain); }
-	inline void BS_R0win_QueueVictoryFanfare(uint32_t data, uint8_t *done) { fn<void (__cdecl *)(uint32_t, uint8_t *)>(us(0x501A20))(data, done); }
-	inline void BS_Music_SetChannelVolumeCommand(uint32_t a1, uint32_t a2) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x501B10))(a1, a2); }
+	inline void Music_SetVolumeTrans(uint32_t a1, uint32_t a2, uint32_t a3) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::Music_SetVolumeTrans))(a1, a2, a3); }
+	inline void QueueChainTransformation(uint8_t *entity, uint32_t chain) { fn<void (__cdecl *)(uint8_t *, uint32_t)>(game_addr(game::QueueChainTransformation))(entity, chain); }
+	inline void BS_R0win_QueueVictoryFanfare(uint32_t data, uint8_t *done) { fn<void (__cdecl *)(uint32_t, uint8_t *)>(game_addr(game::BS_R0win_QueueVictoryFanfare))(data, done); }
+	inline void BS_Music_SetChannelVolumeCommand(uint32_t a1, uint32_t a2) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::BS_Music_SetChannelVolumeCommand))(a1, a2); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -68,11 +68,11 @@ namespace griever344
 		CueNode *c = (CueNode *)n;
 		if (UpdateFlags() & 0x201) return 0;
 		if (c->counter == 0) Music_SetVolumeTrans(0, 0x78, 0);
-		if (c->counter == 0x1E) BS_R0win_QueueVictoryFanfare(us(FANFARE_DATA), &FanfareDone());
+		if (c->counter == 0x1E) BS_R0win_QueueVictoryFanfare(game_addr(FANFARE_DATA), &FanfareDone());
 		if (FanfareDone() == 0 && c->counter == 0x1F) return 0;
 		if (c->counter == 0x20)
 		{
-			fn<void (__cdecl *)(const void *)>(us(0x5099A0))((const void *)us(CAMERA_ANIM));
+			fn<void (__cdecl *)(const void *)>(game_addr(game::Battle_PlayCameraAnimation))((const void *)game_addr(CAMERA_ANIM));
 			QueueChainTransformation(Entity(CasterSlot()), 0x14);
 		}
 		if (c->counter == 0x22)
@@ -87,8 +87,8 @@ namespace griever344
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		PacketCursor() = us(ARENA_A);
-		if (!(r->counter & 1)) PacketCursor() = us(ARENA_B);
+		PacketCursor() = game_addr(ARENA_A);
+		if (!(r->counter & 1)) PacketCursor() = game_addr(ARENA_B);
 		const int left = ExecuteTaskQueue(QCue());
 		r->counter++;
 		return left ? 0 : TASK_END;

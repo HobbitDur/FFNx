@@ -39,33 +39,33 @@ namespace eff331
 	{
 		c.name = "331 (attack 313)";
 		c.effect_id = 331;
-		c.vm_table = us(0x1852A98);
-		c.bone_table = us(0x1852708);
-		c.prim_table = us(0x1852750);
-		c.prim_size = us(0x1852840);
-		c.spr_table = us(0x1852854);
-		c.ptype_table = us(0x1852880);
-		c.pop_table = us(0x1852894);
-		c.draw_table = us(0x18528F4);
-		c.attr_16A = us(0x1852A5E);
-		c.attr_184 = us(0x1852A78);
-		c.attr_186 = us(0x1852A7A);
-		c.attr_194 = us(0x1852A88);
-		c.attr_19C = us(0x1852A90);
-		c.desc = us(0x185260C);
-		c.ptr_block = us(0x18526E0);
-		c.queue = us(0x2795BE0);
-		c.file00 = us(0x2795BF4);
-		c.file01 = us(0x2795BF0);
-		c.tick = us(0x8E0610);
-		c.load_cb = us(0x8E55D0);
+		c.vm_table = game_addr(game::funcs_8E96EC);
+		c.bone_table = game_addr(game::funcs_8E61E7);
+		c.prim_table = game_addr(game::funcs_8E28C4);
+		c.prim_size = game_addr(game::unk_1852840);
+		c.spr_table = game_addr(game::unk_1852854);
+		c.ptype_table = game_addr(game::unk_1852880);
+		c.pop_table = game_addr(game::funcs_8E3BB7);
+		c.draw_table = game_addr(game::unk_18528F4);
+		c.attr_16A = game_addr(game::unk_1852A5E);
+		c.attr_184 = game_addr(game::unk_1852A78);
+		c.attr_186 = game_addr(game::unk_1852A7A);
+		c.attr_194 = game_addr(game::unk_1852A88);
+		c.attr_19C = game_addr(game::unk_1852A90);
+		c.desc = game_addr(game::unk_185260C);
+		c.ptr_block = game_addr(game::unk_18526E0);
+		c.queue = game_addr(game::unk_2795BE0);
+		c.file00 = game_addr(game::unk_2795BF4);
+		c.file01 = game_addr(game::unk_2795BF0);
+		c.tick = game_addr(game::MAG_331_sub_8E0610);
+		c.load_cb = game_addr(game::MAG_331_sub_8E55D0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
@@ -126,7 +126,7 @@ namespace eff331
 		eff331::describe(eff331::g_c);
 		init_clone(eff331::g_c, nullptr, 0);
 		eff331::apply_slots(eff331::g_c);
-		register_port(0x8E0610, (void *)eff331::SequenceTask, "MAG331 effect 331 (attack 313) SequenceTick", 331);
+		register_port(game::MAG_331_sub_8E0610, (void *)eff331::SequenceTask, "MAG331 effect 331 (attack 313) SequenceTick", 331);
 	}
 }
 

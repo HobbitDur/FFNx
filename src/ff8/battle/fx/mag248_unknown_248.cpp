@@ -37,26 +37,26 @@ namespace eff248
 	{
 		c.name = "248 (no kernel.bin attack)";
 		c.effect_id = 248;
-		c.vm_table = us(0x185F364);
-		c.bone_table = us(0x185EFD4);
-		c.prim_table = us(0x185F01C);
-		c.prim_size = us(0x185F10C);
-		c.spr_table = us(0x185F120);
-		c.ptype_table = us(0x185F14C);
-		c.pop_table = us(0x185F160);
-		c.draw_table = us(0x185F1C0);
-		c.attr_16A = us(0x185F32A);
-		c.attr_184 = us(0x185F344);
-		c.attr_186 = us(0x185F346);
-		c.attr_194 = us(0x185F354);
-		c.attr_19C = us(0x185F35C);
-		c.desc = us(0x185EEFC);
-		c.ptr_block = us(0x185EFAC);
-		c.queue = us(0x27966D8);
-		c.file00 = us(0x27966E8);
-		c.file01 = us(0x27966EC);
-		c.tick = us(0x9C0F40);
-		c.load_cb = us(0x9C5240);
+		c.vm_table = game_addr(game::funcs_9C934C);
+		c.bone_table = game_addr(game::funcs_9C5EA7);
+		c.prim_table = game_addr(game::funcs_9C2B94);
+		c.prim_size = game_addr(game::unk_185F10C);
+		c.spr_table = game_addr(game::unk_185F120);
+		c.ptype_table = game_addr(game::unk_185F14C);
+		c.pop_table = game_addr(game::funcs_9C3847);
+		c.draw_table = game_addr(game::unk_185F1C0);
+		c.attr_16A = game_addr(game::unk_185F32A);
+		c.attr_184 = game_addr(game::unk_185F344);
+		c.attr_186 = game_addr(game::unk_185F346);
+		c.attr_194 = game_addr(game::unk_185F354);
+		c.attr_19C = game_addr(game::unk_185F35C);
+		c.desc = game_addr(game::unk_185EEFC);
+		c.ptr_block = game_addr(game::unk_185EFAC);
+		c.queue = game_addr(game::unk_27966D8);
+		c.file00 = game_addr(game::unk_27966E8);
+		c.file01 = game_addr(game::unk_27966EC);
+		c.tick = game_addr(game::MAG_248_sub_9C0F40);
+		c.load_cb = game_addr(game::MAG_248_sub_9C5240);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -102,7 +102,7 @@ namespace eff248
 		eff248::describe(eff248::g_c);
 		init_clone(eff248::g_c, nullptr, 0);
 		eff248::apply_slots(eff248::g_c);
-		register_port(0x9C0F40, (void *)eff248::SequenceTask, "MAG248 effect 248 SequenceTick", 248);
+		register_port(game::MAG_248_sub_9C0F40, (void *)eff248::SequenceTask, "MAG248 effect 248 SequenceTick", 248);
 	}
 }
 

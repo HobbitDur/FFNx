@@ -20,30 +20,27 @@ namespace ff8fx
 {
 namespace renzo334
 {
-	static const uint32_t PTS_A = 0x21F7250, PTS_B = 0x21F7290, TARGET_SLOT = 0x21F72D0;
-	static const uint32_t POOL_A = 0x21F72D8, POOL_A_END = 0x21F74B8;
-	static const uint32_t POOL_B = 0x21F74B8, POOL_B_SPAWN_END = 0x21F7738, POOL_B_END = 0x21F7878;
-	static const uint32_t HIT_REC = 0x21F7878, MASTER_POOL = 0x21F7FC8, Q_MASTER = 0x21F7FD8;
-	static const uint32_t SLOTS = 0x21F7FE8, SLOTS_END = 0x21F8C68;
-	static const uint32_t POOL_C = 0x21F8C68, POOL_C_END = 0x21F8F88;
-	static const uint32_t SPL_A = 0x21F8F88, SPL_B = 0x21F9088;
-	static const uint32_t HIT_POS = 0x21F9188, HIT_DIR = 0x21F9190, Q_MAIN = 0x21F91A0, MAIN_POOL = 0x21F91B0;
-	static const uint32_t PREV_HIT = 0x21F9FC0, CONTEXT = 0x21F9FD8, CASTER_SLOT = 0x21F9FDC, TEX_FILE = 0x21F9FE0;
-	static const uint32_t RING = 0x21F9FE8, RING_END = 0x21FA074, LENGTH = 0x21FA074, FINISHER = 0x21FA078;
-	static const uint32_t TEX_BASE = 0x21FA07C, PACKET_CURSOR = 0x21FA080, HIT_OFFS = 0x21FA088;
+	static constexpr game::Id PTS_A = game::unk_21F7250, PTS_B = game::unk_21F7290, TARGET_SLOT = game::unk_21F72D0;
+	static constexpr game::Id POOL_A = game::unk_21F72D8, POOL_A_END = game::unk_21F74B8;
+	static constexpr game::Id POOL_B = game::unk_21F74B8, POOL_B_SPAWN_END = game::unk_21F7738, POOL_B_END = game::unk_21F7878;
+	static constexpr game::Id HIT_REC = game::unk_21F7878, MASTER_POOL = game::unk_21F7FC8, Q_MASTER = game::unk_21F7FD8;
+	static constexpr game::Id SLOTS = game::unk_21F7FE8, SLOTS_END = game::unk_21F8C68;
+	static constexpr game::Id POOL_C = game::unk_21F8C68, POOL_C_END = game::unk_21F8F88;
+	static constexpr game::Id SPL_A = game::unk_21F8F88, SPL_B = game::unk_21F9088;
+	static constexpr game::Id HIT_POS = game::unk_21F9188, HIT_DIR = game::unk_21F9190, Q_MAIN = game::unk_21F91A0, MAIN_POOL = game::unk_21F91B0;
+	static constexpr game::Id PREV_HIT = game::unk_21F9FC0, CONTEXT = game::unk_21F9FD8, CASTER_SLOT = game::unk_21F9FDC, TEX_FILE = game::unk_21F9FE0;
+	static constexpr game::Id RING = game::unk_21F9FE8, RING_END = game::unk_21FA074, LENGTH = game::unk_21FA074, FINISHER = game::unk_21FA078;
+	static constexpr game::Id TEX_BASE = game::unk_21FA07C, PACKET_CURSOR = game::unk_21FA080, HIT_OFFS = game::unk_21FA088;
 	static const uint32_t PARITY = 0x8000;
-	static const void *SOUND() { return (const void *)us(0xE70D58); }
-	static const uint32_t TEXTURE_NAME = 0xCC0400, CAMERA = 0xE70EF4, ANIM_SETS = 0xE71854, BIND_OUT = 0x24FEAD8;
-	static const uint32_t MODEL_SPARKLE = 0xE70D5C, SPARKLE_FADE = 0xE70EE4, SPARKLE_DEPTH = 0xE70ED4;
-	static const uint32_t MODEL_SLASH = 0xCB9D24, MODEL_STREAK = 0xCBA70C;
-	static const uint32_t SEQ_FLASH = 0xCB979C, SEQ_DEBRIS = 0xCB9A6C, SEQ_SPARK = 0xCB9948, SPARK_FRAMES = 0xCC0340;
-	static const uint32_t SLASH_REF = 0xCC03A0, HIT_LEAD = 0xCC03B0;
-	static const uint32_t MODEL_POOL_RING = 0xCBD48C, POOL_RING_REF = 0xCC03E0;
-	static const uint32_t ORIG_FileLoader = 0x587770, ORIG_Setup = 0x587790;
-	static const uint32_t ORIG_Controller = 0x5878B0, ORIG_HitSpark = 0x587CA0, ORIG_Sparkle = 0x587F30,
-		ORIG_Trail = 0x588260, ORIG_SparkSpawn = 0x5887E0, ORIG_Hit = 0x588910, ORIG_Slash = 0x588CE0,
-		ORIG_RingPool = 0x588FC0, ORIG_AngleModel = 0x5892B0, ORIG_BoneEmitter = 0x589400, ORIG_CasterModel = 0x589710,
-		ORIG_Master = 0x589940;
+	static const void *SOUND() { return (const void *)game_addr(game::unk_E70D58); }
+	static constexpr game::Id TEXTURE_NAME = game::aMag333Tim_7, CAMERA = game::MAG334_RENZOKUKEN_VS_BAHAMUT_cameraAnim, ANIM_SETS = game::unk_E71854, BIND_OUT = game::unk_24FEAD8;
+	static constexpr game::Id MODEL_SPARKLE = game::unk_E70D5C, SPARKLE_FADE = game::unk_E70EE4, SPARKLE_DEPTH = game::unk_E70ED4;
+	static constexpr game::Id MODEL_SLASH = game::unk_CB9D24, MODEL_STREAK = game::unk_CBA70C;
+	static constexpr game::Id SEQ_FLASH = game::unk_CB979C, SEQ_DEBRIS = game::unk_CB9A6C, SEQ_SPARK = game::unk_CB9948, SPARK_FRAMES = game::unk_CC0340;
+	static constexpr game::Id SLASH_REF = game::unk_CC03A0, HIT_LEAD = game::unk_CC03B0;
+	static constexpr game::Id MODEL_POOL_RING = game::unk_CBD48C, POOL_RING_REF = game::unk_CC03E0;
+	static constexpr game::Id ORIG_FileLoader = game::MAG_334_UNKNOWN_FL, ORIG_Setup = game::MAG_334_UNKNOWN;
+	static constexpr game::Id ORIG_Controller = game::MAG_334_sub_5878B0, ORIG_HitSpark = game::MAG_334_sub_587CA0, ORIG_Sparkle = game::MAG_334_sub_587F30, ORIG_Trail = game::MAG_334_sub_588260, ORIG_SparkSpawn = game::MAG_334_sub_5887E0, ORIG_Hit = game::MAG_334_sub_588910, ORIG_Slash = game::MAG_334_sub_588CE0, ORIG_RingPool = game::MAG_334_sub_588FC0, ORIG_AngleModel = game::MAG_334_sub_5892B0, ORIG_BoneEmitter = game::MAG_334_sub_589400, ORIG_CasterModel = game::MAG_334_sub_589710, ORIG_Master = game::MAG_334_sub_589940;
 
 #include "renzo_boss_defs.inc"
 }
@@ -61,28 +58,28 @@ namespace renzo334
 #undef RENZO_ID
 
 	static const NodeModelDef NODEMODELS[2] = {
-		{ ORIG_AngleModel, 0xCBB374, NM_YANGLE, 6, 512, 4, 0xE, true },
-		{ ORIG_CasterModel, 0xCBE15C, NM_CASTER_OFS, 4, 341, 4, 0x10, false },
+		{ ORIG_AngleModel, game::unk_CBB374, NM_YANGLE, 6, 512, 4, 0xE, true },
+		{ ORIG_CasterModel, game::unk_CBE15C, NM_CASTER_OFS, 4, 341, 4, 0x10, false },
 	};
-	static const BoneEmitDef BONE_EMIT = { 0x20, 0xF0, 0, 0x600, 0x800, 0x5A, 0x1E, 0xCB95F0 };
+	static const BoneEmitDef BONE_EMIT = { 0x20, 0xF0, 0, 0x600, 0x800, 0x5A, 0x1E, game::unk_CB95F0 };
 
 	static void Events(Node24 *n)
 	{
-		if (n->c == 0x39) ((Node24 *)AddTaskToQueue(QMain(), us(ORIG_RingPool)))->c = 0;
+		if (n->c == 0x39) ((Node24 *)AddTaskToQueue(QMain(), game_addr(ORIG_RingPool)))->c = 0;
 		if (n->c == 0x65)
 		{
-			Node24 *t = AddSlotTask(us(ORIG_AngleModel));
-			ff8fx::copy<(8)>(&t->w10, (const void *)us(HIT_POS));
+			Node24 *t = AddSlotTask(game_addr(ORIG_AngleModel));
+			ff8fx::copy<(8)>(&t->w10, (const void *)game_addr(HIT_POS));
 			t->w18 = (int16_t)(CrtRand() % 0x1000);
 			const int16_t s = (int16_t)((CrtRand() % 0x300 + 0xA00) / 3);
 			t->w1E = s;
 			t->w1C = s;
-			((Node24 *)AddTaskToQueue(QMain(), us(ORIG_BoneEmitter)))->c = 0;
+			((Node24 *)AddTaskToQueue(QMain(), game_addr(ORIG_BoneEmitter)))->c = 0;
 		}
 		if (n->c == 0x8E)
 		{
-			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), us(ORIG_CasterModel));
-			ff8fx::copy<(8)>(&t->w10, (const void *)us(HIT_POS));
+			Node24 *t = (Node24 *)AddTaskToQueue(QMain(), game_addr(ORIG_CasterModel));
+			ff8fx::copy<(8)>(&t->w10, (const void *)game_addr(HIT_POS));
 			t->c = 0;
 			const int16_t s = (int16_t)((CrtRand() % 0x800 + 0x2400) / 3);
 			t->w1E = s;
@@ -124,7 +121,7 @@ namespace renzo334
 		w->v[1] = 0;
 		w->v[0] = r->w18;
 		w->v[2] = r->w1C;
-		const int32_t angle = RotationBetweenVectors((const int32_t *)us(POOL_RING_REF), w->v, w->axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)game_addr(POOL_RING_REF), w->v, w->axis);
 		BuildAxisAngleRotationMatrix(angle, &w->m, w->axis);
 		w->m.t[0] = r->pos[0];
 		w->m.t[1] = r->pos[1];
@@ -153,24 +150,24 @@ namespace renzo334
 			const int32_t i = FreeRecord();
 			if (i >= 0)
 			{
-				PoolRing(Slot(i), (const int16_t *)us(HIT_POS), var<int16_t>(us(HIT_DIR)), var<int16_t>(us(HIT_DIR) + 8));
+				PoolRing(Slot(i), (const int16_t *)game_addr(HIT_POS), var<int16_t>(game_addr(HIT_DIR)), var<int16_t>(game_addr(HIT_DIR) + 8));
 				int16_t mid[4];
-				mid[0] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT)) + var<int16_t>(us(HIT_POS))) >> 1);
-				mid[1] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT) + 2) + var<int16_t>(us(HIT_POS) + 2)) >> 1);
-				mid[2] = (int16_t)(((int32_t)var<int16_t>(us(PREV_HIT) + 4) + var<int16_t>(us(HIT_POS) + 4)) >> 1);
+				mid[0] = (int16_t)(((int32_t)var<int16_t>(game_addr(PREV_HIT)) + var<int16_t>(game_addr(HIT_POS))) >> 1);
+				mid[1] = (int16_t)(((int32_t)var<int16_t>(game_addr(PREV_HIT) + 2) + var<int16_t>(game_addr(HIT_POS) + 2)) >> 1);
+				mid[2] = (int16_t)(((int32_t)var<int16_t>(game_addr(PREV_HIT) + 4) + var<int16_t>(game_addr(HIT_POS) + 4)) >> 1);
 				SlotRec *r = Slot(i + 1);
 				mid[3] = r->pos[3];
-				PoolRing(r, mid, var<int16_t>(us(PREV_HIT) + 8), var<int16_t>(us(PREV_HIT) + 0x10));
+				PoolRing(r, mid, var<int16_t>(game_addr(PREV_HIT) + 8), var<int16_t>(game_addr(PREV_HIT) + 0x10));
 			}
 		}
 		uint8_t *h = AllocHeader(0x58);
 		ff8fx::copy<(sizeof(Mat4x3))>(&w->cam, &Camera());
-		*(uint32_t *)h = us(MODEL_POOL_RING);
+		*(uint32_t *)h = game_addr(MODEL_POOL_RING);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t alive = 0;
 		w->v[0] = 0;
 		w->v[2] = 0x300;
-		for (uint32_t a = us(SLOTS); a < us(SLOTS_END); a += 0x20)
+		for (uint32_t a = game_addr(SLOTS); a < game_addr(SLOTS_END); a += 0x20)
 		{
 			SlotRec *r = (SlotRec *)a;
 			if (!(r->alive & 1)) continue;

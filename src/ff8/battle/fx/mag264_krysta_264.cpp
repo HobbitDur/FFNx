@@ -37,31 +37,31 @@ namespace krysta264
 	{
 		c.name = "264 Krysta";
 		c.effect_id = 264;
-		c.vm_table = us(0x1857244);
-		c.bone_table = us(0x1856EB4);
-		c.prim_table = us(0x1856EFC);
-		c.prim_size = us(0x1856FEC);
-		c.spr_table = us(0x1857000);
-		c.ptype_table = us(0x185702C);
-		c.pop_table = us(0x1857040);
-		c.draw_table = us(0x18570A0);
-		c.attr_16A = us(0x185720A);
-		c.attr_184 = us(0x1857224);
-		c.attr_186 = us(0x1857226);
-		c.attr_194 = us(0x1857234);
-		c.attr_19C = us(0x185723C);
-		c.desc = us(0x1856D48);
-		c.ptr_block = us(0x1856E8C);
-		c.queue = us(0x2795D68);
-		c.file00 = us(0x2795D8C);
-		c.file01 = us(0x2795D88);
-		c.tick = us(0x938520);
-		c.load_cb = us(0x941060);
+		c.vm_table = game_addr(game::funcs_9452CC);
+		c.bone_table = game_addr(game::funcs_941C77);
+		c.prim_table = game_addr(game::funcs_93D454);
+		c.prim_size = game_addr(game::unk_1856FEC);
+		c.spr_table = game_addr(game::unk_1857000);
+		c.ptype_table = game_addr(game::unk_185702C);
+		c.pop_table = game_addr(game::funcs_93F4C7);
+		c.draw_table = game_addr(game::unk_18570A0);
+		c.attr_16A = game_addr(game::unk_185720A);
+		c.attr_184 = game_addr(game::unk_1857224);
+		c.attr_186 = game_addr(game::unk_1857226);
+		c.attr_194 = game_addr(game::unk_1857234);
+		c.attr_19C = game_addr(game::unk_185723C);
+		c.desc = game_addr(game::unk_1856D48);
+		c.ptr_block = game_addr(game::unk_1856E8C);
+		c.queue = game_addr(game::unk_2795D68);
+		c.file00 = game_addr(game::unk_2795D8C);
+		c.file01 = game_addr(game::unk_2795D88);
+		c.tick = game_addr(game::MAG_264_sub_938520);
+		c.load_cb = game_addr(game::MAG_264_sub_941060);
 		c.lit_dispatcher = true;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t DIS_KEYS = 0x2795D90;
+	static constexpr game::Id DIS_KEYS = game::unk_2795D90;
 	static const uint16_t DIS_RET16 = 0x97FE;
 #include "gfc_disintegrate.inc"
 
@@ -97,7 +97,7 @@ namespace krysta264
 		krysta264::describe(krysta264::g_c);
 		init_clone(krysta264::g_c, nullptr, 0);
 		krysta264::apply_slots(krysta264::g_c);
-		register_port(0x938520, (void *)krysta264::SequenceTask, "MAG264 Krysta 264 SequenceTick", 264);
+		register_port(game::MAG_264_sub_938520, (void *)krysta264::SequenceTask, "MAG264 Krysta 264 SequenceTick", 264);
 	}
 }
 

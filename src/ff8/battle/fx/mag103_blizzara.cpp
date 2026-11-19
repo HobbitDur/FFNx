@@ -26,28 +26,28 @@ namespace blizzara103
 	using namespace magc;
 	using namespace icec;
 
-	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x2543E94)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2543E98)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2543EB4)); }
-	inline TaskQueue *Queue(int i) { return (TaskQueue *)(us(0x2543EC8) + 0x10 * i); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(game_addr(game::MAG103_BLIZZARA_arenaBase)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG103_BLIZZARA_castCtx)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_103_BLIZZARA_PacketCursor)); }
+	inline TaskQueue *Queue(int i) { return (TaskQueue *)(game_addr(game::MAG103_BLIZZARA_Queues) + 0x10 * i); }
 
-	static const uint32_t ORIG_Director = 0x6DA3A0;
-	static const uint32_t ORIG_IceBlockTask = 0x6DAA30;
-	static const uint32_t ORIG_PillarTask = 0x6DBB20;
-	static const uint32_t ORIG_BurstTask = 0x6DBD20;
-	static const uint32_t ORIG_ChunkTask = 0x6DBEA0;
-	static const uint32_t ORIG_MistTask = 0x6DBFF0;
-	static const uint8_t *MODEL_Block() { return (const uint8_t *)us(0x131ABB0); }
-	static const uint8_t *MODEL_BlockUV() { return (const uint8_t *)us(0x131C86C); }
-	static const void *MODEL_Pillar() { return (const void *)us(0x1319990); }
-	static const void *MODEL_Burst() { return (const void *)us(0x131A678); }
-	static const void *SEQ_Ice() { return (const void *)us(0x13197E4); }
-	static const void *SOUND_Blizzara() { return (const void *)us(0x131E750); }
+	static constexpr game::Id ORIG_Director = game::MAG_103_BLIZZARA_Director;
+	static constexpr game::Id ORIG_IceBlockTask = game::MAG_103_BLIZZARA_IceBlockTask;
+	static constexpr game::Id ORIG_PillarTask = game::MAG_103_BLIZZARA_PillarTask;
+	static constexpr game::Id ORIG_BurstTask = game::MAG_103_BLIZZARA_BurstTask;
+	static constexpr game::Id ORIG_ChunkTask = game::MAG_103_BLIZZARA_ChunkTask;
+	static constexpr game::Id ORIG_MistTask = game::MAG_103_BLIZZARA_MistTask;
+	static const uint8_t *MODEL_Block() { return (const uint8_t *)game_addr(game::unk_131ABB0); }
+	static const uint8_t *MODEL_BlockUV() { return (const uint8_t *)game_addr(game::unk_131C86C); }
+	static const void *MODEL_Pillar() { return (const void *)game_addr(game::unk_1319990); }
+	static const void *MODEL_Burst() { return (const void *)game_addr(game::unk_131A678); }
+	static const void *SEQ_Ice() { return (const void *)game_addr(game::unk_13197E4); }
+	static const void *SOUND_Blizzara() { return (const void *)game_addr(game::unk_131E750); }
 	static const uint32_t MODEL_OFFSET[3] = { 0x10BE4, 0x13A34, 0x16884 };
 	static const uint32_t MODEL_UV_OFFSET[3] = { 0x128A0, 0x156F0, 0x18540 };
 	static const int SHARDS = 0xDF;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 	inline int16_t EntityHeight2(const uint8_t *entity) { return *(const int16_t *)(entity + 0x24); }
 
 #pragma pack(push, 1)
@@ -191,7 +191,7 @@ namespace blizzara103
 				if (busy) d->counter = 0;
 				else
 				{
-					IceBlockNode *b = (IceBlockNode *)AddTaskToQueue(Queue(0), us(ORIG_IceBlockTask));
+					IceBlockNode *b = (IceBlockNode *)AddTaskToQueue(Queue(0), game_addr(ORIG_IceBlockTask));
 					FillDwords(&b->counter, 0, 0x14F0);
 					int16_t action = (int16_t)(uint16_t)d->action;
 					b->action = action;
@@ -353,7 +353,7 @@ namespace blizzara103
 			if (c == 6) BdPlaySE3D(SOUND_Blizzara(), 0x101, b->pos);
 			if (!(c & 3))
 			{
-				PillarNode *p = (PillarNode *)AddTaskToQueue(Queue(1), us(ORIG_PillarTask));
+				PillarNode *p = (PillarNode *)AddTaskToQueue(Queue(1), game_addr(ORIG_PillarTask));
 				FillDwords(&p->counter, 0, 7);
 				p->block = b;
 				GetEffectSpawnPosition(b->entity, 0xF1, 0, p->pos);
@@ -374,7 +374,7 @@ namespace blizzara103
 		}
 		if (b->counter == 0x14)
 		{
-			BurstNode *u = (BurstNode *)AddTaskToQueue(Queue(2), us(ORIG_BurstTask));
+			BurstNode *u = (BurstNode *)AddTaskToQueue(Queue(2), game_addr(ORIG_BurstTask));
 			FillDwords(&u->counter, 0, 5);
 			GetEffectSpawnPosition(b->entity, 0xF1, 0, u->pos);
 			u->scale = 0x64;
@@ -481,7 +481,7 @@ namespace blizzara103
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 2; k++)
 			{
-				ChunkNode *c = (ChunkNode *)AddTaskToQueue(Queue(3), us(ORIG_ChunkTask));
+				ChunkNode *c = (ChunkNode *)AddTaskToQueue(Queue(3), game_addr(ORIG_ChunkTask));
 				if (!c) continue;
 				FillDwords(&c->counter, 0, 6);
 				c->entity = b->entity;
@@ -511,7 +511,7 @@ namespace blizzara103
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 4; k++)
 			{
-				MistNode *m = (MistNode *)AddTaskToQueue(Queue(4), us(ORIG_MistTask));
+				MistNode *m = (MistNode *)AddTaskToQueue(Queue(4), game_addr(ORIG_MistTask));
 				if (!m) continue;
 				FillDwords(&m->counter, 0, 7);
 				int32_t r1 = CrtRand();

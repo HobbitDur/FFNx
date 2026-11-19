@@ -25,54 +25,54 @@ namespace elec275
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &FlashLevel() { return var<uint32_t>(us(0x2508348)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x250834C)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2508354)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2508358)); }
-	inline uint32_t *SavedTints() { return (uint32_t *)us(0x2508374); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25083A4)); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)us(0x25083A8); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x25083B8); }
-	inline TaskQueue *QCrawlers() { return (TaskQueue *)us(0x25083C8); }
-	inline TaskQueue *QArcs() { return (TaskQueue *)us(0x25083D8); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x25083E8); }
-	static const uint32_t ZERO_VEC = 0x2508408;
-	inline int32_t &FadeChance() { return var<int32_t>(us(0x10DC2D4)); }
-	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline uint32_t &FlashLevel() { return var<uint32_t>(game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_FlashLevel)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_CasterEntity)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_MagicBuffer)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_CastContext)); }
+	inline uint32_t *SavedTints() { return (uint32_t *)game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_TargetTints); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_PacketCursor)); }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_LayoutQueue); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_SparkQueue); }
+	inline TaskQueue *QCrawlers() { return (TaskQueue *)game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_CrawlerQueue); }
+	inline TaskQueue *QArcs() { return (TaskQueue *)game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_ArcQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::g_MAG_275_ELECTROCUTE_QUISTIS_MainQueue); }
+	static constexpr game::Id ZERO_VEC = game::g_MAG_275_ELECTROCUTE_QUISTIS_ZeroVector;
+	inline int32_t &FadeChance() { return var<int32_t>(game_addr(game::MAG_275_ELECTROCUTE_QUISTIS_FadeChance)); }
+	inline uint32_t OTBase() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
 
 	static const uint32_t ARC_POINTS = 0x22D4, CRAWL_POINTS = 0x72D4, ARC_FREE = 0xC2D4, CRAWL_FREE = 0xC2D8, MORPH = 0xC2DC;
 
-	static const uint32_t ORIG_RootTask = 0x687C00;
-	static const uint32_t ORIG_MainTask = 0x687F20;
-	static const uint32_t ORIG_LayoutTask = 0x688320;
-	static const uint32_t ORIG_ArcTask = 0x6887B0;
-	static const uint32_t ORIG_SparkTask = 0x688C60;
-	static const uint32_t ORIG_CrawlerTask = 0x689280;
-	static const uint32_t SEQ_Spark = 0x10D9934;
-	static const uint32_t SEQ_SparkB = 0x10D9A88;
-	static const uint32_t MODEL_Glow = 0x10D9B64;
-	static const void *SOUND_Discharge() { return (const void *)us(0x10DC2D0); }
-	static const void *TINT_Colour() { return (const void *)us(0x10DC2D8); }
-	static const uint8_t *BONES_Caster() { return (const uint8_t *)us(0x10DC2DC); }
-	static const uint32_t COM_Anim = 0x10DA574;
-	static const int16_t *CRAWL_Scripts() { return (const int16_t *)us(0x10DC2E4); }
-	static const uint8_t *LEN_Table() { return (const uint8_t *)us(0x10DC98C); }
-	static const int16_t *BLEND_Table() { return (const int16_t *)us(0x10E098C); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_275_ELECTROCUTE_QUISTIS_RootTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_275_ELECTROCUTE_QUISTIS_MainTask;
+	static constexpr game::Id ORIG_LayoutTask = game::MAG_275_ELECTROCUTE_QUISTIS_GlowLayoutTask;
+	static constexpr game::Id ORIG_ArcTask = game::MAG_275_ELECTROCUTE_QUISTIS_ArcTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_275_ELECTROCUTE_QUISTIS_SparkTask;
+	static constexpr game::Id ORIG_CrawlerTask = game::MAG_275_ELECTROCUTE_QUISTIS_CrawlerTask;
+	static constexpr game::Id SEQ_Spark = game::MAG_275_ELECTROCUTE_QUISTIS_SeqSpark;
+	static constexpr game::Id SEQ_SparkB = game::MAG_275_ELECTROCUTE_QUISTIS_SeqSparkGround;
+	static constexpr game::Id MODEL_Glow = game::MAG_275_ELECTROCUTE_QUISTIS_GlowLayout;
+	static const void *SOUND_Discharge() { return (const void *)game_addr(game::MAG_275_ELECTROCUTE_QUISTIS_SoundDischarge); }
+	static const void *TINT_Colour() { return (const void *)game_addr(game::MAG_275_ELECTROCUTE_QUISTIS_TintColour); }
+	static const uint8_t *BONES_Caster() { return (const uint8_t *)game_addr(game::MAG_275_ELECTROCUTE_QUISTIS_CasterBones); }
+	static constexpr game::Id COM_Anim = game::MAG_275_ELECTROCUTE_QUISTIS_CasterAnimSet;
+	static const int16_t *CRAWL_Scripts() { return (const int16_t *)game_addr(game::MAG_275_ELECTROCUTE_QUISTIS_CrawlerScripts); }
+	static const uint8_t *LEN_Table() { return (const uint8_t *)game_addr(game::MAG_275_ELECTROCUTE_QUISTIS_LenTable); }
+	static const int16_t *BLEND_Table() { return (const int16_t *)game_addr(game::MAG_275_ELECTROCUTE_QUISTIS_BlendTable); }
 
-	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
-	inline void AnglesToDir(const int16_t *ang, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(us(0x6BA190))(ang, out); }
-	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
-	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(us(0x505C00))(entity, id); }
+	inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(game_addr(game::Effect_SharedLcg_Rand))(); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(game_addr(game::ColourLerp))(a, b, wa, wb, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV0_u16))(v); }
+	inline void AnglesToDir(const int16_t *ang, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(game_addr(game::MAG_126_ElectricDischarge_AnglesToDir))(ang, out); }
+	inline uint32_t BindExternalAnimSet(uint8_t *entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+	inline uint32_t QueueChainTransformation(uint8_t *entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -288,8 +288,8 @@ namespace elec275
 
 	static void ArcRibbon(Point *tail, int32_t count, int32_t style)
 	{
-		const int32_t sz = (int32_t)var<uint32_t>(us(0x1CA8A5C));
-		const int32_t h2 = (int32_t)((var<uint32_t>(us(0x1CA92E4)) & 0xFFFF) >> 1);
+		const int32_t sz = (int32_t)var<uint32_t>(game_addr(game::GTE_SZ3));
+		const int32_t h2 = (int32_t)((var<uint32_t>(game_addr(game::GTE_H_Zoom)) & 0xFFFF) >> 1);
 		const uint32_t v = shl32(style + 0xC0, 8);
 		Ribbon(tail, count, 3, 0x200, v | 0x3D140008, v | 0xB70038, (uint16_t)(v | 8), (uint16_t)(v | 0x38), 3, (uint32_t)(sz > h2 ? sz : h2));
 	}
@@ -423,7 +423,7 @@ namespace elec275
 	{
 		Point *pt = AllocArcPoint(from, (int16_t)width);
 		if (!pt) return nullptr;
-		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), us(ORIG_ArcTask));
+		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), game_addr(ORIG_ArcTask));
 		if (!a)
 		{
 			pt->b = -1;
@@ -463,7 +463,7 @@ namespace elec275
 		script++;
 		Point *pt = AllocCrawlerPoint(bone, script[0], width, 0, fade, step);
 		if (!pt) return;
-		CrawlerNode *c = (CrawlerNode *)AddTaskToQueue(QCrawlers(), us(ORIG_CrawlerTask));
+		CrawlerNode *c = (CrawlerNode *)AddTaskToQueue(QCrawlers(), game_addr(ORIG_CrawlerTask));
 		if (!c)
 		{
 			pt->a[0] = -1;
@@ -586,7 +586,7 @@ namespace elec275
 	{
 		TransformCameraByShadowRotation(s->pos, s->scale, -(s->scale >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = s->kind ? us(SEQ_SparkB) : us(SEQ_Spark);
+		*(uint32_t *)h = s->kind ? game_addr(SEQ_SparkB) : game_addr(SEQ_Spark);
 		*(int16_t *)(h + 4) = s->frame;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -645,7 +645,7 @@ namespace elec275
 						FadeChance() = 0x1000;
 					}
 					else FadeChance() += 0x1000;
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 					if (s)
 					{
 						s->frame = 0;
@@ -657,7 +657,7 @@ namespace elec275
 				}
 				else if (p[1] >= 0)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 					if (s)
 					{
 						s->frame = 0;
@@ -683,7 +683,7 @@ namespace elec275
 			GteLoadIR123(a->dir);
 			GteGPF();
 			GteSetIR0(0x1000 - blend);
-			GteLoadIR123((const void *)us(ZERO_VEC));
+			GteLoadIR123((const void *)game_addr(ZERO_VEC));
 			GteGPL();
 			GteStoreIR123(pt->c);
 			pt->d = hold;
@@ -887,7 +887,7 @@ namespace elec275
 			vel[3] = 0;
 			const int32_t style = Rand() & 1;
 			Point *pt = SpawnArc(vel, from, to, nullptr, -1, 0, 0x100, 0xFA, style, 3);
-			if (pt) ff8fx::copy<(8)>(pt->c, (const void *)us(ZERO_VEC));
+			if (pt) ff8fx::copy<(8)>(pt->c, (const void *)game_addr(ZERO_VEC));
 		}
 		const int32_t c14 = m->counter - 0xE;
 		if ((uint32_t)c14 < 0x1E)
@@ -919,12 +919,12 @@ namespace elec275
 				const int32_t style = Rand() & 1;
 				const int32_t slot = (int32_t)(e - Entity(0)) / 0x9C;
 				Point *pt = SpawnArc(vel, from, to, nullptr, slot, 0, 0x100, 0xFA, style, 3);
-				if (pt) ff8fx::copy<(8)>(pt->c, (const void *)us(ZERO_VEC));
+				if (pt) ff8fx::copy<(8)>(pt->c, (const void *)game_addr(ZERO_VEC));
 			}
 			if (!(c14 & 3))
 			{
-				LayoutNode *g = (LayoutNode *)AddTaskToQueue(QLayouts(), us(ORIG_LayoutTask));
-				DecodeModelPrimLayout(us(MODEL_Glow), g->layout, 0xC8);
+				LayoutNode *g = (LayoutNode *)AddTaskToQueue(QLayouts(), game_addr(ORIG_LayoutTask));
+				DecodeModelPrimLayout(game_addr(MODEL_Glow), g->layout, 0xC8);
 			}
 		}
 		if (m->counter == 0x2C)
@@ -965,7 +965,7 @@ namespace elec275
 			Memset32((void *)(TexBase() + ARC_POINTS), 0, 0x1400);
 			for (int i = 0; i < 0x200; i++) ((Point *)(TexBase() + CRAWL_POINTS))[i].a[0] = -1;
 			for (int i = 0; i < 0x200; i++) ((Point *)(TexBase() + ARC_POINTS))[i].b = -1;
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			Memset32(&m->counter, 0, 10);
 			const int32_t count = Ctx()->actions->target_count;
 			m->targets = (int16_t)count;
@@ -974,7 +974,7 @@ namespace elec275
 				const uint8_t slot = Ctx()->actions->targets[i * TARGET_STRIDE];
 				SavedTints()[slot] = *(const uint32_t *)(Entity(slot) + 0x28);
 			}
-			BindExternalAnimSet(Caster(), (uint32_t)m->bind, us(COM_Anim));
+			BindExternalAnimSet(Caster(), (uint32_t)m->bind, game_addr(COM_Anim));
 			QueueChainTransformation(Caster(), 1);
 			var<Point *>(TexBase() + ARC_FREE) = nullptr;
 			var<Point *>(TexBase() + CRAWL_FREE) = nullptr;

@@ -137,48 +137,48 @@ namespace triple021
 	static_assert(sizeof(SeqNode) == 0x40 && sizeof(ModelNode) == 0x7C && sizeof(SpriteNode) == 0x70, "Triple nodes");
 	static_assert(sizeof(FlashNode) == 0x50, "Triple nodes");
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2714F2C)); }
-	inline TaskQueue *QEmitters() { return (TaskQueue *)us(0x2720898); }
-	inline TaskQueue *QSequencers() { return (TaskQueue *)us(0x2720A20); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2720880); }
-	inline TaskQueue *QModels() { return (TaskQueue *)us(0x271B010); }
-	inline TaskQueue *QFlashes() { return (TaskQueue *)us(0x2721570); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_Triple_PacketCursor)); }
+	inline TaskQueue *QEmitters() { return (TaskQueue *)game_addr(game::MAG_021_EmitterQueue); }
+	inline TaskQueue *QSequencers() { return (TaskQueue *)game_addr(game::MAG_021_SequencerQueue); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)game_addr(game::MAG_021_SpriteQueue); }
+	inline TaskQueue *QModels() { return (TaskQueue *)game_addr(game::MAG_021_ModelQueue); }
+	inline TaskQueue *QFlashes() { return (TaskQueue *)game_addr(game::MAG_021_FlashQueue); }
 
-	static const uint32_t ORIG_Root = 0x89DFF0;
-	static const uint32_t ORIG_Emitter = 0x89E110;
-	static const uint32_t ORIG_BigRune = 0x89E250;
-	static const uint32_t ORIG_Morph = 0x89E670;
-	static const uint32_t ORIG_Sprite = 0x89E7D0;
-	static const uint32_t ORIG_Sequencer = 0x89EA70;
-	static const uint32_t ORIG_Rune = 0x89EBD0;
-	static const uint32_t ORIG_Column = 0x89EDB0;
-	static const uint32_t ORIG_Glow = 0x89F180;
-	static const uint32_t ORIG_Mote = 0x89F410;
-	static const uint32_t ORIG_Spark = 0x89F5E0;
-	static const uint32_t ORIG_Flash = 0x89F950;
+	static constexpr game::Id ORIG_Root = game::MAG_021_TRIPLE_Tick;
+	static constexpr game::Id ORIG_Emitter = game::MAG_021_TRIPLE_Emitter_Tick;
+	static constexpr game::Id ORIG_BigRune = game::MAG_021_TRIPLE_BigRune_Tick;
+	static constexpr game::Id ORIG_Morph = game::MAG_021_TRIPLE_MorphRing_Tick;
+	static constexpr game::Id ORIG_Sprite = game::MAG_021_TRIPLE_Sprite_Tick;
+	static constexpr game::Id ORIG_Sequencer = game::MAG_021_TRIPLE_Sequencer_Tick;
+	static constexpr game::Id ORIG_Rune = game::MAG_021_TRIPLE_Rune_Tick;
+	static constexpr game::Id ORIG_Column = game::MAG_021_TRIPLE_Column_Tick;
+	static constexpr game::Id ORIG_Glow = game::MAG_021_TRIPLE_Glow_Tick;
+	static constexpr game::Id ORIG_Mote = game::MAG_021_TRIPLE_Mote_Tick;
+	static constexpr game::Id ORIG_Spark = game::MAG_021_TRIPLE_Spark_Tick;
+	static constexpr game::Id ORIG_Flash = game::MAG_021_TRIPLE_Flash_Tick;
 
-	static const void *SOUND_Triple() { return (const void *)us(0x16269D8); }
-	static const uint32_t MODEL_BigRune1 = 0x1627380, MODEL_BigRune2 = 0x1628218, MODEL_Rune = 0x1626CF0;
-	static const uint32_t MODEL_Column = 0x1626F00, MODEL_ColumnFlash = 0x1627160, MODEL_Morph = 0x1627970;
-	static const uint32_t MORPH_A = 0x16276E8, MORPH_B = 0x1629000;
-	static const uint32_t SEQ_Sprite = 0x1626B3C, SEQ_Glow = 0x1626CC8, SEQ_Mote = 0x16269DC, SEQ_Spark = 0x1626C18;
-	static const uint32_t FADE_TABLE_A = 0x1629C2C, FADE_TABLE_B = 0x1629C14;
-	static const uint32_t ARENA_A = 0x2720A1C, ARENA_B = 0x2720A18;
+	static const void *SOUND_Triple() { return (const void *)game_addr(game::unk_16269D8); }
+	static constexpr game::Id MODEL_BigRune1 = game::unk_1627380, MODEL_BigRune2 = game::unk_1628218, MODEL_Rune = game::unk_1626CF0;
+	static constexpr game::Id MODEL_Column = game::unk_1626F00, MODEL_ColumnFlash = game::unk_1627160, MODEL_Morph = game::unk_1627970;
+	static constexpr game::Id MORPH_A = game::unk_16276E8, MORPH_B = game::unk_1629000;
+	static constexpr game::Id SEQ_Sprite = game::unk_1626B3C, SEQ_Glow = game::unk_1626CC8, SEQ_Mote = game::unk_16269DC, SEQ_Spark = game::unk_1626C18;
+	static constexpr game::Id FADE_TABLE_A = game::g_Triple_FadeTableA, FADE_TABLE_B = game::g_Triple_FadeTableB;
+	static constexpr game::Id ARENA_A = game::g_Triple_ArenaA, ARENA_B = game::g_Triple_ArenaB;
 
-	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(us(0x8DC540))(q, task, size, parent); }
-	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC530))(n); }
-	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC610))(n); }
-	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC870))(n); }
-	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(us(0x8DC740))(n); }
-	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x8DC6E0))(n, out); }
-	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x8DC700))(n, out); }
-	inline void CopyAnchorTopFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(us(0x8DC720))(n, out); }
-	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(us(0x8DD770))(m); }
-	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD7E0))(m, a); }
-	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(us(0x8DD8A0))(m, a); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline void InsertPrimAltViewport(uint32_t ot, void *prim) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(ot, prim); }
+	inline FxNode *AddEffectTask(TaskQueue *q, uint32_t task, int32_t size, void *parent) { return fn<FxNode *(__cdecl *)(TaskQueue *, uint32_t, int32_t, void *)>(game_addr(game::Effect_AddTaskAndInitFromCtx))(q, task, size, parent); }
+	inline void ReleaseLinkedTask(void *n) { fn<void (__cdecl *)(void *)>(game_addr(game::Effect_ReleaseLinkedTask))(n); }
+	inline void EmitterUpdatePos(void *n) { fn<void (__cdecl *)(void *)>(game_addr(game::MAG_001_CURE_Emitter_UpdatePos))(n); }
+	inline void ComputeModelBounds(void *n) { fn<void (__cdecl *)(void *)>(game_addr(game::MAG_001_CURE_Emitter_ComputeModelBounds))(n); }
+	inline void UpdateTargetPosFromBones(void *n) { fn<void (__cdecl *)(void *)>(game_addr(game::Effect_UpdateTargetPosFromBones))(n); }
+	inline void CopyAnchorXZFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(game_addr(game::Effect_CopyAnchorXZFromSource))(n, out); }
+	inline void CopyMidpointFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(game_addr(game::Effect_CopyMidpointFromSource))(n, out); }
+	inline void CopyAnchorTopFromSource(void *n, int16_t *out) { fn<void (__cdecl *)(void *, int16_t *)>(game_addr(game::Effect_CopyAnchorTopFromSource))(n, out); }
+	inline void IdentityMatrix(Mat4x3 *m) { fn<void (__cdecl *)(Mat4x3 *)>(game_addr(game::Mtx_Identity))(m); }
+	inline void RotateX(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(game_addr(game::Mtx_RotX))(m, a); }
+	inline void RotateY(Mat4x3 *m, int32_t a) { fn<void (__cdecl *)(Mat4x3 *, int32_t)>(game_addr(game::Mtx_RotY))(m, a); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline void InsertPrimAltViewport(uint32_t ot, void *prim) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAltViewport))(ot, prim); }
 
 	template<typename T> static inline T &F(uint8_t *p, uint32_t off) { return *(T *)(p + off); }
 
@@ -297,11 +297,11 @@ namespace triple021
 		for (int32_t i = 0; i < 4; i++)
 		{
 			const int32_t k = (i + (int32_t)n->h.counter * 4) % 4;
-			SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), us(ORIG_Sprite), 0x70, n);
+			SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), game_addr(ORIG_Sprite), 0x70, n);
 			p->scale[0] = 0x1000;
 			p->scale[1] = 0x1000;
 			p->scale[2] = 0x1000;
-			p->seq = us(SEQ_Sprite);
+			p->seq = game_addr(SEQ_Sprite);
 			p->last = 7;
 			int16_t v[4];
 			if (mode == 0)
@@ -333,11 +333,11 @@ namespace triple021
 	static void SpawnMorph(ModelNode *n)
 	{
 		if (n->h.counter != 0) return;
-		ModelNode *m = (ModelNode *)AddEffectTask(QModels(), us(ORIG_Morph), 0x7C, n);
+		ModelNode *m = (ModelNode *)AddEffectTask(QModels(), game_addr(ORIG_Morph), 0x7C, n);
 		CopyAnchorXZFromSource(m, m->h.pos);
 		m->h.pos[1] = (int16_t)(m->h.pos[1] - 0x280);
 		m->angle[1] = 0;
-		m->model = us(MODEL_Morph);
+		m->model = game_addr(MODEL_Morph);
 		m->fade = 0;
 		m->scale[0] = 0x1000;
 		m->scale[1] = 0x1000;
@@ -349,14 +349,14 @@ namespace triple021
 
 	static void SpawnBigRune(EmitterNode *e)
 	{
-		ModelNode *n = (ModelNode *)AddEffectTask(QModels(), us(ORIG_BigRune), 0x7C, e);
+		ModelNode *n = (ModelNode *)AddEffectTask(QModels(), game_addr(ORIG_BigRune), 0x7C, e);
 		CopyAnchorXZFromSource(n, n->h.pos);
 		n->h.pos[1] = (int16_t)(n->h.pos[1] - 0x280);
 		n->scale[0] = 0x1000;
 		n->scale[1] = 0x1000;
 		n->scale[2] = 0x1000;
 		n->angle[1] = 0;
-		n->model = us(MODEL_BigRune1);
+		n->model = game_addr(MODEL_BigRune1);
 		n->fade1 = 0x800;
 		n->fade2 = 0;
 		n->rgb1[0] = 0xFF;
@@ -386,10 +386,10 @@ namespace triple021
 		case 1:
 		{
 			n->step++;
-			const int16_t a = FadeTable(us(FADE_TABLE_A), n->step);
+			const int16_t a = FadeTable(game_addr(FADE_TABLE_A), n->step);
 			n->fade = a;
 			n->fade1 = a;
-			const int16_t b = FadeTable(us(FADE_TABLE_B), n->step);
+			const int16_t b = FadeTable(game_addr(FADE_TABLE_B), n->step);
 			n->fade = b;
 			n->fade2 = b;
 			if (n->step >= 0xB)
@@ -407,11 +407,11 @@ namespace triple021
 	{
 		ff8fx::copy<(4)>(n->rgb, n->rgb1);
 		n->fade = n->fade1;
-		n->model = us(MODEL_BigRune1);
+		n->model = game_addr(MODEL_BigRune1);
 		DrawModel(n);
 		ff8fx::copy<(4)>(n->rgb, n->rgb2);
 		n->fade = n->fade2;
-		n->model = us(MODEL_BigRune2);
+		n->model = game_addr(MODEL_BigRune2);
 		DrawModel(n);
 	}
 }
@@ -445,7 +445,7 @@ namespace triple021
 	{
 		if (n->h.phase != 0) return;
 		n->step++;
-		const int16_t a = FadeTable(us(FADE_TABLE_A), n->step);
+		const int16_t a = FadeTable(game_addr(FADE_TABLE_A), n->step);
 		n->fade = a;
 		n->morph = a;
 		if (n->step >= 0xB)
@@ -459,7 +459,7 @@ namespace triple021
 	{
 		ModelNode *n = (ModelNode *)t;
 		MorphPhase(n);
-		MorphVertices((const uint8_t *)us(MORPH_A), (const uint8_t *)us(MORPH_B), (uint8_t *)us(MODEL_Morph), n->morph);
+		MorphVertices((const uint8_t *)game_addr(MORPH_A), (const uint8_t *)game_addr(MORPH_B), (uint8_t *)game_addr(MODEL_Morph), n->morph);
 		DrawModel(n);
 		n->h.counter++;
 		if ((n->h.flags & 1) && n->h.children == 0)
@@ -640,8 +640,8 @@ namespace triple021
 			{
 				if (n->fade <= 0xA00 && spawn)
 				{
-					SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), us(ORIG_Spark), 0x70, n);
-					p->seq = us(SEQ_Spark);
+					SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), game_addr(ORIG_Spark), 0x70, n);
+					p->seq = game_addr(SEQ_Spark);
 				}
 				n->fade = (int16_t)(n->fade + 0x200);
 				if (n->fade >= 0x1000)
@@ -704,9 +704,9 @@ namespace triple021
 	{
 		if (n->flash_on == 1)
 		{
-			n->model = us(MODEL_ColumnFlash);
+			n->model = game_addr(MODEL_ColumnFlash);
 			DrawModel(n);
-			n->model = us(MODEL_Column);
+			n->model = game_addr(MODEL_Column);
 		}
 		DrawModel(n);
 	}
@@ -797,7 +797,7 @@ namespace triple021
 		GlowPhase(p);
 		GlowPulse(p);
 		GlowPlace(p);
-		DrawGroundGlow(p, us(SEQ_Glow), (const uint32_t *)p->rgb);
+		DrawGroundGlow(p, game_addr(SEQ_Glow), (const uint32_t *)p->rgb);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
 		{
@@ -858,7 +858,7 @@ namespace triple021
 
 	static void SpawnColumn(ModelNode *r)
 	{
-		ModelNode *c = (ModelNode *)AddEffectTask(QModels(), us(ORIG_Column), 0x7C, r);
+		ModelNode *c = (ModelNode *)AddEffectTask(QModels(), game_addr(ORIG_Column), 0x7C, r);
 		c->radius = 0x1000;
 		c->flash_on = 0;
 		c->flagged = r->flagged;
@@ -869,7 +869,7 @@ namespace triple021
 		c->orbit = r->orbit;
 		c->angle[1] = r->orbit;
 		c->arg = r->arg;
-		c->model = us(MODEL_Column);
+		c->model = game_addr(MODEL_Column);
 		c->fade = 0x1000;
 		c->scale[0] = 0x10;
 		c->scale[1] = 0x10;
@@ -879,9 +879,9 @@ namespace triple021
 	static void SpawnMote(ModelNode *r)
 	{
 		if (r->h.counter < 0 || r->h.counter > 6) return;
-		SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), us(ORIG_Mote), 0x70, r);
+		SpriteNode *p = (SpriteNode *)AddEffectTask(QSprites(), game_addr(ORIG_Mote), 0x70, r);
 		ff8fx::copy<(8)>(p->base, p->h.pos);
-		p->seq = us(SEQ_Mote);
+		p->seq = game_addr(SEQ_Mote);
 		p->radius = (int16_t)((CrtRand() & 0x1FF) + 0x200);
 		p->last = 0xC;
 		p->ay = (int16_t)(CrtRand() & 0xFFF);
@@ -952,7 +952,7 @@ namespace triple021
 
 	static void SpawnRune(SeqNode *s, int32_t angle, int16_t arg, int16_t flagged)
 	{
-		ModelNode *r = (ModelNode *)AddEffectTask(QModels(), us(ORIG_Rune), 0x7C, s);
+		ModelNode *r = (ModelNode *)AddEffectTask(QModels(), game_addr(ORIG_Rune), 0x7C, s);
 		CopyAnchorXZFromSource(r, r->h.pos);
 		r->h.pos[1] = (int16_t)(r->h.pos[1] - 0x280);
 		ff8fx::copy<(8)>(r->base, r->h.pos);
@@ -960,12 +960,12 @@ namespace triple021
 		r->arg = arg;
 		r->flagged = flagged;
 		r->orbit = a;
-		r->model = us(MODEL_Rune);
+		r->model = game_addr(MODEL_Rune);
 		r->fade = 0x1000;
 		r->scale[0] = 0x1000;
 		r->scale[1] = 0x1000;
 		r->scale[2] = 0x1000;
-		SpriteNode *g = (SpriteNode *)AddEffectTask(QSprites(), us(ORIG_Glow), 0x70, s);
+		SpriteNode *g = (SpriteNode *)AddEffectTask(QSprites(), game_addr(ORIG_Glow), 0x70, s);
 		CopyAnchorXZFromSource(g, g->h.pos);
 		ff8fx::copy<(8)>(g->base, g->h.pos);
 		g->angle = a;
@@ -1024,7 +1024,7 @@ namespace triple021
 	{
 		const uint8_t *targets = e->h.ctx->actions[e->h.action].targets;
 		if (targets[3] & 4) return;
-		FlashNode *f = (FlashNode *)AddEffectTask(QFlashes(), us(ORIG_Flash), 0x50, e);
+		FlashNode *f = (FlashNode *)AddEffectTask(QFlashes(), game_addr(ORIG_Flash), 0x50, e);
 		CopyAnchorTopFromSource(f, f->h.pos);
 		ff8fx::copy<(8)>(f->target, f->h.pos);
 		f->tx = 0x240;
@@ -1107,7 +1107,7 @@ namespace triple021
 		F<int16_t>(p, 0x1A) = sxy[1];
 		F<int16_t>(p, 0x20) = (int16_t)(sxy[0] + half);
 		F<int16_t>(p, 0x22) = sxy[1];
-		InsertPrimAltViewport(var<uint32_t>(us(0x1D8E04C)), p);
+		InsertPrimAltViewport(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)), p);
 		PacketCursor() = (uint32_t)(p + 0x28);
 	}
 
@@ -1133,7 +1133,7 @@ namespace triple021
 		switch (e->h.phase)
 		{
 		case 0:
-			AddEffectTask(QSequencers(), us(ORIG_Sequencer), 0x40, e);
+			AddEffectTask(QSequencers(), game_addr(ORIG_Sequencer), 0x40, e);
 			e->h.phase++;
 			break;
 		case 1:
@@ -1187,7 +1187,7 @@ namespace triple021
 			break;
 		case 1:
 			r->busy = 1;
-			AddEffectTask(QEmitters(), us(ORIG_Emitter), 0x5C, r);
+			AddEffectTask(QEmitters(), game_addr(ORIG_Emitter), 0x5C, r);
 			r->h.phase++;
 			break;
 		case 2:
@@ -1216,8 +1216,8 @@ namespace triple021
 	static uint32_t __cdecl RootTask(TaskNode *t)
 	{
 		RootNode *r = (RootNode *)t;
-		if (r->tick & 1) PacketCursor() = var<uint32_t>(us(ARENA_A));
-		else PacketCursor() = var<uint32_t>(us(ARENA_B));
+		if (r->tick & 1) PacketCursor() = var<uint32_t>(game_addr(ARENA_A));
+		else PacketCursor() = var<uint32_t>(game_addr(ARENA_B));
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);
 		r->alive = (int16_t)ExecuteTaskQueue(QEmitters());

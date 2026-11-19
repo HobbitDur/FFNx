@@ -25,31 +25,31 @@ namespace hero309
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2507484)); }
-	inline TaskQueue *QPlay() { return (TaskQueue *)us(0x2507490); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25074C4)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25074C8)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_309_HERO_CastContext)); }
+	inline TaskQueue *QPlay() { return (TaskQueue *)game_addr(game::MAG_309_HERO_PlayQueue); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_309_HERO_PacketCursor)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_309_HERO_MagicBuffer)); }
 
-	static const uint32_t ORIG_RootTask = 0x666E70;
-	static const uint32_t ORIG_PlayTask = 0x667030;
-	static const uint32_t MODEL_MAIN = 0x10244E4;
-	static const uint32_t MODEL_ORBIT = 0x1024D6C;
-	static const uint32_t MODEL_DEBRIS = 0x1025528;
+	static constexpr game::Id ORIG_RootTask = game::MAG_309_HERO_RootTask;
+	static constexpr game::Id ORIG_PlayTask = game::MAG_309_HERO_PlayTask;
+	static constexpr game::Id MODEL_MAIN = game::MAG_309_HERO_MainLayout;
+	static constexpr game::Id MODEL_ORBIT = game::MAG_309_HERO_OrbitLayout;
+	static constexpr game::Id MODEL_DEBRIS = game::MAG_309_HERO_ShardModel;
 	static const uint32_t NODE_BYTES = 0x3CC;
 	static const uint32_t MORPH = 0x3CC;
-	static const void *SOUND() { return (const void *)us(0x10257E0); }
+	static const void *SOUND() { return (const void *)game_addr(game::MAG_309_HERO_Sound); }
 	static const uint32_t ARENA_A = 0x3D4;
 	static const uint32_t ARENA_B = 0x103D4;
 	static const int32_t MAIN_TICKS = 0x28, ORBIT_TICKS = 0x12, DEBRIS_FIRST = 0x10, DEBRIS_TICKS = 0x14;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -261,7 +261,7 @@ namespace hero309
 		if ((uint32_t)k < (uint32_t)DEBRIS_TICKS)
 		{
 			ShardDraw *d = (ShardDraw *)FieldAlloc(0x88);
-			*(uint32_t *)(d->h + 0) = us(MODEL_DEBRIS);
+			*(uint32_t *)(d->h + 0) = game_addr(MODEL_DEBRIS);
 			*(uint32_t *)(d->h + 8) = 0;
 			*(int32_t *)(d->h + 0xC) = ShardFade(k);
 			*(uint32_t *)(d->h + 0x1C) = 0xF0;
@@ -317,16 +317,16 @@ namespace hero309
 		{
 			r->started = 1;
 			InitTaskQueuePool(QPlay(), (void *)TexBase(), NODE_BYTES, 1);
-			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), us(ORIG_PlayTask));
+			PlayNode *p = (PlayNode *)AddTaskToQueue(QPlay(), game_addr(ORIG_PlayTask));
 			p->counter = 0;
 			uint8_t *e = Entity(Ctx()->actions[0].targets[0]);
 			p->scale = (int16_t)((*(const int16_t *)(e + 0x26) >> 1) + 0x400);
 			GetDefaultEffectPosition(e, p->anchor);
 			const int32_t h = *(const int16_t *)(e + 0x92);
 			p->anchor[1] = (int16_t)(h / 8 + h / 2 + *(const int16_t *)(e + 0x24));
-			DecodeModelPrimLayout(us(MODEL_MAIN), p->main, 0x13C);
-			DecodeModelPrimLayout(us(MODEL_ORBIT), p->orbit[0], 0xBC);
-			DecodeModelPrimLayout(us(MODEL_ORBIT), p->orbit[1], 0xBC);
+			DecodeModelPrimLayout(game_addr(MODEL_MAIN), p->main, 0x13C);
+			DecodeModelPrimLayout(game_addr(MODEL_ORBIT), p->orbit[0], 0xBC);
+			DecodeModelPrimLayout(game_addr(MODEL_ORBIT), p->orbit[1], 0xBC);
 			for (int i = 0; i < 16; i++)
 			{
 				Shard &s = p->shard[i];

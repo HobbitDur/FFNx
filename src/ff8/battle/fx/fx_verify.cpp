@@ -124,11 +124,11 @@ namespace
 		if (add_entry((uint32_t)pool, size, K_QPOOL, "task pool", q, node_size)) g_pools_used += size;
 	}
 
-	uint32_t *crt_seed() { return (uint32_t *)(((uint8_t *(__cdecl *)())us(mod::CRT_TLS_FN))() + 0x14); }
+	uint32_t *crt_seed() { return (uint32_t *)(((uint8_t *(__cdecl *)())game_addr(mod::CRT_TLS_FN))() + 0x14); }
 
-	const uint32_t MAGIC_BUFFER_STATIC = 0x20DFAB8;
-	uint32_t magic_buffer() { return (uint32_t)((uint8_t *(__cdecl *)())us(0x571B50))(); }
-	uint32_t magic_buffer_size() { return ((uint32_t(__cdecl *)())us(0x571B60))(); }
+	const game::Id MAGIC_BUFFER_STATIC = game::MAGIC_TEXTURE_BUFFER_BASE;
+	uint32_t magic_buffer() { return (uint32_t)((uint8_t *(__cdecl *)())game_addr(game::Magic_TextureOFF_ToEAX1))(); }
+	uint32_t magic_buffer_size() { return ((uint32_t(__cdecl *)())game_addr(game::sub_571B60))(); }
 
 	bool build_entries(const mod::Module &m)
 	{
@@ -137,20 +137,20 @@ namespace
 		g_phase = PH_PRE;
 		for (int i = 0; i < mod::engine_region_count; i++)
 		{
-			uint32_t addr = us(mod::engine_regions[i].addr), size = mod::engine_regions[i].size;
-			if (addr == us(MAGIC_BUFFER_STATIC)) { addr = magic_buffer(); size = magic_buffer_size(); }
+			uint32_t addr = game_addr(mod::engine_regions[i].addr), size = mod::engine_regions[i].size;
+			if (addr == game_addr(MAGIC_BUFFER_STATIC)) { addr = magic_buffer(); size = magic_buffer_size(); }
 			add_entry(addr, size, K_REGION, mod::engine_regions[i].name);
 		}
-		add_entry(us(m.data_lo), m.data_hi - m.data_lo, K_REGION, "module globals");
-		if (m.extra) add_entry(us(m.extra), m.extra_size, K_REGION, "module extra cell");
-		for (int i = 0; i < m.nstreams; i++) add_entry(us(m.streams[i].addr), m.streams[i].size, K_REGION, "module stream/cell");
-		uint32_t ot = *(uint32_t *)us(mod::RENDER_LIST_BASE_PTR);
+		add_entry(game_addr(m.data_lo), game_addr(m.data_hi) - game_addr(m.data_lo), K_REGION, "module globals");
+		if (m.extra) add_entry(game_addr(m.extra), m.extra_size, K_REGION, "module extra cell");
+		for (int i = 0; i < m.nstreams; i++) add_entry(game_addr(m.streams[i].addr), m.streams[i].size, K_REGION, "module stream/cell");
+		uint32_t ot = *(uint32_t *)game_addr(mod::RENDER_LIST_BASE_PTR);
 		if (ot) add_entry(ot, mod::OT_SPAN_WORDS * 4, K_OT, "ordering table");
-		add_entry(us(mod::SSIGPU_ARENA), mod::SSIGPU_ARENA_SIZE, K_ARENA, "SSIGPU execution arena");
-		uint32_t fcur = *(uint32_t *)us(mod::FRAME_PACKET_CUR_PTR), fend = *(uint32_t *)us(mod::FRAME_PACKET_END_PTR);
+		add_entry(game_addr(mod::SSIGPU_ARENA), mod::SSIGPU_ARENA_SIZE, K_ARENA, "SSIGPU execution arena");
+		uint32_t fcur = *(uint32_t *)game_addr(mod::FRAME_PACKET_CUR_PTR), fend = *(uint32_t *)game_addr(mod::FRAME_PACKET_END_PTR);
 		if (fcur && fend > fcur && fend - fcur <= FRAME_WINDOW_MAX && !IsBadReadPtr((void *)fcur, fend - fcur))
 			add_entry(fcur, fend - fcur, K_REGION, "frame packet arena");
-		uint32_t scratch = *(uint32_t *)us(mod::FIELD_ALLOC_PTR);
+		uint32_t scratch = *(uint32_t *)game_addr(mod::FIELD_ALLOC_PTR);
 		if (scratch && !IsBadReadPtr((void *)scratch, mod::FIELD_ALLOC_SCRATCH))
 			add_entry(scratch, mod::FIELD_ALLOC_SCRATCH, K_REGION, "Field_Alloc scratch");
 		add_entry((uint32_t)crt_seed(), 4, K_REGION, "CRT rand seed");
@@ -402,12 +402,11 @@ namespace
 
 	void adopt_unread_garbage()
 	{
-		static const uint32_t words[] = { us(0x1CA928E),
-			us(0x1CA8A16), us(0x1CA8A1E), us(0x1CA8A26),
-			us(0xB8B7F6), us(0xB8B7FE) };
-		for (uint32_t a : words)
+		static constexpr game::Id words[] = { game::unk_1CA928E, game::unk_1CA8A16, game::unk_1CA8A1E, game::unk_1CA8A26, game::unk_B8B7F6, game::unk_B8B7FE };
+		for (game::Id w : words)
 			for (int i = 0; i < g_nent; i++)
 			{
+				const uint32_t a = game_addr(w);
 				const Entry &e = g_ent[i];
 				if (a >= e.addr && a + 2 <= e.addr + e.size)
 				{
@@ -542,7 +541,7 @@ namespace
 		g_s.refused = !mod::fits(*m);
 		if (g_s.refused)
 			ffnx_error("FF8 battle fx: %s (effect %d) does not fit the snapshot (globals %X bytes, streams %X bytes): original code only\n",
-				m->name, effect_id, m->data_hi - m->data_lo, mod::streams_bytes(*m));
+				m->name, effect_id, game_addr(m->data_hi) - game_addr(m->data_lo), mod::streams_bytes(*m));
 		else
 			ffnx_info("FF8 battle fx: verifying %s (effect %d), queue %p\n", m->name, effect_id, q);
 	}
@@ -656,7 +655,7 @@ namespace
 
 	int __cdecl effect_tick(TaskQueue *q)
 	{
-		int id = *(int *)us(mod::EFFECT_ID_PTR) + 1;
+		int id = *(int *)game_addr(mod::EFFECT_ID_PTR) + 1;
 		const mod::Module *m = mod::find_module(id);
 		if (!m || !module_ported(id))
 		{
@@ -684,16 +683,16 @@ namespace
 		void *stubs[SITES_MAX];
 		fill_stubs(stubs, std::make_integer_sequence<int, SITES_MAX>{});
 		g_nsites = 0;
-		g_sites[g_nsites++] = { us(0x508360), 0, "AddTaskToQueue", OBS_ADD_TASK };
-		g_sites[g_nsites++] = { us(0x508300), 0, "InitTaskQueuePool", OBS_INIT_POOL };
+		g_sites[g_nsites++] = { game_addr(game::AddTaskToQueue), 0, "AddTaskToQueue", OBS_ADD_TASK };
+		g_sites[g_nsites++] = { game_addr(game::BdLink_InitTaskQueuePool), 0, "InitTaskQueuePool", OBS_INIT_POOL };
 		for (int i = 0; i < mod::ext_site_count && g_nsites < SITES_MAX; i++)
-			g_sites[g_nsites++] = { us(mod::ext_sites[i].addr), mod::ext_sites[i].arity, mod::ext_sites[i].name, OBS_NONE };
+			g_sites[g_nsites++] = { game_addr(mod::ext_sites[i].addr), mod::ext_sites[i].arity, mod::ext_sites[i].name, OBS_NONE };
 		if (g_nsites - 2 < mod::ext_site_count)
 			ffnx_error("FF8 battle fx: the verifier has room for %d external sites, %d listed\n", SITES_MAX - 2, mod::ext_site_count);
 		for (int i = 0; i < g_nsites; i++) g_sites[i].stub = stubs[i];
 
-		g_tick_orig = (int (__cdecl *)(TaskQueue *))get_relative_call(us(0x50093A), 0);
-		replace_call(us(0x50093A), (void *)effect_tick);
+		g_tick_orig = (int (__cdecl *)(TaskQueue *))get_relative_call(game_addr(game::sub_50093A), 0);
+		replace_call(game_addr(game::sub_50093A), (void *)effect_tick);
 		ffnx_info("FF8 battle fx: differential verifier installed (%d modules, %d external sites)\n", mod::module_count, mod::ext_site_count);
 	}
 }

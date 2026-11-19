@@ -22,30 +22,30 @@ namespace act
 {
 namespace psycho
 {
-	static const Mod MOD_023 = { "psycho", 23, 0x893000, 0x89A690,
-		{ 0x0, 0x0, 0x1614284, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x27011B8, 0x0, 0x0, 0x0, 0x2701304, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2703D98, 0x0, 0x2704038, 0x0, 0x0, 0x0, 0x0, 0x0, 0x270420C, 0x0, 0x0, 0x27044C0, 0x0, 0x27044C8, 0x0, 0x27044D8 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x896E70, 0x896ED0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x897030, 0x897170, 0x8971B0, 0x898440, 0x898490, 0x8984C0, 0x898540, 0x898C30, 0x898C80, 0x898D20, 0x898DE0, 0x899630, 0x899A30, 0x899AC0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8933D0, 0x893450, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x893600, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8964B0, 0x896590, 0x896730, 0x896800, 0x896920, 0x896B80, 0x8970F0, 0x897240, 0x8978A0, 0x8978F0, 0x897980, 0x897A50, 0x8981E0, 0x8982F0, 0x898370, 0x8983A0, 0x898BC0, 0x898BF0, 0x898CD0, 0x898DF0, 0x898F40, 0x0, 0x899600, 0x8997E0, 0x899920, 0x89A030, 0x896DE0, 0x89A530, 0x89A570, 0x89A590, 0x89A5B0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_023 = { "psycho", 23, game::MAG_023_PSYCHO_BLAST_FL, game::MAG_022_BIO_FL,
+		{ {}, {}, game::p_PsychoBlast_DirectorBlock, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::g_PsychoBlast_FilePtr, {}, {}, {}, game::unk_2701304, {}, {}, {}, {}, {}, {}, {}, game::MAG_023_ActorSystemQueue, {}, game::MAG_023_EmitterQueue, {}, {}, {}, {}, {}, game::unk_270420C, {}, {}, game::unk_27044C0, {}, game::g_PsychoBlast_ScratchSP, {}, game::g_PsychoBlast_ActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_023_ActSys_DrawPass, game::MAG_023_ActSys_DrawPrimActor, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_023_ActSys_DrawSpritePass, game::MAG_023_ActSys_UpdatePass, game::MAG_023_ActorStep, game::MAG_023_ActSys_UpdateEmitter, game::MAG_023_Particle_LifeCountdown, game::MAG_023_ActSys_EmitterSpawnStep, game::MAG_023_ActSys_SpawnParticles, game::MAG_023_RandVec3, game::MAG_023_JitterAngles3, game::MAG_023_ActSys_AllocParticleSlot, game::MAG_023_GetWord8Minus1, game::MAG_023_Particle_Init, game::MAG_023_SpawnSubEffects, game::MAG_023_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_023_PsychoBlast_EmitterTask, game::MAG_023_PsychoBlast_Emitter_StartDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_023_DirSyncGate, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_023_ResetTrailHistory, game::MAG_023_Director_StartPositions, game::MAG_023_FillTrailRows, game::MAG_023_Director_Mode3Setup, game::MAG_023_Director_TargetPositions, game::MAG_023_RelocateActorData, game::MAG_023_ActSys_DrawActorSprite, game::MAG_023_ActorMotion, game::MAG_023_DampValue, game::MAG_023_DampVector, game::MAG_023_Instance_AdvanceTexFrame, game::MAG_023_Instance_BuildTransform, game::MAG_023_MorphVertexBlock, game::MAG_023_Instance_EndOfLifeTest, game::MAG_023_Instance_SpawnFollowUp, game::MAG_023_AllocParticle, game::MAG_023_RandRange, game::MAG_023_RandRangeWide, game::MAG_023_RandAngleJitter, game::MAG_023_Particle_AttachToOwner, game::MAG_023_Actor_InterpolatePosition, {}, game::MAG_023_ParticleList_Unlink, game::MAG_023_Particle_PlaceAtAnchorSet, game::MAG_023_Particle_PlaceAtPoint, game::MAG_023_SpriteStrip_DrawQuads, game::MAG_023_PsychoBlast_ActorSystem_Step, game::MAG_023_PsychoBlast_Emitter_ApplyDamage, game::MAG_023_PsychoBlast_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_023_PsychoBlast_Emitter_State3_FinishReleaseRoot, game::MAG_023_PsychoBlast_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x27011BC;
-	static const uint32_t ACTOR_STATE = 0x27044D8;
-	static const uint32_t SCRATCH_SP = 0x27044C8;
-	static const uint32_t DIR_PTR = 0x1614284;
-	static const uint32_t GEO_PTR = 0x16146C4;
-	static const uint32_t Q_EMITTER = 0x2704038, Q_DIRECTOR = 0x27012A0, Q_ACTORS = 0x2703D98, Q_PRIM = 0x2703AD8, Q_DEBRIS = 0x27013E0, Q_STAGE = 0x2704028;
-	static const uint32_t ORIG_Master = 0x893190;
-	static const uint32_t ORIG_Orb = 0x893950, ORIG_Ring = 0x896150, ORIG_Burst = 0x895FF0;
-	static const uint32_t ORIG_Spawner = 0x899B80, ORIG_Debris = 0x899CC0;
-	static const uint32_t PRIM_CB = 0x893B20;
-	static const uint32_t BLEND_BUF = 0x2704220;
-	static const uint32_t SOUND_Blast = 0x1614288;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id PACKET_CURSOR = game::g_PsychoBlast_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::g_PsychoBlast_ActorState;
+	static constexpr game::Id SCRATCH_SP = game::g_PsychoBlast_ScratchSP;
+	static constexpr game::Id DIR_PTR = game::p_PsychoBlast_DirectorBlock;
+	static constexpr game::Id GEO_PTR = game::p_PsychoBlast_GeometryBlock;
+	static constexpr game::Id Q_EMITTER = game::MAG_023_EmitterQueue, Q_DIRECTOR = game::MAG_023_DirectorQueue, Q_ACTORS = game::MAG_023_ActorSystemQueue, Q_PRIM = game::MAG_023_PrimModelQueue, Q_DEBRIS = game::MAG_023_DebrisQueue, Q_STAGE = game::MAG_023_StageWobbleQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_023_PsychoBlast_MasterTask;
+	static constexpr game::Id ORIG_Orb = game::MAG_023_PsychoBlast_OrbTask, ORIG_Ring = game::MAG_023_PsychoBlast_RingTask, ORIG_Burst = game::MAG_023_PsychoBlast_BurstTask;
+	static constexpr game::Id ORIG_Spawner = game::MAG_023_PsychoBlast_DebrisSpawnerTask, ORIG_Debris = game::MAG_023_PsychoBlast_DebrisTask;
+	static constexpr game::Id PRIM_CB = game::MAG_023_PsychoBlast_PrimModelCallback;
+	static constexpr game::Id BLEND_BUF = game::g_PsychoBlast_VertexBlendBuffer;
+	static constexpr game::Id SOUND_Blast = game::PsychoBlast_Sound;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t sub_8DDAC0(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDAC0))(a1, a2, a3); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t sub_8DDAC0(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::sub_8DDAC0))(a1, a2, a3); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -343,7 +343,7 @@ namespace psycho
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
@@ -421,12 +421,12 @@ namespace psycho
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x27044D4));
-		MEM<uint32_t>(us(0x2704210)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_023_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_023_ParticlePoolPtr)) = p;
 		p += 0x438;
-		MEM<uint32_t>(us(0x27044CC)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_023_ActorPoolPtr)) = p;
 		p += 0xD200;
-		MEM<uint32_t>(us(0x27044D4)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_023_FileArenaCursor)) = p;
 		pb_893360();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -434,19 +434,19 @@ namespace psycho
 
 	uint32_t __cdecl pb_893360(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2704210)), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x27044CC)), 0xD200);
-		MEM<uint16_t>(us(0x2703650)) = 0;
-		MEM<uint16_t>(us(0x270421C)) = 0;
-		MEM<uint16_t>(us(0x27041B0)) = 0;
-		MEM<uint16_t>(us(0x27011C0)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_023_ParticlePoolPtr)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_023_ActorPoolPtr)), 0xD200);
+		MEM<uint16_t>(game_addr(game::MAG_023_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_023_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_27041B0)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_27011C0)) = 0;
 		return 0;
 	}
 
 	uint32_t __cdecl pb_893450(uint32_t a1)
 	{
 		pb_893480(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x27012A0), us(0x893500), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_023_DirectorQueue), game_addr(game::MAG_023_PsychoBlast_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -455,12 +455,12 @@ namespace psycho
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = us(0x8935D0);
-		states[1] = us(0x893760);
-		states[2] = us(0x8937A0);
-		states[3] = us(0x8937D0);
-		states[4] = us(0x8937F0);
-		states[5] = us(0x893810);
+		states[0] = game_addr(game::MAG_023_PsychoBlast_Director_Cue1_SetGeometry);
+		states[1] = game_addr(game::MAG_023_PsychoBlast_Director_State1_WaitDirPhase1);
+		states[2] = game_addr(game::MAG_023_PsychoBlast_Director_PlaySound);
+		states[3] = game_addr(game::MAG_023_PsychoBlast_Director_State3_WaitDirGate2);
+		states[4] = game_addr(game::MAG_023_PsychoBlast_Director_State4_Finish);
+		states[5] = game_addr(game::MAG_023_PsychoBlast_Director_State5_Empty);
 		pb_893580(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -508,7 +508,7 @@ namespace psycho
 
 	uint32_t __cdecl pb_893900(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), a2, 0x180, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PRIM), a2, 0x180, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int16_t)a4;
@@ -518,7 +518,7 @@ namespace psycho
 
 	uint32_t __cdecl pb_893950(uint32_t a1)
 	{
-		const uint32_t tab[4] = { us(0x8939B0), us(0x895ED0), us(0x8960F0), us(0x896140) };
+		const uint32_t tab[4] = { game_addr(game::MAG_023_PsychoBlast_Orb_Appear), game_addr(game::MAG_023_PsychoBlast_Orb_Flight), game_addr(game::MAG_023_PsychoBlast_Orb_Flatten), game_addr(game::MAG_023_PsychoBlast_Orb_State3_Empty) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -1240,7 +1240,7 @@ namespace psycho
 
 	uint32_t __cdecl pb_8964B0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x27044D8));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1257,7 +1257,7 @@ namespace psycho
 
 	uint32_t __cdecl pb_896730(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x27044D8));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -1280,7 +1280,7 @@ namespace psycho
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x27044D8), 0) = sys;
+		U32(game_addr(game::g_PsychoBlast_ActorState), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1292,7 +1292,7 @@ namespace psycho
 			pb_897170();
 			pb_897030();
 			pb_896E70();
-			sys = U32(us(0x27044D8), 0);
+			sys = U32(game_addr(game::g_PsychoBlast_ActorState), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1305,19 +1305,19 @@ namespace psycho
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x27044C0), 0) = (uint16_t)(U16(us(0x27044C0), 0) + c14);
-		U16(us(0x270420C), 0) = (uint16_t)(U16(us(0x270420C), 0) + c16);
+		U16(game_addr(game::unk_27044C0), 0) = (uint16_t)(U16(game_addr(game::unk_27044C0), 0) + c14);
+		U16(game_addr(game::unk_270420C), 0) = (uint16_t)(U16(game_addr(game::unk_270420C), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl pb_896E70(void)
 	{
-		uint32_t act = U32(U32(us(0x27044D8), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_PsychoBlast_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x27044D8), 0);
+				uint32_t sys = U32(game_addr(game::g_PsychoBlast_ActorState), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1331,10 +1331,10 @@ namespace psycho
 
 	uint32_t __cdecl pb_896ED0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
+		const uint32_t h = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(us(SCRATCH_SP)) = h;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -1362,7 +1362,7 @@ namespace psycho
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(us(0x1D8E054)) = pb_893DE0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+			MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = pb_893DE0(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		}
 		else if (copies > 0)
 		{
@@ -1374,24 +1374,24 @@ namespace psycho
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(us(0x1D8E054)) = pb_893DE0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+				MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = pb_893DE0(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl pb_897030(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x27044D8)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x27044D8));
+				uint32_t st = MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1426,26 +1426,26 @@ namespace psycho
 	uint32_t __cdecl pb_8970F0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl pb_897170(void)
 	{
-		uint32_t act = U32(U32(us(0x27044D8), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_PsychoBlast_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1461,7 +1461,7 @@ namespace psycho
 	uint32_t __cdecl pb_8971B0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x27044D8));
+		uint32_t st = MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1482,7 +1482,7 @@ namespace psycho
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x27044D8));
+			st = MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1494,7 +1494,7 @@ namespace psycho
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x27044D8), 0);
+		uint32_t st = U32(game_addr(game::g_PsychoBlast_ActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1577,8 +1577,8 @@ namespace psycho
 
 	uint32_t __cdecl pb_8983A0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2704210));
-		int32_t idx = MEM<int16_t>(us(0x2703650));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_023_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_023_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1588,7 +1588,7 @@ namespace psycho
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1603,9 +1603,9 @@ namespace psycho
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(us(0x2703650)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_023_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x2703650)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_023_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -1618,9 +1618,9 @@ namespace psycho
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x898DF0), a1);
+			callp(game_addr(game::MAG_023_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x898F40), a1);
+			callp(game_addr(game::MAG_023_Actor_InterpolatePosition), a1);
 		pb_8984C0(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1629,7 +1629,7 @@ namespace psycho
 
 	uint32_t __cdecl pb_8984C0(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x27044D8), 0);
+		uint32_t sys = U32(game_addr(game::g_PsychoBlast_ActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1656,9 +1656,9 @@ namespace psycho
 
 	uint32_t __cdecl pb_898540(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x27044C8), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::g_PsychoBlast_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x27044C8), 0) = sp;
+		U32(game_addr(game::g_PsychoBlast_ScratchSP), 0) = sp;
 		uint32_t node = pb_898D20(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1668,7 +1668,7 @@ namespace psycho
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x27044D8), 0);
+			uint32_t ctx = U32(game_addr(game::g_PsychoBlast_ActorState), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1836,14 +1836,14 @@ namespace psycho
 			}
 		}
 		pb_899A30(node, desc);
-		U32(us(0x27044C8), 0) = U32(us(0x27044C8), 0) + 0x50;
+		U32(game_addr(game::g_PsychoBlast_ScratchSP), 0) = U32(game_addr(game::g_PsychoBlast_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl pb_898D20(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x27044CC));
-		int32_t i = MEM<int16_t>(us(0x270421C));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_023_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_023_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1856,7 +1856,7 @@ namespace psycho
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1873,16 +1873,16 @@ namespace psycho
 		}
 		i++;
 		if (i >= 0x4F)
-			MEM<uint16_t>(us(0x270421C)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_023_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x270421C)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_023_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl pb_898F40(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x27044D8), 0);
+		const uint32_t st = U32(game_addr(game::g_PsychoBlast_ActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1942,7 +1942,7 @@ namespace psycho
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x27044D8), 0);
+				uint32_t g = U32(game_addr(game::g_PsychoBlast_ActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1952,7 +1952,7 @@ namespace psycho
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x27044D8), 0);
+				uint32_t g = U32(game_addr(game::g_PsychoBlast_ActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2027,7 +2027,7 @@ namespace psycho
 
 	uint32_t __cdecl pb_899AC0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x27044D8));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2052,14 +2052,14 @@ namespace psycho
 				do
 				{
 					pb_8983A0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x27044D8));
+					dir = MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				pb_8983A0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x27044D8));
+				dir = MEM<uint32_t>(game_addr(game::g_PsychoBlast_ActorState));
 			}
 		}
 		return 0;
@@ -2080,8 +2080,8 @@ namespace psycho
 	{
 		const uint32_t node = a1;
 		uint32_t states[2];
-		states[0] = us(0x899BD0);
-		states[1] = us(0x89A520);
+		states[0] = game_addr(game::MAG_023_PsychoBlast_DebrisSpawner_Spawn);
+		states[1] = game_addr(game::MAG_023_PsychoBlast_DebrisSpawner_State1_Empty);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2095,7 +2095,7 @@ namespace psycho
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), mat);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -2103,7 +2103,7 @@ namespace psycho
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -2113,7 +2113,7 @@ namespace psycho
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -2123,11 +2123,11 @@ namespace psycho
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(us(0x27011BC));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(game::g_PsychoBlast_PacketCursor));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(us(0x27011BC)) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(game::g_PsychoBlast_PacketCursor)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
@@ -2136,7 +2136,7 @@ namespace psycho
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = us(0x161428C);
+		U32(node, 0x4c) = game_addr(game::unk_161428C);
 		st++;
 		U16(node, 0x56) = 0xFFC0;
 		U16(node, 0x52) = 8;
@@ -2157,7 +2157,7 @@ namespace psycho
 
 	uint32_t __cdecl pb_89A530(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x1614284));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::p_PsychoBlast_DirectorBlock));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -2176,47 +2176,47 @@ namespace psycho
 		g_mod = &MOD_023;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x2701304)) = us(0x2793E58);
-		states[0] = us(0x893300);
-		states[1] = us(0x893310);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_2701304)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_023_PsychoBlast_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_023_PsychoBlast_Master_State1_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = us(0x893320);
-		states[3] = us(0x8933A0);
-		states[4] = us(0x89A5C0);
-		states[5] = us(0x89A600);
-		states[6] = us(0x89A610);
-		states[7] = us(0x89A620);
-		states[8] = us(0x89A650);
-		states[9] = us(0x89A660);
-		states[10] = us(0x89A680);
+		states[2] = game_addr(game::MAG_023_PsychoBlast_Master_CarveActorPools);
+		states[3] = game_addr(game::MAG_023_PsychoBlast_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_023_PsychoBlast_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_023_PsychoBlast_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_023_PsychoBlast_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_023_PsychoBlast_Master_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_023_PsychoBlast_Master_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_023_PsychoBlast_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_023_PsychoBlast_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x27041AC));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2703AEC));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x2701300)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_27041AC));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2703AEC));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_2701300)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x27041A8));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2703AE8));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x2701300)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_27041A8));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2703AE8));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_2701300)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x27044C0)) = 0;
-		MEM<uint16_t>(us(0x270420C)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DEBRIS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PRIM)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
+		MEM<uint16_t>(game_addr(game::unk_27044C0)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_270420C)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_DEBRIS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2225,8 +2225,8 @@ namespace psycho
 
 	uint32_t __cdecl pb_893480(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -2236,7 +2236,7 @@ namespace psycho
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -2253,7 +2253,7 @@ namespace psycho
 		U16(V, 2) = 0xF200;
 		U16(V, 4) = 0xFC00;
 		x::matrixMultiplyVector(M, V, V);
-		uint32_t b = MEM<uint32_t>(us(GEO_PTR));
+		uint32_t b = MEM<uint32_t>(game_addr(GEO_PTR));
 		U32(b, 0x20) = U32(caster, 0x1C);
 		U32(b, 0x24) = U32(caster, 0x20);
 		U16(b, 0x20) = (uint16_t)(U16(b, 0x20) + U16(V, 0));
@@ -2263,36 +2263,36 @@ namespace psycho
 		U16(V, 2) = 0xF200;
 		U16(V, 4) = 0xF688;
 		x::matrixMultiplyVector(M, V, V);
-		b = MEM<uint32_t>(us(GEO_PTR));
+		b = MEM<uint32_t>(game_addr(GEO_PTR));
 		U32(b, 0x28) = U32(caster, 0x1C);
 		U32(b, 0x2C) = U32(caster, 0x20);
 		U16(b, 0x28) = (uint16_t)(U16(b, 0x28) + U16(V, 0));
 		U16(b, 0x2A) = (uint16_t)(U16(b, 0x2A) + U16(V, 2));
 		U16(b, 0x2C) = (uint16_t)(U16(b, 0x2C) + U16(V, 4));
 		x::GetEffectSpawnPosition(target, 0xF0, 0, b + 0x30);
-		b = MEM<uint32_t>(us(GEO_PTR));
+		b = MEM<uint32_t>(game_addr(GEO_PTR));
 		return gx::sub_8DDAC0(b, b + 0x28, b + 0x30);
 	}
 
 	uint32_t __cdecl pb_8937A0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) < 4)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) < 4)
 			return 0;
-		x::BdPlaySE(us(SOUND_Blast), 0, 0x80);
+		x::BdPlaySE(game_addr(SOUND_Blast), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl pb_893830(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40) - 1;
 		if (ph != 0)
 			return (uint32_t)ph;
-		a_73C100(a1, us(0x896250), us(0x17EA4F0), 0, 0x28, 4);
-		pb_893900(a1, us(ORIG_Ring), us(0x17EE254), 0xD8, 0, 0);
-		pb_893900(a1, us(ORIG_Orb), us(0x17F01B0), 0x58, 1, 0);
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x8DDC30), 0x40, a1);
-		U32(t, 0x34) = us(0x16146C8);
+		a_73C100(a1, game_addr(game::MAG_023_PsychoBlast_ActorSystemTask), game_addr(game::unk_17EA4F0), 0, 0x28, 4);
+		pb_893900(a1, game_addr(ORIG_Ring), game_addr(game::unk_17EE254), 0xD8, 0, 0);
+		pb_893900(a1, game_addr(ORIG_Orb), game_addr(game::unk_17F01B0), 0x58, 1, 0);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::Effect_ScreenTintTask), 0x40, a1);
+		U32(t, 0x34) = game_addr(game::PsychoBlast_TintScript);
 		U16(t, 0x38) = 0x27;
 		return t;
 	}
@@ -2306,7 +2306,7 @@ namespace psycho
 		U32(n, 0x58) = 0x1000;
 		U32(n, 0x54) = 0x1000;
 		U32(n, 0x50) = 0x1000;
-		const uint32_t b = MEM<uint32_t>(us(GEO_PTR));
+		const uint32_t b = MEM<uint32_t>(game_addr(GEO_PTR));
 		const uint32_t w2c = U32(b, 0x2C);
 		ff8fx::copy<(0x20)>((void *)(n + 0x30), (const void *)b);
 		const uint32_t w28 = U32(b, 0x28);
@@ -2329,7 +2329,7 @@ namespace psycho
 		S32(L, 0x14) = S16(a1, 0x1C);
 		S32(L, 0x18) = S16(a1, 0x1E);
 		S32(L, 0x1C) = S16(a1, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
 		U16(L, 0x54) = U16(a1, 0x86);
 		U32(L, 0x44) = U32(a1, 0x7C);
 		U32(L, 0x38) = U32(a1, 0x70);
@@ -2337,10 +2337,10 @@ namespace psycho
 		U16(L, 0x4E) = U16(a1, 0x8E);
 		U16(L, 0x52) = U16(a1, 0x92);
 		U16(L, 0x50) = U16(a1, 0x90);
-		U32(L, 0x48) = us(BLEND_BUF);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
 		U16(L, 0x56) = U16(a1, 0x80);
 		U16(L, 0x58) = U16(a1, 0x88);
-		return prim_play(a1 + 0x94, us(PRIM_CB), L, 0);
+		return prim_play(a1 + 0x94, game_addr(PRIM_CB), L, 0);
 	}
 
 	uint32_t __cdecl pb_893B20(uint32_t a1, uint32_t a2, uint32_t a3)
@@ -2452,20 +2452,20 @@ namespace psycho
 			U32(hdr, 8) = U32(rec, 0x20);
 			U32(hdr, 0x14) = fl | 0xC0;
 		}
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
 		U16(hdr, 0x1E) = 0;
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = pb_893DE0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = pb_893DE0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -2481,7 +2481,7 @@ namespace psycho
 		U16(V, 4) = 0xFE00;
 		x::scale3DMatrix(M, a1 + 0x50);
 		x::matrixMultiplyVector(M, V, V);
-		const uint32_t b = MEM<uint32_t>(us(GEO_PTR));
+		const uint32_t b = MEM<uint32_t>(game_addr(GEO_PTR));
 		U16(a2, 0) = (uint16_t)(U16(b, 0x30) + U16(V, 0));
 		const uint16_t y = (uint16_t)(U16(b, 0x32) + U16(V, 2));
 		const uint16_t z = (uint16_t)(U16(b, 0x34) + U16(V, 4));
@@ -2497,17 +2497,17 @@ namespace psycho
 		const int16_t t = S16(n, 0x17C);
 		if (t >= 0x1000)
 		{
-			const uint32_t b = MEM<uint32_t>(us(GEO_PTR));
+			const uint32_t b = MEM<uint32_t>(game_addr(GEO_PTR));
 			U32(n, 0x1C) = U32(b, 0x28);
 			U16(n, 0x17C) = 0x1000;
 			U32(n, 0x20) = U32(b, 0x2C);
 			pb_895E40(n, n + 0x1C);
-			const uint32_t burst = pb_893900(n, us(ORIG_Burst), us(0x17F1744), 0xD8, 2, 0);
+			const uint32_t burst = pb_893900(n, game_addr(ORIG_Burst), game_addr(game::unk_17F1744), 0xD8, 2, 0);
 			const uint32_t w1c = U32(n, 0x1C);
 			const uint32_t w20 = U32(n, 0x20);
 			U32(burst, 0x1C) = w1c;
 			U32(burst, 0x20) = w20;
-			x::Effect_AddTaskAndInitFromCtx(us(Q_DEBRIS), us(ORIG_Spawner), 0xB0, n);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(Q_DEBRIS), game_addr(ORIG_Spawner), 0xB0, n);
 			U8(n, 0x29) = (uint8_t)(U8(n, 0x29) + 1);
 			return pb_893A30(n);
 		}
@@ -2525,11 +2525,11 @@ namespace psycho
 	{
 		const uint32_t n = a1;
 		x::Effect_DecodeModelPrimLayout(U32(n, 0x74), n + 0x94, U32(n, 0x78));
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x48) = 1;
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x48) = 1;
 		U32(n, 0x58) = 0x1000;
 		U32(n, 0x54) = 0x1000;
 		U32(n, 0x50) = 0x1000;
-		const uint32_t b = MEM<uint32_t>(us(GEO_PTR));
+		const uint32_t b = MEM<uint32_t>(game_addr(GEO_PTR));
 		const uint32_t w34 = U32(b, 0x34);
 		ff8fx::copy<(0x20)>((void *)(n + 0x30), (const void *)b);
 		U32(n, 0x1C) = U32(b, 0x30);
@@ -2565,7 +2565,7 @@ namespace psycho
 		U32(n, 0x58) = 0x1000;
 		U32(n, 0x54) = 0x1000;
 		U32(n, 0x50) = 0x1000;
-		const uint32_t b = MEM<uint32_t>(us(GEO_PTR));
+		const uint32_t b = MEM<uint32_t>(game_addr(GEO_PTR));
 		const uint32_t w2c = U32(b, 0x2C);
 		ff8fx::copy<(0x20)>((void *)(n + 0x30), (const void *)b);
 		U32(n, 0x1C) = U32(b, 0x28);
@@ -2580,7 +2580,7 @@ namespace psycho
 		const uint32_t n = a1;
 		if (S16(n, 0x24) < S16(n, 0x298))
 			return 0;
-		const uint32_t b = MEM<uint32_t>(us(GEO_PTR));
+		const uint32_t b = MEM<uint32_t>(game_addr(GEO_PTR));
 		U32(n, 0x290) = U32(b, 0x20);
 		U32(n, 0x294) = U32(b, 0x24);
 		a_73F990(n);
@@ -2608,18 +2608,18 @@ namespace psycho
 		const uint32_t M = P(mbuf);
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_DEBRIS), us(ORIG_Debris), 0xB0, n);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_DEBRIS), game_addr(ORIG_Debris), 0xB0, n);
 			uint32_t v = t + 0x8C;
 			for (int k = 4; k != 0; k--, v += 8)
 			{
-				const uint32_t b = MEM<uint32_t>(us(GEO_PTR));
+				const uint32_t b = MEM<uint32_t>(game_addr(GEO_PTR));
 				U32(v, -0x20) = U32(b, 0x30);
 				U32(v, -0x1C) = U32(b, 0x34);
 				U16(v, 0) = 0;
 				const uint32_t r = x::CrtRand();
 				U16(v, 2) = (uint16_t)((r & 0xFFF) + 0x400);
 				U16(v, 4) = 0;
-				ff8fx::copy<(0x20)>((void *)M, (const void *)MEM<uint32_t>(us(GEO_PTR)));
+				ff8fx::copy<(0x20)>((void *)M, (const void *)MEM<uint32_t>(game_addr(GEO_PTR)));
 				const uint32_t r2 = x::CrtRand() & 0xFFF;
 				x::sub_8DD960(M, (uint32_t)(int32_t)(int16_t)r2);
 				x::matrixMultiplyVector(M, v, v);
@@ -2632,9 +2632,9 @@ namespace psycho
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x89A4A0);
-		states[1] = us(0x89A4C0);
-		states[2] = us(0x89A510);
+		states[0] = game_addr(game::MAG_023_PsychoBlast_Debris_Init);
+		states[1] = game_addr(game::MAG_023_PsychoBlast_Debris_Animate);
+		states[2] = game_addr(game::MAG_023_PsychoBlast_Debris_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		for (int k = 0; k < 4; k++)
 		{
@@ -2660,130 +2660,130 @@ namespace psycho
 		return task_end(node, status);
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x893300, (void *)a_73A0D0, "023 MAG_023_sub_893300" },
-		{ 0x893310, (void *)a_73A0D0, "023 MAG_023_sub_893310" },
-		{ 0x8933A0, (void *)a_73A170, "023 MAG_023_sub_8933A0" },
-		{ 0x8933D0, (void *)a_73A1A0, "023 MAG_023_sub_8933D0" },
-		{ 0x893600, (void *)a_73B640, "023 sub_893600" },
-		{ 0x893780, (void *)a_73B7E0, "023 sub_893780" },
-		{ 0x8937D0, (void *)a_73B8A0, "023 sub_8937D0" },
-		{ 0x8937F0, (void *)a_7475A0, "023 sub_8937F0" },
-		{ 0x893810, (void *)a_73A6D0, "023 nullsub_1734" },
-		{ 0x893820, (void *)a_73A6D0, "023 nullsub_1735" },
-		{ 0x8938B0, (void *)a_73C100, "023 sub_8938B0" },
-		{ 0x894DC0, (void *)a_73D770, "023 sub_894DC0" },
-		{ 0x895010, (void *)a_73D9C0, "023 sub_895010" },
-		{ 0x895FF0, (void *)a_73A380, "023 sub_895FF0" },
-		{ 0x8960E0, (void *)a_73A6D0, "023 nullsub_1736" },
-		{ 0x896140, (void *)a_73A6D0, "023 nullsub_1737" },
-		{ 0x896150, (void *)a_73A380, "023 sub_896150" },
-		{ 0x896240, (void *)a_73A6D0, "023 nullsub_1738" },
-		{ 0x896250, (void *)a_73A380, "023 sub_896250" },
-		{ 0x896300, (void *)a_73F990, "023 sub_896300" },
-		{ 0x896590, (void *)a_73FC20, "023 sub_896590" },
-		{ 0x896800, (void *)a_73FE90, "023 sub_896800" },
-		{ 0x896920, (void *)a_73FFB0, "023 sub_896920" },
-		{ 0x896B80, (void *)a_740210, "023 sub_896B80" },
-		{ 0x897240, (void *)a_740910, "023 sub_897240" },
-		{ 0x8978A0, (void *)a_740F70, "023 sub_8978A0" },
-		{ 0x8978F0, (void *)a_740FC0, "023 sub_8978F0" },
-		{ 0x897980, (void *)a_741050, "023 sub_897980" },
-		{ 0x897A50, (void *)a_741120, "023 sub_897A50" },
-		{ 0x898490, (void *)a_741B60, "023 sub_898490" },
-		{ 0x898BC0, (void *)a_742290, "023 au_re__rand_62" },
-		{ 0x898BF0, (void *)a_7422C0, "023 sub_898BF0" },
-		{ 0x898C30, (void *)a_742300, "023 sub_898C30" },
-		{ 0x898C80, (void *)a_742350, "023 sub_898C80" },
-		{ 0x898CD0, (void *)a_7423A0, "023 au_re__rand_62_0" },
-		{ 0x898DE0, (void *)a_7424B0, "023 sub_898DE0" },
-		{ 0x898DF0, (void *)a_7424C0, "023 sub_898DF0" },
-		{ 0x8995D0, (void *)a_742CA0, "023 sub_8995D0" },
-		{ 0x899600, (void *)a_742CD0, "023 sub_899600" },
-		{ 0x899630, (void *)a_742D00, "023 sub_899630" },
-		{ 0x8997E0, (void *)a_742EB0, "023 sub_8997E0" },
-		{ 0x899920, (void *)a_742FF0, "023 sub_899920" },
-		{ 0x899B70, (void *)a_73A6D0, "023 nullsub_1739" },
-		{ 0x899EF0, (void *)a_7435E0, "023 InitEffectSequenceFromData_c14" },
-		{ 0x89A030, (void *)a_743720, "023 sub_89A030" },
-		{ 0x89A4E0, (void *)a_743C20, "023 sub_89A4E0" },
-		{ 0x89A510, (void *)a_73A6D0, "023 nullsub_1740" },
-		{ 0x89A520, (void *)a_73A6D0, "023 nullsub_1741" },
-		{ 0x89A570, (void *)a_7474B0, "023 MAG_023_sub_89A570" },
-		{ 0x89A590, (void *)a_7474D0, "023 MAG_023_sub_89A590" },
-		{ 0x89A5B0, (void *)a_73A6D0, "023 nullsub_1742" },
-		{ 0x89A5C0, (void *)a_747500, "023 MAG_023_sub_89A5C0" },
-		{ 0x89A600, (void *)a_73A0D0, "023 MAG_023_sub_89A600" },
-		{ 0x89A610, (void *)a_747550, "023 MAG_023_sub_89A610" },
-		{ 0x89A620, (void *)a_747560, "023 MAG_023_sub_89A620" },
-		{ 0x89A650, (void *)a_747590, "023 MAG_023_sub_89A650" },
-		{ 0x89A660, (void *)a_7475A0, "023 MAG_023_sub_89A660" },
-		{ 0x89A680, (void *)a_73A6D0, "023 nullsub_1733" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_023_PsychoBlast_Master_State0_Advance, (void *)a_73A0D0, "023 MAG_023_sub_893300" },
+		{ game::MAG_023_PsychoBlast_Master_State1_Advance, (void *)a_73A0D0, "023 MAG_023_sub_893310" },
+		{ game::MAG_023_PsychoBlast_Master_State3_SpawnEmitter, (void *)a_73A170, "023 MAG_023_sub_8933A0" },
+		{ game::MAG_023_PsychoBlast_EmitterTask, (void *)a_73A1A0, "023 MAG_023_sub_8933D0" },
+		{ game::MAG_023_DirSyncGate, (void *)a_73B640, "023 sub_893600" },
+		{ game::MAG_023_DirPhaseGE, (void *)a_73B7E0, "023 sub_893780" },
+		{ game::MAG_023_PsychoBlast_Director_State3_WaitDirGate2, (void *)a_73B8A0, "023 sub_8937D0" },
+		{ game::MAG_023_PsychoBlast_Director_State4_Finish, (void *)a_7475A0, "023 sub_8937F0" },
+		{ game::MAG_023_PsychoBlast_Director_State5_Empty, (void *)a_73A6D0, "023 nullsub_1734" },
+		{ game::MAG_023_St_Empty, (void *)a_73A6D0, "023 nullsub_1735" },
+		{ game::MAG_023_SpawnChildTask, (void *)a_73C100, "023 sub_8938B0" },
+		{ game::MAG_023_EmitG3, (void *)a_73D770, "023 sub_894DC0" },
+		{ game::MAG_023_EmitG4, (void *)a_73D9C0, "023 sub_895010" },
+		{ game::MAG_023_PsychoBlast_BurstTask, (void *)a_73A380, "023 sub_895FF0" },
+		{ game::MAG_023_PsychoBlast_Burst_State2_Empty, (void *)a_73A6D0, "023 nullsub_1736" },
+		{ game::MAG_023_PsychoBlast_Orb_State3_Empty, (void *)a_73A6D0, "023 nullsub_1737" },
+		{ game::MAG_023_PsychoBlast_RingTask, (void *)a_73A380, "023 sub_896150" },
+		{ game::MAG_023_PsychoBlast_Ring_State2_Empty, (void *)a_73A6D0, "023 nullsub_1738" },
+		{ game::MAG_023_PsychoBlast_ActorSystemTask, (void *)a_73A380, "023 sub_896250" },
+		{ game::MAG_023_DirectorSetup, (void *)a_73F990, "023 sub_896300" },
+		{ game::MAG_023_Director_StartPositions, (void *)a_73FC20, "023 sub_896590" },
+		{ game::MAG_023_Director_Mode3Setup, (void *)a_73FE90, "023 sub_896800" },
+		{ game::MAG_023_Director_TargetPositions, (void *)a_73FFB0, "023 sub_896920" },
+		{ game::MAG_023_RelocateActorData, (void *)a_740210, "023 sub_896B80" },
+		{ game::MAG_023_ActorMotion, (void *)a_740910, "023 sub_897240" },
+		{ game::MAG_023_DampValue, (void *)a_740F70, "023 sub_8978A0" },
+		{ game::MAG_023_DampVector, (void *)a_740FC0, "023 sub_8978F0" },
+		{ game::MAG_023_Instance_AdvanceTexFrame, (void *)a_741050, "023 sub_897980" },
+		{ game::MAG_023_Instance_BuildTransform, (void *)a_741120, "023 sub_897A50" },
+		{ game::MAG_023_Particle_LifeCountdown, (void *)a_741B60, "023 sub_898490" },
+		{ game::MAG_023_RandRange, (void *)a_742290, "023 au_re__rand_62" },
+		{ game::MAG_023_RandRangeWide, (void *)a_7422C0, "023 sub_898BF0" },
+		{ game::MAG_023_RandVec3, (void *)a_742300, "023 sub_898C30" },
+		{ game::MAG_023_JitterAngles3, (void *)a_742350, "023 sub_898C80" },
+		{ game::MAG_023_RandAngleJitter, (void *)a_7423A0, "023 au_re__rand_62_0" },
+		{ game::MAG_023_GetWord8Minus1, (void *)a_7424B0, "023 sub_898DE0" },
+		{ game::MAG_023_Particle_AttachToOwner, (void *)a_7424C0, "023 sub_898DF0" },
+		{ game::MAG_023_ParticleList_Append, (void *)a_742CA0, "023 sub_8995D0" },
+		{ game::MAG_023_ParticleList_Unlink, (void *)a_742CD0, "023 sub_899600" },
+		{ game::MAG_023_Particle_Init, (void *)a_742D00, "023 sub_899630" },
+		{ game::MAG_023_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "023 sub_8997E0" },
+		{ game::MAG_023_Particle_PlaceAtPoint, (void *)a_742FF0, "023 sub_899920" },
+		{ game::MAG_023_PsychoBlast_ActorSystem_State2_Empty, (void *)a_73A6D0, "023 nullsub_1739" },
+		{ game::InitEffectSequenceFromData_c14, (void *)a_7435E0, "023 InitEffectSequenceFromData_c14" },
+		{ game::MAG_023_SpriteStrip_DrawQuads, (void *)a_743720, "023 sub_89A030" },
+		{ game::MAG_023_StepCounterLimit, (void *)a_743C20, "023 sub_89A4E0" },
+		{ game::MAG_023_PsychoBlast_Debris_State2_Empty, (void *)a_73A6D0, "023 nullsub_1740" },
+		{ game::MAG_023_PsychoBlast_DebrisSpawner_State1_Empty, (void *)a_73A6D0, "023 nullsub_1741" },
+		{ game::MAG_023_PsychoBlast_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "023 MAG_023_sub_89A570" },
+		{ game::MAG_023_PsychoBlast_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "023 MAG_023_sub_89A590" },
+		{ game::MAG_023_PsychoBlast_Emitter_State4_Empty, (void *)a_73A6D0, "023 nullsub_1742" },
+		{ game::MAG_023_PsychoBlast_Master_State4_NextTargetLoop, (void *)a_747500, "023 MAG_023_sub_89A5C0" },
+		{ game::MAG_023_PsychoBlast_Master_State5_Advance, (void *)a_73A0D0, "023 MAG_023_sub_89A600" },
+		{ game::MAG_023_PsychoBlast_Master_State6_WaitQueuesEmpty, (void *)a_747550, "023 MAG_023_sub_89A610" },
+		{ game::MAG_023_PsychoBlast_Master_State7_RequestBattleSync, (void *)a_747560, "023 MAG_023_sub_89A620" },
+		{ game::MAG_023_PsychoBlast_Master_State8_WaitBattleSyncDone, (void *)a_747590, "023 MAG_023_sub_89A650" },
+		{ game::MAG_023_PsychoBlast_Master_State9_Finish, (void *)a_7475A0, "023 MAG_023_sub_89A660" },
+		{ game::MAG_023_PsychoBlast_Master_State10_Empty, (void *)a_73A6D0, "023 nullsub_1733" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x893190, (void *)pb_893190, "023 pb_893190" },
-		{ 0x893320, (void *)pb_893320, "023 pb_893320" },
-		{ 0x893360, (void *)pb_893360, "023 pb_893360" },
-		{ 0x893450, (void *)pb_893450, "023 pb_893450" },
-		{ 0x893480, (void *)pb_893480, "023 pb_893480" },
-		{ 0x893500, (void *)pb_893500, "023 pb_893500" },
-		{ 0x893580, (void *)pb_893580, "023 pb_893580" },
-		{ 0x8935D0, (void *)pb_8935D0, "023 pb_8935D0" },
-		{ 0x893630, (void *)pb_893630, "023 pb_893630" },
-		{ 0x893760, (void *)pb_893760, "023 pb_893760" },
-		{ 0x8937A0, (void *)pb_8937A0, "023 pb_8937A0" },
-		{ 0x893830, (void *)pb_893830, "023 pb_893830" },
-		{ 0x893900, (void *)pb_893900, "023 pb_893900" },
-		{ 0x893950, (void *)pb_893950, "023 pb_893950" },
-		{ 0x8939B0, (void *)pb_8939B0, "023 pb_8939B0" },
-		{ 0x893A30, (void *)pb_893A30, "023 pb_893A30" },
-		{ 0x893B20, (void *)pb_893B20, "023 pb_893B20" },
-		{ 0x893DE0, (void *)pb_893DE0, "023 pb_893DE0" },
-		{ 0x893F10, (void *)pb_893F10, "023 pb_893F10" },
-		{ 0x894130, (void *)pb_894130, "023 pb_894130" },
-		{ 0x8943C0, (void *)pb_8943C0, "023 pb_8943C0" },
-		{ 0x894840, (void *)pb_894840, "023 pb_894840" },
-		{ 0x8952F0, (void *)pb_8952F0, "023 pb_8952F0" },
-		{ 0x8957F0, (void *)pb_8957F0, "023 pb_8957F0" },
-		{ 0x895E40, (void *)pb_895E40, "023 pb_895E40" },
-		{ 0x895ED0, (void *)pb_895ED0, "023 pb_895ED0" },
-		{ 0x896050, (void *)pb_896050, "023 pb_896050" },
-		{ 0x8960C0, (void *)pb_8960C0, "023 pb_8960C0" },
-		{ 0x8960F0, (void *)pb_8960F0, "023 pb_8960F0" },
-		{ 0x8961B0, (void *)pb_8961B0, "023 pb_8961B0" },
-		{ 0x896220, (void *)pb_896220, "023 pb_896220" },
-		{ 0x8962B0, (void *)pb_8962B0, "023 pb_8962B0" },
-		{ 0x8964B0, (void *)pb_8964B0, "023 pb_8964B0" },
-		{ 0x896730, (void *)pb_896730, "023 pb_896730" },
-		{ 0x896DE0, (void *)pb_896DE0, "023 pb_896DE0" },
-		{ 0x896E70, (void *)pb_896E70, "023 pb_896E70" },
-		{ 0x896ED0, (void *)pb_896ED0, "023 pb_896ED0" },
-		{ 0x897030, (void *)pb_897030, "023 pb_897030" },
-		{ 0x8970F0, (void *)pb_8970F0, "023 pb_8970F0" },
-		{ 0x897170, (void *)pb_897170, "023 pb_897170" },
-		{ 0x8971B0, (void *)pb_8971B0, "023 pb_8971B0" },
-		{ 0x8981E0, (void *)pb_8981E0, "023 pb_8981E0" },
-		{ 0x8982F0, (void *)pb_8982F0, "023 pb_8982F0" },
-		{ 0x898370, (void *)pb_898370, "023 pb_898370" },
-		{ 0x8983A0, (void *)pb_8983A0, "023 pb_8983A0" },
-		{ 0x898440, (void *)pb_898440, "023 pb_898440" },
-		{ 0x8984C0, (void *)pb_8984C0, "023 pb_8984C0" },
-		{ 0x898540, (void *)pb_898540, "023 pb_898540" },
-		{ 0x898D20, (void *)pb_898D20, "023 pb_898D20" },
-		{ 0x898F40, (void *)pb_898F40, "023 pb_898F40" },
-		{ 0x899A30, (void *)pb_899A30, "023 pb_899A30" },
-		{ 0x899AC0, (void *)pb_899AC0, "023 pb_899AC0" },
-		{ 0x899B50, (void *)pb_899B50, "023 pb_899B50" },
-		{ 0x899B80, (void *)pb_899B80, "023 pb_899B80" },
-		{ 0x899BD0, (void *)pb_899BD0, "023 pb_899BD0" },
-		{ 0x899CC0, (void *)pb_899CC0, "023 pb_899CC0" },
-		{ 0x899DD0, (void *)pb_899DD0, "023 pb_899DD0" },
-		{ 0x89A4A0, (void *)pb_89A4A0, "023 pb_89A4A0" },
-		{ 0x89A4C0, (void *)pb_89A4C0, "023 pb_89A4C0" },
-		{ 0x89A530, (void *)pb_89A530, "023 pb_89A530" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_023_PsychoBlast_MasterTask, (void *)pb_893190, "023 pb_893190" },
+		{ game::MAG_023_PsychoBlast_Master_CarveActorPools, (void *)pb_893320, "023 pb_893320" },
+		{ game::MAG_023_PsychoBlast_ClearActorPools, (void *)pb_893360, "023 pb_893360" },
+		{ game::MAG_023_PsychoBlast_Emitter_StartDirector, (void *)pb_893450, "023 pb_893450" },
+		{ game::MAG_023_PsychoBlast_Emitter_InitDirectorBlock, (void *)pb_893480, "023 pb_893480" },
+		{ game::MAG_023_PsychoBlast_DirectorTask, (void *)pb_893500, "023 pb_893500" },
+		{ game::MAG_023_PsychoBlast_Director_PhaseBookkeeping, (void *)pb_893580, "023 pb_893580" },
+		{ game::MAG_023_PsychoBlast_Director_Cue1_SetGeometry, (void *)pb_8935D0, "023 pb_8935D0" },
+		{ game::MAG_023_PsychoBlast_SetupGeometryBlock, (void *)pb_893630, "023 pb_893630" },
+		{ game::MAG_023_PsychoBlast_Director_State1_WaitDirPhase1, (void *)pb_893760, "023 pb_893760" },
+		{ game::MAG_023_PsychoBlast_Director_PlaySound, (void *)pb_8937A0, "023 pb_8937A0" },
+		{ game::MAG_023_PsychoBlast_Director_StartPhase, (void *)pb_893830, "023 pb_893830" },
+		{ game::MAG_023_PsychoBlast_SpawnPrimModelTask, (void *)pb_893900, "023 pb_893900" },
+		{ game::MAG_023_PsychoBlast_OrbTask, (void *)pb_893950, "023 pb_893950" },
+		{ game::MAG_023_PsychoBlast_Orb_Appear, (void *)pb_8939B0, "023 pb_8939B0" },
+		{ game::MAG_023_PsychoBlast_DrawPrimModel, (void *)pb_893A30, "023 pb_893A30" },
+		{ game::MAG_023_PsychoBlast_PrimModelCallback, (void *)pb_893B20, "023 pb_893B20" },
+		{ game::MAG_023_PsychoBlast_RenderPrimModel, (void *)pb_893DE0, "023 pb_893DE0" },
+		{ game::MAG_023_PsychoBlast_FlatTriList, (void *)pb_893F10, "023 pb_893F10" },
+		{ game::MAG_023_PsychoBlast_FlatQuadList, (void *)pb_894130, "023 pb_894130" },
+		{ game::MAG_023_PsychoBlast_TexTriList, (void *)pb_8943C0, "023 pb_8943C0" },
+		{ game::MAG_023_PsychoBlast_TexQuadList, (void *)pb_894840, "023 pb_894840" },
+		{ game::MAG_023_PsychoBlast_GouraudTexTriList, (void *)pb_8952F0, "023 pb_8952F0" },
+		{ game::MAG_023_PsychoBlast_GouraudTexQuadList, (void *)pb_8957F0, "023 pb_8957F0" },
+		{ game::MAG_023_PsychoBlast_Orb_ComputeEndPoint, (void *)pb_895E40, "023 pb_895E40" },
+		{ game::MAG_023_PsychoBlast_Orb_Flight, (void *)pb_895ED0, "023 pb_895ED0" },
+		{ game::MAG_023_PsychoBlast_Burst_Start, (void *)pb_896050, "023 pb_896050" },
+		{ game::MAG_023_PsychoBlast_Burst_State1_PlayModel, (void *)pb_8960C0, "023 pb_8960C0" },
+		{ game::MAG_023_PsychoBlast_Orb_Flatten, (void *)pb_8960F0, "023 pb_8960F0" },
+		{ game::MAG_023_PsychoBlast_Ring_Appear, (void *)pb_8961B0, "023 pb_8961B0" },
+		{ game::MAG_023_PsychoBlast_Ring_State1_PlayModel, (void *)pb_896220, "023 pb_896220" },
+		{ game::MAG_023_PsychoBlast_ActorSystem_Start, (void *)pb_8962B0, "023 pb_8962B0" },
+		{ game::MAG_023_ResetTrailHistory, (void *)pb_8964B0, "023 pb_8964B0" },
+		{ game::MAG_023_FillTrailRows, (void *)pb_896730, "023 pb_896730" },
+		{ game::MAG_023_PsychoBlast_ActorSystem_Step, (void *)pb_896DE0, "023 pb_896DE0" },
+		{ game::MAG_023_ActSys_DrawPass, (void *)pb_896E70, "023 pb_896E70" },
+		{ game::MAG_023_ActSys_DrawPrimActor, (void *)pb_896ED0, "023 pb_896ED0" },
+		{ game::MAG_023_ActSys_DrawSpritePass, (void *)pb_897030, "023 pb_897030" },
+		{ game::MAG_023_ActSys_DrawActorSprite, (void *)pb_8970F0, "023 pb_8970F0" },
+		{ game::MAG_023_ActSys_UpdatePass, (void *)pb_897170, "023 pb_897170" },
+		{ game::MAG_023_ActorStep, (void *)pb_8971B0, "023 pb_8971B0" },
+		{ game::MAG_023_MorphVertexBlock, (void *)pb_8981E0, "023 pb_8981E0" },
+		{ game::MAG_023_Instance_EndOfLifeTest, (void *)pb_8982F0, "023 pb_8982F0" },
+		{ game::MAG_023_Instance_SpawnFollowUp, (void *)pb_898370, "023 pb_898370" },
+		{ game::MAG_023_AllocParticle, (void *)pb_8983A0, "023 pb_8983A0" },
+		{ game::MAG_023_ActSys_UpdateEmitter, (void *)pb_898440, "023 pb_898440" },
+		{ game::MAG_023_ActSys_EmitterSpawnStep, (void *)pb_8984C0, "023 pb_8984C0" },
+		{ game::MAG_023_ActSys_SpawnParticles, (void *)pb_898540, "023 pb_898540" },
+		{ game::MAG_023_ActSys_AllocParticleSlot, (void *)pb_898D20, "023 pb_898D20" },
+		{ game::MAG_023_Actor_InterpolatePosition, (void *)pb_898F40, "023 pb_898F40" },
+		{ game::MAG_023_SpawnSubEffects, (void *)pb_899A30, "023 pb_899A30" },
+		{ game::MAG_023_Director_SpawnGroupEffects, (void *)pb_899AC0, "023 pb_899AC0" },
+		{ game::MAG_023_PsychoBlast_ActorSystem_State1_StepActorSystem, (void *)pb_899B50, "023 pb_899B50" },
+		{ game::MAG_023_PsychoBlast_DebrisSpawnerTask, (void *)pb_899B80, "023 pb_899B80" },
+		{ game::MAG_023_PsychoBlast_DebrisSpawner_Spawn, (void *)pb_899BD0, "023 pb_899BD0" },
+		{ game::MAG_023_PsychoBlast_DebrisTask, (void *)pb_899CC0, "023 pb_899CC0" },
+		{ game::MAG_023_PsychoBlast_Debris_DrawSprite, (void *)pb_899DD0, "023 pb_899DD0" },
+		{ game::MAG_023_PsychoBlast_Debris_Init, (void *)pb_89A4A0, "023 pb_89A4A0" },
+		{ game::MAG_023_PsychoBlast_Debris_Animate, (void *)pb_89A4C0, "023 pb_89A4C0" },
+		{ game::MAG_023_PsychoBlast_Emitter_ApplyDamage, (void *)pb_89A530, "023 pb_89A530" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

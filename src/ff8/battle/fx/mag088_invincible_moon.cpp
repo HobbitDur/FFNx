@@ -22,30 +22,30 @@ namespace act
 {
 namespace moon88
 {
-	static const Mod MOD_088 = { "invinciblemoon", 88, 0x7684D0, 0x773850,
-		{ 0x0, 0x0, 0x154ECE0, 0x154F918, 0x0, 0x25A4EA4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25A4D98, 0x25A4D9C, 0x25A4E80, 0x25A4EA4, 0x25A4EA8, 0x25A6BC0, 0x0, 0x25A6BBC, 0x25AA9F0, 0x25A4F88, 0x25AAA00, 0x25AAA04, 0x25AB498, 0x25AB728, 0x25AB738, 0x25AB8A8, 0x25AB8AC, 0x25AB8B0, 0x25AC3A8, 0x25AC6C8, 0x25AC6D8, 0x0, 0x25AC750, 0x25ACCF0, 0x25ACCF8, 0x25ACD0C, 0x25ACD34, 0x25ACD3C },
-		{ 0x0, 0x769120, 0x769150, 0x769950, 0x769980, 0x7699C0, 0x7699F0, 0x769A20, 0x769A50, 0x769B20, 0x769B60, 0x769B90, 0x769BC0, 0x769BF0, 0x769C10, 0x769C30, 0x769C60, 0x0, 0x0, 0x0, 0x0, 0x0, 0x76D5E0, 0x76D7F0, 0x76DA70, 0x76DCB0, 0x76DF50, 0x76E180, 0x76E440, 0x76E6A0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x768820, 0x768830, 0x768840, 0x7688C0, 0x7688F0, 0x768970, 0x0, 0x768CC0, 0x768CF0, 0x768D20, 0x768D30, 0x768D40, 0x768D50, 0x768D60, 0x0, 0x0, 0x769D10, 0x0, 0x0, 0x7691A0, 0x7694F0, 0x0, 0x0, 0x0, 0x769030, 0x769C50, 0x0, 0x76A380, 0x0, 0x0, 0x0, 0x0, 0x0, 0x76C940, 0x76CA20, 0x76CBC0, 0x76CC90, 0x76CDB0, 0x76D010, 0x0, 0x0, 0x76F1F0, 0x76F240, 0x0, 0x0, 0x76FB30, 0x0, 0x0, 0x0, 0x770510, 0x770540, 0x770620, 0x770740, 0x770890, 0x0, 0x770F50, 0x771130, 0x771270, 0x772320, 0x0, 0x7736C0, 0x773730, 0x773750, 0x773770, 0x773780, 0x7737C0, 0x7737D0, 0x7737E0, 0x773810, 0x773820, 0x773840 } };
+	static const Mod MOD_088 = { "invinciblemoon", 88, game::MAG_088_INVINCIBLE_MOON_FL, game::MAG_087_ANGELO_STRIKE_LoadFile,
+		{ {}, {}, game::unk_154ECE0, game::unk_154F918, {}, game::unk_25A4EA4, {}, {}, {}, {}, {}, {}, game::unk_25A4D98, game::unk_25A4D9C, game::unk_25A4E80, game::unk_25A4EA4, game::unk_25A4EA8, game::unk_25A6BC0, {}, game::unk_25A6BBC, game::unk_25AA9F0, game::unk_25A4F88, game::unk_25AAA00, game::unk_25AAA04, game::unk_25AB498, game::unk_25AB728, game::unk_25AB738, game::unk_25AB8A8, game::unk_25AB8AC, game::unk_25AB8B0, game::unk_25AC3A8, game::unk_25AC6C8, game::unk_25AC6D8, {}, game::unk_25AC750, game::unk_25ACCF0, game::unk_25ACCF8, game::unk_25ACD0C, game::unk_25ACD34, game::unk_25ACD3C },
+		{ {}, game::MAG_088_INVINCIBLE_MOON_Camera_State0_Reset, game::MAG_088_INVINCIBLE_MOON_Camera_State1_StartAtSync1, game::MAG_088_INVINCIBLE_MOON_Camera_State2_Chain, game::MAG_088_INVINCIBLE_MOON_Camera_State3_ChainRandom, game::MAG_088_INVINCIBLE_MOON_Camera_State4_Chain, game::MAG_088_INVINCIBLE_MOON_Camera_State5_Chain, game::MAG_088_INVINCIBLE_MOON_Camera_State6_Chain, game::MAG_088_INVINCIBLE_MOON_Camera_State7_PartyCentreAtSync4, game::MAG_088_INVINCIBLE_MOON_Camera_State8_PartyCentreChain, game::MAG_088_INVINCIBLE_MOON_Camera_State9_StartAtSync5, game::MAG_088_INVINCIBLE_MOON_Camera_State10_Chain, game::MAG_088_INVINCIBLE_MOON_Camera_State11_Chain, game::MAG_088_INVINCIBLE_MOON_Camera_State12_StepUntilDone, game::MAG_088_INVINCIBLE_MOON_Director_State18_WaitDirGate6_769C10, game::MAG_088_INVINCIBLE_MOON_Camera_State13_End, game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_769C60, {}, {}, {}, {}, {}, game::MAG_088_INVINCIBLE_MOON_ModelList_FlatTri, game::MAG_088_INVINCIBLE_MOON_ModelList_FlatQuad, game::MAG_088_INVINCIBLE_MOON_PrimList_TexTri_76DA70, game::MAG_088_INVINCIBLE_MOON_PrimList_TexQuad_76DCB0, game::MAG_088_INVINCIBLE_MOON_ModelList_GouraudTri, game::MAG_088_INVINCIBLE_MOON_ModelList_GouraudQuad, game::MAG_088_INVINCIBLE_MOON_ModelList_GouraudTexTri, game::MAG_088_INVINCIBLE_MOON_ModelList_GouraudTexQuad, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_088_INVINCIBLE_MOON_Sequence_State0_Advance_768820, game::MAG_088_INVINCIBLE_MOON_Sequence_State0_Advance_768830, game::MAG_088_INVINCIBLE_MOON_Master_State2_CarvePools, game::MAG_088_INVINCIBLE_MOON_Sequence_State3_SpawnEmitter, game::MAG_088_INVINCIBLE_MOON_EmitterTask, game::MAG_088_INVINCIBLE_MOON_Master_State2_InitDirector, {}, game::MAG_088_INVINCIBLE_MOON_LoadCallback_QueueTIM, game::MAG_088_INVINCIBLE_MOON_LoadCb_SummonStream, game::MAG_088_INVINCIBLE_MOON_LoadCb_ClearBusy_768D20, game::MAG_088_INVINCIBLE_MOON_LoadCb_ClearBusy_768D30, game::MAG_088_INVINCIBLE_MOON_LoadCb_ClearBusy_768D40, game::MAG_088_INVINCIBLE_MOON_LoadCb_ClearBusy_768D50, game::MAG_088_INVINCIBLE_MOON_LoadScript_RecordFile, {}, {}, game::MAG_088_INVINCIBLE_MOON_LoadScript_TryArmStep, {}, {}, game::MAG_088_INVINCIBLE_MOON_Camera_StepScript, game::MAG_088_INVINCIBLE_MOON_Camera_WriteBattleCamera, {}, {}, {}, game::MAG_088_INVINCIBLE_MOON_DirSyncGate, game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_769C50, {}, game::MAG_088_INVINCIBLE_MOON_Play_ObjectCallback, {}, {}, {}, {}, {}, game::MAG_088_INVINCIBLE_MOON_ResetTrailHistory, game::MAG_088_INVINCIBLE_MOON_Director_StartPositions, game::MAG_088_INVINCIBLE_MOON_FillTrailRows, game::MAG_088_INVINCIBLE_MOON_Director_Mode3Setup, game::MAG_088_INVINCIBLE_MOON_Director_TargetPositions, game::MAG_088_INVINCIBLE_MOON_RelocateActorData, {}, {}, game::MAG_088_INVINCIBLE_MOON_DampValue, game::MAG_088_INVINCIBLE_MOON_DampVector, {}, {}, game::MAG_088_INVINCIBLE_MOON_MorphVertexBlock, {}, {}, {}, game::MAG_088_RandRange, game::MAG_088_INVINCIBLE_MOON_RandRangeWide, game::MAG_088_RandAngleJitter, game::MAG_088_INVINCIBLE_MOON_Particle_AttachToOwner, game::MAG_088_INVINCIBLE_MOON_Particle_KeyPositionPath, {}, game::MAG_088_INVINCIBLE_MOON_ParticleList_Unlink, game::MAG_088_INVINCIBLE_MOON_Particle_PlaceAtAnchorSet, game::MAG_088_INVINCIBLE_MOON_Particle_PlaceAtPoint, game::MAG_088_INVINCIBLE_MOON_Sequence_DrawSpriteStrip, {}, game::MAG_088_INVINCIBLE_MOON_Emitter_State1_ApplyActionResults, game::MAG_088_INVINCIBLE_MOON_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_088_INVINCIBLE_MOON_Emitter_State3_FinishReleaseRoot, game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_773770, game::MAG_088_INVINCIBLE_MOON_Sequence_State4_NextTargetLoop, game::MAG_088_INVINCIBLE_MOON_Sequence_State0_Advance_7737C0, game::MAG_088_INVINCIBLE_MOON_Sequence_State6_WaitQueuesEmpty, game::MAG_088_INVINCIBLE_MOON_Sequence_State7_RequestBattleSync, game::MAG_088_INVINCIBLE_MOON_Sequence_State8_WaitBattleSyncDone, game::MAG_088_INVINCIBLE_MOON_Sequence_State9_Finish, game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_773840 } };
 
-	static const uint32_t DIR_PTR = 0x154ECE0;
-	static const uint32_t PHASE_DATA = DIR_PTR;
-	static const uint32_t PACKET_CURSOR = 0x25A4D9C;
-	static const uint32_t SCRATCH_SP = 0x25ACD0C;
-	static const uint32_t ACTOR_STATE = 0x25ACD3C;
-	static const uint32_t FLASH_PAUSE = 0x25ACD34;
-	static const uint32_t CREATURE_ARG = 0x25AB8B8;
-	static const uint32_t STAGE_LIGHT = 0x1D98992;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id DIR_PTR = game::unk_154ECE0;
+	static constexpr game::Id PHASE_DATA = DIR_PTR;
+	static constexpr game::Id PACKET_CURSOR = game::unk_25A4D9C;
+	static constexpr game::Id SCRATCH_SP = game::unk_25ACD0C;
+	static constexpr game::Id ACTOR_STATE = game::unk_25ACD3C;
+	static constexpr game::Id FLASH_PAUSE = game::unk_25ACD34;
+	static constexpr game::Id CREATURE_ARG = game::unk_25AB8B8;
+	static constexpr game::Id STAGE_LIGHT = game::unk_1D98992;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 	static inline void b3_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void b103_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
 	namespace gx
 	{
-		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
-		static inline uint32_t BS_Camera_ArmReturnAfterEffect() { return fn<uint32_t (__cdecl *)()>(us(0x50A730))(); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(a1, a2); }
+		static inline uint32_t BS_Camera_ArmReturnAfterEffect() { return fn<uint32_t (__cdecl *)()>(game_addr(game::BS_Camera_ArmReturnAfterEffect))(); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -343,7 +343,7 @@ namespace moon88
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -497,9 +497,9 @@ namespace moon88
 	{
 		g_mod = &MOD_088;
 
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
-		MEM<uint32_t>(G(G_258FB68)) = us(0x2793E58);
-		MEM<uint32_t>(G(G_257F9B0)) = us(0x2793E58);
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
+		MEM<uint32_t>(G(G_258FB68)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(G(G_257F9B0)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
 		uint32_t states[11] = {
 			F(F_73A0D0), F(F_73A0E0), F(F_73A0F0), F(F_73A170), F(F_747500), F(F_747540),
 			F(F_747550), F(F_747560), F(F_747590), F(F_7475A0), F(F_7475C0),
@@ -541,12 +541,12 @@ namespace moon88
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x25ACD38));
-		MEM<uint32_t>(us(0x25AC6DC)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::unk_25ACD38));
+		MEM<uint32_t>(game_addr(game::unk_25AC6DC)) = p;
 		p += 0x870;
-		MEM<uint32_t>(us(0x25ACD30)) = p;
+		MEM<uint32_t>(game_addr(game::unk_25ACD30)) = p;
 		p += 0xB7C0;
-		MEM<uint32_t>(us(0x25ACD38)) = p;
+		MEM<uint32_t>(game_addr(game::unk_25ACD38)) = p;
 		im_768880();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -554,12 +554,12 @@ namespace moon88
 
 	uint32_t __cdecl im_768880()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25AC6DC)), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25ACD30)), 0xB7C0);
-		MEM<uint16_t>(us(0x25A6BB8)) = 0;
-		MEM<uint16_t>(us(0x25AC6E8)) = 0;
-		MEM<uint16_t>(us(0x25AC3A4)) = 0;
-		MEM<uint16_t>(us(0x25A4DA0)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_25AC6DC)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_25ACD30)), 0xB7C0);
+		MEM<uint16_t>(game_addr(game::unk_25A6BB8)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25AC6E8)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25AC3A4)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25A4DA0)) = 0;
 		return 0;
 	}
 
@@ -567,26 +567,26 @@ namespace moon88
 	{
 		im_768E20(a1);
 		im_7689C0();
-		x::Effect_AddTaskAndInitFromCtx(us(0x25ACCF8), us(0x768AC0), 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x25A4E80), us(0x768ED0), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25ACCF8), game_addr(game::MAG_088_INVINCIBLE_MOON_ActorSystemTask_768AC0), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25A4E80), game_addr(game::MAG_088_INVINCIBLE_MOON_DirectorTask), 0x48, a1);
 		t1_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl im_7689C0()
 	{
-		MEM<uint32_t>(us(0x25AB8B0)) = us(0x154F898);
-		MEM<uint32_t>(us(0x25AC3A8)) = us(0x25ACD40);
-		x::MAG_007_sub_8DCC00(us(0x25ACD40), 0x16C);
-		const uint32_t m = MEM<uint32_t>(us(0x25AC3A8));
-		const uint32_t cur = MEM<uint32_t>(us(0x25ACD38));
+		MEM<uint32_t>(game_addr(game::unk_25AB8B0)) = game_addr(game::unk_154F898);
+		MEM<uint32_t>(game_addr(game::unk_25AC3A8)) = game_addr(game::unk_25ACD40);
+		x::MAG_007_sub_8DCC00(game_addr(game::unk_25ACD40), 0x16C);
+		const uint32_t m = MEM<uint32_t>(game_addr(game::unk_25AC3A8));
+		const uint32_t cur = MEM<uint32_t>(game_addr(game::unk_25ACD38));
 		U32(m, 0x100) = cur;
-		MEM<uint32_t>(us(0x25ACD38)) = cur + 0xA000;
+		MEM<uint32_t>(game_addr(game::unk_25ACD38)) = cur + 0xA000;
 		for (uint32_t o = 0x104; o <= 0x160; o += 4)
-			U32(m, o) = us(0x19ED018);
-		U32(m, 0x128) = us(0x19F3A8C);
-		U32(m, 0x144) = us(0x19EF0BC);
-		U32(m, 0x148) = us(0x19F1B5C);
+			U32(m, o) = game_addr(game::unk_19ED018);
+		U32(m, 0x128) = game_addr(game::unk_19F3A8C);
+		U32(m, 0x144) = game_addr(game::unk_19EF0BC);
+		U32(m, 0x148) = game_addr(game::unk_19F1B5C);
 		U16(m, 0x164) = 0;
 		U16(m, 0x166) = 0;
 		return 0;
@@ -594,8 +594,8 @@ namespace moon88
 
 	uint32_t __cdecl im_768E20(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t t = ENT(U8(a1, 0x2D)), c = ENT(U8(a1, 0x2C));
 		U32(d, 8) = U32(t, 0x1C);
 		U32(d, 0xC) = U32(t, 0x20);
@@ -604,7 +604,7 @@ namespace moon88
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		const uint32_t d2 = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d2 = MEM<uint32_t>(game_addr(DIR_PTR));
 		U16(d2, 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		U16(d2, 0x4E) = U16(ENT(U8(a1, 0x2D)), 0x26);
 		return 0;
@@ -613,9 +613,9 @@ namespace moon88
 	uint32_t __cdecl im_768ED0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t states[15] = { us(0x768FE0), us(0x769C70), us(0x769CF0), us(0x769D50), us(0x769D70), us(0x769D90),
-			us(0x769E10), us(0x769E40), us(0x769ED0), us(0x769EF0), us(0x769F20), us(0x769F80), us(0x769FA0), us(0x769FC0),
-			us(0x769FE0) };
+		const uint32_t states[15] = { game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State0_UploadTIMs_SpawnCamera), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State1_Cue1), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State2_ArmLoadScriptStep), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State3_WaitIdle), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_WaitDirGate2), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Cue3_HideParty),
+			game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State6_Sync4), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State7_Cue4_ShowParty), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State8_DoneAtFrame23), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State9_Sync5), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State10_ShowMonsters), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State11_WaitFrame14), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State18_WaitDirGate6_769FA0), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State13_FinishAtCue6),
+			game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_769FE0) };
 		im_768F90(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -646,10 +646,10 @@ namespace moon88
 
 	uint32_t __cdecl im_768FE0(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(us(0x16F3000));
-		x::Battle_QueueTIMUpload_GetEOF(us(0x16FB420));
+		x::Battle_QueueTIMUpload_GetEOF(game_addr(game::MAG088_Angelo_BodyTIM));
+		x::Battle_QueueTIMUpload_GetEOF(game_addr(game::unk_16FB420));
 		gx::BS_Camera_ArmReturnAfterEffect();
-		x::Effect_AddTaskAndInitFromCtx(us(0x25A4F88), us(0x769060), 0x90, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25A4F88), game_addr(game::MAG_088_INVINCIBLE_MOON_CameraTask), 0x90, a1);
 		if (a_73B640(1) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -659,7 +659,7 @@ namespace moon88
 	{
 		if (a_73AE10() == 1)
 		{
-			a_73AB20(script, MEM<uint32_t>(us(DIR_PTR)), 0);
+			a_73AB20(script, MEM<uint32_t>(game_addr(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 	}
@@ -676,36 +676,36 @@ namespace moon88
 		a_73AE10();
 		if (a_73AAE0(1) != 0)
 		{
-			a_73AB20(us(0x1555D60), MEM<uint32_t>(us(DIR_PTR)), 0);
+			a_73AB20(game_addr(game::unk_1555D60), MEM<uint32_t>(game_addr(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
 	}
 
-	uint32_t __cdecl im_769950(uint32_t a1) { im_cam_chain(a1, us(0x1555DA8)); return 0; }
+	uint32_t __cdecl im_769950(uint32_t a1) { im_cam_chain(a1, game_addr(game::unk_1555DA8)); return 0; }
 
 	uint32_t __cdecl im_769980(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
 		{
 			const uint32_t r = x::CrtRand();
-			a_73AB20((r & 1) ? us(0x1555DF0) : us(0x1555E38), MEM<uint32_t>(us(DIR_PTR)), 0);
+			a_73AB20((r & 1) ? game_addr(game::unk_1555DF0) : game_addr(game::unk_1555E38), MEM<uint32_t>(game_addr(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
 	}
 
-	uint32_t __cdecl im_7699C0(uint32_t a1) { im_cam_chain(a1, us(0x1555E80)); return 0; }
+	uint32_t __cdecl im_7699C0(uint32_t a1) { im_cam_chain(a1, game_addr(game::unk_1555E80)); return 0; }
 
-	uint32_t __cdecl im_7699F0(uint32_t a1) { im_cam_chain(a1, us(0x1555EC8)); return 0; }
+	uint32_t __cdecl im_7699F0(uint32_t a1) { im_cam_chain(a1, game_addr(game::unk_1555EC8)); return 0; }
 
 	uint32_t __cdecl im_769A20(uint32_t a1)
 	{
 		a_73AE10();
 		uint32_t r = a_73AAE0(3);
 		if (r == 0) return 0;
-		uint32_t blk = U32(us(0x154ECE0), 0);
-		a_73AB20(us(0x1555F10), blk, 0);
+		uint32_t blk = U32(game_addr(game::unk_154ECE0), 0);
+		a_73AB20(game_addr(game::unk_1555F10), blk, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -717,7 +717,7 @@ namespace moon88
 		if (a_73AAE0(4) != 0)
 		{
 			im_769A90(P(pt));
-			a_73AB20(us(0x1555F58), P(pt), 0);
+			a_73AB20(game_addr(game::unk_1555F58), P(pt), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -727,7 +727,7 @@ namespace moon88
 	{
 		uint32_t count = 0;
 		int16_t max_z = 0, min_z = 0, max_x = 0, min_x = 0;
-		for (uint32_t e = us(0x1D972E0); e < us(0x1D974B4); e += 0x9C)
+		for (uint32_t e = game_addr(game::unk_1D972E0); e < game_addr(game::unk_1D974B4); e += 0x9C)
 		{
 			if (!(U8(e, -0x20) & 2))
 				continue;
@@ -763,7 +763,7 @@ namespace moon88
 		if (a_73AE10() == 1)
 		{
 			im_769A90(P(pt));
-			a_73AB20(us(0x1555FA0), P(pt), 0);
+			a_73AB20(game_addr(game::unk_1555FA0), P(pt), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -774,15 +774,15 @@ namespace moon88
 		a_73AE10();
 		if (a_73AAE0(5) != 0)
 		{
-			a_73AB20(us(0x1555FE8), MEM<uint32_t>(us(DIR_PTR)), 0);
+			a_73AB20(game_addr(game::unk_1555FE8), MEM<uint32_t>(game_addr(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
 	}
 
-	uint32_t __cdecl im_769B90(uint32_t a1) { im_cam_chain(a1, us(0x1556030)); return 0; }
+	uint32_t __cdecl im_769B90(uint32_t a1) { im_cam_chain(a1, game_addr(game::unk_1556030)); return 0; }
 
-	uint32_t __cdecl im_769BC0(uint32_t a1) { im_cam_chain(a1, us(0x1556078)); return 0; }
+	uint32_t __cdecl im_769BC0(uint32_t a1) { im_cam_chain(a1, game_addr(game::unk_1556078)); return 0; }
 
 	uint32_t __cdecl im_769C10(uint32_t a1)
 	{
@@ -815,8 +815,8 @@ namespace moon88
 
 	uint32_t __cdecl im_769DD0(void)
 	{
-		uint32_t save = MEM<uint32_t>(us(0x154ECE0)) + 0x20;
-		for (uint32_t e = us(0x1D972C0); e < us(0x1D97494); e += 0x9C, save += 4)
+		uint32_t save = MEM<uint32_t>(game_addr(game::unk_154ECE0)) + 0x20;
+		for (uint32_t e = game_addr(game::BattleEntitySlotData); e < game_addr(game::unk_1D97494); e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -830,7 +830,7 @@ namespace moon88
 
 	uint32_t __cdecl im_769E10(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x15 && a_73B640(4) != 0)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) >= 0x15 && a_73B640(4) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -848,8 +848,8 @@ namespace moon88
 
 	uint32_t __cdecl im_769E90(void)
 	{
-		uint32_t save = MEM<uint32_t>(us(0x154ECE0)) + 0x20;
-		for (uint32_t e = us(0x1D972C0); e < us(0x1D97494); e += 0x9C, save += 4)
+		uint32_t save = MEM<uint32_t>(game_addr(game::unk_154ECE0)) + 0x20;
+		for (uint32_t e = game_addr(game::BattleEntitySlotData); e < game_addr(game::unk_1D97494); e += 0x9C, save += 4)
 		{
 			const uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -863,7 +863,7 @@ namespace moon88
 
 	uint32_t __cdecl im_769ED0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		if (S16(d, 0x46) >= 0x23)
 		{
 			U16(d, 0x48) = 1;
@@ -874,7 +874,7 @@ namespace moon88
 
 	uint32_t __cdecl im_769EF0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x34 && a_73B640(5) != 0)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) >= 0x34 && a_73B640(5) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -890,7 +890,7 @@ namespace moon88
 
 	uint32_t __cdecl im_769F80(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x14)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) >= 0x14)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -916,32 +916,32 @@ namespace moon88
 
 	uint32_t __cdecl im_76A000(uint32_t a1)
 	{
-		const int32_t phase = S16(MEM<uint32_t>(us(DIR_PTR)), 0x40);
+		const int32_t phase = S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40);
 		if (phase == 1)
 		{
-			im_7714D0(a1, us(0x771DB0), us(0x154F91C), 3);
-			im_7714D0(a1, us(0x7718D0), us(0x155563C), 3);
+			im_7714D0(a1, game_addr(game::MAG_088_INVINCIBLE_MOON_AngeloTask), game_addr(game::MAG088_Angelo_ModelContainer), 3);
+			im_7714D0(a1, game_addr(game::MAG_088_INVINCIBLE_MOON_DoubleTask), game_addr(game::unk_155563C), 3);
 		}
 		else if (phase == 3)
 		{
 			for (uint32_t i = 0; i < 3; i++)
 			{
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25A6BC0), us(0x771660), 0x9C, a1);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25A6BC0), game_addr(game::MAG_088_INVINCIBLE_MOON_MoonModelTask), 0x9C, a1);
 				U16(t, 0x98) = (uint16_t)i;
 			}
 		}
 		else if (phase == 4)
 		{
-			a_73C100(a1, us(0x76C700), U32(MEM<uint32_t>(us(0x25AC3A8)), 0x104), 8, 0xF, 1);
-			im_76A130(a1, us(0x76A180), U32(MEM<uint32_t>(us(0x25AC3A8)), 0x128), 0x3C4, 1, 0);
-			x::Effect_AddTaskAndInitFromCtx(us(0x25A4F88), us(0x771510), 0x90, a1);
+			a_73C100(a1, game_addr(game::MAG_088_INVINCIBLE_MOON_ActorSystemTask_76C700), U32(MEM<uint32_t>(game_addr(game::unk_25AC3A8)), 0x104), 8, 0xF, 1);
+			im_76A130(a1, game_addr(game::MAG_088_INVINCIBLE_MOON_MoonPlayTask), U32(MEM<uint32_t>(game_addr(game::unk_25AC3A8)), 0x128), 0x3C4, 1, 0);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25A4F88), game_addr(game::MAG_088_INVINCIBLE_MOON_StageLightTask), 0x90, a1);
 		}
 		return 0;
 	}
 
 	uint32_t __cdecl im_76A130(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AA9F0), a2, 0x474, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25AA9F0), a2, 0x474, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -953,9 +953,9 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x76A1F0);
-		states[1] = us(0x76C6B0);
-		states[2] = us(0x76C6F0);
+		states[0] = game_addr(game::MAG_088_INVINCIBLE_MOON_MoonPlay_State0_Setup);
+		states[1] = game_addr(game::MAG_088_INVINCIBLE_MOON_MoonPlay_State1_PlayUntilCue5);
+		states[2] = game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_76C6F0);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x8E) = (uint16_t)((uint8_t)(U8(node, 0x8E) - 2) & 0x7F);
@@ -1088,7 +1088,7 @@ namespace moon88
 			U16(hdr, 0x2A) = 0x100;
 			U16(hdr, 0x28) = 0x100;
 		}
-		MEM<uint32_t>(us(0x1D8E054)) = im_76A650(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = im_76A650(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1831,7 +1831,7 @@ namespace moon88
 
 	uint32_t __cdecl im_76C940(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25ACD3C));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::unk_25ACD3C));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1848,7 +1848,7 @@ namespace moon88
 
 	uint32_t __cdecl im_76CBC0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25ACD3C));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::unk_25ACD3C));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -1871,7 +1871,7 @@ namespace moon88
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x25ACD3C), 0) = sys;
+		U32(game_addr(game::unk_25ACD3C), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1883,7 +1883,7 @@ namespace moon88
 			im_76EAC0();
 			im_76E980();
 			im_76D300();
-			sys = U32(us(0x25ACD3C), 0);
+			sys = U32(game_addr(game::unk_25ACD3C), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1896,19 +1896,19 @@ namespace moon88
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x25ACCF0), 0) = (uint16_t)(U16(us(0x25ACCF0), 0) + c14);
-		U16(us(0x25AC6D8), 0) = (uint16_t)(U16(us(0x25AC6D8), 0) + c16);
+		U16(game_addr(game::unk_25ACCF0), 0) = (uint16_t)(U16(game_addr(game::unk_25ACCF0), 0) + c14);
+		U16(game_addr(game::unk_25AC6D8), 0) = (uint16_t)(U16(game_addr(game::unk_25AC6D8), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl im_76D300(void)
 	{
-		uint32_t act = U32(U32(us(0x25ACD3C), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::unk_25ACD3C), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x25ACD3C), 0);
+				uint32_t sys = U32(game_addr(game::unk_25ACD3C), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1922,10 +1922,10 @@ namespace moon88
 
 	uint32_t __cdecl im_76D360(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -1945,9 +1945,9 @@ namespace moon88
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-			MEM<uint32_t>(us(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -1962,17 +1962,17 @@ namespace moon88
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -2477,14 +2477,14 @@ namespace moon88
 
 	uint32_t __cdecl im_76E980(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x25ACD3C)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::unk_25ACD3C)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x25ACD3C));
+				uint32_t st = MEM<uint32_t>(game_addr(game::unk_25ACD3C));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -2519,26 +2519,26 @@ namespace moon88
 	uint32_t __cdecl im_76EA40(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl im_76EAC0(void)
 	{
-		uint32_t act = U32(U32(us(0x25ACD3C), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::unk_25ACD3C), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2554,7 +2554,7 @@ namespace moon88
 	uint32_t __cdecl im_76EB00(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x25ACD3C));
+		uint32_t st = MEM<uint32_t>(game_addr(game::unk_25ACD3C));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -2575,7 +2575,7 @@ namespace moon88
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x25ACD3C));
+			st = MEM<uint32_t>(game_addr(game::unk_25ACD3C));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2587,7 +2587,7 @@ namespace moon88
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x25ACD3C), 0);
+		uint32_t st = U32(game_addr(game::unk_25ACD3C), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -2670,8 +2670,8 @@ namespace moon88
 
 	uint32_t __cdecl im_76FCF0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25AC6DC));
-		int32_t idx = MEM<int16_t>(us(0x25A6BB8));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_25AC6DC));
+		int32_t idx = MEM<int16_t>(game_addr(game::unk_25A6BB8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -2681,7 +2681,7 @@ namespace moon88
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -2696,9 +2696,9 @@ namespace moon88
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(us(0x25A6BB8)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::unk_25A6BB8)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x25A6BB8)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_25A6BB8)) = 0;
 		return slot;
 	}
 
@@ -2711,9 +2711,9 @@ namespace moon88
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x770740), a1);
+			callp(game_addr(game::MAG_088_INVINCIBLE_MOON_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x770890), a1);
+			callp(game_addr(game::MAG_088_INVINCIBLE_MOON_Particle_KeyPositionPath), a1);
 		im_76FE10(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -2722,7 +2722,7 @@ namespace moon88
 
 	uint32_t __cdecl im_76FE10(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x25ACD3C), 0);
+		uint32_t sys = U32(game_addr(game::unk_25ACD3C), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2749,9 +2749,9 @@ namespace moon88
 
 	uint32_t __cdecl im_76FE90(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x25ACD0C), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::unk_25ACD0C), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x25ACD0C), 0) = sp;
+		U32(game_addr(game::unk_25ACD0C), 0) = sp;
 		uint32_t node = im_770670(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -2761,7 +2761,7 @@ namespace moon88
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x25ACD3C), 0);
+			uint32_t ctx = U32(game_addr(game::unk_25ACD3C), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2929,14 +2929,14 @@ namespace moon88
 			}
 		}
 		im_771380(node, desc);
-		U32(us(0x25ACD0C), 0) = U32(us(0x25ACD0C), 0) + 0x50;
+		U32(game_addr(game::unk_25ACD0C), 0) = U32(game_addr(game::unk_25ACD0C), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl im_770670(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25ACD30));
-		int32_t i = MEM<int16_t>(us(0x25AC6E8));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_25ACD30));
+		int32_t i = MEM<int16_t>(game_addr(game::unk_25AC6E8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2949,7 +2949,7 @@ namespace moon88
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2966,16 +2966,16 @@ namespace moon88
 		}
 		i++;
 		if (i >= 0x45)
-			MEM<uint16_t>(us(0x25AC6E8)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_25AC6E8)) = 0;
 		else
-			MEM<uint16_t>(us(0x25AC6E8)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::unk_25AC6E8)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl im_770890(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x25ACD3C), 0);
+		const uint32_t st = U32(game_addr(game::unk_25ACD3C), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -3035,7 +3035,7 @@ namespace moon88
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x25ACD3C), 0);
+				uint32_t g = U32(game_addr(game::unk_25ACD3C), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -3045,7 +3045,7 @@ namespace moon88
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x25ACD3C), 0);
+				uint32_t g = U32(game_addr(game::unk_25ACD3C), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3120,7 +3120,7 @@ namespace moon88
 
 	uint32_t __cdecl im_771410(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x25ACD3C));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::unk_25ACD3C));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3145,14 +3145,14 @@ namespace moon88
 				do
 				{
 					im_76FCF0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x25ACD3C));
+					dir = MEM<uint32_t>(game_addr(game::unk_25ACD3C));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				im_76FCF0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x25ACD3C));
+				dir = MEM<uint32_t>(game_addr(game::unk_25ACD3C));
 			}
 		}
 		return 0;
@@ -3171,7 +3171,7 @@ namespace moon88
 
 	uint32_t __cdecl im_7714D0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AC6C8), a2, 0x160, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25AC6C8), a2, 0x160, a1);
 		x::Effect_BindModelContainerSetAnim(t, a3, a4);
 		return t;
 	}
@@ -3186,7 +3186,7 @@ namespace moon88
 		}
 		const uint16_t v = U16(a1, 0x1C);
 		for (uint32_t k = 0; k < 4; k++)
-			MEM<uint16_t>(us(STAGE_LIGHT) + k * 0x2C) = v;
+			MEM<uint16_t>(game_addr(STAGE_LIGHT) + k * 0x2C) = v;
 		return 0;
 	}
 
@@ -3208,7 +3208,7 @@ namespace moon88
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -3216,7 +3216,7 @@ namespace moon88
 
 	uint32_t __cdecl im_771660(uint32_t a1)
 	{
-		const uint32_t states[3] = { us(0x7717A0), us(0x771880), us(0x7718C0) };
+		const uint32_t states[3] = { game_addr(game::MAG_088_INVINCIBLE_MOON_MoonModel_State0_Setup), game_addr(game::MAG_088_INVINCIBLE_MOON_MoonModel_State1_DriftUntilCue4), game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_7718C0) };
 		callp(states[S8(a1, 0x29)], a1);
 		im_7716C0(a1);
 		return task_end(a1);
@@ -3251,7 +3251,7 @@ namespace moon88
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
 		U32(hdr, 0x14) = 0xF0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = im_76A650(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = im_76A650(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3262,23 +3262,23 @@ namespace moon88
 		{
 		case 0:
 			U16(a1, 0x52) = 0x800;
-			U32(a1, 0x4C) = U32(MEM<uint32_t>(us(0x25AC3A8)), 0x148);
-			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(us(0x154F918)), 0xE0) << 1);
+			U32(a1, 0x4C) = U32(MEM<uint32_t>(game_addr(game::unk_25AC3A8)), 0x148);
+			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(game_addr(game::unk_154F918)), 0xE0) << 1);
 			break;
 		case 1:
-			U32(a1, 0x4C) = us(0x154EF74);
+			U32(a1, 0x4C) = game_addr(game::unk_154EF74);
 			U16(a1, 0x52) = 0x700;
 			U16(a1, 0x1C) = 0x60;
 			U16(a1, 0x1E) = 0xFFA0;
-			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(us(0x154F918)), 0xE0) << 1);
+			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(game_addr(game::unk_154F918)), 0xE0) << 1);
 			U16(a1, 0x7C) = 0x14;
 			break;
 		case 2:
-			U32(a1, 0x4C) = us(0x154F404);
+			U32(a1, 0x4C) = game_addr(game::unk_154F404);
 			U16(a1, 0x52) = 0x600;
 			U16(a1, 0x1C) = 0xFFA0;
 			U16(a1, 0x1E) = 0x60;
-			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(us(0x154F918)), 0xE0) << 1);
+			U16(a1, 0x20) = (uint16_t)(U16(MEM<uint32_t>(game_addr(game::unk_154F918)), 0xE0) << 1);
 			U16(a1, 0x7C) = 0xFFE0;
 			break;
 		default:
@@ -3308,22 +3308,22 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[12];
-		states[0] = us(0x771B80);
-		states[1] = us(0x771BD0);
-		states[2] = us(0x771C00);
-		states[3] = us(0x771C30);
-		states[4] = us(0x771C60);
-		states[5] = us(0x771C90);
-		states[6] = us(0x771CC0);
-		states[7] = us(0x771CF0);
-		states[8] = us(0x771D20);
-		states[9] = us(0x771D50);
-		states[10] = us(0x771D70);
-		states[11] = us(0x771DA0);
+		states[0] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State0_PlaceHidden);
+		states[1] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State1_ShowAtFrameC);
+		states[2] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State2_Anim1);
+		states[3] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State3_Anim2);
+		states[4] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State4_Anim5);
+		states[5] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State5_Cue3);
+		states[6] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State6_Anim3);
+		states[7] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State7_HideAtCue4);
+		states[8] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State8_ShowAtCue5);
+		states[9] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State9_WaitAnimEnd);
+		states[10] = game_addr(game::MAG_088_INVINCIBLE_MOON_Double_State10_Finish);
+		states[11] = game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_771DA0);
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_746C10(node, game_addr(CREATURE_ARG), MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -3457,30 +3457,30 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[17];
-		states[0] = us(0x772AB0);
-		states[1] = us(0x772B40);
-		states[2] = us(0x772B80);
-		states[3] = us(0x772BE0);
-		states[4] = us(0x772D40);
-		states[5] = us(0x773010);
-		states[6] = us(0x773040);
-		states[7] = us(0x7732F0);
-		states[8] = us(0x773320);
-		states[9] = us(0x7733B0);
-		states[10] = us(0x773520);
-		states[11] = us(0x773560);
-		states[12] = us(0x773590);
-		states[13] = us(0x773600);
-		states[14] = us(0x773630);
-		states[15] = us(0x773670);
-		states[16] = us(0x7736B0);
+		states[0] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State0_BindRinoaAnimSet);
+		states[1] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State1_RinoaChain2);
+		states[2] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State2_Anim1);
+		states[3] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State3_SpawnHowlPlay);
+		states[4] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State4_SpawnHalo);
+		states[5] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State5_Anim8);
+		states[6] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State6_SpawnFlash);
+		states[7] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State7_Countdown);
+		states[8] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State8_WaitSync3_Pause);
+		states[9] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State9_Cue3_Glow);
+		states[10] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State10_Anim4_Glow);
+		states[11] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State11_HideAtCue4);
+		states[12] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State12_ShowAtCue5_RinoaChain4);
+		states[13] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State13_Anim6);
+		states[14] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State14_Anim7_WalkOff);
+		states[15] = game_addr(game::MAG_088_INVINCIBLE_MOON_Angelo_State15_Finish);
+		states[16] = game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_7736B0);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x50) = (uint16_t)(U16(node, 0x50) + U16(node, 0x128));
 		U16(node, 0x4C) = (uint16_t)(U16(node, 0x4C) + U16(node, 0x124));
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + U16(node, 0x126));
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_746C10(node, game_addr(CREATURE_ARG), MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
 				const uint8_t anim = U8(node, 0x9C), fr = U8(node, 0xA2);
@@ -3504,7 +3504,7 @@ namespace moon88
 		const int32_t py = S16(node, 0x4E);
 		const int32_t px = S16(node, 0x4C);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		ff8fx::copy<(8 * 4)>((void *)us(0x1D99AB0), (const void *)(node + 0x70));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::unk_1D99AB0), (const void *)(node + 0x70));
 		const int32_t pz = S16(node, 0x50);
 		S32(node, 0x88) = py;
 		S32(node, 0x84) = px;
@@ -3524,7 +3524,7 @@ namespace moon88
 		const uint32_t M = P(m), Vp = P(v);
 		for (int i = 0; i < n; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25A4F88), f, 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25A4F88), f, 0x90, a1);
 			x::GetEffectSpawnPosition(a1 + 0x30, 0xF1, 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
 			const uint32_t r1 = x::CrtRand() & 0xFFF;
@@ -3545,15 +3545,15 @@ namespace moon88
 		}
 	}
 
-	uint32_t __cdecl im_771F50(uint32_t a1) { im_dust_rings(a1, 4, us(0x772060), 0x3FF); return 0; }
+	uint32_t __cdecl im_771F50(uint32_t a1) { im_dust_rings(a1, 4, game_addr(game::MAG_088_INVINCIBLE_MOON_DustRingTask), 0x3FF); return 0; }
 
 	uint32_t __cdecl im_772060(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x772790);
-		states[1] = us(0x7727B0);
-		states[2] = us(0x772870);
+		states[0] = game_addr(game::MAG_088_INVINCIBLE_MOON_DustRing_State0_Setup);
+		states[1] = game_addr(game::MAG_088_INVINCIBLE_MOON_DustRing_State1_Rise);
+		states[2] = game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_772870);
 		callp(states[S8(node, 0x29)], node);
 		im_7720C0(node);
 		const uint8_t status = U8(node, 0x26);
@@ -3568,7 +3568,7 @@ namespace moon88
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), mat);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -3576,7 +3576,7 @@ namespace moon88
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -3586,7 +3586,7 @@ namespace moon88
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -3596,18 +3596,18 @@ namespace moon88
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(us(0x25A4D9C));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(game::unk_25A4D9C));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(us(0x25A4D9C)) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(game::unk_25A4D9C)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
 
 	uint32_t __cdecl im_772790(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x154ECEC);
+		U32(a1, 0x4C) = game_addr(game::unk_154ECEC);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -3636,15 +3636,15 @@ namespace moon88
 		return 0;
 	}
 
-	uint32_t __cdecl im_772880(uint32_t a1) { im_dust_rings(a1, 3, us(0x772990), 0x7FF); return 0; }
+	uint32_t __cdecl im_772880(uint32_t a1) { im_dust_rings(a1, 3, game_addr(game::MAG_088_INVINCIBLE_MOON_DustRingFastTask), 0x7FF); return 0; }
 
 	uint32_t __cdecl im_772990(uint32_t a1)
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x7729F0);
-		states[1] = us(0x772A10);
-		states[2] = us(0x772AA0);
+		states[0] = game_addr(game::MAG_088_INVINCIBLE_MOON_DustRingFast_State0_Setup);
+		states[1] = game_addr(game::MAG_088_INVINCIBLE_MOON_DustRingFast_State1_Rise);
+		states[2] = game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_772AA0);
 		callp(states[S8(node, 0x29)], node);
 		im_7720C0(node);
 		const uint8_t status = U8(node, 0x26);
@@ -3654,7 +3654,7 @@ namespace moon88
 
 	uint32_t __cdecl im_7729F0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x154EE30);
+		U32(a1, 0x4C) = game_addr(game::unk_154EE30);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -3686,8 +3686,8 @@ namespace moon88
 	uint32_t __cdecl im_772AB0(uint32_t a1)
 	{
 		const uint32_t e = ENT(U8(a1, 0x2C));
-		U32(MEM<uint32_t>(us(DIR_PTR)), 0x18) = a1;
-		gx::BindEntityModelFromComData(e, us(0x25ACD10), us(0x15560C0));
+		U32(MEM<uint32_t>(game_addr(DIR_PTR)), 0x18) = a1;
+		gx::BindEntityModelFromComData(e, game_addr(game::unk_25ACD10), game_addr(game::MAG_088_INVINCIBLE_MOON_AnimSet));
 		gx::QueueChainTransformation(e, 1);
 		U32(a1, 0x4C) = U32(e, 0x1C);
 		U32(a1, 0x50) = U32(e, 0x20);
@@ -3730,11 +3730,11 @@ namespace moon88
 	uint32_t __cdecl im_772BE0(uint32_t a1)
 	{
 		if (S16(a1, 0x136) == 8)
-			x::BdPlaySE(us(0x154ECE4), 0, 0x80);
+			x::BdPlaySE(game_addr(game::unk_154ECE4), 0, 0x80);
 		if (x::au_re_Battle_ReadAnimation_8(a1) == 1)
 		{
 			x::au_re_Battle_ReadAnimation_7(a1, 2);
-			const uint32_t t = im_76A130(a1, us(0x772C50), us(0x16F1F8C), 0xB0, 0, 0);
+			const uint32_t t = im_76A130(a1, game_addr(game::MAG_088_INVINCIBLE_MOON_HowlPlayTask), game_addr(game::unk_16F1F8C), 0xB0, 0, 0);
 			U32(t, 0x458) = a1 + 0x30;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3773,7 +3773,7 @@ namespace moon88
 		if (S16(a1, 0x136) >= 0x14)
 		{
 			x::au_re_Battle_ReadAnimation_7(a1, 3);
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25A6BC0), us(0x772D90), 0x9C, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25A6BC0), game_addr(game::MAG_088_INVINCIBLE_MOON_HaloTask), 0x9C, a1);
 			U32(t, 0x8C) = a1 + 0x30;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3784,10 +3784,10 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x772F50);
-		states[1] = us(0x772FB0);
-		states[2] = us(0x772FE0);
-		states[3] = us(0x773000);
+		states[0] = game_addr(game::MAG_088_INVINCIBLE_MOON_Halo_State0_Setup);
+		states[1] = game_addr(game::MAG_088_INVINCIBLE_MOON_Halo_State1_FadeIn);
+		states[2] = game_addr(game::MAG_088_INVINCIBLE_MOON_Halo_State2_HideAtCue3);
+		states[3] = game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_773000);
 		callp(states[S8(node, 0x29)], node);
 		alignas(4) uint8_t pt[8] = {};
 		U16(node, 0x46) = (uint16_t)((U16(node, 0x46) + 0x100) & 0xFFF);
@@ -3819,7 +3819,7 @@ namespace moon88
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -3838,14 +3838,14 @@ namespace moon88
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = im_76A650(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = im_76A650(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
 
 	uint32_t __cdecl im_772F50(uint32_t a1)
 	{
-		const uint32_t mdlp = U32(MEM<uint32_t>(us(0x25AC3A8)), 0x144);
+		const uint32_t mdlp = U32(MEM<uint32_t>(game_addr(game::unk_25AC3A8)), 0x144);
 		S32(a1, 0x30) = 0x800;
 		S32(a1, 0x38) = 0x800;
 		U32(a1, 0x4C) = mdlp;
@@ -3895,8 +3895,8 @@ namespace moon88
 		if (S16(a1, 0x136) >= 6)
 		{
 			U16(a1, 0x134) = 9;
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AB728), us(0x773090), 0x40, a1);
-			U32(t, 0x34) = us(0x1557CAC);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25AB728), game_addr(game::MAG_088_INVINCIBLE_MOON_FlashTask), 0x40, a1);
+			U32(t, 0x34) = game_addr(game::unk_1557CAC);
 			U16(t, 0x38) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
@@ -3907,11 +3907,11 @@ namespace moon88
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x773100);
-		states[1] = us(0x773130);
-		states[2] = us(0x7732E0);
+		states[0] = game_addr(game::MAG_088_INVINCIBLE_MOON_Flash_State0_Delay);
+		states[1] = game_addr(game::MAG_088_INVINCIBLE_MOON_Flash_State1_StepDraw);
+		states[2] = game_addr(game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_7732E0);
 		callp(states[S8(node, 0x29)], node);
-		if (MEM<uint32_t>(us(FLASH_PAUSE)) == 0)
+		if (MEM<uint32_t>(game_addr(FLASH_PAUSE)) == 0)
 			U16(node, 0x3C) = (uint16_t)(U16(node, 0x3C) + 1);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -3925,7 +3925,7 @@ namespace moon88
 
 	uint32_t __cdecl im_773100(uint32_t a1)
 	{
-		if (MEM<uint32_t>(us(FLASH_PAUSE)) != 0)
+		if (MEM<uint32_t>(game_addr(FLASH_PAUSE)) != 0)
 			return 0;
 		U16(a1, 0x38) = (uint16_t)(U16(a1, 0x38) - 1);
 		if (S16(a1, 0x38) <= 0)
@@ -3950,7 +3950,7 @@ namespace moon88
 		}
 		if (op == 0xFE)
 		{
-			if (S16(node, 0x3C) >= (int16_t)(uint16_t)b2 && MEM<uint32_t>(us(FLASH_PAUSE)) == 0)
+			if (S16(node, 0x3C) >= (int16_t)(uint16_t)b2 && MEM<uint32_t>(game_addr(FLASH_PAUSE)) == 0)
 			{
 				const uint16_t ni = (uint16_t)(idx + 1);
 				U16(node, 0x3A) = ni;
@@ -3960,11 +3960,11 @@ namespace moon88
 		else
 		{
 			U32(node, 0x30) = ent;
-			if (MEM<uint32_t>(us(FLASH_PAUSE)) == 0)
+			if (MEM<uint32_t>(game_addr(FLASH_PAUSE)) == 0)
 				U16(node, 0x3A) = (uint16_t)(idx + 1);
 		}
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x1C;
-		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x1C;
+		uint32_t pkt = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		x::sub_45BFC0(pkt, 0, 0, x::sub_45C690(0, 2, 0x280, 0) & 0xFFFF, 0);
 		x::SSIGPU_InsertPrimAutoDepth(ot, pkt);
 		pkt += 0xC;
@@ -3983,7 +3983,7 @@ namespace moon88
 		}
 		x::sub_45BFC0(pkt, 0, 0, x::sub_45C690(0, 2, 0x280, 0) & 0xFFFF, 0);
 		x::SSIGPU_InsertPrimAutoDepth(ot, pkt);
-		MEM<uint32_t>(us(PACKET_CURSOR)) = pkt + 0xC;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = pkt + 0xC;
 		return 0;
 	}
 
@@ -4014,7 +4014,7 @@ namespace moon88
 		x::sub_8DD1C0(a1);
 		if (a_73B7E0(3) != 0)
 		{
-			x::BdPlaySE(us(0x154ECE8), 1, 0x80);
+			x::BdPlaySE(game_addr(game::unk_154ECE8), 1, 0x80);
 			x::au_re_Battle_ReadAnimation_7(a1, 8);
 			U16(a1, 0x13A) = 0x800;
 			im_773400(a1, 0);
@@ -4104,244 +4104,244 @@ namespace moon88
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x768820, (void *)a_73A0D0, "088 MAG_088_sub_768820" },
-		{ 0x768830, (void *)a_73A0D0, "088 MAG_088_sub_768830" },
-		{ 0x7688C0, (void *)a_73A170, "088 MAG_088_sub_7688C0" },
-		{ 0x7688F0, (void *)a_73A1A0, "088 MAG_088_sub_7688F0" },
-		{ 0x768AC0, (void *)a_73A380, "088 MAG_088_sub_768AC0" },
-		{ 0x768B20, (void *)a_73A3E0, "088 sub_768B20" },
-		{ 0x768CC0, (void *)a_73A580, "088 sub_768CC0" },
-		{ 0x768CF0, (void *)a_73A5B0, "088 sub_768CF0" },
-		{ 0x768D20, (void *)a_73A5E0, "088 sub_768D20" },
-		{ 0x768D30, (void *)a_73A5E0, "088 sub_768D30" },
-		{ 0x768D40, (void *)a_73A5E0, "088 sub_768D40" },
-		{ 0x768D50, (void *)a_73A5E0, "088 sub_768D50" },
-		{ 0x768D60, (void *)a_73A620, "088 sub_768D60" },
-		{ 0x768DA0, (void *)a_73A660, "088 sub_768DA0" },
-		{ 0x768E10, (void *)a_73A6D0, "088 nullsub_1264" },
-		{ 0x769030, (void *)a_73B640, "088 sub_769030" },
-		{ 0x769060, (void *)a_732A00, "088 sub_769060" },
-		{ 0x769130, (void *)a_73AB00, "088 sub_769130" },
-		{ 0x769180, (void *)a_73AAE0, "088 sub_769180" },
-		{ 0x7691A0, (void *)a_73AE10, "088 sub_7691A0" },
-		{ 0x7694F0, (void *)a_73B160, "088 sub_7694F0" },
-		{ 0x769660, (void *)a_73AB20, "088 sub_769660" },
-		{ 0x769BF0, (void *)a_73B2D0, "088 sub_769BF0" },
-		{ 0x769C30, (void *)a_73B750, "088 sub_769C30" },
-		{ 0x769C50, (void *)a_73A6D0, "088 nullsub_1265" },
-		{ 0x769C60, (void *)a_73A6D0, "088 nullsub_1266" },
-		{ 0x769C90, (void *)a_73B7E0, "088 sub_769C90" },
-		{ 0x769CB0, (void *)a_73B9F0, "088 sub_769CB0" },
-		{ 0x769CF0, (void *)a_73A930, "088 sub_769CF0" },
-		{ 0x769D10, (void *)a_73A950, "088 sub_769D10" },
-		{ 0x769D50, (void *)a_733AC0, "088 sub_769D50" },
-		{ 0x769D70, (void *)a_73B8A0, "088 sub_769D70" },
-		{ 0x769DB0, (void *)a_746A10, "088 sub_769DB0" },
-		{ 0x769E60, (void *)a_746AE0, "088 sub_769E60" },
-		{ 0x769F40, (void *)a_73BA90, "088 sub_769F40" },
-		{ 0x769FE0, (void *)a_73A6D0, "088 nullsub_1267" },
-		{ 0x769FF0, (void *)a_73A6D0, "088 nullsub_1268" },
-		{ 0x76A0E0, (void *)a_73C100, "088 sub_76A0E0" },
-		{ 0x76A250, (void *)a_73C280, "088 sub_76A250" },
-		{ 0x76B630, (void *)a_73D770, "088 sub_76B630" },
-		{ 0x76B880, (void *)a_73D9C0, "088 sub_76B880" },
-		{ 0x76C6F0, (void *)a_73A6D0, "088 nullsub_1269" },
-		{ 0x76C700, (void *)a_73A380, "088 sub_76C700" },
-		{ 0x76C790, (void *)a_73F990, "088 sub_76C790" },
-		{ 0x76CA20, (void *)a_73FC20, "088 sub_76CA20" },
-		{ 0x76CC90, (void *)a_73FE90, "088 sub_76CC90" },
-		{ 0x76CDB0, (void *)a_73FFB0, "088 sub_76CDB0" },
-		{ 0x76D010, (void *)a_740210, "088 sub_76D010" },
-		{ 0x76D4A0, (void *)a_7355E0, "088 sub_76D4A0" },
-		{ 0x76DA70, (void *)a_735BB0, "088 sub_76DA70" },
-		{ 0x76DCB0, (void *)a_735DF0, "088 sub_76DCB0" },
-		{ 0x76EB90, (void *)a_740910, "088 sub_76EB90" },
-		{ 0x76F1F0, (void *)a_740F70, "088 sub_76F1F0" },
-		{ 0x76F240, (void *)a_740FC0, "088 sub_76F240" },
-		{ 0x76F2D0, (void *)a_741050, "088 sub_76F2D0" },
-		{ 0x76F3A0, (void *)a_741120, "088 sub_76F3A0" },
-		{ 0x76FDE0, (void *)a_741B60, "088 sub_76FDE0" },
-		{ 0x770510, (void *)a_742290, "088 MAG_088_RandRange" },
-		{ 0x770540, (void *)a_7422C0, "088 sub_770540" },
-		{ 0x770580, (void *)a_742300, "088 sub_770580" },
-		{ 0x7705D0, (void *)a_742350, "088 sub_7705D0" },
-		{ 0x770620, (void *)a_7423A0, "088 MAG_088_RandAngleJitter" },
-		{ 0x770730, (void *)a_7424B0, "088 sub_770730" },
-		{ 0x770740, (void *)a_7424C0, "088 sub_770740" },
-		{ 0x770F20, (void *)a_742CA0, "088 sub_770F20" },
-		{ 0x770F50, (void *)a_742CD0, "088 sub_770F50" },
-		{ 0x770F80, (void *)a_742D00, "088 sub_770F80" },
-		{ 0x771130, (void *)a_742EB0, "088 sub_771130" },
-		{ 0x771270, (void *)a_742FF0, "088 sub_771270" },
-		{ 0x7714C0, (void *)a_73A6D0, "088 nullsub_1270" },
-		{ 0x771510, (void *)a_73F110, "088 sub_771510" },
-		{ 0x771580, (void *)a_7335D0, "088 sub_771580" },
-		{ 0x771650, (void *)a_73A6D0, "088 nullsub_1271" },
-		{ 0x7718C0, (void *)a_73A6D0, "088 nullsub_1272" },
-		{ 0x7719A0, (void *)a_746C10, "088 sub_7719A0" },
-		{ 0x771DA0, (void *)a_73A6D0, "088 nullsub_1273" },
-		{ 0x7721E0, (void *)a_7435E0, "088 InitEffectSequenceFromData_c6" },
-		{ 0x772320, (void *)a_743720, "088 sub_772320" },
-		{ 0x772840, (void *)a_743C20, "088 sub_772840" },
-		{ 0x772870, (void *)a_73A6D0, "088 nullsub_1274" },
-		{ 0x772AA0, (void *)a_73A6D0, "088 nullsub_1275" },
-		{ 0x772C50, (void *)a_73A380, "088 sub_772C50" },
-		{ 0x772D30, (void *)a_73A6D0, "088 nullsub_1276" },
-		{ 0x773000, (void *)a_73A6D0, "088 nullsub_1277" },
-		{ 0x7732E0, (void *)a_73A6D0, "088 nullsub_1278" },
-		{ 0x773360, (void *)a_73BB60, "088 sub_773360" },
-		{ 0x773420, (void *)a_733950, "088 sub_773420" },
-		{ 0x7736B0, (void *)a_73A6D0, "088 nullsub_1279" },
-		{ 0x7736C0, (void *)a_747440, "088 MAG_088_sub_7736C0" },
-		{ 0x773730, (void *)a_7474B0, "088 MAG_088_sub_773730" },
-		{ 0x773750, (void *)a_7474D0, "088 MAG_088_sub_773750" },
-		{ 0x773770, (void *)a_73A6D0, "088 nullsub_1280" },
-		{ 0x773780, (void *)a_747500, "088 MAG_088_sub_773780" },
-		{ 0x7737C0, (void *)a_73A0D0, "088 MAG_088_sub_7737C0" },
-		{ 0x7737D0, (void *)a_747550, "088 MAG_088_sub_7737D0" },
-		{ 0x7737E0, (void *)a_747560, "088 MAG_088_sub_7737E0" },
-		{ 0x773810, (void *)a_747590, "088 MAG_088_sub_773810" },
-		{ 0x773820, (void *)a_7475A0, "088 MAG_088_sub_773820" },
-		{ 0x773840, (void *)a_73A6D0, "088 nullsub_1263" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State0_Advance_768820, (void *)a_73A0D0, "088 MAG_088_sub_768820" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State0_Advance_768830, (void *)a_73A0D0, "088 MAG_088_sub_768830" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State3_SpawnEmitter, (void *)a_73A170, "088 MAG_088_sub_7688C0" },
+		{ game::MAG_088_INVINCIBLE_MOON_EmitterTask, (void *)a_73A1A0, "088 MAG_088_sub_7688F0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActorSystemTask_768AC0, (void *)a_73A380, "088 MAG_088_sub_768AC0" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadScript_Issue, (void *)a_73A3E0, "088 sub_768B20" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadCallback_QueueTIM, (void *)a_73A580, "088 sub_768CC0" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadCb_SummonStream, (void *)a_73A5B0, "088 sub_768CF0" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadCb_ClearBusy_768D20, (void *)a_73A5E0, "088 sub_768D20" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadCb_ClearBusy_768D30, (void *)a_73A5E0, "088 sub_768D30" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadCb_ClearBusy_768D40, (void *)a_73A5E0, "088 sub_768D40" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadCb_ClearBusy_768D50, (void *)a_73A5E0, "088 sub_768D50" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadScript_RecordFile, (void *)a_73A620, "088 sub_768D60" },
+		{ game::MAG_088_INVINCIBLE_MOON_FileLoadScript_State1_LoadScriptWait, (void *)a_73A660, "088 sub_768DA0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_768E10, (void *)a_73A6D0, "088 nullsub_1264" },
+		{ game::MAG_088_INVINCIBLE_MOON_DirSyncGate, (void *)a_73B640, "088 sub_769030" },
+		{ game::MAG_088_INVINCIBLE_MOON_CameraTask, (void *)a_732A00, "088 sub_769060" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_ResetBlock, (void *)a_73AB00, "088 sub_769130" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_StepReached, (void *)a_73AAE0, "088 sub_769180" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_StepScript, (void *)a_73AE10, "088 sub_7691A0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_WriteBattleCamera, (void *)a_73B160, "088 sub_7694F0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_StartScript, (void *)a_73AB20, "088 sub_769660" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State12_StepUntilDone, (void *)a_73B2D0, "088 sub_769BF0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State13_End, (void *)a_73B750, "088 sub_769C30" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_769C50, (void *)a_73A6D0, "088 nullsub_1265" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_769C60, (void *)a_73A6D0, "088 nullsub_1266" },
+		{ game::MAG_088_INVINCIBLE_MOON_DirPhaseGE, (void *)a_73B7E0, "088 sub_769C90" },
+		{ game::MAG_088_INVINCIBLE_MOON_HideMonsters, (void *)a_73B9F0, "088 sub_769CB0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State2_ArmLoadScriptStep, (void *)a_73A930, "088 sub_769CF0" },
+		{ game::MAG_088_INVINCIBLE_MOON_LoadScript_TryArmStep, (void *)a_73A950, "088 sub_769D10" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State3_WaitIdle, (void *)a_733AC0, "088 sub_769D50" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_WaitDirGate2, (void *)a_73B8A0, "088 sub_769D70" },
+		{ game::MAG_088_INVINCIBLE_MOON_ClearEntityRecordBit1, (void *)a_746A10, "088 sub_769DB0" },
+		{ game::MAG_088_INVINCIBLE_MOON_RestoreEntityRecordBit1, (void *)a_746AE0, "088 sub_769E60" },
+		{ game::MAG_088_INVINCIBLE_MOON_RestoreMonsters, (void *)a_73BA90, "088 sub_769F40" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_769FE0, (void *)a_73A6D0, "088 nullsub_1267" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_769FF0, (void *)a_73A6D0, "088 nullsub_1268" },
+		{ game::MAG_088_INVINCIBLE_MOON_SpawnActorSystemTask, (void *)a_73C100, "088 sub_76A0E0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Play_Step, (void *)a_73C280, "088 sub_76A250" },
+		{ game::MAG_088_INVINCIBLE_MOON_EmitG3, (void *)a_73D770, "088 sub_76B630" },
+		{ game::MAG_088_INVINCIBLE_MOON_EmitG4, (void *)a_73D9C0, "088 sub_76B880" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_76C6F0, (void *)a_73A6D0, "088 nullsub_1269" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActorSystemTask_76C700, (void *)a_73A380, "088 sub_76C700" },
+		{ game::MAG_088_INVINCIBLE_MOON_DirectorSetup, (void *)a_73F990, "088 sub_76C790" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_StartPositions, (void *)a_73FC20, "088 sub_76CA20" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_Mode3Setup, (void *)a_73FE90, "088 sub_76CC90" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_TargetPositions, (void *)a_73FFB0, "088 sub_76CDB0" },
+		{ game::MAG_088_INVINCIBLE_MOON_RelocateActorData, (void *)a_740210, "088 sub_76D010" },
+		{ game::MAG_088_INVINCIBLE_MOON_RenderPrimLists, (void *)a_7355E0, "088 sub_76D4A0" },
+		{ game::MAG_088_INVINCIBLE_MOON_PrimList_TexTri_76DA70, (void *)a_735BB0, "088 sub_76DA70" },
+		{ game::MAG_088_INVINCIBLE_MOON_PrimList_TexQuad_76DCB0, (void *)a_735DF0, "088 sub_76DCB0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActorMotion, (void *)a_740910, "088 sub_76EB90" },
+		{ game::MAG_088_INVINCIBLE_MOON_DampValue, (void *)a_740F70, "088 sub_76F1F0" },
+		{ game::MAG_088_INVINCIBLE_MOON_DampVector, (void *)a_740FC0, "088 sub_76F240" },
+		{ game::MAG_088_INVINCIBLE_MOON_Instance_AdvanceTexFrame, (void *)a_741050, "088 sub_76F2D0" },
+		{ game::MAG_088_INVINCIBLE_MOON_InstanceBuildTransform, (void *)a_741120, "088 sub_76F3A0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Particle_LifeCountdown, (void *)a_741B60, "088 sub_76FDE0" },
+		{ game::MAG_088_RandRange, (void *)a_742290, "088 MAG_088_RandRange" },
+		{ game::MAG_088_INVINCIBLE_MOON_RandRangeWide, (void *)a_7422C0, "088 sub_770540" },
+		{ game::MAG_088_INVINCIBLE_MOON_RandVec3, (void *)a_742300, "088 sub_770580" },
+		{ game::MAG_088_INVINCIBLE_MOON_JitterAngles3, (void *)a_742350, "088 sub_7705D0" },
+		{ game::MAG_088_RandAngleJitter, (void *)a_7423A0, "088 MAG_088_RandAngleJitter" },
+		{ game::MAG_088_INVINCIBLE_MOON_GetWord8Minus1, (void *)a_7424B0, "088 sub_770730" },
+		{ game::MAG_088_INVINCIBLE_MOON_Particle_AttachToOwner, (void *)a_7424C0, "088 sub_770740" },
+		{ game::MAG_088_INVINCIBLE_MOON_ParticleList_Append, (void *)a_742CA0, "088 sub_770F20" },
+		{ game::MAG_088_INVINCIBLE_MOON_ParticleList_Unlink, (void *)a_742CD0, "088 sub_770F50" },
+		{ game::MAG_088_INVINCIBLE_MOON_Particle_Init, (void *)a_742D00, "088 sub_770F80" },
+		{ game::MAG_088_INVINCIBLE_MOON_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "088 sub_771130" },
+		{ game::MAG_088_INVINCIBLE_MOON_Particle_PlaceAtPoint, (void *)a_742FF0, "088 sub_771270" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_7714C0, (void *)a_73A6D0, "088 nullsub_1270" },
+		{ game::MAG_088_INVINCIBLE_MOON_StageLightTask, (void *)a_73F110, "088 sub_771510" },
+		{ game::MAG_088_INVINCIBLE_MOON_StageLight_Init, (void *)a_7335D0, "088 sub_771580" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_771650, (void *)a_73A6D0, "088 nullsub_1271" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_7718C0, (void *)a_73A6D0, "088 nullsub_1272" },
+		{ game::MAG_088_INVINCIBLE_MOON_Creature_DrawModel, (void *)a_746C10, "088 sub_7719A0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_771DA0, (void *)a_73A6D0, "088 nullsub_1273" },
+		{ game::InitEffectSequenceFromData_c6, (void *)a_7435E0, "088 InitEffectSequenceFromData_c6" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_DrawSpriteStrip, (void *)a_743720, "088 sub_772320" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_StepFrame, (void *)a_743C20, "088 sub_772840" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_772870, (void *)a_73A6D0, "088 nullsub_1274" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_772AA0, (void *)a_73A6D0, "088 nullsub_1275" },
+		{ game::MAG_088_INVINCIBLE_MOON_HowlPlayTask, (void *)a_73A380, "088 sub_772C50" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_772D30, (void *)a_73A6D0, "088 nullsub_1276" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_773000, (void *)a_73A6D0, "088 nullsub_1277" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_7732E0, (void *)a_73A6D0, "088 nullsub_1278" },
+		{ game::MAG_088_INVINCIBLE_MOON_SetPauseSwitch, (void *)a_73BB60, "088 sub_773360" },
+		{ game::MAG_088_INVINCIBLE_MOON_SetEntityColourTint, (void *)a_733950, "088 sub_773420" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_7736B0, (void *)a_73A6D0, "088 nullsub_1279" },
+		{ game::MAG_088_INVINCIBLE_MOON_Emitter_State1_ApplyActionResults, (void *)a_747440, "088 MAG_088_sub_7736C0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "088 MAG_088_sub_773730" },
+		{ game::MAG_088_INVINCIBLE_MOON_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "088 MAG_088_sub_773750" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_773770, (void *)a_73A6D0, "088 nullsub_1280" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State4_NextTargetLoop, (void *)a_747500, "088 MAG_088_sub_773780" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State0_Advance_7737C0, (void *)a_73A0D0, "088 MAG_088_sub_7737C0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State6_WaitQueuesEmpty, (void *)a_747550, "088 MAG_088_sub_7737D0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State7_RequestBattleSync, (void *)a_747560, "088 MAG_088_sub_7737E0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State8_WaitBattleSyncDone, (void *)a_747590, "088 MAG_088_sub_773810" },
+		{ game::MAG_088_INVINCIBLE_MOON_Sequence_State9_Finish, (void *)a_7475A0, "088 MAG_088_sub_773820" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Nullsub_773840, (void *)a_73A6D0, "088 nullsub_1263" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x768690, (void *)im_768690, "088 im_768690" },
-		{ 0x768840, (void *)im_768840, "088 im_768840" },
-		{ 0x768880, (void *)im_768880, "088 im_768880" },
-		{ 0x768970, (void *)im_768970, "088 im_768970" },
-		{ 0x7689C0, (void *)im_7689C0, "088 im_7689C0" },
-		{ 0x768E20, (void *)im_768E20, "088 im_768E20" },
-		{ 0x768ED0, (void *)im_768ED0, "088 im_768ED0" },
-		{ 0x768F90, (void *)im_768F90, "088 im_768F90" },
-		{ 0x768FE0, (void *)im_768FE0, "088 im_768FE0" },
-		{ 0x769120, (void *)im_769120, "088 im_769120" },
-		{ 0x769150, (void *)im_769150, "088 im_769150" },
-		{ 0x769950, (void *)im_769950, "088 im_769950" },
-		{ 0x769980, (void *)im_769980, "088 im_769980" },
-		{ 0x7699C0, (void *)im_7699C0, "088 im_7699C0" },
-		{ 0x7699F0, (void *)im_7699F0, "088 im_7699F0" },
-		{ 0x769A20, (void *)im_769A20, "088 im_769A20" },
-		{ 0x769A50, (void *)im_769A50, "088 im_769A50" },
-		{ 0x769A90, (void *)im_769A90, "088 im_769A90" },
-		{ 0x769B20, (void *)im_769B20, "088 im_769B20" },
-		{ 0x769B60, (void *)im_769B60, "088 im_769B60" },
-		{ 0x769B90, (void *)im_769B90, "088 im_769B90" },
-		{ 0x769BC0, (void *)im_769BC0, "088 im_769BC0" },
-		{ 0x769C10, (void *)im_769C10, "088 im_769C10" },
-		{ 0x769C70, (void *)im_769C70, "088 im_769C70" },
-		{ 0x769D90, (void *)im_769D90, "088 im_769D90" },
-		{ 0x769DD0, (void *)im_769DD0, "088 im_769DD0" },
-		{ 0x769E10, (void *)im_769E10, "088 im_769E10" },
-		{ 0x769E40, (void *)im_769E40, "088 im_769E40" },
-		{ 0x769E90, (void *)im_769E90, "088 im_769E90" },
-		{ 0x769ED0, (void *)im_769ED0, "088 im_769ED0" },
-		{ 0x769EF0, (void *)im_769EF0, "088 im_769EF0" },
-		{ 0x769F20, (void *)im_769F20, "088 im_769F20" },
-		{ 0x769F80, (void *)im_769F80, "088 im_769F80" },
-		{ 0x769FA0, (void *)im_769FA0, "088 im_769FA0" },
-		{ 0x769FC0, (void *)im_769FC0, "088 im_769FC0" },
-		{ 0x76A000, (void *)im_76A000, "088 im_76A000" },
-		{ 0x76A130, (void *)im_76A130, "088 im_76A130" },
-		{ 0x76A180, (void *)im_76A180, "088 im_76A180" },
-		{ 0x76A1F0, (void *)im_76A1F0, "088 im_76A1F0" },
-		{ 0x76A380, (void *)im_76A380, "088 im_76A380" },
-		{ 0x76A650, (void *)im_76A650, "088 im_76A650" },
-		{ 0x76A780, (void *)im_76A780, "088 im_76A780" },
-		{ 0x76A9A0, (void *)im_76A9A0, "088 im_76A9A0" },
-		{ 0x76AC30, (void *)im_76AC30, "088 im_76AC30" },
-		{ 0x76B0B0, (void *)im_76B0B0, "088 im_76B0B0" },
-		{ 0x76BB60, (void *)im_76BB60, "088 im_76BB60" },
-		{ 0x76C060, (void *)im_76C060, "088 im_76C060" },
-		{ 0x76C6B0, (void *)im_76C6B0, "088 im_76C6B0" },
-		{ 0x76C760, (void *)im_76C760, "088 im_76C760" },
-		{ 0x76C940, (void *)im_76C940, "088 im_76C940" },
-		{ 0x76CBC0, (void *)im_76CBC0, "088 im_76CBC0" },
-		{ 0x76D270, (void *)im_76D270, "088 im_76D270" },
-		{ 0x76D300, (void *)im_76D300, "088 im_76D300" },
-		{ 0x76D360, (void *)im_76D360, "088 im_76D360" },
-		{ 0x76D5E0, (void *)im_76D5E0, "088 im_76D5E0" },
-		{ 0x76D7F0, (void *)im_76D7F0, "088 im_76D7F0" },
-		{ 0x76DF50, (void *)im_76DF50, "088 im_76DF50" },
-		{ 0x76E180, (void *)im_76E180, "088 im_76E180" },
-		{ 0x76E440, (void *)im_76E440, "088 im_76E440" },
-		{ 0x76E6A0, (void *)im_76E6A0, "088 im_76E6A0" },
-		{ 0x76E980, (void *)im_76E980, "088 im_76E980" },
-		{ 0x76EA40, (void *)im_76EA40, "088 im_76EA40" },
-		{ 0x76EAC0, (void *)im_76EAC0, "088 im_76EAC0" },
-		{ 0x76EB00, (void *)im_76EB00, "088 im_76EB00" },
-		{ 0x76FB30, (void *)im_76FB30, "088 im_76FB30" },
-		{ 0x76FC40, (void *)im_76FC40, "088 im_76FC40" },
-		{ 0x76FCC0, (void *)im_76FCC0, "088 im_76FCC0" },
-		{ 0x76FCF0, (void *)im_76FCF0, "088 im_76FCF0" },
-		{ 0x76FD90, (void *)im_76FD90, "088 im_76FD90" },
-		{ 0x76FE10, (void *)im_76FE10, "088 im_76FE10" },
-		{ 0x76FE90, (void *)im_76FE90, "088 im_76FE90" },
-		{ 0x770670, (void *)im_770670, "088 im_770670" },
-		{ 0x770890, (void *)im_770890, "088 im_770890" },
-		{ 0x771380, (void *)im_771380, "088 im_771380" },
-		{ 0x771410, (void *)im_771410, "088 im_771410" },
-		{ 0x7714A0, (void *)im_7714A0, "088 im_7714A0" },
-		{ 0x7714D0, (void *)im_7714D0, "088 im_7714D0" },
-		{ 0x7715C0, (void *)im_7715C0, "088 im_7715C0" },
-		{ 0x771600, (void *)im_771600, "088 im_771600" },
-		{ 0x771610, (void *)im_771610, "088 im_771610" },
-		{ 0x771660, (void *)im_771660, "088 im_771660" },
-		{ 0x7716C0, (void *)im_7716C0, "088 im_7716C0" },
-		{ 0x7717A0, (void *)im_7717A0, "088 im_7717A0" },
-		{ 0x771880, (void *)im_771880, "088 im_771880" },
-		{ 0x7718D0, (void *)im_7718D0, "088 im_7718D0" },
-		{ 0x771B80, (void *)im_771B80, "088 im_771B80" },
-		{ 0x771BD0, (void *)im_771BD0, "088 im_771BD0" },
-		{ 0x771C00, (void *)im_771C00, "088 im_771C00" },
-		{ 0x771C30, (void *)im_771C30, "088 im_771C30" },
-		{ 0x771C60, (void *)im_771C60, "088 im_771C60" },
-		{ 0x771C90, (void *)im_771C90, "088 im_771C90" },
-		{ 0x771CC0, (void *)im_771CC0, "088 im_771CC0" },
-		{ 0x771CF0, (void *)im_771CF0, "088 im_771CF0" },
-		{ 0x771D20, (void *)im_771D20, "088 im_771D20" },
-		{ 0x771D50, (void *)im_771D50, "088 im_771D50" },
-		{ 0x771D70, (void *)im_771D70, "088 im_771D70" },
-		{ 0x771DB0, (void *)im_771DB0, "088 im_771DB0" },
-		{ 0x771F50, (void *)im_771F50, "088 im_771F50" },
-		{ 0x772060, (void *)im_772060, "088 im_772060" },
-		{ 0x7720C0, (void *)im_7720C0, "088 im_7720C0" },
-		{ 0x772790, (void *)im_772790, "088 im_772790" },
-		{ 0x7727B0, (void *)im_7727B0, "088 im_7727B0" },
-		{ 0x772880, (void *)im_772880, "088 im_772880" },
-		{ 0x772990, (void *)im_772990, "088 im_772990" },
-		{ 0x7729F0, (void *)im_7729F0, "088 im_7729F0" },
-		{ 0x772A10, (void *)im_772A10, "088 im_772A10" },
-		{ 0x772AB0, (void *)im_772AB0, "088 im_772AB0" },
-		{ 0x772B40, (void *)im_772B40, "088 im_772B40" },
-		{ 0x772B80, (void *)im_772B80, "088 im_772B80" },
-		{ 0x772BE0, (void *)im_772BE0, "088 im_772BE0" },
-		{ 0x772CB0, (void *)im_772CB0, "088 im_772CB0" },
-		{ 0x772D10, (void *)im_772D10, "088 im_772D10" },
-		{ 0x772D40, (void *)im_772D40, "088 im_772D40" },
-		{ 0x772D90, (void *)im_772D90, "088 im_772D90" },
-		{ 0x772E30, (void *)im_772E30, "088 im_772E30" },
-		{ 0x772F50, (void *)im_772F50, "088 im_772F50" },
-		{ 0x772FB0, (void *)im_772FB0, "088 im_772FB0" },
-		{ 0x772FE0, (void *)im_772FE0, "088 im_772FE0" },
-		{ 0x773010, (void *)im_773010, "088 im_773010" },
-		{ 0x773040, (void *)im_773040, "088 im_773040" },
-		{ 0x773090, (void *)im_773090, "088 im_773090" },
-		{ 0x773100, (void *)im_773100, "088 im_773100" },
-		{ 0x773130, (void *)im_773130, "088 im_773130" },
-		{ 0x7732F0, (void *)im_7732F0, "088 im_7732F0" },
-		{ 0x773320, (void *)im_773320, "088 im_773320" },
-		{ 0x7733B0, (void *)im_7733B0, "088 im_7733B0" },
-		{ 0x773400, (void *)im_773400, "088 im_773400" },
-		{ 0x773520, (void *)im_773520, "088 im_773520" },
-		{ 0x773560, (void *)im_773560, "088 im_773560" },
-		{ 0x773590, (void *)im_773590, "088 im_773590" },
-		{ 0x773600, (void *)im_773600, "088 im_773600" },
-		{ 0x773630, (void *)im_773630, "088 im_773630" },
-		{ 0x773670, (void *)im_773670, "088 im_773670" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_088_INVINCIBLE_MOON_MasterTask, (void *)im_768690, "088 im_768690" },
+		{ game::MAG_088_INVINCIBLE_MOON_Master_State2_CarvePools, (void *)im_768840, "088 im_768840" },
+		{ game::MAG_088_INVINCIBLE_MOON_ClearPools, (void *)im_768880, "088 im_768880" },
+		{ game::MAG_088_INVINCIBLE_MOON_Master_State2_InitDirector, (void *)im_768970, "088 im_768970" },
+		{ game::MAG_088_INVINCIBLE_MOON_ModuleDataSetup, (void *)im_7689C0, "088 im_7689C0" },
+		{ game::MAG_088_INVINCIBLE_MOON_DirectorDataSetup, (void *)im_768E20, "088 im_768E20" },
+		{ game::MAG_088_INVINCIBLE_MOON_DirectorTask, (void *)im_768ED0, "088 im_768ED0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_PhaseBookkeeping, (void *)im_768F90, "088 im_768F90" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State0_UploadTIMs_SpawnCamera, (void *)im_768FE0, "088 im_768FE0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State0_Reset, (void *)im_769120, "088 im_769120" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State1_StartAtSync1, (void *)im_769150, "088 im_769150" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State2_Chain, (void *)im_769950, "088 im_769950" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State3_ChainRandom, (void *)im_769980, "088 im_769980" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State4_Chain, (void *)im_7699C0, "088 im_7699C0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State5_Chain, (void *)im_7699F0, "088 im_7699F0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State6_Chain, (void *)im_769A20, "088 im_769A20" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State7_PartyCentreAtSync4, (void *)im_769A50, "088 im_769A50" },
+		{ game::MAG_088_INVINCIBLE_MOON_PartyCentre, (void *)im_769A90, "088 im_769A90" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State8_PartyCentreChain, (void *)im_769B20, "088 im_769B20" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State9_StartAtSync5, (void *)im_769B60, "088 im_769B60" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State10_Chain, (void *)im_769B90, "088 im_769B90" },
+		{ game::MAG_088_INVINCIBLE_MOON_Camera_State11_Chain, (void *)im_769BC0, "088 im_769BC0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State18_WaitDirGate6_769C10, (void *)im_769C10, "088 im_769C10" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State1_Cue1, (void *)im_769C70, "088 im_769C70" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State5_Cue3_HideParty, (void *)im_769D90, "088 im_769D90" },
+		{ game::MAG_088_INVINCIBLE_MOON_HidePartyEntities, (void *)im_769DD0, "088 im_769DD0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State6_Sync4, (void *)im_769E10, "088 im_769E10" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State7_Cue4_ShowParty, (void *)im_769E40, "088 im_769E40" },
+		{ game::MAG_088_INVINCIBLE_MOON_RestorePartyEntities, (void *)im_769E90, "088 im_769E90" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State8_DoneAtFrame23, (void *)im_769ED0, "088 im_769ED0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State9_Sync5, (void *)im_769EF0, "088 im_769EF0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State10_ShowMonsters, (void *)im_769F20, "088 im_769F20" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State11_WaitFrame14, (void *)im_769F80, "088 im_769F80" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State18_WaitDirGate6_769FA0, (void *)im_769FA0, "088 im_769FA0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_State13_FinishAtCue6, (void *)im_769FC0, "088 im_769FC0" },
+		{ game::MAG_088_INVINCIBLE_MOON_SpawnPhaseTasks, (void *)im_76A000, "088 im_76A000" },
+		{ game::MAG_088_INVINCIBLE_MOON_SpawnPlayTask, (void *)im_76A130, "088 im_76A130" },
+		{ game::MAG_088_INVINCIBLE_MOON_MoonPlayTask, (void *)im_76A180, "088 im_76A180" },
+		{ game::MAG_088_INVINCIBLE_MOON_MoonPlay_State0_Setup, (void *)im_76A1F0, "088 im_76A1F0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Play_ObjectCallback, (void *)im_76A380, "088 im_76A380" },
+		{ game::MAG_088_INVINCIBLE_MOON_RenderModelPrims, (void *)im_76A650, "088 im_76A650" },
+		{ game::MAG_088_INVINCIBLE_MOON_PrimList_FlatTri, (void *)im_76A780, "088 im_76A780" },
+		{ game::MAG_088_INVINCIBLE_MOON_PrimList_FlatQuad, (void *)im_76A9A0, "088 im_76A9A0" },
+		{ game::MAG_088_INVINCIBLE_MOON_PrimList_TexTri_76AC30, (void *)im_76AC30, "088 im_76AC30" },
+		{ game::MAG_088_INVINCIBLE_MOON_PrimList_TexQuad_76B0B0, (void *)im_76B0B0, "088 im_76B0B0" },
+		{ game::MAG_088_INVINCIBLE_MOON_PrimList_GouraudTexTriScroll, (void *)im_76BB60, "088 im_76BB60" },
+		{ game::MAG_088_INVINCIBLE_MOON_PrimList_GT4, (void *)im_76C060, "088 im_76C060" },
+		{ game::MAG_088_INVINCIBLE_MOON_MoonPlay_State1_PlayUntilCue5, (void *)im_76C6B0, "088 im_76C6B0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_State0_StartAtFrame, (void *)im_76C760, "088 im_76C760" },
+		{ game::MAG_088_INVINCIBLE_MOON_ResetTrailHistory, (void *)im_76C940, "088 im_76C940" },
+		{ game::MAG_088_INVINCIBLE_MOON_FillTrailRows, (void *)im_76CBC0, "088 im_76CBC0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_Step, (void *)im_76D270, "088 im_76D270" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_DrawModelPass, (void *)im_76D300, "088 im_76D300" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_DrawModelActor, (void *)im_76D360, "088 im_76D360" },
+		{ game::MAG_088_INVINCIBLE_MOON_ModelList_FlatTri, (void *)im_76D5E0, "088 im_76D5E0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ModelList_FlatQuad, (void *)im_76D7F0, "088 im_76D7F0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ModelList_GouraudTri, (void *)im_76DF50, "088 im_76DF50" },
+		{ game::MAG_088_INVINCIBLE_MOON_ModelList_GouraudQuad, (void *)im_76E180, "088 im_76E180" },
+		{ game::MAG_088_INVINCIBLE_MOON_ModelList_GouraudTexTri, (void *)im_76E440, "088 im_76E440" },
+		{ game::MAG_088_INVINCIBLE_MOON_ModelList_GouraudTexQuad, (void *)im_76E6A0, "088 im_76E6A0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_DrawSpritePass, (void *)im_76E980, "088 im_76E980" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_DrawSprite, (void *)im_76EA40, "088 im_76EA40" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_UpdatePass, (void *)im_76EAC0, "088 im_76EAC0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActorStep, (void *)im_76EB00, "088 im_76EB00" },
+		{ game::MAG_088_INVINCIBLE_MOON_MorphVertexBlock, (void *)im_76FB30, "088 im_76FB30" },
+		{ game::MAG_088_INVINCIBLE_MOON_Instance_EndOfLifeTest, (void *)im_76FC40, "088 im_76FC40" },
+		{ game::MAG_088_INVINCIBLE_MOON_Instance_SpawnFollowUp, (void *)im_76FCC0, "088 im_76FCC0" },
+		{ game::MAG_088_INVINCIBLE_MOON_AllocParticle, (void *)im_76FCF0, "088 im_76FCF0" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_UpdateEmitter, (void *)im_76FD90, "088 im_76FD90" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_EmitterSpawnStep, (void *)im_76FE10, "088 im_76FE10" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_SpawnParticles, (void *)im_76FE90, "088 im_76FE90" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_AllocParticleSlot, (void *)im_770670, "088 im_770670" },
+		{ game::MAG_088_INVINCIBLE_MOON_Particle_KeyPositionPath, (void *)im_770890, "088 im_770890" },
+		{ game::MAG_088_INVINCIBLE_MOON_SpawnSubEffects, (void *)im_771380, "088 im_771380" },
+		{ game::MAG_088_INVINCIBLE_MOON_Director_SpawnGroupEffects, (void *)im_771410, "088 im_771410" },
+		{ game::MAG_088_INVINCIBLE_MOON_ActSys_State1_StepUntilDone, (void *)im_7714A0, "088 im_7714A0" },
+		{ game::MAG_088_INVINCIBLE_MOON_SpawnCreature, (void *)im_7714D0, "088 im_7714D0" },
+		{ game::MAG_088_INVINCIBLE_MOON_StageLight_State0_Rise, (void *)im_7715C0, "088 im_7715C0" },
+		{ game::MAG_088_INVINCIBLE_MOON_StageLight_State1_Wait, (void *)im_771600, "088 im_771600" },
+		{ game::MAG_088_INVINCIBLE_MOON_StageLight_State3_FadeOut, (void *)im_771610, "088 im_771610" },
+		{ game::MAG_088_INVINCIBLE_MOON_MoonModelTask, (void *)im_771660, "088 im_771660" },
+		{ game::MAG_088_INVINCIBLE_MOON_MoonModel_Draw, (void *)im_7716C0, "088 im_7716C0" },
+		{ game::MAG_088_INVINCIBLE_MOON_MoonModel_State0_Setup, (void *)im_7717A0, "088 im_7717A0" },
+		{ game::MAG_088_INVINCIBLE_MOON_MoonModel_State1_DriftUntilCue4, (void *)im_771880, "088 im_771880" },
+		{ game::MAG_088_INVINCIBLE_MOON_DoubleTask, (void *)im_7718D0, "088 im_7718D0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State0_PlaceHidden, (void *)im_771B80, "088 im_771B80" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State1_ShowAtFrameC, (void *)im_771BD0, "088 im_771BD0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State2_Anim1, (void *)im_771C00, "088 im_771C00" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State3_Anim2, (void *)im_771C30, "088 im_771C30" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State4_Anim5, (void *)im_771C60, "088 im_771C60" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State5_Cue3, (void *)im_771C90, "088 im_771C90" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State6_Anim3, (void *)im_771CC0, "088 im_771CC0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State7_HideAtCue4, (void *)im_771CF0, "088 im_771CF0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State8_ShowAtCue5, (void *)im_771D20, "088 im_771D20" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State9_WaitAnimEnd, (void *)im_771D50, "088 im_771D50" },
+		{ game::MAG_088_INVINCIBLE_MOON_Double_State10_Finish, (void *)im_771D70, "088 im_771D70" },
+		{ game::MAG_088_INVINCIBLE_MOON_AngeloTask, (void *)im_771DB0, "088 im_771DB0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_DustRings4, (void *)im_771F50, "088 im_771F50" },
+		{ game::MAG_088_INVINCIBLE_MOON_DustRingTask, (void *)im_772060, "088 im_772060" },
+		{ game::MAG_088_INVINCIBLE_MOON_DustRing_Draw, (void *)im_7720C0, "088 im_7720C0" },
+		{ game::MAG_088_INVINCIBLE_MOON_DustRing_State0_Setup, (void *)im_772790, "088 im_772790" },
+		{ game::MAG_088_INVINCIBLE_MOON_DustRing_State1_Rise, (void *)im_7727B0, "088 im_7727B0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_DustRings3, (void *)im_772880, "088 im_772880" },
+		{ game::MAG_088_INVINCIBLE_MOON_DustRingFastTask, (void *)im_772990, "088 im_772990" },
+		{ game::MAG_088_INVINCIBLE_MOON_DustRingFast_State0_Setup, (void *)im_7729F0, "088 im_7729F0" },
+		{ game::MAG_088_INVINCIBLE_MOON_DustRingFast_State1_Rise, (void *)im_772A10, "088 im_772A10" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State0_BindRinoaAnimSet, (void *)im_772AB0, "088 im_772AB0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State1_RinoaChain2, (void *)im_772B40, "088 im_772B40" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State2_Anim1, (void *)im_772B80, "088 im_772B80" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State3_SpawnHowlPlay, (void *)im_772BE0, "088 im_772BE0" },
+		{ game::MAG_088_INVINCIBLE_MOON_HowlPlay_State0_Setup, (void *)im_772CB0, "088 im_772CB0" },
+		{ game::MAG_088_INVINCIBLE_MOON_HowlPlay_State1_Play, (void *)im_772D10, "088 im_772D10" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State4_SpawnHalo, (void *)im_772D40, "088 im_772D40" },
+		{ game::MAG_088_INVINCIBLE_MOON_HaloTask, (void *)im_772D90, "088 im_772D90" },
+		{ game::MAG_088_INVINCIBLE_MOON_Halo_Draw, (void *)im_772E30, "088 im_772E30" },
+		{ game::MAG_088_INVINCIBLE_MOON_Halo_State0_Setup, (void *)im_772F50, "088 im_772F50" },
+		{ game::MAG_088_INVINCIBLE_MOON_Halo_State1_FadeIn, (void *)im_772FB0, "088 im_772FB0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Halo_State2_HideAtCue3, (void *)im_772FE0, "088 im_772FE0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State5_Anim8, (void *)im_773010, "088 im_773010" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State6_SpawnFlash, (void *)im_773040, "088 im_773040" },
+		{ game::MAG_088_INVINCIBLE_MOON_FlashTask, (void *)im_773090, "088 im_773090" },
+		{ game::MAG_088_INVINCIBLE_MOON_Flash_State0_Delay, (void *)im_773100, "088 im_773100" },
+		{ game::MAG_088_INVINCIBLE_MOON_Flash_State1_StepDraw, (void *)im_773130, "088 im_773130" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State7_Countdown, (void *)im_7732F0, "088 im_7732F0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State8_WaitSync3_Pause, (void *)im_773320, "088 im_773320" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State9_Cue3_Glow, (void *)im_7733B0, "088 im_7733B0" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_SetGlow, (void *)im_773400, "088 im_773400" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State10_Anim4_Glow, (void *)im_773520, "088 im_773520" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State11_HideAtCue4, (void *)im_773560, "088 im_773560" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State12_ShowAtCue5_RinoaChain4, (void *)im_773590, "088 im_773590" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State13_Anim6, (void *)im_773600, "088 im_773600" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State14_Anim7_WalkOff, (void *)im_773630, "088 im_773630" },
+		{ game::MAG_088_INVINCIBLE_MOON_Angelo_State15_Finish, (void *)im_773670, "088 im_773670" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

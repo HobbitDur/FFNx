@@ -25,48 +25,48 @@ namespace gastric128
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25211E0)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25211E8)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25211EC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2521204)); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(us(0x2521208)); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x2521230); }
-	inline TaskQueue *QStreams() { return (TaskQueue *)us(0x2521240); }
-	inline TaskQueue *QTarget() { return (TaskQueue *)us(0x2521250); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(us(0x1D98B3C)); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::g128_CasterEntity)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g128_MagicBufferBase)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g128_CastContext)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g128_PacketCursor)); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(game_addr(game::g128_EffectCameraMatrix)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)game_addr(game::g128_ParticleQueue); }
+	inline TaskQueue *QStreams() { return (TaskQueue *)game_addr(game::g128_StreamQueue); }
+	inline TaskQueue *QTarget() { return (TaskQueue *)game_addr(game::g128_TargetQueue); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(game_addr(game::g_BattleVertexWorkspace)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
 
-	static const uint32_t ORIG_RootTask = 0x6B7DB0;
-	static const uint32_t ORIG_TargetTask = 0x6B8140;
-	static const uint32_t ORIG_SprayTask = 0x6B8B20;
-	static const uint32_t ORIG_DripTask = 0x6B8BC0;
-	static const uint32_t ORIG_StreamTask = 0x6B8DC0;
-	static const uint32_t ORIG_SplashTask = 0x6B9030;
-	static const uint32_t MODEL_Layout = 0x12320B4;
-	static const uint32_t SEQ_Spray = 0x1233538;
-	static const uint32_t SEQ_Drip = 0x123322C;
-	static const uint32_t SEQ_Splash = 0x123338C;
-	static const uint32_t ZERO_Vector = 0x2521228;
-	static const void *SOUND_Juice() { return (const void *)us(0x12337B8); }
-	static const uint8_t *DIST_TABLE() { return (const uint8_t *)us(0x12337BC); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_128_GASTRIC_JUICE_RootTask;
+	static constexpr game::Id ORIG_TargetTask = game::MAG_128_GASTRIC_JUICE_TargetTask;
+	static constexpr game::Id ORIG_SprayTask = game::MAG_128_GASTRIC_JUICE_SprayTask;
+	static constexpr game::Id ORIG_DripTask = game::MAG_128_GASTRIC_JUICE_DripTask;
+	static constexpr game::Id ORIG_StreamTask = game::MAG_128_GASTRIC_JUICE_StreamTask;
+	static constexpr game::Id ORIG_SplashTask = game::MAG_128_GASTRIC_JUICE_SplashTask;
+	static constexpr game::Id MODEL_Layout = game::MAG_128_GastricJuice_ModelLayout;
+	static constexpr game::Id SEQ_Spray = game::MAG_128_GastricJuice_SeqSpray;
+	static constexpr game::Id SEQ_Drip = game::MAG_128_GastricJuice_SeqDrip;
+	static constexpr game::Id SEQ_Splash = game::MAG_128_GastricJuice_SeqSplash;
+	static constexpr game::Id ZERO_Vector = game::g128_ZeroVector;
+	static const void *SOUND_Juice() { return (const void *)game_addr(game::MAG_128_GastricJuice_SoundJuice); }
+	static const uint8_t *DIST_TABLE() { return (const uint8_t *)game_addr(game::unk_12337BC); }
 	static const uint32_t POINTS = 0x16E8;
 	static const uint32_t MELT = 0x3EE8;
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(dx, dz); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
-	inline uint32_t ModelPolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x660540))(s, ot, shift, cursor); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(game_addr(game::CartesianToGameAngle))(dx, dz); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV0_u16))(v); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(entity, ot, mode, cursor); }
+	inline uint32_t ModelPolygons(uint8_t *s, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_317_ACID_QUISTIS_BattleModelObjectPolygons))(s, ot, shift, cursor); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -480,7 +480,7 @@ namespace gastric128
 	{
 		Point *p = AllocPoint(from, (int16_t)width);
 		if (!p) return nullptr;
-		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), us(ORIG_StreamTask));
+		StreamNode *s = (StreamNode *)AddTaskToQueue(QStreams(), game_addr(ORIG_StreamTask));
 		if (!s)
 		{
 			p->width = -1;
@@ -642,7 +642,7 @@ namespace gastric128
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		ParticleDraw(p, us(SEQ_Spray));
+		ParticleDraw(p, game_addr(SEQ_Spray));
 		SprayStep(p);
 		p->counter++;
 		return p->counter < 9 ? 0 : TASK_END;
@@ -651,7 +651,7 @@ namespace gastric128
 	static uint32_t __cdecl DripTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		ParticleDraw(p, us(SEQ_Drip));
+		ParticleDraw(p, game_addr(SEQ_Drip));
 		DripStep(p);
 		p->counter++;
 		return p->counter < 0xD ? 0 : TASK_END;
@@ -660,7 +660,7 @@ namespace gastric128
 	static uint32_t __cdecl SplashTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		ParticleDraw(p, us(SEQ_Splash));
+		ParticleDraw(p, game_addr(SEQ_Splash));
 		p->counter++;
 		return p->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -690,7 +690,7 @@ namespace gastric128
 				at[2] = (int16_t)(at[2] + v[2]);
 				if (s->t >= 0x1000 && s->slot >= 0)
 				{
-					ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_SplashTask));
+					ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_SplashTask));
 					if (q)
 					{
 						q->counter = 0;
@@ -770,12 +770,12 @@ namespace gastric128
 				uint8_t *entity = t->entity;
 				const int32_t r = CrtRand();
 				GetEffectSpawnPosition(entity, mul32(r, BoneCount(entity)) >> 15, 0, to);
-				const int32_t slot = (int32_t)((uint32_t)t->entity - 0x1D972C0u) / 0x9C;
+				const int32_t slot = (int32_t)((uint32_t)t->entity - game_addr(game::BattleEntitySlotData)) / 0x9C;
 				Point *p = SpawnStream(from, to, slot, 0, 0x100, 0x96, w);
 				if (p)
 				{
-					*(uint32_t *)p->vel = var<uint32_t>(us(ZERO_Vector));
-					*(uint32_t *)&p->vel[2] = var<uint32_t>(us(ZERO_Vector) + 4);
+					*(uint32_t *)p->vel = var<uint32_t>(game_addr(ZERO_Vector));
+					*(uint32_t *)&p->vel[2] = var<uint32_t>(game_addr(ZERO_Vector) + 4);
 				}
 			}
 		}
@@ -783,7 +783,7 @@ namespace gastric128
 		{
 			for (int k = 8; k != 0; k--)
 			{
-				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_SprayTask));
+				ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_SprayTask));
 				if (!q) continue;
 				GetEffectSpawnPosition(Caster(), 0x14, 0, q->pos);
 				q->counter = 0;
@@ -798,7 +798,7 @@ namespace gastric128
 		const uint32_t d = (uint32_t)((int32_t)t->counter - 0x1D);
 		if (d < 0x14 && !(d & 1))
 		{
-			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_DripTask));
+			ParticleNode *q = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_DripTask));
 			if (q)
 			{
 				uint8_t *entity = t->entity;
@@ -846,7 +846,7 @@ namespace gastric128
 			}
 			if (r->action <= Ctx()->actions[0].last_action)
 			{
-				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), us(ORIG_TargetTask));
+				TargetNode *t = (TargetNode *)AddTaskToQueue(QTarget(), game_addr(ORIG_TargetTask));
 				Memset32(&t->counter, 0, 0x97);
 				t->action = (int16_t)(uint16_t)r->action;
 				uint8_t *entity = Entity(Ctx()->actions[t->action].targets[0]);
@@ -855,7 +855,7 @@ namespace gastric128
 				int16_t caster[4];
 				GetDefaultEffectPosition(Caster(), caster);
 				t->angle = (int16_t)CartesianToGameAngle((int32_t)t->pos[0] - caster[0], (int32_t)t->pos[2] - caster[2]);
-				DecodeModelPrimLayout(us(MODEL_Layout), t->layout, 0x248);
+				DecodeModelPrimLayout(game_addr(MODEL_Layout), t->layout, 0x248);
 				r->action++;
 				InitMelt(t->entity);
 			}

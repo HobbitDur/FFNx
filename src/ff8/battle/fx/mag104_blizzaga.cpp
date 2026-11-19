@@ -26,53 +26,53 @@ namespace blizzaga104
 	using namespace magc;
 	using namespace icec;
 
-	inline int32_t &FlashLevel() { return var<int32_t>(us(0x2543DF0)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2543DF4)); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x2543DFC)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2543E00)); }
-	inline int16_t &BandBase() { return var<int16_t>(us(0x2543E04)); }
-	inline int16_t &BandRange() { return var<int16_t>(us(0x2543E06)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2543E1C)); }
-	inline TaskQueue *Queue(int i) { return (TaskQueue *)(us(0x2543E30) + 0x10 * i); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline int32_t &FlashLevel() { return var<int32_t>(game_addr(game::MAG_104_BLIZZAGA_FlashLevel)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_104_BLIZZAGA_CasterEntity)); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(game_addr(game::MAG104_BLIZZAGA_arenaBase)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG104_BLIZZAGA_castCtx)); }
+	inline int16_t &BandBase() { return var<int16_t>(game_addr(game::MAG_104_BLIZZAGA_BandBase)); }
+	inline int16_t &BandRange() { return var<int16_t>(game_addr(game::MAG_104_BLIZZAGA_BandRange)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_104_BLIZZAGA_PacketCursor)); }
+	inline TaskQueue *Queue(int i) { return (TaskQueue *)(game_addr(game::MAG104_BLIZZAGA_Queues) + 0x10 * i); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
 
-	static const uint32_t ORIG_Director = 0x6D6400;
-	static const uint32_t ORIG_FreezeTask = 0x6D67E0;
-	static const uint32_t ORIG_MistTask = 0x6D95E0;
-	static const uint32_t ORIG_FlakeTask = 0x6D96A0;
-	static const uint32_t ORIG_RibbonTask = 0x6D97A0;
-	static const uint32_t ORIG_SparkleTask = 0x6D9DD0;
-	static const uint32_t ORIG_SpiralTask = 0x6DA0D0;
-	static const uint8_t *MODEL_Block() { return (const uint8_t *)us(0x1312918); }
-	static uint8_t *MODEL_BlockUV() { return (uint8_t *)us(0x1315760); }
-	static const uint8_t *BLOCK_VERTS() { return (const uint8_t *)us(0x13151D0); }
-	static const uint32_t *MORPH_TABLE() { return (const uint32_t *)us(0x13197D0); }
-	static const void *MODEL_Ring() { return (const void *)us(0x1317088); }
-	static const void *MODEL_Flash() { return (const void *)us(0x1318490); }
-	static const void *SEQ_Mist() { return (const void *)us(0x1312690); }
-	static const void *SEQ_Flake() { return (const void *)us(0x13127A0); }
-	static const uint32_t SPARKLE_MATRIX = 0x13197B0;
-	static const void *SOUND_Blizzaga() { return (const void *)us(0x13197A8); }
+	static constexpr game::Id ORIG_Director = game::MAG_104_BLIZZAGA_Director;
+	static constexpr game::Id ORIG_FreezeTask = game::MAG_104_BLIZZAGA_FreezeTask;
+	static constexpr game::Id ORIG_MistTask = game::MAG_104_BLIZZAGA_MistTask;
+	static constexpr game::Id ORIG_FlakeTask = game::MAG_104_BLIZZAGA_FlakeTask;
+	static constexpr game::Id ORIG_RibbonTask = game::MAG_104_BLIZZAGA_RibbonTask;
+	static constexpr game::Id ORIG_SparkleTask = game::MAG_104_BLIZZAGA_SparkleTask;
+	static constexpr game::Id ORIG_SpiralTask = game::MAG_104_BLIZZAGA_SpiralTask;
+	static const uint8_t *MODEL_Block() { return (const uint8_t *)game_addr(game::unk_1312918); }
+	static uint8_t *MODEL_BlockUV() { return (uint8_t *)game_addr(game::unk_1315760); }
+	static const uint8_t *BLOCK_VERTS() { return (const uint8_t *)game_addr(game::unk_13151D0); }
+	static const uint32_t *MORPH_TABLE() { return (const uint32_t *)game_addr(game::MAG_104_BLIZZAGA_MorphTable); }
+	static const void *MODEL_Ring() { return (const void *)game_addr(game::unk_1317088); }
+	static const void *MODEL_Flash() { return (const void *)game_addr(game::unk_1318490); }
+	static const void *SEQ_Mist() { return (const void *)game_addr(game::unk_1312690); }
+	static const void *SEQ_Flake() { return (const void *)game_addr(game::unk_13127A0); }
+	static constexpr game::Id SPARKLE_MATRIX = game::MAG_104_BLIZZAGA_SparkleMatrix;
+	static const void *SOUND_Blizzaga() { return (const void *)game_addr(game::unk_13197A8); }
 	static const uint32_t MODEL_OFFSET[3] = { 0x11FB0, 0x142D8, 0x16600 };
 	static const int SHARDS = 0x140;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 	inline int16_t EntityHeight2(const uint8_t *entity) { return *(const int16_t *)(entity + 0x24); }
 
-	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(dx, dz); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
-	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(uint32_t, void *, int32_t, int32_t, int32_t, int32_t)>(us(0x45C870))(ot, prim, a, b, c, d); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
-	inline void GteReadMAC123(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E450))(dst); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
-	inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, shift, cursor); }
-	inline void ComputeBonesWorldMatrices(void *anim, void *m) { fn<void (__cdecl *)(void *, void *)>(us(0x5095B0))(anim, m); }
-	inline void BuildBoneMatricesFromPose(void *anim) { fn<void (__cdecl *)(void *)>(us(0x508C90))(anim); }
-	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline int32_t CartesianToGameAngle(int32_t dx, int32_t dz) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(game_addr(game::CartesianToGameAngle))(dx, dz); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a, b, c); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSZ123))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSZ0123))(a, b, c, d); }
+	inline void InsertPrimDepthKeys(uint32_t ot, void *prim, int32_t a, int32_t b, int32_t c, int32_t d) { fn<void (__cdecl *)(uint32_t, void *, int32_t, int32_t, int32_t, int32_t)>(game_addr(game::SSIGPU_InsertPrimDepthKeys))(ot, prim, a, b, c, d); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV0_u16))(v); }
+	inline void GteReadMAC123(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadMAC123))(dst); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(c); }
+	inline uint32_t DrawShadow(void *entity, uint32_t ot, int32_t shift, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(entity, ot, shift, cursor); }
+	inline void ComputeBonesWorldMatrices(void *anim, void *m) { fn<void (__cdecl *)(void *, void *)>(game_addr(game::BS_ComputeBonesWorldMatrices))(anim, m); }
+	inline void BuildBoneMatricesFromPose(void *anim) { fn<void (__cdecl *)(void *)>(game_addr(game::BattleModel_BuildBoneMatricesFromPose))(anim); }
+	inline void BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { fn<void (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
 
 #pragma pack(push, 1)
 	struct DirectorNode
@@ -254,7 +254,7 @@ namespace blizzaga104
 				}
 				else
 				{
-					FreezeNode *f = (FreezeNode *)AddTaskToQueue(Queue(0), us(ORIG_FreezeTask));
+					FreezeNode *f = (FreezeNode *)AddTaskToQueue(Queue(0), game_addr(ORIG_FreezeTask));
 					FillDwords(&f->counter, 0, 0x1907);
 					f->action = (int16_t)(uint16_t)d->action;
 					f->entity = entity;
@@ -473,10 +473,10 @@ namespace blizzaga104
 		*(uint16_t *)(h + 0x78) = 0x7FFF;
 		*(uint16_t *)(h + 0x7A) = 0x8001;
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)h);
-		FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, FrameCursor());
+		FrameCursor() = DrawShadow(entity, var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4040, 0x10, FrameCursor());
 		uint8_t *anim = entity + 0x60;
 		ComputeBonesWorldMatrices(anim, h);
-		*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0x1D98B3C));
+		*(uint32_t *)(h + 0x24) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 		*(uint16_t *)(h + 0x34) = 0;
 		*(uint16_t *)(h + 0x36) = 0;
 		*(uint16_t *)(h + 0x38) = 0x140;
@@ -986,7 +986,7 @@ namespace blizzaga104
 		}
 		if ((uint32_t)c < 3)
 		{
-			RibbonNode *r = (RibbonNode *)AddTaskToQueue(Queue(1), us(ORIG_RibbonTask));
+			RibbonNode *r = (RibbonNode *)AddTaskToQueue(Queue(1), game_addr(ORIG_RibbonTask));
 			if (r)
 			{
 				FillDwords(&r->counter, 0, 0x11B);
@@ -999,7 +999,7 @@ namespace blizzaga104
 		}
 		if ((uint32_t)c < 2)
 		{
-			SpiralNode *s = (SpiralNode *)AddTaskToQueue(Queue(2), us(ORIG_SpiralTask));
+			SpiralNode *s = (SpiralNode *)AddTaskToQueue(Queue(2), game_addr(ORIG_SpiralTask));
 			if (s)
 			{
 				FillDwords(&s->counter, 0, 0x116);
@@ -1127,7 +1127,7 @@ namespace blizzaga104
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 8; k++)
 			{
-				FlakeNode *fl = (FlakeNode *)AddTaskToQueue(Queue(5), us(ORIG_FlakeTask));
+				FlakeNode *fl = (FlakeNode *)AddTaskToQueue(Queue(5), game_addr(ORIG_FlakeTask));
 				if (!fl) continue;
 				FillDwords(&fl->counter, 0, 8);
 				int32_t r1 = CrtRand();
@@ -1160,7 +1160,7 @@ namespace blizzaga104
 			int32_t angle = CrtRand();
 			for (int k = 0; k < 8; k++)
 			{
-				MistNode *mi = (MistNode *)AddTaskToQueue(Queue(4), us(ORIG_MistTask));
+				MistNode *mi = (MistNode *)AddTaskToQueue(Queue(4), game_addr(ORIG_MistTask));
 				if (!mi) continue;
 				FillDwords(&mi->counter, 0, 7);
 				int32_t r1 = CrtRand();
@@ -1303,7 +1303,7 @@ namespace blizzaga104
 
 	static void SpawnSparkle(const int16_t *v, Mat4x3 *m)
 	{
-		SparkleNode *s = (SparkleNode *)AddTaskToQueue(Queue(3), us(ORIG_SparkleTask));
+		SparkleNode *s = (SparkleNode *)AddTaskToQueue(Queue(3), game_addr(ORIG_SparkleTask));
 		if (!s) return;
 		FillDwords(&s->counter, 0, 8);
 		s->pos[0] = v[0];
@@ -1442,9 +1442,9 @@ namespace blizzaga104
 		GteSetTransVector(s->m);
 		GteLoadV0(s->pos);
 		GteMVMVA_RotV0Tr();
-		GteReadMAC123((void *)(us(SPARKLE_MATRIX) + 0x14));
-		GteSetRotMatrix((const Mat4x3 *)us(SPARKLE_MATRIX));
-		GteSetTransVector((const Mat4x3 *)us(SPARKLE_MATRIX));
+		GteReadMAC123((void *)(game_addr(SPARKLE_MATRIX) + 0x14));
+		GteSetRotMatrix((const Mat4x3 *)game_addr(SPARKLE_MATRIX));
+		GteSetTransVector((const Mat4x3 *)game_addr(SPARKLE_MATRIX));
 		*(const void **)h = SEQ_Mist();
 		*(uint16_t *)(h + 4) = (uint16_t)s->counter;
 		*(uint16_t *)(h + 0x24) = 0;

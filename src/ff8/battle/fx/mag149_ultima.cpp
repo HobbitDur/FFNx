@@ -25,72 +25,72 @@ namespace ultima149
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t &RingScale() { return var<int32_t>(us(0x2461E88)); }
-	inline TaskQueue &RootQueue() { return var<TaskQueue>(us(0x2461EB0)); }
-	inline TaskQueue &FxQueue() { return var<TaskQueue>(us(0x2463180)); }
-	inline uint32_t *SideFlags() { return (uint32_t *)us(0x2463FA0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2464048)); }
-	inline uint8_t *CoreVertices() { return (uint8_t *)us(0x2464418); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2464B9C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2464BA0)); }
-	inline uint32_t &VoiceSlot() { return var<uint32_t>(us(0x2464BA4)); }
+	inline int32_t &RingScale() { return var<int32_t>(game_addr(game::g_Ultima_RingScale)); }
+	inline TaskQueue &RootQueue() { return var<TaskQueue>(game_addr(game::MAG_149_RootQueue)); }
+	inline TaskQueue &FxQueue() { return var<TaskQueue>(game_addr(game::MAG_149_FxQueue)); }
+	inline uint32_t *SideFlags() { return (uint32_t *)game_addr(game::MAG_149_SlotFadeFlags); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_149_Ctx)); }
+	inline uint8_t *CoreVertices() { return (uint8_t *)game_addr(game::g_Ultima_CoreVertices); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_149_TexBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_149_PacketCursor)); }
+	inline uint32_t &VoiceSlot() { return var<uint32_t>(game_addr(game::MAG_149_VoiceSlot)); }
 
-	static const uint32_t ORIG_Director = 0x60F770;
-	static const uint32_t ORIG_Orbit = 0x60FC90;
-	static const uint32_t ORIG_Streaks = 0x60FF20;
-	static const uint32_t ORIG_Shards = 0x610310;
-	static const uint32_t ORIG_Energy = 0x610700;
-	static const uint32_t ORIG_Ring = 0x610840;
-	static const uint32_t ORIG_Core = 0x6113A0;
-	static const uint32_t ORIG_Dust = 0x6115D0;
-	static const uint32_t ORIG_Sparks = 0x6118A0;
-	static const uint32_t ORIG_SideFadeIn = 0x611C20;
-	static const uint32_t ORIG_SideFadeOut = 0x611E10;
-	static const uint32_t ORIG_Root = 0x612000;
-	static const uint32_t ORIG_WaitTexRestore = 0x612070;
+	static constexpr game::Id ORIG_Director = game::MAG_149_ULTIMA_Director_Tick;
+	static constexpr game::Id ORIG_Orbit = game::MAG_149_Orbit;
+	static constexpr game::Id ORIG_Streaks = game::MAG_149_Streaks;
+	static constexpr game::Id ORIG_Shards = game::MAG_149_Shards;
+	static constexpr game::Id ORIG_Energy = game::MAG_149_Energy;
+	static constexpr game::Id ORIG_Ring = game::MAG_149_Ring;
+	static constexpr game::Id ORIG_Core = game::MAG_149_ULTIMA_CoreMorphMesh_Tick;
+	static constexpr game::Id ORIG_Dust = game::MAG_149_Dust;
+	static constexpr game::Id ORIG_Sparks = game::MAG_149_Sparks;
+	static constexpr game::Id ORIG_SideFadeIn = game::MAG_149_SideFadeIn;
+	static constexpr game::Id ORIG_SideFadeOut = game::MAG_149_SideFadeOut;
+	static constexpr game::Id ORIG_Root = game::MAG_149_RootTask;
+	static constexpr game::Id ORIG_WaitTexRestore = game::MAG_149_WaitTexRestore;
 
-	static const uint32_t ARRAY_A = 0x2461EC0, ARRAY_B = 0x2462820;
+	static constexpr game::Id ARRAY_A = game::MAG_149_ArrayA, ARRAY_B = game::MAG_149_ArrayB;
 	static const int ARRAY_COUNT = 0x64;
-	static const void *SOUND_Voice() { return (const void *)us(0xDC9ABC); }
-	static const void *SOUND_Start() { return (const void *)us(0xDC9BD0); }
-	static const void *SOUND_Blast() { return (const void *)us(0xDC9BD4); }
-	static const uint32_t SEQ_Orbit = 0xDC333C;
-	static const uint32_t SEQ_Dust = 0xDC312C;
-	static const uint32_t SEQ_Spark = 0xDC35B8;
-	static const uint32_t MODEL_Streak = 0xDC8BC4;
-	static const uint32_t MODEL_Shard = 0xDC8804;
-	static const uint32_t MODEL_Energy = 0xDC7F54;
-	static const uint32_t MODEL_Ring = 0xDC3784;
-	static const uint32_t MODEL_Dome = 0xDC5254;
-	static const uint32_t MODEL_Core = 0xDC6EA4;
-	static const uint32_t CORE_Shape1 = 0xDC7B94;
+	static const void *SOUND_Voice() { return (const void *)game_addr(game::unk_DC9ABC); }
+	static const void *SOUND_Start() { return (const void *)game_addr(game::unk_DC9BD0); }
+	static const void *SOUND_Blast() { return (const void *)game_addr(game::unk_DC9BD4); }
+	static constexpr game::Id SEQ_Orbit = game::unk_DC333C;
+	static constexpr game::Id SEQ_Dust = game::unk_DC312C;
+	static constexpr game::Id SEQ_Spark = game::unk_DC35B8;
+	static constexpr game::Id MODEL_Streak = game::unk_DC8BC4;
+	static constexpr game::Id MODEL_Shard = game::unk_DC8804;
+	static constexpr game::Id MODEL_Energy = game::unk_DC7F54;
+	static constexpr game::Id MODEL_Ring = game::unk_DC3784;
+	static constexpr game::Id MODEL_Dome = game::unk_DC5254;
+	static constexpr game::Id MODEL_Core = game::unk_DC6EA4;
+	static constexpr game::Id CORE_Shape1 = game::unk_DC7B94;
 	static const int CORE_VERTS = 0x78;
-	static const int32_t *RING_Fades() { return (const int32_t *)us(0xDC9BDC); }
+	static const int32_t *RING_Fades() { return (const int32_t *)game_addr(game::unk_DC9BDC); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline Mat4x3 *ShadowCamera(const void *pos, int32_t scale, int32_t c) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(us(0x571BC0))(pos, scale, c); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MatrixMultiplyVector(const void *m, const void *in, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C4F0))(m, in, out); }
-	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(us(0x56BDE0))(in, out); }
-	inline uint32_t VoiceSlotBusy(uint32_t slot) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x4A2900))(slot); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
-	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
-	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45E120))(a, b, c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteDPCT() { fn<void (__cdecl *)()>(us(0x45F4C0))(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
-	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E370))(a, b, c); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline Mat4x3 *ShadowCamera(const void *pos, int32_t scale, int32_t c) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(game_addr(game::TransformCameraByShadowRotation))(pos, scale, c); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MatrixMultiplyVector(const void *m, const void *in, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void NormalizeSVector(const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const int16_t *, int16_t *)>(game_addr(game::VectorNormalS16))(in, out); }
+	inline uint32_t VoiceSlotBusy(uint32_t slot) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::BdSound_IsVoiceSlotActive))(slot); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(slot); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteReadSXY012Split(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteStoreOTZ(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteSetFarColour(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteLoadRGB012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadRGB012))(a, b, c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteDPCT() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCT))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(c); }
+	inline void GteStoreRGB012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_StoreRGB012))(a, b, c); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -182,8 +182,8 @@ namespace ultima149
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(DirectorNode) == 0x24 && sizeof(PartNode) == 0x24, "Ultima nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(StreakWork) == 0x88 && sizeof(ShardWork) == 0xA0 && sizeof(MeshHeader) == 0x80, "Ultima structs");
 
-	inline Particle *ArrayA() { return (Particle *)us(ARRAY_A); }
-	inline Particle *ArrayB() { return (Particle *)us(ARRAY_B); }
+	inline Particle *ArrayA() { return (Particle *)game_addr(ARRAY_A); }
+	inline Particle *ArrayB() { return (Particle *)game_addr(ARRAY_B); }
 
 	static Particle *FreeParticle(Particle *a)
 	{
@@ -243,11 +243,11 @@ namespace ultima149
 
 	static void FlashLayersSetBit()
 	{
-		for (uint8_t *p = (uint8_t *)us(0x1D98991); p < (uint8_t *)us(0x1D98A41); p += 0x2C) *p |= 2;
+		for (uint8_t *p = (uint8_t *)game_addr(game::unk_1D98991); p < (uint8_t *)game_addr(game::unk_1D98A41); p += 0x2C) *p |= 2;
 	}
 	static void FlashLayersClearBit()
 	{
-		for (uint8_t *p = (uint8_t *)us(0x1D98991); p < (uint8_t *)us(0x1D98A41); p += 0x2C) *p &= 0xFD;
+		for (uint8_t *p = (uint8_t *)game_addr(game::unk_1D98991); p < (uint8_t *)game_addr(game::unk_1D98A41); p += 0x2C) *p &= 0xFD;
 	}
 
 	static void SideRange(int32_t slot, int *first, int *end)
@@ -263,7 +263,7 @@ namespace ultima149
 		for (; i < end; i++)
 		{
 			if (SideFlags()[i * 6] == 0) continue;
-			PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), us(ORIG_SideFadeIn));
+			PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), game_addr(ORIG_SideFadeIn));
 			n->counter = 0;
 			n->index = (int16_t)i;
 			n->rot = (int16_t)duration;
@@ -281,7 +281,7 @@ namespace ultima149
 			if ((f & 2) && !(f & 4))
 			{
 				SideFlags()[i * 6] = 1;
-				PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), us(ORIG_SideFadeOut));
+				PartNode *n = (PartNode *)AddTaskToQueue(&FxQueue(), game_addr(ORIG_SideFadeOut));
 				n->counter = 0;
 				n->index = (int16_t)i;
 				n->rot = (int16_t)duration;
@@ -294,7 +294,7 @@ namespace ultima149
 	static void SideColours(uint8_t *e, int32_t level, uint32_t r, uint32_t g, uint32_t b)
 	{
 		uint32_t col = 0x32000000;
-		GteSetFarColour(var<uint8_t>(us(0xB8B9A8)), var<uint8_t>(us(0xB8B9A9)), var<uint8_t>(us(0xB8B9AA)));
+		GteSetFarColour(var<uint8_t>(game_addr(game::CURRENT_BS_SHADOW_PALETTE)), var<uint8_t>(game_addr(game::unk_B8B9A9)), var<uint8_t>(game_addr(game::unk_B8B9AA)));
 		GteLoadRGBC(&col);
 		GteSetIR0(level);
 		GteDPCS();
@@ -311,13 +311,13 @@ namespace ultima149
 		PartNode *n = (PartNode *)nd;
 		int32_t level = shl32(n->counter, 12) / n->rot;
 		uint8_t *e = EntityOf(n->index);
-		SideColours(e, level, var<uint8_t>(us(0xB8B7D8)), var<uint8_t>(us(0xB8B7D9)), var<uint8_t>(us(0xB8B7DA)));
+		SideColours(e, level, var<uint8_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE)), var<uint8_t>(game_addr(game::unk_B8B7D9)), var<uint8_t>(game_addr(game::unk_B8B7DA)));
 		e[0x2B] = 2;
 		if (DrawOnly()) return 0;
 		if (n->counter == 0) *(uint16_t *)e = (uint16_t)((*(uint16_t *)e & 0xFFFB) | 0x800);
 		n->counter++;
 		if (n->counter < n->rot) return 0;
-		*(uint32_t *)(e + 0x28) = var<uint32_t>(us(0xB8B7D8));
+		*(uint32_t *)(e + 0x28) = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE));
 		*(uint16_t *)e = (uint16_t)((*(uint16_t *)e & 0xF7FF) | (uint16_t)n->rotvel);
 		return TASK_END;
 	}
@@ -328,7 +328,7 @@ namespace ultima149
 		int32_t level = 0x1000 - shl32(n->counter, 12) / n->rot;
 		uint8_t *e = EntityOf(n->index);
 		e[7] = 0;
-		SideColours(e, level, var<uint8_t>(us(0xB8B7D8)) >> 1, var<uint8_t>(us(0xB8B7D9)) >> 1, var<uint8_t>(us(0xB8B7DA)) >> 1);
+		SideColours(e, level, var<uint8_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE)) >> 1, var<uint8_t>(game_addr(game::unk_B8B7D9)) >> 1, var<uint8_t>(game_addr(game::unk_B8B7DA)) >> 1);
 		e[0x2B] = 2;
 		if (DrawOnly()) return 0;
 		if (n->counter == 0) e[1] |= 8;
@@ -366,17 +366,17 @@ namespace ultima149
 			d->pad22 = 0;
 			VoiceSlot() = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
 		}
-		if (d->counter == 1) SpawnPart(us(ORIG_Orbit), d, false);
-		if (d->counter == 0xA) SpawnPart(us(ORIG_Streaks), d, true);
-		if (d->counter == 0x23) SpawnPart(us(ORIG_Shards), d, true);
+		if (d->counter == 1) SpawnPart(game_addr(ORIG_Orbit), d, false);
+		if (d->counter == 0xA) SpawnPart(game_addr(ORIG_Streaks), d, true);
+		if (d->counter == 0x23) SpawnPart(game_addr(ORIG_Shards), d, true);
 		if (d->counter == 1)
 		{
-			PartNode *n = SpawnPart(us(ORIG_Energy), d, true);
+			PartNode *n = SpawnPart(game_addr(ORIG_Energy), d, true);
 			n->rot = (int16_t)(CrtRand() % 0x1000);
 			n->rotvel = 0x28;
 			n->scale = 0;
 			n->dscale = 0xC;
-			n = SpawnPart(us(ORIG_Energy), d, true);
+			n = SpawnPart(game_addr(ORIG_Energy), d, true);
 			n->rot = (int16_t)(CrtRand() % 0x1000);
 			n->rotvel = -0x28;
 			n->scale = 0;
@@ -384,20 +384,20 @@ namespace ultima149
 		}
 		if (d->counter == 0x5E)
 		{
-			PartNode *n = SpawnPart(us(ORIG_Ring), d, false);
+			PartNode *n = SpawnPart(game_addr(ORIG_Ring), d, false);
 			n->rot = (int16_t)(CrtRand() % 0x1000);
 			n->scale = 0x1000;
 			n->dscale = 0x249;
 		}
 		if (d->counter == 0x64)
 		{
-			PartNode *n = SpawnPart(us(ORIG_Core), d, false);
+			PartNode *n = SpawnPart(game_addr(ORIG_Core), d, false);
 			n->index = 0;
 			n->rot = (int16_t)(CrtRand() % 0x1000);
 			n->rotvel = 0xC8;
 		}
-		if (d->counter == 0x5E) SpawnPart(us(ORIG_Dust), d, false);
-		if (d->counter == 0x5F) SpawnPart(us(ORIG_Sparks), d, false);
+		if (d->counter == 0x5E) SpawnPart(game_addr(ORIG_Dust), d, false);
+		if (d->counter == 0x5F) SpawnPart(game_addr(ORIG_Sparks), d, false);
 		if (d->counter == 0) SpawnSideFadeOut(0x18, d->target);
 		if (d->counter == 0xA0) SpawnSideFadeIn(8, d->target);
 		if (d->action == 0 && d->counter <= 0x18)
@@ -422,7 +422,7 @@ namespace ultima149
 			int32_t next = d->action + 1;
 			if (next <= (int32_t)Ctx()->actions[0].last_action)
 			{
-				DirectorNode *n = (DirectorNode *)AddTaskToQueue(&FxQueue(), us(ORIG_Director));
+				DirectorNode *n = (DirectorNode *)AddTaskToQueue(&FxQueue(), game_addr(ORIG_Director));
 				n->counter = 0;
 				n->action = (int16_t)next;
 			}
@@ -485,7 +485,7 @@ namespace ultima149
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int16_t *p = (int16_t *)FieldAlloc(0x10);
 		ff8fx::copy<(8)>(p, n->pos);
-		H32(h, 0) = us(SEQ_Orbit);
+		H32(h, 0) = game_addr(SEQ_Orbit);
 		*(uint16_t *)(h + 0x24) = 0;
 		*pos = p;
 		return h;
@@ -592,7 +592,7 @@ namespace ultima149
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		StreakWork *w = (StreakWork *)FieldAlloc(0x88);
-		H32(h, 0) = us(MODEL_Streak);
+		H32(h, 0) = game_addr(MODEL_Streak);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x33;
 		w->up[0] = 0;
@@ -667,16 +667,16 @@ namespace ultima149
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		ShardWork *w = (ShardWork *)FieldAlloc(0xA0);
-		H32(h, 0) = us(MODEL_Shard);
+		H32(h, 0) = game_addr(MODEL_Shard);
 		ff8fx::copy<(4)>(&w->pos[0], &n->pos[0]);
 		H32(h, 8) = 0;
 		ff8fx::copy<(4)>(&w->pos[2], &n->pos[2]);
 		w->ref[0] = 0;
 		w->ref[2] = 0;
-		w->view[0] = var<int16_t>(us(0xB8B7F0)) - w->pos[0];
-		w->view[1] = var<int16_t>(us(0xB8B7F2)) - w->pos[1];
+		w->view[0] = var<int16_t>(game_addr(game::Battle_Camera_world_XZ_s16)) - w->pos[0];
+		w->view[1] = var<int16_t>(game_addr(game::unk_B8B7F2)) - w->pos[1];
 		w->ref[1] = -0x1000;
-		w->view[2] = var<int16_t>(us(0xB8B7F4)) - w->pos[2];
+		w->view[2] = var<int16_t>(game_addr(game::Battle_Camera_world_Y)) - w->pos[2];
 		NormalizeVector(w->view, w->view);
 		*work = w;
 		return h;
@@ -747,7 +747,7 @@ namespace ultima149
 		MatrixMultiply(shadow, &m);
 		GteSetRotMatrix(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = us(MODEL_Energy);
+		H32(h, 0) = game_addr(MODEL_Energy);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x33;
 		if (n->counter >= 0x5B)
@@ -987,14 +987,14 @@ namespace ultima149
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = us(MODEL_Ring);
+		H32(h, 0) = game_addr(MODEL_Ring);
 		H32(h, 8) = 0xCEE8CE;
 		H32(h, 0x1C) = 0xC0;
 		*(int32_t *)(h + 0xC) = RING_Fades()[n->counter & 0xF];
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 		MeshHeader *g = (MeshHeader *)FieldAlloc(0x80);
-		g->model = us(MODEL_Dome);
+		g->model = game_addr(MODEL_Dome);
 		*(uint32_t *)g->far_rgb = 0;
 		g->flags = 0;
 		if (n->counter >= 0x36)
@@ -1047,7 +1047,7 @@ namespace ultima149
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		int16_t c = n->counter;
-		H32(h, 0) = us(MODEL_Core);
+		H32(h, 0) = game_addr(MODEL_Core);
 		H32(h, 8) = 0;
 		H32(h, 0x1C) = 0x2033;
 		if (c < 4 || c >= 0x20)
@@ -1058,8 +1058,8 @@ namespace ultima149
 		}
 		int32_t t = Div40(shl32(c, 10));
 		int32_t w = ComputeSin(t);
-		const int16_t *v0 = (const int16_t *)(us(MODEL_Core) + 8);
-		const int16_t *v1 = (const int16_t *)us(CORE_Shape1);
+		const int16_t *v0 = (const int16_t *)(game_addr(MODEL_Core) + 8);
+		const int16_t *v1 = (const int16_t *)game_addr(CORE_Shape1);
 		int16_t *out = (int16_t *)(CoreVertices() + n->index * 0x3C0);
 		for (int k = 0; k < CORE_VERTS; k++, v0 += 4, v1 += 4, out += 4)
 		{
@@ -1125,7 +1125,7 @@ namespace ultima149
 	static uint8_t *DustBegin()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		H32(h, 0) = us(SEQ_Dust);
+		H32(h, 0) = game_addr(SEQ_Dust);
 		*(uint16_t *)(h + 0x24) = 0;
 		return h;
 	}
@@ -1133,7 +1133,7 @@ namespace ultima149
 	static uint8_t *SparkBegin()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		H32(h, 0) = us(SEQ_Spark);
+		H32(h, 0) = game_addr(SEQ_Spark);
 		h[0x21] = 0;
 		*(uint16_t *)(h + 0x24) = 0x20;
 		return h;
@@ -1250,7 +1250,7 @@ namespace ultima149
 		int running = ExecuteTaskQueue(&FxQueue());
 		if (!running)
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(&RootQueue(), us(ORIG_WaitTexRestore));
+			RootNode *w = (RootNode *)AddTaskToQueue(&RootQueue(), game_addr(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}

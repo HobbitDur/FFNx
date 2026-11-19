@@ -19,19 +19,19 @@ ff8_battle_fx_verify = true
 ff8_battle_fx_dump = true
 ```
 
-It works on the 2013 releases: English, French, German, Italian, Spanish and Japanese. On Japanese, 65 effects keep the game's code. On the 2000 releases the options do nothing.
+It works on the 2013 releases: English, French, German, Italian, Spanish and Japanese. On the 2000 releases the options do nothing.
 
 ## How it works
 
 Every battle effect is a set of tasks in queues that the game runs once per battle tick (15 per second) through its task queue executor. Each task function that has a C++ version jumps to it, so the game's own executor runs the C++ code; every other task runs the game's code as before. A task keeps the game's function address, so effects that are not ported, and mods that look at the queues, see no difference.
 
-The code is written with the addresses of the US release; `us()` gives the address of the running release.
+The effect code names the game functions and data it uses (`game::...`). At startup FFNx finds each of them in the running game, starting from the effect table (`ff8_externals.func_off_battle_effects_C81774`) and following the calls and operands of the game's own code, so every release gets its own addresses.
 
 The code is in `src/ff8/battle/fx`:
 
 - `fx_dispatch.cpp`: installation
 - `fx_port.h` / `fx_port.cpp`: the shared task types, the engine functions the effects call and the list of ported effects
-- `fx_address.cpp`: the addresses of the other releases
+- `fx_address.h` / `fx_address.cpp`: the game functions and data the effect code uses, and how each one is found
 - `fx_modules.cpp`: per effect, the memory it owns (used by the verifier)
 - `fx_verify.cpp`: the verifier
 - `fx_primplayer.cpp`, `fx_glint.cpp`, `fx_sprite.cpp`, `fx_cast.cpp`: code shared by many effects

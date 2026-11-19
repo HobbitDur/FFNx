@@ -20,22 +20,24 @@
 
 #include <stdint.h>
 
+#include "fx_address.h"
+
 namespace ff8fx::mod
 {
-	struct Region { uint32_t addr, size; const char *name; };
+	struct Region { game::Id addr; uint32_t size; const char *name; };
 
 	struct Module
 	{
 		int effect_id;
-		uint32_t data_lo, data_hi;
-		uint32_t extra, extra_size;
+		game::Id data_lo, data_hi;
+		game::Id extra; uint32_t extra_size;
 		bool lookahead;
 		const char *name;
 		const Region *streams;
 		int nstreams;
 	};
 
-	struct ExtSite { uint32_t addr; int arity; const char *name; };
+	struct ExtSite { game::Id addr; int arity; const char *name; };
 
 	extern const Module modules[];
 	extern const int module_count;
@@ -51,18 +53,18 @@ namespace ff8fx::mod
 	uint32_t streams_bytes(const Module &m);
 	inline bool fits(const Module &m)
 	{
-		return m.data_hi >= m.data_lo && m.data_hi - m.data_lo <= DATA_MAX && streams_bytes(m) <= STREAMS_MAX
+		return game_addr(m.data_hi) >= game_addr(m.data_lo) && game_addr(m.data_hi) - game_addr(m.data_lo) <= DATA_MAX && streams_bytes(m) <= STREAMS_MAX
 			&& (m.extra_size <= 16);
 	}
 
-	const uint32_t SSIGPU_ARENA = 0x1C48828;
+	const game::Id SSIGPU_ARENA = game::ssigpu_execution_start;
 	const uint32_t SSIGPU_ARENA_SIZE = 0x60000;
-	const uint32_t RENDER_LIST_BASE_PTR = 0x1D8E04C;
+	const game::Id RENDER_LIST_BASE_PTR = game::g_Battle_FrameRenderListBase;
 	const uint32_t OT_SPAN_WORDS = 17 + 4386;
-	const uint32_t FRAME_PACKET_CUR_PTR = 0x1D8E054;
-	const uint32_t FRAME_PACKET_END_PTR = 0x1D969A8;
-	const uint32_t FIELD_ALLOC_PTR = 0x1D999C4;
+	const game::Id FRAME_PACKET_CUR_PTR = game::BATTLE_PACKET_WRITE_CURSOR;
+	const game::Id FRAME_PACKET_END_PTR = game::BATTLE_PACKET_BUFFER_END;
+	const game::Id FIELD_ALLOC_PTR = game::GLOBAL_MEMORY_POOL;
 	const uint32_t FIELD_ALLOC_SCRATCH = 0x1000;
-	const uint32_t CRT_TLS_FN = 0x560578;
-	const uint32_t EFFECT_ID_PTR = 0x1D99A68;
+	const game::Id CRT_TLS_FN = game::getptd_560578;
+	const game::Id EFFECT_ID_PTR = game::MAGIC_EFFECT_INDEX;
 }

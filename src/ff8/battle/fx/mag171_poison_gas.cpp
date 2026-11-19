@@ -33,40 +33,39 @@ namespace poisongas171
 	inline uint8_t &U8(uint32_t p, int32_t o) { return AT<uint8_t>(p, o); }
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
-	inline TaskQueue *QRoot() { return (TaskQueue *)us(0x23AD718); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x23AE9E8); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x23AF808)); }
-	inline int32_t &CasterSlot() { return var<int32_t>(us(0x23AF80C)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23AF814)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23AF818)); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	static const uint32_t PARTS_A = 0x23AD728, PARTS_B = 0x23AE088, PARTS_END = 0x23AE9E8;
-	static const uint32_t ROWS = 0xD68CC0;
+	inline TaskQueue *QRoot() { return (TaskQueue *)game_addr(game::MAG_171_PoisonGas_RootQueue); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::MAG_171_PoisonGas_EffectQueue); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_171_PoisonGas_CastContext)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(game_addr(game::MAG_171_PoisonGas_CasterSlot)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_171_PoisonGas_MagicBufferBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_171_PoisonGas_PacketCursor)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	static constexpr game::Id PARTS_A = game::unk_23AD728, PARTS_B = game::unk_23AE088, PARTS_END = game::MAG_171_PoisonGas_EffectQueue;
+	static constexpr game::Id ROWS = game::unk_D68CC0;
 
-	static const uint32_t ORIG_Root = 0x5DC8C0, ORIG_Director = 0x5DB340, ORIG_Tint = 0x5DB620, ORIG_Puff = 0x5DBED0,
-		ORIG_Wisp = 0x5DC270, ORIG_Cloud = 0x5DC5B0, ORIG_Emitter = 0x5DC700;
-	static const uint32_t SEQ_Puff = 0xD658A0, SEQ_Emitter = 0xD656F4, MODEL_Cloud = 0xD65A4C, SOUND_Gas = 0xD68CB4;
+	static constexpr game::Id ORIG_Root = game::MAG_171_PoisonGas_Root, ORIG_Director = game::MAG_171_PoisonGas_Director, ORIG_Tint = game::MAG_171_sub_5DB620, ORIG_Puff = game::MAG_171_PoisonGas_Puff, ORIG_Wisp = game::MAG_171_PoisonGas_Wisp, ORIG_Cloud = game::MAG_171_PoisonGas_Cloud, ORIG_Emitter = game::MAG_171_PoisonGas_Emitter;
+	static constexpr game::Id SEQ_Puff = game::MAG_171_PoisonGas_SeqPuff, SEQ_Emitter = game::unk_D656F4, MODEL_Cloud = game::unk_D65A4C, SOUND_Gas = game::unk_D68CB4;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, mode, out); }
-	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
-	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5099D0))(model, hdr, ot, mode, cursor); }
-	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
-	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
-	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
-	inline void GteLoadV0SVec3(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x64DEE0))(v); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
-	inline void GteStoreIR123SVec(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF10))(v); }
+	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, mode, out); }
+	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(entity, ot, mode, cursor); }
+	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::RenderGeometry))(model, hdr, ot, mode, cursor); }
+	inline void MatVec(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadV0))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSXY2))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteLoadV0SVec3(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadV0FromSVec3))(v); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0_Tr_2))(); }
+	inline void GteStoreIR123SVec(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreIR123ToSVec))(v); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
 
 	static int16_t SpawnPad() { return 0; }
@@ -251,7 +250,7 @@ namespace poisongas171
 		S32(hdr, 0x84) = S32(hdr, 0x30) % (int32_t)S16(hdr, 0x3A);
 		const uint32_t anim = entity + 0x60;
 		if (!(U8(entity, 0) & 0x20))
-			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
+			FrameCursor() = DrawShadow(entity, var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0x90));
 		ComputeBonesWorldMatrices((void *)anim, (void *)(entity + 0x40));
 		U32(hdr, 0x20) = U32(entity, 0x7C);
@@ -260,8 +259,8 @@ namespace poisongas171
 		U8(hdr, 0x2A) = cue;
 		U8(hdr, 0x29) = cue;
 		U8(hdr, 0x28) = cue;
-		U32(hdr, 4) = var<uint32_t>(us(0x1D98B3C));
-		U32(hdr, 0x10) = var<uint32_t>(us(0x1D969A8));
+		U32(hdr, 4) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
+		U32(hdr, 0x10) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		U16(hdr, 0x14) = 0;
 		U16(hdr, 0x16) = 0;
 		U16(hdr, 0x18) = 0x140;
@@ -320,7 +319,7 @@ namespace poisongas171
 		Mat4x3 m;
 		ComposeZYXRotationMatrix(ang, &m);
 		m.t[0] = S16(n, 0x10);
-		m.t[2] = var<int16_t>(us(0x1D8E038));
+		m.t[2] = var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE));
 		const int32_t s = S16(n, 0x1C);
 		const int32_t sc[3] = { s + (s >> 1), s, s };
 		m.t[1] = 0;
@@ -328,7 +327,7 @@ namespace poisongas171
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = us(MODEL_Cloud);
+		U32(h, 0) = game_addr(MODEL_Cloud);
 		S32(h, 0xC) = 0x800;
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xC3;
@@ -391,16 +390,16 @@ namespace poisongas171
 		const int32_t row = S16(n, 0x18);
 		int16_t from[4], to[4];
 		from[3] = SpawnPad();
-		MatVec(cm, (const int16_t *)(us(ROWS) + (uint32_t)row * 8), from);
+		MatVec(cm, (const int16_t *)(game_addr(ROWS) + (uint32_t)row * 8), from);
 		if (puff)
 		{
 			const int16_t c = S16(n, 0xC);
-			ff8fx::copy<(8)>(to, (const void *)(us(ROWS) + (uint32_t)row * 8 + 8));
+			ff8fx::copy<(8)>(to, (const void *)(game_addr(ROWS) + (uint32_t)row * 8 + 8));
 			to[0] = (int16_t)(to[0] + (int16_t)(to[0] / 32 * c));
 			to[2] = (int16_t)(to[2] + (int16_t)(to[2] / 10 * c));
 			MatVec(cm, to, to);
 		}
-		else MatVec(cm, (const int16_t *)(us(ROWS) + (uint32_t)row * 8 + 8), to);
+		else MatVec(cm, (const int16_t *)(game_addr(ROWS) + (uint32_t)row * 8 + 8), to);
 		for (int k = 0; k < 3; k++)
 		{
 			from[k] = (int16_t)(from[k] + S16(n, 0x10 + 2 * k));
@@ -436,13 +435,13 @@ namespace poisongas171
 
 	static uint32_t PuffTaskImpl(uint32_t n, bool puff)
 	{
-		const int alive = puff ? PartsDraw(n, us(PARTS_B), us(PARTS_END), us(SEQ_Puff), true, true) : PartsDraw(n, us(PARTS_A), us(PARTS_B), us(SEQ_Puff), false, true);
+		const int alive = puff ? PartsDraw(n, game_addr(PARTS_B), game_addr(PARTS_END), game_addr(SEQ_Puff), true, true) : PartsDraw(n, game_addr(PARTS_A), game_addr(PARTS_B), game_addr(SEQ_Puff), false, true);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
 		if (c >= 0 && c <= 0x10)
 		{
-			if (puff) PartsSpawn(n, us(PARTS_B), us(PARTS_END), true);
-			else PartsSpawn(n, us(PARTS_A), us(PARTS_B), false);
+			if (puff) PartsSpawn(n, game_addr(PARTS_B), game_addr(PARTS_END), true);
+			else PartsSpawn(n, game_addr(PARTS_A), game_addr(PARTS_B), false);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return S16(n, 0xC) >= 4 && !alive ? TASK_END : 0;
@@ -454,12 +453,12 @@ namespace poisongas171
 	static uint32_t __cdecl EmitterTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		const int alive = PartsDraw(n, us(PARTS_B), us(PARTS_END), us(SEQ_Emitter), false, false);
+		const int alive = PartsDraw(n, game_addr(PARTS_B), game_addr(PARTS_END), game_addr(SEQ_Emitter), false, false);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
 		if (c >= 0 && c <= 0xD)
 		{
-			const uint32_t p = FreeParticle(us(PARTS_B), us(PARTS_END));
+			const uint32_t p = FreeParticle(game_addr(PARTS_B), game_addr(PARTS_END));
 			if (p)
 			{
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0xE);
@@ -489,13 +488,13 @@ namespace poisongas171
 		const uint32_t n = P(tn);
 		if (S16(n, 0xC) == 1)
 		{
-			const uint32_t t = NewTask(us(ORIG_Tint));
+			const uint32_t t = NewTask(game_addr(ORIG_Tint));
 			U16(t, 0x1A) = (uint16_t)(Entity(CasterSlot())[0] & 4);
 			GetEffectSpawnPosition(Entity(CasterSlot()), 0xF1, 0, (int16_t *)(n + 0x10));
 			static const int16_t MASK[4] = { 1, 2, 1, 2 }, ROW[4] = { 0, 2, 4, 6 };
 			for (int k = 0; k < 4; k++)
 			{
-				const uint32_t p = NewTask(k < 2 ? us(ORIG_Puff) : us(ORIG_Wisp));
+				const uint32_t p = NewTask(k < 2 ? game_addr(ORIG_Puff) : game_addr(ORIG_Wisp));
 				U32(p, 0x10) = U32(n, 0x10);
 				S16(p, 0xE) = MASK[k];
 				U32(p, 0x14) = U32(n, 0x14);
@@ -504,13 +503,13 @@ namespace poisongas171
 		}
 		if (S16(n, 0xC) == 8)
 		{
-			uint32_t t = NewTask(us(ORIG_Cloud));
+			uint32_t t = NewTask(game_addr(ORIG_Cloud));
 			S16(t, 0x10) = -400;
 			S16(t, 0x16) = 0xA;
 			S16(t, 0x1C) = 0xB00;
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
 			S16(t, 0x1A) = 0x1E;
-			t = NewTask(us(ORIG_Cloud));
+			t = NewTask(game_addr(ORIG_Cloud));
 			S16(t, 0x10) = -400;
 			S16(t, 0x16) = 6;
 			S16(t, 0x1C) = 0xB00;
@@ -522,7 +521,7 @@ namespace poisongas171
 			for (int j = 0; j < Ctx()->actions->target_count; j++)
 			{
 				const uint8_t slot = Ctx()->actions->targets[j * TARGET_STRIDE];
-				const uint32_t e = NewTask(us(ORIG_Emitter));
+				const uint32_t e = NewTask(game_addr(ORIG_Emitter));
 				S16(e, 0xE) = (int16_t)(4 << (j & 31));
 				GetEffectSpawnPosition(Entity(slot), 0xF1, 0, (int16_t *)(e + 0x10));
 			}
@@ -531,7 +530,7 @@ namespace poisongas171
 		const int16_t c = S16(n, 0xC);
 		if (c <= 0x10) SetScreenFlash((uint32_t)shl32(c, 7), 0);
 		else if (c >= 0x2A) SetScreenFlash((uint32_t)shl32(0x32 - c, 8), 0);
-		if (S16(n, 0xC) == 1) BdPlaySE((const void *)us(SOUND_Gas), 0, 0x80);
+		if (S16(n, 0xC) == 1) BdPlaySE((const void *)game_addr(SOUND_Gas), 0, 0x80);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		if (S16(n, 0xC) <= 0x32) return 0;
 		SetScreenFlash(0, 0);

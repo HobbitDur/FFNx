@@ -37,26 +37,26 @@ namespace explosion237
 	{
 		c.name = "237 Explosion";
 		c.effect_id = 237;
-		c.vm_table = us(0x186602C);
-		c.bone_table = us(0x1865C9C);
-		c.prim_table = us(0x1865CE4);
-		c.prim_size = us(0x1865DD4);
-		c.spr_table = us(0x1865DE8);
-		c.ptype_table = us(0x1865E14);
-		c.pop_table = us(0x1865E28);
-		c.draw_table = us(0x1865E88);
-		c.attr_16A = us(0x1865FF2);
-		c.attr_184 = us(0x186600C);
-		c.attr_186 = us(0x186600E);
-		c.attr_194 = us(0x186601C);
-		c.attr_19C = us(0x1866024);
-		c.desc = us(0x1865B68);
-		c.ptr_block = us(0x1865C74);
-		c.queue = us(0x2796940);
-		c.file00 = us(0x2796954);
-		c.file01 = us(0x2796950);
-		c.tick = us(0xA2A2A0);
-		c.load_cb = us(0xA2FA80);
+		c.vm_table = game_addr(game::funcs_A33CFC);
+		c.bone_table = game_addr(game::funcs_A30697);
+		c.prim_table = game_addr(game::funcs_A2C044);
+		c.prim_size = game_addr(game::unk_1865DD4);
+		c.spr_table = game_addr(game::unk_1865DE8);
+		c.ptype_table = game_addr(game::unk_1865E14);
+		c.pop_table = game_addr(game::funcs_A2E087);
+		c.draw_table = game_addr(game::unk_1865E88);
+		c.attr_16A = game_addr(game::unk_1865FF2);
+		c.attr_184 = game_addr(game::unk_186600C);
+		c.attr_186 = game_addr(game::unk_186600E);
+		c.attr_194 = game_addr(game::unk_186601C);
+		c.attr_19C = game_addr(game::unk_1866024);
+		c.desc = game_addr(game::unk_1865B68);
+		c.ptr_block = game_addr(game::unk_1865C74);
+		c.queue = game_addr(game::unk_2796940);
+		c.file00 = game_addr(game::unk_2796954);
+		c.file01 = game_addr(game::unk_2796950);
+		c.tick = game_addr(game::MAG_237_sub_A2A2A0);
+		c.load_cb = game_addr(game::MAG_237_sub_A2FA80);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -64,7 +64,7 @@ namespace explosion237
 	static const uint32_t PRIM57_F0 = 0;
 #include "gfc_deathclaw.inc"
 
-	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	static inline int32_t xl_ISqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
 
 	static void __cdecl op_112_SetSpeedFromDistance()
 	{
@@ -199,7 +199,7 @@ namespace explosion237
 		explosion237::g_c.prim[48] = explosion237::pr_48_TintedFT3Abr;
 		explosion237::g_c.draw[31] = explosion237::dh_31_MeshHeightCut;
 		explosion237::apply_slots(explosion237::g_c);
-		register_port(0xA2A2A0, (void *)explosion237::SequenceTask, "MAG237 Explosion SequenceTick", 237);
+		register_port(game::MAG_237_sub_A2A2A0, (void *)explosion237::SequenceTask, "MAG237 Explosion SequenceTick", 237);
 	}
 }
 

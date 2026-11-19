@@ -37,31 +37,31 @@ namespace tripoint268
 	{
 		c.name = "268 Tri-Point death";
 		c.effect_id = 268;
-		c.vm_table = us(0x185494C);
-		c.bone_table = us(0x18545BC);
-		c.prim_table = us(0x1854604);
-		c.prim_size = us(0x18546F4);
-		c.spr_table = us(0x1854708);
-		c.ptype_table = us(0x1854734);
-		c.pop_table = us(0x1854748);
-		c.draw_table = us(0x18547A8);
-		c.attr_16A = us(0x1854912);
-		c.attr_184 = us(0x185492C);
-		c.attr_186 = us(0x185492E);
-		c.attr_194 = us(0x185493C);
-		c.attr_19C = us(0x1854944);
-		c.desc = us(0x1854440);
-		c.ptr_block = us(0x1854594);
-		c.queue = us(0x2795C88);
-		c.file00 = us(0x2795CAC);
-		c.file01 = us(0x2795CA8);
-		c.tick = us(0x905070);
-		c.load_cb = us(0x90DA70);
+		c.vm_table = game_addr(game::funcs_911AAC);
+		c.bone_table = game_addr(game::funcs_90E687);
+		c.prim_table = game_addr(game::funcs_909FA4);
+		c.prim_size = game_addr(game::unk_18546F4);
+		c.spr_table = game_addr(game::unk_1854708);
+		c.ptype_table = game_addr(game::unk_1854734);
+		c.pop_table = game_addr(game::funcs_90C017);
+		c.draw_table = game_addr(game::unk_18547A8);
+		c.attr_16A = game_addr(game::unk_1854912);
+		c.attr_184 = game_addr(game::unk_185492C);
+		c.attr_186 = game_addr(game::unk_185492E);
+		c.attr_194 = game_addr(game::unk_185493C);
+		c.attr_19C = game_addr(game::unk_1854944);
+		c.desc = game_addr(game::unk_1854440);
+		c.ptr_block = game_addr(game::unk_1854594);
+		c.queue = game_addr(game::unk_2795C88);
+		c.file00 = game_addr(game::unk_2795CAC);
+		c.file01 = game_addr(game::unk_2795CA8);
+		c.tick = game_addr(game::MAG_268_sub_905070);
+		c.load_cb = game_addr(game::MAG_268_sub_90DA70);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t DIS_KEYS = 0x2795CB0;
+	static constexpr game::Id DIS_KEYS = game::unk_2795CB0;
 	static const uint16_t DIS_RET16 = 0x634E;
 #include "gfc_disintegrate.inc"
 
@@ -97,7 +97,7 @@ namespace tripoint268
 		tripoint268::describe(tripoint268::g_c);
 		init_clone(tripoint268::g_c, nullptr, 0);
 		tripoint268::apply_slots(tripoint268::g_c);
-		register_port(0x905070, (void *)tripoint268::SequenceTask, "MAG268 Tri-Point death SequenceTick", 268);
+		register_port(game::MAG_268_sub_905070, (void *)tripoint268::SequenceTask, "MAG268 Tri-Point death SequenceTick", 268);
 	}
 }
 

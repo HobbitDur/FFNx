@@ -37,26 +37,26 @@ namespace gatling241
 	{
 		c.name = "241 Gatling Gun (BGH251F2)";
 		c.effect_id = 241;
-		c.vm_table = us(0x1863830);
-		c.bone_table = us(0x18634A0);
-		c.prim_table = us(0x18634E8);
-		c.prim_size = us(0x18635D8);
-		c.spr_table = us(0x18635EC);
-		c.ptype_table = us(0x1863618);
-		c.pop_table = us(0x186362C);
-		c.draw_table = us(0x186368C);
-		c.attr_16A = us(0x18637F6);
-		c.attr_184 = us(0x1863810);
-		c.attr_186 = us(0x1863812);
-		c.attr_194 = us(0x1863820);
-		c.attr_19C = us(0x1863828);
-		c.desc = us(0x1863388);
-		c.ptr_block = us(0x1863478);
-		c.queue = us(0x2796860);
-		c.file00 = us(0x2796874);
-		c.file01 = us(0x2796870);
-		c.tick = us(0xA02480);
-		c.load_cb = us(0xA06DE0);
+		c.vm_table = game_addr(game::funcs_A0AE1C);
+		c.bone_table = game_addr(game::funcs_A079F7);
+		c.prim_table = game_addr(game::funcs_A040D4);
+		c.prim_size = game_addr(game::unk_18635D8);
+		c.spr_table = game_addr(game::unk_18635EC);
+		c.ptype_table = game_addr(game::unk_1863618);
+		c.pop_table = game_addr(game::funcs_A053E7);
+		c.draw_table = game_addr(game::unk_186368C);
+		c.attr_16A = game_addr(game::unk_18637F6);
+		c.attr_184 = game_addr(game::unk_1863810);
+		c.attr_186 = game_addr(game::unk_1863812);
+		c.attr_194 = game_addr(game::unk_1863820);
+		c.attr_19C = game_addr(game::unk_1863828);
+		c.desc = game_addr(game::unk_1863388);
+		c.ptr_block = game_addr(game::unk_1863478);
+		c.queue = game_addr(game::unk_2796860);
+		c.file00 = game_addr(game::unk_2796874);
+		c.file01 = game_addr(game::unk_2796870);
+		c.tick = game_addr(game::MAG_241_sub_A02480);
+		c.load_cb = game_addr(game::MAG_241_sub_A06DE0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -73,7 +73,7 @@ namespace gatling241
 		using namespace gfc;
 		gatling241::describe(gatling241::g_c);
 		init_clone(gatling241::g_c, nullptr, 0);
-		register_port(0xA02480, (void *)gatling241::SequenceTask, "MAG241 Gatling Gun (BGH251F2) SequenceTick", 241);
+		register_port(game::MAG_241_sub_A02480, (void *)gatling241::SequenceTask, "MAG241 Gatling Gun (BGH251F2) SequenceTick", 241);
 	}
 }
 

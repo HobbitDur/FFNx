@@ -25,51 +25,51 @@ namespace metsu323
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexFile() { return var<uint32_t>(us(0x2505230)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2505234)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2505238)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25052A4)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25052A8)); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2505240); }
-	inline TaskQueue *QHits() { return (TaskQueue *)us(0x2505250); }
-	inline TaskQueue *QTrails() { return (TaskQueue *)us(0x2505260); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2505270); }
+	inline uint32_t &TexFile() { return var<uint32_t>(game_addr(game::MAG_323_Metsu_TextureFile)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_323_Metsu_CastContext)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_323_Metsu_CasterEntity)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_323_Metsu_PacketCursor)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_323_Metsu_MagicBufferBase)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)game_addr(game::MAG_323_Metsu_SparksQueue); }
+	inline TaskQueue *QHits() { return (TaskQueue *)game_addr(game::MAG_323_Metsu_HitsQueue); }
+	inline TaskQueue *QTrails() { return (TaskQueue *)game_addr(game::MAG_323_Metsu_TrailsQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::MAG_323_Metsu_MainQueue); }
 
-	static const uint32_t ORIG_MasterTask = 0x659B30;
-	static const uint32_t ORIG_MainTask = 0x659DD0;
-	static const uint32_t ORIG_SparkTask = 0x65A660;
-	static const uint32_t ORIG_HitTask = 0x65A720;
-	static const uint32_t ORIG_TrailTask = 0x65AA80;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_323_Metsu_MasterTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_323_Metsu_MainTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_323_Metsu_SparkTask;
+	static constexpr game::Id ORIG_HitTask = game::MAG_323_Metsu_HitTask;
+	static constexpr game::Id ORIG_TrailTask = game::MAG_323_Metsu_TrailTask;
 	static const uint32_t POOL_Trails = 0xBC;
 	static const uint32_t POOL_Hits = 0x6BC;
 	static const uint32_t POOL_Sparks = 0xE54;
 	static const uint32_t MORPH = 0x1754;
 	static const uint32_t ARENA_A = 0x1824;
 	static const uint32_t ARENA_B = 0x11824;
-	static const uint32_t MODEL_Blade = 0xFE13EC;
-	static const uint32_t MODEL_Trail = 0xFE2974;
-	static const uint32_t MODEL_Hit = 0xFE2BE4;
-	static const uint32_t SEQ_Spark = 0xFE12B4;
-	static const void *SOUND_Throw() { return (const void *)us(0xFE12B0); }
+	static constexpr game::Id MODEL_Blade = game::MAG_323_Metsu_ModelBlade;
+	static constexpr game::Id MODEL_Trail = game::MAG_323_Metsu_ModelTrail;
+	static constexpr game::Id MODEL_Hit = game::MAG_323_Metsu_ModelHit;
+	static constexpr game::Id SEQ_Spark = game::MAG_323_Metsu_SeqSpark;
+	static const void *SOUND_Throw() { return (const void *)game_addr(game::MAG_323_Metsu_SoundThrow); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline int32_t ISqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7014B0))(angles, out); }
-	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701220))(angle, out); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
-	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline void GteLoadIRDelta(const int16_t *a, const int16_t *b) { fn<void (__cdecl *)(const int16_t *, const int16_t *)>(us(0x704020))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline int32_t ISqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void RotationFromAnglesC(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesYZX))(angles, out); }
+	inline void RotX(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_063_RotationXMatrix))(angle, out); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_065_RotationZMatrix))(angle, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
+	inline void BlendVectors(const int16_t *a, const int16_t *b, int32_t wa, int32_t wb, int16_t *out) { fn<void (__cdecl *)(const int16_t *, const int16_t *, int32_t, int32_t, int16_t *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline void GteLoadIRDelta(const int16_t *a, const int16_t *b) { fn<void (__cdecl *)(const int16_t *, const int16_t *)>(game_addr(game::GTE_LoadIRDelta))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -288,7 +288,7 @@ namespace metsu323
 		GteSetRotMatrix(&cam);
 		GteSetTransVector(&cam);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = us(MODEL_Blade);
+		*(uint32_t *)h = game_addr(MODEL_Blade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -313,7 +313,7 @@ namespace metsu323
 		if (blue > 0xFF) blue = 0xFF;
 		h[0xA] = (uint8_t)blue;
 		*(uint32_t *)(h + 0x1C) = 0xF0;
-		*(uint32_t *)h = us(MODEL_Trail);
+		*(uint32_t *)h = game_addr(MODEL_Trail);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -322,7 +322,7 @@ namespace metsu323
 	{
 		TransformCameraByShadowRotation(pos, 0x800, -0x200);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Spark);
+		*(uint32_t *)h = game_addr(SEQ_Spark);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -370,7 +370,7 @@ namespace metsu323
 
 	static void ApplyResultsOf(const uint8_t *ent)
 	{
-		const int32_t slot = (int32_t)((uint32_t)ent - 0x1D972C0u) / 0x9C;
+		const int32_t slot = (int32_t)((uint32_t)ent - game_addr(game::BattleEntitySlotData)) / 0x9C;
 		for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
 		{
 			uint8_t *rec = Ctx()->actions[0].targets + i * TARGET_STRIDE;
@@ -452,7 +452,7 @@ namespace metsu323
 			int32_t dir[3] = { (int32_t)m->prev[0] - cur[0], 0, (int32_t)cur[2] - m->prev[2] };
 			Mat4x3 frame;
 			BladeDraw(cur, dir, m->spin, m->tilt, &frame);
-			TrailNode *tr = (TrailNode *)AddTaskToQueue(QTrails(), us(ORIG_TrailTask));
+			TrailNode *tr = (TrailNode *)AddTaskToQueue(QTrails(), game_addr(ORIG_TrailTask));
 			if (tr)
 			{
 				tr->counter = 0;
@@ -467,13 +467,13 @@ namespace metsu323
 				uint8_t *ent = m->ents[m->next];
 				if (cur[0] < *(const int16_t *)(ent + 0x1C))
 				{
-					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
+					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), game_addr(ORIG_HitTask));
 					ApplyResultsOf(ent);
 					if (h)
 					{
 						h->ent = ent;
 						GetDefaultEffectPosition(ent, h->pos);
-						DecodeModelPrimLayout(us(MODEL_Hit), h->layout, 0x270);
+						DecodeModelPrimLayout(game_addr(MODEL_Hit), h->layout, 0x270);
 					}
 					int32_t angle = 0;
 					Mat4x3 basis;
@@ -481,7 +481,7 @@ namespace metsu323
 					cur[3] = 0;
 					for (int i = 0; i < 0x15; i++)
 					{
-						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 						if (!s) continue;
 						ff8fx::copy<(8)>(s->pos, cur);
 						const int32_t speed = (CrtRand() & 0x3F) + 0x40;
@@ -533,7 +533,7 @@ namespace metsu323
 			InitTaskQueuePool(QTrails(), (void *)(TexBase() + POOL_Trails), 0x30, 0x20);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x288, 3);
 			InitTaskQueuePool(QSparks(), (void *)(TexBase() + POOL_Sparks), 0x24, 0x40);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x2C);

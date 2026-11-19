@@ -25,50 +25,50 @@ namespace web153
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x243A53C)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x243BDE8)); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x243BDEC)); }
-	inline int16_t *TargetPos() { return (int16_t *)us(0x243BDE0); }
-	inline int16_t *CasterPos() { return (int16_t *)us(0x243BDF8); }
-	inline int16_t *Anchor() { return (int16_t *)us(0x243BE00); }
-	inline uint32_t &Cursor() { return var<uint32_t>(us(0x244BE6C)); }
-	inline TaskQueue *QEffects() { return (TaskQueue *)us(0x243AFC0); }
-	static const uint32_t PTS_A = 0x243A4D8, PTS_B = 0x243A508;
-	static const uint32_t SPL_A = 0x243AEC0, SPL_B = 0x243AF40;
-	static const uint32_t ARENA_A = 0x2443E6C, ARENA_B = 0x243BE6C;
+	inline uint32_t &TargetSlot() { return var<uint32_t>(game_addr(game::unk_243A53C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_243BDE8)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(game_addr(game::unk_243BDEC)); }
+	inline int16_t *TargetPos() { return (int16_t *)game_addr(game::g_Web153_TargetPos); }
+	inline int16_t *CasterPos() { return (int16_t *)game_addr(game::g_Web153_CasterPos); }
+	inline int16_t *Anchor() { return (int16_t *)game_addr(game::g_Web153_Anchor); }
+	inline uint32_t &Cursor() { return var<uint32_t>(game_addr(game::g_Web153_PacketCursor)); }
+	inline TaskQueue *QEffects() { return (TaskQueue *)game_addr(game::g_Web153_EffectQueue); }
+	static constexpr game::Id PTS_A = game::g_Web153_SplinePointsA, PTS_B = game::g_Web153_SplinePointsB;
+	static constexpr game::Id SPL_A = game::g_Web153_SplineSamplesA, SPL_B = game::g_Web153_SplineSamplesB;
+	static constexpr game::Id ARENA_A = game::unk_2443E6C, ARENA_B = game::unk_243BE6C;
 
-	static const uint32_t ORIG_RootTask = 0x60AF50;
-	static const uint32_t ORIG_MasterTask = 0x6096F0;
-	static const uint32_t ORIG_ThreadTask = 0x609930;
-	static const uint32_t ORIG_WebTask = 0x609DF0;
-	static const uint32_t ORIG_Particles1Task = 0x60A990;
-	static const uint32_t ORIG_Particles2Task = 0x60AC10;
-	static const uint32_t ORIG_BurstTask = 0x60AE10;
-	static const uint32_t MODEL_Web = 0xDBB33C;
-	static const uint32_t MODEL_Burst = 0xDBDBF4;
-	static const uint32_t SEQ_Particle = 0xDBB190;
-	static const uint32_t CLIP_TABLE = 0xDBE284;
-	static const void *SOUND_Web() { return (const void *)us(0xDBE27C); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_153_STICKY_WEB_RootTask;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_153_STICKY_WEB_MasterTask;
+	static constexpr game::Id ORIG_ThreadTask = game::MAG_153_STICKY_WEB_ThreadTask;
+	static constexpr game::Id ORIG_WebTask = game::MAG_153_STICKY_WEB_WebTask;
+	static constexpr game::Id ORIG_Particles1Task = game::MAG_153_STICKY_WEB_Particles1Task;
+	static constexpr game::Id ORIG_Particles2Task = game::MAG_153_STICKY_WEB_Particles2Task;
+	static constexpr game::Id ORIG_BurstTask = game::MAG_153_STICKY_WEB_BurstTask;
+	static constexpr game::Id MODEL_Web = game::unk_DBB33C;
+	static constexpr game::Id MODEL_Burst = game::unk_DBDBF4;
+	static constexpr game::Id SEQ_Particle = game::unk_DBB190;
+	static constexpr game::Id CLIP_TABLE = game::unk_DBE284;
+	static const void *SOUND_Web() { return (const void *)game_addr(game::unk_DBE27C); }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
-	inline void SplineSetup(int32_t n, uint32_t points, void *work) { fn<void (__cdecl *)(int32_t, uint32_t, void *)>(us(0x571620))(n, points, work); }
-	inline void SplineEval(int32_t n, void *work, uint32_t out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, uint32_t, int32_t)>(us(0x571690))(n, work, out, t); }
-	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DDA0))(r, g, b); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
-	inline void GteWriteControlReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(us(0x45D7F0))(value, reg); }
-	inline void GteLightV0() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
-	inline void GteLightV1() { fn<void (__cdecl *)()>(us(0x4607F0))(); }
-	inline void GteLightV2() { fn<void (__cdecl *)()>(us(0x460800))(); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
+	inline void SplineSetup(int32_t n, uint32_t points, void *work) { fn<void (__cdecl *)(int32_t, uint32_t, void *)>(game_addr(game::Effect_SplineSetup))(n, points, work); }
+	inline void SplineEval(int32_t n, void *work, uint32_t out, int32_t t) { fn<void (__cdecl *)(int32_t, void *, uint32_t, int32_t)>(game_addr(game::Effect_SplineEval))(n, work, out, t); }
+	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColorRGB))(r, g, b); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(c); }
+	inline void GteWriteControlReg(uint32_t value, int32_t reg) { fn<void (__cdecl *)(uint32_t, int32_t)>(game_addr(game::GTE_WriteControlReg))(value, reg); }
+	inline void GteLightV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+	inline void GteLightV1() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV1_Bk))(); }
+	inline void GteLightV2() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV2_Bk))(); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -140,8 +140,8 @@ namespace web153
 	static_assert(sizeof(Particle) == 0x18 && sizeof(RingEntry) == 0x14, "Sticky Web records");
 	static_assert(sizeof(ClipHeader) == 0x1A8, "Sticky Web clip header");
 
-	inline Particle *Parts() { return (Particle *)us(0x243A560); }
-	inline RingEntry *Ring() { return (RingEntry *)us(0x243BE08); }
+	inline Particle *Parts() { return (Particle *)game_addr(game::g_Web153_Particles); }
+	inline RingEntry *Ring() { return (RingEntry *)game_addr(game::g_Web153_ThreadRing); }
 	inline uint32_t rd32(const void *p) { return *(const uint32_t *)p; }
 	inline Node *AddTask(uint32_t fn) { return (Node *)AddTaskToQueue(QEffects(), fn); }
 }
@@ -347,7 +347,7 @@ namespace web153
 		GteWriteControlReg(rd32(&h->plane[0]), 8);
 		GteWriteControlReg(w, 9);
 		GteWriteControlReg((uint32_t)((int32_t)w >> 16), 0xD);
-		for (int k = 0; k < 56; k++) h->ptr[k] = (Slot *)((uint8_t *)h->slot + (var<uint32_t>(us(CLIP_TABLE) + 4 * k) << 4));
+		for (int k = 0; k < 56; k++) h->ptr[k] = (Slot *)((uint8_t *)h->slot + (var<uint32_t>(game_addr(CLIP_TABLE) + 4 * k) << 4));
 		h->cursor = cursor;
 		h->ot = ot;
 		h->shift = mode;
@@ -378,7 +378,7 @@ namespace web153
 		GteAVSZ3();
 		int32_t otz;
 		GteReadOTZWord(&otz);
-		InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + (uint32_t)(otz >> 2) * 4 + 0x44, pk);
+		InsertPrimAutoDepth(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + (uint32_t)(otz >> 2) * 4 + 0x44, pk);
 		Cursor() = (uint32_t)pk + 0x14;
 	}
 
@@ -416,7 +416,7 @@ namespace web153
 			q[0] = c0;
 			q[6] = c1;
 			q[2] = c1;
-			const uint32_t bucket = var<uint32_t>(us(0x1D8E04C)) + (uint32_t)(*(int32_t *)(h + 8) >> 2) * 4 + 0x44;
+			const uint32_t bucket = var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + (uint32_t)(*(int32_t *)(h + 8) >> 2) * 4 + 0x44;
 			InsertPrimAutoDepth(bucket, q - 1);
 			p2[5] = c0;
 			p2[3] = 0x3A000000;
@@ -427,7 +427,7 @@ namespace web153
 			p2[6] = q[5];
 			p2[8] = q[7];
 			p2[0] = 0x08000000;
-			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + (uint32_t)(*(int32_t *)(h + 8) >> 2) * 4 + 0x44, p2);
+			InsertPrimAutoDepth(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + (uint32_t)(*(int32_t *)(h + 8) >> 2) * 4 + 0x44, p2);
 			q += 0x12;
 			p2 += 0x12;
 		}
@@ -464,7 +464,7 @@ namespace web153
 			h->flags = 0;
 			const int32_t s = n->f1C;
 			h->slot[0].v[0] = 0;
-			h->model = (uint8_t *)us(MODEL_Web);
+			h->model = (uint8_t *)game_addr(MODEL_Web);
 			const int32_t d = (int32_t)anchor_y - y;
 			const int32_t inv = 0x1000000 / s;
 			h->plane[1] = 0x1000;
@@ -479,7 +479,7 @@ namespace web153
 		else
 		{
 			uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-			*(uint32_t *)h = us(MODEL_Web);
+			*(uint32_t *)h = game_addr(MODEL_Web);
 			*(uint32_t *)(h + 8) = 0;
 			*(uint32_t *)(h + 0x1C) = 0;
 			if (c >= 0x25)
@@ -497,7 +497,7 @@ namespace web153
 	{
 		ModelMatrix(n);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		*(uint32_t *)h = us(MODEL_Burst);
+		*(uint32_t *)h = game_addr(MODEL_Burst);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (c >= 6)
@@ -522,7 +522,7 @@ namespace web153
 		Node *n = (Node *)n_;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = us(SEQ_Particle);
+		*(uint32_t *)h = game_addr(SEQ_Particle);
 		*(int16_t *)(h + 0x24) = 8;
 		for (Particle *e = Parts(); e < Parts() + 100; e++)
 		{
@@ -581,7 +581,7 @@ namespace web153
 		Node *n = (Node *)n_;
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
-		*(uint32_t *)h = us(SEQ_Particle);
+		*(uint32_t *)h = game_addr(SEQ_Particle);
 		*(int16_t *)(h + 0x24) = 8;
 		for (Particle *e = Parts(); e < Parts() + 100; e++)
 		{
@@ -673,10 +673,10 @@ namespace web153
 		{
 			const RingEntry &e = Ring()[slot];
 			if (!e.valid) break;
-			((uint32_t *)us(PTS_A))[i * 2] = e.p0;
-			((uint32_t *)us(PTS_A))[i * 2 + 1] = e.p1;
-			((uint32_t *)us(PTS_B))[i * 2] = e.q0;
-			((uint32_t *)us(PTS_B))[i * 2 + 1] = e.q1;
+			((uint32_t *)game_addr(PTS_A))[i * 2] = e.p0;
+			((uint32_t *)game_addr(PTS_A))[i * 2 + 1] = e.p1;
+			((uint32_t *)game_addr(PTS_B))[i * 2] = e.q0;
+			((uint32_t *)game_addr(PTS_B))[i * 2 + 1] = e.q1;
 			slot--;
 			if (slot < 0) slot = 4;
 			i++;
@@ -684,12 +684,12 @@ namespace web153
 		if (i > 1)
 		{
 			void *work = FieldAlloc(0x190);
-			SplineSetup(i, us(PTS_A), work);
-			for (int32_t j = 0, t = 0; j < 16; j++, t += 0x1000) SplineEval(i, work, us(SPL_A) + j * 8, t / 15);
-			SplineSetup(i, us(PTS_B), work);
-			for (int32_t j = 0, t = 0; j < 16; j++, t += 0x1000) SplineEval(i, work, us(SPL_B) + j * 8, t / 15);
+			SplineSetup(i, game_addr(PTS_A), work);
+			for (int32_t j = 0, t = 0; j < 16; j++, t += 0x1000) SplineEval(i, work, game_addr(SPL_A) + j * 8, t / 15);
+			SplineSetup(i, game_addr(PTS_B), work);
+			for (int32_t j = 0, t = 0; j < 16; j++, t += 0x1000) SplineEval(i, work, game_addr(SPL_B) + j * 8, t / 15);
 			FieldFree(0x190);
-			DrawStrips(h, (const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B));
+			DrawStrips(h, (const uint8_t *)game_addr(SPL_A), (const uint8_t *)game_addr(SPL_B));
 		}
 		FieldFree(0x40);
 		if (UpdateFlags() & 0x201) return 0;
@@ -716,7 +716,7 @@ namespace web153
 		}
 		if (n->counter == 0xD)
 		{
-			Node *t = AddTask(us(ORIG_ThreadTask));
+			Node *t = AddTask(game_addr(ORIG_ThreadTask));
 			t->counter = 0;
 			t->f10 = 0;
 			t->f14 = 0x380;
@@ -725,7 +725,7 @@ namespace web153
 			for (int k = 0; k < 5; k++) Ring()[k].valid = 0;
 			if (n->counter == 0xD)
 			{
-				Node *w = AddTask(us(ORIG_WebTask));
+				Node *w = AddTask(game_addr(ORIG_WebTask));
 				*(uint32_t *)&w->f10 = rd32(&TargetPos()[0]);
 				w->counter = 0;
 				*(uint32_t *)&w->f14 = rd32(&TargetPos()[2]);
@@ -733,11 +733,11 @@ namespace web153
 				w->f1C = 0xC00;
 			}
 		}
-		if (n->counter == 0xA) AddTask(us(ORIG_Particles1Task))->counter = 0;
-		if (n->counter == 0x30) AddTask(us(ORIG_Particles2Task))->counter = 0;
+		if (n->counter == 0xA) AddTask(game_addr(ORIG_Particles1Task))->counter = 0;
+		if (n->counter == 0x30) AddTask(game_addr(ORIG_Particles2Task))->counter = 0;
 		if (n->counter == 0x32)
 		{
-			Node *b = AddTask(us(ORIG_BurstTask));
+			Node *b = AddTask(game_addr(ORIG_BurstTask));
 			*(uint32_t *)&b->f10 = rd32(&TargetPos()[0]);
 			b->counter = 0;
 			*(uint32_t *)&b->f14 = rd32(&TargetPos()[2]);
@@ -756,8 +756,8 @@ namespace web153
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		Cursor() = us(ARENA_A);
-		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = us(ARENA_B);
+		Cursor() = game_addr(ARENA_A);
+		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = game_addr(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
 		r->counter++;
 		return a ? 0 : TASK_END;

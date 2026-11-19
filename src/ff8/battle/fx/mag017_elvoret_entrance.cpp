@@ -23,36 +23,36 @@ namespace elvoret017
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2556FA0)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2556FA4)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2556FA8)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2556FC4)); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x2556FC8); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2556FD8); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_017_g_CasterEntity)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_017_g_TexBase)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_017_g_CastContext)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_017_g_PacketCursor)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)game_addr(game::MAG_017_g_ParticleQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::MAG_017_g_MainQueue); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
 
-	static const uint32_t ORIG_RootTask = 0x700460;
-	static const uint32_t ORIG_MainTask = 0x7005C0;
-	static const uint32_t ORIG_ParticleTask = 0x700B70;
-	static const uint32_t ORIG_PartCallback = 0x700940;
-	static const uint32_t MODEL_Layout = 0x14D734C;
-	static const uint32_t PART_Flags = 0x14FA778;
-	static const uint32_t SEQ_Particle = 0x14D71EC;
-	static const uint32_t COLOUR_Black = 0x2556FF8;
-	static const uint32_t AMBIENT = 0xB8B9A8;
-	static const void *SOUND_Voice() { return (const void *)us(0x14D8E48); }
-	static const void *SOUND_Wings() { return (const void *)us(0x14D8E40); }
-	static const void *SOUND_Land() { return (const void *)us(0x14D8E44); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_017_ElvoretEntrance_RootTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_017_ElvoretEntrance_MainTask;
+	static constexpr game::Id ORIG_ParticleTask = game::MAG_017_ElvoretEntrance_ParticleTask;
+	static constexpr game::Id ORIG_PartCallback = game::MAG_017_ElvoretEntrance_PartCallback;
+	static constexpr game::Id MODEL_Layout = game::MAG_017_LayoutData;
+	static constexpr game::Id PART_Flags = game::MAG_017_LayoutFlags;
+	static constexpr game::Id SEQ_Particle = game::MAG_017_ParticleSequence;
+	static constexpr game::Id COLOUR_Black = game::MAG_017_g_BlackColour;
+	static constexpr game::Id AMBIENT = game::CURRENT_BS_SHADOW_PALETTE;
+	static const void *SOUND_Voice() { return (const void *)game_addr(game::MAG_017_SoundVoice); }
+	static const void *SOUND_Wings() { return (const void *)game_addr(game::MAG_017_SoundWings); }
+	static const void *SOUND_Land() { return (const void *)game_addr(game::MAG_017_SoundLand); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
-	inline void BdPlayActorSE(uint8_t *entity, int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int32_t)>(us(0x5015A0))(entity, a, b, c); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t chain) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, chain); }
-	inline void ColourLerp(uint32_t out, uint32_t a, int32_t wa, int32_t wb, const void *b) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t, int32_t, const void *)>(us(0x56CC00))(out, a, wa, wb, b); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void ReleaseVoiceSlot(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(slot); }
+	inline void BdPlayActorSE(uint8_t *entity, int32_t a, int32_t b, int32_t c) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int32_t)>(game_addr(game::BdPlayActorSE))(entity, a, b, c); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t chain) { fn<void (__cdecl *)(uint8_t *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, chain); }
+	inline void ColourLerp(uint32_t out, uint32_t a, int32_t wa, int32_t wb, const void *b) { fn<void (__cdecl *)(uint32_t, uint32_t, int32_t, int32_t, const void *)>(game_addr(game::ColourLerp))(out, a, wa, wb, b); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -163,7 +163,7 @@ namespace elvoret017
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->scale >> 2));
-		*(uint32_t *)h = us(SEQ_Particle);
+		*(uint32_t *)h = game_addr(SEQ_Particle);
 		*(int16_t *)(h + 4) = p->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -208,7 +208,7 @@ namespace elvoret017
 			if ((uint32_t)(int32_t)m->counter <= 0x20)
 			{
 				const int32_t t = (int32_t)(((uint32_t)(int32_t)m->counter & 0xFFFFF) << 7);
-				ColourLerp(us(AMBIENT), us(COLOUR_Black), t, 0x1000 - t, Caster() + 0x2C);
+				ColourLerp(game_addr(AMBIENT), game_addr(COLOUR_Black), t, 0x1000 - t, Caster() + 0x2C);
 			}
 			*(int16_t *)(Caster() + 0x1E) = (int16_t)(*(const int16_t *)(Caster() + 0x1E) + 0x40);
 		}
@@ -219,7 +219,7 @@ namespace elvoret017
 			const int32_t step = 0x1000 / count;
 			do
 			{
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_ParticleTask));
 				if (p)
 				{
 					Memset32(&p->counter, 0, 5);
@@ -252,7 +252,7 @@ namespace elvoret017
 			{
 				const uint32_t chance = (uint32_t)(mul32(CrtRand(), 20) >> 15);
 				if (chance <= phase) continue;
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_ParticleTask));
 				if (!p) continue;
 				Memset32(&p->counter, 0, 5);
 				ff8fx::copy<(8)>(p->pos, sp);
@@ -278,7 +278,7 @@ namespace elvoret017
 			arg.pos[2] = *(const int16_t *)(Caster() + 0x20);
 			arg.pos[1] = *(const int16_t *)(Caster() + 0x24);
 			arg.pos[3] = 0;
-			arg.flags = us(PART_Flags);
+			arg.flags = game_addr(PART_Flags);
 			arg.morph = TexBase() + 0x1B9C;
 			prim::play((prim::Layout *)m->layout, PartCallback, (int)&arg, 0);
 		}
@@ -312,12 +312,12 @@ namespace elvoret017
 				InitTaskQueuePool(QMain(), (void *)(TexBase() + 0x1000), 0x1FC, 1);
 				InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x20, 0x80);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x7C);
 				m->voice = ClaimVoiceSlot(SOUND_Voice(), 1, 0x80);
-				DecodeModelPrimLayout(us(MODEL_Layout), m->layout, 0x1E8);
+				DecodeModelPrimLayout(game_addr(MODEL_Layout), m->layout, 0x1E8);
 			}
 		}
 		int a, b;

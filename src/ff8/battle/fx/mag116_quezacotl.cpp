@@ -24,22 +24,22 @@ namespace q116
 {
 	using namespace eng;
 
-	inline uint32_t &Pause() { return var<uint32_t>(us(0x25216DC)); }
-	inline TaskQueuePair &QueueDebris() { return var<TaskQueuePair>(us(0x25216E8)); }
-	inline TaskQueuePair &QueueBolts() { return var<TaskQueuePair>(us(0x2521708)); }
-	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(us(0x2521728)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x252176C)); }
-	inline Mat4x3 &BoltFrame() { return var<Mat4x3>(us(0x2521780)); }
-	inline uint32_t &ScreenFlash() { return var<uint32_t>(us(0x25217A4)); }
-	inline uint8_t &DoneFlag() { return var<uint8_t>(us(0x25217A8)); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(us(0x25217AC)); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(us(0x25217B0)); }
+	inline uint32_t &Pause() { return var<uint32_t>(game_addr(game::MAG_116_Pause)); }
+	inline TaskQueuePair &QueueDebris() { return var<TaskQueuePair>(game_addr(game::MAG_116_QueueDebris)); }
+	inline TaskQueuePair &QueueBolts() { return var<TaskQueuePair>(game_addr(game::MAG_116_QueueBolts)); }
+	inline TaskQueuePair &QueueCreature() { return var<TaskQueuePair>(game_addr(game::GF116_QUEZACOTL_queueCreature)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::GF116_QUEZACOTL_packetCursor)); }
+	inline Mat4x3 &BoltFrame() { return var<Mat4x3>(game_addr(game::MAG_116_BoltFrame)); }
+	inline uint32_t &ScreenFlash() { return var<uint32_t>(game_addr(game::GF116_QUEZACOTL_screenFlashLevel)); }
+	inline uint8_t &DoneFlag() { return var<uint8_t>(game_addr(game::GF116_QUEZACOTL_doneFlag)); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(game_addr(game::GF116_QUEZACOTL_modelBuffer)); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(game_addr(game::MAG_116_EffectCamera)); }
 
-	static const uint32_t ORIG_SequenceTask = 0x6C3760;
-	static const uint32_t ORIG_CreatureTask = 0x6C3940;
-	static const uint32_t ORIG_DebrisTask = 0x6C6660;
-	static const void *SOUND_CreatureVoice() { return (const void *)us(0x12AE500); }
-	static void *MODEL_Debris() { return (void *)us(0x12AC8B8); }
+	static constexpr game::Id ORIG_SequenceTask = game::GF_116Quezacotl_SequenceTask;
+	static constexpr game::Id ORIG_CreatureTask = game::GF_116Quezacotl_CreatureTask;
+	static constexpr game::Id ORIG_DebrisTask = game::GF116_Quezacotl_DebrisTask;
+	static const void *SOUND_CreatureVoice() { return (const void *)game_addr(game::unk_12AE500); }
+	static void *MODEL_Debris() { return (void *)game_addr(game::unk_12AC8B8); }
 
 	struct MasterNode
 	{
@@ -69,7 +69,7 @@ namespace q116
 		{
 			node->spawned = 1;
 			InitTaskQueuePool(&QueueCreature().second, ModelBuffer(), 0x8D0, 1);
-			TaskNode *creature = AddTaskToQueue(&QueueCreature().second, us(ORIG_CreatureTask));
+			TaskNode *creature = AddTaskToQueue(&QueueCreature().second, game_addr(ORIG_CreatureTask));
 			Memset32((uint8_t *)creature + 0x0C, 0, 0x231);
 			*(uint32_t *)((uint8_t *)creature + 0x10) = ClaimVoiceSlot(SOUND_CreatureVoice(), 1, 0x80);
 			StreamStateInit(ModelBuffer() + 0x28E54);
@@ -166,7 +166,7 @@ namespace q116
 
 	static int32_t Rand()
 	{
-		uint32_t &seed = var<uint32_t>(us(0x25217A0));
+		uint32_t &seed = var<uint32_t>(game_addr(game::GF116_QUEZACOTL_randSeed));
 		seed = (seed * 125 + 14) & 0x7FFF;
 		return (int32_t)seed;
 	}
@@ -198,9 +198,9 @@ namespace q116
 	};
 	static_assert(sizeof(BranchNode) == 0x20, "branch node is 0x20 bytes");
 
-	static const uint32_t ORIG_BranchTask = 0x6C7800;
-	static const uint8_t *BOLT_VERTICES() { return (const uint8_t *)us(0x1298C70); }
-	static const uint8_t *DIST_TABLE() { return (const uint8_t *)us(0x12B05F0); }
+	static constexpr game::Id ORIG_BranchTask = game::GF116_Quezacotl_BranchTask;
+	static const uint8_t *BOLT_VERTICES() { return (const uint8_t *)game_addr(game::GF116_BoltVertexTable); }
+	static const uint8_t *DIST_TABLE() { return (const uint8_t *)game_addr(game::GF116_DistTable); }
 
 	inline BoltSeg *&SegFreeHint() { return *(BoltSeg **)(ModelBuffer() + 0x43A00); }
 	inline BoltSeg *SegPool() { return (BoltSeg *)(ModelBuffer() + 0x40200); }
@@ -232,7 +232,7 @@ namespace q116
 		int16_t decay = (int16_t)-(intensity >> 3);
 		BoltSeg *s = SegAlloc(script[0], width, intensity, decay);
 		if (!s) return;
-		BranchNode *b = (BranchNode *)AddTaskToQueue(&QueueBolts().first, us(ORIG_BranchTask));
+		BranchNode *b = (BranchNode *)AddTaskToQueue(&QueueBolts().first, game_addr(ORIG_BranchTask));
 		if (!b) return;
 		Memset32(&b->count, 0, 5);
 		b->tail = s;
@@ -341,7 +341,7 @@ namespace q116
 				((uint8_t *)p)[7] = 0x3E;
 				p[10] = cb;
 				p[7] = cb;
-				InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 0x44 + 4 * ((a->otz + b->otz) >> 3), p);
+				InsertPrimAutoDepth(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44 + 4 * ((a->otz + b->otz) >> 3), p);
 			}
 			a = b;
 		}
@@ -471,10 +471,10 @@ namespace q116
 	};
 	static_assert(sizeof(FlashNode) == 0x14, "flash node is 0x14 bytes");
 
-	static const uint32_t ORIG_BoltTask = 0x6C7EA0;
-	static const uint32_t ORIG_FlashTask = 0x6C8430;
-	static const int16_t *SIN_TABLE() { return (const int16_t *)us(0x12B4770); }
-	static void *SEQ_ImpactFlash() { return (void *)us(0x12AE400); }
+	static constexpr game::Id ORIG_BoltTask = game::GF116_Quezacotl_BoltTask;
+	static constexpr game::Id ORIG_FlashTask = game::GF116_Quezacotl_FlashTask;
+	static const int16_t *SIN_TABLE() { return (const int16_t *)game_addr(game::GF116_SinTable); }
+	static void *SEQ_ImpactFlash() { return (void *)game_addr(game::unk_12AE400); }
 
 	inline BoltVert *&VertFreeHint() { return *(BoltVert **)(ModelBuffer() + 0x3F1FC); }
 	inline BoltVert *VertPool() { return (BoltVert *)(ModelBuffer() + 0x3C9FC); }
@@ -504,7 +504,7 @@ namespace q116
 	{
 		BoltVert *v = VertAlloc(pos, width);
 		if (!v) return nullptr;
-		BoltNode *b = (BoltNode *)AddTaskToQueue(&QueueBolts().second, us(ORIG_BoltTask));
+		BoltNode *b = (BoltNode *)AddTaskToQueue(&QueueBolts().second, game_addr(ORIG_BoltTask));
 		if (!b) { v->width = -1; return nullptr; }
 		b->unk0C = 0;
 		ff8fx::copy<(8)>(b->pos, pos);
@@ -566,7 +566,7 @@ namespace q116
 					b->t = 0x1000;
 					if (b->kind != 0 && *(uint32_t *)(ModelBuffer() + 0x28E50) != 0)
 					{
-						FlashNode *f = (FlashNode *)AddTaskToQueue(&QueueDebris().second, us(ORIG_FlashTask));
+						FlashNode *f = (FlashNode *)AddTaskToQueue(&QueueDebris().second, game_addr(ORIG_FlashTask));
 						if (f)
 						{
 							ff8fx::copy<(8)>(f->pos, at);
@@ -710,8 +710,8 @@ namespace q116
 	};
 	static_assert(sizeof(ArcSeg) == 16, "arc point is 16 bytes");
 
-	static const uint32_t ORIG_ArcTask = 0x6C8850;
-	static const uint16_t *SQRT_TABLE() { return (const uint16_t *)us(0x12B4570); }
+	static constexpr game::Id ORIG_ArcTask = game::GF116_Quezacotl_ArcTask;
+	static const uint16_t *SQRT_TABLE() { return (const uint16_t *)game_addr(game::GF116_SqrtTable); }
 
 	static int32_t SqrtLz(int32_t v)
 	{
@@ -843,8 +843,8 @@ namespace q116
 		{
 			const ArcSeg *a = &pts[k], *b = &pts[k + 1];
 			if (a->otz <= 0 || b->otz <= 0) continue;
-			uint32_t *p = (uint32_t *)var<uint32_t>(us(0x1D8E054));
-			var<uint32_t>(us(0x1D8E054)) += 0x34;
+			uint32_t *p = (uint32_t *)var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
+			var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) += 0x34;
 			p[2] = *(const uint32_t *)&a->sx;
 			p[5] = *(const uint32_t *)&a->sx2;
 			p[3] = 0x3E94C008;
@@ -863,7 +863,7 @@ namespace q116
 			((uint8_t *)p)[7] = 0x3E;
 			p[10] = cb;
 			p[7] = cb;
-			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 0x44 + 4 * ((b->otz + a->otz) >> 5), p);
+			InsertPrimAutoDepth(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44 + 4 * ((b->otz + a->otz) >> 5), p);
 		}
 	}
 
@@ -970,49 +970,49 @@ namespace q116
 
 	namespace cx
 	{
-		inline void Sub508500() { fn<void (__cdecl *)()>(us(0x508500))(); }
-		inline void RotMatrixY(int32_t angle, void *m) { fn<void (__cdecl *)(int32_t, void *)>(us(0x701270))(angle, m); }
-		inline void BindModel(void *m, void *sections, void *data) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x6EC060))(m, sections, data); }
-		inline void SetAnim(void *m, int id) { fn<void (__cdecl *)(void *, int)>(us(0x6574D0))(m, id); }
-		inline void AdvanceAnim(void *m) { fn<void (__cdecl *)(void *)>(us(0x6FBDB0))(m); }
+		inline void Sub508500() { fn<void (__cdecl *)()>(game_addr(game::BattleFile_GetLoadingState))(); }
+		inline void RotMatrixY(int32_t angle, void *m) { fn<void (__cdecl *)(int32_t, void *)>(game_addr(game::Effect_RotationYMatrix))(angle, m); }
+		inline void BindModel(void *m, void *sections, void *data) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::Effect_BindModelContainerSections))(m, sections, data); }
+		inline void SetAnim(void *m, int id) { fn<void (__cdecl *)(void *, int)>(game_addr(game::au_re_Battle_ReadAnimation_6))(m, id); }
+		inline void AdvanceAnim(void *m) { fn<void (__cdecl *)(void *)>(game_addr(game::MAG_089_Angelo_AnimStep))(m); }
 		inline void DrawMaterialise(void *m, int32_t a2, const void *a3, int32_t a4, int32_t a5, int32_t a6, const void *a7)
-		{ fn<void (__cdecl *)(void *, int32_t, const void *, int32_t, int32_t, int32_t, const void *)>(us(0x6C6770))(m, a2, a3, a4, a5, a6, a7); }
-		inline void MatVec(const void *m, const void *v, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C4F0))(m, v, out); }
-		inline uint32_t DrawModel(void *m, void *buf, uint32_t cursor, uint32_t a4) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(us(0x6A79B0))(m, buf, cursor, a4); }
-		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(us(0x7016B0))(src, layout, n); }
-		inline void Sub6C6500(int a) { fn<void (__cdecl *)(int)>(us(0x6C6500))(a); }
-		inline void Sub6C6530(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(us(0x6C6530))(p); }
-		inline void Sub6C65A0(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(us(0x6C65A0))(p); }
-		inline void VertexPos(void *m, int a, int b, void *out) { fn<void (__cdecl *)(void *, int, int, void *)>(us(0x6C6440))(m, a, b, out); }
-		inline void RotMatrixXY(int a, int b, void *out) { fn<void (__cdecl *)(int, int, void *)>(us(0x6C64C0))(a, b, out); }
-		inline void SpawnArcO(uint32_t bones, uint32_t strips, uint32_t faces, int a4, int a5, int a6) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, int, int, int)>(us(0x6C87B0))(bones, strips, faces, a4, a5, a6); }
+		{ fn<void (__cdecl *)(void *, int32_t, const void *, int32_t, int32_t, int32_t, const void *)>(game_addr(game::MAG_116_DrawCreatureMaterialise))(m, a2, a3, a4, a5, a6, a7); }
+		inline void MatVec(const void *m, const void *v, void *out) { fn<void (__cdecl *)(const void *, const void *, void *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
+		inline uint32_t DrawModel(void *m, void *buf, uint32_t cursor, uint32_t a4) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(game_addr(game::Effect_DrawCreatureModel))(m, buf, cursor, a4); }
+		inline void Decode(uint32_t src, void *layout, int n) { fn<void (__cdecl *)(uint32_t, void *, int)>(game_addr(game::Effect_DecodeModelPrimLayout))(src, layout, n); }
+		inline void Sub6C6500(int a) { fn<void (__cdecl *)(int)>(game_addr(game::MAG_116_SetStageGroupsBit1))(a); }
+		inline void Sub6C6530(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::MAG_116_DrawFullScreenTile))(p); }
+		inline void Sub6C65A0(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::sub_6C65A0))(p); }
+		inline void VertexPos(void *m, int a, int b, void *out) { fn<void (__cdecl *)(void *, int, int, void *)>(game_addr(game::MAG_116_CreatureVertexPos))(m, a, b, out); }
+		inline void RotMatrixXY(int a, int b, void *out) { fn<void (__cdecl *)(int, int, void *)>(game_addr(game::MAG_116_RotMatrixXY))(a, b, out); }
+		inline void SpawnArcO(uint32_t bones, uint32_t strips, uint32_t faces, int a4, int a5, int a6) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, int, int, int)>(game_addr(game::GF116_Quezacotl_SpawnArc))(bones, strips, faces, a4, a5, a6); }
 		inline void SpawnBoltO(void *vel, void *pos, void *target, int shape, int unk, int t, int dt, int width, int kind, int budget)
-		{ fn<void (__cdecl *)(void *, void *, void *, int, int, int, int, int, int, int)>(us(0x6C7D10))(vel, pos, target, shape, unk, t, dt, width, kind, budget); }
-		inline void Sub6C76C0(uint32_t p, int a) { fn<void (__cdecl *)(uint32_t, int)>(us(0x6C76C0))(p, a); }
-		inline void Sub6C7CC0() { fn<void (__cdecl *)()>(us(0x6C7CC0))(); }
-		inline void Sub6C7690() { fn<void (__cdecl *)()>(us(0x6C7690))(); }
-		inline void Blend(void *a, void *b, int wa, int wb, void *out) { fn<void (__cdecl *)(void *, void *, int, int, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
-		inline int LoadBusy() { return fn<int (__cdecl *)()>(us(0x534270))(); }
-		inline void Load(int id, uint32_t dst, int n) { fn<void (__cdecl *)(int, uint32_t, int)>(us(0x5341D0))(id, dst, n); }
-		inline void LoadPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
-		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
-		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(us(0x501330))(se, a, b); }
-		inline void PlayStream(int a, int b, int c) { fn<void (__cdecl *)(int, int, int)>(us(0x5018C0))(a, b, c); }
-		inline void ApplyResult(uint32_t targets, int n) { fn<void (__cdecl *)(uint32_t, int)>(us(0x506BA0))(targets, n); }
-		inline uint8_t *SummonData() { return fn<uint8_t *(__cdecl *)()>(us(0x571B70))(); }
-		inline void Sub508630(void *a, void *b) { fn<void (__cdecl *)(void *, void *)>(us(0x508630))(a, b); }
-		inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
-		inline void Sub6C5300() { fn<void (__cdecl *)()>(us(0x6C5300))(); }
-		inline void Sub6C5350() { fn<void (__cdecl *)()>(us(0x6C5350))(); }
-		inline void BuildBoneMatrices(void *header) { fn<void (__cdecl *)(void *)>(us(0x508C90))(header); }
+		{ fn<void (__cdecl *)(void *, void *, void *, int, int, int, int, int, int, int)>(game_addr(game::GF116_Quezacotl_SpawnBolt))(vel, pos, target, shape, unk, t, dt, width, kind, budget); }
+		inline void Sub6C76C0(uint32_t p, int a) { fn<void (__cdecl *)(uint32_t, int)>(game_addr(game::GF116_Quezacotl_SpawnBranchFromTable))(p, a); }
+		inline void Sub6C7CC0() { fn<void (__cdecl *)()>(game_addr(game::GF116_Quezacotl_InitBoltVertPool))(); }
+		inline void Sub6C7690() { fn<void (__cdecl *)()>(game_addr(game::MAG_116_ResetVertexCache))(); }
+		inline void Blend(void *a, void *b, int wa, int wb, void *out) { fn<void (__cdecl *)(void *, void *, int, int, void *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+		inline int LoadBusy() { return fn<int (__cdecl *)()>(game_addr(game::Stream_IsBusy))(); }
+		inline void Load(int id, uint32_t dst, int n) { fn<void (__cdecl *)(int, uint32_t, int)>(game_addr(game::Stream_QueueLoad))(id, dst, n); }
+		inline void LoadPump() { fn<void (__cdecl *)()>(game_addr(game::Stream_Pump))(); }
+		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(slot); }
+		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(game_addr(game::BdPlaySE))(se, a, b); }
+		inline void PlayStream(int a, int b, int c) { fn<void (__cdecl *)(int, int, int)>(game_addr(game::BdPlaySummonStream))(a, b, c); }
+		inline void ApplyResult(uint32_t targets, int n) { fn<void (__cdecl *)(uint32_t, int)>(game_addr(game::ApplyActionResultToTargets))(targets, n); }
+		inline uint8_t *SummonData() { return fn<uint8_t *(__cdecl *)()>(game_addr(game::sub_571B70))(); }
+		inline void Sub508630(void *a, void *b) { fn<void (__cdecl *)(void *, void *)>(game_addr(game::Battle_RestoreDefaultEffectTexture))(a, b); }
+		inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(game_addr(game::Effect_SharedLcg_Rand))(); }
+		inline void Sub6C5300() { fn<void (__cdecl *)()>(game_addr(game::MAG_116_HideTargets))(); }
+		inline void Sub6C5350() { fn<void (__cdecl *)()>(game_addr(game::MAG_116_ShowTargets))(); }
+		inline void BuildBoneMatrices(void *header) { fn<void (__cdecl *)(void *)>(game_addr(game::BattleModel_BuildBoneMatricesFromPose))(header); }
 	}
 
-	static const uint32_t CB_PrimDraw = 0x6C6060;
-	static const uint32_t CB_PrimMatrix = 0x6C53A0;
+	static constexpr game::Id CB_PrimDraw = game::MAG_116_PrimDrawCallback;
+	static constexpr game::Id CB_PrimMatrix = game::MAG_116_PrimMatrixCallback;
 	inline int16_t &G16(uint32_t a) { return var<int16_t>(a); }
 	inline int32_t &G32(uint32_t a) { return var<int32_t>(a); }
-	static const uint32_t CAM_EYE = 0xB8B7F0, CAM_AT = 0xB8B7F8;
-	static const uint32_t BASE_Y = 0x2521770, BASE_Y2 = 0x2521774, BASE_Y3 = 0x2521778;
+	static constexpr game::Id CAM_EYE = game::Battle_Camera_world_XZ_s16, CAM_AT = game::Battle_Camera_LookAt_XZ_s16;
+	static constexpr game::Id BASE_Y = game::GF116_QUEZACOTL_targetCentroidX, BASE_Y2 = game::GF116_baseY2, BASE_Y3 = game::GF116_baseY3;
 
 	static uint8_t g_fr[0x90];
 	inline int16_t &F16(int o) { return *(int16_t *)(g_fr + o); }
@@ -1053,8 +1053,8 @@ namespace q116
 				cx::Sub508500();
 				cx::RotMatrixY(0, nd + 0x68);
 				D32(0x80) = 0; W16(0x46) = 0; D32(0x7C) = 0; W16(0x44) = 0;
-				D32(0x84) = G32(us(BASE_Y3));
-				W16(0x48) = G16(us(BASE_Y3));
+				D32(0x84) = G32(game_addr(BASE_Y3));
+				W16(0x48) = G16(game_addr(BASE_Y3));
 				W16(0x36) = 0; W16(0x38) = 0; W16(0x34) = 0;
 				cx::BindModel(model, nd + 0xC4, MB + 0x3169C);
 				cx::SetAnim(model, 0);
@@ -1076,44 +1076,44 @@ namespace q116
 		{
 			if (!Pause())
 			{
-				F16(0x18) = G16(us(CAM_EYE));
-				F16(0x1A) = G16(us(CAM_EYE) + 2);
-				F16(0x1C) = (int16_t)(G32(us(CAM_EYE) + 4) - G32(us(BASE_Y)));
+				F16(0x18) = G16(game_addr(CAM_EYE));
+				F16(0x1A) = G16(game_addr(CAM_EYE) + 2);
+				F16(0x1C) = (int16_t)(G32(game_addr(CAM_EYE) + 4) - G32(game_addr(BASE_Y)));
 				int32_t s = ComputeSin((int32_t)((v5 << 12) / 40));
 				cx::RotMatrixY(s >> 7, FP(0x44));
-				cx::MatVec(FP(0x44), FP(0x18), (void *)us(CAM_EYE));
-				G16(us(0x1D977A2)) += 8;
-				G16(us(CAM_EYE) + 4) += G16(us(BASE_Y));
+				cx::MatVec(FP(0x44), FP(0x18), (void *)game_addr(CAM_EYE));
+				G16(game_addr(game::g_BattleCam_Roll)) += 8;
+				G16(game_addr(CAM_EYE) + 4) += G16(game_addr(BASE_Y));
 				cx::AdvanceAnim(model);
 			}
-			var<uint32_t>(us(0x1D8E054)) = cx::DrawModel(model, MB + 0x8D0, var<uint32_t>(us(0x1D8E054)), var<uint32_t>(us(0x1D969A8)));
+			var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = cx::DrawModel(model, MB + 0x8D0, var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)), var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END)));
 		}
 
 		if ((uint32_t)((int32_t)W16(0x0C) - 1) < 0x4C)
 		{
 			if (W16(0x0C) == 1)
 			{
-				cx::Decode(us(0x1298C68), L, 0x7D4);
+				cx::Decode(game_addr(game::unk_1298C68), L, 0x7D4);
 				cx::Sub6C6500(0);
 			}
 			F32(0x40) = (int32_t)(MB + 0x8D0);
 			F32(0x38) = 0; F16(0x3C) = 0; F16(0x34) = 0; F16(0x30) = 0; F16(0x32) = -5000;
-			Play(L, us(CB_PrimDraw), FP(0x30));
+			Play(L, game_addr(CB_PrimDraw), FP(0x30));
 		}
 
 		if ((uint32_t)((int32_t)W16(0x0C) - 77) < 0x18)
 		{
 			if (W16(0x0C) == 77)
 			{
-				cx::Decode(us(0x12A9664), L, 0x7FC);
+				cx::Decode(game_addr(game::unk_12A9664), L, 0x7FC);
 				cx::Sub6C6500(1);
 			}
 			F32(0x8C) = (int32_t)(MB + 0x8D0);
 			F32(0x84) = 0; F16(0x88) = 0;
-			F32(0x78) = 500; F32(0x7C) = 0; F32(0x80) = G32(us(BASE_Y3));
+			F32(0x78) = 500; F32(0x7C) = 0; F32(0x80) = G32(game_addr(BASE_Y3));
 			cx::RotMatrixY(-2048, FP(0x64));
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
-			Play(L, us(CB_PrimMatrix), FP(0x64));
+			Play(L, game_addr(CB_PrimMatrix), FP(0x64));
 		}
 
 		uint32_t v7 = (uint32_t)((int32_t)W16(0x0C) - 86);
@@ -1132,60 +1132,60 @@ namespace q116
 				InitTaskQueuePool(&QueueBolts().first, ModelBuffer() + 0x3F200, 0x20, 0x80);
 				cx::Sub6C7CC0();
 				cx::Sub6C7690();
-				D32(0x18) = G32(us(CAM_AT));
-				D32(0x1C) = G32(us(CAM_AT) + 4);
-				D32(0x20) = G32(us(CAM_EYE));
-				D32(0x24) = G32(us(CAM_EYE) + 4);
+				D32(0x18) = G32(game_addr(CAM_AT));
+				D32(0x1C) = G32(game_addr(CAM_AT) + 4);
+				D32(0x20) = G32(game_addr(CAM_EYE));
+				D32(0x24) = G32(game_addr(CAM_EYE) + 4);
 			}
 			else if (!Pause())
 			{
 				int32_t v10 = (int32_t)((v7 << 12) / 76);
 				W16(0x1A) -= 17;
 				W16(0x22) -= 5;
-				W16(0x24) -= G16(us(BASE_Y3));
+				W16(0x24) -= G16(game_addr(BASE_Y3));
 				int32_t s = ComputeSin(v10 >> 1);
 				cx::RotMatrixY(s / 90, FP(0x44));
 				cx::MatVec(FP(0x44), nd + 0x20, nd + 0x20);
-				W16(0x24) += G16(us(BASE_Y3));
+				W16(0x24) += G16(game_addr(BASE_Y3));
 				if (v7 == 31)
 				{
-					G16(us(CAM_AT)) = (int16_t)0xEBF9; G16(us(CAM_AT) + 2) = (int16_t)0xF9BA; G16(us(CAM_EYE)) = 0x5FB;
-					G16(us(CAM_AT) + 4) = (int16_t)(G32(us(BASE_Y3)) + 0x606);
-					G16(us(CAM_EYE) + 2) = (int16_t)0xF665;
-					G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y3)) - 0x206);
+					G16(game_addr(CAM_AT)) = (int16_t)0xEBF9; G16(game_addr(CAM_AT) + 2) = (int16_t)0xF9BA; G16(game_addr(CAM_EYE)) = 0x5FB;
+					G16(game_addr(CAM_AT) + 4) = (int16_t)(G32(game_addr(BASE_Y3)) + 0x606);
+					G16(game_addr(CAM_EYE) + 2) = (int16_t)0xF665;
+					G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y3)) - 0x206);
 				}
 				else if (v7 > 31 && v7 <= 40)
 				{
-					F16(0x18) = G16(us(CAM_EYE));
-					F16(0x1A) = G16(us(CAM_EYE) + 2);
-					F16(0x1C) = (int16_t)(G32(us(CAM_EYE) + 4) - G32(us(BASE_Y3)));
+					F16(0x18) = G16(game_addr(CAM_EYE));
+					F16(0x1A) = G16(game_addr(CAM_EYE) + 2);
+					F16(0x1C) = (int16_t)(G32(game_addr(CAM_EYE) + 4) - G32(game_addr(BASE_Y3)));
 					cx::RotMatrixY(0x40, FP(0x44));
-					cx::MatVec(FP(0x44), FP(0x18), (void *)us(CAM_EYE));
-					G16(us(CAM_EYE) + 4) += (int16_t)G32(us(BASE_Y3));
-					F16(0x18) = G16(us(CAM_AT));
-					F16(0x1A) = G16(us(CAM_AT) + 2);
-					F16(0x1C) = (int16_t)(G32(us(CAM_AT) + 4) - G32(us(BASE_Y3)));
-					cx::MatVec(FP(0x44), FP(0x18), (void *)us(CAM_AT));
-					G16(us(CAM_AT) + 4) += G16(us(BASE_Y3));
+					cx::MatVec(FP(0x44), FP(0x18), (void *)game_addr(CAM_EYE));
+					G16(game_addr(CAM_EYE) + 4) += (int16_t)G32(game_addr(BASE_Y3));
+					F16(0x18) = G16(game_addr(CAM_AT));
+					F16(0x1A) = G16(game_addr(CAM_AT) + 2);
+					F16(0x1C) = (int16_t)(G32(game_addr(CAM_AT) + 4) - G32(game_addr(BASE_Y3)));
+					cx::MatVec(FP(0x44), FP(0x18), (void *)game_addr(CAM_AT));
+					G16(game_addr(CAM_AT) + 4) += G16(game_addr(BASE_Y3));
 				}
 				else if (v10 < 0x800)
 				{
-					G32(us(CAM_AT)) = D32(0x18);
-					G32(us(CAM_AT) + 4) = D32(0x1C);
-					G32(us(CAM_EYE)) = D32(0x20);
-					G32(us(CAM_EYE) + 4) = D32(0x24);
+					G32(game_addr(CAM_AT)) = D32(0x18);
+					G32(game_addr(CAM_AT) + 4) = D32(0x1C);
+					G32(game_addr(CAM_EYE)) = D32(0x20);
+					G32(game_addr(CAM_EYE) + 4) = D32(0x24);
 				}
 				else
 				{
 					int32_t v12 = 2 * v10 - 0x1000;
-					F16(0x2C) = (int16_t)(G32(us(BASE_Y3)) - 0xA14);
+					F16(0x2C) = (int16_t)(G32(game_addr(BASE_Y3)) - 0xA14);
 					F32(0x10) = 0x1000 - v12;
-					F16(0x20) = (int16_t)0xFD69; F16(0x22) = (int16_t)0xF544; F16(0x24) = (int16_t)(G32(us(BASE_Y3)) + 0x6F7);
+					F16(0x20) = (int16_t)0xFD69; F16(0x22) = (int16_t)0xF544; F16(0x24) = (int16_t)(G32(game_addr(BASE_Y3)) + 0x6F7);
 					F16(0x28) = 0x547; F16(0x2A) = (int16_t)0xF9F4;
-					cx::Blend(nd + 0x18, FP(0x20), 0x1000 - v12, v12, (void *)us(CAM_AT));
-					cx::Blend(nd + 0x20, FP(0x28), F32(0x10), v12, (void *)us(CAM_EYE));
+					cx::Blend(nd + 0x18, FP(0x20), 0x1000 - v12, v12, (void *)game_addr(CAM_AT));
+					cx::Blend(nd + 0x20, FP(0x28), F32(0x10), v12, (void *)game_addr(CAM_EYE));
 				}
-				cx::SpawnArcO((uint32_t)D32(0x8C), us(0x12AE7F0) + 8 * (v7 % 10), us(0x12AE840), 12, 7, 0x100);
+				cx::SpawnArcO((uint32_t)D32(0x8C), game_addr(game::unk_12AE7F0) + 8 * (v7 % 10), game_addr(game::unk_12AE840), 12, 7, 0x100);
 				if (v7 < 15 && (v7 & 1) == 0)
 				{
 					int32_t r = Rand();
@@ -1212,11 +1212,11 @@ namespace q116
 
 		if ((uint32_t)((int32_t)W16(0x0C) - 101) < 0x40)
 		{
-			if (W16(0x0C) == 101) cx::Decode(us(0x1298C68), L, 0x158);
+			if (W16(0x0C) == 101) cx::Decode(game_addr(game::unk_1298C68), L, 0x158);
 			F32(0x40) = (int32_t)(MB + 0x8D0);
-			F16(0x34) = G16(us(BASE_Y3));
+			F16(0x34) = G16(game_addr(BASE_Y3));
 			F32(0x38) = 0; F16(0x3C) = 0; F16(0x32) = 0; F16(0x30) = 0;
-			Play(L, us(CB_PrimDraw), FP(0x30));
+			Play(L, game_addr(CB_PrimDraw), FP(0x30));
 		}
 
 		{
@@ -1224,7 +1224,7 @@ namespace q116
 			if (t < 0x14 && (t & 1) == 0 && !Pause())
 			{
 				int32_t r = Rand();
-				int32_t vtx = *(int16_t *)(us(0x12AFE40) + 2 * ((uint32_t)(r * 11) >> 15));
+				int32_t vtx = *(int16_t *)(game_addr(game::unk_12AFE40) + 2 * ((uint32_t)(r * 11) >> 15));
 				cx::VertexPos(model, 0, vtx, FP(0x18));
 				r = Rand();
 				F16(0x28) = (int16_t)((r & 0x7FF) + F32(0x18) - 0x400);
@@ -1248,33 +1248,33 @@ namespace q116
 			{
 				if (t == 0)
 				{
-					G16(us(CAM_EYE)) = 0x2A5;
-					G16(us(CAM_EYE) + 2) = (int16_t)0xF20D;
-					G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y3)) - 200);
+					G16(game_addr(CAM_EYE)) = 0x2A5;
+					G16(game_addr(CAM_EYE) + 2) = (int16_t)0xF20D;
+					G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y3)) - 200);
 				}
-				cx::VertexPos(ModelBuffer() + 0x28, 0, 0x32, (void *)us(CAM_AT));
+				cx::VertexPos(ModelBuffer() + 0x28, 0, 0x32, (void *)game_addr(CAM_AT));
 				if (!Pause())
-					cx::SpawnArcO((uint32_t)D32(0x8C), us(0x12AF800) + 8 * (t % 5), us(0x12AF828), 12, 7, 0x100);
+					cx::SpawnArcO((uint32_t)D32(0x8C), game_addr(game::unk_12AF800) + 8 * (t % 5), game_addr(game::unk_12AF828), 12, 7, 0x100);
 			}
 		}
 
 		if ((uint32_t)((int32_t)W16(0x0C) - 212) < 0xF)
 		{
-			if (W16(0x0C) == 212) cx::Decode(us(0x12A1164), L, 0x1A0);
-			F32(0x7C) = G16(us(CAM_AT) + 2);
-			F32(0x78) = G16(us(CAM_AT));
+			if (W16(0x0C) == 212) cx::Decode(game_addr(game::unk_12A1164), L, 0x1A0);
+			F32(0x7C) = G16(game_addr(CAM_AT) + 2);
+			F32(0x78) = G16(game_addr(CAM_AT));
 			F32(0x8C) = (int32_t)(MB + 0x8D0);
 			int32_t yaw = -(int32_t)W16(0x36);
 			F32(0x84) = 0; F16(0x88) = 0;
-			F32(0x80) = G16(us(CAM_AT) + 4);
+			F32(0x80) = G16(game_addr(CAM_AT) + 4);
 			cx::RotMatrixXY(-0x80, yaw, FP(0x64));
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
-			Play(L, us(CB_PrimMatrix), FP(0x64));
+			Play(L, game_addr(CB_PrimMatrix), FP(0x64));
 		}
 
 		if ((uint32_t)((int32_t)W16(0x0C) - 227) < 0x14)
 		{
-			if (W16(0x0C) == 227) cx::Decode(us(0x12A9664), L, 0x1D8);
+			if (W16(0x0C) == 227) cx::Decode(game_addr(game::unk_12A9664), L, 0x1D8);
 			F32(0x8C) = (int32_t)(MB + 0x8D0);
 			F32(0x84) = 0; F16(0x88) = 0;
 			cx::VertexPos(model, 0, 0x32, FP(0x28));
@@ -1283,7 +1283,7 @@ namespace q116
 			F32(0x80) = F16(0x2C);
 			cx::RotMatrixXY(-0x80, -(int32_t)W16(0x36), FP(0x64));
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
-			Play(L, us(CB_PrimMatrix), FP(0x64));
+			Play(L, game_addr(CB_PrimMatrix), FP(0x64));
 		}
 
 		{
@@ -1293,14 +1293,14 @@ namespace q116
 				if (t == 0xA)
 				{
 					if (cx::LoadBusy()) return 0;
-					cx::Decode(us(0x129BA94), L, 0x128);
+					cx::Decode(game_addr(game::unk_129BA94), L, 0x128);
 				}
 				F16(0x74) = 0x1000; F16(0x6C) = 0x1000; F16(0x64) = 0x1000;
 				F32(0x8C) = (int32_t)(MB + 0x8D0);
 				F32(0x84) = 0; F16(0x88) = 0;
 				F16(0x72) = 0; F16(0x70) = 0; F16(0x6E) = 0; F16(0x6A) = 0; F16(0x68) = 0; F16(0x66) = 0;
 				F32(0x78) = 0; F32(0x7C) = 2000; F32(0x80) = 4000;
-				Play(L, us(CB_PrimMatrix), FP(0x64));
+				Play(L, game_addr(CB_PrimMatrix), FP(0x64));
 			}
 		}
 
@@ -1314,32 +1314,32 @@ namespace q116
 					for (int k = 0; k < 4; k++)
 					{
 						int32_t r = Rand();
-						cx::Sub6C76C0(us(0x12AFE58), (r * (int32_t)*(int16_t *)us(0x12AFE58)) >> 15);
+						cx::Sub6C76C0(game_addr(game::aWe), (r * (int32_t)*(int16_t *)game_addr(game::aWe)) >> 15);
 					}
 				}
-				if (t == 0) cx::Decode(us(0x1299718), L, 0xB4);
+				if (t == 0) cx::Decode(game_addr(game::unk_1299718), L, 0xB4);
 				F32(0x40) = (int32_t)(MB + 0x8D0);
-				F16(0x32) = G16(us(BASE_Y2));
-				F16(0x34) = G16(us(BASE_Y));
+				F16(0x32) = G16(game_addr(BASE_Y2));
+				F16(0x34) = G16(game_addr(BASE_Y));
 				F32(0x38) = -128; F16(0x3C) = 1; F16(0x3E) = (int16_t)t; F16(0x30) = 0;
-				Play(L, us(CB_PrimDraw), FP(0x30));
+				Play(L, game_addr(CB_PrimDraw), FP(0x30));
 				if (t >= 0x14)
 				{
-					if (t == 0x14) cx::Decode(us(0x129CD84), (void *)us(0x129F4E8), 0x4BC);
+					if (t == 0x14) cx::Decode(game_addr(game::unk_129CD84), (void *)game_addr(game::unk_129F4E8), 0x4BC);
 					uint32_t p = Pause();
 					if (!p)
 					{
 						int16_t d = t < 0x26 ? -64 : 0x180;
-						G16(us(CAM_EYE) + 2) += d;
-						G16(us(CAM_AT) + 2) += d;
+						G16(game_addr(CAM_EYE) + 2) += d;
+						G16(game_addr(CAM_AT) + 2) += d;
 					}
 					F32(0x38) = 0; F16(0x3C) = 0;
 					F32(0x8C) = (int32_t)(MB + 0x8D0);
 					F32(0x40) = (int32_t)(MB + 0x8D0);
 					F16(0x30) = 0;
-					F16(0x34) = G16(us(BASE_Y));
-					F16(0x32) = (int16_t)(G32(us(BASE_Y2)) - 3000);
-					Play((prim::Layout *)us(0x129F4E8), us(CB_PrimDraw), FP(0x30));
+					F16(0x34) = G16(game_addr(BASE_Y));
+					F16(0x32) = (int16_t)(G32(game_addr(BASE_Y2)) - 3000);
+					Play((prim::Layout *)game_addr(game::unk_129F4E8), game_addr(CB_PrimDraw), FP(0x30));
 				}
 			}
 		}
@@ -1350,18 +1350,18 @@ namespace q116
 			{
 				if (t == 0)
 				{
-					cx::Decode(us(0x12A9664), L, 0x124);
-					InitTaskQueuePool(&QueueDebris().first, (void *)us(0x12A53E0), 0x2C, 0x20);
+					cx::Decode(game_addr(game::unk_12A9664), L, 0x124);
+					InitTaskQueuePool(&QueueDebris().first, (void *)game_addr(game::unk_12A53E0), 0x2C, 0x20);
 				}
 				for (int k = 0; k < 2; k++)
 				{
-					uint8_t *d = (uint8_t *)AddTaskToQueue(&QueueDebris().first, us(ORIG_DebrisTask));
+					uint8_t *d = (uint8_t *)AddTaskToQueue(&QueueDebris().first, game_addr(ORIG_DebrisTask));
 					if (!d) continue;
 					*(int16_t *)(d + 0x0C) = 0;
 					*(int16_t *)(d + 0x10) = (int16_t)((cx::SharedRand() & 0xFFF) - 0x800);
 					int32_t r = cx::SharedRand();
 					*(int16_t *)(d + 0x12) = 0;
-					*(int16_t *)(d + 0x14) = (int16_t)((r & 0xFFF) + G32(us(BASE_Y)) - 0x800);
+					*(int16_t *)(d + 0x14) = (int16_t)((r & 0xFFF) + G32(game_addr(BASE_Y)) - 0x800);
 					*(int16_t *)(d + 0x18) = (int16_t)((cx::SharedRand() & 0x3F) - 0x20);
 					*(int16_t *)(d + 0x1C) = (int16_t)((cx::SharedRand() & 0x3F) - 0x20);
 					*(int16_t *)(d + 0x1A) = (int16_t)(-0x80 - (cx::SharedRand() & 0x7F));
@@ -1372,11 +1372,11 @@ namespace q116
 					d[0x29] = (uint8_t)cx::SharedRand();
 					d[0x2A] = (uint8_t)cx::SharedRand();
 				}
-				F16(0x34) = G16(us(BASE_Y));
+				F16(0x34) = G16(game_addr(BASE_Y));
 				F32(0x40) = (int32_t)(MB + 0x8D0);
 				F32(0x8C) = (int32_t)(MB + 0x8D0);
 				F32(0x38) = -256; F16(0x3C) = 0; F16(0x32) = 0; F16(0x30) = 0;
-				Play(L, us(CB_PrimDraw), FP(0x30));
+				Play(L, game_addr(CB_PrimDraw), FP(0x30));
 			}
 		}
 
@@ -1385,29 +1385,29 @@ namespace q116
 			if (t < 0x24)
 			{
 				if (t == 0) cx::Decode((uint32_t)(ModelBuffer() + 0x28E9C), L, 0x354);
-				F16(0x34) = G16(us(BASE_Y));
+				F16(0x34) = G16(game_addr(BASE_Y));
 				F32(0x40) = (int32_t)(ModelBuffer() + 0x8D0);
 				F32(0x8C) = (int32_t)(ModelBuffer() + 0x8D0);
 				F32(0x38) = -1024;
 				F16(0x3C) = 0; F16(0x32) = 0; F16(0x30) = 0;
-				Play(L, us(CB_PrimDraw), FP(0x30));
+				Play(L, game_addr(CB_PrimDraw), FP(0x30));
 				if (!Pause())
 				{
 					int16_t d = (int16_t)(0x80 - (t << 7) / 36);
-					G16(us(CAM_EYE)) += d;
-					G16(us(CAM_EYE) + 2) -= d;
-					G16(us(CAM_EYE) + 4) -= d;
+					G16(game_addr(CAM_EYE)) += d;
+					G16(game_addr(CAM_EYE) + 2) -= d;
+					G16(game_addr(CAM_EYE) + 4) -= d;
 				}
 			}
 		}
 
 		switch ((uint16_t)W16(0x0C))
 		{
-		case 0x49: case 0x4F: case 0xF8: case 0xFA: case 0xFD: case 0x102: case 0x13D: cx::Sub6C6530(us(0x12AE7E0)); break;
-		case 0x4E: cx::Sub6C65A0(us(0x12AE7E4)); break;
-		case 0x50: case 0xE3: case 0x101: case 0x103: case 0x13C: case 0x13E: cx::Sub6C6530(us(0x12AE7E4)); break;
-		case 0x51: case 0xE4: case 0x13B: case 0x13F: cx::Sub6C6530(us(0x12AE7E8)); break;
-		case 0xE5: cx::Sub6C6530(us(0x12AE7EC)); break;
+		case 0x49: case 0x4F: case 0xF8: case 0xFA: case 0xFD: case 0x102: case 0x13D: cx::Sub6C6530(game_addr(game::unk_12AE7E0)); break;
+		case 0x4E: cx::Sub6C65A0(game_addr(game::unk_12AE7E4)); break;
+		case 0x50: case 0xE3: case 0x101: case 0x103: case 0x13C: case 0x13E: cx::Sub6C6530(game_addr(game::unk_12AE7E4)); break;
+		case 0x51: case 0xE4: case 0x13B: case 0x13F: cx::Sub6C6530(game_addr(game::unk_12AE7E8)); break;
+		case 0xE5: cx::Sub6C6530(game_addr(game::unk_12AE7EC)); break;
 		default: break;
 		}
 
@@ -1419,26 +1419,26 @@ namespace q116
 			case 0x00: if (cx::LoadBusy()) return 0; cx::Load(0x1F9, D, 1); cx::Load(0x1FA, (uint32_t)(ModelBuffer() + 0x28E9C), 1); cx::Load(0x1FB, (uint32_t)(ModelBuffer() + 0x28E9C), 2); break;
 			case 0x1E: if (cx::LoadBusy()) return 0; cx::Load(0x1FC, D, 2); cx::Load(0x1FD, (uint32_t)(ModelBuffer() + 0x28E9C), 1); cx::Load(0x1FE, (uint32_t)(ModelBuffer() + 0x28E9C), 3); break;
 			case 0x3C: if (cx::LoadBusy()) return 0; cx::Load(0x1FF, D, 1); cx::Load(0x200, (uint32_t)(ModelBuffer() + 0x3169C), 5); break;
-			case 0x4C: if (cx::LoadBusy()) return 0; cx::Load(0x201, us(0x1298C68), 5); break;
-			case 0x55: if (cx::LoadBusy()) return 0; cx::Load(0x202, D, 0); cx::Load(0x203, us(0x12A1164), 5); break;
+			case 0x4C: if (cx::LoadBusy()) return 0; cx::Load(0x201, game_addr(game::unk_1298C68), 5); break;
+			case 0x55: if (cx::LoadBusy()) return 0; cx::Load(0x202, D, 0); cx::Load(0x203, game_addr(game::unk_12A1164), 5); break;
 			case 0xA1:
 				if (cx::LoadBusy()) return 0;
-				cx::Load(0x204, D, 0); cx::Load(0x205, us(0x12A9664), 5);
+				cx::Load(0x204, D, 0); cx::Load(0x205, game_addr(game::unk_12A9664), 5);
 				cx::Load(0x206, (uint32_t)(ModelBuffer() + 0x28E9C), 1);
 				cx::Load(0x207, (uint32_t)(ModelBuffer() + 0x28E9C), 1);
 				cx::Load(0x208, (uint32_t)(ModelBuffer() + 0x28E9C), 3);
 				break;
-			case 0xD3: if (cx::LoadBusy()) return 0; cx::Load(0x209, us(0x1298C68), 5); cx::Load(0x20A, (uint32_t)(ModelBuffer() + 0x28E9C), 1); break;
+			case 0xD3: if (cx::LoadBusy()) return 0; cx::Load(0x209, game_addr(game::unk_1298C68), 5); cx::Load(0x20A, (uint32_t)(ModelBuffer() + 0x28E9C), 1); break;
 			case 0x100: if (cx::LoadBusy()) return 0; cx::Load(0x20B, D, 1); cx::Load(0x20C, (uint32_t)(ModelBuffer() + 0x28E9C), 3); break;
 			case 0x114:
 				if (cx::LoadBusy()) return 0;
-				G32(us(0x25216FC)) = 0; G32(us(0x25216F8)) = 0;
+				G32(game_addr(game::unk_25216FC)) = 0; G32(game_addr(game::MAG_116_FlashQueue)) = 0;
 				*(int32_t *)(ModelBuffer() + 0x28E50) = 0;
-				cx::Load(0x20D, us(0x12A9664), 5); cx::Load(0x20E, (uint32_t)(ModelBuffer() + 0x28E9C), 2);
+				cx::Load(0x20D, game_addr(game::unk_12A9664), 5); cx::Load(0x20E, (uint32_t)(ModelBuffer() + 0x28E9C), 2);
 				break;
 			case 0x12E:
 				if (cx::LoadBusy()) return 0;
-				G32(us(0x252172C)) = 0; G32(us(0x2521728)) = 0; G32(us(0x252171C)) = 0; G32(us(0x2521718)) = 0; G32(us(0x252170C)) = 0; G32(us(0x2521708)) = 0;
+				G32(game_addr(game::unk_252172C)) = 0; G32(game_addr(game::GF116_QUEZACOTL_queueCreature)) = 0; G32(game_addr(game::unk_252171C)) = 0; G32(game_addr(game::MAG_116_BoltQueue)) = 0; G32(game_addr(game::unk_252170C)) = 0; G32(game_addr(game::MAG_116_QueueBolts)) = 0;
 				cx::Load(0x20F, D, 0x10);
 				break;
 			case 0x13E: if (cx::LoadBusy()) return 0; break;
@@ -1452,13 +1452,13 @@ namespace q116
 			uint32_t t = (uint32_t)((int32_t)W16(0x0C) - 232);
 			if (t < 0x23)
 			{
-				if (t == 0) InitTaskQueuePool(&QueueDebris().second, (void *)us(0x12A53E0), 0x14, 0x40);
+				if (t == 0) InitTaskQueuePool(&QueueDebris().second, (void *)game_addr(game::unk_12A53E0), 0x14, 0x40);
 				cx::VertexPos(model, 0, 0x32, FP(0x18));
 				int32_t r = Rand();
 				F16(0x2A) = 0;
 				F16(0x28) = (int16_t)((r & 0x7FF) - 0x3FF);
 				r = Rand();
-				F16(0x2C) = (int16_t)((r & 0x3FF) + G32(us(BASE_Y)) - 0x200);
+				F16(0x2C) = (int16_t)((r & 0x3FF) + G32(game_addr(BASE_Y)) - 0x200);
 				r = Rand();
 				F16(0x20) = (int16_t)((r & 0xFF) - 0x80);
 				r = Rand();
@@ -1473,52 +1473,52 @@ namespace q116
 		{
 		case 0:
 			cx::Sub6C5300();
-			cx::PlaySE(us(0x12AE4F0), 1, 0x80);
-			G16(us(0x1D977A2)) = 0;
-			G16(us(0x1D8E038)) = 0x120;
-			G16(us(CAM_AT)) = 0; G16(us(CAM_AT) + 2) = (int16_t)0xEBE2; G16(us(CAM_AT) + 4) = (int16_t)0xFD2D;
-			G16(us(CAM_EYE)) = 0; G16(us(CAM_EYE) + 2) = (int16_t)0xF10D; G16(us(CAM_EYE) + 4) = (int16_t)0xF841;
+			cx::PlaySE(game_addr(game::unk_12AE4F0), 1, 0x80);
+			G16(game_addr(game::g_BattleCam_Roll)) = 0;
+			G16(game_addr(game::BATTLE_PROJECTION_DISTANCE)) = 0x120;
+			G16(game_addr(CAM_AT)) = 0; G16(game_addr(CAM_AT) + 2) = (int16_t)0xEBE2; G16(game_addr(CAM_AT) + 4) = (int16_t)0xFD2D;
+			G16(game_addr(CAM_EYE)) = 0; G16(game_addr(CAM_EYE) + 2) = (int16_t)0xF10D; G16(game_addr(CAM_EYE) + 4) = (int16_t)0xF841;
 			break;
-		case 0x41: cx::PlaySE(us(0x12AE4F4), 1, 0x80); break;
+		case 0x41: cx::PlaySE(game_addr(game::unk_12AE4F4), 1, 0x80); break;
 		case 0x45: cx::Sub6C5350(); cx::PlayStream(0x80, 1, 0x7F); break;
 		case 0x4C:
-			G16(us(CAM_AT)) = 0; G16(us(CAM_AT) + 4) = (int16_t)G32(us(BASE_Y3)); G16(us(CAM_AT) + 2) = (int16_t)0xFD74;
-			G16(us(CAM_EYE)) = (int16_t)0xF8EF; G16(us(CAM_EYE) + 2) = (int16_t)0xFE9C; G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y3)) + 0x8E4);
+			G16(game_addr(CAM_AT)) = 0; G16(game_addr(CAM_AT) + 4) = (int16_t)G32(game_addr(BASE_Y3)); G16(game_addr(CAM_AT) + 2) = (int16_t)0xFD74;
+			G16(game_addr(CAM_EYE)) = (int16_t)0xF8EF; G16(game_addr(CAM_EYE) + 2) = (int16_t)0xFE9C; G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y3)) + 0x8E4);
 			break;
 		case 0x7E: cx::Sub6C5300(); break;
-		case 0xD1: cx::PlaySE(us(0x12AE4F8), 1, 0x80); break;
+		case 0xD1: cx::PlaySE(game_addr(game::unk_12AE4F8), 1, 0x80); break;
 		case 0xD4: cx::Sub6C5350(); break;
 		case 0xF6:
-			G16(us(CAM_AT)) = (int16_t)0xFB92; G16(us(CAM_AT) + 2) = (int16_t)0xFD39; G16(us(CAM_EYE)) = 0x10D9;
-			G16(us(CAM_AT) + 4) = (int16_t)(G32(us(BASE_Y)) - 0x108);
-			G16(us(CAM_EYE) + 2) = (int16_t)0xFC8B; G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y)) + 0xCA4);
+			G16(game_addr(CAM_AT)) = (int16_t)0xFB92; G16(game_addr(CAM_AT) + 2) = (int16_t)0xFD39; G16(game_addr(CAM_EYE)) = 0x10D9;
+			G16(game_addr(CAM_AT) + 4) = (int16_t)(G32(game_addr(BASE_Y)) - 0x108);
+			G16(game_addr(CAM_EYE) + 2) = (int16_t)0xFC8B; G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y)) + 0xCA4);
 			break;
 		case 0xE2:
-			G16(us(CAM_AT)) = (int16_t)0xFFAD; G16(us(CAM_AT) + 2) = (int16_t)0xF9BC; G16(us(CAM_EYE)) = 0xB29; G16(us(CAM_EYE) + 2) = (int16_t)0xFDD7;
-			G16(us(CAM_AT) + 4) = (int16_t)(G32(us(BASE_Y3)) - 0x832);
-			G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y3)) + 0xA08);
+			G16(game_addr(CAM_AT)) = (int16_t)0xFFAD; G16(game_addr(CAM_AT) + 2) = (int16_t)0xF9BC; G16(game_addr(CAM_EYE)) = 0xB29; G16(game_addr(CAM_EYE) + 2) = (int16_t)0xFDD7;
+			G16(game_addr(CAM_AT) + 4) = (int16_t)(G32(game_addr(BASE_Y3)) - 0x832);
+			G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y3)) + 0xA08);
 			cx::PlayStream(0x80, 1, 0x7F);
 			break;
 		case 0x100:
-			G16(us(CAM_AT) + 4) = (int16_t)G32(us(BASE_Y));
-			G16(us(CAM_AT)) = 0; G16(us(CAM_AT) + 2) = 0; G16(us(CAM_EYE)) = (int16_t)0xF060; G16(us(CAM_EYE) + 2) = (int16_t)0xF060;
-			G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y)) + 0xFA0);
+			G16(game_addr(CAM_AT) + 4) = (int16_t)G32(game_addr(BASE_Y));
+			G16(game_addr(CAM_AT)) = 0; G16(game_addr(CAM_AT) + 2) = 0; G16(game_addr(CAM_EYE)) = (int16_t)0xF060; G16(game_addr(CAM_EYE) + 2) = (int16_t)0xF060;
+			G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y)) + 0xFA0);
 			break;
 		case 0x114:
-			G32(us(BASE_Y2)) = -4096;
-			G16(us(0x1D977A2)) = G16(us(0x1D9771C));
-			G16(us(CAM_AT)) = (int16_t)0xFFEF; G16(us(CAM_AT) + 2) = (int16_t)0xEAF5; G16(us(CAM_AT) + 4) = (int16_t)(G32(us(BASE_Y)) + 0x130);
-			G16(us(CAM_EYE)) = (int16_t)0xFE52; G16(us(CAM_EYE) + 2) = (int16_t)0xEFA4; G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y)) + 0x498);
+			G32(game_addr(BASE_Y2)) = -4096;
+			G16(game_addr(game::g_BattleCam_Roll)) = G16(game_addr(game::Battle_Camera_ReturnView_Roll));
+			G16(game_addr(CAM_AT)) = (int16_t)0xFFEF; G16(game_addr(CAM_AT) + 2) = (int16_t)0xEAF5; G16(game_addr(CAM_AT) + 4) = (int16_t)(G32(game_addr(BASE_Y)) + 0x130);
+			G16(game_addr(CAM_EYE)) = (int16_t)0xFE52; G16(game_addr(CAM_EYE) + 2) = (int16_t)0xEFA4; G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y)) + 0x498);
 			break;
-		case 0x115: cx::PlaySE(us(0x12AE4FC), 1, 0x80); break;
+		case 0x115: cx::PlaySE(game_addr(game::unk_12AE4FC), 1, 0x80); break;
 		case 0x12E:
-			G32(us(BASE_Y2)) = 0;
-			G16(us(CAM_AT)) = 0; G16(us(CAM_AT) + 2) = (int16_t)0xFAF5; G16(us(CAM_AT) + 4) = (int16_t)(G32(us(BASE_Y3)) - 0x93A);
-			G16(us(CAM_EYE)) = 0; G16(us(CAM_EYE) + 2) = (int16_t)0xF6B6; G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y3)) + 0xDE3);
+			G32(game_addr(BASE_Y2)) = 0;
+			G16(game_addr(CAM_AT)) = 0; G16(game_addr(CAM_AT) + 2) = (int16_t)0xFAF5; G16(game_addr(CAM_AT) + 4) = (int16_t)(G32(game_addr(BASE_Y3)) - 0x93A);
+			G16(game_addr(CAM_EYE)) = 0; G16(game_addr(CAM_EYE) + 2) = (int16_t)0xF6B6; G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y3)) + 0xDE3);
 			break;
 		case 0x13E:
-			G16(us(CAM_AT)) = 0; G16(us(CAM_AT) + 4) = (int16_t)G32(us(BASE_Y)); G16(us(CAM_AT) + 2) = 0;
-			G16(us(CAM_EYE)) = 0x1000; G16(us(CAM_EYE) + 2) = (int16_t)0xF000; G16(us(CAM_EYE) + 4) = (int16_t)(G32(us(BASE_Y)) - 0x1000);
+			G16(game_addr(CAM_AT)) = 0; G16(game_addr(CAM_AT) + 4) = (int16_t)G32(game_addr(BASE_Y)); G16(game_addr(CAM_AT) + 2) = 0;
+			G16(game_addr(CAM_EYE)) = 0x1000; G16(game_addr(CAM_EYE) + 2) = (int16_t)0xF000; G16(game_addr(CAM_EYE) + 4) = (int16_t)(G32(game_addr(BASE_Y)) - 0x1000);
 			cx::PlayStream(0x80, 1, 0x7F);
 			break;
 		default: break;
@@ -1526,13 +1526,13 @@ namespace q116
 
 		if (W16(0x0C) == 345)
 		{
-			uint8_t *ctx = *(uint8_t **)(*(uint8_t **)us(0x25216E0) + 4);
+			uint8_t *ctx = *(uint8_t **)(*(uint8_t **)game_addr(game::GF116_QUEZACOTL_castCtx) + 4);
 			cx::ApplyResult(*(uint32_t *)(ctx + 8), ctx[0x10]);
 		}
 		if (W16(0x0C) >= 355)
 		{
-			ff8fx::copy<(0x427F * 4)>((void *)us(0x1298C68), cx::SummonData());
-			ff8fx::copy<(0x1367 * 4)>((void *)us(0x12A9664), cx::SummonData() + 0x109FC);
+			ff8fx::copy<(0x427F * 4)>((void *)game_addr(game::unk_1298C68), cx::SummonData());
+			ff8fx::copy<(0x1367 * 4)>((void *)game_addr(game::unk_12A9664), cx::SummonData() + 0x109FC);
 			cx::Sub508630(ModelBuffer() + 0x2E50, &DoneFlag());
 			cx::Sub6C6500(1);
 			return TASK_END;
@@ -1543,7 +1543,7 @@ namespace q116
 
 	[[maybe_unused]] static void SpawnArc(uint8_t **bones, const int16_t *strips, const uint8_t *faces, uint8_t reach_shift, uint8_t fade_shift, int16_t speed)
 	{
-		ArcNode *arc = (ArcNode *)AddTaskToQueue(&QueueCreature().first, us(ORIG_ArcTask));
+		ArcNode *arc = (ArcNode *)AddTaskToQueue(&QueueCreature().first, game_addr(ORIG_ArcTask));
 		if (!arc) return;
 		arc->reach_shift = reach_shift;
 		arc->fade_shift = fade_shift;

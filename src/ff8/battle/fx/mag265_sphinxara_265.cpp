@@ -37,26 +37,26 @@ namespace sphinxara265
 	{
 		c.name = "265 Sphinxara";
 		c.effect_id = 265;
-		c.vm_table = us(0x1856810);
-		c.bone_table = us(0x1856480);
-		c.prim_table = us(0x18564C8);
-		c.prim_size = us(0x18565B8);
-		c.spr_table = us(0x18565CC);
-		c.ptype_table = us(0x18565F8);
-		c.pop_table = us(0x185660C);
-		c.draw_table = us(0x185666C);
-		c.attr_16A = us(0x18567D6);
-		c.attr_184 = us(0x18567F0);
-		c.attr_186 = us(0x18567F2);
-		c.attr_194 = us(0x1856800);
-		c.attr_19C = us(0x1856808);
-		c.desc = us(0x1856304);
-		c.ptr_block = us(0x1856458);
-		c.queue = us(0x2795D30);
-		c.file00 = us(0x2795D44);
-		c.file01 = us(0x2795D40);
-		c.tick = us(0x92D240);
-		c.load_cb = us(0x933930);
+		c.vm_table = game_addr(game::funcs_93796C);
+		c.bone_table = game_addr(game::funcs_934547);
+		c.prim_table = game_addr(game::funcs_92FEC4);
+		c.prim_size = game_addr(game::unk_18565B8);
+		c.spr_table = game_addr(game::unk_18565CC);
+		c.ptype_table = game_addr(game::unk_18565F8);
+		c.pop_table = game_addr(game::funcs_931F37);
+		c.draw_table = game_addr(game::unk_185666C);
+		c.attr_16A = game_addr(game::unk_18567D6);
+		c.attr_184 = game_addr(game::unk_18567F0);
+		c.attr_186 = game_addr(game::unk_18567F2);
+		c.attr_194 = game_addr(game::unk_1856800);
+		c.attr_19C = game_addr(game::unk_1856808);
+		c.desc = game_addr(game::unk_1856304);
+		c.ptr_block = game_addr(game::unk_1856458);
+		c.queue = game_addr(game::unk_2795D30);
+		c.file00 = game_addr(game::unk_2795D44);
+		c.file01 = game_addr(game::unk_2795D40);
+		c.tick = game_addr(game::MAG_265_sub_92D240);
+		c.load_cb = game_addr(game::MAG_265_sub_933930);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -95,7 +95,7 @@ namespace sphinxara265
 		sphinxara265::describe(sphinxara265::g_c);
 		init_clone(sphinxara265::g_c, nullptr, 0);
 		sphinxara265::apply_slots(sphinxara265::g_c);
-		register_port(0x92D240, (void *)sphinxara265::SequenceTask, "MAG265 Sphinxara 265 SequenceTick", 265);
+		register_port(game::MAG_265_sub_92D240, (void *)sphinxara265::SequenceTask, "MAG265 Sphinxara 265 SequenceTick", 265);
 	}
 }
 

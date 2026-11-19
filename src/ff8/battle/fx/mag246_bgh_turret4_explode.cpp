@@ -37,26 +37,26 @@ namespace turret246
 	{
 		c.name = "246 BGH251F2 4th turret explosion";
 		c.effect_id = 246;
-		c.vm_table = us(0x1860720);
-		c.bone_table = us(0x1860390);
-		c.prim_table = us(0x18603D8);
-		c.prim_size = us(0x18604C8);
-		c.spr_table = us(0x18604DC);
-		c.ptype_table = us(0x1860508);
-		c.pop_table = us(0x186051C);
-		c.draw_table = us(0x186057C);
-		c.attr_16A = us(0x18606E6);
-		c.attr_184 = us(0x1860700);
-		c.attr_186 = us(0x1860702);
-		c.attr_194 = us(0x1860710);
-		c.attr_19C = us(0x1860718);
-		c.desc = us(0x1860294);
-		c.ptr_block = us(0x1860368);
-		c.queue = us(0x2796750);
-		c.file00 = us(0x2796748);
-		c.file01 = us(0x279674C);
-		c.tick = us(0x9D3980);
-		c.load_cb = us(0x9D8010);
+		c.vm_table = game_addr(game::funcs_9DC04C);
+		c.bone_table = game_addr(game::funcs_9D8C27);
+		c.prim_table = game_addr(game::funcs_9D55D4);
+		c.prim_size = game_addr(game::unk_18604C8);
+		c.spr_table = game_addr(game::unk_18604DC);
+		c.ptype_table = game_addr(game::unk_1860508);
+		c.pop_table = game_addr(game::funcs_9D6617);
+		c.draw_table = game_addr(game::unk_186057C);
+		c.attr_16A = game_addr(game::unk_18606E6);
+		c.attr_184 = game_addr(game::unk_1860700);
+		c.attr_186 = game_addr(game::unk_1860702);
+		c.attr_194 = game_addr(game::unk_1860710);
+		c.attr_19C = game_addr(game::unk_1860718);
+		c.desc = game_addr(game::unk_1860294);
+		c.ptr_block = game_addr(game::unk_1860368);
+		c.queue = game_addr(game::unk_2796750);
+		c.file00 = game_addr(game::unk_2796748);
+		c.file01 = game_addr(game::unk_279674C);
+		c.tick = game_addr(game::MAG_246_sub_9D3980);
+		c.load_cb = game_addr(game::MAG_246_sub_9D8010);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -73,7 +73,7 @@ namespace turret246
 		using namespace gfc;
 		turret246::describe(turret246::g_c);
 		init_clone(turret246::g_c, nullptr, 0);
-		register_port(0x9D3980, (void *)turret246::SequenceTask, "MAG246 BGH251F2 4th turret explosion SequenceTick", 246);
+		register_port(game::MAG_246_sub_9D3980, (void *)turret246::SequenceTask, "MAG246 BGH251F2 4th turret explosion SequenceTick", 246);
 	}
 }
 

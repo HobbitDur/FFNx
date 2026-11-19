@@ -22,32 +22,32 @@ namespace act
 {
 namespace mguard_quistis
 {
-	static const Mod MOD_073 = { "mightyguard_quistis", 73, 0x7CBD90, 0x7D1E60,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25F4F28, 0x25F4F58, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25F3F84, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25F4B00, 0x0, 0x25F4DA0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25F4F1A, 0x0, 0x0, 0x25F4F2A, 0x0, 0x25F4F30, 0x0, 0x25F4F64 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7CC3C0, 0x7CCDF0, 0x7CCE80, 0x7CCEE0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7CF0F0, 0x7CF230, 0x7CF270, 0x7D0500, 0x7D0550, 0x7D0580, 0x0, 0x7D0CF0, 0x7D0D40, 0x7D0DE0, 0x7D0EA0, 0x7D16F0, 0x7D1AF0, 0x7D1B80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7CC220, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7CF1B0, 0x7CF300, 0x7CF960, 0x7CF9B0, 0x7CFA40, 0x7CFB10, 0x7D02A0, 0x7D03B0, 0x7D0430, 0x7D0460, 0x7D0C80, 0x7D0CB0, 0x7D0D90, 0x7D0EB0, 0x7D1000, 0x7D1690, 0x7D16C0, 0x7D18A0, 0x7D19E0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_073 = { "mightyguard_quistis", 73, game::MAG_073_MIGHTY_GUARD_QUISTIS_FL, game::_keep_,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PoolCounter3, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorPool, {}, {}, {}, {}, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_CameraPtr, {}, {}, {}, {}, {}, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorSystemQueue, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_EmitterQueue, {}, {}, {}, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorCount16, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorCount14, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ScratchSP, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorState_Setup, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_Step, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_DrawModels, game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_DrawModel, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_DrawSprites, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActSys_UpdatePass, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorStep, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActSys_UpdateEmitter, game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_LifeCountdown, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActSys_EmitterSpawnStep, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_RandVec3, game::MAG_073_MIGHTY_GUARD_QUISTIS_JitterAngles3, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActSys_AllocParticleSlot, game::MAG_073_MIGHTY_GUARD_QUISTIS_GetWord8Minus1, game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_Init, game::MAG_073_MIGHTY_GUARD_QUISTIS_SpawnSubEffects, game::MAG_073_MIGHTY_GUARD_QUISTIS_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_DrawSprite, game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorMotion, game::MAG_073_MIGHTY_GUARD_QUISTIS_DampValue, game::MAG_073_MIGHTY_GUARD_QUISTIS_DampVector, game::MAG_073_MIGHTY_GUARD_QUISTIS_Instance_AdvanceTexFrame, game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_InstanceTransform, game::MAG_073_MIGHTY_GUARD_QUISTIS_MorphVertexBlock, game::MAG_073_MIGHTY_GUARD_QUISTIS_Instance_EndOfLifeTest, game::MAG_073_MIGHTY_GUARD_QUISTIS_Instance_SpawnFollowUp, game::MAG_073_MIGHTY_GUARD_QUISTIS_ParticlePool_Alloc, game::MAG_073_MIGHTY_GUARD_QUISTIS_RandRange, game::MAG_073_MIGHTY_GUARD_QUISTIS_RandRangeWide, game::MAG_073_MIGHTY_GUARD_QUISTIS_RandRange2, game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_AttachToOwner, game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_InterpolatePosition, game::MAG_073_MIGHTY_GUARD_QUISTIS_ParticleList_Append, game::MAG_073_MIGHTY_GUARD_QUISTIS_ParticleList_Unlink, game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_PlaceAnchor, game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_PlaceAtPoint, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x25F3F64;
-	static const uint32_t SCRATCH_SP = 0x25F4F30;
-	static const uint32_t ACTOR_STATE = 0x25F4F64;
-	static const uint32_t BIND_Block = 0x25F4F38;
-	static const uint32_t COM_Anim = 0x1587F4C;
-	static const uint32_t CAMERA_PTR = 0x25F3F84;
-	static const uint32_t ACTOR_DATA = 0x178557C;
-	static const void *SOUND() { return (const void *)us(0x1587F48); }
-	static const uint32_t Q_EMITTER = 0x25F4DA0, Q_ACTORS = 0x25F4B00, Q_STAGE = 0x25F4D90;
-	static const uint32_t ORIG_Master = 0x7CBEE0;
-	static const uint32_t ORIG_Emitter = 0x7CC220;
-	static const uint32_t ORIG_ActorSystem = 0x7CC330;
-	static const uint32_t ORIG_Darken = 0x7CC100;
-	static const uint32_t ORIG_Lighten = 0x7D1D30;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PacketCursor;
+	static constexpr game::Id SCRATCH_SP = game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ScratchSP;
+	static constexpr game::Id ACTOR_STATE = game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState;
+	static constexpr game::Id BIND_Block = game::MAG_073_MIGHTY_GUARD_QUISTIS_g_CasterBindBlock;
+	static constexpr game::Id COM_Anim = game::MAG_073_MIGHTY_GUARD_QUISTIS_ComAnimSet;
+	static constexpr game::Id CAMERA_PTR = game::MAG_073_MIGHTY_GUARD_QUISTIS_g_CameraPtr;
+	static constexpr game::Id ACTOR_DATA = game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorData;
+	static const void *SOUND() { return (const void *)game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Sound); }
+	static constexpr game::Id Q_EMITTER = game::MAG_073_MIGHTY_GUARD_QUISTIS_g_EmitterQueue, Q_ACTORS = game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorSystemQueue, Q_STAGE = game::MAG_073_MIGHTY_GUARD_QUISTIS_g_StageQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_073_MIGHTY_GUARD_QUISTIS_MasterTask;
+	static constexpr game::Id ORIG_Emitter = game::MAG_073_MIGHTY_GUARD_QUISTIS_EmitterTask;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystemTask;
+	static constexpr game::Id ORIG_Darken = game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenInTask;
+	static constexpr game::Id ORIG_Lighten = game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenOutTask;
 
 	namespace gx
 	{
-		static inline uint32_t BS_BindEntityModelFromComData(uint32_t entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
-		static inline uint32_t QueueChainTransformation(uint32_t entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(entity, id); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t BS_BindEntityModelFromComData(uint32_t entity, uint32_t out, uint32_t data) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+		static inline uint32_t QueueChainTransformation(uint32_t entity, uint32_t id) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -354,7 +354,7 @@ namespace mguard_quistis
 		U32(node, 0xA0) = (uint32_t)h4_div65536(S32(src, 0));
 		U32(node, 0xA4) = (uint32_t)h4_div65536(S32(src, 4));
 		U32(node, 0xA8) = (uint32_t)h4_div65536(S32(src, 8));
-		x::GTE_SetRotMatrix(MEM<uint32_t>(us(CAMERA_PTR)));
+		x::GTE_SetRotMatrix(MEM<uint32_t>(game_addr(CAMERA_PTR)));
 		x::GTE_LoadIRFromMatrixColumn(node + 0x8C);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(node + 0xAC);
@@ -364,7 +364,7 @@ namespace mguard_quistis
 		x::GTE_LoadIRFromMatrixColumn(node + 0x90);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(node + 0xB0);
-		x::GTE_SetTransVector(MEM<uint32_t>(us(CAMERA_PTR)));
+		x::GTE_SetTransVector(MEM<uint32_t>(game_addr(CAMERA_PTR)));
 		x::GTE_LoadV0FromDwords(node + 0xA0);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(node + 0xC0);
@@ -393,13 +393,13 @@ namespace mguard_quistis
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				break;
 			case 2:
-				x::UnpackRotationMatrix(MEM<uint32_t>(us(CAMERA_PTR)), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(game_addr(CAMERA_PTR)), m);
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				break;
 			case 3:
-				x::UnpackRotationMatrix(MEM<uint32_t>(us(CAMERA_PTR)), m);
+				x::UnpackRotationMatrix(MEM<uint32_t>(game_addr(CAMERA_PTR)), m);
 				if (U16(node, 0xCE) != 0) x::MAG_022_sub_8DD8A0(m, (uint32_t)(int32_t)S16(node, 0xCE));
 				if (U16(node, 0xCC) != 0) x::sub_8DD7E0(m, (uint32_t)(int32_t)S16(node, 0xCC));
 				if (U16(node, 0xD0) != 0) x::sub_8DD960(m, (uint32_t)(int32_t)S16(node, 0xD0));
@@ -466,16 +466,16 @@ namespace mguard_quistis
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x25F4F60));
-		MEM<uint32_t>(us(0x25F4F1C)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ParticlePool)) = p;
 		p += 0xEC4;
-		MEM<uint32_t>(us(0x25F4F58)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorPool)) = p;
 		p += 0x10680;
-		MEM<uint32_t>(us(0x25F4F60)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ArenaCursor)) = p;
 		mq_7CC0C0();
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(ORIG_Darken), 0x40, a1);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2C) * 0x9C;
-		gx::BS_BindEntityModelFromComData(ent, us(BIND_Block), us(COM_Anim));
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(ORIG_Darken), 0x40, a1);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2C) * 0x9C;
+		gx::BS_BindEntityModelFromComData(ent, game_addr(BIND_Block), game_addr(COM_Anim));
 		gx::QueueChainTransformation(ent, 1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -483,12 +483,12 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC0C0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25F4F1C)), 0xEC4);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25F4F58)), 0x10680);
-		MEM<uint16_t>(us(0x25F4060)) = 0;
-		MEM<uint16_t>(us(0x25F4F28)) = 0;
-		MEM<uint16_t>(us(0x25F4F18)) = 0;
-		MEM<uint16_t>(us(0x25F3F68)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ParticlePool)), 0xEC4);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorPool)), 0x10680);
+		MEM<uint16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PoolCounter1)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PoolCounter3)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PoolCounter2)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PoolCounter0)) = 0;
 		return 0;
 	}
 
@@ -496,10 +496,10 @@ namespace mguard_quistis
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x7CC2B0);
-		states[1] = us(0x7D1C40);
-		states[2] = us(0x7D1C60);
-		states[3] = us(0x7D1CA0);
+		states[0] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_SpawnActorSystem);
+		states[1] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_ReleaseMaster);
+		states[2] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_ApplyResult);
+		states[3] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_State3_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -551,12 +551,12 @@ namespace mguard_quistis
 		U32(st, 0x228) = data + 0x44;
 		U32(st, 0x22C) = data + 0x84;
 		const uint32_t relocated = U32(data, 0);
-		MEM<uint32_t>(us(ACTOR_STATE)) = st;
+		MEM<uint32_t>(game_addr(ACTOR_STATE)) = st;
 		U32(st, 0x230) = data + 0xC4;
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 			U32(data, 0) = 1;
 		}
 		U16(st, 0x1E) = caster;
@@ -570,32 +570,32 @@ namespace mguard_quistis
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		mq_7CC630();
-		st = MEM<uint32_t>(us(ACTOR_STATE));
+		st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		if (U16(st, 0x24) == 4)
 			mq_7CC550(node);
 		mq_7CC980();
-		st = MEM<uint32_t>(us(ACTOR_STATE));
+		st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		if (U16(st, 0x24) == 1)
 		{
 			mq_7CC790();
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
-		const uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(S16(st, 0x1E), 0x9C);
+		const uint32_t e1 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(S16(st, 0x1E), 0x9C);
 		const uint32_t d0c = U32(e1, 0x1C);
 		const uint32_t d10 = U32(e1, 0x20);
-		const uint32_t e2 = us(0x1D972C0) + (uint32_t)mul32((int32_t)U32(st, 4), 0x9C);
+		const uint32_t e2 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32((int32_t)U32(st, 4), 0x9C);
 		const uint32_t d14 = U32(e2, 0x1C);
 		const int32_t dx = (int16_t)(uint16_t)((uint16_t)d0c - (uint16_t)d14);
 		const int32_t dy = (int16_t)(uint16_t)((uint16_t)(d0c >> 16) - (uint16_t)(d14 >> 16));
 		const int32_t dz = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)U32(e2, 0x20));
 		const int32_t sq = add32(add32(mul32(dx, dx), mul32(dz, dz)), mul32(dy, dy));
 		const uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(us(ACTOR_STATE));
+		st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		U32(st, 0) = dist;
 		return 0;
 	}
@@ -603,9 +603,9 @@ namespace mguard_quistis
 	uint32_t __cdecl mq_7CCEE0(uint32_t a1, uint32_t a2)
 	{
 		const uint32_t act = a1;
-		const uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
+		const uint32_t ctx = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x68;
 		U32(ctx, 0) = U32(act, 0x170);
-		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = ctx;
 		U32(ctx, 0x14) = 0;
 		if (U16(a2, 0x3A) == 0)
 			U32(ctx, 0x14) = 0x30;
@@ -626,7 +626,7 @@ namespace mguard_quistis
 		if (def_idx == 4 || def_idx == 5)
 		{
 			U16(ctx, 0x2A) = 0x100;
-			const uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+			const uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 			U16(ctx, 0x24) = 0;
 			U16(ctx, 0x26) = 0;
 			U16(ctx, 0x28) = 0x80;
@@ -650,9 +650,9 @@ namespace mguard_quistis
 			const uint32_t m = act + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-			MEM<uint32_t>(us(PACKET_CURSOR)) = mq_7CD090(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = mq_7CD090(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -666,23 +666,23 @@ namespace mguard_quistis
 				S32(act, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 				const uint32_t r = mq_7CD090(ctx, ot, 2, cursor);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = r;
 			} while (i < S8(act, 0x1D8));
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl mq_7D0460(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25F4F1C));
-		int32_t idx = (int32_t)MEM<int16_t>(us(0x25F4060));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ParticlePool));
+		int32_t idx = (int32_t)MEM<int16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PoolCounter1));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -692,7 +692,7 @@ namespace mguard_quistis
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(st, 0x14) = (uint16_t)(U16(st, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -707,9 +707,9 @@ namespace mguard_quistis
 		} while (tries < 0x23);
 		idx++;
 		if (idx < 0x22)
-			MEM<uint16_t>(us(0x25F4060)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PoolCounter1)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x25F4060)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PoolCounter1)) = 0;
 		return slot;
 	}
 
@@ -736,44 +736,44 @@ namespace mguard_quistis
 		g_mod = &MOD_073;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x25F3F84)) = us(0x2793E58);
-		states[0] = us(0x7CC020);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_CameraPtr)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State0_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x7CC030);
-		states[2] = us(0x7CC040);
-		states[3] = us(0x7CC1F0);
-		states[4] = us(0x7D1CB0);
-		states[5] = us(0x7D1D00);
-		states[6] = us(0x7D1E00);
-		states[7] = us(0x7D1E10);
-		states[8] = us(0x7D1E20);
-		states[9] = us(0x7D1E30);
-		states[10] = us(0x7D1E50);
+		states[1] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State1_Advance);
+		states[2] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_AllocActorPools_BindCasterAnim);
+		states[3] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_SpawnEmitter);
+		states[4] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_TargetLoop);
+		states[5] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_StartDarkenOut);
+		states[6] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x25F4F14));
-			const uint32_t v2 = MEM<uint32_t>(us(0x25F406C));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x25F3F80)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ArenaB1));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PacketArena1));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_FrameArenaCursor)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x25F4F10));
-			const uint32_t v2 = MEM<uint32_t>(us(0x25F4068));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x25F3F80)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ArenaB0));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_PacketArena0));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_FrameArenaCursor)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x25F4F2A)) = 0;
-		MEM<uint16_t>(us(0x25F4F1A)) = 0;
-		static const uint32_t queues[3] = { us(Q_EMITTER), us(Q_ACTORS), us(Q_STAGE) };
+		MEM<uint16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorCount14)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorCount16)) = 0;
+		static constexpr game::Id queues[3] = { Q_EMITTER, Q_ACTORS, Q_STAGE };
 		for (int i = 0; i < 3; i++)
-			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(queues[i]));
+			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(queues[i])));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -791,7 +791,7 @@ namespace mguard_quistis
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -799,14 +799,14 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC2B0(uint32_t a1)
 	{
-		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0xC, 0x2D, 0);
+		a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(ACTOR_DATA), 0xC, 0x2D, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl mq_7CC550(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25F4F64));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -823,15 +823,15 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC630(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -844,7 +844,7 @@ namespace mguard_quistis
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -852,7 +852,7 @@ namespace mguard_quistis
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -867,7 +867,7 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC790(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25F4F64));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -888,7 +888,7 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CC980(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -897,11 +897,11 @@ namespace mguard_quistis
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+				const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -914,7 +914,7 @@ namespace mguard_quistis
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -922,7 +922,7 @@ namespace mguard_quistis
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -964,7 +964,7 @@ namespace mguard_quistis
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x25F4F64), 0) = sys;
+		U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -976,7 +976,7 @@ namespace mguard_quistis
 			mq_7CF230();
 			mq_7CF0F0();
 			mq_7CCE80();
-			sys = U32(us(0x25F4F64), 0);
+			sys = U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -989,19 +989,19 @@ namespace mguard_quistis
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x25F4F2A), 0) = (uint16_t)(U16(us(0x25F4F2A), 0) + c14);
-		U16(us(0x25F4F1A), 0) = (uint16_t)(U16(us(0x25F4F1A), 0) + c16);
+		U16(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorCount14), 0) = (uint16_t)(U16(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorCount14), 0) + c14);
+		U16(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorCount16), 0) = (uint16_t)(U16(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorCount16), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl mq_7CCE80(void)
 	{
-		uint32_t act = U32(U32(us(0x25F4F64), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x25F4F64), 0);
+				uint32_t sys = U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1727,14 +1727,14 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7CF0F0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x25F4F64)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x25F4F64));
+				uint32_t st = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1769,26 +1769,26 @@ namespace mguard_quistis
 	uint32_t __cdecl mq_7CF1B0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl mq_7CF230(void)
 	{
-		uint32_t act = U32(U32(us(0x25F4F64), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1804,7 +1804,7 @@ namespace mguard_quistis
 	uint32_t __cdecl mq_7CF270(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x25F4F64));
+		uint32_t st = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1825,7 +1825,7 @@ namespace mguard_quistis
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x25F4F64));
+			st = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1837,7 +1837,7 @@ namespace mguard_quistis
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x25F4F64), 0);
+		uint32_t st = U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1927,9 +1927,9 @@ namespace mguard_quistis
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x7D0EB0), a1);
+			callp(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x7D1000), a1);
+			callp(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_InterpolatePosition), a1);
 		mq_7D0580(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1938,7 +1938,7 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7D0580(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x25F4F64), 0);
+		uint32_t sys = U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1965,9 +1965,9 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7D0600(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = MEM<uint32_t>(us(SCRATCH_SP)) - 0x50;
+		uint32_t sp = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		MEM<uint32_t>(us(SCRATCH_SP)) = sp;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = sp;
 		uint32_t node = a_7387B0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1977,7 +1977,7 @@ namespace mguard_quistis
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = MEM<uint32_t>(us(ACTOR_STATE));
+			uint32_t ctx = MEM<uint32_t>(game_addr(ACTOR_STATE));
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2145,14 +2145,14 @@ namespace mguard_quistis
 			}
 		}
 		mq_7D1AF0(node, desc);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0x50;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl mq_7D1000(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x25F4F64), 0);
+		const uint32_t st = U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -2212,7 +2212,7 @@ namespace mguard_quistis
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x25F4F64), 0);
+				uint32_t g = U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2222,7 +2222,7 @@ namespace mguard_quistis
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x25F4F64), 0);
+				uint32_t g = U32(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2297,7 +2297,7 @@ namespace mguard_quistis
 
 	uint32_t __cdecl mq_7D1B80(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x25F4F64));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2322,14 +2322,14 @@ namespace mguard_quistis
 				do
 				{
 					mq_7D0460(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x25F4F64));
+					dir = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				mq_7D0460(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x25F4F64));
+				dir = MEM<uint32_t>(game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_g_ActorState));
 			}
 		}
 		return 0;
@@ -2361,7 +2361,7 @@ namespace mguard_quistis
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x7D1D30), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenOutTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -2385,101 +2385,101 @@ namespace mguard_quistis
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x7CC020, (void *)a_73A0D0, "073 a_73A0D0" },
-		{ 0x7CC030, (void *)a_73A0D0, "073 a_73A0D0" },
-		{ 0x7CC100, (void *)a_73A380, "073 a_73A380" },
-		{ 0x7CC160, (void *)a_7335D0, "073 a_7335D0" },
-		{ 0x7CC1E0, (void *)a_73A6D0, "073 a_73A6D0" },
-		{ 0x7CC1F0, (void *)a_73A170, "073 a_73A170" },
-		{ 0x7CC2E0, (void *)a_73C100, "073 a_73C100" },
-		{ 0x7CC330, (void *)a_73A380, "073 a_73A380" },
-		{ 0x7CC860, (void *)a_73FE90, "073 a_73FE90" },
-		{ 0x7CCB90, (void *)a_740210, "073 a_740210" },
-		{ 0x7CE070, (void *)a_73D770, "073 a_73D770" },
-		{ 0x7CE2C0, (void *)a_73D9C0, "073 a_73D9C0" },
-		{ 0x7CF300, (void *)a_740910, "073 a_740910" },
-		{ 0x7CF960, (void *)a_740F70, "073 a_740F70" },
-		{ 0x7CF9B0, (void *)a_740FC0, "073 a_740FC0" },
-		{ 0x7CFA40, (void *)a_741050, "073 a_741050" },
-		{ 0x7CFB10, (void *)a_741120, "073 a_741120" },
-		{ 0x7D0550, (void *)a_741B60, "073 a_741B60" },
-		{ 0x7D0C80, (void *)a_742290, "073 a_742290" },
-		{ 0x7D0CB0, (void *)a_7422C0, "073 a_7422C0" },
-		{ 0x7D0CF0, (void *)a_742300, "073 a_742300" },
-		{ 0x7D0D40, (void *)a_742350, "073 a_742350" },
-		{ 0x7D0D90, (void *)a_7423A0, "073 a_7423A0" },
-		{ 0x7D0DE0, (void *)a_7387B0, "073 a_7387B0" },
-		{ 0x7D0EA0, (void *)a_7424B0, "073 a_7424B0" },
-		{ 0x7D0EB0, (void *)a_7424C0, "073 a_7424C0" },
-		{ 0x7D1690, (void *)a_742CA0, "073 a_742CA0" },
-		{ 0x7D16C0, (void *)a_742CD0, "073 a_742CD0" },
-		{ 0x7D16F0, (void *)a_742D00, "073 a_742D00" },
-		{ 0x7D18A0, (void *)a_742EB0, "073 a_742EB0" },
-		{ 0x7D19E0, (void *)a_742FF0, "073 a_742FF0" },
-		{ 0x7D1C30, (void *)a_73A6D0, "073 a_73A6D0" },
-		{ 0x7D1CA0, (void *)a_73A6D0, "073 a_73A6D0" },
-		{ 0x7D1D30, (void *)a_73A380, "073 a_73A380" },
-		{ 0x7D1DF0, (void *)a_73A6D0, "073 a_73A6D0" },
-		{ 0x7D1E00, (void *)a_747550, "073 a_747550" },
-		{ 0x7D1E10, (void *)a_73A0D0, "073 a_73A0D0" },
-		{ 0x7D1E20, (void *)a_73A0D0, "073 a_73A0D0" },
-		{ 0x7D1E30, (void *)a_7475A0, "073 a_7475A0" },
-		{ 0x7D1E50, (void *)a_73A6D0, "073 a_73A6D0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State0_Advance, (void *)a_73A0D0, "073 a_73A0D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State1_Advance, (void *)a_73A0D0, "073 a_73A0D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenInTask, (void *)a_73A380, "073 a_73A380" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenIn_State0_ResetEntityRecords, (void *)a_7335D0, "073 a_7335D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenIn_State2_Empty, (void *)a_73A6D0, "073 a_73A6D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_SpawnEmitter, (void *)a_73A170, "073 a_73A170" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_SpawnActorSystemTask, (void *)a_73C100, "073 a_73C100" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystemTask, (void *)a_73A380, "073 a_73A380" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Director_Mode3Setup, (void *)a_73FE90, "073 a_73FE90" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorData_Relocate, (void *)a_740210, "073 a_740210" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_EmitG3, (void *)a_73D770, "073 a_73D770" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_EmitG4, (void *)a_73D9C0, "073 a_73D9C0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorMotion, (void *)a_740910, "073 a_740910" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_DampValue, (void *)a_740F70, "073 a_740F70" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_DampVector, (void *)a_740FC0, "073 a_740FC0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Instance_AdvanceTexFrame, (void *)a_741050, "073 a_741050" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_InstanceTransform, (void *)a_741120, "073 a_741120" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_LifeCountdown, (void *)a_741B60, "073 a_741B60" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_RandRange, (void *)a_742290, "073 a_742290" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_RandRangeWide, (void *)a_7422C0, "073 a_7422C0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_RandVec3, (void *)a_742300, "073 a_742300" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_JitterAngles3, (void *)a_742350, "073 a_742350" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_RandRange2, (void *)a_7423A0, "073 a_7423A0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActSys_AllocParticleSlot, (void *)a_7387B0, "073 a_7387B0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_GetWord8Minus1, (void *)a_7424B0, "073 a_7424B0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_AttachToOwner, (void *)a_7424C0, "073 a_7424C0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ParticleList_Append, (void *)a_742CA0, "073 a_742CA0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ParticleList_Unlink, (void *)a_742CD0, "073 a_742CD0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_Init, (void *)a_742D00, "073 a_742D00" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_PlaceAnchor, (void *)a_742EB0, "073 a_742EB0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Particle_PlaceAtPoint, (void *)a_742FF0, "073 a_742FF0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_State2_Empty, (void *)a_73A6D0, "073 a_73A6D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_State3_Empty, (void *)a_73A6D0, "073 a_73A6D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenOutTask, (void *)a_73A380, "073 a_73A380" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenOut_State2_Empty, (void *)a_73A6D0, "073 a_73A6D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State6_WaitQueuesEmpty, (void *)a_747550, "073 a_747550" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State7_Advance, (void *)a_73A0D0, "073 a_73A0D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State8_Advance, (void *)a_73A0D0, "073 a_73A0D0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State9_Finish, (void *)a_7475A0, "073 a_7475A0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_State10_Empty, (void *)a_73A6D0, "073 a_73A6D0" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x7CBEE0, (void *)mq_7CBEE0, "073 mq_7CBEE0" },
-		{ 0x7CC040, (void *)mq_7CC040, "073 mq_7CC040" },
-		{ 0x7CC0C0, (void *)mq_7CC0C0, "073 mq_7CC0C0" },
-		{ 0x7CC1A0, (void *)mq_7CC1A0, "073 mq_7CC1A0" },
-		{ 0x7CC220, (void *)mq_7CC220, "073 mq_7CC220" },
-		{ 0x7CC2B0, (void *)mq_7CC2B0, "073 mq_7CC2B0" },
-		{ 0x7CC390, (void *)mq_7CC390, "073 mq_7CC390" },
-		{ 0x7CC3C0, (void *)mq_7CC3C0, "073 mq_7CC3C0" },
-		{ 0x7CC550, (void *)mq_7CC550, "073 mq_7CC550" },
-		{ 0x7CC630, (void *)mq_7CC630, "073 mq_7CC630" },
-		{ 0x7CC790, (void *)mq_7CC790, "073 mq_7CC790" },
-		{ 0x7CC980, (void *)mq_7CC980, "073 mq_7CC980" },
-		{ 0x7CCDF0, (void *)mq_7CCDF0, "073 mq_7CCDF0" },
-		{ 0x7CCE80, (void *)mq_7CCE80, "073 mq_7CCE80" },
-		{ 0x7CCEE0, (void *)mq_7CCEE0, "073 mq_7CCEE0" },
-		{ 0x7CD090, (void *)mq_7CD090, "073 mq_7CD090" },
-		{ 0x7CD1C0, (void *)mq_7CD1C0, "073 mq_7CD1C0" },
-		{ 0x7CD3E0, (void *)mq_7CD3E0, "073 mq_7CD3E0" },
-		{ 0x7CD670, (void *)mq_7CD670, "073 mq_7CD670" },
-		{ 0x7CDAF0, (void *)mq_7CDAF0, "073 mq_7CDAF0" },
-		{ 0x7CE5A0, (void *)mq_7CE5A0, "073 mq_7CE5A0" },
-		{ 0x7CEAA0, (void *)mq_7CEAA0, "073 mq_7CEAA0" },
-		{ 0x7CF0F0, (void *)mq_7CF0F0, "073 mq_7CF0F0" },
-		{ 0x7CF1B0, (void *)mq_7CF1B0, "073 mq_7CF1B0" },
-		{ 0x7CF230, (void *)mq_7CF230, "073 mq_7CF230" },
-		{ 0x7CF270, (void *)mq_7CF270, "073 mq_7CF270" },
-		{ 0x7D02A0, (void *)mq_7D02A0, "073 mq_7D02A0" },
-		{ 0x7D03B0, (void *)mq_7D03B0, "073 mq_7D03B0" },
-		{ 0x7D0430, (void *)mq_7D0430, "073 mq_7D0430" },
-		{ 0x7D0460, (void *)mq_7D0460, "073 mq_7D0460" },
-		{ 0x7D0500, (void *)mq_7D0500, "073 mq_7D0500" },
-		{ 0x7D0580, (void *)mq_7D0580, "073 mq_7D0580" },
-		{ 0x7D0600, (void *)mq_7D0600, "073 mq_7D0600" },
-		{ 0x7D1000, (void *)mq_7D1000, "073 mq_7D1000" },
-		{ 0x7D1AF0, (void *)mq_7D1AF0, "073 mq_7D1AF0" },
-		{ 0x7D1B80, (void *)mq_7D1B80, "073 mq_7D1B80" },
-		{ 0x7D1C10, (void *)mq_7D1C10, "073 mq_7D1C10" },
-		{ 0x7D1C40, (void *)mq_7D1C40, "073 mq_7D1C40" },
-		{ 0x7D1C60, (void *)mq_7D1C60, "073 mq_7D1C60" },
-		{ 0x7D1CB0, (void *)mq_7D1CB0, "073 mq_7D1CB0" },
-		{ 0x7D1D00, (void *)mq_7D1D00, "073 mq_7D1D00" },
-		{ 0x7D1D90, (void *)mq_7D1D90, "073 mq_7D1D90" },
-		{ 0x7D1DB0, (void *)mq_7D1DB0, "073 mq_7D1DB0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_MasterTask, (void *)mq_7CBEE0, "073 mq_7CBEE0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_AllocActorPools_BindCasterAnim, (void *)mq_7CC040, "073 mq_7CC040" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ClearActorPools, (void *)mq_7CC0C0, "073 mq_7CC0C0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenIn_Step, (void *)mq_7CC1A0, "073 mq_7CC1A0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_EmitterTask, (void *)mq_7CC220, "073 mq_7CC220" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_SpawnActorSystem, (void *)mq_7CC2B0, "073 mq_7CC2B0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_State0_Start, (void *)mq_7CC390, "073 mq_7CC390" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorState_Setup, (void *)mq_7CC3C0, "073 mq_7CC3C0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ResetTrailHistory, (void *)mq_7CC550, "073 mq_7CC550" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorState_CasterPoints, (void *)mq_7CC630, "073 mq_7CC630" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_FillTrailRows, (void *)mq_7CC790, "073 mq_7CC790" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorState_TargetPoints, (void *)mq_7CC980, "073 mq_7CC980" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_Step, (void *)mq_7CCDF0, "073 mq_7CCDF0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_DrawModels, (void *)mq_7CCE80, "073 mq_7CCE80" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_DrawModel, (void *)mq_7CCEE0, "073 mq_7CCEE0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_PrimList_Dispatch, (void *)mq_7CD090, "073 mq_7CD090" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_PrimList_FlatTri, (void *)mq_7CD1C0, "073 mq_7CD1C0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_PrimList_FlatQuad, (void *)mq_7CD3E0, "073 mq_7CD3E0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_PrimList_TexTri, (void *)mq_7CD670, "073 mq_7CD670" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_PrimList_TexQuad, (void *)mq_7CDAF0, "073 mq_7CDAF0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_PrimList_GT3Scroll, (void *)mq_7CE5A0, "073 mq_7CE5A0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_PrimList_GT4, (void *)mq_7CEAA0, "073 mq_7CEAA0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_DrawSprites, (void *)mq_7CF0F0, "073 mq_7CF0F0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_DrawSprite, (void *)mq_7CF1B0, "073 mq_7CF1B0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActSys_UpdatePass, (void *)mq_7CF230, "073 mq_7CF230" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorStep, (void *)mq_7CF270, "073 mq_7CF270" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_MorphVertexBlock, (void *)mq_7D02A0, "073 mq_7D02A0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Instance_EndOfLifeTest, (void *)mq_7D03B0, "073 mq_7D03B0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Instance_SpawnFollowUp, (void *)mq_7D0430, "073 mq_7D0430" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ParticlePool_Alloc, (void *)mq_7D0460, "073 mq_7D0460" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActSys_UpdateEmitter, (void *)mq_7D0500, "073 mq_7D0500" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActSys_EmitterSpawnStep, (void *)mq_7D0580, "073 mq_7D0580" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_SpawnParticles, (void *)mq_7D0600, "073 mq_7D0600" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Actor_InterpolatePosition, (void *)mq_7D1000, "073 mq_7D1000" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_SpawnSubEffects, (void *)mq_7D1AF0, "073 mq_7D1AF0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Director_SpawnGroupEffects, (void *)mq_7D1B80, "073 mq_7D1B80" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_ActorSystem_State1_StepActorSystem, (void *)mq_7D1C10, "073 mq_7D1C10" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_ReleaseMaster, (void *)mq_7D1C40, "073 mq_7D1C40" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Emitter_ApplyResult, (void *)mq_7D1C60, "073 mq_7D1C60" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_TargetLoop, (void *)mq_7D1CB0, "073 mq_7D1CB0" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_Master_StartDarkenOut, (void *)mq_7D1D00, "073 mq_7D1D00" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenOut_State0_SetAmplitude400, (void *)mq_7D1D90, "073 mq_7D1D90" },
+		{ game::MAG_073_MIGHTY_GUARD_QUISTIS_StageDarkenOut_State1_FadeOut, (void *)mq_7D1DB0, "073 mq_7D1DB0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

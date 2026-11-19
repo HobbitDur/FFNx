@@ -37,33 +37,33 @@ namespace twinlaser253
 	{
 		c.name = "253 Twin Homing Laser";
 		c.effect_id = 253;
-		c.vm_table = us(0x185CC88);
-		c.bone_table = us(0x185C8F8);
-		c.prim_table = us(0x185C940);
-		c.prim_size = us(0x185CA30);
-		c.spr_table = us(0x185CA44);
-		c.ptype_table = us(0x185CA70);
-		c.pop_table = us(0x185CA84);
-		c.draw_table = us(0x185CAE4);
-		c.attr_16A = us(0x185CC4E);
-		c.attr_184 = us(0x185CC68);
-		c.attr_186 = us(0x185CC6A);
-		c.attr_194 = us(0x185CC78);
-		c.attr_19C = us(0x185CC80);
-		c.desc = us(0x185C7D0);
-		c.ptr_block = us(0x185C8D0);
-		c.queue = us(0x27965F8);
-		c.file00 = us(0x27965F0);
-		c.file01 = us(0x27965F4);
-		c.tick = us(0x998380);
-		c.load_cb = us(0x99E210);
+		c.vm_table = game_addr(game::funcs_9A232C);
+		c.bone_table = game_addr(game::funcs_99EE27);
+		c.prim_table = game_addr(game::funcs_99B264);
+		c.prim_size = game_addr(game::unk_185CA30);
+		c.spr_table = game_addr(game::unk_185CA44);
+		c.ptype_table = game_addr(game::unk_185CA70);
+		c.pop_table = game_addr(game::funcs_99C817);
+		c.draw_table = game_addr(game::unk_185CAE4);
+		c.attr_16A = game_addr(game::unk_185CC4E);
+		c.attr_184 = game_addr(game::unk_185CC68);
+		c.attr_186 = game_addr(game::unk_185CC6A);
+		c.attr_194 = game_addr(game::unk_185CC78);
+		c.attr_19C = game_addr(game::unk_185CC80);
+		c.desc = game_addr(game::unk_185C7D0);
+		c.ptr_block = game_addr(game::unk_185C8D0);
+		c.queue = game_addr(game::unk_27965F8);
+		c.file00 = game_addr(game::unk_27965F0);
+		c.file01 = game_addr(game::unk_27965F4);
+		c.tick = game_addr(game::MAG_253_sub_998380);
+		c.load_cb = game_addr(game::MAG_253_sub_99E210);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
@@ -105,7 +105,7 @@ namespace twinlaser253
 		twinlaser253::describe(twinlaser253::g_c);
 		init_clone(twinlaser253::g_c, nullptr, 0);
 		twinlaser253::apply_slots(twinlaser253::g_c);
-		register_port(0x998380, (void *)twinlaser253::SequenceTask, "MAG253 Twin Homing Laser SequenceTick", 253);
+		register_port(game::MAG_253_sub_998380, (void *)twinlaser253::SequenceTask, "MAG253 Twin Homing Laser SequenceTick", 253);
 	}
 }
 

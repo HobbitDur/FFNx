@@ -24,59 +24,59 @@ namespace strong318
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x250541C)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2505420)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2505424)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2505488)); }
-	inline TaskQueue *QSprites() { return (TaskQueue *)us(0x2505428); }
-	inline TaskQueue *QBones() { return (TaskQueue *)us(0x2505438); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2505448); }
-	static const int16_t *ZERO_VEC() { return (const int16_t *)us(0x2505480); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_318_StrongCounterAttack_PacketCursor)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_318_StrongCounterAttack_CastContext)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_318_StrongCounterAttack_CasterEntity)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_318_StrongCounterAttack_MagicBufferBase)); }
+	inline TaskQueue *QSprites() { return (TaskQueue *)game_addr(game::MAG_318_StrongCounterAttack_SpritesQueue); }
+	inline TaskQueue *QBones() { return (TaskQueue *)game_addr(game::MAG_318_StrongCounterAttack_BonesQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::MAG_318_StrongCounterAttack_MainQueue); }
+	static const int16_t *ZERO_VEC() { return (const int16_t *)game_addr(game::MAG_318_StrongCounterAttack_SZeroVector); }
 
-	static const uint32_t ORIG_RootTask = 0x65E5C0;
-	static const uint32_t ORIG_MainTask = 0x65E790;
-	static const uint32_t ORIG_SpriteTask = 0x65F100;
-	static const uint32_t ORIG_BoneScaleTask = 0x65F2B0;
+	static constexpr game::Id ORIG_RootTask = game::MAG_318_StrongCounterAttack_RootTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_318_StrongCounterAttack_MainTask;
+	static constexpr game::Id ORIG_SpriteTask = game::MAG_318_StrongCounterAttack_SpriteTask;
+	static constexpr game::Id ORIG_BoneScaleTask = game::MAG_318_StrongCounterAttack_BoneScaleTask;
 	static const uint32_t POOL_Bones = 0x1304, POOL_Sprites = 0x1390;
 	static const uint32_t STREAM_STATE = 0x1990;
 	static const uint32_t MORPH = 0x19D8;
 	static const uint32_t ARENA_A = 0x1DE0;
 	static const uint32_t ARENA_B = 0x11DE0;
 	static const uint32_t STREAM_DEST = 0x21DE0;
-	static const uint32_t MODEL_A = 0xFFD9B8;
-	static const uint32_t MODEL_B = 0xFF8DB8;
-	static const uint32_t MODEL_C = 0xFFB4CC;
-	static const uint32_t PRIM_Spike = 0xFF7CB0;
-	static const uint32_t SEQ_Sprite = 0xFF7A00;
-	static const uint32_t SEQ_Particle = 0xFF7B6C;
-	static const void *SOUND() { return (const void *)us(0xFF77A8); }
-	static const int16_t *OFFSETS() { return (const int16_t *)us(0xFFE688); }
+	static constexpr game::Id MODEL_A = game::MAG_318_StrongCounterAttack_ModelA;
+	static constexpr game::Id MODEL_B = game::MAG_318_StrongCounterAttack_ModelB;
+	static constexpr game::Id MODEL_C = game::MAG_318_StrongCounterAttack_ModelC;
+	static constexpr game::Id PRIM_Spike = game::unk_FF7CB0;
+	static constexpr game::Id SEQ_Sprite = game::MAG_318_StrongCounterAttack_SeqSprite;
+	static constexpr game::Id SEQ_Particle = game::MAG_318_StrongCounterAttack_SeqParticle;
+	static const void *SOUND() { return (const void *)game_addr(game::unk_FF77A8); }
+	static const int16_t *OFFSETS() { return (const int16_t *)game_addr(game::unk_FFE688); }
 	static const int PARTICLES = 0x80;
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
-	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x56D160))(x, y); }
-	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45E180))(m); }
-	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(us(0x460820))(); }
-	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(us(0x45E470))(m); }
-	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x45E060))(v); }
-	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E210))(dst); }
-	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(a, b, c); }
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
-	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
+	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline int32_t CartesianToGameAngle(int32_t x, int32_t y) { return fn<int32_t (__cdecl *)(int32_t, int32_t)>(game_addr(game::CartesianToGameAngle))(x, y); }
+	inline void GteLoadIRFromColumn(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadIRFromMatrixColumn))(m); }
+	inline void GteMVMVA_RotIR() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotIR))(); }
+	inline void GteStoreIRToColumn(void *m) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreIRToMatrixColumn))(m); }
+	inline void GteLoadV0Dwords(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV0FromDwords))(v); }
+	inline void GteLoadV012(const void *a, const void *b, const void *c) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteReadFLAG(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteReadSXY012(void *a, void *b, void *c) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(game_addr(game::Stream_QueueLoad))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(game_addr(game::Stream_Pump))(); }
+	inline int32_t StreamDone(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::BattleFile_PreLoad_IsLoaded))(a); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -250,7 +250,7 @@ namespace strong318
 		GteSetRotMatrix(&arg->m);
 		GteSetTransVector(&arg->m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = us(PRIM_Spike);
+		*(uint32_t *)h = game_addr(PRIM_Spike);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -390,12 +390,12 @@ namespace strong318
 		GteLoadV0(p->pos);
 		GteMVMVA_RotV0Tr();
 		GteReadMAC123((int32_t *)(h + 0x98));
-		*(uint32_t *)h = us(SEQ_Particle);
+		*(uint32_t *)h = game_addr(SEQ_Particle);
 		*(int16_t *)(h + 0x94) = p->size;
 		*(int16_t *)(h + 0x8C) = p->size;
 		*(int16_t *)(h + 0x84) = p->size;
-		const uint32_t idx = (*(const uint32_t *)(us(SEQ_Particle) + 8) & 0xFFFF) - (int32_t)p->life;
-		const uint32_t f = *(const uint16_t *)(us(SEQ_Particle) + 8 + idx * 2) + us(SEQ_Particle);
+		const uint32_t idx = (*(const uint32_t *)(game_addr(SEQ_Particle) + 8) & 0xFFFF) - (int32_t)p->life;
+		const uint32_t f = *(const uint16_t *)(game_addr(SEQ_Particle) + 8 + idx * 2) + game_addr(SEQ_Particle);
 		*(uint32_t *)(h + 0x30) = *(const uint32_t *)f;
 		*(uint32_t *)(h + 0x2C) = f + 4;
 		PacketCursor() = RenderQuads(h, RenderOT(), 2, PacketCursor());
@@ -441,7 +441,7 @@ namespace strong318
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(b);
 		*(int32_t *)(h + 8) = 0 - CartesianToGameAngle((int32_t)a[1] - b[1], (int32_t)b[0] - a[0]);
-		*(uint32_t *)h = us(SEQ_Sprite);
+		*(uint32_t *)h = game_addr(SEQ_Sprite);
 		*(int16_t *)(h + 0x24) = 1;
 		*(int16_t *)(h + 4) = frame;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -489,7 +489,7 @@ namespace strong318
 
 	static void StartBoneScale(int32_t bone, int16_t delay, int16_t dx, int16_t dy)
 	{
-		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), us(ORIG_BoneScaleTask));
+		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), game_addr(ORIG_BoneScaleTask));
 		b->bone = **(uint8_t ***)(Caster() + 0x64) + bone * 0x30 + 0x10;
 		b->delay = delay;
 		b->dx = dx;
@@ -592,7 +592,7 @@ namespace strong318
 				ang[1] = (int16_t)CrtRand();
 				for (int k = 8; k != 0; k--)
 				{
-					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), us(ORIG_SpriteTask));
+					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), game_addr(ORIG_SpriteTask));
 					if (s)
 					{
 						s->counter = 0;
@@ -659,14 +659,14 @@ namespace strong318
 				InitTaskQueuePool(QBones(), (void *)(TexBase() + POOL_Bones), 0x1C, 5);
 				InitTaskQueuePool(QSprites(), (void *)(TexBase() + POOL_Sprites), 0x30, 0x20);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x4BE);
 			m->ent = Entity(Ctx()->actions[0].targets[0]);
 			GetDefaultEffectPosition(m->ent, m->T);
 			m->cursor = m->parts;
-			DecodeModelPrimLayout(us(MODEL_A), m->layout_a, 0xEC);
-			DecodeModelPrimLayout(us(MODEL_B), m->layout_b, 0x5E8);
-			DecodeModelPrimLayout(us(MODEL_C), m->layout_c, 0x348);
+			DecodeModelPrimLayout(game_addr(MODEL_A), m->layout_a, 0xEC);
+			DecodeModelPrimLayout(game_addr(MODEL_B), m->layout_b, 0x5E8);
+			DecodeModelPrimLayout(game_addr(MODEL_C), m->layout_c, 0x348);
 			StreamStateInit((void *)(TexBase() + STREAM_STATE));
 		}
 		int a0, a1, a2;

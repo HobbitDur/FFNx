@@ -39,44 +39,44 @@ namespace homing_laser_q
 	{
 		c.name = "229 Homing Laser (Quistis)";
 		c.effect_id = 229;
-		c.vm_table = us(0x186AF00);
-		c.bone_table = us(0x186AB70);
-		c.prim_table = us(0x186ABB8);
-		c.prim_size = us(0x186ACA8);
-		c.spr_table = us(0x186ACBC);
-		c.ptype_table = us(0x186ACE8);
-		c.pop_table = us(0x186ACFC);
-		c.draw_table = us(0x186AD5C);
-		c.attr_16A = us(0x186AEC6);
-		c.attr_184 = us(0x186AEE0);
-		c.attr_186 = us(0x186AEE2);
-		c.attr_194 = us(0x186AEF0);
-		c.attr_19C = us(0x186AEF8);
-		c.desc = us(0x186AA40);
-		c.ptr_block = us(0x186AB48);
-		c.queue = us(0x2796B00);
-		c.file00 = us(0x2796B14);
-		c.file01 = us(0x2796B10);
-		c.tick = us(0xA7B090);
-		c.load_cb = us(0xA80F60);
+		c.vm_table = game_addr(game::funcs_A8507C);
+		c.bone_table = game_addr(game::funcs_A81B77);
+		c.prim_table = game_addr(game::funcs_A7DFB4);
+		c.prim_size = game_addr(game::unk_186ACA8);
+		c.spr_table = game_addr(game::unk_186ACBC);
+		c.ptype_table = game_addr(game::unk_186ACE8);
+		c.pop_table = game_addr(game::funcs_A7F567);
+		c.draw_table = game_addr(game::unk_186AD5C);
+		c.attr_16A = game_addr(game::unk_186AEC6);
+		c.attr_184 = game_addr(game::unk_186AEE0);
+		c.attr_186 = game_addr(game::unk_186AEE2);
+		c.attr_194 = game_addr(game::unk_186AEF0);
+		c.attr_19C = game_addr(game::unk_186AEF8);
+		c.desc = game_addr(game::unk_186AA40);
+		c.ptr_block = game_addr(game::unk_186AB48);
+		c.queue = game_addr(game::unk_2796B00);
+		c.file00 = game_addr(game::unk_2796B14);
+		c.file01 = game_addr(game::unk_2796B10);
+		c.tick = game_addr(game::MAG_229_HOMING_LASER_QUISTIS_SequenceTick);
+		c.load_cb = game_addr(game::MAG_229_HOMING_LASER_QUISTIS_LoadFileDoneCallback);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline void BindEntityModelFromComData(uint8_t *entity, uint8_t *out, uint32_t data)
 	{
-		x::f<void (__cdecl *)(uint8_t *, uint8_t *, uint32_t)>(us(0x5022C0))(entity, out, data);
+		x::f<void (__cdecl *)(uint8_t *, uint8_t *, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data);
 	}
 	static inline void QueueChainTransformation(uint8_t *entity, int32_t id)
 	{
-		x::f<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id);
+		x::f<void (__cdecl *)(uint8_t *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id);
 	}
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m);
 	}
 
-	static const uint32_t COM_ANIM = 0x188062C;
+	static constexpr game::Id COM_ANIM = game::MAG_229_HOMING_LASER_AnimSet;
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
@@ -84,7 +84,7 @@ namespace homing_laser_q
 	{
 		uint8_t *ent = SlotEntity();
 		uint8_t *blk = blob::ArenaAlloc(0x20);
-		BindEntityModelFromComData(ent, blk, us(COM_ANIM));
+		BindEntityModelFromComData(ent, blk, game_addr(COM_ANIM));
 		QueueChainTransformation(ent, (int32_t)S16(STREAM(), 2));
 		STREAM() += 4;
 	}
@@ -127,7 +127,7 @@ namespace homing_laser_q
 		homing_laser_q::describe(homing_laser_q::g_c);
 		init_clone(homing_laser_q::g_c, nullptr, 0);
 		homing_laser_q::apply_slots(homing_laser_q::g_c);
-		register_port(0xA7B090, (void *)homing_laser_q::SequenceTask, "MAG229 Homing Laser (Quistis) SequenceTick", 229);
+		register_port(game::MAG_229_HOMING_LASER_QUISTIS_SequenceTick, (void *)homing_laser_q::SequenceTask, "MAG229 Homing Laser (Quistis) SequenceTick", 229);
 	}
 }
 

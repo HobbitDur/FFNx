@@ -31,47 +31,47 @@ namespace kamikaze181
 	inline int32_t &S32(uint32_t p, int32_t o) { return AT<int32_t>(p, o); }
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2307D80)); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x2307D84)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2307D8C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2307D90)); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x2306F60); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(us(0x1D98B3C)); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
-	static const uint32_t POOL = 0x2306600, POOL_END = 0x2306F60;
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_181_Kamikaze_CastContext)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(game_addr(game::MAG_181_Kamikaze_CasterSlot)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_181_Kamikaze_MagicBufferBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_181_Kamikaze_PacketCursor)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::MAG_181_Kamikaze_EffectQueue); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(game_addr(game::g_BattleVertexWorkspace)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
+	static constexpr game::Id POOL = game::unk_2306600, POOL_END = game::MAG_181_Kamikaze_EffectQueue;
 
-	static const uint32_t ORIG_RootTask = 0x5CC7D0;
-	static const uint32_t ORIG_Director = 0x5CB610;
-	static const uint32_t ORIG_CasterGlow = 0x5CB9B0;
-	static const uint32_t ORIG_Ring = 0x5CC000;
-	static const uint32_t ORIG_Ring2 = 0x5CC160;
-	static const uint32_t ORIG_Sparks = 0x5CC2A0;
-	static const uint32_t ORIG_Smoke = 0x5CC560;
-	static const uint32_t ORIG_Flare = 0x5CC720;
-	static const uint32_t MODEL_Ring = 0xD3E5C4, MODEL_Ring2 = 0xD405FC;
-	static const uint32_t SEQ_Spark = 0xD3E3A0, SEQ_Smoke = 0xD3E1F4, SEQ_Flare = 0xD3E500;
-	static const void *SOUND_Start() { return (const void *)us(0xD413A4); }
+	static constexpr game::Id ORIG_RootTask = game::au_re_BdlinkTask_8;
+	static constexpr game::Id ORIG_Director = game::MAG_181_Kamikaze_Director;
+	static constexpr game::Id ORIG_CasterGlow = game::MAG_181_Kamikaze_CasterGlow;
+	static constexpr game::Id ORIG_Ring = game::MAG_181_Kamikaze_Ring;
+	static constexpr game::Id ORIG_Ring2 = game::MAG_181_Kamikaze_Ring2;
+	static constexpr game::Id ORIG_Sparks = game::MAG_181_Kamikaze_Sparks;
+	static constexpr game::Id ORIG_Smoke = game::MAG_181_Kamikaze_Smoke;
+	static constexpr game::Id ORIG_Flare = game::MAG_181_Kamikaze_Flare;
+	static constexpr game::Id MODEL_Ring = game::MAG_181_Kamikaze_ModelRing, MODEL_Ring2 = game::unk_D405FC;
+	static constexpr game::Id SEQ_Spark = game::MAG_181_Kamikaze_SeqSpark, SEQ_Smoke = game::unk_D3E1F4, SEQ_Flare = game::unk_D3E500;
+	static const void *SOUND_Start() { return (const void *)game_addr(game::MAG_181_Kamikaze_SoundStart); }
 
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteLoadRGBC(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
-	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C7A0))(bucket, pkt); }
-	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x64DEE0))(v); }
-	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF10))(out); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteLoadRGBC(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(c); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0_Tr_2))(); }
+	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(bucket, pkt); }
+	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadV0FromSVec3))(v); }
+	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreIR123ToSVec))(out); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(entity, ot, mode, cursor); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -117,17 +117,17 @@ namespace kamikaze181
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Kamikaze nodes");
 	static_assert(sizeof(Particle) == 0x18 && sizeof(FlareNode) == 0x24, "Kamikaze particle / flare");
 
-	inline Particle *Pool() { return (Particle *)us(POOL); }
+	inline Particle *Pool() { return (Particle *)game_addr(POOL); }
 	static const int POOL_COUNT = 0x64;
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 
 	static int FreeParticle()
 	{
 		int i = 0;
-		for (uint32_t p = us(POOL); ; p += 0x18, i++)
+		for (uint32_t p = game_addr(POOL); ; p += 0x18, i++)
 		{
 			if (U32(p, 0) == 0) break;
-			if (p + 0x18 >= us(POOL_END)) return -1;
+			if (p + 0x18 >= game_addr(POOL_END)) return -1;
 		}
 		if (i >= 0x64) return -1;
 		return i;
@@ -272,7 +272,7 @@ namespace kamikaze181
 		AT<uint8_t>(h, 0x2A) = entity[7];
 		AT<uint8_t>(h, 0x29) = entity[7];
 		AT<uint8_t>(h, 0x28) = entity[7];
-		U32(h, 0x10) = var<uint32_t>(us(0x1D969A8));
+		U32(h, 0x10) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		U16(h, 0x18) = 0x140;
 		U16(h, 0x1A) = 0xD8;
 		FrameCursor() = RenderModel(U32(anim, 4), h, RenderOT(0x44), 2, FrameCursor());
@@ -308,7 +308,7 @@ namespace kamikaze181
 	{
 		TransformCameraByShadowRotation(f->pos, (uint16_t)f->scale, -((int32_t)f->scale >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)(h + 0) = us(SEQ_Flare);
+		*(uint32_t *)(h + 0) = game_addr(SEQ_Flare);
 		*(int16_t *)(h + 4) = f->counter;
 		*(int16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(0x44), 2, PacketCursor());
@@ -392,7 +392,7 @@ namespace kamikaze181
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		DrawRing(t, us(MODEL_Ring), 8, shl32(t->counter - 8, 9));
+		DrawRing(t, game_addr(MODEL_Ring), 8, shl32(t->counter - 8, 9));
 		if (DrawOnly()) return 0;
 		RingUpdate(t);
 		return t->counter >= 0x10 ? TASK_END : 0;
@@ -401,7 +401,7 @@ namespace kamikaze181
 	static uint32_t __cdecl Ring2Task(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		DrawRing(t, us(MODEL_Ring2), 0xA, shl32(t->counter - 0xA, 9));
+		DrawRing(t, game_addr(MODEL_Ring2), 0xA, shl32(t->counter - 0xA, 9));
 		if (DrawOnly()) return 0;
 		Ring2Update(t);
 		return t->counter >= 0x12 ? TASK_END : 0;
@@ -418,9 +418,9 @@ namespace kamikaze181
 	static uint32_t __cdecl SparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		uint8_t *h = SpriteHeader(us(SEQ_Spark));
+		uint8_t *h = SpriteHeader(game_addr(SEQ_Spark));
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
+		for (Particle *p = Pool(); (uint32_t)p < game_addr(POOL_END); p++)
 		{
 			if (!(p->type & 2)) continue;
 			DrawSpriteParticle(h, p);
@@ -476,9 +476,9 @@ namespace kamikaze181
 	static uint32_t __cdecl SmokeTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		uint8_t *h = SpriteHeader(us(SEQ_Smoke));
+		uint8_t *h = SpriteHeader(game_addr(SEQ_Smoke));
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
+		for (Particle *p = Pool(); (uint32_t)p < game_addr(POOL_END); p++)
 		{
 			if (!(p->type & 4)) continue;
 			DrawSpriteParticle(h, p);
@@ -528,7 +528,7 @@ namespace kamikaze181
 		if (t->counter == 0) GetEffectSpawnPosition(Caster(), 0xF0, 0xA00, t->pos);
 		if (t->counter == 1)
 		{
-			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_CasterGlow));
+			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_CasterGlow));
 			g->counter = 0;
 		}
 		if (t->counter >= 4 && t->counter <= 5)
@@ -542,7 +542,7 @@ namespace kamikaze181
 			NormalizeVector(v, v);
 			for (int k = 0; k < t->zero; k++)
 			{
-				FlareNode *f = (FlareNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Flare));
+				FlareNode *f = (FlareNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Flare));
 				f->counter = 0;
 				f->pos[0] = p[0];
 				const int32_t r = CrtRand() % 0xA;
@@ -557,7 +557,7 @@ namespace kamikaze181
 		}
 		if (t->counter == 0x10)
 		{
-			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
+			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring));
 			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->zero = 0;
@@ -566,7 +566,7 @@ namespace kamikaze181
 			r->scale_speed = 0x1CC;
 			r->scale = 0x1CC;
 			r->spin_speed = (int16_t)(s + 0x3C);
-			r = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
+			r = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring));
 			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->zero = 0;
@@ -580,7 +580,7 @@ namespace kamikaze181
 		if (t->counter == 0xF)
 		{
 			GetDefaultEffectPosition(Caster(), t->pos);
-			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring2));
+			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring2));
 			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->spin = (int16_t)(CrtRand() % 0x1000);
@@ -589,13 +589,13 @@ namespace kamikaze181
 		}
 		if (t->counter == 0xF)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Sparks));
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Sparks));
 			ff8fx::copy<(8)>(s->pos, t->pos);
 			s->counter = 0;
 		}
 		if (t->counter == 0x10)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Smoke));
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Smoke));
 			ff8fx::copy<(8)>(s->pos, t->pos);
 			s->counter = 0;
 		}

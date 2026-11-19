@@ -37,26 +37,26 @@ namespace breath238
 	{
 		c.name = "238 Breath (Ruby Dragon)";
 		c.effect_id = 238;
-		c.vm_table = us(0x1865630);
-		c.bone_table = us(0x18652A0);
-		c.prim_table = 0x18652E8;
-		c.prim_size = us(0x18653D8);
-		c.spr_table = us(0x18653EC);
-		c.ptype_table = us(0x1865418);
-		c.pop_table = us(0x186542C);
-		c.draw_table = us(0x186548C);
-		c.attr_16A = us(0x18655F6);
-		c.attr_184 = us(0x1865610);
-		c.attr_186 = us(0x1865612);
-		c.attr_194 = us(0x1865620);
-		c.attr_19C = us(0x1865628);
-		c.desc = us(0x1865154);
-		c.ptr_block = us(0x1865278);
-		c.queue = us(0x2796910);
-		c.file00 = us(0x279690C);
-		c.file01 = us(0x2796908);
-		c.tick = us(0xA20430);
-		c.load_cb = us(0xA25630);
+		c.vm_table = game_addr(game::funcs_A296EC);
+		c.bone_table = game_addr(game::funcs_A26247);
+		c.prim_table = game_addr(game::funcs_A22194);
+		c.prim_size = game_addr(game::unk_18653D8);
+		c.spr_table = game_addr(game::unk_18653EC);
+		c.ptype_table = game_addr(game::unk_1865418);
+		c.pop_table = game_addr(game::funcs_A23C37);
+		c.draw_table = game_addr(game::unk_186548C);
+		c.attr_16A = game_addr(game::unk_18655F6);
+		c.attr_184 = game_addr(game::unk_1865610);
+		c.attr_186 = game_addr(game::unk_1865612);
+		c.attr_194 = game_addr(game::unk_1865620);
+		c.attr_19C = game_addr(game::unk_1865628);
+		c.desc = game_addr(game::unk_1865154);
+		c.ptr_block = game_addr(game::unk_1865278);
+		c.queue = game_addr(game::unk_2796910);
+		c.file00 = game_addr(game::unk_279690C);
+		c.file01 = game_addr(game::unk_2796908);
+		c.tick = game_addr(game::MAG_238_sub_A20430);
+		c.load_cb = game_addr(game::MAG_238_sub_A25630);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -108,7 +108,7 @@ namespace breath238
 		breath238::describe(breath238::g_c);
 		init_clone(breath238::g_c, nullptr, 0);
 		breath238::apply_slots(breath238::g_c);
-		register_port(0xA20430, (void *)breath238::SequenceTask, "MAG238 Breath (Ruby Dragon) SequenceTick", 238);
+		register_port(game::MAG_238_sub_A20430, (void *)breath238::SequenceTask, "MAG238 Breath (Ruby Dragon) SequenceTick", 238);
 	}
 }
 

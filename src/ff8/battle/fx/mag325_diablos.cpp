@@ -24,80 +24,80 @@ namespace d325
 {
 	using namespace eng;
 
-	inline uint32_t &Pause() { return var<uint32_t>(us(0x2505180)); }
-	inline uint8_t *&CastCtx() { return var<uint8_t *>(us(0x2505184)); }
-	inline TaskQueuePair &QueueMain() { return var<TaskQueuePair>(us(0x2505190)); }
+	inline uint32_t &Pause() { return var<uint32_t>(game_addr(game::MAG_325_Pause)); }
+	inline uint8_t *&CastCtx() { return var<uint8_t *>(game_addr(game::MAG_325_CastCtx)); }
+	inline TaskQueuePair &QueueMain() { return var<TaskQueuePair>(game_addr(game::MAG_325_QueueMain)); }
 	inline TaskQueue &QueueParticles() { return QueueMain().first; }
 	inline TaskQueue &QueueTimeline() { return QueueMain().second; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25051D0)); }
-	inline int32_t &CenterZ() { return var<int32_t>(us(0x25051D4)); }
-	inline int32_t &CenterX() { return var<int32_t>(us(0x25051D8)); }
-	inline int32_t &FarZ() { return var<int32_t>(us(0x25051DC)); }
-	inline int32_t &MidZ() { return var<int32_t>(us(0x25051E0)); }
-	inline uint32_t &Flash() { return var<uint32_t>(us(0x25051E8)); }
-	inline uint32_t &FlashPrev() { return var<uint32_t>(us(0x25051EC)); }
-	inline uint8_t &Mode() { return var<uint8_t>(us(0x25051F0)); }
-	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(us(0x2505208)); }
-	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(us(0x2505210)); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
-	inline uint32_t ModelDrawMode() { return var<uint32_t>(us(0x1D969A8)); }
-	inline int16_t &CamWorld(int k) { return var<int16_t>(us(0xB8B7F0) + 2 * k); }
-	inline int16_t &CamLookAt(int k) { return var<int16_t>(us(0xB8B7F8) + 2 * k); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_325_PacketCursor)); }
+	inline int32_t &CenterZ() { return var<int32_t>(game_addr(game::g_Diablos_TargetsCenterZ)); }
+	inline int32_t &CenterX() { return var<int32_t>(game_addr(game::g_Diablos_TargetsCenterX)); }
+	inline int32_t &FarZ() { return var<int32_t>(game_addr(game::MAG_325_FarZ)); }
+	inline int32_t &MidZ() { return var<int32_t>(game_addr(game::MAG_325_MidZ)); }
+	inline uint32_t &Flash() { return var<uint32_t>(game_addr(game::MAG_325_Flash)); }
+	inline uint32_t &FlashPrev() { return var<uint32_t>(game_addr(game::MAG_325_FlashPrev)); }
+	inline uint8_t &Mode() { return var<uint8_t>(game_addr(game::g_Diablos_ParticleMode)); }
+	inline uint8_t *&ModelBuffer() { return var<uint8_t *>(game_addr(game::MAG_325_ModelBuffer)); }
+	inline Mat4x3 &EffectCamera() { return var<Mat4x3>(game_addr(game::MAG_325_EffectCamera)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline uint32_t OTBase() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
+	inline uint32_t ModelDrawMode() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END)); }
+	inline int16_t &CamWorld(int k) { return var<int16_t>(game_addr(game::Battle_Camera_world_XZ_s16) + 2 * k); }
+	inline int16_t &CamLookAt(int k) { return var<int16_t>(game_addr(game::Battle_Camera_LookAt_XZ_s16) + 2 * k); }
 
-	static const uint32_t ORIG_SequenceTask = 0x654350;
-	static const uint32_t ORIG_TimelineTask = 0x6545F0;
-	static const uint32_t ORIG_BurstTask = 0x659860;
-	static const uint32_t ORIG_RisingTask = 0x659960;
-	static const uint32_t CB_PrimObject = 0x656B70;
+	static constexpr game::Id ORIG_SequenceTask = game::GF_325Diablos_SequenceTask;
+	static constexpr game::Id ORIG_TimelineTask = game::GF_325Diablos_TimelineTask;
+	static constexpr game::Id ORIG_BurstTask = game::MAG_325_BonePrimBurstTask;
+	static constexpr game::Id ORIG_RisingTask = game::MAG_325_RisingPrimTask;
+	static constexpr game::Id CB_PrimObject = game::MAG_325_PrimObjectCallback;
 
 	namespace x
 	{
-		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(us(0x55CBD2))(); }
-		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-		inline uint32_t RenderPrimSet(void *hdr, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x701DD0))(hdr, ot, mode, cursor); }
-		inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(us(0x701220))(angle, out); }
-		inline void Decode(uint32_t src, void *layout, int size) { fn<void (__cdecl *)(uint32_t, void *, int)>(us(0x7016B0))(src, layout, size); }
+		inline int32_t Rand() { return fn<int32_t (__cdecl *)()>(game_addr(game::_rand))(); }
+		inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+		inline uint32_t RenderPrimSet(void *hdr, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_063_RenderPrimSet))(hdr, ot, mode, cursor); }
+		inline void RotX(int32_t angle, void *out) { fn<void (__cdecl *)(int32_t, void *)>(game_addr(game::MAG_063_RotationXMatrix))(angle, out); }
+		inline void Decode(uint32_t src, void *layout, int size) { fn<void (__cdecl *)(uint32_t, void *, int)>(game_addr(game::Effect_DecodeModelPrimLayout))(src, layout, size); }
 		inline void MorphPair(int x, int y, int z, uint32_t hdr, void *tab_a, int na, int ta, void *tab_b, int nb, int tb)
-		{ fn<void (__cdecl *)(int, int, int, uint32_t, void *, int, int, void *, int, int)>(us(0x658FC0))(x, y, z, hdr, tab_a, na, ta, tab_b, nb, tb); }
-		inline void DrawPrimAt(int x, int y, int z, uint32_t model) { fn<void (__cdecl *)(int, int, int, uint32_t)>(us(0x659680))(x, y, z, model); }
-		inline void SpawnRising(int x, int y, int z, int shade, uint32_t model) { fn<void (__cdecl *)(int, int, int, int, uint32_t)>(us(0x659900))(x, y, z, shade, model); }
-		inline void DrawEntityScaled(void *entity, const int32_t *scale) { fn<void (__cdecl *)(void *, const int32_t *)>(us(0x657CB0))(entity, scale); }
-		inline void DrawWell(int x, int y, int z, int scroll) { fn<void (__cdecl *)(int, int, int, int)>(us(0x659730))(x, y, z, scroll); }
-		inline uint32_t FlashTile(int i, int r, int g, int b, int up, int down, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, int, int, uint32_t)>(us(0x659A10))(i, r, g, b, up, down, cursor); }
-		inline uint32_t Tile(int r, int g, int b, int level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
-		inline void SetAnim(void *e, int id) { fn<void (__cdecl *)(void *, int)>(us(0x6574D0))(e, id); }
-		inline void AdvanceAnim(void *e) { fn<void (__cdecl *)(void *)>(us(0x6FBDB0))(e); }
-		inline void BindModel(void *e, void *sections, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(us(0x6EC060))(e, sections, data); }
-		inline void DrawStylised(void *e, int y, int a, int mode, void *buf) { fn<void (__cdecl *)(void *, int, int, int, void *)>(us(0x6574F0))(e, y, a, mode, buf); }
-		inline uint32_t DrawModel(void *e, void *buf, uint32_t cursor, uint32_t mode) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(us(0x6A79B0))(e, buf, cursor, mode); }
-		inline void ResetPuffs() { fn<void (__cdecl *)()>(us(0x6545B0))(); }
-		inline void BoltAdvance() { fn<void (__cdecl *)()>(us(0x6583E0))(); }
-		inline void BoltDraw() { fn<void (__cdecl *)()>(us(0x657F00))(); }
-		inline void PuffDraw() { fn<void (__cdecl *)()>(us(0x658970))(); }
-		inline uint8_t *PuffAlloc() { return fn<uint8_t *(__cdecl *)()>(us(0x658B20))(); }
-		inline void PuffMove() { fn<void (__cdecl *)()>(us(0x658CE0))(); }
-		inline void PuffMoveRise() { fn<void (__cdecl *)()>(us(0x658D30))(); }
-		inline void PuffMoveShrink() { fn<void (__cdecl *)()>(us(0x658C80))(); }
-		inline void PuffSpawn(int n, int y, int flag) { fn<void (__cdecl *)(int, int, int)>(us(0x658B90))(n, y, flag); }
-		inline void PuffsFromModel(void *e) { fn<void (__cdecl *)(void *)>(us(0x658D90))(e); }
-		inline void BoltParams(int a, int b, int c) { fn<void (__cdecl *)(int, int, int)>(us(0x657E70))(a, b, c); }
-		inline void BoltSpawn(void *s) { fn<void (__cdecl *)(void *)>(us(0x658890))(s); }
-		inline void CamLerp(const void *a, const void *b, int t) { fn<void (__cdecl *)(const void *, const void *, int)>(us(0x657DF0))(a, b, t); }
-		inline void TargetHeights(void *entity, void *out) { fn<void (__cdecl *)(void *, void *)>(us(0x6DFD90))(entity, out); }
-		inline void VertexPos(void *e, uint32_t vertex, void *out) { fn<void (__cdecl *)(void *, uint32_t, void *)>(us(0x6F0CC0))(e, vertex, out); }
-		inline void SpawnPosition(void *e, int bone, int a, void *out) { fn<void (__cdecl *)(void *, int, int, void *)>(us(0x502170))(e, bone, a, out); }
-		inline void Load(int id, uint32_t dst, int n) { fn<void (__cdecl *)(int, uint32_t, int)>(us(0x5341D0))(id, dst, n); }
-		inline int LoadBusy() { return fn<int (__cdecl *)()>(us(0x534270))(); }
-		inline int PreLoad0(int a) { return fn<int (__cdecl *)(int)>(us(0x5342C0))(a); }
-		inline void PreLoad() { fn<void (__cdecl *)()>(us(0x534210))(); }
-		inline int PreLoad1(int a) { return fn<int (__cdecl *)(int)>(us(0x534300))(a); }
-		inline void PlayStream(uint32_t a, int b, uint32_t c) { fn<void (__cdecl *)(uint32_t, int, uint32_t)>(us(0x5018C0))(a, b, c); }
-		inline void TransStream(uint32_t dst, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x501860))(dst, flag); }
-		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(us(0x501330))(se, a, b); }
-		inline void TimUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(us(0x505E30))(tim); }
-		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(slot); }
-		inline void ApplyResult(void *targets, int n) { fn<void (__cdecl *)(void *, int)>(us(0x506BA0))(targets, n); }
+		{ fn<void (__cdecl *)(int, int, int, uint32_t, void *, int, int, void *, int, int)>(game_addr(game::MAG_325_DrawMorphPair))(x, y, z, hdr, tab_a, na, ta, tab_b, nb, tb); }
+		inline void DrawPrimAt(int x, int y, int z, uint32_t model) { fn<void (__cdecl *)(int, int, int, uint32_t)>(game_addr(game::MAG_325_DrawPrimAt))(x, y, z, model); }
+		inline void SpawnRising(int x, int y, int z, int shade, uint32_t model) { fn<void (__cdecl *)(int, int, int, int, uint32_t)>(game_addr(game::MAG_325_SpawnRisingPrim))(x, y, z, shade, model); }
+		inline void DrawEntityScaled(void *entity, const int32_t *scale) { fn<void (__cdecl *)(void *, const int32_t *)>(game_addr(game::MAG_325_DrawEntityScaled))(entity, scale); }
+		inline void DrawWell(int x, int y, int z, int scroll) { fn<void (__cdecl *)(int, int, int, int)>(game_addr(game::MAG_325_DrawGravityWell))(x, y, z, scroll); }
+		inline uint32_t FlashTile(int i, int r, int g, int b, int up, int down, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, int, int, uint32_t)>(game_addr(game::Effect_FlashTileUpDown))(i, r, g, b, up, down, cursor); }
+		inline uint32_t Tile(int r, int g, int b, int level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int, int, int, int, uint32_t)>(game_addr(game::Effect_FullScreenTile))(r, g, b, level, cursor); }
+		inline void SetAnim(void *e, int id) { fn<void (__cdecl *)(void *, int)>(game_addr(game::au_re_Battle_ReadAnimation_6))(e, id); }
+		inline void AdvanceAnim(void *e) { fn<void (__cdecl *)(void *)>(game_addr(game::MAG_089_Angelo_AnimStep))(e); }
+		inline void BindModel(void *e, void *sections, uint32_t data) { fn<void (__cdecl *)(void *, void *, uint32_t)>(game_addr(game::Effect_BindModelContainerSections))(e, sections, data); }
+		inline void DrawStylised(void *e, int y, int a, int mode, void *buf) { fn<void (__cdecl *)(void *, int, int, int, void *)>(game_addr(game::MAG_325_DrawModelStylised))(e, y, a, mode, buf); }
+		inline uint32_t DrawModel(void *e, void *buf, uint32_t cursor, uint32_t mode) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t)>(game_addr(game::Effect_DrawCreatureModel))(e, buf, cursor, mode); }
+		inline void ResetPuffs() { fn<void (__cdecl *)()>(game_addr(game::MAG_325_ResetPuffs))(); }
+		inline void BoltAdvance() { fn<void (__cdecl *)()>(game_addr(game::MAG_325_AdvanceBolts))(); }
+		inline void BoltDraw() { fn<void (__cdecl *)()>(game_addr(game::MAG_325_DrawBolts))(); }
+		inline void PuffDraw() { fn<void (__cdecl *)()>(game_addr(game::MAG_325_DrawPuffs))(); }
+		inline uint8_t *PuffAlloc() { return fn<uint8_t *(__cdecl *)()>(game_addr(game::MAG_325_AllocPuff))(); }
+		inline void PuffMove() { fn<void (__cdecl *)()>(game_addr(game::MAG_325_MovePuffs))(); }
+		inline void PuffMoveRise() { fn<void (__cdecl *)()>(game_addr(game::MAG_325_MovePuffsRise))(); }
+		inline void PuffMoveShrink() { fn<void (__cdecl *)()>(game_addr(game::MAG_325_MovePuffsShrink))(); }
+		inline void PuffSpawn(int n, int y, int flag) { fn<void (__cdecl *)(int, int, int)>(game_addr(game::MAG_325_SpawnPuffs))(n, y, flag); }
+		inline void PuffsFromModel(void *e) { fn<void (__cdecl *)(void *)>(game_addr(game::MAG_325_PuffsFromModel))(e); }
+		inline void BoltParams(int a, int b, int c) { fn<void (__cdecl *)(int, int, int)>(game_addr(game::MAG_325_InitBolts))(a, b, c); }
+		inline void BoltSpawn(void *s) { fn<void (__cdecl *)(void *)>(game_addr(game::MAG_325_SpawnBolt))(s); }
+		inline void CamLerp(const void *a, const void *b, int t) { fn<void (__cdecl *)(const void *, const void *, int)>(game_addr(game::MAG_325_CameraLerp))(a, b, t); }
+		inline void TargetHeights(void *entity, void *out) { fn<void (__cdecl *)(void *, void *)>(game_addr(game::MAG_070_ShockwavePulsar_MeasureModelHeight))(entity, out); }
+		inline void VertexPos(void *e, uint32_t vertex, void *out) { fn<void (__cdecl *)(void *, uint32_t, void *)>(game_addr(game::MAG_291_CreatureBonePoint))(e, vertex, out); }
+		inline void SpawnPosition(void *e, int bone, int a, void *out) { fn<void (__cdecl *)(void *, int, int, void *)>(game_addr(game::GetEffectSpawnPosition))(e, bone, a, out); }
+		inline void Load(int id, uint32_t dst, int n) { fn<void (__cdecl *)(int, uint32_t, int)>(game_addr(game::Stream_QueueLoad))(id, dst, n); }
+		inline int LoadBusy() { return fn<int (__cdecl *)()>(game_addr(game::Stream_IsBusy))(); }
+		inline int PreLoad0(int a) { return fn<int (__cdecl *)(int)>(game_addr(game::BattleFile_PreLoad_IsLoaded))(a); }
+		inline void PreLoad() { fn<void (__cdecl *)()>(game_addr(game::Stream_Pump))(); }
+		inline int PreLoad1(int a) { return fn<int (__cdecl *)(int)>(game_addr(game::au_re_BattleFile_preLoad_1))(a); }
+		inline void PlayStream(uint32_t a, int b, uint32_t c) { fn<void (__cdecl *)(uint32_t, int, uint32_t)>(game_addr(game::BdPlaySummonStream))(a, b, c); }
+		inline void TransStream(uint32_t dst, void *flag) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::BdTransSummonStream))(dst, flag); }
+		inline void PlaySE(uint32_t se, int a, int b) { fn<void (__cdecl *)(uint32_t, int, int)>(game_addr(game::BdPlaySE))(se, a, b); }
+		inline void TimUpload(uint32_t tim) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::Battle_QueueTIMUpload_GetEOF))(tim); }
+		inline void ReleaseVoice(uint32_t slot) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(slot); }
+		inline void ApplyResult(void *targets, int n) { fn<void (__cdecl *)(void *, int)>(game_addr(game::ApplyActionResultToTargets))(targets, n); }
 	}
 
 #pragma pack(push, 1)
@@ -238,16 +238,16 @@ namespace d325
 			node->spawned = 1;
 			x::ResetPuffs();
 			InitTaskQueuePool(&QueueTimeline(), ModelBuffer(), 0x994, 1);
-			TimelineNode *t = (TimelineNode *)AddTaskToQueue(&QueueTimeline(), us(ORIG_TimelineTask));
+			TimelineNode *t = (TimelineNode *)AddTaskToQueue(&QueueTimeline(), game_addr(ORIG_TimelineTask));
 			Memset32(&t->counter, 0, 0x262);
-			t->voice = ClaimVoiceSlot((const void *)us(0xFD6658), 1, 0x80);
-			x::Decode(us(0xFD8584), t->prim_a, 0xE0);
+			t->voice = ClaimVoiceSlot((const void *)game_addr(game::unk_FD6658), 1, 0x80);
+			x::Decode(game_addr(game::unk_FD8584), t->prim_a, 0xE0);
 			for (int k = 0; k < TargetCount(); k++)
 			{
 				uint32_t id = (*(uint8_t **)(ActionData() + 8))[0x18 * k];
 				t->targets[k].z0 = 0;
 				t->targets[k].one = 0x1000;
-				t->targets[k].entity = (uint8_t *)(us(0x1D972C0) + 0x9C * id);
+				t->targets[k].entity = (uint8_t *)(game_addr(game::BattleEntitySlotData) + 0x9C * id);
 			}
 			StreamStateInit(ModelBuffer() + MB_STREAM_STATE);
 			int16_t *tab = (int16_t *)(ModelBuffer() + 0x994);
@@ -276,11 +276,11 @@ namespace d325
 			f = Flash();
 			if ((int32_t)f >= 0x1000)
 			{
-				for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) var<uint8_t>(a) &= 0xFD;
+				for (uint32_t a = game_addr(game::unk_1D98991); a < game_addr(game::unk_1D98A41); a += 0x2C) var<uint8_t>(a) &= 0xFD;
 			}
 			else if ((int32_t)FlashPrev() >= 0x1000)
 			{
-				for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C) var<uint8_t>(a) |= 2;
+				for (uint32_t a = game_addr(game::unk_1D98991); a < game_addr(game::unk_1D98A41); a += 0x2C) var<uint8_t>(a) |= 2;
 			}
 			FlashPrev() = f;
 		}
@@ -307,8 +307,8 @@ namespace d325
 		ff8fx::fill<(sizeof(c))>(&c, 0);
 		c.pos[2] = (int16_t)MidZ();
 		c.morph = Morph();
-		c.scroll_sel = us(0xFE0FC0);
-		c.draw_sel = us(0xFE0FB8);
+		c.scroll_sel = game_addr(game::a0000);
+		c.draw_sel = game_addr(game::a0010);
 		c.shade = 0x200;
 		c.fade = fade;
 	}
@@ -320,7 +320,7 @@ namespace d325
 		c.pos[1] = (int16_t)0xDC7C;
 		c.pos[2] = (int16_t)(FarZ() - 0xA0);
 		c.morph = Morph();
-		c.scroll_sel = c.draw_sel = us(0xFE0FB4);
+		c.scroll_sel = c.draw_sel = game_addr(game::a0);
 		c.shade = -0x40;
 	}
 
@@ -331,8 +331,8 @@ namespace d325
 		c.pos[1] = (int16_t)0xD736;
 		c.pos[2] = (int16_t)(FarZ() - 0xF2);
 		c.morph = Morph();
-		c.scroll_sel = us(0xFE0FAC);
-		c.draw_sel = us(0xFE0FA4);
+		c.scroll_sel = game_addr(game::a00000);
+		c.draw_sel = game_addr(game::a01000);
 	}
 
 	static void CtxB406(PrimCtx &c, int16_t scroll)
@@ -342,14 +342,14 @@ namespace d325
 		c.pos[2] = (int16_t)CenterZ();
 		c.morph = Morph();
 		c.scroll = scroll;
-		c.scroll_sel = us(0xFE0F94);
-		c.draw_sel = us(0xFE0F84);
+		c.scroll_sel = game_addr(game::a0010000000000);
+		c.draw_sel = game_addr(game::a1000000100000);
 	}
 
 	static int Play(void *layout, PrimCtx &c)
 	{
 		c.cursor = FrameCursor();
-		int r = prim::play((prim::Layout *)layout, (prim::Callback)us(CB_PrimObject), (int)&c, (int)Pause());
+		int r = prim::play((prim::Layout *)layout, (prim::Callback)game_addr(CB_PrimObject), (int)&c, (int)Pause());
 		FrameCursor() = c.cursor;
 		return r;
 	}
@@ -375,7 +375,7 @@ namespace d325
 		*(int32_t *)(w + 0x3C) = 0;
 		*(int32_t *)(w + 0x40) = 0;
 		*(int32_t *)(w + 0x38) = 0;
-		*(uint32_t *)(w + 0x20) = us(0xFD6B6C);
+		*(uint32_t *)(w + 0x20) = game_addr(game::unk_FD6B6C);
 		PacketCursor() = x::RenderPrimSet(w + 0x20, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x8C);
 	}
@@ -456,8 +456,8 @@ namespace d325
 				if (real)
 				{
 					x::ResetPuffs();
-					var<int16_t>(us(0x1D8E038)) = 0x120;
-					var<int16_t>(us(0x1D977A2)) = 0;
+					var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE)) = 0x120;
+					var<int16_t>(game_addr(game::g_BattleCam_Roll)) = 0;
 				}
 				SetCam(0, (int16_t)0xF3A2, (int16_t)(D4 - 0x4BF), 0, (int16_t)0xF8FC, (int16_t)(D4 + 0x1E57));
 				r = 3;
@@ -582,7 +582,7 @@ namespace d325
 		}
 		if (c == 0x129)
 		{
-			if (real) var<int16_t>(us(0x1D977A2)) = (int16_t)0xFF00;
+			if (real) var<int16_t>(game_addr(game::g_BattleCam_Roll)) = (int16_t)0xFF00;
 			SetCam((int16_t)0xFFF9, (int16_t)0xDD51, (int16_t)(DC - 0x109), (int16_t)0xFF0D, (int16_t)0xE5DC, (int16_t)(DC - 0xEDF));
 			r = 3;
 		}
@@ -590,7 +590,7 @@ namespace d325
 			uint32_t e = (uint32_t)(c - 0x149);
 			if (e < 0x28)
 			{
-				if (real) var<int16_t>(us(0x1D977A2)) = 0;
+				if (real) var<int16_t>(game_addr(game::g_BattleCam_Roll)) = 0;
 				int32_t t = (int32_t)((e << 12) / 40u) + 0x66;
 				Lerp6(0x3D, (int16_t)0xDE1E, (int16_t)(DC - 0x97), 0x1ED, (int16_t)0xDE91, (int16_t)(DC - 0x70),
 					0xC9, (int16_t)0xE35F, (int16_t)(DC - 0x6C7), 0x651, (int16_t)0xE711, (int16_t)(DC + 0x48C), t);
@@ -983,12 +983,12 @@ namespace d325
 
 		switch ((uint16_t)t->counter)
 		{
-		case 0: x::PlaySE(us(0xFD6640), 1, 0x80); break;
-		case 0x5B: x::PlaySE(us(0xFD6644), 1, 0x80); break;
-		case 0xEE: x::PlaySE(us(0xFD6648), 1, 0x80); break;
-		case 0x14D: x::PlaySE(us(0xFD664C), 1, 0x80); break;
-		case 0x192: x::PlaySE(us(0xFD6650), 1, 0x80); break;
-		case 0x1C8: x::PlaySE(us(0xFD6654), 1, 0x80); break;
+		case 0: x::PlaySE(game_addr(game::unk_FD6640), 1, 0x80); break;
+		case 0x5B: x::PlaySE(game_addr(game::unk_FD6644), 1, 0x80); break;
+		case 0xEE: x::PlaySE(game_addr(game::unk_FD6648), 1, 0x80); break;
+		case 0x14D: x::PlaySE(game_addr(game::unk_FD664C), 1, 0x80); break;
+		case 0x192: x::PlaySE(game_addr(game::unk_FD6650), 1, 0x80); break;
+		case 0x1C8: x::PlaySE(game_addr(game::unk_FD6654), 1, 0x80); break;
 		default: break;
 		}
 
@@ -1000,7 +1000,7 @@ namespace d325
 				{
 					int16_t v[4];
 					int32_t r = x::Rand();
-					x::VertexPos(e1, us(0xFDBDA8) + 8 * ((uint32_t)(r * 10) >> 15), v);
+					x::VertexPos(e1, game_addr(game::unk_FDBDA8) + 8 * ((uint32_t)(r * 10) >> 15), v);
 					r = x::Rand();
 					int32_t k = (r * 3) >> 15;
 					uint32_t model;
@@ -1025,7 +1025,7 @@ namespace d325
 						uint8_t *p = x::PuffAlloc();
 						if (!p) break;
 						p[0xF] = 0x10;
-						*(uint32_t *)p = (cnt & 1) ? us(0xFD69C0) : us(0xFD6814);
+						*(uint32_t *)p = (cnt & 1) ? game_addr(game::unk_FD69C0) : game_addr(game::unk_FD6814);
 						int32_t ang = x::Rand() & 0x7FF;
 						int32_t rad = (x::Rand() & 0x1FF) + 0x200;
 						int32_t cx = mul32(x::Cos(ang), rad) >> 12;
@@ -1100,10 +1100,10 @@ namespace d325
 			{
 				if (e == 0)
 				{
-					var<int16_t>(us(0x2505200)) = 9;
-					var<int16_t>(us(0x2505202)) = 0x20;
-					var<int16_t>(us(0x2505204)) = 0x800;
-					var<int16_t>(us(0x2505206)) = -4;
+					var<int16_t>(game_addr(game::unk_2505200)) = 9;
+					var<int16_t>(game_addr(game::unk_2505202)) = 0x20;
+					var<int16_t>(game_addr(game::unk_2505204)) = 0x800;
+					var<int16_t>(game_addr(game::unk_2505206)) = -4;
 				}
 				int16_t P[4];
 				x::SpawnPosition(e1, 0x21, 0, P);
@@ -1233,7 +1233,7 @@ namespace d325
 				if (e == 0) InitTaskQueuePool(&QueueParticles(), ModelBuffer() + 0x3505C, 0xE8, 0x10);
 				for (int k = 2; k; k--)
 				{
-					BurstNode *b = (BurstNode *)AddTaskToQueue(&QueueParticles(), us(ORIG_BurstTask));
+					BurstNode *b = (BurstNode *)AddTaskToQueue(&QueueParticles(), game_addr(ORIG_BurstTask));
 					if (!b) continue;
 					int32_t r = x::Rand();
 					uint32_t nb = ***(uint8_t ***)(e1 + 0x64);
@@ -1291,8 +1291,8 @@ namespace d325
 		c.pad06 = shade;
 		c.morph = Morph();
 		c.shade = shade;
-		c.scroll_sel = us(0xFE0FB4);
-		c.draw_sel = us(0xFE0FC8);
+		c.scroll_sel = game_addr(game::a0);
+		c.draw_sel = game_addr(game::a1);
 	}
 
 	static uint32_t __cdecl RisingTask(TaskNode *n)
@@ -1316,7 +1316,7 @@ namespace d325
 		c.use_scale = 1;
 		c.morph = Morph();
 		c.shade = p->shade;
-		c.scroll_sel = c.draw_sel = us(0xFE0FB4);
+		c.scroll_sel = c.draw_sel = game_addr(game::a0);
 	}
 
 	static uint32_t __cdecl BurstTask(TaskNode *n)

@@ -39,46 +39,46 @@ namespace fire_breath_q
 	{
 		c.name = "230 Fire Breath (Quistis)";
 		c.effect_id = 230;
-		c.vm_table = us(0x186A508);
-		c.bone_table = us(0x186A178);
-		c.prim_table = us(0x186A1C0);
-		c.prim_size = us(0x186A2B0);
-		c.spr_table = us(0x186A2C4);
-		c.ptype_table = us(0x186A2F0);
-		c.pop_table = us(0x186A304);
-		c.draw_table = us(0x186A364);
-		c.attr_16A = us(0x186A4CE);
-		c.attr_184 = us(0x186A4E8);
-		c.attr_186 = us(0x186A4EA);
-		c.attr_194 = us(0x186A4F8);
-		c.attr_19C = us(0x186A500);
-		c.desc = us(0x186A02C);
-		c.ptr_block = us(0x186A150);
-		c.queue = us(0x2796AC8);
-		c.file00 = us(0x2796ADC);
-		c.file01 = us(0x2796AD8);
-		c.tick = us(0xA711E0);
-		c.load_cb = us(0xA76420);
+		c.vm_table = game_addr(game::funcs_A7A4DC);
+		c.bone_table = game_addr(game::funcs_A77037);
+		c.prim_table = game_addr(game::funcs_A72F84);
+		c.prim_size = game_addr(game::unk_186A2B0);
+		c.spr_table = game_addr(game::unk_186A2C4);
+		c.ptype_table = game_addr(game::unk_186A2F0);
+		c.pop_table = game_addr(game::funcs_A74A27);
+		c.draw_table = game_addr(game::unk_186A364);
+		c.attr_16A = game_addr(game::unk_186A4CE);
+		c.attr_184 = game_addr(game::unk_186A4E8);
+		c.attr_186 = game_addr(game::unk_186A4EA);
+		c.attr_194 = game_addr(game::unk_186A4F8);
+		c.attr_19C = game_addr(game::unk_186A500);
+		c.desc = game_addr(game::unk_186A02C);
+		c.ptr_block = game_addr(game::unk_186A150);
+		c.queue = game_addr(game::unk_2796AC8);
+		c.file00 = game_addr(game::unk_2796ADC);
+		c.file01 = game_addr(game::unk_2796AD8);
+		c.tick = game_addr(game::MAG_230_FIRE_BREATH_QUISTIS_SequenceTick);
+		c.load_cb = game_addr(game::MAG_230_FIRE_BREATH_QUISTIS_LoadFileDoneCallback);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline void BindEntityModelFromComData(uint8_t *entity, uint8_t *out, uint32_t data)
 	{
-		x::f<void (__cdecl *)(uint8_t *, uint8_t *, uint32_t)>(us(0x5022C0))(entity, out, data);
+		x::f<void (__cdecl *)(uint8_t *, uint8_t *, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data);
 	}
 	static inline void QueueChainTransformation(uint8_t *entity, int32_t id)
 	{
-		x::f<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id);
+		x::f<void (__cdecl *)(uint8_t *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id);
 	}
 
-	static const uint32_t COM_ANIM = 0x187EAB8;
+	static constexpr game::Id COM_ANIM = game::MAG_230_FIRE_BREATH_AnimSet;
 
 	static void __cdecl op_0AB_BindEntityAnimSet()
 	{
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B));
 		uint8_t *blk = blob::ArenaAlloc(0x20);
-		BindEntityModelFromComData(ent, blk, us(COM_ANIM));
+		BindEntityModelFromComData(ent, blk, game_addr(COM_ANIM));
 		QueueChainTransformation(ent, (int32_t)S16(STREAM(), 2));
 		STREAM() += 4;
 	}
@@ -131,7 +131,7 @@ namespace fire_breath_q
 		fire_breath_q::describe(fire_breath_q::g_c);
 		init_clone(fire_breath_q::g_c, nullptr, 0);
 		fire_breath_q::apply_slots(fire_breath_q::g_c);
-		register_port(0xA711E0, (void *)fire_breath_q::SequenceTask, "MAG230 Fire Breath (Quistis) SequenceTick", 230);
+		register_port(game::MAG_230_FIRE_BREATH_QUISTIS_SequenceTick, (void *)fire_breath_q::SequenceTask, "MAG230 Fire Breath (Quistis) SequenceTick", 230);
 	}
 }
 

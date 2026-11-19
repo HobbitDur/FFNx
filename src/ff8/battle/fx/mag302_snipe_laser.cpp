@@ -25,45 +25,45 @@ namespace snipe302
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507660)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2507668)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x250766C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2507684)); }
-	inline TaskQueue *QHits() { return (TaskQueue *)us(0x2507688); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2507698); }
-	inline TaskQueue *QGlows() { return (TaskQueue *)us(0x25076A8); }
-	inline TaskQueue *QBeam() { return (TaskQueue *)us(0x25076B8); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_302_SnipeLaser_CasterEntity)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_302_SnipeLaser_MagicBufferBase)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_302_SnipeLaser_CastContext)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_302_SnipeLaser_PacketCursor)); }
+	inline TaskQueue *QHits() { return (TaskQueue *)game_addr(game::MAG_302_SnipeLaser_HitsQueue); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)game_addr(game::MAG_302_SnipeLaser_SparksQueue); }
+	inline TaskQueue *QGlows() { return (TaskQueue *)game_addr(game::MAG_302_SnipeLaser_GlowsQueue); }
+	inline TaskQueue *QBeam() { return (TaskQueue *)game_addr(game::MAG_302_SnipeLaser_BeamQueue); }
 
-	static const uint32_t ORIG_MasterTask = 0x66CB00;
-	static const uint32_t ORIG_BeamTask = 0x66CD40;
-	static const uint32_t ORIG_HitTask = 0x66D670;
-	static const uint32_t ORIG_SparkTask = 0x66D6D0;
-	static const uint32_t ORIG_GlowTask = 0x66D790;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_302_SnipeLaser_MasterTask;
+	static constexpr game::Id ORIG_BeamTask = game::MAG_302_SnipeLaser_BeamTask;
+	static constexpr game::Id ORIG_HitTask = game::MAG_302_SnipeLaser_HitTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_302_SnipeLaser_SparkTask;
+	static constexpr game::Id ORIG_GlowTask = game::MAG_302_SnipeLaser_GlowTask;
 	static const uint32_t MORPH = 0x1588;
 	static const uint32_t ARENA_A = 0x1710;
 	static const uint32_t ARENA_B = 0x11710;
 	static const uint32_t POOL_Beam = 0x8C0;
-	static const uint32_t MODEL_Muzzle = 0x1036F60;
-	static const uint32_t MODEL_Ray = 0x1039B1C;
-	static const uint32_t MODEL_Impact = 0x1035CF4;
-	static const uint32_t MODEL_Hit = 0x103AD7C;
-	static const uint32_t PRIM_Beam = 0x103462C;
-	static const uint32_t SEQ_Spark = 0x1034480;
-	static const uint32_t SEQ_Glow = 0x1034270;
-	static const void *SOUND_Beam() { return (const void *)us(0x103BBB0); }
-	static const int16_t *BEAM_POINTS() { return (const int16_t *)us(0x103BBB8); }
+	static constexpr game::Id MODEL_Muzzle = game::MAG_302_SnipeLaser_ModelMuzzle;
+	static constexpr game::Id MODEL_Ray = game::MAG_302_SnipeLaser_ModelRay;
+	static constexpr game::Id MODEL_Impact = game::MAG_302_SnipeLaser_ModelImpact;
+	static constexpr game::Id MODEL_Hit = game::MAG_302_SnipeLaser_ModelHit;
+	static constexpr game::Id PRIM_Beam = game::unk_103462C;
+	static constexpr game::Id SEQ_Spark = game::MAG_302_SnipeLaser_SeqSpark;
+	static constexpr game::Id SEQ_Glow = game::MAG_302_SnipeLaser_SeqGlow;
+	static const void *SOUND_Beam() { return (const void *)game_addr(game::MAG_302_SnipeLaser_SoundBeam); }
+	static const int16_t *BEAM_POINTS() { return (const int16_t *)game_addr(game::unk_103BBB8); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrim2(void *h, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -321,7 +321,7 @@ namespace snipe302
 		s.m[2][2] = (int16_t)len;
 		MulMatrix3(M2, &s);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = us(PRIM_Beam);
+		*(uint32_t *)h = game_addr(PRIM_Beam);
 		if (fade == 0) *(uint32_t *)(h + 0x1C) = 0x30;
 		else
 		{
@@ -365,7 +365,7 @@ namespace snipe302
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
-		SpriteDraw(g->pos, g->counter, us(SEQ_Glow), 0xAF0, -0x400);
+		SpriteDraw(g->pos, g->counter, game_addr(SEQ_Glow), 0xAF0, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
 	}
@@ -373,7 +373,7 @@ namespace snipe302
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		SpriteDraw(s->pos, s->counter, us(SEQ_Spark), 0xC00, -0x300);
+		SpriteDraw(s->pos, s->counter, game_addr(SEQ_Spark), 0xC00, -0x300);
 		s->counter++;
 		if (s->counter >= 0x10) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
@@ -437,7 +437,7 @@ namespace snipe302
 				BeamShape(b, c, f.P, T, &d);
 				if (d.kind == 2)
 				{
-					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), us(ORIG_GlowTask));
+					GlowNode *g = (GlowNode *)AddTaskToQueue(QGlows(), game_addr(ORIG_GlowTask));
 					if (g)
 					{
 						g->pos[0] = T[0];
@@ -448,14 +448,14 @@ namespace snipe302
 				}
 				else if (d.kind == 1)
 				{
-					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
+					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), game_addr(ORIG_HitTask));
 					if (h)
 					{
 						ff8fx::copy<(sizeof(h->frame.m))>(&h->frame.m, &f.R.m);
 						h->frame.t[0] = T[0];
 						h->frame.t[1] = T[1];
 						h->frame.t[2] = T[2];
-						DecodeModelPrimLayout(us(MODEL_Hit), h->layout, 0x7C);
+						DecodeModelPrimLayout(game_addr(MODEL_Hit), h->layout, 0x7C);
 					}
 				}
 				BeamRender(&d.M2, d.len, BeamWidth(ez.width), ez.fade);
@@ -475,7 +475,7 @@ namespace snipe302
 			{
 				for (int k = 0; k < 8; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 					if (!s) continue;
 					ff8fx::copy<(4)>(s->pos, b->spawn);
 					*(uint32_t *)&s->pos[2] = *(const uint32_t *)&b->spawn[2];
@@ -523,7 +523,7 @@ namespace snipe302
 				uint8_t *ent = Entity(Ctx()->actions[m->index].targets[0]);
 				for (int k = 0; k < 2; k++)
 				{
-					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), us(ORIG_BeamTask));
+					BeamNode *b = (BeamNode *)AddTaskToQueue(QBeam(), game_addr(ORIG_BeamTask));
 					if (!b) continue;
 					Memset32(&b->counter, 0, 0x196);
 					b->index = (int16_t)k;
@@ -531,9 +531,9 @@ namespace snipe302
 					b->ent = ent;
 					GetEffectSpawnPosition(ent, 0xF1, 0, b->spawn);
 					m->index++;
-					DecodeModelPrimLayout(us(MODEL_Muzzle), b->muzzle, 0x3B0);
-					DecodeModelPrimLayout(us(MODEL_Ray), b->ray, 0xE8);
-					DecodeModelPrimLayout(us(MODEL_Impact), b->impact, 0x1B0);
+					DecodeModelPrimLayout(game_addr(MODEL_Muzzle), b->muzzle, 0x3B0);
+					DecodeModelPrimLayout(game_addr(MODEL_Ray), b->ray, 0xE8);
+					DecodeModelPrimLayout(game_addr(MODEL_Impact), b->impact, 0x1B0);
 				}
 			}
 		}

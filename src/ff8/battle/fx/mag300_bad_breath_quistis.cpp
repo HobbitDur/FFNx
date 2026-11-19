@@ -25,54 +25,54 @@ namespace badbreath300
 	using namespace magc;
 	using namespace icec;
 
-	inline Mat4x3 &MeshFrame() { return var<Mat4x3>(us(0x2507758)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2507778)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25077A4)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25077A8)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x25077C4)); }
-	static const void *FADE_COLOUR() { return (const void *)us(0x25077C8); }
-	inline TaskQueue *QSmoke() { return (TaskQueue *)us(0x25077D0); }
-	inline TaskQueue *QHits() { return (TaskQueue *)us(0x25077E0); }
-	inline TaskQueue *QBreath() { return (TaskQueue *)us(0x25077F0); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline Mat4x3 &MeshFrame() { return var<Mat4x3>(game_addr(game::MAG_300_BAD_BREATH_QUISTIS_MeshFrame)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_300_BAD_BREATH_QUISTIS_Caster)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_300_BAD_BREATH_QUISTIS_MagicBuffer)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_300_BAD_BREATH_QUISTIS_Context)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_300_BAD_BREATH_QUISTIS_PacketCursor)); }
+	static const void *FADE_COLOUR() { return (const void *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_FadeColour); }
+	inline TaskQueue *QSmoke() { return (TaskQueue *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_SmokeQueue); }
+	inline TaskQueue *QHits() { return (TaskQueue *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_HitQueue); }
+	inline TaskQueue *QBreath() { return (TaskQueue *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_BreathQueue); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	static const uint32_t ORIG_MasterTask = 0x66EFB0;
-	static const uint32_t ORIG_BreathTask = 0x66F270;
-	static const uint32_t ORIG_HitTask = 0x66F790;
-	static const uint32_t ORIG_SmokeTask = 0x66FB20;
-	static const uint32_t ORIG_PrimCallback = 0x66F8A0;
-	static uint8_t *MESH1() { return (uint8_t *)us(0x103FA04); }
-	static uint8_t *MESH2() { return (uint8_t *)us(0x1040E84); }
-	static const uint32_t MODEL_Hit = 0x1042304;
-	static const uint32_t SEQ_Smoke = 0x103F824;
-	static const uint32_t CAMERA_Anim = 0x1042F80;
-	static const uint32_t COM_Anim = 0x103DCB0;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_300_BAD_BREATH_QUISTIS_MasterTask;
+	static constexpr game::Id ORIG_BreathTask = game::MAG_300_BAD_BREATH_QUISTIS_BreathTask;
+	static constexpr game::Id ORIG_HitTask = game::MAG_300_BAD_BREATH_QUISTIS_HitTask;
+	static constexpr game::Id ORIG_SmokeTask = game::MAG_300_BAD_BREATH_QUISTIS_SmokeTask;
+	static constexpr game::Id ORIG_PrimCallback = game::MAG_300_BAD_BREATH_QUISTIS_PrimCallback;
+	static uint8_t *MESH1() { return (uint8_t *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_Mesh1); }
+	static uint8_t *MESH2() { return (uint8_t *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_Mesh2); }
+	static constexpr game::Id MODEL_Hit = game::MAG_300_BAD_BREATH_QUISTIS_HitLayout;
+	static constexpr game::Id SEQ_Smoke = game::MAG_300_BAD_BREATH_QUISTIS_SmokeSequence;
+	static constexpr game::Id CAMERA_Anim = game::MAG_300_BAD_BREATH_QUISTIS_CameraAnim;
+	static constexpr game::Id COM_Anim = game::MAG_300_BAD_BREATH_QUISTIS_CasterAnimSet;
 	static const uint32_t BIND_Block = 0x83C;
-	static const uint8_t *COLOURS() { return (const uint8_t *)us(0x10430F8); }
-	static const int16_t *SWIRL_TABLE() { return (const int16_t *)us(0x1043110); }
-	static const int16_t *MOUTH() { return (const int16_t *)us(0x1043108); }
-	static const void *SOUND_Breath() { return (const void *)us(0x10430F4); }
+	static const uint8_t *COLOURS() { return (const uint8_t *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_Colours); }
+	static const int16_t *SWIRL_TABLE() { return (const int16_t *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_SwirlTable); }
+	static const int16_t *MOUTH() { return (const int16_t *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_MouthPoint); }
+	static const void *SOUND_Breath() { return (const void *)game_addr(game::MAG_300_BAD_BREATH_QUISTIS_Sound); }
 	static const uint32_t VERTS = 0x85C;
 	static const uint32_t ARENA_A = 0xD84, ARENA_B = 0x18D84;
 	static const uint32_t POOL_Hits = 0x300, POOL_Breath = 0x800;
 
-	inline uint32_t FadeTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x700150))(t, r, g, b, in, hold, out, cursor); }
-	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x7040B0))(r, g, b, level, cursor); }
-	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x7012C0))(angle, out); }
-	inline void GteZeroTrans() { fn<void (__cdecl *)()>(us(0x704070))(); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(us(0x50CBA0))(v, m); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CC00))(a, b, wa, wb, out); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void GteLoadRGBBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(rgb); }
-	inline void GteStoreRGBBytes(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E410))(dst); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(us(0x5022C0))(entity, out, data); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
+	inline uint32_t FadeTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_FadeTileInHoldOut))(t, r, g, b, in, hold, out, cursor); }
+	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_FullScreenTile))(r, g, b, level, cursor); }
+	inline void RotZ(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::MAG_065_RotationZMatrix))(angle, out); }
+	inline void GteZeroTrans() { fn<void (__cdecl *)()>(game_addr(game::GTE_ZeroTranslation))(); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	inline int32_t BuildOrthonormalBasis(const int32_t *v, Mat4x3 *m) { return fn<int32_t (__cdecl *)(const int32_t *, Mat4x3 *)>(game_addr(game::BuildOrthonormalBasis))(v, m); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void BlendColour(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(game_addr(game::ColourLerp))(a, b, wa, wb, out); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void GteLoadRGBBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadIR123FromBytes))(rgb); }
+	inline void GteStoreRGBBytes(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreIR123LowBytes))(dst); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void BindEntityModelFromComData(uint8_t *entity, uint32_t out, uint32_t data) { fn<void (__cdecl *)(uint8_t *, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(entity, out, data); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -436,7 +436,7 @@ namespace badbreath300
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, p->size, -((int32_t)p->size >> 2));
-		*(uint32_t *)h = us(SEQ_Smoke);
+		*(uint32_t *)h = game_addr(SEQ_Smoke);
 		*(uint16_t *)(h + 4) = p->counter;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
@@ -473,7 +473,7 @@ namespace badbreath300
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		if (t->counter <= 8)
 		{
-			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), us(ORIG_SmokeTask));
+			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), game_addr(ORIG_SmokeTask));
 			if (s)
 			{
 				const int32_t bone = mul32(CrtRand(), ***(const uint8_t *const *const *)(entity + 0x64)) >> 15;
@@ -489,7 +489,7 @@ namespace badbreath300
 
 	static void PartyReact(int32_t id)
 	{
-		for (uint8_t *e = (uint8_t *)us(0x1D972C0); e < (uint8_t *)us(0x1D97494); e += 0x9C)
+		for (uint8_t *e = (uint8_t *)game_addr(game::BattleEntitySlotData); e < (uint8_t *)game_addr(game::unk_1D97494); e += 0x9C)
 			if ((e[0] & 2) && !(e[8] & 3) && e != Caster()) QueueChainTransformation(e, id);
 	}
 
@@ -515,15 +515,15 @@ namespace badbreath300
 				uint8_t *target = e->ents[e->next];
 				if ((int32_t)x - 0x12C <= (int32_t)*(const int16_t *)(target + 0x1C))
 				{
-					HitNode *p = (HitNode *)AddTaskToQueue(QHits(), us(ORIG_HitTask));
+					HitNode *p = (HitNode *)AddTaskToQueue(QHits(), game_addr(ORIG_HitTask));
 					if (p)
 					{
 						p->counter = 0;
 						p->idx = e->idx[e->next];
-						p->slot = (uint8_t)((int32_t)((uint32_t)target - 0x1D972C0u) / 0x9C);
+						p->slot = (uint8_t)((int32_t)((uint32_t)target - game_addr(game::BattleEntitySlotData)) / 0x9C);
 						GetDefaultEffectPosition(target, p->pos);
 						p->pos[1] = (int16_t)((int32_t)*(const int16_t *)(target + 0x92) / 2 + *(const int16_t *)(target + 0x1E));
-						DecodeModelPrimLayout(us(MODEL_Hit), p->layout, 0x128);
+						DecodeModelPrimLayout(game_addr(MODEL_Hit), p->layout, 0x128);
 					}
 					e->next++;
 				}
@@ -597,7 +597,7 @@ namespace badbreath300
 			InitTaskQueuePool(QBreath(), (void *)(TexBase() + POOL_Breath), 0x3C, 1);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x140, 4);
 			InitTaskQueuePool(QSmoke(), (void *)TexBase(), 0x18, 0x20);
-			BreathNode *e = (BreathNode *)AddTaskToQueue(QBreath(), us(ORIG_BreathTask));
+			BreathNode *e = (BreathNode *)AddTaskToQueue(QBreath(), game_addr(ORIG_BreathTask));
 			Memset32(&e->counter, 0, 0xC);
 			uint8_t *const b = (uint8_t *)e;
 			e->count = (int16_t)Ctx()->actions[0].target_count;
@@ -639,7 +639,7 @@ namespace badbreath300
 			}
 			NormalizeDepth(MESH1());
 			NormalizeDepth(MESH2());
-			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, us(COM_Anim));
+			BindEntityModelFromComData(Caster(), TexBase() + BIND_Block, game_addr(COM_Anim));
 			QueueChainTransformation(Caster(), 1);
 		}
 		int a0, a1, a2;

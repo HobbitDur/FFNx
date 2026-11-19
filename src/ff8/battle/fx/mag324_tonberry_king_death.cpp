@@ -26,44 +26,44 @@ namespace tonk324
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2203C48)); }
-	inline int32_t &CasterSlot() { return var<int32_t>(us(0x2203C4C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x221BC60)); }
-	inline uint32_t &Voice() { return var<uint32_t>(us(0x221BC64)); }
-	inline int16_t *BonePoint() { return (int16_t *)us(0x2203C58); }
-	inline TaskQueue *QTasks() { return (TaskQueue *)us(0x2202E28); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_324_TonberryKingDeath_CastContext)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(game_addr(game::MAG_324_TonberryKingDeath_CasterSlot)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::unk_221BC60)); }
+	inline uint32_t &Voice() { return var<uint32_t>(game_addr(game::unk_221BC64)); }
+	inline int16_t *BonePoint() { return (int16_t *)game_addr(game::world_position); }
+	inline TaskQueue *QTasks() { return (TaskQueue *)game_addr(game::MAG_324_TonberryKingDeath_TasksQueue); }
 	inline uint8_t *Caster() { return Entity(CasterSlot()); }
-	static const uint32_t KEPT_MATRIX = 0x2201080, KEPT_BONES = 0x22010A8, CUR_BONES = 0x2202428;
-	static const uint32_t ARENA_A = 0x2213C60, ARENA_B = 0x220BC60;
+	static constexpr game::Id KEPT_MATRIX = game::MAG_324_TonberryKingDeath_KeptMatrix, KEPT_BONES = game::MAG_324_TonberryKingDeath_KeptBones, CUR_BONES = game::MAG_324_TonberryKingDeath_CurrentBones;
+	static constexpr game::Id ARENA_A = game::unk_2213C60, ARENA_B = game::unk_220BC60;
 
-	static const uint32_t ORIG_RootTask = 0x5979A0;
-	static const uint32_t ORIG_CueTask = 0x596C70;
-	static const uint32_t ORIG_EmitterA = 0x596E30;
-	static const uint32_t ORIG_EmitterB = 0x597130;
-	static const uint32_t ORIG_TintTask = 0x597410;
-	static const uint32_t ORIG_GhostTask = 0x597520;
-	static const uint32_t ORIG_SpinTask = 0x597870;
-	static const uint32_t SEQ_SparkA = 0xCD0B88, SEQ_SparkB = 0xCD0D00, SEQ_Spin = 0xCD0B2C;
-	static const uint32_t TINTS = 0xCD1218;
-	static const void *VOICE() { return (const void *)us(0xCD1104); }
-	static const void *SOUND() { return (const void *)us(0xCD1210); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_324_TonberryKingDeath_RootTask;
+	static constexpr game::Id ORIG_CueTask = game::MAG_324_TonberryKingDeath_CueTask;
+	static constexpr game::Id ORIG_EmitterA = game::MAG_324_TonberryKingDeath_EmitterA;
+	static constexpr game::Id ORIG_EmitterB = game::MAG_324_TonberryKingDeath_EmitterB;
+	static constexpr game::Id ORIG_TintTask = game::MAG_324_TonberryKingDeath_TintTask;
+	static constexpr game::Id ORIG_GhostTask = game::MAG_324_TonberryKingDeath_GhostTask;
+	static constexpr game::Id ORIG_SpinTask = game::MAG_324_TonberryKingDeath_SpinTask;
+	static constexpr game::Id SEQ_SparkA = game::MAG_324_TonberryKingDeath_SeqSparkA, SEQ_SparkB = game::unk_CD0D00, SEQ_Spin = game::unk_CD0B2C;
+	static constexpr game::Id TINTS = game::unk_CD1218;
+	static const void *VOICE() { return (const void *)game_addr(game::unk_CD1104); }
+	static const void *SOUND() { return (const void *)game_addr(game::unk_CD1210); }
 	static const int CELLS = 0x64;
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline int32_t VoiceActive(uint32_t v) { return fn<int32_t (__cdecl *)(uint32_t)>(us(0x4A2900))(v); }
-	inline void ReleaseVoiceSlot(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x4A2940))(v); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
-	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x45DE50))(m); }
-	inline void GteSetBackFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(us(0x64DDA0))(m); }
-	inline void GteMVMVA_LightV0_Bk() { fn<void (__cdecl *)()>(us(0x4607E0))(); }
-	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(us(0x64DE00))(s); }
-	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(us(0x64DD70))(v); }
-	inline uint32_t RenderGeometry(uint32_t group, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(group, h, ot, mode, cursor); }
-	inline Mat4x3 *ShadowCamera(const int16_t *pos, int32_t a, int32_t b) { return fn<Mat4x3 *(__cdecl *)(const int16_t *, int32_t, int32_t)>(us(0x571BC0))(pos, a, b); }
-	inline uint32_t &FrameArena() { return var<uint32_t>(us(0x1D8E054)); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline int32_t VoiceActive(uint32_t v) { return fn<int32_t (__cdecl *)(uint32_t)>(game_addr(game::BdSound_IsVoiceSlotActive))(v); }
+	inline void ReleaseVoiceSlot(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::BdSound_ReleaseVoiceSlot))(v); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteLoadRGBC(const void *c) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(dst); }
+	inline void GteSetLightMatrix(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetLightMatrix))(m); }
+	inline void GteSetBackFromTrans(const void *m) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_SetBackColorFromTrans))(m); }
+	inline void GteMVMVA_LightV0_Bk() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+	inline void GteSetRotScale(int32_t s) { fn<void (__cdecl *)(int32_t)>(game_addr(game::GTE_SetRotScale))(s); }
+	inline void GteSetTransFromVec32(const int32_t *v) { fn<void (__cdecl *)(const int32_t *)>(game_addr(game::GTE_SetTransFromVec32))(v); }
+	inline uint32_t RenderGeometry(uint32_t group, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, void *, uint32_t, int32_t, uint32_t)>(game_addr(game::RenderGeometry))(group, h, ot, mode, cursor); }
+	inline Mat4x3 *ShadowCamera(const int16_t *pos, int32_t a, int32_t b) { return fn<Mat4x3 *(__cdecl *)(const int16_t *, int32_t, int32_t)>(game_addr(game::TransformCameraByShadowRotation))(pos, a, b); }
+	inline uint32_t &FrameArena() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -93,7 +93,7 @@ namespace tonk324
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(TaskBody) == 0x24 && sizeof(Cell) == 0x18, "Tonberry King death nodes");
-	inline Cell *Cells() { return (Cell *)us(0x2201AC8); }
+	inline Cell *Cells() { return (Cell *)game_addr(game::MAG_324_TonberryKingDeath_Cells); }
 
 	static void BonesOut(uint8_t *anim, uint8_t *dst)
 	{
@@ -117,11 +117,11 @@ namespace tonk324
 		uint8_t *w = (uint8_t *)FieldAlloc(0x4C);
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(ent + 0x40), (Mat4x3 *)w);
 		ComputeBonesWorldMatrices(ent + 0x60, w);
-		*(uint32_t *)(w + 0x24) = var<uint32_t>(us(0x1D98B3C));
+		*(uint32_t *)(w + 0x24) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 		*(int16_t *)(w + 0x34) = 0;
 		*(int16_t *)(w + 0x36) = 0;
 		*(uint32_t *)(w + 0x3C) = *(const uint32_t *)(ent + 0x28);
-		*(uint32_t *)(w + 0x30) = var<uint32_t>(us(0x1D969A8));
+		*(uint32_t *)(w + 0x30) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		w[0x4A] = ent[7];
 		w[0x49] = ent[7];
 		w[0x48] = ent[7];
@@ -185,7 +185,7 @@ namespace tonk324
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = us(SEQ_Spin);
+		*(uint32_t *)h = game_addr(SEQ_Spin);
 		*(int16_t *)(h + 4) = t->counter;
 		*(int16_t *)(h + 0x24) = 8;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -213,12 +213,12 @@ namespace tonk324
 		TaskBody *t = (TaskBody *)n;
 		if (t->counter == 0)
 		{
-			BonesOut(Caster() + 0x60, (uint8_t *)us(KEPT_BONES));
+			BonesOut(Caster() + 0x60, (uint8_t *)game_addr(KEPT_BONES));
 			uint8_t *e = Caster();
 			*(uint32_t *)(e + 0x7C) &= ~2u;
-			ff8fx::copy<(0x20)>((void *)us(KEPT_MATRIX), e + 0x40);
+			ff8fx::copy<(0x20)>((void *)game_addr(KEPT_MATRIX), e + 0x40);
 		}
-		BonesOut(Caster() + 0x60, (uint8_t *)us(CUR_BONES));
+		BonesOut(Caster() + 0x60, (uint8_t *)game_addr(CUR_BONES));
 		uint8_t *e = Caster();
 		const uint32_t tint = *(const uint32_t *)(e + 0x28);
 		const uint32_t mask = *(const uint32_t *)(e + 0x7C);
@@ -226,10 +226,10 @@ namespace tonk324
 		if (t->counter > 6)
 		{
 			ff8fx::copy<(0x20)>(live, e + 0x40);
-			ff8fx::copy<(0x20)>(e + 0x40, (const void *)us(KEPT_MATRIX));
+			ff8fx::copy<(0x20)>(e + 0x40, (const void *)game_addr(KEPT_MATRIX));
 		}
 		*(uint32_t *)(e + 0x7C) = 2;
-		BonesIn(e + 0x60, (const uint8_t *)us(KEPT_BONES));
+		BonesIn(e + 0x60, (const uint8_t *)game_addr(KEPT_BONES));
 		if (t->counter >= 0x10)
 		{
 			GteSetFarColor(0, 0, 0);
@@ -241,7 +241,7 @@ namespace tonk324
 			e[7] = 0;
 		}
 		ModelDraw(e);
-		BonesIn(Caster() + 0x60, (const uint8_t *)us(CUR_BONES));
+		BonesIn(Caster() + 0x60, (const uint8_t *)game_addr(CUR_BONES));
 		e = Caster();
 		const int16_t c = t->counter;
 		*(uint32_t *)(e + 0x7C) = mask;
@@ -256,9 +256,9 @@ namespace tonk324
 	{
 		if (c < 4)
 		{
-			const uint32_t far = var<uint32_t>(us(0xB8B7D8));
-			GteSetFarColor(far & 0xFF, (far >> 8) & 0xFF, var<uint8_t>(us(0xB8B7DA)));
-			GteLoadRGBC((const void *)us(TINTS));
+			const uint32_t far = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE));
+			GteSetFarColor(far & 0xFF, (far >> 8) & 0xFF, var<uint8_t>(game_addr(game::unk_B8B7DA)));
+			GteLoadRGBC((const void *)game_addr(TINTS));
 			GteSetIR0((4 - c) << 10);
 			GteDPCS();
 			GteStoreRGB2(e + 0x28);
@@ -266,7 +266,7 @@ namespace tonk324
 		else if (c >= 0x2A)
 		{
 			GteSetFarColor(0, 0, 0);
-			GteLoadRGBC((const void *)(us(TINTS) + t->word1C * 4));
+			GteLoadRGBC((const void *)(game_addr(TINTS) + t->word1C * 4));
 			GteSetIR0((c - 0x2A) << 9);
 			GteDPCS();
 			GteStoreRGB2(e + 0x28);
@@ -275,7 +275,7 @@ namespace tonk324
 		{
 			const int32_t idx = (c - 4) % 0x18;
 			t->word1C = (int16_t)idx;
-			*(uint32_t *)(e + 0x28) = *(const uint32_t *)(us(TINTS) + idx * 4);
+			*(uint32_t *)(e + 0x28) = *(const uint32_t *)(game_addr(TINTS) + idx * 4);
 		}
 	}
 
@@ -320,7 +320,7 @@ namespace tonk324
 				c.vy = (int16_t)(-5 - CrtRand() % 0x19);
 			}
 		}
-		const int32_t live = SparkDraw(w, Cells(), 1, us(SEQ_SparkA), true);
+		const int32_t live = SparkDraw(w, Cells(), 1, game_addr(SEQ_SparkA), true);
 		FieldFree(0x48);
 		if (DrawOnly()) return 0;
 		t->counter++;
@@ -352,7 +352,7 @@ namespace tonk324
 				c.pos[2] = (int16_t)(c.pos[2] + (CrtRand() % range - s));
 			}
 		}
-		const int32_t live = SparkDraw(w, Cells(), 2, us(SEQ_SparkB), false);
+		const int32_t live = SparkDraw(w, Cells(), 2, game_addr(SEQ_SparkB), false);
 		FieldFree(0x48);
 		if (DrawOnly()) return 0;
 		t->counter++;
@@ -369,20 +369,20 @@ namespace tonk324
 		if (t->counter == 0) Voice() = ClaimVoiceSlot(VOICE(), 1, 0x80);
 		if (t->counter == 0xC)
 		{
-			AddTask(us(ORIG_EmitterA))->counter = 0;
+			AddTask(game_addr(ORIG_EmitterA))->counter = 0;
 			t->word0E = 0;
-			if (t->counter == 0xC) AddTask(us(ORIG_EmitterB))->counter = 0;
+			if (t->counter == 0xC) AddTask(game_addr(ORIG_EmitterB))->counter = 0;
 		}
 		if (t->counter == 8)
 		{
-			TaskBody *a = AddTask(us(ORIG_TintTask));
+			TaskBody *a = AddTask(game_addr(ORIG_TintTask));
 			a->counter = 0;
 			a->word0E = (int16_t)CasterSlot();
 		}
-		if (t->counter == 0x12) AddTask(us(ORIG_GhostTask))->counter = 0;
+		if (t->counter == 0x12) AddTask(game_addr(ORIG_GhostTask))->counter = 0;
 		if (t->counter >= 0x7D && t->counter <= 0x87 && t->counter % 2 == 1)
 		{
-			TaskBody *a = AddTask(us(ORIG_SpinTask));
+			TaskBody *a = AddTask(game_addr(ORIG_SpinTask));
 			const int16_t side = t->word0E;
 			a->counter = 0;
 			a->word0E = (int16_t)(side & 1);
@@ -399,8 +399,8 @@ namespace tonk324
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		PacketCursor() = us(ARENA_A);
-		if (!(*(const uint8_t *)&r->counter & 1)) PacketCursor() = us(ARENA_B);
+		PacketCursor() = game_addr(ARENA_A);
+		if (!(*(const uint8_t *)&r->counter & 1)) PacketCursor() = game_addr(ARENA_B);
 		const int a = ExecuteTaskQueue(QTasks());
 		r->counter++;
 		return a ? 0 : TASK_END;

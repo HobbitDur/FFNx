@@ -25,32 +25,32 @@ namespace thunder003
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(us(0x2557078)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2557054)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2557058)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2557074)); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(game_addr(game::unk_2557078)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::unk_2557054)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_2557058)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_MAG003_PacketCursor)); }
 
-	static const uint32_t ORIG_RootTask = 0x700CA0;
-	static const uint32_t ORIG_BoltTask = 0x700DE0;
-	static const uint32_t BOLT_POOL = 0x2557000;
+	static constexpr game::Id ORIG_RootTask = game::MAG_003_THUNDER_Bolt_Tick;
+	static constexpr game::Id ORIG_BoltTask = game::MAG_003_THUNDER_RenderBoltLayers;
+	static constexpr game::Id BOLT_POOL = game::unk_2557000;
 	static const int BOLT_POOL_COUNT = 3;
-	static const void *SOUND_Thunder() { return (const void *)us(0x15244D0); }
-	static const void *FLASH_Colour() { return (const void *)us(0x15244D4); }
-	static const uint32_t SEQ_Strike = 0x1522FB0;
-	static const uint32_t SEQ_Upper = 0x1523204;
-	static const uint32_t SEQ_Core = 0x1523458;
-	static const uint32_t SEQ_Arc = 0x1523578;
-	static const uint32_t SEQ_Glow = 0x1523684;
-	static const uint32_t SEQ_Flash = 0x15237A4;
-	static const uint32_t SEQ_Ground = 0x1523DE0;
-	static const uint32_t SEQ_Smoke = 0x1523928;
+	static const void *SOUND_Thunder() { return (const void *)game_addr(game::unk_15244D0); }
+	static const void *FLASH_Colour() { return (const void *)game_addr(game::unk_15244D4); }
+	static constexpr game::Id SEQ_Strike = game::unk_1522FB0;
+	static constexpr game::Id SEQ_Upper = game::unk_1523204;
+	static constexpr game::Id SEQ_Core = game::unk_1523458;
+	static constexpr game::Id SEQ_Arc = game::unk_1523578;
+	static constexpr game::Id SEQ_Glow = game::unk_1523684;
+	static constexpr game::Id SEQ_Flash = game::unk_15237A4;
+	static constexpr game::Id SEQ_Ground = game::unk_1523DE0;
+	static constexpr game::Id SEQ_Smoke = game::unk_1523928;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAltViewport))(bucket, packet); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -93,7 +93,7 @@ namespace thunder003
 		*(uint32_t *)p = 0x5000000;
 		*(uint32_t *)(p + 4) = *(const uint32_t *)colour;
 		p[7] = 0x2A;
-		InsertPrimAltViewport(var<uint32_t>(us(0x1D8E04C)) + 0x20, p);
+		InsertPrimAltViewport(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x20, p);
 		return cursor + 0x18;
 	}
 
@@ -138,7 +138,7 @@ namespace thunder003
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				BoltNode *pool = (BoltNode *)us(BOLT_POOL);
+				BoltNode *pool = (BoltNode *)game_addr(BOLT_POOL);
 				bool busy = false;
 				for (int k = 0; k < BOLT_POOL_COUNT; k++)
 					if ((pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= 0xF)
@@ -149,7 +149,7 @@ namespace thunder003
 				if (busy) r->counter = 0;
 				else
 				{
-					BoltNode *b = (BoltNode *)AddTaskToQueue(&Queues().second, us(ORIG_BoltTask));
+					BoltNode *b = (BoltNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_BoltTask));
 					FillDwords(&b->counter, 0, 4);
 					b->action = (int16_t)(uint16_t)r->action;
 					b->entity = entity;
@@ -181,7 +181,7 @@ namespace thunder003
 		if (f < 7)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, us(SEQ_Strike), f);
+			Layer(h, game_addr(SEQ_Strike), f);
 		}
 		if (f >= 2 && f < 9)
 		{
@@ -189,29 +189,29 @@ namespace thunder003
 			ff8fx::copy<(8)>(local, p->pos);
 			local[1] = (int16_t)(local[1] + 0xC8);
 			TransformCameraByShadowRotation(local, 0x1000, size);
-			Layer(h, us(SEQ_Upper), f - 2);
+			Layer(h, game_addr(SEQ_Upper), f - 2);
 		}
 		if (f >= 1 && f < 10)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, us(SEQ_Core), f - 1);
+			Layer(h, game_addr(SEQ_Core), f - 1);
 		}
 		if (f >= 3 && f < 12)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, us(SEQ_Arc), f - 3);
+			Layer(h, game_addr(SEQ_Arc), f - 3);
 		}
 		if (f >= 6 && f < 15)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, us(SEQ_Glow), f - 6);
+			Layer(h, game_addr(SEQ_Glow), f - 6);
 		}
 		if (f >= 1)
 		{
 			if (f < 10)
 			{
 				TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-				Layer(h, us(SEQ_Flash), f - 1);
+				Layer(h, game_addr(SEQ_Flash), f - 1);
 			}
 			if (f < 14)
 			{
@@ -229,13 +229,13 @@ namespace thunder003
 				m.t[2] = m.t[2] + Camera().t[2] + 0x1F4;
 				GteSetRotMatrix(&m);
 				GteSetTransVector(&m);
-				Layer(h, us(SEQ_Ground), f - 1);
+				Layer(h, game_addr(SEQ_Ground), f - 1);
 			}
 		}
 		if (f >= 5 && f < 0x18)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, p->size);
-			Layer(h, us(SEQ_Smoke), f - 5);
+			Layer(h, game_addr(SEQ_Smoke), f - 5);
 		}
 		FieldFree(0xB4);
 	}

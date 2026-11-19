@@ -25,30 +25,30 @@ namespace fira142
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(us(0x24BFB68)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24C10A0)); }
-	inline uint8_t *&TexBase() { return var<uint8_t *>(us(0x24C10AC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24C10B0)); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(game_addr(game::unk_24BFB68)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG142_FIRA_CastCtx)); }
+	inline uint8_t *&TexBase() { return var<uint8_t *>(game_addr(game::MAG142_FIRA_TexBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG142_FIRA_PacketCursor)); }
 
-	static const uint32_t ORIG_RootTask = 0x61DD90;
-	static const uint32_t ORIG_WaitTexRestore = 0x61DE10;
-	static const uint32_t ORIG_Director = 0x61CEC0;
-	static const uint32_t ORIG_SparkTask = 0x61D4C0;
-	static const uint32_t ORIG_EmberTask = 0x61D5D0;
-	static const uint32_t ORIG_ShockRingTask = 0x61D6B0;
-	static const uint32_t ORIG_FlameColumnTask = 0x61D7F0;
-	static const uint32_t ORIG_BurstTask = 0x61D9A0;
-	static const uint32_t ORIG_ProjectileTask = 0x61DAF0;
-	static const uint32_t ORIG_TrailTask = 0x61DC20;
-	static const void *SEQ_Ember() { return (const void *)us(0xDDE100); }
-	static const void *SEQ_ShockRing() { return (const void *)us(0xDDE0D8); }
-	static const void *MODEL_FlameColumn() { return (const void *)us(0xDDEF14); }
-	static const void *MODEL_Burst() { return (const void *)us(0xDDE6C4); }
-	static const void *MODEL_Trail() { return (const void *)us(0xDDE2AC); }
-	static const uint32_t *TRAIL_TABLE() { return (const uint32_t *)us(0xDDF454); }
-	static const void *SOUND_Fira() { return (const void *)us(0xDDF44C); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_142_FIRA_RootTask;
+	static constexpr game::Id ORIG_WaitTexRestore = game::MAG_142_FIRA_WaitTIMUploadEnd;
+	static constexpr game::Id ORIG_Director = game::MAG_142_FIRA_Director_Tick;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_142_FIRA_Spark_Tick;
+	static constexpr game::Id ORIG_EmberTask = game::MAG_142_FIRA_Ember_Tick;
+	static constexpr game::Id ORIG_ShockRingTask = game::MAG_142_FIRA_ShockRing_Tick;
+	static constexpr game::Id ORIG_FlameColumnTask = game::MAG_142_FIRA_FlameColumn_Tick;
+	static constexpr game::Id ORIG_BurstTask = game::MAG_142_FIRA_ExplosionBurst_Tick;
+	static constexpr game::Id ORIG_ProjectileTask = game::MAG_142_FIRA_Projectile_Tick;
+	static constexpr game::Id ORIG_TrailTask = game::MAG_142_FIRA_Trail_Tick;
+	static const void *SEQ_Ember() { return (const void *)game_addr(game::unk_DDE100); }
+	static const void *SEQ_ShockRing() { return (const void *)game_addr(game::unk_DDE0D8); }
+	static const void *MODEL_FlameColumn() { return (const void *)game_addr(game::unk_DDEF14); }
+	static const void *MODEL_Burst() { return (const void *)game_addr(game::unk_DDE6C4); }
+	static const void *MODEL_Trail() { return (const void *)game_addr(game::unk_DDE2AC); }
+	static const uint32_t *TRAIL_TABLE() { return (const uint32_t *)game_addr(game::unk_DDF454); }
+	static const void *SOUND_Fira() { return (const void *)game_addr(game::unk_DDF44C); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
 	struct RootNode { TaskNode hdr; uint16_t counter; int16_t done; };
 	struct DirectorNode
@@ -123,7 +123,7 @@ namespace fira142
 		int alive = ExecuteTaskQueue(&Queues().second);
 		if (alive == 0 && !(Ctx()->flags & 2))
 		{
-			RootNode *w = (RootNode *)AddTaskToQueue(&Queues().first, us(ORIG_WaitTexRestore));
+			RootNode *w = (RootNode *)AddTaskToQueue(&Queues().first, game_addr(ORIG_WaitTexRestore));
 			w->counter = 0;
 			w->done = 0;
 		}
@@ -180,7 +180,7 @@ namespace fira142
 		}
 		if (d->counter == 1)
 		{
-			ProjectileNode *p = (ProjectileNode *)AddTaskToQueue(&Queues().second, us(ORIG_ProjectileTask));
+			ProjectileNode *p = (ProjectileNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_ProjectileTask));
 			ff8fx::copy<(8)>(p->pos, d->caster);
 			p->counter = 0;
 			p->vel[0] = (int16_t)((d->target[0] - d->caster[0]) / 8);
@@ -189,7 +189,7 @@ namespace fira142
 		}
 		if (d->counter == 9)
 		{
-			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_BurstTask));
+			ModelNode *b = (ModelNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_BurstTask));
 			ff8fx::copy<(4)>(b->pos, d->target);
 			b->counter = 0;
 			ff8fx::copy<(4)>((uint8_t *)b + 0x14, &d->target[2]);
@@ -204,7 +204,7 @@ namespace fira142
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_FlameColumnTask));
+				ModelNode *f = (ModelNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_FlameColumnTask));
 				f->counter = 0;
 				int32_t r = CrtRand() % 6;
 				f->pos[1] = (int16_t)(d->target[1] - (int16_t)(600 * k + 600));
@@ -223,7 +223,7 @@ namespace fira142
 		}
 		if (d->counter == 9)
 		{
-			ModelNode *g = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_ShockRingTask));
+			ModelNode *g = (ModelNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_ShockRingTask));
 			ff8fx::copy<(4)>(g->pos, d->target);
 			g->counter = 0;
 			ff8fx::copy<(4)>((uint8_t *)g + 0x14, &d->target[2]);
@@ -234,7 +234,7 @@ namespace fira142
 		{
 			for (int k = 0; k < 10; k++)
 			{
-				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, us(ORIG_EmberTask));
+				EmberNode *e = (EmberNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_EmberTask));
 				e->frame = 0;
 				e->delay = (int16_t)(CrtRand() % 6 + k);
 				ff8fx::copy<(8)>(e->pos, d->target);
@@ -249,7 +249,7 @@ namespace fira142
 		{
 			for (int k = 0; k < 12; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, us(ORIG_SparkTask));
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_SparkTask));
 				s->life = (int16_t)(CrtRand() % 8 + 10);
 				int32_t r = CrtRand() % 6;
 				s->pos[1] = d->target[3];
@@ -272,7 +272,7 @@ namespace fira142
 			int next = d->action + 1;
 			if (next <= acts[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, us(ORIG_Director));
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_Director));
 				ActionData *ad = &Ctx()->actions[next];
 				t->counter = 0;
 				t->action = (int16_t)next;
@@ -536,7 +536,7 @@ namespace fira142
 			int32_t size_range = count * 80;
 			for (int32_t left = count; left; left--)
 			{
-				ModelNode *t = (ModelNode *)AddTaskToQueue(&Queues().second, us(ORIG_TrailTask));
+				ModelNode *t = (ModelNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_TrailTask));
 				ff8fx::copy<(4)>(t->pos, p->pos);
 				t->counter = 0;
 				ff8fx::copy<(4)>((uint8_t *)t + 0x14, &p->pos[2]);

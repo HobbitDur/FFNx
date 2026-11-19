@@ -66,7 +66,7 @@ namespace ff8fx
 		ffnx_info("FF8 battle fx: native effect code on%s\n", ff8_battle_fx_verify ? ", verified against the original" : "");
 		if (ff8_battle_fx_verify)
 		{
-			replace_function(us(0x508420), (void *)execute_task_queue);
+			replace_function(game_addr(game::ExecuteTaskQueue), (void *)execute_task_queue);
 			prim::install_verify();
 			verify_install();
 		}

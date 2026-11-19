@@ -22,19 +22,19 @@ namespace act
 {
 namespace strike87
 {
-	static const Mod MOD_087 = { "angelostrike", 87, 0x773850, 0x77F230,
-		{ 0x0, 0x0, 0x1557D28, 0x155B1E0, 0x0, 0x25ACFBC, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25ACEB0, 0x25ACEB4, 0x25ACF98, 0x25ACFBC, 0x25ACFC0, 0x25AECD8, 0x0, 0x25AECD4, 0x25B2A90, 0x25AD0A0, 0x25B2AA0, 0x25B2AA4, 0x25B3538, 0x25B37C8, 0x25B37D8, 0x25B3948, 0x25B394C, 0x25B3950, 0x25B4448, 0x25B4620, 0x25B4630, 0x0, 0x25B46A8, 0x25B4B08, 0x25B4B10, 0x25B4B24, 0x25B4B4C, 0x25B4B54 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x779D00, 0x779E40, 0x779F80, 0x77A190, 0x77A410, 0x77A650, 0x77A8F0, 0x77AB20, 0x77ADE0, 0x77B040, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x773BA0, 0x773BB0, 0x773BC0, 0x773C40, 0x773C70, 0x773CF0, 0x0, 0x774030, 0x774060, 0x774090, 0x7740A0, 0x7740B0, 0x7740C0, 0x7740D0, 0x0, 0x0, 0x774FD0, 0x0, 0x0, 0x774500, 0x774850, 0x0, 0x0, 0x0, 0x774370, 0x774F50, 0x774F90, 0x7766B0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7792E0, 0x7793C0, 0x779560, 0x779630, 0x779750, 0x7799B0, 0x0, 0x0, 0x77BB90, 0x77BBE0, 0x0, 0x0, 0x77C4D0, 0x0, 0x0, 0x0, 0x77CEB0, 0x77CEE0, 0x77CFC0, 0x77D0E0, 0x77D230, 0x0, 0x77D8F0, 0x77DAD0, 0x77DC10, 0x7759E0, 0x0, 0x77F0D0, 0x77F110, 0x77F130, 0x77F150, 0x77F160, 0x77F1A0, 0x77F1B0, 0x77F1C0, 0x77F1F0, 0x77F200, 0x77F220 } };
+	static const Mod MOD_087 = { "angelostrike", 87, game::MAG_087_ANGELO_STRIKE_LoadFile, game::MAG_086_ANGELO_CANNON_LoadFile,
+		{ {}, {}, game::MAG_087_ANGELO_STRIKE_pDirector, game::MAG_087_ANGELO_STRIKE_pCameraBlock, {}, game::MAG_087_ANGELO_STRIKE_PacketCursor2, {}, {}, {}, {}, {}, {}, game::MAG_087_ANGELO_STRIKE_pFile, game::MAG_087_ANGELO_STRIKE_PacketCursor, game::MAG_087_ANGELO_STRIKE_DirectorQueue, game::MAG_087_ANGELO_STRIKE_PacketCursor2, game::MAG_087_ANGELO_STRIKE_pCameraCopy2, game::MAG_087_ANGELO_STRIKE_ModelQueue, {}, game::MAG_087_ANGELO_STRIKE_PlaysPause, game::MAG_087_ANGELO_STRIKE_PlayQueue, game::MAG_087_ANGELO_STRIKE_CameraRingQueue, game::MAG_087_ANGELO_STRIKE_PacketArena2_Even, game::MAG_087_ANGELO_STRIKE_PacketArena2_Odd, game::MAG_087_ANGELO_STRIKE_Queue5, game::MAG_087_ANGELO_STRIKE_Queue9, game::MAG_087_ANGELO_STRIKE_EmitterQueue, game::MAG_087_ANGELO_STRIKE_PacketArena_Even, game::MAG_087_ANGELO_STRIKE_PacketArena_Odd, game::MAG_087_ANGELO_STRIKE_pLoadScriptRecord, game::MAG_087_ANGELO_STRIKE_pModuleData, game::MAG_087_ANGELO_STRIKE_AngeloQueue, game::MAG_087_ANGELO_STRIKE_ActorCount16, {}, game::MAG_087_ANGELO_STRIKE_PlayVertexBlend, game::MAG_087_ANGELO_STRIKE_ActorCount14, game::MAG_087_ANGELO_STRIKE_LoadScriptQueue, game::MAG_087_ANGELO_STRIKE_pCameraCopy, game::MAG_087_ANGELO_STRIKE_PauseSwitch, game::MAG_087_ANGELO_STRIKE_pActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_087_ANGELO_STRIKE_ActSys_DrawModelActor, game::MAG_087_ANGELO_STRIKE_RenderPrimLists, game::MAG_087_ANGELO_STRIKE_ModelList_FlatTri, game::MAG_087_ANGELO_STRIKE_ModelList_FlatQuad, game::MAG_087_ANGELO_STRIKE_PrimList_TexTri_77A410, game::MAG_087_ANGELO_STRIKE_PrimList_TexQuad_77A650, game::MAG_087_ANGELO_STRIKE_ModelList_GouraudTri, game::MAG_087_ANGELO_STRIKE_ModelList_GouraudQuad, game::MAG_087_ANGELO_STRIKE_ModelList_GouraudTexTri, game::MAG_087_ANGELO_STRIKE_ModelList_GouraudTexQuad, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_773BA0, game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_773BB0, game::MAG_087_ANGELO_STRIKE_Master_State2_CarveActorPools, game::MAG_087_ANGELO_STRIKE_Sequence_State3_SpawnEmitter, game::MAG_087_ANGELO_STRIKE_EmitterTask, game::MAG_087_ANGELO_STRIKE_Master_State2_InitDirector, {}, game::MAG_087_ANGELO_STRIKE_LoadCallback_QueueTIM, game::MAG_087_ANGELO_STRIKE_LoadCallback_SummonStream, game::MAG_087_ANGELO_STRIKE_LoadCb_ClearBusy_774090, game::MAG_087_ANGELO_STRIKE_LoadCb_ClearBusy_7740A0, game::MAG_087_ANGELO_STRIKE_LoadCb_ClearBusy_7740B0, game::MAG_087_ANGELO_STRIKE_LoadCb_ClearBusy_7740C0, game::MAG_087_ANGELO_STRIKE_LoadScript_RecordFile, {}, {}, game::MAG_087_ANGELO_STRIKE_LoadScript_TryArmStep, {}, {}, game::MAG_087_ANGELO_STRIKE_Camera_StepScript, game::MAG_087_ANGELO_STRIKE_Camera_WriteBattleCamera, {}, {}, {}, game::MAG_087_ANGELO_STRIKE_Director_SyncPoint, game::MAG_087_ANGELO_STRIKE_Nullsub_774F50, game::MAG_087_ANGELO_STRIKE_Director_CueReached, game::MAG_087_ANGELO_STRIKE_Play_ObjectCallback, {}, {}, {}, {}, {}, game::MAG_087_ANGELO_STRIKE_ResetTrailHistory, game::MAG_087_ANGELO_STRIKE_Director_StartPositions, game::MAG_087_ANGELO_STRIKE_FillTrailRows, game::MAG_087_ANGELO_STRIKE_Director_Mode3Setup, game::MAG_087_ANGELO_STRIKE_Director_TargetPositions, game::MAG_087_ANGELO_STRIKE_RelocateActorData, {}, {}, game::MAG_087_ANGELO_STRIKE_DampValue, game::MAG_087_ANGELO_STRIKE_DampVector, {}, {}, game::MAG_087_ANGELO_STRIKE_MorphVertexBlock, {}, {}, {}, game::MAG_087_RandRange, game::MAG_087_ANGELO_STRIKE_RandRangeWide, game::MAG_087_RandAngleJitter, game::MAG_087_ANGELO_STRIKE_Particle_AttachToOwner, game::MAG_087_ANGELO_STRIKE_Actor_InterpolatePosition, {}, game::MAG_087_ANGELO_STRIKE_ParticleList_Unlink, game::MAG_087_ANGELO_STRIKE_Particle_PlaceAtAnchorSet, game::MAG_087_ANGELO_STRIKE_Particle_PlaceAtPoint, game::MAG_087_ANGELO_STRIKE_Sequence_DrawSpriteStrip, {}, game::MAG_087_ANGELO_STRIKE_DamageState_ApplyActionResult, game::MAG_087_ANGELO_STRIKE_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_087_ANGELO_STRIKE_Emitter_State3_FinishReleaseRoot, game::MAG_087_ANGELO_STRIKE_Nullsub_77F150, game::MAG_087_ANGELO_STRIKE_Sequence_State4_NextTargetLoop, game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_77F1A0, game::MAG_087_ANGELO_STRIKE_Sequence_State6_WaitQueuesEmpty, game::MAG_087_ANGELO_STRIKE_Sequence_State7_RequestBattleSync, game::MAG_087_ANGELO_STRIKE_Sequence_State8_WaitBattleSyncDone, game::MAG_087_ANGELO_STRIKE_Sequence_State9_Finish, game::MAG_087_ANGELO_STRIKE_Nullsub_77F220 } };
 
-	static const uint32_t DIR_PTR = 0x1557D28;
-	static const uint32_t PHASE_DATA = DIR_PTR;
-	static const uint32_t PACKET_CURSOR = 0x25ACEB4;
-	static const uint32_t PLAY_PAUSE = 0x25AECD4;
-	static const uint32_t PAUSE_SWITCH = 0x25B4B4C;
-	static const uint32_t CREATURE_ARG = 0x25B3958;
-	static const uint32_t SCRATCH_SP = 0x25B4B24;
-	static const uint32_t ACTOR_STATE = 0x25B4B54;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id DIR_PTR = game::MAG_087_ANGELO_STRIKE_pDirector;
+	static constexpr game::Id PHASE_DATA = DIR_PTR;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_087_ANGELO_STRIKE_PacketCursor;
+	static constexpr game::Id PLAY_PAUSE = game::MAG_087_ANGELO_STRIKE_PlaysPause;
+	static constexpr game::Id PAUSE_SWITCH = game::MAG_087_ANGELO_STRIKE_PauseSwitch;
+	static constexpr game::Id CREATURE_ARG = game::MAG_087_ANGELO_STRIKE_CreatureDrawState;
+	static constexpr game::Id SCRATCH_SP = game::MAG_087_ANGELO_STRIKE_pCameraCopy;
+	static constexpr game::Id ACTOR_STATE = game::MAG_087_ANGELO_STRIKE_pActorState;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 	static inline uint32_t b102_task_end(uint32_t node, uint8_t status)
 	{
 		if ((status & 1) != 0 && U8(node, 0x28) == 0)
@@ -47,18 +47,18 @@ namespace strike87
 
 	namespace gx
 	{
-		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
-		static inline uint32_t EntityChainLowest(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x501FF0))(a1); }
-		static inline uint32_t BS_Camera_ArmReturnAfterEffect() { return fn<uint32_t (__cdecl *)()>(us(0x50A730))(); }
-		static inline uint32_t SSIGPU_SetDrawEnv(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x45C0F0))(a1, a2); }
-		static inline uint32_t GteReadScreenOffset(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56CD10))(a1, a2); }
-		static inline uint32_t GteSetScreenOffset(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56CCE0))(a1, a2); }
-		static inline uint32_t SetDrawAreaPrim(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x45C940))(a1, a2); }
-		static inline uint32_t SetDrawOffsetPrim(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x45C9B0))(a1, a2); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(a1, a2); }
+		static inline uint32_t EntityChainLowest(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::Battle_EntityChainLowest))(a1); }
+		static inline uint32_t BS_Camera_ArmReturnAfterEffect() { return fn<uint32_t (__cdecl *)()>(game_addr(game::BS_Camera_ArmReturnAfterEffect))(); }
+		static inline uint32_t SSIGPU_SetDrawEnv(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_SetDrawEnv))(a1, a2); }
+		static inline uint32_t GteReadScreenOffset(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::GTE_ReadScreenOffset))(a1, a2); }
+		static inline uint32_t GteSetScreenOffset(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Call_Bs_ParseCamera))(a1, a2); }
+		static inline uint32_t SetDrawAreaPrim(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::GPU_SetDrawAreaPrim))(a1, a2); }
+		static inline uint32_t SetDrawOffsetPrim(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_SetDrawOffsetPrim))(a1, a2); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -356,7 +356,7 @@ namespace strike87
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -488,41 +488,41 @@ namespace strike87
 	{
 		g_mod = &MOD_087;
 
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x25B4B24)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x25ACFC0)) = us(0x2793E58);
+		MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pCameraCopy)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pCameraCopy2)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
 		uint32_t states[11];
-		states[0] = us(0x773BA0);
-		states[1] = us(0x773BB0);
-		states[2] = us(0x773BC0);
-		states[3] = us(0x773C40);
-		states[4] = us(0x77F160);
-		states[5] = us(0x77F1A0);
-		states[6] = us(0x77F1B0);
-		states[7] = us(0x77F1C0);
-		states[8] = us(0x77F1F0);
-		states[9] = us(0x77F200);
-		states[10] = us(0x77F220);
+		states[0] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_773BA0);
+		states[1] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_773BB0);
+		states[2] = game_addr(game::MAG_087_ANGELO_STRIKE_Master_State2_CarveActorPools);
+		states[3] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_77F1A0);
+		states[6] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_087_ANGELO_STRIKE_Sequence_State9_Finish);
+		states[10] = game_addr(game::MAG_087_ANGELO_STRIKE_Nullsub_77F220);
 		if ((U8(node, 0x5C) & 1) != 0)
 		{
-			MEM<uint32_t>(us(0x25ACEB4)) = MEM<uint32_t>(us(0x25B394C));
-			MEM<uint32_t>(us(0x25ACFBC)) = MEM<uint32_t>(us(0x25B2AA4));
+			MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketCursor)) = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketArena_Odd));
+			MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketCursor2)) = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketArena2_Odd));
 		}
 		else
 		{
-			MEM<uint32_t>(us(0x25ACEB4)) = MEM<uint32_t>(us(0x25B3948));
-			MEM<uint32_t>(us(0x25ACFBC)) = MEM<uint32_t>(us(0x25B2AA0));
+			MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketCursor)) = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketArena_Even));
+			MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketCursor2)) = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketArena2_Even));
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x25B4B08)) = 0;
-		MEM<uint16_t>(us(0x25B4630)) = 0;
-		static const uint32_t queues[9] = { us(0x25B37D8), us(0x25ACF98), us(0x25B4B10), us(0x25B4620), us(0x25B3538), us(0x25AD0A0), us(0x25AECD8), us(0x25B2A90), us(0x25B37C8) };
+		MEM<uint16_t>(game_addr(game::MAG_087_ANGELO_STRIKE_ActorCount14)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_087_ANGELO_STRIKE_ActorCount16)) = 0;
+		static constexpr game::Id queues[9] = { game::MAG_087_ANGELO_STRIKE_EmitterQueue, game::MAG_087_ANGELO_STRIKE_DirectorQueue, game::MAG_087_ANGELO_STRIKE_LoadScriptQueue, game::MAG_087_ANGELO_STRIKE_AngeloQueue, game::MAG_087_ANGELO_STRIKE_Queue5, game::MAG_087_ANGELO_STRIKE_CameraRingQueue, game::MAG_087_ANGELO_STRIKE_ModelQueue, game::MAG_087_ANGELO_STRIKE_PlayQueue, game::MAG_087_ANGELO_STRIKE_Queue9 };
 		for (int i = 0; i < 9; i++)
 		{
-			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
+			const uint32_t n = x::ExecuteTaskQueue(game_addr(queues[i]));
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -535,12 +535,12 @@ namespace strike87
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x25B4B50));
-		MEM<uint32_t>(us(0x25B4634)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::unk_25B4634)) = p;
 		p += 0x870;
-		MEM<uint32_t>(us(0x25B4B48)) = p;
+		MEM<uint32_t>(game_addr(game::unk_25B4B48)) = p;
 		p += 0x8340;
-		MEM<uint32_t>(us(0x25B4B50)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_FileArenaCursor)) = p;
 		ak_773C00();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -548,12 +548,12 @@ namespace strike87
 
 	uint32_t __cdecl ak_773C00(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25B4634)), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25B4B48)), 0x8340);
-		MEM<uint16_t>(us(0x25AECD0)) = 0;
-		MEM<uint16_t>(us(0x25B4640)) = 0;
-		MEM<uint16_t>(us(0x25B4444)) = 0;
-		MEM<uint16_t>(us(0x25ACEB8)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_25B4634)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_25B4B48)), 0x8340);
+		MEM<uint16_t>(game_addr(game::unk_25AECD0)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25B4640)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25B4444)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25ACEB8)) = 0;
 		return 0;
 	}
 
@@ -561,25 +561,25 @@ namespace strike87
 	{
 		ak_774190(a1);
 		ak_773D40();
-		x::Effect_AddTaskAndInitFromCtx(us(0x25B4B10), us(0x773E30), 0x30, a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x25ACF98), us(0x774240), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_LoadScriptQueue), game_addr(game::MAG_087_ANGELO_STRIKE_LoadScriptTask), 0x30, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_DirectorQueue), game_addr(game::MAG_087_ANGELO_STRIKE_DirectorTask), 0x48, a1);
 		t1_next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl ak_773D40()
 	{
-		MEM<uint32_t>(us(0x25B3950)) = us(0x155B190);
-		MEM<uint32_t>(us(0x25B4448)) = us(0x25B4B58);
-		x::MAG_007_sub_8DCC00(us(0x25B4B58), 0x16C);
-		const uint32_t b = MEM<uint32_t>(us(0x25B4448));
-		uint32_t c = MEM<uint32_t>(us(0x25B4B50));
+		MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pLoadScriptRecord)) = game_addr(game::MAG_087_ANGELO_STRIKE_LoadScript);
+		MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pModuleData)) = game_addr(game::MAG_087_ANGELO_STRIKE_ModuleData);
+		x::MAG_007_sub_8DCC00(game_addr(game::MAG_087_ANGELO_STRIKE_ModuleData), 0x16C);
+		const uint32_t b = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pModuleData));
+		uint32_t c = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_FileArenaCursor));
 		U32(b, 0x100) = c;
 		c += 0xA000;
-		MEM<uint32_t>(us(0x25B4B50)) = c;
-		U32(b, 0x114) = us(0x19EB018);
+		MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_FileArenaCursor)) = c;
+		U32(b, 0x114) = game_addr(game::unk_19EB018);
 		for (int32_t o = 0x104; o <= 0x160; o += 4)
-			if (o != 0x114) U32(b, o) = us(0x19CF018);
+			if (o != 0x114) U32(b, o) = game_addr(game::unk_19CF018);
 		U16(b, 0x164) = 0;
 		U16(b, 0x166) = 0;
 		return b;
@@ -588,8 +588,8 @@ namespace strike87
 	uint32_t __cdecl ak_774190(uint32_t a1)
 	{
 		const uint32_t t = gx::EntityChainLowest(ENT(U8(a1, 0x2D)));
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		U32(d, 8) = U32(t, 0x1C);
 		const uint32_t c = ENT(U8(a1, 0x2C));
 		U32(d, 0xC) = U32(t, 0x20);
@@ -599,7 +599,7 @@ namespace strike87
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
 		const uint16_t size = U16(t, 0x26);
-		const uint32_t d2 = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d2 = MEM<uint32_t>(game_addr(DIR_PTR));
 		U16(d2, 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		U16(d2, 0x4E) = size;
 		return d2;
@@ -609,16 +609,16 @@ namespace strike87
 	{
 		const uint32_t node = a1;
 		uint32_t states[10];
-		states[0] = us(0x774330);
-		states[1] = us(0x774F70);
-		states[2] = us(0x774FB0);
-		states[3] = us(0x775010);
-		states[4] = us(0x7750A0);
-		states[5] = us(0x7750C0);
-		states[6] = us(0x7750E0);
-		states[7] = us(0x775100);
-		states[8] = us(0x775120);
-		states[9] = us(0x775140);
+		states[0] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State0_UploadTIM_CameraTask_Sync1);
+		states[1] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State1_Cue1);
+		states[2] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State2_LoadStep);
+		states[3] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State3_PauseWhileLoading);
+		states[4] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State4_Sync2);
+		states[5] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State5_Cue2);
+		states[6] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State6_DoneAtFrame48);
+		states[7] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State7_Sync3);
+		states[8] = game_addr(game::MAG_087_ANGELO_STRIKE_Director_State8_FinishAtCue3);
+		states[9] = game_addr(game::MAG_087_ANGELO_STRIKE_Nullsub_775140);
 		ak_7742E0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -649,9 +649,9 @@ namespace strike87
 
 	uint32_t __cdecl ak_774330(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(us(0x16FDF78));
+		x::Battle_QueueTIMUpload_GetEOF(game_addr(game::MAG_087_ANGELO_STRIKE_AngeloTIM));
 		gx::BS_Camera_ArmReturnAfterEffect();
-		x::Effect_AddTaskAndInitFromCtx(us(0x25AD0A0), us(0x7743A0), 0x90, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_CameraRingQueue), game_addr(game::MAG_087_ANGELO_STRIKE_CameraTask), 0x90, a1);
 		if (a_73B640(1) != 0)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -661,20 +661,20 @@ namespace strike87
 	{
 		const uint32_t node = a1;
 		uint32_t states[14];
-		states[0] = us(0x774450);
-		states[1] = us(0x7744B0);
-		states[2] = us(0x774CB0);
-		states[3] = us(0x774CE0);
-		states[4] = us(0x774D40);
-		states[5] = us(0x774D90);
-		states[6] = us(0x774DE0);
-		states[7] = us(0x774E20);
-		states[8] = us(0x774E90);
-		states[9] = us(0x774EC0);
-		states[10] = us(0x774EF0);
-		states[11] = us(0x774F10);
-		states[12] = us(0x774F30);
-		states[13] = us(0x774F60);
+		states[0] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State0_FaceCaster);
+		states[1] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State1_Sync1Script);
+		states[2] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State2_ChainUnlessPaused);
+		states[3] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State3_ChainRandomUnlessPaused);
+		states[4] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State4_ChainBySize);
+		states[5] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State5_ChainBySize);
+		states[6] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State6_ChainIfSmall);
+		states[7] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State7_ChainGroundPoint);
+		states[8] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State8_Chain);
+		states[9] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State9_Chain);
+		states[10] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State10_StepUntilDone);
+		states[11] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State11_WaitDirectorStep3);
+		states[12] = game_addr(game::MAG_087_ANGELO_STRIKE_Camera_State12_End);
+		states[13] = game_addr(game::MAG_087_ANGELO_STRIKE_Nullsub_774F60);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -685,7 +685,7 @@ namespace strike87
 	{
 		a_73AB00();
 		const uint16_t ang = U16(ENT(U8(a1, 0x2C)), 0xE);
-		U16(MEM<uint32_t>(us(0x155B1E0)), 0xE8) = ang;
+		U16(MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pCameraBlock)), 0xE8) = ang;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -701,7 +701,7 @@ namespace strike87
 		a_73AE10();
 		if (a_73AAE0(1) != 0)
 		{
-			a_73AB20(us(0x15600F8), MEM<uint32_t>(us(DIR_PTR)), 0);
+			a_73AB20(game_addr(game::MAG_087_ANGELO_STRIKE_CameraScript1), MEM<uint32_t>(game_addr(DIR_PTR)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -709,18 +709,18 @@ namespace strike87
 
 	uint32_t __cdecl ak_774CB0(uint32_t a1)
 	{
-		if (MEM<uint32_t>(us(0x25B4B4C)) == 0 && a_73AE10() == 1)
-			ak_cam_chain(a1, us(0x1560140), MEM<uint32_t>(us(DIR_PTR)));
+		if (MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PauseSwitch)) == 0 && a_73AE10() == 1)
+			ak_cam_chain(a1, game_addr(game::unk_1560140), MEM<uint32_t>(game_addr(DIR_PTR)));
 		return 0;
 	}
 
 	uint32_t __cdecl ak_774CE0(uint32_t a1)
 	{
-		if (MEM<uint32_t>(us(0x25B4B4C)) == 0 && a_73AE10() == 1)
+		if (MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PauseSwitch)) == 0 && a_73AE10() == 1)
 		{
-			const uint32_t angelo = U32(MEM<uint32_t>(us(DIR_PTR)), 0x18);
+			const uint32_t angelo = U32(MEM<uint32_t>(game_addr(DIR_PTR)), 0x18);
 			const uint32_t r = x::CrtRand();
-			ak_cam_chain(a1, (r & 1) ? us(0x1560188) : us(0x15601D0), angelo + 0x148);
+			ak_cam_chain(a1, (r & 1) ? game_addr(game::unk_1560188) : game_addr(game::unk_15601D0), angelo + 0x148);
 		}
 		return 0;
 	}
@@ -729,9 +729,9 @@ namespace strike87
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+			const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 			const uint32_t angelo = U32(d, 0x18);
-			ak_cam_chain(a1, S16(d, 0x4E) < 0x1000 ? us(0x1560218) : us(0x1560260), angelo + 0x148);
+			ak_cam_chain(a1, S16(d, 0x4E) < 0x1000 ? game_addr(game::unk_1560218) : game_addr(game::unk_1560260), angelo + 0x148);
 		}
 		return 0;
 	}
@@ -740,9 +740,9 @@ namespace strike87
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+			const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 			const uint32_t angelo = U32(d, 0x18);
-			ak_cam_chain(a1, S16(d, 0x4E) < 0x1000 ? us(0x15602E0) : us(0x1560370), angelo + 0x148);
+			ak_cam_chain(a1, S16(d, 0x4E) < 0x1000 ? game_addr(game::unk_15602E0) : game_addr(game::unk_1560370), angelo + 0x148);
 		}
 		return 0;
 	}
@@ -751,9 +751,9 @@ namespace strike87
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+			const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 			if (S16(d, 0x4E) < 0x1000)
-				a_73AB20(us(0x1560328), U32(d, 0x18) + 0x148, 0);
+				a_73AB20(game_addr(game::unk_1560328), U32(d, 0x18) + 0x148, 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -763,13 +763,13 @@ namespace strike87
 	{
 		if (a_73AE10() == 1)
 		{
-			const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+			const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 			const uint32_t angelo = U32(d, 0x18);
 			alignas(4) uint8_t pt[8];
 			U32(P(pt), 0) = U32(angelo, 0x148);
 			U16(P(pt), 2) = 0;
 			U32(P(pt), 4) = U32(angelo, 0x14C);
-			ak_cam_chain(a1, S16(d, 0x4E) < 0x1000 ? us(0x15603B8) : us(0x1560400), P(pt));
+			ak_cam_chain(a1, S16(d, 0x4E) < 0x1000 ? game_addr(game::unk_15603B8) : game_addr(game::unk_1560400), P(pt));
 		}
 		return 0;
 	}
@@ -777,14 +777,14 @@ namespace strike87
 	uint32_t __cdecl ak_774E90(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
-			ak_cam_chain(a1, us(0x1560468), MEM<uint32_t>(us(DIR_PTR)));
+			ak_cam_chain(a1, game_addr(game::unk_1560468), MEM<uint32_t>(game_addr(DIR_PTR)));
 		return 0;
 	}
 
 	uint32_t __cdecl ak_774EC0(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
-			ak_cam_chain(a1, us(0x15604F0), MEM<uint32_t>(us(DIR_PTR)));
+			ak_cam_chain(a1, game_addr(game::unk_15604F0), MEM<uint32_t>(game_addr(DIR_PTR)));
 		return 0;
 	}
 
@@ -804,9 +804,9 @@ namespace strike87
 
 	uint32_t __cdecl ak_775010(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) < 0x1C)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) < 0x1C)
 			return 0;
-		if (U16(MEM<uint32_t>(us(0x25B4448)), 0x166) == 0)
+		if (U16(MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pModuleData)), 0x166) == 0)
 		{
 			a_73BB60(0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -818,7 +818,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_7750E0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		if (S16(d, 0x46) >= 0x48)
 		{
 			U16(d, 0x48) = 1;
@@ -839,10 +839,10 @@ namespace strike87
 
 	uint32_t __cdecl ak_775160(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) == 1)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40) == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B4620), us(0x7751A0), 0x178, a1);
-			x::Effect_BindModelContainerSetAnim(t, us(0x155B1E4), 3);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_AngeloQueue), game_addr(game::MAG_087_ANGELO_STRIKE_AngeloTask), 0x178, a1);
+			x::Effect_BindModelContainerSetAnim(t, game_addr(game::MAG_087_ANGELO_STRIKE_AngeloModelContainer), 3);
 		}
 		return 0;
 	}
@@ -851,23 +851,23 @@ namespace strike87
 	{
 		const uint32_t node = a1;
 		uint32_t states[17];
-		states[0] = us(0x776010);
-		states[1] = us(0x7760E0);
-		states[2] = us(0x776260);
-		states[3] = us(0x7763B0);
-		states[4] = us(0x778E90);
-		states[5] = us(0x778F90);
-		states[6] = us(0x77DE70);
-		states[7] = us(0x77E490);
-		states[8] = us(0x77E4D0);
-		states[9] = us(0x77E600);
-		states[10] = us(0x77ED50);
-		states[11] = us(0x77EDF0);
-		states[12] = us(0x77EE50);
-		states[13] = us(0x77EEC0);
-		states[14] = us(0x77EF90);
-		states[15] = us(0x77F030);
-		states[16] = us(0x77F0C0);
+		states[0] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State0_BindRinoaAnimSet_FaceTarget);
+		states[1] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State1_RunSetup);
+		states[2] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State2_RunUnlessPaused);
+		states[3] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State3_DustPlay_GroundCapture);
+		states[4] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State4_LiftSetup);
+		states[5] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State5_Lift_SpawnActorSystems);
+		states[6] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State6_CarrySetup_Halo);
+		states[7] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State7_Carry);
+		states[8] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State8_Spin);
+		states[9] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State9_Slam_ImpactPlay_Debris);
+		states[10] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State10_JumpBackSetup);
+		states[11] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State11_JumpBack);
+		states[12] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State12_JumpBackLand);
+		states[13] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State13_RestoreTarget_RinoaChain2);
+		states[14] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State14_WalkOff);
+		states[15] = game_addr(game::MAG_087_ANGELO_STRIKE_Angelo_State15_TurnWalkFinish);
+		states[16] = game_addr(game::MAG_087_ANGELO_STRIKE_Nullsub_77F0C0);
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t vz = U16(node, 0x128);
 		const uint16_t vx = U16(node, 0x124);
@@ -877,7 +877,7 @@ namespace strike87
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + vy);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_746C10(node, game_addr(CREATURE_ARG), MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
 				const uint8_t anim = U8(node, 0x9C), frame = U8(node, 0xA2);
@@ -898,7 +898,7 @@ namespace strike87
 		const int32_t py = S16(node, 0x4E);
 		const int32_t px = S16(node, 0x4C);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		ff8fx::copy<(8 * 4)>((void *)us(0x1D99AB0), (const void *)(node + 0x70));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::unk_1D99AB0), (const void *)(node + 0x70));
 		const int32_t pz = S16(node, 0x50);
 		S32(node, 0x88) = py;
 		const uint8_t status = U8(node, 0x26);
@@ -922,7 +922,7 @@ namespace strike87
 		const int n = k > 3 ? 2 : 4;
 		for (int i = 0; i < n; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AD0A0), us(0x775720), 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_CameraRingQueue), game_addr(game::MAG_087_ANGELO_STRIKE_RingTask), 0x90, a1);
 			if ((uint32_t)(int32_t)k <= 5)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			if (k <= 3)
@@ -969,9 +969,9 @@ namespace strike87
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x775E50);
-		states[1] = us(0x775E70);
-		states[2] = us(0x775F30);
+		states[0] = game_addr(game::MAG_087_ANGELO_STRIKE_Ring_State0_Setup);
+		states[1] = game_addr(game::MAG_087_ANGELO_STRIKE_Ring_State1_Rise);
+		states[2] = game_addr(game::MAG_087_ANGELO_STRIKE_Nullsub_775F30);
 		callp(states[S8(node, 0x29)], node);
 		ak_775780(node);
 		const uint8_t status = U8(node, 0x26);
@@ -986,7 +986,7 @@ namespace strike87
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), mat);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -994,7 +994,7 @@ namespace strike87
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -1004,7 +1004,7 @@ namespace strike87
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -1014,18 +1014,18 @@ namespace strike87
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(us(0x25ACEB4));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketCursor));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(us(0x25ACEB4)) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PacketCursor)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
 
 	uint32_t __cdecl ak_775E50(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x1557D34);
+		U32(a1, 0x4C) = game_addr(game::MAG_087_ANGELO_STRIKE_RingSequence);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -1058,7 +1058,7 @@ namespace strike87
 	{
 		alignas(4) uint8_t m[0x20];
 		const uint32_t M = P(m);
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AD0A0), us(0x775720), 0x90, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_CameraRingQueue), game_addr(game::MAG_087_ANGELO_STRIKE_RingTask), 0x90, a1);
 		x::GetEffectSpawnPosition(a1 + 0x30, 0xF1, 0, t + 0x1C);
 		U16(t, 0x1E) = 0;
 		const int32_t r1 = (int32_t)x::CrtRand();
@@ -1083,10 +1083,10 @@ namespace strike87
 		const uint32_t node = a1;
 		const uint32_t c = ENT(U8(node, 0x2C));
 		const uint32_t t = gx::EntityChainLowest(ENT(U8(node, 0x2D)));
-		U32(MEM<uint32_t>(us(DIR_PTR)), 0x18) = node;
-		gx::BindEntityModelFromComData(c, us(0x25B4B28), us(0x1560550));
+		U32(MEM<uint32_t>(game_addr(DIR_PTR)), 0x18) = node;
+		gx::BindEntityModelFromComData(c, game_addr(game::MAG_087_ANGELO_STRIKE_RinoaAnimSetBlock), game_addr(game::MAG_087_ANGELO_STRIKE_RinoaAnimSetComData));
 		gx::QueueChainTransformation(c, 1);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 4);
 		const uint32_t rot0 = U32(t, 0xC);
 		U32(node, 0x4C) = U32(d, 0);
@@ -1158,7 +1158,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_776260(uint32_t a1)
 	{
-		if (MEM<uint32_t>(us(0x25B4B4C)) != 0)
+		if (MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_PauseSwitch)) != 0)
 			return 0;
 		const uint32_t node = a1;
 		ak_height_step(node);
@@ -1205,11 +1205,11 @@ namespace strike87
 		if (r == 1)
 		{
 			x::au_re_Battle_ReadAnimation_7(node, r);
-			const uint32_t t = ak_776460(node, us(0x7764B0), us(0x16FD248), 0xB0, 0, 0);
+			const uint32_t t = ak_776460(node, game_addr(game::MAG_087_ANGELO_STRIKE_DustPlayTask), game_addr(game::MAG_087_ANGELO_STRIKE_DustPlayLayout), 0xB0, 0, 0);
 			U32(t, 0x240) = node + 0x30;
 			U16(t, 0x8A) = 0;
 			ak_7789B0(node);
-			x::BdPlaySE(us(0x1557D2C), 0, 0x80);
+			x::BdPlaySE(game_addr(game::MAG_087_ANGELO_STRIKE_SoundDig), 0, 0x80);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		return 0;
@@ -1217,7 +1217,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_776460(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25B2A90), a2, 0x25C, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_PlayQueue), a2, 0x25C, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -1325,12 +1325,12 @@ namespace strike87
 			U32(hdr, 0x14) = U32(hdr, 0x14) | 0xC0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
@@ -1338,7 +1338,7 @@ namespace strike87
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = ak_776920(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = ak_776920(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -2076,7 +2076,7 @@ namespace strike87
 		U16(B, 0xA) = 0x8001;
 		U16(B, 8) = 0x8001;
 		U16(B, 6) = 0x8001;
-		ak_778A20(us(0x155AA5C), B);
+		ak_778A20(game_addr(game::MAG_087_ANGELO_STRIKE_DebrisLargeModelA), B);
 		U32(Q, 0) = U32(a1, 0x4C);
 		U32(Q, 4) = U32(a1, 0x50);
 		U16(Q, 2) = 0;
@@ -2127,42 +2127,42 @@ namespace strike87
 		S32(M, 0x14) = (minx - maxx) / 2 / sx - (int32_t)S16(a1, 0) / sx;
 		const int32_t tz = (minz - maxz) / 2 / sz;
 		const int32_t az = (int32_t)S16(a1, 4) / sz;
-		S32(M, 0x1C) = (int32_t)MEM<int16_t>(us(0x1D8E038));
+		S32(M, 0x1C) = (int32_t)MEM<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE));
 		sv[1] = 0;
 		S32(M, 0x18) = az - tz;
 		sv[0] = 0x1000000 / ((int32_t)shl32(width, 12) / rect[2]);
 		sv[2] = 0x1000000 / ((int32_t)shl32(depth, 12) / rect[3]);
 		x::scale3DMatrix(M, P(sv));
-		const uint32_t env = MEM<uint32_t>(us(0x1D8E054));
-		MEM<uint32_t>(us(0x1D8E054)) = env + 0x40;
-		gx::SSIGPU_SetDrawEnv(env, us(0x1D969C8) + 0x5C * (uint32_t)(MEM<uint8_t>(us(0x1D96A80)) ^ 1));
-		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(us(0x1D8E04C)) + 0x44, env);
+		const uint32_t env = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = env + 0x40;
+		gx::SSIGPU_SetDrawEnv(env, game_addr(game::g_Battle_DrawEnv) + 0x5C * (uint32_t)(MEM<uint8_t>(game_addr(game::g_Battle_DisplayParity)) ^ 1));
+		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, env);
 		alignas(4) int32_t ofs[2] = {};
 		gx::GteReadScreenOffset(P(&ofs[1]), P(&ofs[0]));
 		gx::GteSetScreenOffset((uint32_t)(int32_t)(rect[2] / 2), (uint32_t)(int32_t)(rect[3] / 2));
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
-		if ((MEM<uint8_t>(us(0x1D989BD)) & 1) != 0)
+		if ((MEM<uint8_t>(game_addr(game::unk_1D989BD)) & 1) != 0)
 		{
 			const uint32_t h = x::Field_Alloc(0x2C);
-			U16(h, 0x24) = MEM<uint16_t>(us(0x1D989BE));
+			U16(h, 0x24) = MEM<uint16_t>(game_addr(game::unk_1D989BE));
 			U16(h, 0x14) = 0;
 			U16(h, 0x16) = 0;
 			U16(h, 0x18) = 0x140;
 			U16(h, 0x1A) = 0xD8;
-			U32(h, 0x1C) = MEM<uint32_t>(us(0x1D989E4));
-			U32(h, 4) = MEM<uint32_t>(us(0x1D98B3C));
+			U32(h, 0x1C) = MEM<uint32_t>(game_addr(game::unk_1D989E4));
+			U32(h, 4) = MEM<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
 			U32(h, 0x20) = 0xFFFFFFFF;
-			U32(h, 0x10) = MEM<uint32_t>(us(0x1D969A8));
-			x::BattleModel_BuildBoneMatricesFromPose(us(0x1D989D0));
-			x::BS_ComputeBonesWorldMatrices(us(0x1D989D0), M);
-			MEM<uint32_t>(us(0x1D8E054)) = x::RenderGeometry(us(0x1D989C0), h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 0x10, MEM<uint32_t>(us(0x1D8E054)));
+			U32(h, 0x10) = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
+			x::BattleModel_BuildBoneMatricesFromPose(game_addr(game::unk_1D989D0));
+			x::BS_ComputeBonesWorldMatrices(game_addr(game::unk_1D989D0), M);
+			MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = x::RenderGeometry(game_addr(game::unk_1D989C0), h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 0x10, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 			x::Field_Free(0x2C);
 		}
 		gx::GteSetScreenOffset((uint32_t)ofs[1], (uint32_t)ofs[0]);
 		auto quad = [](uint8_t code) {
-			const uint32_t pk = MEM<uint32_t>(us(0x1D8E054));
-			MEM<uint32_t>(us(0x1D8E054)) = pk + 0x18;
+			const uint32_t pk = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
+			MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = pk + 0x18;
 			U32(pk, 0) = 0x5000000;
 			U8(pk, 7) = code;
 			U16(pk, 0x10) = 0;
@@ -2176,23 +2176,23 @@ namespace strike87
 			U8(pk, 6) = 0;
 			U8(pk, 5) = 0;
 			U8(pk, 4) = 0;
-			x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(us(0x1D8E04C)) + 0x44, pk);
+			x::SSIGPU_InsertPrimAltViewport(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, pk);
 		};
 		quad(0x2A);
-		const uint32_t dm = MEM<uint32_t>(us(0x1D8E054));
-		MEM<uint32_t>(us(0x1D8E054)) = dm + 0xC;
+		const uint32_t dm = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = dm + 0xC;
 		x::sub_45BFC0(dm, 0, 0, x::sub_45C690(0, 1, 0, 0) & 0xFFFF, 0);
-		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(us(0x1D8E04C)) + 0x44, dm);
+		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, dm);
 		quad(0x28);
-		const uint32_t area = MEM<uint32_t>(us(0x1D8E054));
-		MEM<uint32_t>(us(0x1D8E054)) = area + 0xC;
+		const uint32_t area = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = area + 0xC;
 		gx::SetDrawAreaPrim(area, P(rect));
-		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(us(0x1D8E04C)) + 0x44, area);
-		const uint32_t ofp = MEM<uint32_t>(us(0x1D8E054));
-		MEM<uint32_t>(us(0x1D8E054)) = ofp + 0xC;
+		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, area);
+		const uint32_t ofp = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = ofp + 0xC;
 		alignas(4) int16_t xy[2] = { rect[0], rect[1] };
 		gx::SetDrawOffsetPrim(ofp, P(xy));
-		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(us(0x1D8E04C)) + 0x44, ofp);
+		x::SSIGPU_InsertPrimAutoDepth(MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, ofp);
 		return 0;
 	}
 
@@ -2232,7 +2232,7 @@ namespace strike87
 		{
 			for (uint32_t i = 0; i < 4; i++)
 			{
-				const uint32_t t = a_73C100(node, us(0x779050), us(0x16FBE40), 0, 5, 4);
+				const uint32_t t = a_73C100(node, game_addr(game::MAG_087_ANGELO_STRIKE_ActorSystemTask), game_addr(game::MAG_087_ANGELO_STRIKE_ActorSystemData), 0, 5, 4);
 				U16(t, 0x2A0) = (uint16_t)i;
 			}
 		}
@@ -2249,7 +2249,7 @@ namespace strike87
 		const uint32_t node = a1;
 		if (S16(node, 0x24) < S16(node, 0x298))
 			return 0;
-		const uint32_t mdl = U32(MEM<uint32_t>(us(DIR_PTR)), 0x18) + 0x30;
+		const uint32_t mdl = U32(MEM<uint32_t>(game_addr(DIR_PTR)), 0x18) + 0x30;
 		const int16_t k = S16(node, 0x2A0);
 		const int32_t pt = k == 0 ? 0x1E : k == 1 ? 0x21 : (k != 2 ? 0x1D : 0x1C);
 		x::GetEffectSpawnPosition(mdl, (uint32_t)pt, 0, node + 0x290);
@@ -2261,7 +2261,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_7792E0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25B4B54));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -2278,7 +2278,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_779560(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25B4B54));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -2301,7 +2301,7 @@ namespace strike87
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x25B4B54), 0) = sys;
+		U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -2313,7 +2313,7 @@ namespace strike87
 			ak_77B460();
 			ak_77B320();
 			a_735440();
-			sys = U32(us(0x25B4B54), 0);
+			sys = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -2326,8 +2326,8 @@ namespace strike87
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x25B4B08), 0) = (uint16_t)(U16(us(0x25B4B08), 0) + c14);
-		U16(us(0x25B4630), 0) = (uint16_t)(U16(us(0x25B4630), 0) + c16);
+		U16(game_addr(game::MAG_087_ANGELO_STRIKE_ActorCount14), 0) = (uint16_t)(U16(game_addr(game::MAG_087_ANGELO_STRIKE_ActorCount14), 0) + c14);
+		U16(game_addr(game::MAG_087_ANGELO_STRIKE_ActorCount16), 0) = (uint16_t)(U16(game_addr(game::MAG_087_ANGELO_STRIKE_ActorCount16), 0) + c16);
 		return done;
 	}
 
@@ -2832,14 +2832,14 @@ namespace strike87
 
 	uint32_t __cdecl ak_77B320(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x25B4B54)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x25B4B54));
+				uint32_t st = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -2874,26 +2874,26 @@ namespace strike87
 	uint32_t __cdecl ak_77B3E0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl ak_77B460(void)
 	{
-		uint32_t act = U32(U32(us(0x25B4B54), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2909,7 +2909,7 @@ namespace strike87
 	uint32_t __cdecl ak_77B4A0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x25B4B54));
+		uint32_t st = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -2930,7 +2930,7 @@ namespace strike87
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x25B4B54));
+			st = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2942,7 +2942,7 @@ namespace strike87
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x25B4B54), 0);
+		uint32_t st = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -3025,8 +3025,8 @@ namespace strike87
 
 	uint32_t __cdecl ak_77C690(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25B4634));
-		int32_t idx = MEM<int16_t>(us(0x25AECD0));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_25B4634));
+		int32_t idx = MEM<int16_t>(game_addr(game::unk_25AECD0));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -3036,7 +3036,7 @@ namespace strike87
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -3051,9 +3051,9 @@ namespace strike87
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(us(0x25AECD0)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::unk_25AECD0)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x25AECD0)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_25AECD0)) = 0;
 		return slot;
 	}
 
@@ -3066,9 +3066,9 @@ namespace strike87
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x77D0E0), a1);
+			callp(game_addr(game::MAG_087_ANGELO_STRIKE_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x77D230), a1);
+			callp(game_addr(game::MAG_087_ANGELO_STRIKE_Actor_InterpolatePosition), a1);
 		ak_77C7B0(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -3077,7 +3077,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_77C7B0(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x25B4B54), 0);
+		uint32_t sys = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -3104,9 +3104,9 @@ namespace strike87
 
 	uint32_t __cdecl ak_77C830(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x25B4B24), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pCameraCopy), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x25B4B24), 0) = sp;
+		U32(game_addr(game::MAG_087_ANGELO_STRIKE_pCameraCopy), 0) = sp;
 		uint32_t node = ak_77D010(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -3116,7 +3116,7 @@ namespace strike87
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x25B4B54), 0);
+			uint32_t ctx = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -3284,14 +3284,14 @@ namespace strike87
 			}
 		}
 		ak_77DD20(node, desc);
-		U32(us(0x25B4B24), 0) = U32(us(0x25B4B24), 0) + 0x50;
+		U32(game_addr(game::MAG_087_ANGELO_STRIKE_pCameraCopy), 0) = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pCameraCopy), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl ak_77D010(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25B4B48));
-		int32_t i = MEM<int16_t>(us(0x25B4640));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_25B4B48));
+		int32_t i = MEM<int16_t>(game_addr(game::unk_25B4640));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -3304,7 +3304,7 @@ namespace strike87
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -3321,16 +3321,16 @@ namespace strike87
 		}
 		i++;
 		if (i >= 0x31)
-			MEM<uint16_t>(us(0x25B4640)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_25B4640)) = 0;
 		else
-			MEM<uint16_t>(us(0x25B4640)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::unk_25B4640)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl ak_77D230(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x25B4B54), 0);
+		const uint32_t st = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -3390,7 +3390,7 @@ namespace strike87
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x25B4B54), 0);
+				uint32_t g = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -3400,7 +3400,7 @@ namespace strike87
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x25B4B54), 0);
+				uint32_t g = U32(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3475,7 +3475,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_77DDB0(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x25B4B54));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3500,14 +3500,14 @@ namespace strike87
 				do
 				{
 					ak_77C690(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x25B4B54));
+					dir = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				ak_77C690(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x25B4B54));
+				dir = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pActorState));
 			}
 		}
 		return 0;
@@ -3554,9 +3554,9 @@ namespace strike87
 		x::MAG_022_sub_8DD770(M);
 		x::MAG_022_sub_8DD8A0(M, (uint32_t)(0x1000 - (int32_t)S16(node, 0x3E)));
 		x::matrixMultiplyVector(M, node + 0x160, node + 0x160);
-		const uint32_t h = x::Effect_AddTaskAndInitFromCtx(us(0x25AECD8), us(0x77DFC0), 0x98, node);
+		const uint32_t h = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_ModelQueue), game_addr(game::MAG_087_ANGELO_STRIKE_HaloTask), 0x98, node);
 		U32(h, 0x8C) = mdl;
-		const uint32_t p = ak_776460(node, us(0x7764B0), us(0x16FD248), 0xB0, 0, 0);
+		const uint32_t p = ak_776460(node, game_addr(game::MAG_087_ANGELO_STRIKE_DustPlayTask), game_addr(game::MAG_087_ANGELO_STRIKE_DustPlayLayout), 0xB0, 0, 0);
 		U32(p, 0x240) = mdl;
 		U16(p, 0x8A) = 1;
 		U16(node, 0x134) = 8;
@@ -3569,11 +3569,11 @@ namespace strike87
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x77E180);
-		states[1] = us(0x77E1E0);
-		states[2] = us(0x77E210);
-		states[3] = us(0x77E220);
-		states[4] = us(0x77E250);
+		states[0] = game_addr(game::MAG_087_ANGELO_STRIKE_Halo_State0_Setup);
+		states[1] = game_addr(game::MAG_087_ANGELO_STRIKE_Halo_State1_FadeIn);
+		states[2] = game_addr(game::MAG_087_ANGELO_STRIKE_Halo_State2_Wait);
+		states[3] = game_addr(game::MAG_087_ANGELO_STRIKE_Halo_State3_FadeOut);
+		states[4] = game_addr(game::MAG_087_ANGELO_STRIKE_Nullsub_77E250);
 		callp(states[S8(node, 0x29)], node);
 		alignas(4) uint8_t pt[8] = {};
 		U16(node, 0x46) = (uint16_t)((U16(node, 0x46) + 0x100) & 0xFFF);
@@ -3605,7 +3605,7 @@ namespace strike87
 		S32(m, 0x18) = S16(node, 0x1E);
 		S32(m, 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -3624,7 +3624,7 @@ namespace strike87
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(us(0x1D8E054)) = ak_776920(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = ak_776920(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3635,7 +3635,7 @@ namespace strike87
 		S32(a1, 0x38) = 0x800;
 		S32(a1, 0x34) = 0x1000;
 		U16(a1, 0x50) = 0x1000;
-		U32(a1, 0x4C) = us(0x1557FBC);
+		U32(a1, 0x4C) = game_addr(game::MAG_087_ANGELO_STRIKE_HaloModel);
 		U16(a1, 0x52) = 0xFE00;
 		x::GetEffectSpawnPosition(U32(a1, 0x8C), 0xF1, 0, a1 + 0x1C);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -3686,7 +3686,7 @@ namespace strike87
 		else
 		{
 			const int16_t i = S16(n, 0x174);
-			const uint16_t f = MEM<uint16_t>(us(0x1561744) + (uint32_t)(int32_t)i * 2);
+			const uint16_t f = MEM<uint16_t>(game_addr(game::MAG_087_ANGELO_STRIKE_CarryEaseTable) + (uint32_t)(int32_t)i * 2);
 			U16(n, 0x168) = f;
 			if (f != 0x1000)
 				U16(n, 0x174) = (uint16_t)(i + 1);
@@ -3807,13 +3807,13 @@ namespace strike87
 		if (U16(node, 0x168) != 0x1000)
 			return 0;
 		x::au_re_Battle_ReadAnimation_7(node, 6);
-		const uint32_t p = ak_776460(node, us(0x77E6C0), U32(MEM<uint32_t>(us(0x25B4448)), 0x128), 0x1AC, 1, 0);
+		const uint32_t p = ak_776460(node, game_addr(game::MAG_087_ANGELO_STRIKE_ImpactPlayTask), U32(MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pModuleData)), 0x128), 0x1AC, 1, 0);
 		U32(p, 0x240) = mdl;
-		const uint32_t d = x::Effect_AddTaskAndInitFromCtx(us(0x25AECD8), us(0x77E800), 0x98, node);
+		const uint32_t d = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_ModelQueue), game_addr(game::MAG_087_ANGELO_STRIKE_DebrisSpawnerTask), 0x98, node);
 		U32(d, 0x1C) = U32(mdl, 0x1C);
 		U32(d, 0x20) = U32(mdl, 0x20);
 		U16(d, 0x1E) = 0;
-		x::BdPlaySE(us(0x1557D30), 0, 0x80);
+		x::BdPlaySE(game_addr(game::MAG_087_ANGELO_STRIKE_SoundSlam), 0, 0x80);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -3859,7 +3859,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_77E800(uint32_t a1)
 	{
-		const uint32_t states[2] = { 0x77E850, us(0x77ED40) };
+		const uint32_t states[2] = { game_addr(game::MAG_087_ANGELO_STRIKE_DebrisSpawner_State0_Spawn), game_addr(game::MAG_087_ANGELO_STRIKE_Nullsub_77ED40) };
 		callp(states[S8(a1, 0x29)], a1);
 		return task_end(a1);
 	}
@@ -3877,14 +3877,14 @@ namespace strike87
 		for (int kind = 0; kind < 2; kind++)
 		{
 			const int16_t fr = S16(node, 0x24);
-			int32_t cnt = MEM<int16_t>((kind == 0 ? us(0x1560538) : us(0x1560544)) + (uint32_t)(int32_t)fr * 2);
+			int32_t cnt = MEM<int16_t>((kind == 0 ? game_addr(game::MAG_087_ANGELO_STRIKE_DebrisLargeCounts) : game_addr(game::MAG_087_ANGELO_STRIKE_DebrisSmallCounts)) + (uint32_t)(int32_t)fr * 2);
 			if (cnt <= 0)
 				continue;
 			do
 			{
 				const int32_t ang = (int32_t)(int16_t)(x::CrtRand() & 0xFFF);
 				const int32_t dist = (int32_t)(int16_t)((x::CrtRand() & 0x3FF) + 0x100);
-				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x25AECD8), kind == 0 ? us(0x77EAB0) : us(0x77EC00), 0x98, node);
+				const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_087_ANGELO_STRIKE_ModelQueue), kind == 0 ? game_addr(game::MAG_087_ANGELO_STRIKE_DebrisLargeTask) : game_addr(game::MAG_087_ANGELO_STRIKE_DebrisSmallTask), 0x98, node);
 				U32(t, 0x1C) = U32(node, 0x1C);
 				U32(t, 0x20) = U32(node, 0x20);
 				U16(t, 0x1C) = (uint16_t)(U16(t, 0x1C) + (uint16_t)((int32_t)x::computeSin((uint32_t)ang) * dist / 4096));
@@ -3900,9 +3900,9 @@ namespace strike87
 		return 0;
 	}
 
-	static inline uint32_t ak_debris(uint32_t node, const uint32_t (&states)[3], uint16_t gravity)
+	static inline uint32_t ak_debris(uint32_t node, const game::Id (&states)[3], uint16_t gravity)
 	{
-		callp(states[S8(node, 0x29)], node);
+		callp(game_addr(states[S8(node, 0x29)]), node);
 		const int32_t vx = S16(node, 0x7C);
 		U16(node, 0x7E) = (uint16_t)(U16(node, 0x7E) + gravity);
 		U16(node, 0x44) = (uint16_t)((U16(node, 0x96) + U16(node, 0x44)) & 0xFFF);
@@ -3922,14 +3922,14 @@ namespace strike87
 
 	uint32_t __cdecl ak_77EAB0(uint32_t a1)
 	{
-		static const uint32_t states[3] = { us(0x77EB70), us(0x77EBD0), us(0x77EBF0)  };
+		static constexpr game::Id states[3] = { game::MAG_087_ANGELO_STRIKE_DebrisLarge_State0_Setup, game::MAG_087_ANGELO_STRIKE_DebrisLarge_State1_Life, game::MAG_087_ANGELO_STRIKE_Nullsub_77EBF0 };
 		return ak_debris(a1, states, 0x200);
 	}
 
 	uint32_t __cdecl ak_77EB70(uint32_t a1)
 	{
 		const uint32_t r1 = x::CrtRand();
-		U32(a1, 0x4C) = (r1 & 1) ? us(0x155AA5C) : us(0x155ADF4);
+		U32(a1, 0x4C) = (r1 & 1) ? game_addr(game::MAG_087_ANGELO_STRIKE_DebrisLargeModelA) : game_addr(game::MAG_087_ANGELO_STRIKE_DebrisLargeModelB);
 		const int32_t s = (int32_t)x::CrtRand() % 0xFFF + 0x100;
 		S32(a1, 0x38) = s;
 		S32(a1, 0x30) = s;
@@ -3952,13 +3952,13 @@ namespace strike87
 
 	uint32_t __cdecl ak_77EC00(uint32_t a1)
 	{
-		static const uint32_t states[3] = { us(0x77ECC0), us(0x77ED10), us(0x77ED30)  };
+		static constexpr game::Id states[3] = { game::MAG_087_ANGELO_STRIKE_DebrisSmall_State0_Setup, game::MAG_087_ANGELO_STRIKE_DebrisSmall_State1_Life, game::MAG_087_ANGELO_STRIKE_Nullsub_77ED30 };
 		return ak_debris(a1, states, 0x400);
 	}
 
 	uint32_t __cdecl ak_77ECC0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x155B12C);
+		U32(a1, 0x4C) = game_addr(game::MAG_087_ANGELO_STRIKE_DebrisSmallModel);
 		const int32_t s = (int32_t)x::CrtRand() % 0x7FF + 0x800;
 		S32(a1, 0x38) = s;
 		S32(a1, 0x30) = s;
@@ -4108,7 +4108,7 @@ namespace strike87
 
 	uint32_t __cdecl ak_77F0D0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x1557D28));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::MAG_087_ANGELO_STRIKE_pDirector));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -4122,216 +4122,216 @@ namespace strike87
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x773BA0, (void *)a_73A0D0, "087 MAG_087_sub_773BA0" },
-		{ 0x773BB0, (void *)a_73A0D0, "087 MAG_087_sub_773BB0" },
-		{ 0x773C40, (void *)a_73A170, "087 MAG_087_sub_773C40" },
-		{ 0x773C70, (void *)a_73A1A0, "087 MAG_087_sub_773C70" },
-		{ 0x773E30, (void *)a_73A380, "087 MAG_087_sub_773E30" },
-		{ 0x773E90, (void *)a_73A3E0, "087 sub_773E90" },
-		{ 0x774030, (void *)a_73A580, "087 sub_774030" },
-		{ 0x774060, (void *)a_73A5B0, "087 sub_774060" },
-		{ 0x774090, (void *)a_73A5E0, "087 sub_774090" },
-		{ 0x7740A0, (void *)a_73A5E0, "087 sub_7740A0" },
-		{ 0x7740B0, (void *)a_73A5E0, "087 sub_7740B0" },
-		{ 0x7740C0, (void *)a_73A5E0, "087 sub_7740C0" },
-		{ 0x7740D0, (void *)a_73A620, "087 sub_7740D0" },
-		{ 0x774110, (void *)a_73A660, "087 sub_774110" },
-		{ 0x774180, (void *)a_73A6D0, "087 nullsub_1282" },
-		{ 0x774370, (void *)a_73B640, "087 sub_774370" },
-		{ 0x774490, (void *)a_73AB00, "087 sub_774490" },
-		{ 0x7744E0, (void *)a_73AAE0, "087 sub_7744E0" },
-		{ 0x774500, (void *)a_73AE10, "087 sub_774500" },
-		{ 0x774850, (void *)a_73B160, "087 sub_774850" },
-		{ 0x7749C0, (void *)a_73AB20, "087 sub_7749C0" },
-		{ 0x774EF0, (void *)a_73B2D0, "087 sub_774EF0" },
-		{ 0x774F30, (void *)a_73B750, "087 sub_774F30" },
-		{ 0x774F50, (void *)a_73A6D0, "087 nullsub_1283" },
-		{ 0x774F60, (void *)a_73A6D0, "087 nullsub_1284" },
-		{ 0x774F90, (void *)a_73B7E0, "087 sub_774F90" },
-		{ 0x774FB0, (void *)a_73A930, "087 sub_774FB0" },
-		{ 0x774FD0, (void *)a_73A950, "087 sub_774FD0" },
-		{ 0x775050, (void *)a_73BB60, "087 sub_775050" },
-		{ 0x7750A0, (void *)a_73B8A0, "087 sub_7750A0" },
-		{ 0x7750C0, (void *)a_73B8C0, "087 sub_7750C0" },
-		{ 0x775100, (void *)a_733B70, "087 sub_775100" },
-		{ 0x775140, (void *)a_73A6D0, "087 nullsub_1285" },
-		{ 0x775150, (void *)a_73A6D0, "087 nullsub_1286" },
-		{ 0x775330, (void *)a_746C10, "087 sub_775330" },
-		{ 0x7758A0, (void *)a_7435E0, "087 InitEffectSequenceFromData_c7" },
-		{ 0x7759E0, (void *)a_743720, "087 sub_7759E0" },
-		{ 0x775F00, (void *)a_743C20, "087 sub_775F00" },
-		{ 0x775F30, (void *)a_73A6D0, "087 nullsub_1287" },
-		{ 0x7764B0, (void *)a_73A380, "087 sub_7764B0" },
-		{ 0x776580, (void *)a_73C280, "087 sub_776580" },
-		{ 0x777900, (void *)a_73D770, "087 sub_777900" },
-		{ 0x777B50, (void *)a_73D9C0, "087 sub_777B50" },
-		{ 0x7789A0, (void *)a_73A6D0, "087 nullsub_1288" },
-		{ 0x779000, (void *)a_73C100, "087 sub_779000" },
-		{ 0x779050, (void *)a_73A380, "087 sub_779050" },
-		{ 0x779130, (void *)a_73F990, "087 sub_779130" },
-		{ 0x7793C0, (void *)a_73FC20, "087 sub_7793C0" },
-		{ 0x779630, (void *)a_73FE90, "087 sub_779630" },
-		{ 0x779750, (void *)a_73FFB0, "087 sub_779750" },
-		{ 0x7799B0, (void *)a_740210, "087 sub_7799B0" },
-		{ 0x779CA0, (void *)a_735440, "087 sub_779CA0" },
-		{ 0x779D00, (void *)a_7354A0, "087 sub_779D00" },
-		{ 0x779E40, (void *)a_7355E0, "087 sub_779E40" },
-		{ 0x77A410, (void *)a_735BB0, "087 sub_77A410" },
-		{ 0x77A650, (void *)a_735DF0, "087 sub_77A650" },
-		{ 0x77B530, (void *)a_740910, "087 sub_77B530" },
-		{ 0x77BB90, (void *)a_740F70, "087 sub_77BB90" },
-		{ 0x77BBE0, (void *)a_740FC0, "087 sub_77BBE0" },
-		{ 0x77BC70, (void *)a_741050, "087 sub_77BC70" },
-		{ 0x77BD40, (void *)a_741120, "087 sub_77BD40" },
-		{ 0x77C780, (void *)a_741B60, "087 sub_77C780" },
-		{ 0x77CEB0, (void *)a_742290, "087 MAG_087_RandRange" },
-		{ 0x77CEE0, (void *)a_7422C0, "087 sub_77CEE0" },
-		{ 0x77CF20, (void *)a_742300, "087 sub_77CF20" },
-		{ 0x77CF70, (void *)a_742350, "087 sub_77CF70" },
-		{ 0x77CFC0, (void *)a_7423A0, "087 MAG_087_RandAngleJitter" },
-		{ 0x77D0D0, (void *)a_7424B0, "087 sub_77D0D0" },
-		{ 0x77D0E0, (void *)a_7424C0, "087 sub_77D0E0" },
-		{ 0x77D8C0, (void *)a_742CA0, "087 sub_77D8C0" },
-		{ 0x77D8F0, (void *)a_742CD0, "087 sub_77D8F0" },
-		{ 0x77D920, (void *)a_742D00, "087 sub_77D920" },
-		{ 0x77DAD0, (void *)a_742EB0, "087 sub_77DAD0" },
-		{ 0x77DC10, (void *)a_742FF0, "087 sub_77DC10" },
-		{ 0x77DE60, (void *)a_73A6D0, "087 nullsub_1297" },
-		{ 0x77E250, (void *)a_73A6D0, "087 nullsub_1289" },
-		{ 0x77E5F0, (void *)a_73A6D0, "087 nullsub_1290" },
-		{ 0x77E6C0, (void *)a_73A380, "087 sub_77E6C0" },
-		{ 0x77E7F0, (void *)a_73A6D0, "087 nullsub_1291" },
-		{ 0x77EBF0, (void *)a_73A6D0, "087 nullsub_1292" },
-		{ 0x77ED30, (void *)a_73A6D0, "087 nullsub_1293" },
-		{ 0x77ED40, (void *)a_73A6D0, "087 nullsub_1294" },
-		{ 0x77F0C0, (void *)a_73A6D0, "087 nullsub_1295" },
-		{ 0x77F110, (void *)a_7474B0, "087 MAG_087_sub_77F110" },
-		{ 0x77F130, (void *)a_7474D0, "087 MAG_087_sub_77F130" },
-		{ 0x77F150, (void *)a_73A6D0, "087 nullsub_1296" },
-		{ 0x77F160, (void *)a_747500, "087 MAG_087_sub_77F160" },
-		{ 0x77F1A0, (void *)a_73A0D0, "087 MAG_087_sub_77F1A0" },
-		{ 0x77F1B0, (void *)a_747550, "087 MAG_087_sub_77F1B0" },
-		{ 0x77F1C0, (void *)a_747560, "087 MAG_087_sub_77F1C0" },
-		{ 0x77F1F0, (void *)a_747590, "087 MAG_087_sub_77F1F0" },
-		{ 0x77F200, (void *)a_7475A0, "087 MAG_087_sub_77F200" },
-		{ 0x77F220, (void *)a_73A6D0, "087 nullsub_1281" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_773BA0, (void *)a_73A0D0, "087 MAG_087_sub_773BA0" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_773BB0, (void *)a_73A0D0, "087 MAG_087_sub_773BB0" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State3_SpawnEmitter, (void *)a_73A170, "087 MAG_087_sub_773C40" },
+		{ game::MAG_087_ANGELO_STRIKE_EmitterTask, (void *)a_73A1A0, "087 MAG_087_sub_773C70" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadScriptTask, (void *)a_73A380, "087 MAG_087_sub_773E30" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadScript_State0_Command, (void *)a_73A3E0, "087 sub_773E90" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadCallback_QueueTIM, (void *)a_73A580, "087 sub_774030" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadCallback_SummonStream, (void *)a_73A5B0, "087 sub_774060" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadCb_ClearBusy_774090, (void *)a_73A5E0, "087 sub_774090" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadCb_ClearBusy_7740A0, (void *)a_73A5E0, "087 sub_7740A0" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadCb_ClearBusy_7740B0, (void *)a_73A5E0, "087 sub_7740B0" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadCb_ClearBusy_7740C0, (void *)a_73A5E0, "087 sub_7740C0" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadScript_RecordFile, (void *)a_73A620, "087 sub_7740D0" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadScript_State1_Wait, (void *)a_73A660, "087 sub_774110" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_774180, (void *)a_73A6D0, "087 nullsub_1282" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_SyncPoint, (void *)a_73B640, "087 sub_774370" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_ResetBlock, (void *)a_73AB00, "087 sub_774490" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_StepReached, (void *)a_73AAE0, "087 sub_7744E0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_StepScript, (void *)a_73AE10, "087 sub_774500" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_WriteBattleCamera, (void *)a_73B160, "087 sub_774850" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_StartScript, (void *)a_73AB20, "087 sub_7749C0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State10_StepUntilDone, (void *)a_73B2D0, "087 sub_774EF0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State12_End, (void *)a_73B750, "087 sub_774F30" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_774F50, (void *)a_73A6D0, "087 nullsub_1283" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_774F60, (void *)a_73A6D0, "087 nullsub_1284" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_CueReached, (void *)a_73B7E0, "087 sub_774F90" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State2_LoadStep, (void *)a_73A930, "087 sub_774FB0" },
+		{ game::MAG_087_ANGELO_STRIKE_LoadScript_TryArmStep, (void *)a_73A950, "087 sub_774FD0" },
+		{ game::MAG_087_ANGELO_STRIKE_SetModulePause, (void *)a_73BB60, "087 sub_775050" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State4_Sync2, (void *)a_73B8A0, "087 sub_7750A0" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State5_Cue2, (void *)a_73B8C0, "087 sub_7750C0" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State7_Sync3, (void *)a_733B70, "087 sub_775100" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_775140, (void *)a_73A6D0, "087 nullsub_1285" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_775150, (void *)a_73A6D0, "087 nullsub_1286" },
+		{ game::MAG_087_ANGELO_STRIKE_Creature_DrawModel, (void *)a_746C10, "087 sub_775330" },
+		{ game::InitEffectSequenceFromData_c7, (void *)a_7435E0, "087 InitEffectSequenceFromData_c7" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_DrawSpriteStrip, (void *)a_743720, "087 sub_7759E0" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_StepFrame, (void *)a_743C20, "087 sub_775F00" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_775F30, (void *)a_73A6D0, "087 nullsub_1287" },
+		{ game::MAG_087_ANGELO_STRIKE_DustPlayTask, (void *)a_73A380, "087 sub_7764B0" },
+		{ game::MAG_087_ANGELO_STRIKE_Play_Step, (void *)a_73C280, "087 sub_776580" },
+		{ game::MAG_087_ANGELO_STRIKE_EmitG3, (void *)a_73D770, "087 sub_777900" },
+		{ game::MAG_087_ANGELO_STRIKE_EmitG4, (void *)a_73D9C0, "087 sub_777B50" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_7789A0, (void *)a_73A6D0, "087 nullsub_1288" },
+		{ game::MAG_087_ANGELO_STRIKE_SpawnActorSystemTask, (void *)a_73C100, "087 sub_779000" },
+		{ game::MAG_087_ANGELO_STRIKE_ActorSystemTask, (void *)a_73A380, "087 sub_779050" },
+		{ game::MAG_087_ANGELO_STRIKE_DirectorSetup, (void *)a_73F990, "087 sub_779130" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_StartPositions, (void *)a_73FC20, "087 sub_7793C0" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_Mode3Setup, (void *)a_73FE90, "087 sub_779630" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_TargetPositions, (void *)a_73FFB0, "087 sub_779750" },
+		{ game::MAG_087_ANGELO_STRIKE_RelocateActorData, (void *)a_740210, "087 sub_7799B0" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_DrawModelPass, (void *)a_735440, "087 sub_779CA0" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_DrawModelActor, (void *)a_7354A0, "087 sub_779D00" },
+		{ game::MAG_087_ANGELO_STRIKE_RenderPrimLists, (void *)a_7355E0, "087 sub_779E40" },
+		{ game::MAG_087_ANGELO_STRIKE_PrimList_TexTri_77A410, (void *)a_735BB0, "087 sub_77A410" },
+		{ game::MAG_087_ANGELO_STRIKE_PrimList_TexQuad_77A650, (void *)a_735DF0, "087 sub_77A650" },
+		{ game::MAG_087_ANGELO_STRIKE_ActorMotion, (void *)a_740910, "087 sub_77B530" },
+		{ game::MAG_087_ANGELO_STRIKE_DampValue, (void *)a_740F70, "087 sub_77BB90" },
+		{ game::MAG_087_ANGELO_STRIKE_DampVector, (void *)a_740FC0, "087 sub_77BBE0" },
+		{ game::MAG_087_ANGELO_STRIKE_Instance_AdvanceTexFrame, (void *)a_741050, "087 sub_77BC70" },
+		{ game::MAG_087_ANGELO_STRIKE_InstanceBuildTransform, (void *)a_741120, "087 sub_77BD40" },
+		{ game::MAG_087_ANGELO_STRIKE_Particle_LifeCountdown, (void *)a_741B60, "087 sub_77C780" },
+		{ game::MAG_087_RandRange, (void *)a_742290, "087 MAG_087_RandRange" },
+		{ game::MAG_087_ANGELO_STRIKE_RandRangeWide, (void *)a_7422C0, "087 sub_77CEE0" },
+		{ game::MAG_087_ANGELO_STRIKE_RandVec3, (void *)a_742300, "087 sub_77CF20" },
+		{ game::MAG_087_ANGELO_STRIKE_JitterAngles3, (void *)a_742350, "087 sub_77CF70" },
+		{ game::MAG_087_RandAngleJitter, (void *)a_7423A0, "087 MAG_087_RandAngleJitter" },
+		{ game::MAG_087_ANGELO_STRIKE_GetWord8Minus1, (void *)a_7424B0, "087 sub_77D0D0" },
+		{ game::MAG_087_ANGELO_STRIKE_Particle_AttachToOwner, (void *)a_7424C0, "087 sub_77D0E0" },
+		{ game::MAG_087_ANGELO_STRIKE_ParticleList_Append, (void *)a_742CA0, "087 sub_77D8C0" },
+		{ game::MAG_087_ANGELO_STRIKE_ParticleList_Unlink, (void *)a_742CD0, "087 sub_77D8F0" },
+		{ game::MAG_087_ANGELO_STRIKE_Particle_Init, (void *)a_742D00, "087 sub_77D920" },
+		{ game::MAG_087_ANGELO_STRIKE_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "087 sub_77DAD0" },
+		{ game::MAG_087_ANGELO_STRIKE_Particle_PlaceAtPoint, (void *)a_742FF0, "087 sub_77DC10" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77DE60, (void *)a_73A6D0, "087 nullsub_1297" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77E250, (void *)a_73A6D0, "087 nullsub_1289" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77E5F0, (void *)a_73A6D0, "087 nullsub_1290" },
+		{ game::MAG_087_ANGELO_STRIKE_ImpactPlayTask, (void *)a_73A380, "087 sub_77E6C0" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77E7F0, (void *)a_73A6D0, "087 nullsub_1291" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77EBF0, (void *)a_73A6D0, "087 nullsub_1292" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77ED30, (void *)a_73A6D0, "087 nullsub_1293" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77ED40, (void *)a_73A6D0, "087 nullsub_1294" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77F0C0, (void *)a_73A6D0, "087 nullsub_1295" },
+		{ game::MAG_087_ANGELO_STRIKE_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "087 MAG_087_sub_77F110" },
+		{ game::MAG_087_ANGELO_STRIKE_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "087 MAG_087_sub_77F130" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77F150, (void *)a_73A6D0, "087 nullsub_1296" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State4_NextTargetLoop, (void *)a_747500, "087 MAG_087_sub_77F160" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State0_Advance_77F1A0, (void *)a_73A0D0, "087 MAG_087_sub_77F1A0" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State6_WaitQueuesEmpty, (void *)a_747550, "087 MAG_087_sub_77F1B0" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State7_RequestBattleSync, (void *)a_747560, "087 MAG_087_sub_77F1C0" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State8_WaitBattleSyncDone, (void *)a_747590, "087 MAG_087_sub_77F1F0" },
+		{ game::MAG_087_ANGELO_STRIKE_Sequence_State9_Finish, (void *)a_7475A0, "087 MAG_087_sub_77F200" },
+		{ game::MAG_087_ANGELO_STRIKE_Nullsub_77F220, (void *)a_73A6D0, "087 nullsub_1281" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x773A10, (void *)ak_773A10, "087 ak_773A10" },
-		{ 0x773BC0, (void *)ak_773BC0, "087 ak_773BC0" },
-		{ 0x773C00, (void *)ak_773C00, "087 ak_773C00" },
-		{ 0x773CF0, (void *)ak_773CF0, "087 ak_773CF0" },
-		{ 0x773D40, (void *)ak_773D40, "087 ak_773D40" },
-		{ 0x774190, (void *)ak_774190, "087 ak_774190" },
-		{ 0x774240, (void *)ak_774240, "087 ak_774240" },
-		{ 0x7742E0, (void *)ak_7742E0, "087 ak_7742E0" },
-		{ 0x774330, (void *)ak_774330, "087 ak_774330" },
-		{ 0x7743A0, (void *)ak_7743A0, "087 ak_7743A0" },
-		{ 0x774450, (void *)ak_774450, "087 ak_774450" },
-		{ 0x7744B0, (void *)ak_7744B0, "087 ak_7744B0" },
-		{ 0x774CB0, (void *)ak_774CB0, "087 ak_774CB0" },
-		{ 0x774CE0, (void *)ak_774CE0, "087 ak_774CE0" },
-		{ 0x774D40, (void *)ak_774D40, "087 ak_774D40" },
-		{ 0x774D90, (void *)ak_774D90, "087 ak_774D90" },
-		{ 0x774DE0, (void *)ak_774DE0, "087 ak_774DE0" },
-		{ 0x774E20, (void *)ak_774E20, "087 ak_774E20" },
-		{ 0x774E90, (void *)ak_774E90, "087 ak_774E90" },
-		{ 0x774EC0, (void *)ak_774EC0, "087 ak_774EC0" },
-		{ 0x774F10, (void *)ak_774F10, "087 ak_774F10" },
-		{ 0x774F70, (void *)ak_774F70, "087 ak_774F70" },
-		{ 0x775010, (void *)ak_775010, "087 ak_775010" },
-		{ 0x7750E0, (void *)ak_7750E0, "087 ak_7750E0" },
-		{ 0x775120, (void *)ak_775120, "087 ak_775120" },
-		{ 0x775160, (void *)ak_775160, "087 ak_775160" },
-		{ 0x7751A0, (void *)ak_7751A0, "087 ak_7751A0" },
-		{ 0x775510, (void *)ak_775510, "087 ak_775510" },
-		{ 0x775720, (void *)ak_775720, "087 ak_775720" },
-		{ 0x775780, (void *)ak_775780, "087 ak_775780" },
-		{ 0x775E50, (void *)ak_775E50, "087 ak_775E50" },
-		{ 0x775E70, (void *)ak_775E70, "087 ak_775E70" },
-		{ 0x775F40, (void *)ak_775F40, "087 ak_775F40" },
-		{ 0x776010, (void *)ak_776010, "087 ak_776010" },
-		{ 0x7760E0, (void *)ak_7760E0, "087 ak_7760E0" },
-		{ 0x776260, (void *)ak_776260, "087 ak_776260" },
-		{ 0x7762D0, (void *)ak_7762D0, "087 ak_7762D0" },
-		{ 0x7763B0, (void *)ak_7763B0, "087 ak_7763B0" },
-		{ 0x776460, (void *)ak_776460, "087 ak_776460" },
-		{ 0x776510, (void *)ak_776510, "087 ak_776510" },
-		{ 0x7766B0, (void *)ak_7766B0, "087 ak_7766B0" },
-		{ 0x776920, (void *)ak_776920, "087 ak_776920" },
-		{ 0x776A50, (void *)ak_776A50, "087 ak_776A50" },
-		{ 0x776C70, (void *)ak_776C70, "087 ak_776C70" },
-		{ 0x776F00, (void *)ak_776F00, "087 ak_776F00" },
-		{ 0x777380, (void *)ak_777380, "087 ak_777380" },
-		{ 0x777E30, (void *)ak_777E30, "087 ak_777E30" },
-		{ 0x778330, (void *)ak_778330, "087 ak_778330" },
-		{ 0x778980, (void *)ak_778980, "087 ak_778980" },
-		{ 0x7789B0, (void *)ak_7789B0, "087 ak_7789B0" },
-		{ 0x778A20, (void *)ak_778A20, "087 ak_778A20" },
-		{ 0x778AB0, (void *)ak_778AB0, "087 ak_778AB0" },
-		{ 0x778E90, (void *)ak_778E90, "087 ak_778E90" },
-		{ 0x778F90, (void *)ak_778F90, "087 ak_778F90" },
-		{ 0x7790B0, (void *)ak_7790B0, "087 ak_7790B0" },
-		{ 0x7792E0, (void *)ak_7792E0, "087 ak_7792E0" },
-		{ 0x779560, (void *)ak_779560, "087 ak_779560" },
-		{ 0x779C10, (void *)ak_779C10, "087 ak_779C10" },
-		{ 0x779F80, (void *)ak_779F80, "087 ak_779F80" },
-		{ 0x77A190, (void *)ak_77A190, "087 ak_77A190" },
-		{ 0x77A8F0, (void *)ak_77A8F0, "087 ak_77A8F0" },
-		{ 0x77AB20, (void *)ak_77AB20, "087 ak_77AB20" },
-		{ 0x77ADE0, (void *)ak_77ADE0, "087 ak_77ADE0" },
-		{ 0x77B040, (void *)ak_77B040, "087 ak_77B040" },
-		{ 0x77B320, (void *)ak_77B320, "087 ak_77B320" },
-		{ 0x77B3E0, (void *)ak_77B3E0, "087 ak_77B3E0" },
-		{ 0x77B460, (void *)ak_77B460, "087 ak_77B460" },
-		{ 0x77B4A0, (void *)ak_77B4A0, "087 ak_77B4A0" },
-		{ 0x77C4D0, (void *)ak_77C4D0, "087 ak_77C4D0" },
-		{ 0x77C5E0, (void *)ak_77C5E0, "087 ak_77C5E0" },
-		{ 0x77C660, (void *)ak_77C660, "087 ak_77C660" },
-		{ 0x77C690, (void *)ak_77C690, "087 ak_77C690" },
-		{ 0x77C730, (void *)ak_77C730, "087 ak_77C730" },
-		{ 0x77C7B0, (void *)ak_77C7B0, "087 ak_77C7B0" },
-		{ 0x77C830, (void *)ak_77C830, "087 ak_77C830" },
-		{ 0x77D010, (void *)ak_77D010, "087 ak_77D010" },
-		{ 0x77D230, (void *)ak_77D230, "087 ak_77D230" },
-		{ 0x77DD20, (void *)ak_77DD20, "087 ak_77DD20" },
-		{ 0x77DDB0, (void *)ak_77DDB0, "087 ak_77DDB0" },
-		{ 0x77DE40, (void *)ak_77DE40, "087 ak_77DE40" },
-		{ 0x77DE70, (void *)ak_77DE70, "087 ak_77DE70" },
-		{ 0x77DFC0, (void *)ak_77DFC0, "087 ak_77DFC0" },
-		{ 0x77E060, (void *)ak_77E060, "087 ak_77E060" },
-		{ 0x77E180, (void *)ak_77E180, "087 ak_77E180" },
-		{ 0x77E1E0, (void *)ak_77E1E0, "087 ak_77E1E0" },
-		{ 0x77E210, (void *)ak_77E210, "087 ak_77E210" },
-		{ 0x77E220, (void *)ak_77E220, "087 ak_77E220" },
-		{ 0x77E260, (void *)ak_77E260, "087 ak_77E260" },
-		{ 0x77E490, (void *)ak_77E490, "087 ak_77E490" },
-		{ 0x77E4D0, (void *)ak_77E4D0, "087 ak_77E4D0" },
-		{ 0x77E600, (void *)ak_77E600, "087 ak_77E600" },
-		{ 0x77E720, (void *)ak_77E720, "087 ak_77E720" },
-		{ 0x77E780, (void *)ak_77E780, "087 ak_77E780" },
-		{ 0x77E7D0, (void *)ak_77E7D0, "087 ak_77E7D0" },
-		{ 0x77E800, (void *)ak_77E800, "087 ak_77E800" },
-		{ 0x77E850, (void *)ak_77E850, "087 ak_77E850" },
-		{ 0x77EAB0, (void *)ak_77EAB0, "087 ak_77EAB0" },
-		{ 0x77EB70, (void *)ak_77EB70, "087 ak_77EB70" },
-		{ 0x77EBD0, (void *)ak_77EBD0, "087 ak_77EBD0" },
-		{ 0x77EC00, (void *)ak_77EC00, "087 ak_77EC00" },
-		{ 0x77ECC0, (void *)ak_77ECC0, "087 ak_77ECC0" },
-		{ 0x77ED10, (void *)ak_77ED10, "087 ak_77ED10" },
-		{ 0x77ED50, (void *)ak_77ED50, "087 ak_77ED50" },
-		{ 0x77EDF0, (void *)ak_77EDF0, "087 ak_77EDF0" },
-		{ 0x77EE50, (void *)ak_77EE50, "087 ak_77EE50" },
-		{ 0x77EEC0, (void *)ak_77EEC0, "087 ak_77EEC0" },
-		{ 0x77EF90, (void *)ak_77EF90, "087 ak_77EF90" },
-		{ 0x77EFD0, (void *)ak_77EFD0, "087 ak_77EFD0" },
-		{ 0x77F030, (void *)ak_77F030, "087 ak_77F030" },
-		{ 0x77F070, (void *)ak_77F070, "087 ak_77F070" },
-		{ 0x77F0D0, (void *)ak_77F0D0, "087 ak_77F0D0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_087_ANGELO_STRIKE_MasterTask, (void *)ak_773A10, "087 ak_773A10" },
+		{ game::MAG_087_ANGELO_STRIKE_Master_State2_CarveActorPools, (void *)ak_773BC0, "087 ak_773BC0" },
+		{ game::MAG_087_ANGELO_STRIKE_ActorPools_Clear, (void *)ak_773C00, "087 ak_773C00" },
+		{ game::MAG_087_ANGELO_STRIKE_Master_State2_InitDirector, (void *)ak_773CF0, "087 ak_773CF0" },
+		{ game::MAG_087_ANGELO_STRIKE_ModuleDataSetup, (void *)ak_773D40, "087 ak_773D40" },
+		{ game::MAG_087_ANGELO_STRIKE_DirectorDataSetup, (void *)ak_774190, "087 ak_774190" },
+		{ game::MAG_087_ANGELO_STRIKE_DirectorTask, (void *)ak_774240, "087 ak_774240" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_PhaseBookkeeping, (void *)ak_7742E0, "087 ak_7742E0" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State0_UploadTIM_CameraTask_Sync1, (void *)ak_774330, "087 ak_774330" },
+		{ game::MAG_087_ANGELO_STRIKE_CameraTask, (void *)ak_7743A0, "087 ak_7743A0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State0_FaceCaster, (void *)ak_774450, "087 ak_774450" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State1_Sync1Script, (void *)ak_7744B0, "087 ak_7744B0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State2_ChainUnlessPaused, (void *)ak_774CB0, "087 ak_774CB0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State3_ChainRandomUnlessPaused, (void *)ak_774CE0, "087 ak_774CE0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State4_ChainBySize, (void *)ak_774D40, "087 ak_774D40" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State5_ChainBySize, (void *)ak_774D90, "087 ak_774D90" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State6_ChainIfSmall, (void *)ak_774DE0, "087 ak_774DE0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State7_ChainGroundPoint, (void *)ak_774E20, "087 ak_774E20" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State8_Chain, (void *)ak_774E90, "087 ak_774E90" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State9_Chain, (void *)ak_774EC0, "087 ak_774EC0" },
+		{ game::MAG_087_ANGELO_STRIKE_Camera_State11_WaitDirectorStep3, (void *)ak_774F10, "087 ak_774F10" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State1_Cue1, (void *)ak_774F70, "087 ak_774F70" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State3_PauseWhileLoading, (void *)ak_775010, "087 ak_775010" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State6_DoneAtFrame48, (void *)ak_7750E0, "087 ak_7750E0" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_State8_FinishAtCue3, (void *)ak_775120, "087 ak_775120" },
+		{ game::MAG_087_ANGELO_STRIKE_SpawnAngeloCreature, (void *)ak_775160, "087 ak_775160" },
+		{ game::MAG_087_ANGELO_STRIKE_AngeloTask, (void *)ak_7751A0, "087 ak_7751A0" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_FootRings, (void *)ak_775510, "087 ak_775510" },
+		{ game::MAG_087_ANGELO_STRIKE_RingTask, (void *)ak_775720, "087 ak_775720" },
+		{ game::MAG_087_ANGELO_STRIKE_Ring_Draw, (void *)ak_775780, "087 ak_775780" },
+		{ game::MAG_087_ANGELO_STRIKE_Ring_State0_Setup, (void *)ak_775E50, "087 ak_775E50" },
+		{ game::MAG_087_ANGELO_STRIKE_Ring_State1_Rise, (void *)ak_775E70, "087 ak_775E70" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_RingAtF1, (void *)ak_775F40, "087 ak_775F40" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State0_BindRinoaAnimSet_FaceTarget, (void *)ak_776010, "087 ak_776010" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State1_RunSetup, (void *)ak_7760E0, "087 ak_7760E0" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State2_RunUnlessPaused, (void *)ak_776260, "087 ak_776260" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_MoveStep, (void *)ak_7762D0, "087 ak_7762D0" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State3_DustPlay_GroundCapture, (void *)ak_7763B0, "087 ak_7763B0" },
+		{ game::MAG_087_ANGELO_STRIKE_SpawnPlayTask, (void *)ak_776460, "087 ak_776460" },
+		{ game::MAG_087_ANGELO_STRIKE_DustPlay_State0_Setup, (void *)ak_776510, "087 ak_776510" },
+		{ game::MAG_087_ANGELO_STRIKE_Play_ObjectCallback, (void *)ak_7766B0, "087 ak_7766B0" },
+		{ game::MAG_087_ANGELO_STRIKE_RenderModelPrims, (void *)ak_776920, "087 ak_776920" },
+		{ game::MAG_087_ANGELO_STRIKE_PrimList_FlatTri, (void *)ak_776A50, "087 ak_776A50" },
+		{ game::MAG_087_ANGELO_STRIKE_PrimList_FlatQuad, (void *)ak_776C70, "087 ak_776C70" },
+		{ game::MAG_087_ANGELO_STRIKE_PrimList_TexTri_776F00, (void *)ak_776F00, "087 ak_776F00" },
+		{ game::MAG_087_ANGELO_STRIKE_PrimList_TexQuad_777380, (void *)ak_777380, "087 ak_777380" },
+		{ game::MAG_087_ANGELO_STRIKE_PrimList_GouraudTexTriScroll, (void *)ak_777E30, "087 ak_777E30" },
+		{ game::MAG_087_ANGELO_STRIKE_PrimList_GT4, (void *)ak_778330, "087 ak_778330" },
+		{ game::MAG_087_ANGELO_STRIKE_DustPlay_State1_Play, (void *)ak_778980, "087 ak_778980" },
+		{ game::MAG_087_ANGELO_STRIKE_GroundCapture, (void *)ak_7789B0, "087 ak_7789B0" },
+		{ game::MAG_087_ANGELO_STRIKE_ModelBoundingBox, (void *)ak_778A20, "087 ak_778A20" },
+		{ game::MAG_087_ANGELO_STRIKE_GroundCapture_Render, (void *)ak_778AB0, "087 ak_778AB0" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State4_LiftSetup, (void *)ak_778E90, "087 ak_778E90" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State5_Lift_SpawnActorSystems, (void *)ak_778F90, "087 ak_778F90" },
+		{ game::MAG_087_ANGELO_STRIKE_ActorSystem_State0_FollowFootPoint, (void *)ak_7790B0, "087 ak_7790B0" },
+		{ game::MAG_087_ANGELO_STRIKE_ResetTrailHistory, (void *)ak_7792E0, "087 ak_7792E0" },
+		{ game::MAG_087_ANGELO_STRIKE_FillTrailRows, (void *)ak_779560, "087 ak_779560" },
+		{ game::MAG_087_ANGELO_STRIKE_ActorSystem_Step, (void *)ak_779C10, "087 ak_779C10" },
+		{ game::MAG_087_ANGELO_STRIKE_ModelList_FlatTri, (void *)ak_779F80, "087 ak_779F80" },
+		{ game::MAG_087_ANGELO_STRIKE_ModelList_FlatQuad, (void *)ak_77A190, "087 ak_77A190" },
+		{ game::MAG_087_ANGELO_STRIKE_ModelList_GouraudTri, (void *)ak_77A8F0, "087 ak_77A8F0" },
+		{ game::MAG_087_ANGELO_STRIKE_ModelList_GouraudQuad, (void *)ak_77AB20, "087 ak_77AB20" },
+		{ game::MAG_087_ANGELO_STRIKE_ModelList_GouraudTexTri, (void *)ak_77ADE0, "087 ak_77ADE0" },
+		{ game::MAG_087_ANGELO_STRIKE_ModelList_GouraudTexQuad, (void *)ak_77B040, "087 ak_77B040" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_DrawSpritePass, (void *)ak_77B320, "087 ak_77B320" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_DrawActorSprite, (void *)ak_77B3E0, "087 ak_77B3E0" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_UpdatePass, (void *)ak_77B460, "087 ak_77B460" },
+		{ game::MAG_087_ANGELO_STRIKE_ActorStep, (void *)ak_77B4A0, "087 ak_77B4A0" },
+		{ game::MAG_087_ANGELO_STRIKE_MorphVertexBlock, (void *)ak_77C4D0, "087 ak_77C4D0" },
+		{ game::MAG_087_ANGELO_STRIKE_Instance_EndOfLifeTest, (void *)ak_77C5E0, "087 ak_77C5E0" },
+		{ game::MAG_087_ANGELO_STRIKE_Instance_SpawnFollowUp, (void *)ak_77C660, "087 ak_77C660" },
+		{ game::MAG_087_ANGELO_STRIKE_AllocParticle, (void *)ak_77C690, "087 ak_77C690" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_UpdateEmitter, (void *)ak_77C730, "087 ak_77C730" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_EmitterSpawnStep, (void *)ak_77C7B0, "087 ak_77C7B0" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_SpawnParticles, (void *)ak_77C830, "087 ak_77C830" },
+		{ game::MAG_087_ANGELO_STRIKE_ActSys_AllocActor, (void *)ak_77D010, "087 ak_77D010" },
+		{ game::MAG_087_ANGELO_STRIKE_Actor_InterpolatePosition, (void *)ak_77D230, "087 ak_77D230" },
+		{ game::MAG_087_ANGELO_STRIKE_SpawnSubEffects, (void *)ak_77DD20, "087 ak_77DD20" },
+		{ game::MAG_087_ANGELO_STRIKE_Director_SpawnGroupEffects, (void *)ak_77DDB0, "087 ak_77DDB0" },
+		{ game::MAG_087_ANGELO_STRIKE_ActorSystem_State1_Step, (void *)ak_77DE40, "087 ak_77DE40" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State6_CarrySetup_Halo, (void *)ak_77DE70, "087 ak_77DE70" },
+		{ game::MAG_087_ANGELO_STRIKE_HaloTask, (void *)ak_77DFC0, "087 ak_77DFC0" },
+		{ game::MAG_087_ANGELO_STRIKE_ModelPiece_Draw, (void *)ak_77E060, "087 ak_77E060" },
+		{ game::MAG_087_ANGELO_STRIKE_Halo_State0_Setup, (void *)ak_77E180, "087 ak_77E180" },
+		{ game::MAG_087_ANGELO_STRIKE_Halo_State1_FadeIn, (void *)ak_77E1E0, "087 ak_77E1E0" },
+		{ game::MAG_087_ANGELO_STRIKE_Halo_State2_Wait, (void *)ak_77E210, "087 ak_77E210" },
+		{ game::MAG_087_ANGELO_STRIKE_Halo_State3_FadeOut, (void *)ak_77E220, "087 ak_77E220" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_CarryStep_MoveTarget, (void *)ak_77E260, "087 ak_77E260" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State7_Carry, (void *)ak_77E490, "087 ak_77E490" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State8_Spin, (void *)ak_77E4D0, "087 ak_77E4D0" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State9_Slam_ImpactPlay_Debris, (void *)ak_77E600, "087 ak_77E600" },
+		{ game::MAG_087_ANGELO_STRIKE_ImpactPlay_State0_Setup, (void *)ak_77E720, "087 ak_77E720" },
+		{ game::MAG_087_ANGELO_STRIKE_ImpactScaleFromTargetSize, (void *)ak_77E780, "087 ak_77E780" },
+		{ game::MAG_087_ANGELO_STRIKE_ImpactPlay_State1_Play, (void *)ak_77E7D0, "087 ak_77E7D0" },
+		{ game::MAG_087_ANGELO_STRIKE_DebrisSpawnerTask, (void *)ak_77E800, "087 ak_77E800" },
+		{ game::MAG_087_ANGELO_STRIKE_DebrisSpawner_State0_Spawn, (void *)ak_77E850, "087 ak_77E850" },
+		{ game::MAG_087_ANGELO_STRIKE_DebrisLargeTask, (void *)ak_77EAB0, "087 ak_77EAB0" },
+		{ game::MAG_087_ANGELO_STRIKE_DebrisLarge_State0_Setup, (void *)ak_77EB70, "087 ak_77EB70" },
+		{ game::MAG_087_ANGELO_STRIKE_DebrisLarge_State1_Life, (void *)ak_77EBD0, "087 ak_77EBD0" },
+		{ game::MAG_087_ANGELO_STRIKE_DebrisSmallTask, (void *)ak_77EC00, "087 ak_77EC00" },
+		{ game::MAG_087_ANGELO_STRIKE_DebrisSmall_State0_Setup, (void *)ak_77ECC0, "087 ak_77ECC0" },
+		{ game::MAG_087_ANGELO_STRIKE_DebrisSmall_State1_Life, (void *)ak_77ED10, "087 ak_77ED10" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State10_JumpBackSetup, (void *)ak_77ED50, "087 ak_77ED50" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State11_JumpBack, (void *)ak_77EDF0, "087 ak_77EDF0" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State12_JumpBackLand, (void *)ak_77EE50, "087 ak_77EE50" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State13_RestoreTarget_RinoaChain2, (void *)ak_77EEC0, "087 ak_77EEC0" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State14_WalkOff, (void *)ak_77EF90, "087 ak_77EF90" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_SetWalkVelocity, (void *)ak_77EFD0, "087 ak_77EFD0" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_State15_TurnWalkFinish, (void *)ak_77F030, "087 ak_77F030" },
+		{ game::MAG_087_ANGELO_STRIKE_Angelo_TurnToFront, (void *)ak_77F070, "087 ak_77F070" },
+		{ game::MAG_087_ANGELO_STRIKE_DamageState_ApplyActionResult, (void *)ak_77F0D0, "087 ak_77F0D0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

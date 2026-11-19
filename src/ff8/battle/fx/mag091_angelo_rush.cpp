@@ -22,28 +22,28 @@ namespace act
 {
 namespace angelo91
 {
-	static const Mod MOD_091 = { "angelorush", 91, 0x759350, 0x762320,
-		{ 0x0, 0x0, 0x15430E0, 0x0, 0x0, 0x2599034, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2598F28, 0x0, 0x0, 0x0, 0x2599038, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x259D8F0, 0x0, 0x259DB90, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x259EE90, 0x0, 0x259EEA0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x75A7A0, 0x75A8E0, 0x75AA20, 0x75AC30, 0x75AEB0, 0x75B0F0, 0x75B390, 0x75B5C0, 0x75B880, 0x75BAE0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x759770, 0x7597F0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7599C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x759D80, 0x759E60, 0x75A000, 0x75A0D0, 0x75A1F0, 0x75A450, 0x0, 0x0, 0x75C630, 0x75C680, 0x0, 0x0, 0x75CF70, 0x0, 0x0, 0x0, 0x75D950, 0x75D980, 0x75DA60, 0x75DB80, 0x75DCD0, 0x0, 0x75E390, 0x75E570, 0x75E6B0, 0x761470, 0x0, 0x7621C0, 0x762200, 0x762220, 0x762240, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_091 = { "angelorush", 91, game::MAG_091_ANGELO_RUSH_FL, game::MAG_090_TONBERRY_SUMMON_CHEFS_KNIFE_FL,
+		{ {}, {}, game::unk_15430E0, {}, {}, game::unk_2599034, {}, {}, {}, {}, {}, {}, game::unk_2598F28, {}, {}, {}, game::unk_2599038, {}, {}, {}, {}, {}, {}, {}, game::unk_259D8F0, {}, game::unk_259DB90, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::unk_259EE90, {}, game::unk_259EEA0 },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_091_ANGELO_RUSH_ActSys_DrawModelActor, game::MAG_091_ANGELO_RUSH_ActSys_RenderPrimModel, game::MAG_091_ANGELO_RUSH_ModelList_FlatTri, game::MAG_091_ANGELO_RUSH_ModelList_FlatQuad, game::MAG_091_ANGELO_RUSH_ModelList_TexTri, game::MAG_091_ANGELO_RUSH_ModelList_TexQuad, game::MAG_091_ANGELO_RUSH_ModelList_GouraudTri, game::MAG_091_ANGELO_RUSH_ModelList_GouraudQuad, game::MAG_091_ANGELO_RUSH_ModelList_GouraudTexTri, game::MAG_091_ANGELO_RUSH_ModelList_GouraudTexQuad, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_091_ANGELO_RUSH_EmitterTask, game::MAG_091_ANGELO_RUSH_Emitter_State0_SpawnDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_091_ANGELO_RUSH_DirSyncGate, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_091_ANGELO_RUSH_ResetTrailHistory, game::MAG_091_ANGELO_RUSH_Director_StartPositions, game::MAG_091_ANGELO_RUSH_FillTrailRows, game::MAG_091_ANGELO_RUSH_Director_Mode3Setup, game::MAG_091_ANGELO_RUSH_Director_TargetPositions, game::MAG_091_ANGELO_RUSH_RelocateActorData, {}, {}, game::MAG_091_ANGELO_RUSH_DampValue, game::MAG_091_ANGELO_RUSH_DampVector, {}, {}, game::MAG_091_ANGELO_RUSH_MorphVertexBlock, {}, {}, {}, game::MAG_091_RandRange, game::MAG_091_ANGELO_RUSH_RandRangeWide, game::MAG_091_RandAngleJitter, game::MAG_091_ANGELO_RUSH_Particle_AttachToOwner, game::MAG_091_ANGELO_RUSH_Actor_InterpolatePosition, {}, game::MAG_091_ANGELO_RUSH_ParticleList_Unlink, game::MAG_091_ANGELO_RUSH_Particle_PlaceAtAnchorSet, game::MAG_091_ANGELO_RUSH_Particle_PlaceAtPoint, game::MAG_091_ANGELO_RUSH_Sequence_DrawSpriteStrip, {}, game::MAG_091_ANGELO_RUSH_DamageState_ApplyActionResult, game::MAG_091_ANGELO_RUSH_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_091_ANGELO_RUSH_Emitter_State3_FinishReleaseRoot, game::MAG_091_ANGELO_RUSH_Director_State5_Nullsub_762240, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t DIR_PTR = 0x15430E0;
-	static const uint32_t PHASE_DATA = DIR_PTR;
-	static const uint32_t SPRITE_CURSOR = 0x2598F2C;
-	static const uint32_t PACKET_CURSOR = SPRITE_CURSOR;
-	static const uint32_t FA_CURSOR = 0x1D8E054;
-	static const uint32_t SCRATCH_SP = 0x259EE90;
-	static const uint32_t ACTOR_STATE = 0x259EEA0;
-	static const uint32_t BLEND_BUF = 0x259E8E8;
-	static const uint32_t PRIM_CB = 0x761CE0;
-	static const uint32_t STAGE_LIGHT = 0x1D98992;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id DIR_PTR = game::unk_15430E0;
+	static constexpr game::Id PHASE_DATA = DIR_PTR;
+	static constexpr game::Id SPRITE_CURSOR = game::unk_2598F2C;
+	static constexpr game::Id PACKET_CURSOR = SPRITE_CURSOR;
+	static constexpr game::Id FA_CURSOR = game::BATTLE_PACKET_WRITE_CURSOR;
+	static constexpr game::Id SCRATCH_SP = game::unk_259EE90;
+	static constexpr game::Id ACTOR_STATE = game::unk_259EEA0;
+	static constexpr game::Id BLEND_BUF = game::unk_259E8E8;
+	static constexpr game::Id PRIM_CB = game::MAG_091_ANGELO_RUSH_DashPlay_ObjectCallback;
+	static constexpr game::Id STAGE_LIGHT = game::unk_1D98992;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t BdPlayStream(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x501460))(a1, a2, a3, a4); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t BdPlayStream(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::BdPlayStream))(a1, a2, a3, a4); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -341,7 +341,7 @@ namespace angelo91
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -434,45 +434,45 @@ namespace angelo91
 		g_mod = &MOD_091;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x259EE90)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x2599038)) = us(0x2793E58);
-		states[0] = us(0x7596A0);
+		MEM<uint32_t>(game_addr(game::unk_259EE90)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_2599038)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State0_Advance_7596A0);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x7596B0);
-		states[2] = us(0x7596C0);
-		states[3] = us(0x759740);
-		states[4] = us(0x762250);
-		states[5] = us(0x762290);
-		states[6] = us(0x7622A0);
-		states[7] = us(0x7622B0);
-		states[8] = us(0x7622E0);
-		states[9] = us(0x7622F0);
-		states[10] = us(0x762310);
+		states[1] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State0_Advance_7596B0);
+		states[2] = game_addr(game::MAG_091_ANGELO_RUSH_Master_State2_CarvePools);
+		states[3] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State0_Advance_762290);
+		states[6] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_091_ANGELO_RUSH_Sequence_State9_Finish);
+		states[10] = game_addr(game::MAG_091_ANGELO_RUSH_Director_State5_Nullsub_762310);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x259DD04));
-			const uint32_t v2 = MEM<uint32_t>(us(0x259D644));
-			MEM<uint32_t>(us(0x2598F2C)) = v1;
-			MEM<uint32_t>(us(0x2599034)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_259DD04));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_259D644));
+			MEM<uint32_t>(game_addr(game::unk_2598F2C)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_2599034)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x259DD00));
-			const uint32_t v2 = MEM<uint32_t>(us(0x259D640));
-			MEM<uint32_t>(us(0x2598F2C)) = v1;
-			MEM<uint32_t>(us(0x2599034)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_259DD00));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_259D640));
+			MEM<uint32_t>(game_addr(game::unk_2598F2C)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_2599034)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x259EE88)) = 0;
-		MEM<uint16_t>(us(0x259E8D0)) = 0;
-		static const uint32_t queues[8] = { us(0x259DB90), us(0x2599010), us(0x259E8C0), us(0x259D8F0), us(0x2599118), us(0x259BE30), us(0x259D630), us(0x259DB80) };
+		MEM<uint16_t>(game_addr(game::unk_259EE88)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_259E8D0)) = 0;
+		static constexpr game::Id queues[8] = { game::unk_259DB90, game::unk_2599010, game::unk_259E8C0, game::unk_259D8F0, game::unk_2599118, game::unk_259BE30, game::unk_259D630, game::unk_259DB80 };
 		for (int i = 0; i < 8; i++)
 		{
-			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
+			const uint32_t n = x::ExecuteTaskQueue(game_addr(queues[i]));
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -485,12 +485,12 @@ namespace angelo91
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x259EE9C));
-		MEM<uint32_t>(us(0x259E8D4)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::unk_259EE9C));
+		MEM<uint32_t>(game_addr(game::unk_259E8D4)) = p;
 		p += 0x870;
-		MEM<uint32_t>(us(0x259EE94)) = p;
+		MEM<uint32_t>(game_addr(game::unk_259EE94)) = p;
 		p += 0xB7C0;
-		MEM<uint32_t>(us(0x259EE9C)) = p;
+		MEM<uint32_t>(game_addr(game::unk_259EE9C)) = p;
 		ru_759700();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -498,28 +498,28 @@ namespace angelo91
 
 	uint32_t __cdecl ru_759700()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x259E8D4)), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x259EE94)), 0xB7C0);
-		MEM<uint16_t>(us(0x259BE28)) = 0;
-		MEM<uint16_t>(us(0x259E8E0)) = 0;
-		MEM<uint16_t>(us(0x259E708)) = 0;
-		MEM<uint16_t>(us(0x2598F30)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_259E8D4)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_259EE94)), 0xB7C0);
+		MEM<uint16_t>(game_addr(game::unk_259BE28)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_259E8E0)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_259E708)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2598F30)) = 0;
 		return 0;
 	}
 
 	uint32_t __cdecl ru_7597F0(uint32_t a1)
 	{
 		ru_759820(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x2599010), us(0x7598C0), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_2599010), game_addr(game::MAG_091_ANGELO_RUSH_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl ru_759820(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		x::GetEffectSpawnPosition(ENT(U8(a1, 0x2D)), 0xF1, 0, MEM<uint32_t>(us(DIR_PTR)) + 8);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		x::GetEffectSpawnPosition(ENT(U8(a1, 0x2D)), 0xF1, 0, MEM<uint32_t>(game_addr(DIR_PTR)) + 8);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		if (S16(d, 0xA) > -0x300)
 			U16(d, 0xA) = 0xFD00;
 		U16(d, 0) = 0;
@@ -528,7 +528,7 @@ namespace angelo91
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
@@ -536,11 +536,11 @@ namespace angelo91
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x759980);
-		states[1] = us(0x7599A0);
-		states[2] = us(0x7599F0);
-		states[3] = us(0x759A30);
-		states[4] = us(0x759A50);
+		states[0] = game_addr(game::MAG_091_UploadAngeloTIM);
+		states[1] = game_addr(game::MAG_091_ANGELO_RUSH_Director_State1_WaitGate1);
+		states[2] = game_addr(game::MAG_091_ANGELO_RUSH_Director_State2_WaitCue1);
+		states[3] = game_addr(game::MAG_091_ANGELO_RUSH_Director_State4_FinishAtPhase2);
+		states[4] = game_addr(game::MAG_091_ANGELO_RUSH_Director_State5_Nullsub_759A50);
 		ru_759930(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -571,7 +571,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_759980(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(us(0x16CF8B0));
+		x::Battle_QueueTIMUpload_GetEOF(game_addr(game::MAG091_Angelo_BodyTIM));
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -595,18 +595,18 @@ namespace angelo91
 
 	uint32_t __cdecl ru_759A70(uint32_t a1)
 	{
-		const int32_t phase = S16(MEM<uint32_t>(us(DIR_PTR)), 0x40);
+		const int32_t phase = S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40);
 		if (phase == 1)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x259E8C0), us(0x75E910), 0x158, a1);
-			x::Effect_BindModelContainerSetAnim(t, us(0x1543880), 3);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_259E8C0), game_addr(game::MAG_091_ANGELO_RUSH_AngeloTask), 0x158, a1);
+			x::Effect_BindModelContainerSetAnim(t, game_addr(game::MAG091_Angelo_ModelContainer), 3);
 		}
 		else if (phase == 2)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x259DB80), us(0x8DDEC0), 0x40, a1);
-			U32(t, 0x34) = us(0x1547144);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_259DB80), game_addr(game::sub_8DDEC0), 0x40, a1);
+			U32(t, 0x34) = game_addr(game::unk_1547144);
 			U16(t, 0x38) = 0;
-			a_73C100(a1, us(0x759B40), us(0x16CB3FC), 0, 0xF, 0);
+			a_73C100(a1, game_addr(game::MAG_091_ANGELO_RUSH_ActorSystemTask), game_addr(game::unk_16CB3FC), 0, 0xF, 0);
 		}
 		return 0;
 	}
@@ -624,7 +624,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_759D80(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x259EEA0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::unk_259EEA0));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -641,7 +641,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_75A000(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x259EEA0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::unk_259EEA0));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -664,7 +664,7 @@ namespace angelo91
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x259EEA0), 0) = sys;
+		U32(game_addr(game::unk_259EEA0), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -676,7 +676,7 @@ namespace angelo91
 			ru_75BF00();
 			ru_75BDC0();
 			a_735440();
-			sys = U32(us(0x259EEA0), 0);
+			sys = U32(game_addr(game::unk_259EEA0), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -689,8 +689,8 @@ namespace angelo91
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x259EE88), 0) = (uint16_t)(U16(us(0x259EE88), 0) + c14);
-		U16(us(0x259E8D0), 0) = (uint16_t)(U16(us(0x259E8D0), 0) + c16);
+		U16(game_addr(game::unk_259EE88), 0) = (uint16_t)(U16(game_addr(game::unk_259EE88), 0) + c14);
+		U16(game_addr(game::unk_259E8D0), 0) = (uint16_t)(U16(game_addr(game::unk_259E8D0), 0) + c16);
 		return done;
 	}
 
@@ -1195,14 +1195,14 @@ namespace angelo91
 
 	uint32_t __cdecl ru_75BDC0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x259EEA0)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::unk_259EEA0)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x259EEA0));
+				uint32_t st = MEM<uint32_t>(game_addr(game::unk_259EEA0));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1237,26 +1237,26 @@ namespace angelo91
 	uint32_t __cdecl ru_75BE80(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl ru_75BF00(void)
 	{
-		uint32_t act = U32(U32(us(0x259EEA0), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::unk_259EEA0), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1272,7 +1272,7 @@ namespace angelo91
 	uint32_t __cdecl ru_75BF40(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x259EEA0));
+		uint32_t st = MEM<uint32_t>(game_addr(game::unk_259EEA0));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1293,7 +1293,7 @@ namespace angelo91
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x259EEA0));
+			st = MEM<uint32_t>(game_addr(game::unk_259EEA0));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1305,7 +1305,7 @@ namespace angelo91
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x259EEA0), 0);
+		uint32_t st = U32(game_addr(game::unk_259EEA0), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1388,8 +1388,8 @@ namespace angelo91
 
 	uint32_t __cdecl ru_75D130(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x259E8D4));
-		int32_t idx = MEM<int16_t>(us(0x259BE28));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_259E8D4));
+		int32_t idx = MEM<int16_t>(game_addr(game::unk_259BE28));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1399,7 +1399,7 @@ namespace angelo91
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1414,9 +1414,9 @@ namespace angelo91
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(us(0x259BE28)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::unk_259BE28)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x259BE28)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_259BE28)) = 0;
 		return slot;
 	}
 
@@ -1429,9 +1429,9 @@ namespace angelo91
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x75DB80), a1);
+			callp(game_addr(game::MAG_091_ANGELO_RUSH_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x75DCD0), a1);
+			callp(game_addr(game::MAG_091_ANGELO_RUSH_Actor_InterpolatePosition), a1);
 		ru_75D250(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1440,7 +1440,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_75D250(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x259EEA0), 0);
+		uint32_t sys = U32(game_addr(game::unk_259EEA0), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1467,9 +1467,9 @@ namespace angelo91
 
 	uint32_t __cdecl ru_75D2D0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x259EE90), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::unk_259EE90), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x259EE90), 0) = sp;
+		U32(game_addr(game::unk_259EE90), 0) = sp;
 		uint32_t node = ru_75DAB0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1479,7 +1479,7 @@ namespace angelo91
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x259EEA0), 0);
+			uint32_t ctx = U32(game_addr(game::unk_259EEA0), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1647,14 +1647,14 @@ namespace angelo91
 			}
 		}
 		ru_75E7C0(node, desc);
-		U32(us(0x259EE90), 0) = U32(us(0x259EE90), 0) + 0x50;
+		U32(game_addr(game::unk_259EE90), 0) = U32(game_addr(game::unk_259EE90), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl ru_75DAB0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x259EE94));
-		int32_t i = MEM<int16_t>(us(0x259E8E0));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_259EE94));
+		int32_t i = MEM<int16_t>(game_addr(game::unk_259E8E0));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1667,7 +1667,7 @@ namespace angelo91
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1684,16 +1684,16 @@ namespace angelo91
 		}
 		i++;
 		if (i >= 0x45)
-			MEM<uint16_t>(us(0x259E8E0)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_259E8E0)) = 0;
 		else
-			MEM<uint16_t>(us(0x259E8E0)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::unk_259E8E0)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl ru_75DCD0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x259EEA0), 0);
+		const uint32_t st = U32(game_addr(game::unk_259EEA0), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1753,7 +1753,7 @@ namespace angelo91
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x259EEA0), 0);
+				uint32_t g = U32(game_addr(game::unk_259EEA0), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1763,7 +1763,7 @@ namespace angelo91
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x259EEA0), 0);
+				uint32_t g = U32(game_addr(game::unk_259EEA0), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1838,7 +1838,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_75E850(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x259EEA0));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::unk_259EEA0));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1863,14 +1863,14 @@ namespace angelo91
 				do
 				{
 					ru_75D130(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x259EEA0));
+					dir = MEM<uint32_t>(game_addr(game::unk_259EEA0));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				ru_75D130(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x259EEA0));
+				dir = MEM<uint32_t>(game_addr(game::unk_259EEA0));
 			}
 		}
 		return 0;
@@ -1891,16 +1891,16 @@ namespace angelo91
 	{
 		const uint32_t node = a1;
 		uint32_t states[10];
-		states[0] = us(0x7619D0);
-		states[1] = us(0x761A60);
-		states[2] = us(0x761F90);
-		states[3] = us(0x761FC0);
-		states[4] = us(0x761FF0);
-		states[5] = us(0x762080);
-		states[6] = us(0x7620B0);
-		states[7] = us(0x7620F0);
-		states[8] = us(0x762180);
-		states[9] = us(0x7621B0);
+		states[0] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State0_Place);
+		states[1] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State1_Run_SpawnDash);
+		states[2] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State2_WaitFrame18);
+		states[3] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State3_WaitAnimEnd);
+		states[4] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State4_Jump);
+		states[5] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State5_Land);
+		states[6] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State6_SyncPoint2);
+		states[7] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State7_FallAtPhase2);
+		states[8] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State8_Vanish);
+		states[9] = game_addr(game::MAG_091_ANGELO_RUSH_Angelo_State9_Nullsub);
 		callp(states[S8(node, 0x29)], node);
 		const uint16_t g = U16(node, 0x152);
 		const uint16_t vz = U16(node, 0x128);
@@ -1912,7 +1912,7 @@ namespace angelo91
 			U16(node, 0x4E) = 0;
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, us(0x259DD08), MEM<uint32_t>(PACKET_CURSOR));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_746C10(node, game_addr(game::unk_259DD08), MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		}
 		const uint8_t anim = U8(node, 0x9C), frame = U8(node, 0xA2);
 		if (anim == 0)
@@ -1943,7 +1943,7 @@ namespace angelo91
 		const int32_t pz = S16(node, 0x50);
 		const int32_t py = S16(node, 0x4E);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
-		ff8fx::copy<(8 * 4)>((void *)us(0x1D99AB0), (const void *)(node + 0x70));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::unk_1D99AB0), (const void *)(node + 0x70));
 		const int32_t px = S16(node, 0x4C);
 		S32(node, 0x8C) = pz;
 		S32(node, 0x84) = px;
@@ -1965,7 +1965,7 @@ namespace angelo91
 		const uint32_t M = P(m);
 		for (int i = 0; i < 4; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x2599118), us(0x7611B0), 0x90, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_2599118), game_addr(game::MAG_091_ANGELO_RUSH_RingParticleTask), 0x90, a1);
 			if ((uint32_t)k <= 3)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			const int32_t r1 = (int32_t)x::CrtRand();
@@ -1986,7 +1986,7 @@ namespace angelo91
 		}
 		for (int i = 0; i < 2; i++)
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x259BE30), us(0x75EEC0), 0x8C, a1);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_259BE30), game_addr(game::MAG_091_ANGELO_RUSH_DustPuffTask), 0x8C, a1);
 			if ((uint32_t)k <= 3)
 				x::GetEffectSpawnPosition(mdl, PTS[k], 0, t + 0x1C);
 			U16(t, 0x1E) = 0;
@@ -2006,7 +2006,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_75EEC0(uint32_t a1)
 	{
-		const uint32_t states[3] = { us(0x761090), us(0x7610D0), us(0x7611A0) };
+		const uint32_t states[3] = { game_addr(game::MAG_091_ANGELO_RUSH_DustPuff_State0_Setup), game_addr(game::MAG_091_ANGELO_RUSH_DustPuff_State1_DriftShrink), game_addr(game::MAG_091_ANGELO_RUSH_DustPuff_State2_Nullsub) };
 		callp(states[S8(a1, 0x29)], a1);
 		ru_75EF20(a1);
 		return task_end(a1);
@@ -2018,13 +2018,13 @@ namespace angelo91
 			return 0;
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
-		x::UnpackRotationMatrix(us(0x1D97778), M);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), M);
 		x::sub_8DD960(M, (uint32_t)(int32_t)S16(a1, 0x48));
 		S32(M, 0x14) = S16(a1, 0x1C);
 		S32(M, 0x18) = S16(a1, 0x1E);
 		S32(M, 0x1C) = S16(a1, 0x20);
 		x::scale3DMatrix(M, a1 + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), M, M);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t h = x::Field_Alloc(0x68);
@@ -2043,7 +2043,7 @@ namespace angelo91
 		U16(h, 0x26) = 0;
 		U16(h, 0x24) = 0;
 		U32(h, 0x14) = 0xF0;
-		MEM<uint32_t>(us(0x1D8E054)) = ru_75F030(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = ru_75F030(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -2762,7 +2762,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_761090(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x154322C);
+		U32(a1, 0x4C) = game_addr(game::unk_154322C);
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
@@ -2809,9 +2809,9 @@ namespace angelo91
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x7618E0);
-		states[1] = us(0x761900);
-		states[2] = us(0x7619C0);
+		states[0] = game_addr(game::MAG_091_ANGELO_RUSH_RingParticle_State0_Setup);
+		states[1] = game_addr(game::MAG_091_ANGELO_RUSH_RingParticle_State1_Rise);
+		states[2] = game_addr(game::MAG_091_ANGELO_RUSH_RingParticle_State2_Nullsub);
 		callp(states[S8(node, 0x29)], node);
 		ru_761210(node);
 		const uint8_t status = U8(node, 0x26);
@@ -2826,7 +2826,7 @@ namespace angelo91
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), mat);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -2834,7 +2834,7 @@ namespace angelo91
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -2844,7 +2844,7 @@ namespace angelo91
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -2854,18 +2854,18 @@ namespace angelo91
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(us(0x2598F2C));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(game::unk_2598F2C));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(us(0x2598F2C)) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(game::unk_2598F2C)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
 
 	uint32_t __cdecl ru_7618E0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x15430E8);
+		U32(a1, 0x4C) = game_addr(game::unk_15430E8);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 7;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2897,7 +2897,7 @@ namespace angelo91
 	uint32_t __cdecl ru_7619D0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t p8 = U32(d, 8), pc = U32(d, 0xC);
 		U32(node, 0x4C) = p8;
 		U32(node, 0x50) = pc;
@@ -2910,7 +2910,7 @@ namespace angelo91
 		U32(node, 0x118) = 0x1000;
 		U32(node, 0x114) = 0x1000;
 		x::au_re_Battle_ReadAnimation_7(node, 0);
-		x::BdPlaySE(us(0x15430E4), 0, 0x80);
+		x::BdPlaySE(game_addr(game::unk_15430E4), 0, 0x80);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -2921,7 +2921,7 @@ namespace angelo91
 		x::sub_8DD1C0(node);
 		if (S16(node, 0x136) >= 0xC)
 		{
-			const uint32_t t = ru_761AB0(node, us(0x761B00), us(0x16CC2EC), 0x70, 0, 0);
+			const uint32_t t = ru_761AB0(node, game_addr(game::MAG_091_ANGELO_RUSH_DashPlayTask), game_addr(game::unk_16CC2EC), 0x70, 0, 0);
 			U32(t, 0x104) = node + 0x30;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
@@ -2930,7 +2930,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_761AB0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(0x259D630), a2, 0x108, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_259D630), a2, 0x108, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int32_t)(int16_t)a4;
@@ -2971,7 +2971,7 @@ namespace angelo91
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
 		U16(L, 0x54) = U16(node, 0x86);
 		U32(L, 0x44) = U32(node, 0x7C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -2979,10 +2979,10 @@ namespace angelo91
 		U16(L, 0x52) = U16(node, 0x92);
 		U16(L, 0x4E) = U16(node, 0x8E);
 		U16(L, 0x50) = U16(node, 0x90);
-		U32(L, 0x48) = us(BLEND_BUF);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
+		return prim_play(node + 0x94, game_addr(PRIM_CB), L, 0);
 	}
 
 	uint32_t __cdecl ru_761CE0(uint32_t a1, uint32_t a2, uint32_t a3)
@@ -3057,12 +3057,12 @@ namespace angelo91
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
@@ -3070,7 +3070,7 @@ namespace angelo91
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = ru_75F030(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = ru_75F030(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3133,11 +3133,11 @@ namespace angelo91
 	{
 		const uint32_t n = a1;
 		const uint16_t i = U16(n, 0x154);
-		const uint16_t f = MEM<uint16_t>(us(0x1547134) + (uint32_t)((int32_t)(int16_t)i * 2));
+		const uint16_t f = MEM<uint16_t>(game_addr(game::unk_1547134) + (uint32_t)((int32_t)(int16_t)i * 2));
 		U16(n, 0x150) = f;
 		if (f != 0x1000)
 			U16(n, 0x154) = (uint16_t)(i + 1);
-		const int32_t v = mul32(S16(MEM<uint32_t>(us(DIR_PTR)), 0xA), S16(n, 0x150));
+		const int32_t v = mul32(S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0xA), S16(n, 0x150));
 		U16(n, 0x4E) = (uint16_t)(v / 4096);
 		return 0;
 	}
@@ -3159,7 +3159,7 @@ namespace angelo91
 		ru_762030(node);
 		if (a_73B640(2) != 0)
 		{
-			U16(MEM<uint32_t>(us(DIR_PTR)), 0x48) = 1;
+			U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x48) = 1;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		return 0;
@@ -3177,7 +3177,7 @@ namespace angelo91
 			U16(node, 0x152) = 8;
 			U16(node, 0x134) = 0xF;
 			const int32_t dz = mul32(h, 125) * 16 >> 12;
-			U16(node, 0x50) = (uint16_t)(U16(MEM<uint32_t>(us(DIR_PTR)), 0xC) - (uint16_t)dz);
+			U16(node, 0x50) = (uint16_t)(U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0xC) - (uint16_t)dz);
 			const int32_t vz = S16(node, 0x128);
 			U16(node, 0x128) = (uint16_t)(vz / 2);
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
@@ -3200,7 +3200,7 @@ namespace angelo91
 
 	uint32_t __cdecl ru_7621C0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x15430E0));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::unk_15430E0));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -3214,144 +3214,144 @@ namespace angelo91
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x7596A0, (void *)a_73A0D0, "091 MAG_091_sub_7596A0" },
-		{ 0x7596B0, (void *)a_73A0D0, "091 MAG_091_sub_7596B0" },
-		{ 0x759740, (void *)a_73A170, "091 MAG_091_sub_759740" },
-		{ 0x759770, (void *)a_73A1A0, "091 MAG_091_sub_759770" },
-		{ 0x7599A0, (void *)a_73B790, "091 sub_7599A0" },
-		{ 0x7599C0, (void *)a_73B640, "091 sub_7599C0" },
-		{ 0x759A10, (void *)a_73B7E0, "091 sub_759A10" },
-		{ 0x759A50, (void *)a_73A6D0, "091 nullsub_1237" },
-		{ 0x759A60, (void *)a_73A6D0, "091 nullsub_1238" },
-		{ 0x759AF0, (void *)a_73C100, "091 sub_759AF0" },
-		{ 0x759B40, (void *)a_73A380, "091 sub_759B40" },
-		{ 0x759BD0, (void *)a_73F990, "091 sub_759BD0" },
-		{ 0x759E60, (void *)a_73FC20, "091 sub_759E60" },
-		{ 0x75A0D0, (void *)a_73FE90, "091 sub_75A0D0" },
-		{ 0x75A1F0, (void *)a_73FFB0, "091 sub_75A1F0" },
-		{ 0x75A450, (void *)a_740210, "091 sub_75A450" },
-		{ 0x75A740, (void *)a_735440, "091 sub_75A740" },
-		{ 0x75A7A0, (void *)a_7354A0, "091 sub_75A7A0" },
-		{ 0x75A8E0, (void *)a_7355E0, "091 sub_75A8E0" },
-		{ 0x75AEB0, (void *)a_735BB0, "091 sub_75AEB0" },
-		{ 0x75B0F0, (void *)a_735DF0, "091 sub_75B0F0" },
-		{ 0x75BFD0, (void *)a_740910, "091 sub_75BFD0" },
-		{ 0x75C630, (void *)a_740F70, "091 sub_75C630" },
-		{ 0x75C680, (void *)a_740FC0, "091 sub_75C680" },
-		{ 0x75C710, (void *)a_741050, "091 sub_75C710" },
-		{ 0x75C7E0, (void *)a_741120, "091 sub_75C7E0" },
-		{ 0x75D220, (void *)a_741B60, "091 sub_75D220" },
-		{ 0x75D950, (void *)a_742290, "091 MAG_091_RandRange" },
-		{ 0x75D980, (void *)a_7422C0, "091 sub_75D980" },
-		{ 0x75D9C0, (void *)a_742300, "091 sub_75D9C0" },
-		{ 0x75DA10, (void *)a_742350, "091 sub_75DA10" },
-		{ 0x75DA60, (void *)a_7423A0, "091 MAG_091_RandAngleJitter" },
-		{ 0x75DB70, (void *)a_7424B0, "091 sub_75DB70" },
-		{ 0x75DB80, (void *)a_7424C0, "091 sub_75DB80" },
-		{ 0x75E360, (void *)a_742CA0, "091 sub_75E360" },
-		{ 0x75E390, (void *)a_742CD0, "091 sub_75E390" },
-		{ 0x75E3C0, (void *)a_742D00, "091 sub_75E3C0" },
-		{ 0x75E570, (void *)a_742EB0, "091 sub_75E570" },
-		{ 0x75E6B0, (void *)a_742FF0, "091 sub_75E6B0" },
-		{ 0x75E900, (void *)a_73A6D0, "091 nullsub_1239" },
-		{ 0x75EAA0, (void *)a_746C10, "091 sub_75EAA0" },
-		{ 0x760010, (void *)a_73D770, "091 sub_760010" },
-		{ 0x760260, (void *)a_73D9C0, "091 sub_760260" },
-		{ 0x7611A0, (void *)a_73A6D0, "091 nullsub_1240" },
-		{ 0x761330, (void *)a_7435E0, "091 InitEffectSequenceFromData_c4" },
-		{ 0x761470, (void *)a_743720, "091 sub_761470" },
-		{ 0x761990, (void *)a_743C20, "091 sub_761990" },
-		{ 0x7619C0, (void *)a_73A6D0, "091 nullsub_1241" },
-		{ 0x761B00, (void *)a_73A380, "091 sub_761B00" },
-		{ 0x761F80, (void *)a_73A6D0, "091 nullsub_1245" },
-		{ 0x7621B0, (void *)a_73A6D0, "091 nullsub_1242" },
-		{ 0x762200, (void *)a_7474B0, "091 MAG_091_sub_762200" },
-		{ 0x762220, (void *)a_7474D0, "091 MAG_091_sub_762220" },
-		{ 0x762240, (void *)a_73A6D0, "091 nullsub_1243" },
-		{ 0x762250, (void *)a_747500, "091 MAG_091_sub_762250" },
-		{ 0x762290, (void *)a_73A0D0, "091 MAG_091_sub_762290" },
-		{ 0x7622A0, (void *)a_747550, "091 MAG_091_sub_7622A0" },
-		{ 0x7622B0, (void *)a_747560, "091 MAG_091_sub_7622B0" },
-		{ 0x7622E0, (void *)a_747590, "091 MAG_091_sub_7622E0" },
-		{ 0x7622F0, (void *)a_7475A0, "091 MAG_091_sub_7622F0" },
-		{ 0x762310, (void *)a_73A6D0, "091 nullsub_1236" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State0_Advance_7596A0, (void *)a_73A0D0, "091 MAG_091_sub_7596A0" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State0_Advance_7596B0, (void *)a_73A0D0, "091 MAG_091_sub_7596B0" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State3_SpawnEmitter, (void *)a_73A170, "091 MAG_091_sub_759740" },
+		{ game::MAG_091_ANGELO_RUSH_EmitterTask, (void *)a_73A1A0, "091 MAG_091_sub_759770" },
+		{ game::MAG_091_ANGELO_RUSH_Director_State1_WaitGate1, (void *)a_73B790, "091 sub_7599A0" },
+		{ game::MAG_091_ANGELO_RUSH_DirSyncGate, (void *)a_73B640, "091 sub_7599C0" },
+		{ game::MAG_091_ANGELO_RUSH_DirPhaseGE, (void *)a_73B7E0, "091 sub_759A10" },
+		{ game::MAG_091_ANGELO_RUSH_Director_State5_Nullsub_759A50, (void *)a_73A6D0, "091 nullsub_1237" },
+		{ game::MAG_091_ANGELO_RUSH_Director_State5_Nullsub_759A60, (void *)a_73A6D0, "091 nullsub_1238" },
+		{ game::MAG_091_ANGELO_RUSH_SpawnActorSystemTask, (void *)a_73C100, "091 sub_759AF0" },
+		{ game::MAG_091_ANGELO_RUSH_ActorSystemTask, (void *)a_73A380, "091 sub_759B40" },
+		{ game::MAG_091_ANGELO_RUSH_DirectorSetup, (void *)a_73F990, "091 sub_759BD0" },
+		{ game::MAG_091_ANGELO_RUSH_Director_StartPositions, (void *)a_73FC20, "091 sub_759E60" },
+		{ game::MAG_091_ANGELO_RUSH_Director_Mode3Setup, (void *)a_73FE90, "091 sub_75A0D0" },
+		{ game::MAG_091_ANGELO_RUSH_Director_TargetPositions, (void *)a_73FFB0, "091 sub_75A1F0" },
+		{ game::MAG_091_ANGELO_RUSH_RelocateActorData, (void *)a_740210, "091 sub_75A450" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_DrawModelPass, (void *)a_735440, "091 sub_75A740" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_DrawModelActor, (void *)a_7354A0, "091 sub_75A7A0" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_RenderPrimModel, (void *)a_7355E0, "091 sub_75A8E0" },
+		{ game::MAG_091_ANGELO_RUSH_ModelList_TexTri, (void *)a_735BB0, "091 sub_75AEB0" },
+		{ game::MAG_091_ANGELO_RUSH_ModelList_TexQuad, (void *)a_735DF0, "091 sub_75B0F0" },
+		{ game::MAG_091_ANGELO_RUSH_ActorMotion, (void *)a_740910, "091 sub_75BFD0" },
+		{ game::MAG_091_ANGELO_RUSH_DampValue, (void *)a_740F70, "091 sub_75C630" },
+		{ game::MAG_091_ANGELO_RUSH_DampVector, (void *)a_740FC0, "091 sub_75C680" },
+		{ game::MAG_091_ANGELO_RUSH_Instance_AdvanceTexFrame, (void *)a_741050, "091 sub_75C710" },
+		{ game::MAG_091_ANGELO_RUSH_InstanceBuildTransform, (void *)a_741120, "091 sub_75C7E0" },
+		{ game::MAG_091_ANGELO_RUSH_Particle_LifeCountdown, (void *)a_741B60, "091 sub_75D220" },
+		{ game::MAG_091_RandRange, (void *)a_742290, "091 MAG_091_RandRange" },
+		{ game::MAG_091_ANGELO_RUSH_RandRangeWide, (void *)a_7422C0, "091 sub_75D980" },
+		{ game::MAG_091_ANGELO_RUSH_RandVec3, (void *)a_742300, "091 sub_75D9C0" },
+		{ game::MAG_091_ANGELO_RUSH_JitterAngles3, (void *)a_742350, "091 sub_75DA10" },
+		{ game::MAG_091_RandAngleJitter, (void *)a_7423A0, "091 MAG_091_RandAngleJitter" },
+		{ game::MAG_091_ANGELO_RUSH_GetWord8Minus1, (void *)a_7424B0, "091 sub_75DB70" },
+		{ game::MAG_091_ANGELO_RUSH_Particle_AttachToOwner, (void *)a_7424C0, "091 sub_75DB80" },
+		{ game::MAG_091_ANGELO_RUSH_ParticleList_Append, (void *)a_742CA0, "091 sub_75E360" },
+		{ game::MAG_091_ANGELO_RUSH_ParticleList_Unlink, (void *)a_742CD0, "091 sub_75E390" },
+		{ game::MAG_091_ANGELO_RUSH_Particle_Init, (void *)a_742D00, "091 sub_75E3C0" },
+		{ game::MAG_091_ANGELO_RUSH_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "091 sub_75E570" },
+		{ game::MAG_091_ANGELO_RUSH_Particle_PlaceAtPoint, (void *)a_742FF0, "091 sub_75E6B0" },
+		{ game::MAG_091_ANGELO_RUSH_ActorSystem_State2_Nullsub, (void *)a_73A6D0, "091 nullsub_1239" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_DrawModel, (void *)a_746C10, "091 sub_75EAA0" },
+		{ game::MAG_091_ANGELO_RUSH_EmitG3, (void *)a_73D770, "091 sub_760010" },
+		{ game::MAG_091_ANGELO_RUSH_EmitG4, (void *)a_73D9C0, "091 sub_760260" },
+		{ game::MAG_091_ANGELO_RUSH_DustPuff_State2_Nullsub, (void *)a_73A6D0, "091 nullsub_1240" },
+		{ game::InitEffectSequenceFromData_c4, (void *)a_7435E0, "091 InitEffectSequenceFromData_c4" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_DrawSpriteStrip, (void *)a_743720, "091 sub_761470" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_StepFrame, (void *)a_743C20, "091 sub_761990" },
+		{ game::MAG_091_ANGELO_RUSH_RingParticle_State2_Nullsub, (void *)a_73A6D0, "091 nullsub_1241" },
+		{ game::MAG_091_ANGELO_RUSH_DashPlayTask, (void *)a_73A380, "091 sub_761B00" },
+		{ game::MAG_091_ANGELO_RUSH_DashPlay_State2_Nullsub, (void *)a_73A6D0, "091 nullsub_1245" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State9_Nullsub, (void *)a_73A6D0, "091 nullsub_1242" },
+		{ game::MAG_091_ANGELO_RUSH_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "091 MAG_091_sub_762200" },
+		{ game::MAG_091_ANGELO_RUSH_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "091 MAG_091_sub_762220" },
+		{ game::MAG_091_ANGELO_RUSH_Director_State5_Nullsub_762240, (void *)a_73A6D0, "091 nullsub_1243" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State4_NextTargetLoop, (void *)a_747500, "091 MAG_091_sub_762250" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State0_Advance_762290, (void *)a_73A0D0, "091 MAG_091_sub_762290" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State6_WaitQueuesEmpty, (void *)a_747550, "091 MAG_091_sub_7622A0" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State7_RequestBattleSync, (void *)a_747560, "091 MAG_091_sub_7622B0" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State8_WaitBattleSyncDone, (void *)a_747590, "091 MAG_091_sub_7622E0" },
+		{ game::MAG_091_ANGELO_RUSH_Sequence_State9_Finish, (void *)a_7475A0, "091 MAG_091_sub_7622F0" },
+		{ game::MAG_091_ANGELO_RUSH_Director_State5_Nullsub_762310, (void *)a_73A6D0, "091 nullsub_1236" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x759510, (void *)ru_759510, "091 ru_759510" },
-		{ 0x7596C0, (void *)ru_7596C0, "091 ru_7596C0" },
-		{ 0x759700, (void *)ru_759700, "091 ru_759700" },
-		{ 0x7597F0, (void *)ru_7597F0, "091 ru_7597F0" },
-		{ 0x759820, (void *)ru_759820, "091 ru_759820" },
-		{ 0x7598C0, (void *)ru_7598C0, "091 ru_7598C0" },
-		{ 0x759930, (void *)ru_759930, "091 ru_759930" },
-		{ 0x759980, (void *)ru_759980, "091 ru_759980" },
-		{ 0x7599F0, (void *)ru_7599F0, "091 ru_7599F0" },
-		{ 0x759A30, (void *)ru_759A30, "091 ru_759A30" },
-		{ 0x759A70, (void *)ru_759A70, "091 ru_759A70" },
-		{ 0x759BA0, (void *)ru_759BA0, "091 ru_759BA0" },
-		{ 0x759D80, (void *)ru_759D80, "091 ru_759D80" },
-		{ 0x75A000, (void *)ru_75A000, "091 ru_75A000" },
-		{ 0x75A6B0, (void *)ru_75A6B0, "091 ru_75A6B0" },
-		{ 0x75AA20, (void *)ru_75AA20, "091 ru_75AA20" },
-		{ 0x75AC30, (void *)ru_75AC30, "091 ru_75AC30" },
-		{ 0x75B390, (void *)ru_75B390, "091 ru_75B390" },
-		{ 0x75B5C0, (void *)ru_75B5C0, "091 ru_75B5C0" },
-		{ 0x75B880, (void *)ru_75B880, "091 ru_75B880" },
-		{ 0x75BAE0, (void *)ru_75BAE0, "091 ru_75BAE0" },
-		{ 0x75BDC0, (void *)ru_75BDC0, "091 ru_75BDC0" },
-		{ 0x75BE80, (void *)ru_75BE80, "091 ru_75BE80" },
-		{ 0x75BF00, (void *)ru_75BF00, "091 ru_75BF00" },
-		{ 0x75BF40, (void *)ru_75BF40, "091 ru_75BF40" },
-		{ 0x75CF70, (void *)ru_75CF70, "091 ru_75CF70" },
-		{ 0x75D080, (void *)ru_75D080, "091 ru_75D080" },
-		{ 0x75D100, (void *)ru_75D100, "091 ru_75D100" },
-		{ 0x75D130, (void *)ru_75D130, "091 ru_75D130" },
-		{ 0x75D1D0, (void *)ru_75D1D0, "091 ru_75D1D0" },
-		{ 0x75D250, (void *)ru_75D250, "091 ru_75D250" },
-		{ 0x75D2D0, (void *)ru_75D2D0, "091 ru_75D2D0" },
-		{ 0x75DAB0, (void *)ru_75DAB0, "091 ru_75DAB0" },
-		{ 0x75DCD0, (void *)ru_75DCD0, "091 ru_75DCD0" },
-		{ 0x75E7C0, (void *)ru_75E7C0, "091 ru_75E7C0" },
-		{ 0x75E850, (void *)ru_75E850, "091 ru_75E850" },
-		{ 0x75E8E0, (void *)ru_75E8E0, "091 ru_75E8E0" },
-		{ 0x75E910, (void *)ru_75E910, "091 ru_75E910" },
-		{ 0x75EC80, (void *)ru_75EC80, "091 ru_75EC80" },
-		{ 0x75EEC0, (void *)ru_75EEC0, "091 ru_75EEC0" },
-		{ 0x75EF20, (void *)ru_75EF20, "091 ru_75EF20" },
-		{ 0x75F030, (void *)ru_75F030, "091 ru_75F030" },
-		{ 0x75F160, (void *)ru_75F160, "091 ru_75F160" },
-		{ 0x75F380, (void *)ru_75F380, "091 ru_75F380" },
-		{ 0x75F610, (void *)ru_75F610, "091 ru_75F610" },
-		{ 0x75FA90, (void *)ru_75FA90, "091 ru_75FA90" },
-		{ 0x760540, (void *)ru_760540, "091 ru_760540" },
-		{ 0x760A40, (void *)ru_760A40, "091 ru_760A40" },
-		{ 0x761090, (void *)ru_761090, "091 ru_761090" },
-		{ 0x7610D0, (void *)ru_7610D0, "091 ru_7610D0" },
-		{ 0x7611B0, (void *)ru_7611B0, "091 ru_7611B0" },
-		{ 0x761210, (void *)ru_761210, "091 ru_761210" },
-		{ 0x7618E0, (void *)ru_7618E0, "091 ru_7618E0" },
-		{ 0x761900, (void *)ru_761900, "091 ru_761900" },
-		{ 0x7619D0, (void *)ru_7619D0, "091 ru_7619D0" },
-		{ 0x761A60, (void *)ru_761A60, "091 ru_761A60" },
-		{ 0x761AB0, (void *)ru_761AB0, "091 ru_761AB0" },
-		{ 0x761B60, (void *)ru_761B60, "091 ru_761B60" },
-		{ 0x761BB0, (void *)ru_761BB0, "091 ru_761BB0" },
-		{ 0x761CE0, (void *)ru_761CE0, "091 ru_761CE0" },
-		{ 0x761F10, (void *)ru_761F10, "091 ru_761F10" },
-		{ 0x761F40, (void *)ru_761F40, "091 ru_761F40" },
-		{ 0x761F90, (void *)ru_761F90, "091 ru_761F90" },
-		{ 0x761FC0, (void *)ru_761FC0, "091 ru_761FC0" },
-		{ 0x761FF0, (void *)ru_761FF0, "091 ru_761FF0" },
-		{ 0x762030, (void *)ru_762030, "091 ru_762030" },
-		{ 0x762080, (void *)ru_762080, "091 ru_762080" },
-		{ 0x7620B0, (void *)ru_7620B0, "091 ru_7620B0" },
-		{ 0x7620F0, (void *)ru_7620F0, "091 ru_7620F0" },
-		{ 0x762180, (void *)ru_762180, "091 ru_762180" },
-		{ 0x7621C0, (void *)ru_7621C0, "091 ru_7621C0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_091_ANGELO_RUSH_MasterTask, (void *)ru_759510, "091 ru_759510" },
+		{ game::MAG_091_ANGELO_RUSH_Master_State2_CarvePools, (void *)ru_7596C0, "091 ru_7596C0" },
+		{ game::MAG_091_ANGELO_RUSH_ClearPools, (void *)ru_759700, "091 ru_759700" },
+		{ game::MAG_091_ANGELO_RUSH_Emitter_State0_SpawnDirector, (void *)ru_7597F0, "091 ru_7597F0" },
+		{ game::MAG_091_ANGELO_RUSH_DirectorDataSetup, (void *)ru_759820, "091 ru_759820" },
+		{ game::MAG_091_ANGELO_RUSH_DirectorTask, (void *)ru_7598C0, "091 ru_7598C0" },
+		{ game::MAG_091_ANGELO_RUSH_Director_PhaseBookkeeping, (void *)ru_759930, "091 ru_759930" },
+		{ game::MAG_091_UploadAngeloTIM, (void *)ru_759980, "091 ru_759980" },
+		{ game::MAG_091_ANGELO_RUSH_Director_State2_WaitCue1, (void *)ru_7599F0, "091 ru_7599F0" },
+		{ game::MAG_091_ANGELO_RUSH_Director_State4_FinishAtPhase2, (void *)ru_759A30, "091 ru_759A30" },
+		{ game::MAG_091_ANGELO_RUSH_Director_SpawnPhaseTasks, (void *)ru_759A70, "091 ru_759A70" },
+		{ game::MAG_091_ANGELO_RUSH_ActorSystem_State0_StartAtFrame, (void *)ru_759BA0, "091 ru_759BA0" },
+		{ game::MAG_091_ANGELO_RUSH_ResetTrailHistory, (void *)ru_759D80, "091 ru_759D80" },
+		{ game::MAG_091_ANGELO_RUSH_FillTrailRows, (void *)ru_75A000, "091 ru_75A000" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_Step, (void *)ru_75A6B0, "091 ru_75A6B0" },
+		{ game::MAG_091_ANGELO_RUSH_ModelList_FlatTri, (void *)ru_75AA20, "091 ru_75AA20" },
+		{ game::MAG_091_ANGELO_RUSH_ModelList_FlatQuad, (void *)ru_75AC30, "091 ru_75AC30" },
+		{ game::MAG_091_ANGELO_RUSH_ModelList_GouraudTri, (void *)ru_75B390, "091 ru_75B390" },
+		{ game::MAG_091_ANGELO_RUSH_ModelList_GouraudQuad, (void *)ru_75B5C0, "091 ru_75B5C0" },
+		{ game::MAG_091_ANGELO_RUSH_ModelList_GouraudTexTri, (void *)ru_75B880, "091 ru_75B880" },
+		{ game::MAG_091_ANGELO_RUSH_ModelList_GouraudTexQuad, (void *)ru_75BAE0, "091 ru_75BAE0" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_DrawSpritePass, (void *)ru_75BDC0, "091 ru_75BDC0" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_DrawActorSprite, (void *)ru_75BE80, "091 ru_75BE80" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_UpdatePass, (void *)ru_75BF00, "091 ru_75BF00" },
+		{ game::MAG_091_ANGELO_RUSH_ActorStep, (void *)ru_75BF40, "091 ru_75BF40" },
+		{ game::MAG_091_ANGELO_RUSH_MorphVertexBlock, (void *)ru_75CF70, "091 ru_75CF70" },
+		{ game::MAG_091_ANGELO_RUSH_Instance_EndOfLifeTest, (void *)ru_75D080, "091 ru_75D080" },
+		{ game::MAG_091_ANGELO_RUSH_Instance_SpawnFollowUp, (void *)ru_75D100, "091 ru_75D100" },
+		{ game::MAG_091_ANGELO_RUSH_AllocParticle, (void *)ru_75D130, "091 ru_75D130" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_UpdateEmitter, (void *)ru_75D1D0, "091 ru_75D1D0" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_EmitterSpawnStep, (void *)ru_75D250, "091 ru_75D250" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_SpawnParticles, (void *)ru_75D2D0, "091 ru_75D2D0" },
+		{ game::MAG_091_ANGELO_RUSH_ActSys_AllocParticleSlot, (void *)ru_75DAB0, "091 ru_75DAB0" },
+		{ game::MAG_091_ANGELO_RUSH_Actor_InterpolatePosition, (void *)ru_75DCD0, "091 ru_75DCD0" },
+		{ game::MAG_091_ANGELO_RUSH_SpawnSubEffects, (void *)ru_75E7C0, "091 ru_75E7C0" },
+		{ game::MAG_091_ANGELO_RUSH_Director_SpawnGroupEffects, (void *)ru_75E850, "091 ru_75E850" },
+		{ game::MAG_091_ANGELO_RUSH_ActorSystem_State1_StepUntilDone, (void *)ru_75E8E0, "091 ru_75E8E0" },
+		{ game::MAG_091_ANGELO_RUSH_AngeloTask, (void *)ru_75E910, "091 ru_75E910" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_SpawnDustBurst, (void *)ru_75EC80, "091 ru_75EC80" },
+		{ game::MAG_091_ANGELO_RUSH_DustPuffTask, (void *)ru_75EEC0, "091 ru_75EEC0" },
+		{ game::MAG_091_ANGELO_RUSH_DustPuff_DrawModel, (void *)ru_75EF20, "091 ru_75EF20" },
+		{ game::MAG_091_ANGELO_RUSH_RenderPrimModel, (void *)ru_75F030, "091 ru_75F030" },
+		{ game::MAG_091_ANGELO_RUSH_PrimList_FlatTri, (void *)ru_75F160, "091 ru_75F160" },
+		{ game::MAG_091_ANGELO_RUSH_PrimList_FlatQuad, (void *)ru_75F380, "091 ru_75F380" },
+		{ game::MAG_091_ANGELO_RUSH_PrimList_TexTri, (void *)ru_75F610, "091 ru_75F610" },
+		{ game::MAG_091_ANGELO_RUSH_PrimList_TexQuad, (void *)ru_75FA90, "091 ru_75FA90" },
+		{ game::MAG_091_ANGELO_RUSH_PrimList_GouraudTexTriScroll, (void *)ru_760540, "091 ru_760540" },
+		{ game::MAG_091_ANGELO_RUSH_PrimList_GT4, (void *)ru_760A40, "091 ru_760A40" },
+		{ game::MAG_091_ANGELO_RUSH_DustPuff_State0_Setup, (void *)ru_761090, "091 ru_761090" },
+		{ game::MAG_091_ANGELO_RUSH_DustPuff_State1_DriftShrink, (void *)ru_7610D0, "091 ru_7610D0" },
+		{ game::MAG_091_ANGELO_RUSH_RingParticleTask, (void *)ru_7611B0, "091 ru_7611B0" },
+		{ game::MAG_091_ANGELO_RUSH_RingParticle_Draw, (void *)ru_761210, "091 ru_761210" },
+		{ game::MAG_091_ANGELO_RUSH_RingParticle_State0_Setup, (void *)ru_7618E0, "091 ru_7618E0" },
+		{ game::MAG_091_ANGELO_RUSH_RingParticle_State1_Rise, (void *)ru_761900, "091 ru_761900" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State0_Place, (void *)ru_7619D0, "091 ru_7619D0" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State1_Run_SpawnDash, (void *)ru_761A60, "091 ru_761A60" },
+		{ game::MAG_091_ANGELO_RUSH_SpawnDashPlay, (void *)ru_761AB0, "091 ru_761AB0" },
+		{ game::MAG_091_ANGELO_RUSH_DashPlay_State0_Setup, (void *)ru_761B60, "091 ru_761B60" },
+		{ game::MAG_091_ANGELO_RUSH_DashPlay_PlayStep, (void *)ru_761BB0, "091 ru_761BB0" },
+		{ game::MAG_091_ANGELO_RUSH_DashPlay_ObjectCallback, (void *)ru_761CE0, "091 ru_761CE0" },
+		{ game::MAG_091_ANGELO_RUSH_DashPlay_FollowAngeloBone, (void *)ru_761F10, "091 ru_761F10" },
+		{ game::MAG_091_ANGELO_RUSH_DashPlay_State1_Follow, (void *)ru_761F40, "091 ru_761F40" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State2_WaitFrame18, (void *)ru_761F90, "091 ru_761F90" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State3_WaitAnimEnd, (void *)ru_761FC0, "091 ru_761FC0" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State4_Jump, (void *)ru_761FF0, "091 ru_761FF0" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_JumpHeight, (void *)ru_762030, "091 ru_762030" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State5_Land, (void *)ru_762080, "091 ru_762080" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State6_SyncPoint2, (void *)ru_7620B0, "091 ru_7620B0" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State7_FallAtPhase2, (void *)ru_7620F0, "091 ru_7620F0" },
+		{ game::MAG_091_ANGELO_RUSH_Angelo_State8_Vanish, (void *)ru_762180, "091 ru_762180" },
+		{ game::MAG_091_ANGELO_RUSH_DamageState_ApplyActionResult, (void *)ru_7621C0, "091 ru_7621C0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

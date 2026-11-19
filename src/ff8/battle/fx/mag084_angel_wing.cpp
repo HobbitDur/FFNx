@@ -23,44 +23,44 @@ namespace act
 {
 namespace angelwing
 {
-	static const Mod MOD_084 = { "angelwing", 84, 0x78D790, 0x7976A0,
-		{ 0x0, 0x0, 0x15720A8, 0x1572BAC, 0x1575FD8, 0x25C24B4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25C2350, 0x0, 0x0, 0x0, 0x25C24B8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25C8E20, 0x0, 0x25C90C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25C9F3C },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7922A0, 0x7924B0, 0x792730, 0x792970, 0x792C10, 0x792E40, 0x793100, 0x793360, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x78DBA0, 0x78DC20, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x78DF30, 0x78DF50, 0x78E240, 0x78E590, 0x0, 0x0, 0x0, 0x78E870, 0x78E830, 0x78E8D0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x791600, 0x7916E0, 0x791880, 0x791950, 0x791A70, 0x791CD0, 0x0, 0x0, 0x793EB0, 0x793F00, 0x0, 0x0, 0x7947F0, 0x0, 0x0, 0x0, 0x795220, 0x795250, 0x795330, 0x795450, 0x7955A0, 0x0, 0x795C60, 0x795E40, 0x795F80, 0x0, 0x0, 0x797540, 0x797580, 0x7975A0, 0x7975C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_084 = { "angelwing", 84, game::MAG_084_ANGEL_WING_FL, game::MAG_083_ABSORBED_INTO_TIME_FL,
+		{ {}, {}, game::MAG_084_ANGEL_WING_pDirectorBlock, game::MAG_084_ANGEL_WING_pCameraBlock, game::unk_1575FD8, game::unk_25C24B4, {}, {}, {}, {}, {}, {}, game::MAG_084_ANGEL_WING_pTextureFile, {}, {}, {}, game::unk_25C24B8, {}, {}, {}, {}, {}, {}, {}, game::unk_25C8E20, {}, game::unk_25C90C0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_084_ANGEL_WING_CurActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_084_ANGEL_WING_MeshEmitF3, game::MAG_084_ANGEL_WING_MeshEmitF4, game::MAG_084_ANGEL_WING_RenderPolyFT3List, game::MAG_084_ANGEL_WING_RenderPolyFT4List, game::MAG_084_ANGEL_WING_PrimList_G3, game::MAG_084_ANGEL_WING_PrimList_G4, game::MAG_084_ANGEL_WING_PrimList_GT3, game::MAG_084_ANGEL_WING_PrimList_GT4_793360, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_084_ANGEL_WING_EmitterTask, game::MAG_084_ANGEL_WING_Emitter_State0_SpawnDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_084_ANGEL_WING_DirStepGE, game::MAG_084_ANGEL_WING_Camera_StartKeyMove, game::MAG_084_ANGEL_WING_Camera_KeyStep, game::MAG_084_ANGEL_WING_Camera_WriteBattleCamera, {}, {}, {}, game::MAG_084_ANGEL_WING_DirSyncGate, game::MAG_084_ANGEL_WING_Nullsub_78E830, game::MAG_084_ANGEL_WING_DirPhaseGE, {}, {}, {}, {}, {}, {}, game::MAG_084_ANGEL_WING_ResetTrailHistory, game::MAG_084_ANGEL_WING_Director_StartPositions, game::MAG_084_ANGEL_WING_FillTrailRows, game::MAG_084_ANGEL_WING_Director_Mode3Setup, game::MAG_084_ANGEL_WING_Director_TargetPositions, game::MAG_084_ANGEL_WING_RelocateActorData, {}, {}, game::MAG_084_ANGEL_WING_DampValue, game::MAG_084_ANGEL_WING_DampVector, {}, {}, game::MAG_084_ANGEL_WING_MorphVertexBlock, {}, {}, {}, game::MAG_084_ANGEL_WING_RandRange, game::MAG_084_ANGEL_WING_RandRangeWide, game::MAG_084_ANGEL_WING_RandRange2, game::MAG_084_ANGEL_WING_Particle_AttachToOwner, game::MAG_084_ANGEL_WING_Actor_InterpolatePosition, {}, game::MAG_084_ANGEL_WING_ParticleList_Unlink, game::MAG_084_ANGEL_WING_Particle_PlaceAtAnchorSet, game::MAG_084_ANGEL_WING_Particle_PlaceAtPoint, {}, {}, game::MAG_084_ANGEL_WING_Emitter_State1_ApplyDamage, game::MAG_084_ANGEL_WING_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_084_ANGEL_WING_Emitter_State3_FinishReleaseRoot, game::MAG_084_ANGEL_WING_Nullsub_7975C0, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t DIR_PTR = 0x15720A8;
-	static const uint32_t PHASE_DATA = DIR_PTR;
-	static const uint32_t SPRITE_CURSOR = 0x25C2354;
-	static const uint32_t PACKET_CURSOR = SPRITE_CURSOR;
-	static const uint32_t FA_CURSOR = 0x1D8E054;
-	static const uint32_t SCRATCH_SP = 0x25C9F08;
-	static const uint32_t ACTOR_STATE = 0x25C9F3C;
+	static constexpr game::Id DIR_PTR = game::MAG_084_ANGEL_WING_pDirectorBlock;
+	static constexpr game::Id PHASE_DATA = DIR_PTR;
+	static constexpr game::Id SPRITE_CURSOR = game::MAG_084_ANGEL_WING_PacketCursor;
+	static constexpr game::Id PACKET_CURSOR = SPRITE_CURSOR;
+	static constexpr game::Id FA_CURSOR = game::BATTLE_PACKET_WRITE_CURSOR;
+	static constexpr game::Id SCRATCH_SP = game::MAG_084_ANGEL_WING_ScratchSP;
+	static constexpr game::Id ACTOR_STATE = game::MAG_084_ANGEL_WING_CurActorState;
 
 	namespace gx
 	{
-		static inline uint32_t sub_4A8480(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x4A8480))(a1); }
-		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x7015B0))(a1, a2); }
-		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(us(0x4607D0))(); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
-		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DEA0))(a1); }
-		static inline uint32_t sub_45E0E0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0E0))(a1); }
-		static inline uint32_t sub_45E410(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E410))(a1); }
-		static inline uint32_t GTE_ReadOTZ_SZ3div4(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E250))(a1); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a1, a2, a3); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(a1, a2); }
-		static inline uint32_t Music_SetVolumeTrans(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x46BBC0))(a1, a2, a3); }
-		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x505C00))(a1, a2); }
-		static inline uint32_t BS_R0win_QueueVictoryFanfare(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x501A20))(a1, a2); }
-		static inline uint32_t BS_Music_SetChannelVolumeCommand(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x501B10))(a1, a2); }
-		static inline uint32_t sub_8DE8F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x8DE8F0))(a1, a2, a3, a4); }
-		static inline uint32_t BS_Camera_ArmReturnAfterEffect() { return fn<uint32_t (__cdecl *)()>(us(0x50A730))(); }
-		static inline uint32_t BS_BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x5022C0))(a1, a2, a3); }
-		static inline uint32_t GTE_StoreSXY012_PolyGT3(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E300))(a1); }
+		static inline uint32_t sub_4A8480(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::BattleMenu_SetVisible))(a1); }
+		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(a1, a2); }
+		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_ColorV0))(); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(a1, a2, a3); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(a1); }
+		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::sub_45DEA0))(a1); }
+		static inline uint32_t sub_45E0E0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123FromBytes))(a1); }
+		static inline uint32_t sub_45E410(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreIR123LowBytes))(a1); }
+		static inline uint32_t GTE_ReadOTZ_SZ3div4(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadOTZ_SZ3div4))(a1); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a1, a2, a3); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSZ3))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::VectorNormalS16))(a1, a2); }
+		static inline uint32_t Music_SetVolumeTrans(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::Music_SetVolumeTrans))(a1, a2, a3); }
+		static inline uint32_t QueueChainTransformation(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::QueueChainTransformation))(a1, a2); }
+		static inline uint32_t BS_R0win_QueueVictoryFanfare(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::BS_R0win_QueueVictoryFanfare))(a1, a2); }
+		static inline uint32_t BS_Music_SetChannelVolumeCommand(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::BS_Music_SetChannelVolumeCommand))(a1, a2); }
+		static inline uint32_t sub_8DE8F0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::Effect_GetBoneCameraPosition))(a1, a2, a3, a4); }
+		static inline uint32_t BS_Camera_ArmReturnAfterEffect() { return fn<uint32_t (__cdecl *)()>(game_addr(game::BS_Camera_ArmReturnAfterEffect))(); }
+		static inline uint32_t BS_BindEntityModelFromComData(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(a1, a2, a3); }
+		static inline uint32_t GTE_StoreSXY012_PolyGT3(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreSXY012_PolyGT3))(a1); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -394,8 +394,8 @@ namespace angelwing
 		}
 	}
 
-	static const uint32_t REAPER_CTX = 0x25C2360;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id REAPER_CTX = game::MAG_084_ANGEL_WING_RevealDrawContext;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 	static inline void ak_cam_chain(uint32_t a1, uint32_t script, uint32_t from)
 	{
 		a_73AB20(script, from, 0);
@@ -518,42 +518,42 @@ namespace angelwing
 		g_mod = &MOD_084;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x25C9F08)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x25C24B8)) = us(0x2793E58);
-		states[0] = us(0x78DAD0);
+		MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_ScratchSP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_25C24B8)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State0_Advance_78DAD0);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x78DAE0);
-		states[2] = us(0x78DAF0);
-		states[3] = us(0x78DB70);
-		states[4] = us(0x7975D0);
-		states[5] = us(0x797610);
-		states[6] = us(0x797620);
-		states[7] = us(0x797630);
-		states[8] = us(0x797660);
-		states[9] = us(0x797670);
-		states[10] = us(0x797690);
+		states[1] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State0_Advance_78DAE0);
+		states[2] = game_addr(game::MAG_084_ANGEL_WING_Master_State2_CarvePools);
+		states[3] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State0_Advance_797610);
+		states[6] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_084_ANGEL_WING_Sequence_State9_Finish);
+		states[10] = game_addr(game::MAG_084_ANGEL_WING_Nullsub_797690);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x25C9234));
-			const uint32_t v2 = MEM<uint32_t>(us(0x25C838C));
-			MEM<uint32_t>(us(0x25C2354)) = v1;
-			MEM<uint32_t>(us(0x25C24B4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_25C9234));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_25C838C));
+			MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_PacketCursor)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_25C24B4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x25C9230));
-			const uint32_t v2 = MEM<uint32_t>(us(0x25C8388));
-			MEM<uint32_t>(us(0x25C2354)) = v1;
-			MEM<uint32_t>(us(0x25C24B4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_25C9230));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_25C8388));
+			MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_PacketCursor)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_25C24B4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x25C9F00)) = 0;
-		MEM<uint16_t>(us(0x25C9EE8)) = 0;
-		const uint32_t queues[8] = { us(0x25C90C0), us(0x25C2490), us(0x25C9ED8), us(0x25C8E20), us(0x25C2598), us(0x25C3938), us(0x25C8378), us(0x25C90B0) };
+		MEM<uint16_t>(game_addr(game::unk_25C9F00)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25C9EE8)) = 0;
+		const uint32_t queues[8] = { game_addr(game::unk_25C90C0), game_addr(game::unk_25C2490), game_addr(game::unk_25C9ED8), game_addr(game::unk_25C8E20), game_addr(game::unk_25C2598), game_addr(game::unk_25C3938), game_addr(game::unk_25C8378), game_addr(game::unk_25C90B0) };
 		for (int i = 0; i < 8; i++)
 		{
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
@@ -569,12 +569,12 @@ namespace angelwing
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x25C9F38));
-		MEM<uint32_t>(us(0x25C9EEC)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::unk_25C9EEC)) = p;
 		p += 0x1B0;
-		MEM<uint32_t>(us(0x25C9F30)) = p;
+		MEM<uint32_t>(game_addr(game::unk_25C9F30)) = p;
 		p += 0x6900;
-		MEM<uint32_t>(us(0x25C9F38)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_FileArenaCursor)) = p;
 		te_78DB30();
 		next_state(a1);
 		return 0;
@@ -582,27 +582,27 @@ namespace angelwing
 
 	uint32_t __cdecl te_78DB30()
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25C9EEC)), 0x1B0);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25C9F30)), 0x6900);
-		MEM<uint16_t>(us(0x25C3930)) = 0;
-		MEM<uint16_t>(us(0x25C9EF8)) = 0;
-		MEM<uint16_t>(us(0x25C9D24)) = 0;
-		MEM<uint16_t>(us(0x25C2358)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_25C9EEC)), 0x1B0);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::unk_25C9F30)), 0x6900);
+		MEM<uint16_t>(game_addr(game::unk_25C3930)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25C9EF8)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25C9D24)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_25C2358)) = 0;
 		return 0;
 	}
 
 	uint32_t __cdecl te_78DC20(uint32_t a1)
 	{
 		te_78DC50(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x25C2490), us(0x78DCE0), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C2490), game_addr(game::MAG_084_ANGEL_WING_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl te_78DC50(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x15720A8)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(0x15720A8));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -612,7 +612,7 @@ namespace angelwing
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(us(0x15720A8)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0;
 	}
 
@@ -620,22 +620,22 @@ namespace angelwing
 	{
 		const uint32_t node = a1;
 		uint32_t states[16];
-		states[0] = us(0x78DE00);
-		states[1] = 0x78E850;
-		states[2] = us(0x78E8A0);
-		states[3] = us(0x78E940);
-		states[4] = us(0x78E960);
-		states[5] = us(0x78E980);
-		states[6] = us(0x78E9A0);
-		states[7] = us(0x78E9C0);
-		states[8] = us(0x78E9E0);
-		states[9] = us(0x78EA00);
-		states[10] = us(0x78EA20);
-		states[11] = us(0x78EA40);
-		states[12] = us(0x78EAC0);
-		states[13] = us(0x78EAE0);
-		states[14] = us(0x78EB10);
-		states[15] = us(0x78EB30);
+		states[0] = game_addr(game::MAG_084_ANGEL_WING_Director_State0_UploadTIM_SpawnCameraTask);
+		states[1] = game_addr(game::MAG_084_ANGEL_WING_Director_State1_WaitDirGate1);
+		states[2] = game_addr(game::MAG_084_ANGEL_WING_Director_State2_HideEntitiesAtCut1);
+		states[3] = game_addr(game::MAG_084_ANGEL_WING_Director_State3_WaitFrame36);
+		states[4] = game_addr(game::MAG_084_ANGEL_WING_Director_State4_WaitDirGate2);
+		states[5] = game_addr(game::MAG_084_ANGEL_WING_Director_State5_WaitDirPhase2);
+		states[6] = game_addr(game::MAG_084_ANGEL_WING_Director_State6_WaitFrame19);
+		states[7] = game_addr(game::MAG_084_ANGEL_WING_Director_State7_WaitDirGate3);
+		states[8] = game_addr(game::MAG_084_ANGEL_WING_Director_State8_WaitCut3);
+		states[9] = game_addr(game::MAG_084_ANGEL_WING_Director_State9_WaitFrame41);
+		states[10] = game_addr(game::MAG_084_ANGEL_WING_Director_State10_RequestCut4);
+		states[11] = game_addr(game::MAG_084_ANGEL_WING_Director_State11_ShowEntitiesAtCut4);
+		states[12] = game_addr(game::MAG_084_ANGEL_WING_Director_State12_WaitFrame3C);
+		states[13] = game_addr(game::MAG_084_ANGEL_WING_Director_State13_DoneAtCut5);
+		states[14] = game_addr(game::MAG_084_ANGEL_WING_Director_State14_Finish);
+		states[15] = game_addr(game::MAG_084_ANGEL_WING_Nullsub_78EB30);
 		te_78DDB0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -666,9 +666,9 @@ namespace angelwing
 
 	uint32_t __cdecl te_78DE00(uint32_t a1)
 	{
-		x::Battle_QueueTIMUpload_GetEOF(us(0x17243F8));
+		x::Battle_QueueTIMUpload_GetEOF(game_addr(game::MAG084_AngelWings_TIM));
 		gx::BS_Camera_ArmReturnAfterEffect();
-		x::Effect_AddTaskAndInitFromCtx(us(0x25C2598), us(0x78DE40), 0x64, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C2598), game_addr(game::MAG_084_ANGEL_WING_CameraTask), 0x64, a1);
 		next_state(a1);
 		return 0;
 	}
@@ -677,16 +677,16 @@ namespace angelwing
 	{
 		const uint32_t node = a1;
 		uint32_t states[10];
-		states[0] = us(0x78DED0);
-		states[1] = us(0x78DF00);
-		states[2] = us(0x78E700);
-		states[3] = us(0x78E730);
-		states[4] = us(0x78E760);
-		states[5] = us(0x78E790);
-		states[6] = us(0x78E7C0);
-		states[7] = us(0x78E7F0);
-		states[8] = us(0x78E810);
-		states[9] = us(0x78E840);
+		states[0] = game_addr(game::MAG_084_ANGEL_WING_Camera_State0_ResetBlock);
+		states[1] = game_addr(game::MAG_084_ANGEL_WING_Camera_State1_StartScriptAtCut1);
+		states[2] = game_addr(game::MAG_084_ANGEL_WING_Camera_State2_ScriptChain_1575E28);
+		states[3] = game_addr(game::MAG_084_ANGEL_WING_Camera_State3_StepNextAtCue2);
+		states[4] = game_addr(game::MAG_084_ANGEL_WING_Camera_State4_StepNewPathAtCut3);
+		states[5] = game_addr(game::MAG_084_ANGEL_WING_Camera_State5_ScriptChain_1575F90);
+		states[6] = game_addr(game::MAG_084_ANGEL_WING_Camera_State6_KeyStepThenKeyAtStep4);
+		states[7] = game_addr(game::MAG_084_ANGEL_WING_Camera_State7_StepUntilCut5);
+		states[8] = game_addr(game::MAG_084_ANGEL_WING_Camera_State8_FinishNode);
+		states[9] = game_addr(game::MAG_084_ANGEL_WING_Nullsub_78E840);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -704,7 +704,7 @@ namespace angelwing
 	{
 		if (a_73AAE0(1) != 0)
 		{
-			a_73AB20(us(0x1575DE0), MEM<uint32_t>(us(DIR_PTR)), 0);
+			a_73AB20(game_addr(game::unk_1575DE0), MEM<uint32_t>(game_addr(DIR_PTR)), 0);
 			next_state(a1);
 		}
 		return 0;
@@ -713,7 +713,7 @@ namespace angelwing
 	uint32_t __cdecl te_78E700(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
-			ak_cam_chain(a1, us(0x1575E28), MEM<uint32_t>(us(0x15720A8)));
+			ak_cam_chain(a1, game_addr(game::unk_1575E28), MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock)));
 		return 0;
 	}
 
@@ -722,7 +722,7 @@ namespace angelwing
 		a_73AE10();
 		if (a_73AAE0(2) != 0)
 		{
-			a_73AB20(us(0x1575E70), MEM<uint32_t>(us(0x15720A8)), 0);
+			a_73AB20(game_addr(game::unk_1575E70), MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock)), 0);
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -733,8 +733,8 @@ namespace angelwing
 		a_73AE10();
 		uint32_t r = a_73AAE0(3);
 		if (r == 0) return 0;
-		uint32_t blk = MEM<uint32_t>(us(0x15720A8));
-		a_73AB20(us(0x1575F20), blk, 0);
+		uint32_t blk = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock));
+		a_73AB20(game_addr(game::unk_1575F20), blk, 0);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -742,7 +742,7 @@ namespace angelwing
 	uint32_t __cdecl te_78E790(uint32_t a1)
 	{
 		if (a_73AE10() == 1)
-			ak_cam_chain(a1, us(0x1575F90), MEM<uint32_t>(us(0x15720A8)));
+			ak_cam_chain(a1, game_addr(game::unk_1575F90), MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock)));
 		return 0;
 	}
 
@@ -767,9 +767,9 @@ namespace angelwing
 	uint32_t __cdecl te_78E8F0(uint32_t a1)
 	{
 		const int32_t keep = (int16_t)(uint16_t)a1;
-		uint32_t saved = MEM<uint32_t>(us(DIR_PTR)) + 0x20;
+		uint32_t saved = MEM<uint32_t>(game_addr(DIR_PTR)) + 0x20;
 		int32_t i = 0;
-		for (uint32_t e = us(0x1D972C0); e < us(0x1D97704); e += 0x9C, i++, saved += 4)
+		for (uint32_t e = game_addr(game::BattleEntitySlotData); e < game_addr(game::CAMERA_FLAG_RELATED); e += 0x9C, i++, saved += 4)
 		{
 			if (i == keep)
 				continue;
@@ -784,14 +784,14 @@ namespace angelwing
 
 	uint32_t __cdecl te_78E940(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(0x15720A8)), 0x46) >= 0x2D)
+		if (S16(MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock)), 0x46) >= 0x2D)
 			next_state(a1);
 		return 0;
 	}
 
 	uint32_t __cdecl te_78E9A0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x19)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) >= 0x19)
 			next_state(a1);
 		return 0;
 	}
@@ -805,7 +805,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_78EA00(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x46) >= 0x41)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x46) >= 0x41)
 			next_state(a1);
 		return 0;
 	}
@@ -831,9 +831,9 @@ namespace angelwing
 	uint32_t __cdecl te_78EA70(uint32_t a1)
 	{
 		const int32_t keep = (int16_t)(uint16_t)a1;
-		uint32_t saved = MEM<uint32_t>(us(DIR_PTR)) + 0x20;
+		uint32_t saved = MEM<uint32_t>(game_addr(DIR_PTR)) + 0x20;
 		int32_t i = 0;
-		for (uint32_t e = us(0x1D972C0); e < us(0x1D97704); e += 0x9C, i++, saved += 4)
+		for (uint32_t e = game_addr(game::BattleEntitySlotData); e < game_addr(game::CAMERA_FLAG_RELATED); e += 0x9C, i++, saved += 4)
 		{
 			if (i == keep)
 				continue;
@@ -847,7 +847,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_78EAC0(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(0x15720A8)), 0x46) >= 0x3C)
+		if (S16(MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock)), 0x46) >= 0x3C)
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -856,7 +856,7 @@ namespace angelwing
 	{
 		if (a_73B640(5) != 0)
 		{
-			U16(MEM<uint32_t>(us(DIR_PTR)), 0x48) = 1;
+			U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x48) = 1;
 			next_state(a1);
 		}
 		return 0;
@@ -864,28 +864,28 @@ namespace angelwing
 
 	uint32_t __cdecl te_78EB50(uint32_t a1)
 	{
-		const int32_t cut = S16(MEM<uint32_t>(us(DIR_PTR)), 0x40);
+		const int32_t cut = S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40);
 		if (cut == 1)
 		{
-			const uint32_t n = x::Effect_AddTaskAndInitFromCtx(us(0x25C9ED8), us(0x7961E0), 0x154, a1);
-			x::Effect_BindModelContainerSetAnim(n, us(0x1572BB0), 3);
-			te_78EC80(a1, us(0x78ECD0), us(0x171F2B0), 0x4A0, 0, 0);
-			x::Effect_AddTaskAndInitFromCtx(us(0x25C3938), us(0x796FD0), 0x58, a1);
-			x::Effect_AddTaskAndInitFromCtx(us(0x25C3938), us(0x7972B0), 0x58, a1);
+			const uint32_t n = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C9ED8), game_addr(game::MAG_084_ANGEL_WING_ModelContainerTask), 0x154, a1);
+			x::Effect_BindModelContainerSetAnim(n, game_addr(game::MAG_084_ANGEL_WING_ModelContainerData), 3);
+			te_78EC80(a1, game_addr(game::MAG_084_ANGEL_WING_PlayA_Task), game_addr(game::unk_171F2B0), 0x4A0, 0, 0);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C3938), game_addr(game::MAG_084_ANGEL_WING_GlowA_Task), 0x58, a1);
+			x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C3938), game_addr(game::MAG_084_ANGEL_WING_GlowB_Task), 0x58, a1);
 		}
 		else if (cut == 2)
-			a_73C100(a1, us(0x7913C0), us(0x171DE1C), 8, 0xF, 0);
+			a_73C100(a1, game_addr(game::MAG_084_ANGEL_WING_FeatherActorSystemTask), game_addr(game::unk_171DE1C), 8, 0xF, 0);
 		else if (cut == 3)
 		{
-			te_78EC80(a1, us(0x791260), us(0x17217A8), 0x788, 2, 0);
-			a_73C100(a1, us(0x7913C0), us(0x171DE1C), 8, 0xF, 0);
+			te_78EC80(a1, game_addr(game::MAG_084_ANGEL_WING_PlayB_Task), game_addr(game::unk_17217A8), 0x788, 2, 0);
+			a_73C100(a1, game_addr(game::MAG_084_ANGEL_WING_FeatherActorSystemTask), game_addr(game::unk_171DE1C), 8, 0xF, 0);
 		}
 		return 0;
 	}
 
 	uint32_t __cdecl te_78EC80(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(us(0x25C8378), a2, 0x830, a1);
+		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(game_addr(game::unk_25C8378), a2, 0x830, a1);
 		U16(n, 0x80) = (uint16_t)a5;
 		U32(n, 0x74) = a3;
 		S32(n, 0x78) = (int16_t)(uint16_t)a4;
@@ -897,7 +897,7 @@ namespace angelwing
 	{
 		if (S16(a1, 0x24) < 0x18)
 			return 0;
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2C) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2C) * 0x9C;
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
 		U32(a1, 0x1C) = U32(ent, 0x1C);
 		U32(a1, 0x20) = U32(ent, 0x20);
@@ -931,9 +931,9 @@ namespace angelwing
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
 		U16(L, 0x54) = U16(node, 0x86);
-		U32(L, 0x48) = MEM<uint32_t>(us(0x25C9EFC));
+		U32(L, 0x48) = MEM<uint32_t>(game_addr(game::unk_25C9EFC));
 		U32(L, 0x44) = U32(node, 0x7C);
 		U16(L, 0x4C) = U16(node, 0x8C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -942,7 +942,7 @@ namespace angelwing
 		U16(L, 0x50) = U16(node, 0x90);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		return prim_play(node + 0x94, us(0x78EEE0), L, 0);
+		return prim_play(node + 0x94, game_addr(game::MAG_084_ANGEL_WING_PrimObjectCallback), L, 0);
 	}
 
 	uint32_t __cdecl te_78EEE0(uint32_t a1, uint32_t a2, uint32_t a3)
@@ -1042,14 +1042,14 @@ namespace angelwing
 			U32(hdr, 8) = U32(rec, 0x20);
 			U32(hdr, 0x14) = fl | 0xC0;
 		}
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
 		U16(hdr, 0x1E) = 0;
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		if (S16(blk, 0x56) == 2 && S16(rec, 2) == 1)
 			S32(hdr, 0x10) = S16(blk, 0x58) - 0x7000;
 		else
@@ -1058,7 +1058,7 @@ namespace angelwing
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		MEM<uint32_t>(PACKET_CURSOR) = te_78F1B0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = te_78F1B0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -1798,7 +1798,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_7912C0(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2C) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2C) * 0x9C;
 		a_746A10();
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
 		U32(a1, 0x1C) = U32(ent, 0x1C);
@@ -1838,7 +1838,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_791600(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25C9F3C));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1855,7 +1855,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_791880(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x25C9F3C));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -1878,7 +1878,7 @@ namespace angelwing
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x25C9F3C), 0) = sys;
+		U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1890,7 +1890,7 @@ namespace angelwing
 			te_793780();
 			te_793640();
 			te_791FC0();
-			sys = U32(us(0x25C9F3C), 0);
+			sys = U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1903,19 +1903,19 @@ namespace angelwing
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x25C9F00), 0) = (uint16_t)(U16(us(0x25C9F00), 0) + c14);
-		U16(us(0x25C9EE8), 0) = (uint16_t)(U16(us(0x25C9EE8), 0) + c16);
+		U16(game_addr(game::unk_25C9F00), 0) = (uint16_t)(U16(game_addr(game::unk_25C9F00), 0) + c14);
+		U16(game_addr(game::unk_25C9EE8), 0) = (uint16_t)(U16(game_addr(game::unk_25C9EE8), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl te_791FC0(void)
 	{
-		uint32_t act = U32(U32(us(0x25C9F3C), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x25C9F3C), 0);
+				uint32_t sys = U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1929,10 +1929,10 @@ namespace angelwing
 
 	uint32_t __cdecl te_792020(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -1952,9 +1952,9 @@ namespace angelwing
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-			MEM<uint32_t>(PACKET_CURSOR) = a_7355E0(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -1969,17 +1969,17 @@ namespace angelwing
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
-				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(PACKET_CURSOR) = r;
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -2484,14 +2484,14 @@ namespace angelwing
 
 	uint32_t __cdecl te_793640(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x25C9F3C)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x25C9F3C));
+				uint32_t st = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -2526,26 +2526,26 @@ namespace angelwing
 	uint32_t __cdecl te_793700(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(PACKET_CURSOR);
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(PACKET_CURSOR) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl te_793780(void)
 	{
-		uint32_t act = U32(U32(us(0x25C9F3C), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -2561,7 +2561,7 @@ namespace angelwing
 	uint32_t __cdecl te_7937C0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x25C9F3C));
+		uint32_t st = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -2582,7 +2582,7 @@ namespace angelwing
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x25C9F3C));
+			st = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -2594,7 +2594,7 @@ namespace angelwing
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x25C9F3C), 0);
+		uint32_t st = U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -2677,8 +2677,8 @@ namespace angelwing
 
 	uint32_t __cdecl te_7949B0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25C9EEC));
-		int32_t idx = MEM<int16_t>(us(0x25C3930));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_25C9EEC));
+		int32_t idx = MEM<int16_t>(game_addr(game::unk_25C3930));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -2688,7 +2688,7 @@ namespace angelwing
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -2703,9 +2703,9 @@ namespace angelwing
 		} while (tries < 4);
 		idx++;
 		if (idx < 3)
-			MEM<uint16_t>(us(0x25C3930)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::unk_25C3930)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x25C3930)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_25C3930)) = 0;
 		return slot;
 	}
 
@@ -2718,9 +2718,9 @@ namespace angelwing
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x795450), a1);
+			callp(game_addr(game::MAG_084_ANGEL_WING_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x7955A0), a1);
+			callp(game_addr(game::MAG_084_ANGEL_WING_Actor_InterpolatePosition), a1);
 		te_794AD0(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -2729,7 +2729,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_794AD0(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x25C9F3C), 0);
+		uint32_t sys = U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2756,9 +2756,9 @@ namespace angelwing
 
 	uint32_t __cdecl te_794B50(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(SCRATCH_SP), 0) - 0x50;
+		uint32_t sp = U32(game_addr(SCRATCH_SP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(SCRATCH_SP), 0) = sp;
+		U32(game_addr(SCRATCH_SP), 0) = sp;
 		uint32_t node = te_795380(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -2768,7 +2768,7 @@ namespace angelwing
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(ACTOR_STATE), 0);
+			uint32_t ctx = U32(game_addr(ACTOR_STATE), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2795,9 +2795,9 @@ namespace angelwing
 			for (int32_t n = (int32_t)a3; n != 0; n--)
 			{
 				alignas(4) uint8_t pt[8] = {};
-				const uint32_t mdl = U32(MEM<uint32_t>(us(DIR_PTR)), 0x18) + 0x30;
+				const uint32_t mdl = U32(MEM<uint32_t>(game_addr(DIR_PTR)), 0x18) + 0x30;
 				const int32_t r = (int32_t)x::CrtRand();
-				x::GetEffectSpawnPosition(mdl, (uint32_t)(int32_t)MEM<int16_t>(us(0x1572B90) + (uint32_t)(r % 14) * 2), 0, P(pt));
+				x::GetEffectSpawnPosition(mdl, (uint32_t)(int32_t)MEM<int16_t>(game_addr(game::MAG_084_ANGEL_WING_FeatherBoneTable) + (uint32_t)(r % 14) * 2), 0, P(pt));
 				S32(a1, 0x4C) = shl32(S16(P(pt), 0), 16);
 				S32(a1, 0x50) = shl32(S16(P(pt), 2), 16);
 				S32(a1, 0x54) = shl32(S16(P(pt), 4), 16);
@@ -2943,14 +2943,14 @@ namespace angelwing
 			}
 		}
 		te_796090(node, desc);
-		U32(us(SCRATCH_SP), 0) = U32(us(SCRATCH_SP), 0) + 0x50;
+		U32(game_addr(SCRATCH_SP), 0) = U32(game_addr(SCRATCH_SP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl te_795380(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x25C9F30));
-		int32_t i = MEM<int16_t>(us(0x25C9EF8));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::unk_25C9F30));
+		int32_t i = MEM<int16_t>(game_addr(game::unk_25C9EF8));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2963,7 +2963,7 @@ namespace angelwing
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2980,16 +2980,16 @@ namespace angelwing
 		}
 		i++;
 		if (i >= 0x27)
-			MEM<uint16_t>(us(0x25C9EF8)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_25C9EF8)) = 0;
 		else
-			MEM<uint16_t>(us(0x25C9EF8)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::unk_25C9EF8)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl te_7955A0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x25C9F3C), 0);
+		const uint32_t st = U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -3049,7 +3049,7 @@ namespace angelwing
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x25C9F3C), 0);
+				uint32_t g = U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -3059,7 +3059,7 @@ namespace angelwing
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x25C9F3C), 0);
+				uint32_t g = U32(game_addr(game::MAG_084_ANGEL_WING_CurActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -3134,7 +3134,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_796120(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x25C9F3C));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -3159,14 +3159,14 @@ namespace angelwing
 				do
 				{
 					te_7949B0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x25C9F3C));
+					dir = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				te_7949B0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x25C9F3C));
+				dir = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_CurActorState));
 			}
 		}
 		return 0;
@@ -3187,18 +3187,18 @@ namespace angelwing
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = us(0x796BF0);
-		states[1] = us(0x796D00);
-		states[2] = us(0x796D80);
-		states[3] = us(0x796DB0);
-		states[4] = us(0x796DD0);
-		states[5] = us(0x796FC0);
+		states[0] = game_addr(game::MAG_084_ANGEL_WING_ModelContainer_State0_SetupSwapCasterModel);
+		states[1] = game_addr(game::MAG_084_ANGEL_WING_ModelContainer_State1_RevealGrow);
+		states[2] = game_addr(game::MAG_084_ANGEL_WING_ModelContainer_State2_WaitAnimDone);
+		states[3] = game_addr(game::MAG_084_ANGEL_WING_ModelContainer_State3_WaitCut4);
+		states[4] = game_addr(game::MAG_084_ANGEL_WING_ModelContainer_State4_FadeOut);
+		states[5] = game_addr(game::MAG_084_ANGEL_WING_Nullsub_796FC0);
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 			te_796390(node);
 		const uint16_t t = U16(node, 0x24);
 		if (t == 0x32 || t == 0x64)
-			te_78EC80(node, us(0x796290), us(0x1720570), 0x158, 1, 0);
+			te_78EC80(node, game_addr(game::MAG_084_ANGEL_WING_PlayC_Task), game_addr(game::unk_1720570), 0x158, 1, 0);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		return task_end(node, status);
@@ -3206,7 +3206,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_7962F0(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2C) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2C) * 0x9C;
 		x::Effect_DecodeModelPrimLayout(U32(a1, 0x74), a1 + 0x94, U32(a1, 0x78));
 		U32(a1, 0x1C) = U32(ent, 0x1C);
 		U32(a1, 0x20) = U32(ent, 0x20);
@@ -3238,7 +3238,7 @@ namespace angelwing
 		if ((fl & 8) != 0)
 		{
 			alignas(4) uint8_t pt[8] = {};
-			U32(MEM<uint32_t>(us(DIR_PTR)), 0x18) = a1;
+			U32(MEM<uint32_t>(game_addr(DIR_PTR)), 0x18) = a1;
 			const uint32_t mdl = a1 + 0x30;
 			const uint32_t m = mdl + 0x40;
 			x::ComposeZYXRotationMatrix(mdl + 0xC, m);
@@ -3247,11 +3247,11 @@ namespace angelwing
 			S32(mdl, 0x5C) = S16(mdl, 0x20);
 			x::scale3DMatrix(m, a1 + 0x114);
 			x::GetEffectSpawnPosition(mdl, 0xF1, 0, P(pt));
-			MEM<uint16_t>(us(0x25C23B6)) = U16(P(pt), 2);
-			te_796620(us(0x25C2360));
+			MEM<uint16_t>(game_addr(game::MAG_084_ANGEL_WING_RevealHeight)) = U16(P(pt), 2);
+			te_796620(game_addr(game::MAG_084_ANGEL_WING_RevealDrawContext));
 			return 0;
 		}
-		MEM<uint32_t>(us(0x25C2354)) = a_746C10(a1, us(0x25C9238), MEM<uint32_t>(us(0x25C2354)));
+		MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_PacketCursor)) = a_746C10(a1, game_addr(game::unk_25C9238), MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_PacketCursor)));
 		return 0;
 	}
 
@@ -3262,7 +3262,7 @@ namespace angelwing
 		ff8fx::copy<(32)>((void *)ctx, (const void *)(blk + 0x40));
 		const uint32_t anim = blk + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(ctx);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(ctx + 0x20);
@@ -3272,16 +3272,16 @@ namespace angelwing
 		x::GTE_LoadIRFromMatrixColumn(ctx + 4);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(ctx + 0x24);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(ctx + 0x14);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(ctx + 0x34);
-		const uint32_t shadow = x::sub_5088A0(blk, MEM<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, MEM<uint32_t>(U32(ctx, 0x4C)));
+		const uint32_t shadow = x::sub_5088A0(blk, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4040, 0x10, MEM<uint32_t>(U32(ctx, 0x4C)));
 		MEM<uint32_t>(U32(ctx, 0x4C)) = shadow;
-		te_796720(U32(blk, 0x64), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, ctx);
+		te_796720(U32(blk, 0x64), MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, ctx);
 		const uint32_t second = U32(blk, 0x78);
 		if (second != 0)
-			te_796720(U32(second, 4), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, ctx);
+			te_796720(U32(second, 4), MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, ctx);
 		x::BattleModel_BuildBoneMatricesFromPose(anim);
 		return 0;
 	}
@@ -3454,7 +3454,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_796BF0(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(a1, 0x2C) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(a1, 0x2C) * 0x9C;
 		U32(a1, 0x60) = a1 + 0x114;
 		U32(a1, 0x4C) = U32(ent, 0x1C);
 		U32(a1, 0x50) = U32(ent, 0x20);
@@ -3463,7 +3463,7 @@ namespace angelwing
 		S32(a1, 0x114) = 0x1000;
 		x::au_re_Battle_ReadAnimation_7(a1, 0);
 		te_796C70(a1);
-		gx::BS_BindEntityModelFromComData(ent, us(0x25C9F10), us(0x1576020));
+		gx::BS_BindEntityModelFromComData(ent, game_addr(game::unk_25C9F10), game_addr(game::MAG_084_ANGEL_WING_AnimSet));
 		gx::QueueChainTransformation(ent, 1);
 		next_state(a1);
 		return 0;
@@ -3471,7 +3471,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_796C70(uint32_t a1)
 	{
-		te_796CA0(us(REAPER_CTX), us(0x25C3948), us(0x25C9F40), a1 + 0x30);
+		te_796CA0(game_addr(REAPER_CTX), game_addr(game::unk_25C3948), game_addr(game::unk_25C9F40), a1 + 0x30);
 		U8(a1, 0x26) |= 8;
 		return 0;
 	}
@@ -3481,8 +3481,8 @@ namespace angelwing
 		x::MAG_007_sub_8DCC00(a1, 0x58);
 		U32(a1, 0x48) = a4;
 		U32(a1, 0x40) = a2;
-		U32(a1, 0x4C) = PACKET_CURSOR;
-		U32(a1, 0x50) = PACKET_CURSOR;
+		U32(a1, 0x4C) = game_addr(PACKET_CURSOR);
+		U32(a1, 0x50) = game_addr(PACKET_CURSOR);
 		U32(a3, 4) = a2;
 		U32(a1, 0x44) = a3;
 		U16(a3, 0x14) = 0;
@@ -3501,13 +3501,13 @@ namespace angelwing
 	{
 		if (S16(a1, 0x136) >= 0x15)
 		{
-			x::BdPlaySE(us(0x15720AC), 0, 0x80);
+			x::BdPlaySE(game_addr(game::unk_15720AC), 0, 0x80);
 			if (S16(a1, 0x136) >= 0x15)
 			{
-				const uint16_t r = (uint16_t)(MEM<uint16_t>(us(0x25C23B4)) + 0x20);
-				MEM<uint16_t>(us(0x25C23B4)) = r;
+				const uint16_t r = (uint16_t)(MEM<uint16_t>(game_addr(game::MAG_084_ANGEL_WING_RevealRadius)) + 0x20);
+				MEM<uint16_t>(game_addr(game::MAG_084_ANGEL_WING_RevealRadius)) = r;
 				if ((int16_t)r >= 0x500)
-					MEM<uint16_t>(us(0x25C23B4)) = 0x500;
+					MEM<uint16_t>(game_addr(game::MAG_084_ANGEL_WING_RevealRadius)) = 0x500;
 			}
 		}
 		if (a_73B7E0(2) != 0)
@@ -3554,7 +3554,7 @@ namespace angelwing
 	uint32_t __cdecl te_796F50(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t amb = MEM<uint32_t>(us(0xB8B9A8));
+		const uint32_t amb = MEM<uint32_t>(game_addr(game::CURRENT_BS_SHADOW_PALETTE));
 		const int32_t level = S16(node, 0x13C);
 		const uint8_t c0 = (uint8_t)(amb & 0xFF);
 		const uint8_t c1 = (uint8_t)((amb >> 8) & 0xFF);
@@ -3562,7 +3562,7 @@ namespace angelwing
 		U8(node, 0x5C) = (uint8_t)(c0 - (uint8_t)d0);
 		const int32_t d1 = mul32((int32_t)c1, level) / 4096;
 		U8(node, 0x5D) = (uint8_t)(c1 - (uint8_t)d1);
-		const uint8_t c2 = MEM<uint8_t>(us(0xB8B9AA));
+		const uint8_t c2 = MEM<uint8_t>(game_addr(game::unk_B8B9AA));
 		const int32_t d2 = mul32((int32_t)c2, level) / 4096;
 		U8(node, 0x5E) = (uint8_t)(c2 - (uint8_t)d2);
 		return 0;
@@ -3572,15 +3572,15 @@ namespace angelwing
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = us(0x797190);
-		states[1] = us(0x7971B0);
-		states[2] = us(0x7971F0);
-		states[3] = us(0x797220);
-		states[4] = us(0x797250);
-		states[5] = us(0x797270);
-		states[6] = us(0x7972A0);
+		states[0] = game_addr(game::MAG_084_ANGEL_WING_GlowA_State0_Hide);
+		states[1] = game_addr(game::MAG_084_ANGEL_WING_GlowA_State1_ShowAtFrame20);
+		states[2] = game_addr(game::MAG_084_ANGEL_WING_GlowA_State2_FadeOut);
+		states[3] = game_addr(game::MAG_084_ANGEL_WING_GlowA_State3_WaitCut4);
+		states[4] = game_addr(game::MAG_084_ANGEL_WING_GlowA_State4_Count);
+		states[5] = game_addr(game::MAG_084_ANGEL_WING_GlowA_State5_FadeIn);
+		states[6] = game_addr(game::MAG_084_ANGEL_WING_Nullsub_7972A0);
 		callp(states[S8(node, 0x29)], node);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(node, 0x2C) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(node, 0x2C) * 0x9C;
 		x::GetEffectSpawnPosition(ent, 0xF1, 0, node + 0x1C);
 		te_797080(node);
 		const uint8_t status = U8(node, 0x26);
@@ -3594,13 +3594,13 @@ namespace angelwing
 			return 0;
 		alignas(4) uint8_t loc[0x20] = {};
 		const uint32_t M = P(loc);
-		x::UnpackRotationMatrix(us(0x1D97778), M);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), M);
 		x::sub_8DD960(M, (uint32_t)(int32_t)S16(a1, 0x48));
 		S32(M, 0x14) = S16(a1, 0x1C);
 		S32(M, 0x18) = S16(a1, 0x1E);
 		x::scale3DMatrix(M, a1 + 0x30);
 		S32(M, 0x1C) = S16(a1, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), M, M);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), M, M);
 		x::GTE_SetRotMatrix_W(M);
 		x::GTE_SetTransVector_W(M);
 		const uint32_t hdr = x::Field_Alloc(0x68);
@@ -3619,7 +3619,7 @@ namespace angelwing
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
 		U32(hdr, 0x14) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = te_78F1B0(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = te_78F1B0(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3642,7 +3642,7 @@ namespace angelwing
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
 		U16(a1, 0x50) = 0x1000;
-		U32(a1, 0x4C) = us(0x15720B0);
+		U32(a1, 0x4C) = game_addr(game::unk_15720B0);
 		U16(a1, 0x52) = 0xFE00;
 		next_state(a1);
 		return 0;
@@ -3695,13 +3695,13 @@ namespace angelwing
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = us(0x797410);
-		states[1] = us(0x797430);
-		states[2] = us(0x797490);
-		states[3] = us(0x7974C0);
-		states[4] = us(0x7974E0);
-		states[5] = us(0x797500);
-		states[6] = us(0x797530);
+		states[0] = game_addr(game::MAG_084_ANGEL_WING_GlowB_State0_Hide);
+		states[1] = game_addr(game::MAG_084_ANGEL_WING_GlowB_State1_ShowAtFrame20);
+		states[2] = game_addr(game::MAG_084_ANGEL_WING_GlowB_State2_FadeOut);
+		states[3] = game_addr(game::MAG_084_ANGEL_WING_GlowB_State3_HideAtCut3);
+		states[4] = game_addr(game::MAG_084_ANGEL_WING_GlowB_State4_ShowAtCut4);
+		states[5] = game_addr(game::MAG_084_ANGEL_WING_GlowB_State5_FadeIn);
+		states[6] = game_addr(game::MAG_084_ANGEL_WING_Nullsub_797530);
 		callp(states[S8(node, 0x29)], node);
 		te_797330(node);
 		const uint8_t status = U8(node, 0x26);
@@ -3738,7 +3738,7 @@ namespace angelwing
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
 		U32(hdr, 0x14) = 0xF0;
-		MEM<uint32_t>(PACKET_CURSOR) = te_78F1B0(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(PACKET_CURSOR));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = te_78F1B0(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3759,14 +3759,14 @@ namespace angelwing
 		U8(a1, 0x26) = (uint8_t)(U8(a1, 0x26) & 0xFB);
 		U16(a1, 0x1C) = 0;
 		U16(a1, 0x1E) = 0;
-		const uint32_t cam = MEM<uint32_t>(us(0x1572BAC));
+		const uint32_t cam = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pCameraBlock));
 		S32(a1, 0x38) = 0x1000;
 		S32(a1, 0x34) = 0x1000;
 		S32(a1, 0x30) = 0x1000;
 		const uint16_t h = U16(cam, 0xE0);
 		U16(a1, 0x50) = 0x1000;
 		next_state(a1);
-		U32(a1, 0x4C) = us(0x1572810);
+		U32(a1, 0x4C) = game_addr(game::unk_1572810);
 		U16(a1, 0x20) = h;
 		U16(a1, 0x52) = 0xFE00;
 		return 0;
@@ -3817,7 +3817,7 @@ namespace angelwing
 
 	uint32_t __cdecl te_797540(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x15720A8));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::MAG_084_ANGEL_WING_pDirectorBlock));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -3831,190 +3831,190 @@ namespace angelwing
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x78DAD0, (void *)a_73A0D0, "084 MAG_084_sub_78DAD0" },
-		{ 0x78DAE0, (void *)a_73A0D0, "084 MAG_084_sub_78DAE0" },
-		{ 0x78DB70, (void *)a_73A170, "084 MAG_084_sub_78DB70" },
-		{ 0x78DBA0, (void *)a_73A1A0, "084 MAG_084_sub_78DBA0" },
-		{ 0x78DEE0, (void *)a_73AB00, "084 sub_78DEE0" },
-		{ 0x78DF30, (void *)a_73AAE0, "084 sub_78DF30" },
-		{ 0x78DF50, (void *)a_73AB20, "084 sub_78DF50" },
-		{ 0x78E240, (void *)a_73AE10, "084 sub_78E240" },
-		{ 0x78E590, (void *)a_73B160, "084 sub_78E590" },
-		{ 0x78E7C0, (void *)a_73B350, "084 sub_78E7C0" },
-		{ 0x78E810, (void *)a_73B750, "084 sub_78E810" },
-		{ 0x78E830, (void *)a_73A6D0, "084 nullsub_1330" },
-		{ 0x78E840, (void *)a_73A6D0, "084 nullsub_1331" },
-		{ 0x78E850, (void *)a_73B790, "084 sub_78E850" },
-		{ 0x78E870, (void *)a_73B640, "084 sub_78E870" },
-		{ 0x78E8D0, (void *)a_73B7E0, "084 sub_78E8D0" },
-		{ 0x78E960, (void *)a_73B8A0, "084 sub_78E960" },
-		{ 0x78E980, (void *)a_73B8C0, "084 sub_78E980" },
-		{ 0x78E9C0, (void *)a_733B70, "084 sub_78E9C0" },
-		{ 0x78EB10, (void *)a_7475A0, "084 sub_78EB10" },
-		{ 0x78EB30, (void *)a_73A6D0, "084 nullsub_1332" },
-		{ 0x78EB40, (void *)a_73A6D0, "084 nullsub_1333" },
-		{ 0x78EC30, (void *)a_73C100, "084 sub_78EC30" },
-		{ 0x78ECD0, (void *)a_73A380, "084 sub_78ECD0" },
-		{ 0x790190, (void *)a_73D770, "084 sub_790190" },
-		{ 0x7903E0, (void *)a_73D9C0, "084 sub_7903E0" },
-		{ 0x791250, (void *)a_73A6D0, "084 nullsub_1334" },
-		{ 0x791260, (void *)a_73A380, "084 sub_791260" },
-		{ 0x791330, (void *)a_746A10, "084 sub_791330" },
-		{ 0x791380, (void *)a_746AE0, "084 sub_791380" },
-		{ 0x7913B0, (void *)a_73A6D0, "084 nullsub_1335" },
-		{ 0x7913C0, (void *)a_73A380, "084 sub_7913C0" },
-		{ 0x791450, (void *)a_73F990, "084 sub_791450" },
-		{ 0x7916E0, (void *)a_73FC20, "084 sub_7916E0" },
-		{ 0x791950, (void *)a_73FE90, "084 sub_791950" },
-		{ 0x791A70, (void *)a_73FFB0, "084 sub_791A70" },
-		{ 0x791CD0, (void *)a_740210, "084 sub_791CD0" },
-		{ 0x792160, (void *)a_7355E0, "084 sub_792160" },
-		{ 0x792730, (void *)a_735BB0, "084 sub_792730" },
-		{ 0x792970, (void *)a_735DF0, "084 sub_792970" },
-		{ 0x793850, (void *)a_740910, "084 sub_793850" },
-		{ 0x793EB0, (void *)a_740F70, "084 sub_793EB0" },
-		{ 0x793F00, (void *)a_740FC0, "084 sub_793F00" },
-		{ 0x793F90, (void *)a_741050, "084 sub_793F90" },
-		{ 0x794060, (void *)a_741120, "084 sub_794060" },
-		{ 0x794AA0, (void *)a_741B60, "084 sub_794AA0" },
-		{ 0x795220, (void *)a_742290, "084 au_re__rand_21" },
-		{ 0x795250, (void *)a_7422C0, "084 sub_795250" },
-		{ 0x795290, (void *)a_742300, "084 sub_795290" },
-		{ 0x7952E0, (void *)a_742350, "084 sub_7952E0" },
-		{ 0x795330, (void *)a_7423A0, "084 au_re__rand_21_0" },
-		{ 0x795440, (void *)a_7424B0, "084 sub_795440" },
-		{ 0x795450, (void *)a_7424C0, "084 sub_795450" },
-		{ 0x795C30, (void *)a_742CA0, "084 sub_795C30" },
-		{ 0x795C60, (void *)a_742CD0, "084 sub_795C60" },
-		{ 0x795C90, (void *)a_742D00, "084 sub_795C90" },
-		{ 0x795E40, (void *)a_742EB0, "084 sub_795E40" },
-		{ 0x795F80, (void *)a_742FF0, "084 sub_795F80" },
-		{ 0x7961D0, (void *)a_73A6D0, "084 nullsub_1336" },
-		{ 0x796290, (void *)a_73A380, "084 sub_796290" },
-		{ 0x796380, (void *)a_73A6D0, "084 nullsub_1337" },
-		{ 0x796440, (void *)a_746C10, "084 sub_796440" },
-		{ 0x796D80, (void *)a_739B40, "084 sub_796D80" },
-		{ 0x796E50, (void *)a_733950, "084 sub_796E50" },
-		{ 0x796FC0, (void *)a_73A6D0, "084 nullsub_1338" },
-		{ 0x7972A0, (void *)a_73A6D0, "084 nullsub_1339" },
-		{ 0x797530, (void *)a_73A6D0, "084 nullsub_1340" },
-		{ 0x797580, (void *)a_7474B0, "084 MAG_084_sub_797580" },
-		{ 0x7975A0, (void *)a_7474D0, "084 MAG_084_sub_7975A0" },
-		{ 0x7975C0, (void *)a_73A6D0, "084 nullsub_1341" },
-		{ 0x7975D0, (void *)a_747500, "084 MAG_084_sub_7975D0" },
-		{ 0x797610, (void *)a_73A0D0, "084 MAG_084_sub_797610" },
-		{ 0x797620, (void *)a_747550, "084 MAG_084_sub_797620" },
-		{ 0x797630, (void *)a_747560, "084 MAG_084_sub_797630" },
-		{ 0x797660, (void *)a_747590, "084 MAG_084_sub_797660" },
-		{ 0x797670, (void *)a_7475A0, "084 MAG_084_sub_797670" },
-		{ 0x797690, (void *)a_73A6D0, "084 nullsub_1329" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_084_ANGEL_WING_Sequence_State0_Advance_78DAD0, (void *)a_73A0D0, "084 MAG_084_sub_78DAD0" },
+		{ game::MAG_084_ANGEL_WING_Sequence_State0_Advance_78DAE0, (void *)a_73A0D0, "084 MAG_084_sub_78DAE0" },
+		{ game::MAG_084_ANGEL_WING_Sequence_State3_SpawnEmitter, (void *)a_73A170, "084 MAG_084_sub_78DB70" },
+		{ game::MAG_084_ANGEL_WING_EmitterTask, (void *)a_73A1A0, "084 MAG_084_sub_78DBA0" },
+		{ game::MAG_084_ANGEL_WING_Camera_ResetBlock, (void *)a_73AB00, "084 sub_78DEE0" },
+		{ game::MAG_084_ANGEL_WING_DirStepGE, (void *)a_73AAE0, "084 sub_78DF30" },
+		{ game::MAG_084_ANGEL_WING_Camera_StartKeyMove, (void *)a_73AB20, "084 sub_78DF50" },
+		{ game::MAG_084_ANGEL_WING_Camera_KeyStep, (void *)a_73AE10, "084 sub_78E240" },
+		{ game::MAG_084_ANGEL_WING_Camera_WriteBattleCamera, (void *)a_73B160, "084 sub_78E590" },
+		{ game::MAG_084_ANGEL_WING_Camera_State6_KeyStepThenKeyAtStep4, (void *)a_73B350, "084 sub_78E7C0" },
+		{ game::MAG_084_ANGEL_WING_Camera_State8_FinishNode, (void *)a_73B750, "084 sub_78E810" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_78E830, (void *)a_73A6D0, "084 nullsub_1330" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_78E840, (void *)a_73A6D0, "084 nullsub_1331" },
+		{ game::MAG_084_ANGEL_WING_Director_State1_WaitDirGate1, (void *)a_73B790, "084 sub_78E850" },
+		{ game::MAG_084_ANGEL_WING_DirSyncGate, (void *)a_73B640, "084 sub_78E870" },
+		{ game::MAG_084_ANGEL_WING_DirPhaseGE, (void *)a_73B7E0, "084 sub_78E8D0" },
+		{ game::MAG_084_ANGEL_WING_Director_State4_WaitDirGate2, (void *)a_73B8A0, "084 sub_78E960" },
+		{ game::MAG_084_ANGEL_WING_Director_State5_WaitDirPhase2, (void *)a_73B8C0, "084 sub_78E980" },
+		{ game::MAG_084_ANGEL_WING_Director_State7_WaitDirGate3, (void *)a_733B70, "084 sub_78E9C0" },
+		{ game::MAG_084_ANGEL_WING_Director_State14_Finish, (void *)a_7475A0, "084 sub_78EB10" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_78EB30, (void *)a_73A6D0, "084 nullsub_1332" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_78EB40, (void *)a_73A6D0, "084 nullsub_1333" },
+		{ game::MAG_084_ANGEL_WING_SpawnChildTask, (void *)a_73C100, "084 sub_78EC30" },
+		{ game::MAG_084_ANGEL_WING_PlayA_Task, (void *)a_73A380, "084 sub_78ECD0" },
+		{ game::MAG_084_ANGEL_WING_EmitG3, (void *)a_73D770, "084 sub_790190" },
+		{ game::MAG_084_ANGEL_WING_EmitG4, (void *)a_73D9C0, "084 sub_7903E0" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_791250, (void *)a_73A6D0, "084 nullsub_1334" },
+		{ game::MAG_084_ANGEL_WING_PlayB_Task, (void *)a_73A380, "084 sub_791260" },
+		{ game::MAG_084_ANGEL_WING_ClearEntityRecordBit1, (void *)a_746A10, "084 sub_791330" },
+		{ game::MAG_084_ANGEL_WING_RestoreEntityRecordBit1, (void *)a_746AE0, "084 sub_791380" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_7913B0, (void *)a_73A6D0, "084 nullsub_1335" },
+		{ game::MAG_084_ANGEL_WING_FeatherActorSystemTask, (void *)a_73A380, "084 sub_7913C0" },
+		{ game::MAG_084_ANGEL_WING_ActSys_Setup, (void *)a_73F990, "084 sub_791450" },
+		{ game::MAG_084_ANGEL_WING_Director_StartPositions, (void *)a_73FC20, "084 sub_7916E0" },
+		{ game::MAG_084_ANGEL_WING_Director_Mode3Setup, (void *)a_73FE90, "084 sub_791950" },
+		{ game::MAG_084_ANGEL_WING_Director_TargetPositions, (void *)a_73FFB0, "084 sub_791A70" },
+		{ game::MAG_084_ANGEL_WING_RelocateActorData, (void *)a_740210, "084 sub_791CD0" },
+		{ game::MAG_084_ANGEL_WING_RenderPrimModel_792160, (void *)a_7355E0, "084 sub_792160" },
+		{ game::MAG_084_ANGEL_WING_RenderPolyFT3List, (void *)a_735BB0, "084 sub_792730" },
+		{ game::MAG_084_ANGEL_WING_RenderPolyFT4List, (void *)a_735DF0, "084 sub_792970" },
+		{ game::MAG_084_ANGEL_WING_ActorMotion, (void *)a_740910, "084 sub_793850" },
+		{ game::MAG_084_ANGEL_WING_DampValue, (void *)a_740F70, "084 sub_793EB0" },
+		{ game::MAG_084_ANGEL_WING_DampVector, (void *)a_740FC0, "084 sub_793F00" },
+		{ game::MAG_084_ANGEL_WING_Instance_AdvanceTexFrame, (void *)a_741050, "084 sub_793F90" },
+		{ game::MAG_084_ANGEL_WING_InstanceBuildTransform, (void *)a_741120, "084 sub_794060" },
+		{ game::MAG_084_ANGEL_WING_Particle_LifeCountdown, (void *)a_741B60, "084 sub_794AA0" },
+		{ game::MAG_084_ANGEL_WING_RandRange, (void *)a_742290, "084 au_re__rand_21" },
+		{ game::MAG_084_ANGEL_WING_RandRangeWide, (void *)a_7422C0, "084 sub_795250" },
+		{ game::MAG_084_ANGEL_WING_RandVec3, (void *)a_742300, "084 sub_795290" },
+		{ game::MAG_084_ANGEL_WING_JitterAngles3, (void *)a_742350, "084 sub_7952E0" },
+		{ game::MAG_084_ANGEL_WING_RandRange2, (void *)a_7423A0, "084 au_re__rand_21_0" },
+		{ game::MAG_084_ANGEL_WING_GetWord8Minus1, (void *)a_7424B0, "084 sub_795440" },
+		{ game::MAG_084_ANGEL_WING_Particle_AttachToOwner, (void *)a_7424C0, "084 sub_795450" },
+		{ game::MAG_084_ANGEL_WING_ParticleList_Append, (void *)a_742CA0, "084 sub_795C30" },
+		{ game::MAG_084_ANGEL_WING_ParticleList_Unlink, (void *)a_742CD0, "084 sub_795C60" },
+		{ game::MAG_084_ANGEL_WING_Particle_Init, (void *)a_742D00, "084 sub_795C90" },
+		{ game::MAG_084_ANGEL_WING_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "084 sub_795E40" },
+		{ game::MAG_084_ANGEL_WING_Particle_PlaceAtPoint, (void *)a_742FF0, "084 sub_795F80" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_7961D0, (void *)a_73A6D0, "084 nullsub_1336" },
+		{ game::MAG_084_ANGEL_WING_PlayC_Task, (void *)a_73A380, "084 sub_796290" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_796380, (void *)a_73A6D0, "084 nullsub_1337" },
+		{ game::MAG_084_ANGEL_WING_DrawModel, (void *)a_746C10, "084 sub_796440" },
+		{ game::MAG_084_ANGEL_WING_ModelContainer_State2_WaitAnimDone, (void *)a_739B40, "084 sub_796D80" },
+		{ game::MAG_084_ANGEL_WING_SetEntityColourTint, (void *)a_733950, "084 sub_796E50" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_796FC0, (void *)a_73A6D0, "084 nullsub_1338" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_7972A0, (void *)a_73A6D0, "084 nullsub_1339" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_797530, (void *)a_73A6D0, "084 nullsub_1340" },
+		{ game::MAG_084_ANGEL_WING_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "084 MAG_084_sub_797580" },
+		{ game::MAG_084_ANGEL_WING_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "084 MAG_084_sub_7975A0" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_7975C0, (void *)a_73A6D0, "084 nullsub_1341" },
+		{ game::MAG_084_ANGEL_WING_Sequence_State4_NextTargetLoop, (void *)a_747500, "084 MAG_084_sub_7975D0" },
+		{ game::MAG_084_ANGEL_WING_Sequence_State0_Advance_797610, (void *)a_73A0D0, "084 MAG_084_sub_797610" },
+		{ game::MAG_084_ANGEL_WING_Sequence_State6_WaitQueuesEmpty, (void *)a_747550, "084 MAG_084_sub_797620" },
+		{ game::MAG_084_ANGEL_WING_Sequence_State7_RequestBattleSync, (void *)a_747560, "084 MAG_084_sub_797630" },
+		{ game::MAG_084_ANGEL_WING_Sequence_State8_WaitBattleSyncDone, (void *)a_747590, "084 MAG_084_sub_797660" },
+		{ game::MAG_084_ANGEL_WING_Sequence_State9_Finish, (void *)a_7475A0, "084 MAG_084_sub_797670" },
+		{ game::MAG_084_ANGEL_WING_Nullsub_797690, (void *)a_73A6D0, "084 nullsub_1329" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x78D940, (void *)te_78D940, "084 te_78D940" },
-		{ 0x78DAF0, (void *)te_78DAF0, "084 te_78DAF0" },
-		{ 0x78DB30, (void *)te_78DB30, "084 te_78DB30" },
-		{ 0x78DC20, (void *)te_78DC20, "084 te_78DC20" },
-		{ 0x78DC50, (void *)te_78DC50, "084 te_78DC50" },
-		{ 0x78DCE0, (void *)te_78DCE0, "084 te_78DCE0" },
-		{ 0x78DDB0, (void *)te_78DDB0, "084 te_78DDB0" },
-		{ 0x78DE00, (void *)te_78DE00, "084 te_78DE00" },
-		{ 0x78DE40, (void *)te_78DE40, "084 te_78DE40" },
-		{ 0x78DED0, (void *)te_78DED0, "084 te_78DED0" },
-		{ 0x78DF00, (void *)te_78DF00, "084 te_78DF00" },
-		{ 0x78E700, (void *)te_78E700, "084 te_78E700" },
-		{ 0x78E730, (void *)te_78E730, "084 te_78E730" },
-		{ 0x78E760, (void *)te_78E760, "084 te_78E760" },
-		{ 0x78E790, (void *)te_78E790, "084 te_78E790" },
-		{ 0x78E7F0, (void *)te_78E7F0, "084 te_78E7F0" },
-		{ 0x78E8A0, (void *)te_78E8A0, "084 te_78E8A0" },
-		{ 0x78E8F0, (void *)te_78E8F0, "084 te_78E8F0" },
-		{ 0x78E940, (void *)te_78E940, "084 te_78E940" },
-		{ 0x78E9A0, (void *)te_78E9A0, "084 te_78E9A0" },
-		{ 0x78E9E0, (void *)te_78E9E0, "084 te_78E9E0" },
-		{ 0x78EA00, (void *)te_78EA00, "084 te_78EA00" },
-		{ 0x78EA20, (void *)te_78EA20, "084 te_78EA20" },
-		{ 0x78EA40, (void *)te_78EA40, "084 te_78EA40" },
-		{ 0x78EA70, (void *)te_78EA70, "084 te_78EA70" },
-		{ 0x78EAC0, (void *)te_78EAC0, "084 te_78EAC0" },
-		{ 0x78EAE0, (void *)te_78EAE0, "084 te_78EAE0" },
-		{ 0x78EB50, (void *)te_78EB50, "084 te_78EB50" },
-		{ 0x78EC80, (void *)te_78EC80, "084 te_78EC80" },
-		{ 0x78ED30, (void *)te_78ED30, "084 te_78ED30" },
-		{ 0x78EDB0, (void *)te_78EDB0, "084 te_78EDB0" },
-		{ 0x78EEE0, (void *)te_78EEE0, "084 te_78EEE0" },
-		{ 0x78F1B0, (void *)te_78F1B0, "084 te_78F1B0" },
-		{ 0x78F2E0, (void *)te_78F2E0, "084 te_78F2E0" },
-		{ 0x78F500, (void *)te_78F500, "084 te_78F500" },
-		{ 0x78F790, (void *)te_78F790, "084 te_78F790" },
-		{ 0x78FC10, (void *)te_78FC10, "084 te_78FC10" },
-		{ 0x7906C0, (void *)te_7906C0, "084 te_7906C0" },
-		{ 0x790BC0, (void *)te_790BC0, "084 te_790BC0" },
-		{ 0x791210, (void *)te_791210, "084 te_791210" },
-		{ 0x7912C0, (void *)te_7912C0, "084 te_7912C0" },
-		{ 0x791350, (void *)te_791350, "084 te_791350" },
-		{ 0x791420, (void *)te_791420, "084 te_791420" },
-		{ 0x791600, (void *)te_791600, "084 te_791600" },
-		{ 0x791880, (void *)te_791880, "084 te_791880" },
-		{ 0x791F30, (void *)te_791F30, "084 te_791F30" },
-		{ 0x791FC0, (void *)te_791FC0, "084 te_791FC0" },
-		{ 0x792020, (void *)te_792020, "084 te_792020" },
-		{ 0x7922A0, (void *)te_7922A0, "084 te_7922A0" },
-		{ 0x7924B0, (void *)te_7924B0, "084 te_7924B0" },
-		{ 0x792C10, (void *)te_792C10, "084 te_792C10" },
-		{ 0x792E40, (void *)te_792E40, "084 te_792E40" },
-		{ 0x793100, (void *)te_793100, "084 te_793100" },
-		{ 0x793360, (void *)te_793360, "084 te_793360" },
-		{ 0x793640, (void *)te_793640, "084 te_793640" },
-		{ 0x793700, (void *)te_793700, "084 te_793700" },
-		{ 0x793780, (void *)te_793780, "084 te_793780" },
-		{ 0x7937C0, (void *)te_7937C0, "084 te_7937C0" },
-		{ 0x7947F0, (void *)te_7947F0, "084 te_7947F0" },
-		{ 0x794900, (void *)te_794900, "084 te_794900" },
-		{ 0x794980, (void *)te_794980, "084 te_794980" },
-		{ 0x7949B0, (void *)te_7949B0, "084 te_7949B0" },
-		{ 0x794A50, (void *)te_794A50, "084 te_794A50" },
-		{ 0x794AD0, (void *)te_794AD0, "084 te_794AD0" },
-		{ 0x794B50, (void *)te_794B50, "084 te_794B50" },
-		{ 0x795380, (void *)te_795380, "084 te_795380" },
-		{ 0x7955A0, (void *)te_7955A0, "084 te_7955A0" },
-		{ 0x796090, (void *)te_796090, "084 te_796090" },
-		{ 0x796120, (void *)te_796120, "084 te_796120" },
-		{ 0x7961B0, (void *)te_7961B0, "084 te_7961B0" },
-		{ 0x7961E0, (void *)te_7961E0, "084 te_7961E0" },
-		{ 0x7962F0, (void *)te_7962F0, "084 te_7962F0" },
-		{ 0x796360, (void *)te_796360, "084 te_796360" },
-		{ 0x796390, (void *)te_796390, "084 te_796390" },
-		{ 0x796620, (void *)te_796620, "084 te_796620" },
-		{ 0x796720, (void *)te_796720, "084 te_796720" },
-		{ 0x796BF0, (void *)te_796BF0, "084 te_796BF0" },
-		{ 0x796C70, (void *)te_796C70, "084 te_796C70" },
-		{ 0x796CA0, (void *)te_796CA0, "084 te_796CA0" },
-		{ 0x796D00, (void *)te_796D00, "084 te_796D00" },
-		{ 0x796DB0, (void *)te_796DB0, "084 te_796DB0" },
-		{ 0x796DD0, (void *)te_796DD0, "084 te_796DD0" },
-		{ 0x796E30, (void *)te_796E30, "084 te_796E30" },
-		{ 0x796F50, (void *)te_796F50, "084 te_796F50" },
-		{ 0x796FD0, (void *)te_796FD0, "084 te_796FD0" },
-		{ 0x797080, (void *)te_797080, "084 te_797080" },
-		{ 0x797190, (void *)te_797190, "084 te_797190" },
-		{ 0x7971B0, (void *)te_7971B0, "084 te_7971B0" },
-		{ 0x7971F0, (void *)te_7971F0, "084 te_7971F0" },
-		{ 0x797220, (void *)te_797220, "084 te_797220" },
-		{ 0x797250, (void *)te_797250, "084 te_797250" },
-		{ 0x797270, (void *)te_797270, "084 te_797270" },
-		{ 0x7972B0, (void *)te_7972B0, "084 te_7972B0" },
-		{ 0x797330, (void *)te_797330, "084 te_797330" },
-		{ 0x797410, (void *)te_797410, "084 te_797410" },
-		{ 0x797430, (void *)te_797430, "084 te_797430" },
-		{ 0x797490, (void *)te_797490, "084 te_797490" },
-		{ 0x7974C0, (void *)te_7974C0, "084 te_7974C0" },
-		{ 0x7974E0, (void *)te_7974E0, "084 te_7974E0" },
-		{ 0x797500, (void *)te_797500, "084 te_797500" },
-		{ 0x797540, (void *)te_797540, "084 te_797540" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_084_ANGEL_WING_Master, (void *)te_78D940, "084 te_78D940" },
+		{ game::MAG_084_ANGEL_WING_Master_State2_CarvePools, (void *)te_78DAF0, "084 te_78DAF0" },
+		{ game::MAG_084_ANGEL_WING_ClearPools, (void *)te_78DB30, "084 te_78DB30" },
+		{ game::MAG_084_ANGEL_WING_Emitter_State0_SpawnDirector, (void *)te_78DC20, "084 te_78DC20" },
+		{ game::MAG_084_ANGEL_WING_DirectorDataSetup, (void *)te_78DC50, "084 te_78DC50" },
+		{ game::MAG_084_ANGEL_WING_DirectorTask, (void *)te_78DCE0, "084 te_78DCE0" },
+		{ game::MAG_084_ANGEL_WING_Director_CutBookkeeping, (void *)te_78DDB0, "084 te_78DDB0" },
+		{ game::MAG_084_ANGEL_WING_Director_State0_UploadTIM_SpawnCameraTask, (void *)te_78DE00, "084 te_78DE00" },
+		{ game::MAG_084_ANGEL_WING_CameraTask, (void *)te_78DE40, "084 te_78DE40" },
+		{ game::MAG_084_ANGEL_WING_Camera_State0_ResetBlock, (void *)te_78DED0, "084 te_78DED0" },
+		{ game::MAG_084_ANGEL_WING_Camera_State1_StartScriptAtCut1, (void *)te_78DF00, "084 te_78DF00" },
+		{ game::MAG_084_ANGEL_WING_Camera_State2_ScriptChain_1575E28, (void *)te_78E700, "084 te_78E700" },
+		{ game::MAG_084_ANGEL_WING_Camera_State3_StepNextAtCue2, (void *)te_78E730, "084 te_78E730" },
+		{ game::MAG_084_ANGEL_WING_Camera_State4_StepNewPathAtCut3, (void *)te_78E760, "084 te_78E760" },
+		{ game::MAG_084_ANGEL_WING_Camera_State5_ScriptChain_1575F90, (void *)te_78E790, "084 te_78E790" },
+		{ game::MAG_084_ANGEL_WING_Camera_State7_StepUntilCut5, (void *)te_78E7F0, "084 te_78E7F0" },
+		{ game::MAG_084_ANGEL_WING_Director_State2_HideEntitiesAtCut1, (void *)te_78E8A0, "084 te_78E8A0" },
+		{ game::MAG_084_ANGEL_WING_HideOtherEntities, (void *)te_78E8F0, "084 te_78E8F0" },
+		{ game::MAG_084_ANGEL_WING_Director_State3_WaitFrame36, (void *)te_78E940, "084 te_78E940" },
+		{ game::MAG_084_ANGEL_WING_Director_State6_WaitFrame19, (void *)te_78E9A0, "084 te_78E9A0" },
+		{ game::MAG_084_ANGEL_WING_Director_State8_WaitCut3, (void *)te_78E9E0, "084 te_78E9E0" },
+		{ game::MAG_084_ANGEL_WING_Director_State9_WaitFrame41, (void *)te_78EA00, "084 te_78EA00" },
+		{ game::MAG_084_ANGEL_WING_Director_State10_RequestCut4, (void *)te_78EA20, "084 te_78EA20" },
+		{ game::MAG_084_ANGEL_WING_Director_State11_ShowEntitiesAtCut4, (void *)te_78EA40, "084 te_78EA40" },
+		{ game::MAG_084_ANGEL_WING_RestoreOtherEntities, (void *)te_78EA70, "084 te_78EA70" },
+		{ game::MAG_084_ANGEL_WING_Director_State12_WaitFrame3C, (void *)te_78EAC0, "084 te_78EAC0" },
+		{ game::MAG_084_ANGEL_WING_Director_State13_DoneAtCut5, (void *)te_78EAE0, "084 te_78EAE0" },
+		{ game::MAG_084_ANGEL_WING_SpawnCutParts, (void *)te_78EB50, "084 te_78EB50" },
+		{ game::MAG_084_ANGEL_WING_SpawnPrimPlayTask, (void *)te_78EC80, "084 te_78EC80" },
+		{ game::MAG_084_ANGEL_WING_PlayA_State0_Init, (void *)te_78ED30, "084 te_78ED30" },
+		{ game::MAG_084_ANGEL_WING_PlayStep, (void *)te_78EDB0, "084 te_78EDB0" },
+		{ game::MAG_084_ANGEL_WING_PrimObjectCallback, (void *)te_78EEE0, "084 te_78EEE0" },
+		{ game::MAG_084_ANGEL_WING_RenderPrimModel, (void *)te_78F1B0, "084 te_78F1B0" },
+		{ game::MAG_084_ANGEL_WING_PrimList_FlatTri, (void *)te_78F2E0, "084 te_78F2E0" },
+		{ game::MAG_084_ANGEL_WING_PrimList_FlatQuad, (void *)te_78F500, "084 te_78F500" },
+		{ game::MAG_084_ANGEL_WING_PrimList_TexTri, (void *)te_78F790, "084 te_78F790" },
+		{ game::MAG_084_ANGEL_WING_PrimList_TexQuad, (void *)te_78FC10, "084 te_78FC10" },
+		{ game::MAG_084_ANGEL_WING_PrimList_GouraudTexTriScroll, (void *)te_7906C0, "084 te_7906C0" },
+		{ game::MAG_084_ANGEL_WING_PrimList_GT4, (void *)te_790BC0, "084 te_790BC0" },
+		{ game::MAG_084_ANGEL_WING_PlayA_State1_PlayUntilCut3, (void *)te_791210, "084 te_791210" },
+		{ game::MAG_084_ANGEL_WING_PlayB_State0_Init, (void *)te_7912C0, "084 te_7912C0" },
+		{ game::MAG_084_ANGEL_WING_PlayB_State1_PlayUntilCut4, (void *)te_791350, "084 te_791350" },
+		{ game::MAG_084_ANGEL_WING_ActorSystem_State0_Start, (void *)te_791420, "084 te_791420" },
+		{ game::MAG_084_ANGEL_WING_ResetTrailHistory, (void *)te_791600, "084 te_791600" },
+		{ game::MAG_084_ANGEL_WING_FillTrailRows, (void *)te_791880, "084 te_791880" },
+		{ game::MAG_084_ANGEL_WING_ActSys_Step, (void *)te_791F30, "084 te_791F30" },
+		{ game::MAG_084_ANGEL_WING_ActSys_DrawPass, (void *)te_791FC0, "084 te_791FC0" },
+		{ game::MAG_084_ANGEL_WING_ActSys_DrawActorModel, (void *)te_792020, "084 te_792020" },
+		{ game::MAG_084_ANGEL_WING_MeshEmitF3, (void *)te_7922A0, "084 te_7922A0" },
+		{ game::MAG_084_ANGEL_WING_MeshEmitF4, (void *)te_7924B0, "084 te_7924B0" },
+		{ game::MAG_084_ANGEL_WING_PrimList_G3, (void *)te_792C10, "084 te_792C10" },
+		{ game::MAG_084_ANGEL_WING_PrimList_G4, (void *)te_792E40, "084 te_792E40" },
+		{ game::MAG_084_ANGEL_WING_PrimList_GT3, (void *)te_793100, "084 te_793100" },
+		{ game::MAG_084_ANGEL_WING_PrimList_GT4_793360, (void *)te_793360, "084 te_793360" },
+		{ game::MAG_084_ANGEL_WING_ActSys_DrawSpritePass, (void *)te_793640, "084 te_793640" },
+		{ game::MAG_084_ANGEL_WING_ActSys_DrawActorSprite, (void *)te_793700, "084 te_793700" },
+		{ game::MAG_084_ANGEL_WING_ActSys_UpdatePass, (void *)te_793780, "084 te_793780" },
+		{ game::MAG_084_ANGEL_WING_ActorStep, (void *)te_7937C0, "084 te_7937C0" },
+		{ game::MAG_084_ANGEL_WING_MorphVertexBlock, (void *)te_7947F0, "084 te_7947F0" },
+		{ game::MAG_084_ANGEL_WING_Instance_EndOfLifeTest, (void *)te_794900, "084 te_794900" },
+		{ game::MAG_084_ANGEL_WING_Instance_SpawnFollowUp, (void *)te_794980, "084 te_794980" },
+		{ game::MAG_084_ANGEL_WING_ActSys_AllocEmitterSlot, (void *)te_7949B0, "084 te_7949B0" },
+		{ game::MAG_084_ANGEL_WING_ActSys_UpdateEmitter, (void *)te_794A50, "084 te_794A50" },
+		{ game::MAG_084_ANGEL_WING_ActSys_EmitterSpawnStep, (void *)te_794AD0, "084 te_794AD0" },
+		{ game::MAG_084_ANGEL_WING_ActSys_SpawnParticlesAtModelBones, (void *)te_794B50, "084 te_794B50" },
+		{ game::MAG_084_ANGEL_WING_ActSys_AllocParticleSlot, (void *)te_795380, "084 te_795380" },
+		{ game::MAG_084_ANGEL_WING_Actor_InterpolatePosition, (void *)te_7955A0, "084 te_7955A0" },
+		{ game::MAG_084_ANGEL_WING_SpawnSubEffects, (void *)te_796090, "084 te_796090" },
+		{ game::MAG_084_ANGEL_WING_Director_SpawnGroupEffects, (void *)te_796120, "084 te_796120" },
+		{ game::MAG_084_ANGEL_WING_ActorSystem_State1_Step, (void *)te_7961B0, "084 te_7961B0" },
+		{ game::MAG_084_ANGEL_WING_ModelContainerTask, (void *)te_7961E0, "084 te_7961E0" },
+		{ game::MAG_084_ANGEL_WING_PlayC_State0_Init, (void *)te_7962F0, "084 te_7962F0" },
+		{ game::MAG_084_ANGEL_WING_PlayC_State1_Play, (void *)te_796360, "084 te_796360" },
+		{ game::MAG_084_ANGEL_WING_ModelContainer_Draw, (void *)te_796390, "084 te_796390" },
+		{ game::MAG_084_ANGEL_WING_Reveal_DrawModel, (void *)te_796620, "084 te_796620" },
+		{ game::MAG_084_ANGEL_WING_Reveal_RenderModel, (void *)te_796720, "084 te_796720" },
+		{ game::MAG_084_ANGEL_WING_ModelContainer_State0_SetupSwapCasterModel, (void *)te_796BF0, "084 te_796BF0" },
+		{ game::MAG_084_ANGEL_WING_Reveal_InitDrawContext, (void *)te_796C70, "084 te_796C70" },
+		{ game::MAG_084_ANGEL_WING_InitDrawBlock, (void *)te_796CA0, "084 te_796CA0" },
+		{ game::MAG_084_ANGEL_WING_ModelContainer_State1_RevealGrow, (void *)te_796D00, "084 te_796D00" },
+		{ game::MAG_084_ANGEL_WING_ModelContainer_State3_WaitCut4, (void *)te_796DB0, "084 te_796DB0" },
+		{ game::MAG_084_ANGEL_WING_ModelContainer_State4_FadeOut, (void *)te_796DD0, "084 te_796DD0" },
+		{ game::MAG_084_ANGEL_WING_ModelContainer_ApplyFadeTint, (void *)te_796E30, "084 te_796E30" },
+		{ game::MAG_084_ANGEL_WING_ModelContainer_SetAmbientColour, (void *)te_796F50, "084 te_796F50" },
+		{ game::MAG_084_ANGEL_WING_GlowA_Task, (void *)te_796FD0, "084 te_796FD0" },
+		{ game::MAG_084_ANGEL_WING_GlowA_Draw, (void *)te_797080, "084 te_797080" },
+		{ game::MAG_084_ANGEL_WING_GlowA_State0_Hide, (void *)te_797190, "084 te_797190" },
+		{ game::MAG_084_ANGEL_WING_GlowA_State1_ShowAtFrame20, (void *)te_7971B0, "084 te_7971B0" },
+		{ game::MAG_084_ANGEL_WING_GlowA_State2_FadeOut, (void *)te_7971F0, "084 te_7971F0" },
+		{ game::MAG_084_ANGEL_WING_GlowA_State3_WaitCut4, (void *)te_797220, "084 te_797220" },
+		{ game::MAG_084_ANGEL_WING_GlowA_State4_Count, (void *)te_797250, "084 te_797250" },
+		{ game::MAG_084_ANGEL_WING_GlowA_State5_FadeIn, (void *)te_797270, "084 te_797270" },
+		{ game::MAG_084_ANGEL_WING_GlowB_Task, (void *)te_7972B0, "084 te_7972B0" },
+		{ game::MAG_084_ANGEL_WING_GlowB_Draw, (void *)te_797330, "084 te_797330" },
+		{ game::MAG_084_ANGEL_WING_GlowB_State0_Hide, (void *)te_797410, "084 te_797410" },
+		{ game::MAG_084_ANGEL_WING_GlowB_State1_ShowAtFrame20, (void *)te_797430, "084 te_797430" },
+		{ game::MAG_084_ANGEL_WING_GlowB_State2_FadeOut, (void *)te_797490, "084 te_797490" },
+		{ game::MAG_084_ANGEL_WING_GlowB_State3_HideAtCut3, (void *)te_7974C0, "084 te_7974C0" },
+		{ game::MAG_084_ANGEL_WING_GlowB_State4_ShowAtCut4, (void *)te_7974E0, "084 te_7974E0" },
+		{ game::MAG_084_ANGEL_WING_GlowB_State5_FadeIn, (void *)te_797500, "084 te_797500" },
+		{ game::MAG_084_ANGEL_WING_Emitter_State1_ApplyDamage, (void *)te_797540, "084 te_797540" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

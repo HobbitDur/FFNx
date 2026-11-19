@@ -32,36 +32,36 @@ namespace earthquake
 	{
 		c.name = "233 Earthquake";
 		c.effect_id = 233;
-		c.vm_table = us(0x1868750);
-		c.bone_table = us(0x18683C0);
-		c.prim_table = us(0x1868408);
-		c.prim_size = us(0x18684F8);
-		c.spr_table = us(0x186850C);
-		c.ptype_table = us(0x1868538);
-		c.pop_table = us(0x186854C);
-		c.draw_table = us(0x18685AC);
-		c.attr_16A = us(0x1868716);
-		c.attr_184 = us(0x1868730);
-		c.attr_186 = us(0x1868732);
-		c.attr_194 = us(0x1868740);
-		c.attr_19C = us(0x1868748);
-		c.desc = us(0x18682F8);
-		c.ptr_block = us(0x1868398);
-		c.queue = us(0x2796A20);
-		c.file00 = us(0x2796A34);
-		c.file01 = us(0x2796A30);
-		c.tick = us(0xA525B0);
-		c.load_cb = us(0xA57CA0);
+		c.vm_table = game_addr(game::GF_233Earthquake_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_233Earthquake_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_A54F84);
+		c.prim_size = game_addr(game::unk_18684F8);
+		c.spr_table = game_addr(game::unk_186850C);
+		c.ptype_table = game_addr(game::unk_1868538);
+		c.pop_table = game_addr(game::funcs_A562A7);
+		c.draw_table = game_addr(game::GF_233Earthquake_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_1868716);
+		c.attr_184 = game_addr(game::unk_1868730);
+		c.attr_186 = game_addr(game::unk_1868732);
+		c.attr_194 = game_addr(game::unk_1868740);
+		c.attr_19C = game_addr(game::unk_1868748);
+		c.desc = game_addr(game::GF_233Earthquake_ResourceDesc);
+		c.ptr_block = game_addr(game::GF_233Earthquake_PtrBlock);
+		c.queue = game_addr(game::g_GF233Earthquake_TaskQueue);
+		c.file00 = game_addr(game::g_GF233Earthquake_File00);
+		c.file01 = game_addr(game::g_GF233Earthquake_File01);
+		c.tick = game_addr(game::GF_233Earthquake_SequenceTick);
+		c.load_cb = game_addr(game::GF_233Earthquake_LoadCallback);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline void xl_OffscreenStage_B65B00(void *blk, void *pos, void *angles)
 	{
-		x::f<int32_t (__cdecl *)(void *, void *, void *)>(us(0xB65B00))(blk, pos, angles);
+		x::f<int32_t (__cdecl *)(void *, void *, void *)>(game_addr(game::GfCinematic_RenderStageGroundOffscreen))(blk, pos, angles);
 	}
 
-	static inline int32_t xl_Sqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
+	static inline int32_t xl_Sqrt(int32_t v) { return x::f<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
 
 	static void __cdecl op_06F_OffscreenStageGround()
 	{
@@ -153,7 +153,7 @@ namespace earthquake
 		earthquake::apply_draw18(earthquake::g_eq);
 		earthquake::g_eq.vm[0x06F] = earthquake::op_06F_OffscreenStageGround;
 		earthquake::g_eq.vm[0x070] = earthquake::op_070_RideWaterColumn;
-		register_port(0xA525B0, (void *)earthquake::SequenceTask, "MAG233 Earthquake SequenceTick", 233);
+		register_port(game::GF_233Earthquake_SequenceTick, (void *)earthquake::SequenceTask, "MAG233 Earthquake SequenceTick", 233);
 	}
 }
 

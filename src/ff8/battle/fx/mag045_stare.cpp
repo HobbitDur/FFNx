@@ -22,28 +22,28 @@ namespace act
 {
 namespace stare
 {
-	static const Mod MOD_045 = { "stare", 45, 0x836570, 0x839920,
-		{ 0x0, 0x0, 0x15C357C, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2655250, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x836990, 0x836A10, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x836BA0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8397E0, 0x839820, 0x839840, 0x839860, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_045 = { "stare", 45, game::MAG_045_STARE_FL, game::MAG_043_MELTING_BUBBLE_FL,
+		{ {}, {}, game::g_Stare_DirectorPtr, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_045_EmitterQueue, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_045_Stare_EmitterTask, game::MAG_045_Stare_Emitter_SpawnDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_045_DirSyncGate, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_045_Stare_Emitter_ApplyDamage, game::MAG_045_Stare_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_045_Stare_Emitter_State3_FinishReleaseRoot, game::MAG_045_Stare_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x26543B4;
-	static const uint32_t FRAME_CURSOR = 0x1D8E054;
-	static const uint32_t DIR_PTR = 0x15C357C;
-	static const uint32_t VIEW_MATRIX = 0x2655758;
-	static const uint32_t BLEND_BUF = 0x2655428;
-	static const uint32_t PRIM_CB = 0x836FE0;
-	static const uint32_t Q_EMITTER = 0x2655250, Q_DIRECTOR = 0x2654490, Q_STAGE = 0x2654598, Q_PRIM = 0x2654FA0, Q_TINT = 0x2655240;
-	static const uint32_t ORIG_Master = 0x8366E0;
-	static const uint32_t ORIG_Eye = 0x836D60;
-	static const uint32_t ORIG_Mark = 0x839590;
-	static const uint32_t ORIG_Darken = 0x839690;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id PACKET_CURSOR = game::g_Stare_PacketCursor;
+	static constexpr game::Id FRAME_CURSOR = game::BATTLE_PACKET_WRITE_CURSOR;
+	static constexpr game::Id DIR_PTR = game::g_Stare_DirectorPtr;
+	static constexpr game::Id VIEW_MATRIX = game::g_Stare_ViewAxisMatrix;
+	static constexpr game::Id BLEND_BUF = game::g_Stare_BlendBuffer;
+	static constexpr game::Id PRIM_CB = game::MAG_045_Stare_PrimDrawCallback;
+	static constexpr game::Id Q_EMITTER = game::MAG_045_EmitterQueue, Q_DIRECTOR = game::MAG_045_DirectorQueue, Q_STAGE = game::MAG_045_StageDarkenQueue, Q_PRIM = game::MAG_045_PrimModelQueue, Q_TINT = game::MAG_045_ScreenTintQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_045_Stare_MasterTask;
+	static constexpr game::Id ORIG_Eye = game::MAG_045_Stare_EyeTask;
+	static constexpr game::Id ORIG_Mark = game::MAG_045_Stare_MarkTask;
+	static constexpr game::Id ORIG_Darken = game::MAG_045_Stare_StageDarkenTask;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace sx
 	{
-		static inline uint32_t FixedPointCrossProduct(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56BBF0))(a1, a2, a3); }
-		static inline uint32_t NormalizeVectorToFixedPoint(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BC50))(a1, a2); }
-		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x7015B0))(a1, a2); }
+		static inline uint32_t FixedPointCrossProduct(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::FixedPointCrossProduct))(a1, a2, a3); }
+		static inline uint32_t NormalizeVectorToFixedPoint(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::NormalizeVectorToFixedPoint))(a1, a2); }
+		static inline uint32_t MAG_063_sub_7015B0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(a1, a2); }
 	}
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
@@ -161,45 +161,45 @@ namespace stare
 		g_mod = &MOD_045;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(0x265574C)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x26544B8)) = us(0x2793E58);
-		states[0] = us(0x836930);
+		MEM<uint32_t>(game_addr(game::unk_265574C)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_26544B8)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_045_Stare_Master_State0_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[1] = us(0x836940);
-		states[2] = us(0x836950);
-		states[3] = us(0x836960);
-		states[4] = us(0x839870);
-		states[5] = us(0x8398B0);
-		states[6] = us(0x8398C0);
-		states[7] = us(0x8398D0);
-		states[8] = us(0x8398E0);
-		states[9] = us(0x8398F0);
-		states[10] = us(0x839910);
+		states[1] = game_addr(game::MAG_045_Stare_Master_State1_Advance);
+		states[2] = game_addr(game::MAG_045_Stare_Master_State2_WaitNoChildren);
+		states[3] = game_addr(game::MAG_045_Stare_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_045_Stare_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_045_Stare_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_045_Stare_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_045_Stare_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_045_Stare_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_045_Stare_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_045_Stare_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26553C4));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2654FB4));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26544B4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26553C4));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2654FB4));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26544B4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26553C0));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2654FB0));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26544B4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26553C0));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2654FB0));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26544B4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
-		st_836840(us(0x1D97778), us(VIEW_MATRIX));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_PRIM)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TINT)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
+		st_836840(game_addr(game::unk_1D97778), game_addr(VIEW_MATRIX));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_PRIM)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_TINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -246,11 +246,11 @@ namespace stare
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x836B80);
-		states[1] = us(0x836BD0);
-		states[2] = us(0x836C20);
-		states[3] = us(0x836C40);
-		states[4] = us(0x836C60);
+		states[0] = game_addr(game::MAG_045_Stare_Director_State0_WaitDirGate1);
+		states[1] = game_addr(game::MAG_045_Stare_Director_PlaySound);
+		states[2] = game_addr(game::MAG_045_Stare_Director_DamageCue);
+		states[3] = game_addr(game::MAG_045_Stare_Director_State3_Finish);
+		states[4] = game_addr(game::MAG_045_Stare_Director_State4_Empty);
 		st_836B30(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -260,7 +260,7 @@ namespace stare
 
 	uint32_t __cdecl st_836C20(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		if (S16(d, 0x46) < 0x20)
 			return d;
 		U16(d, 0x48) = 1;
@@ -270,21 +270,21 @@ namespace stare
 
 	uint32_t __cdecl st_836C80(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40) - 1;
 		if (ph != 0)
 			return (uint32_t)ph;
 		const uint32_t node = a1;
-		const uint32_t e0 = st_836D10(node, us(ORIG_Eye), us(0x17C4DA0), 0x1C4, 0, 0);
+		const uint32_t e0 = st_836D10(node, game_addr(ORIG_Eye), game_addr(game::unk_17C4DA0), 0x1C4, 0, 0);
 		U16(e0, 0x8A) = 0;
-		const uint32_t e1 = st_836D10(node, us(ORIG_Eye), us(0x17C4DA0), 0x1C4, 0, 0);
+		const uint32_t e1 = st_836D10(node, game_addr(ORIG_Eye), game_addr(game::unk_17C4DA0), 0x1C4, 0, 0);
 		U16(e1, 0x8A) = 1;
-		st_836D10(node, us(ORIG_Mark), us(0x17C6A14), 0x23C, 1, 0);
-		return x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(ORIG_Darken), 0x30, node);
+		st_836D10(node, game_addr(ORIG_Mark), game_addr(game::unk_17C6A14), 0x23C, 1, 0);
+		return x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(ORIG_Darken), 0x30, node);
 	}
 
 	uint32_t __cdecl st_836D10(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PRIM), a2, 0x2D0, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_PRIM), a2, 0x2D0, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		U32(t, 0x78) = (uint32_t)(int32_t)(int16_t)a4;
@@ -348,7 +348,7 @@ namespace stare
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
 		U16(L, 0x54) = U16(node, 0x86);
 		U32(L, 0x44) = U32(node, 0x7C);
 		U32(L, 0x38) = U32(node, 0x70);
@@ -356,10 +356,10 @@ namespace stare
 		U16(L, 0x52) = U16(node, 0x92);
 		U16(L, 0x4E) = U16(node, 0x8E);
 		U16(L, 0x50) = U16(node, 0x90);
-		U32(L, 0x48) = us(BLEND_BUF);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
+		return prim_play(node + 0x94, game_addr(PRIM_CB), L, 0);
 	}
 
 	uint32_t __cdecl st_836FE0(uint32_t a1, uint32_t a2, uint32_t a3)
@@ -418,7 +418,7 @@ namespace stare
 		U16(V, 4) = vz;
 		if ((flags0 & 0x1000) != 0)
 		{
-			x::GTE_SetRotMatrix(us(VIEW_MATRIX));
+			x::GTE_SetRotMatrix(game_addr(VIEW_MATRIX));
 			x::GTE_LoadV0(V);
 			x::GTE_MVMVA_RotV0();
 			x::GTE_ReadMAC123(S);
@@ -428,7 +428,7 @@ namespace stare
 			S32(M, 0x14) = t0;
 			S32(M, 0x18) = t1;
 			S32(M, 0x1C) = t2;
-			x::GTE_MatrixMultiply(us(VIEW_MATRIX), M);
+			x::GTE_MatrixMultiply(game_addr(VIEW_MATRIX), M);
 		}
 		else if ((flags0 & 0x200) != 0)
 		{
@@ -464,20 +464,20 @@ namespace stare
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
 		U16(hdr, 0x1E) = 0;
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		const uint32_t cursor = MEM<uint32_t>(us(FRAME_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(FRAME_CURSOR));
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		MEM<uint32_t>(us(FRAME_CURSOR)) = st_8372A0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(FRAME_CURSOR)) = st_8372A0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -520,7 +520,7 @@ namespace stare
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -543,15 +543,15 @@ namespace stare
 	uint32_t __cdecl st_836A10(uint32_t a1)
 	{
 		st_836A40(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x2654490), us(0x836AC0), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_045_DirectorQueue), game_addr(game::MAG_045_Stare_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl st_836A40(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t ent = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(ent, 0x1C);
 		U32(d, 0xC) = U32(ent, 0x20);
@@ -561,13 +561,13 @@ namespace stare
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)S16(d, 0xC));
 		const uint32_t r = (ang - 0x800) & 0xFFF;
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)r;
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)r;
 		return r;
 	}
 
 	uint32_t __cdecl st_836B30(uint32_t a1)
 	{
-		uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		U16(d, 0x46) = (uint16_t)(U16(d, 0x46) + 1);
 		const uint16_t req = U16(d, 0x42);
 		if (U16(d, 0x40) != req)
@@ -575,7 +575,7 @@ namespace stare
 			U16(d, 0x40) = req;
 			U16(d, 0x46) = 0;
 			st_836C80(a1);
-			d = MEM<uint32_t>(us(DIR_PTR));
+			d = MEM<uint32_t>(game_addr(DIR_PTR));
 		}
 		const uint16_t next = U16(d, 0x44);
 		if (U16(d, 0x42) != next)
@@ -590,7 +590,7 @@ namespace stare
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(us(0x15C3580), 0, 0x80);
+		x::BdPlaySE(game_addr(game::unk_15C3580), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
@@ -1327,7 +1327,7 @@ namespace stare
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -1335,7 +1335,7 @@ namespace stare
 
 	uint32_t __cdecl st_8397E0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -1349,69 +1349,69 @@ namespace stare
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x836930, (void *)a_73A0D0, "045 MAG_045_sub_836930" },
-		{ 0x836940, (void *)a_73A0D0, "045 MAG_045_sub_836940" },
-		{ 0x836960, (void *)a_73A170, "045 MAG_045_sub_836960" },
-		{ 0x836990, (void *)a_73A1A0, "045 MAG_045_sub_836990" },
-		{ 0x836B80, (void *)a_73B790, "045 sub_836B80" },
-		{ 0x836BA0, (void *)a_73B640, "045 sub_836BA0" },
-		{ 0x836C00, (void *)a_73B7E0, "045 sub_836C00" },
-		{ 0x836C40, (void *)a_7475A0, "045 sub_836C40" },
-		{ 0x836C60, (void *)a_73A6D0, "045 nullsub_1577" },
-		{ 0x836C70, (void *)a_73A6D0, "045 nullsub_1578" },
-		{ 0x836D60, (void *)a_73A380, "045 sub_836D60" },
-		{ 0x838360, (void *)a_73D770, "045 sub_838360" },
-		{ 0x8385B0, (void *)a_73D9C0, "045 sub_8385B0" },
-		{ 0x839580, (void *)a_73A6D0, "045 nullsub_1579" },
-		{ 0x839590, (void *)a_73A380, "045 sub_839590" },
-		{ 0x839680, (void *)a_73A6D0, "045 nullsub_1580" },
-		{ 0x839690, (void *)a_73F110, "045 sub_839690" },
-		{ 0x839700, (void *)a_7335D0, "045 sub_839700" },
-		{ 0x8397D0, (void *)a_73A6D0, "045 nullsub_1581" },
-		{ 0x839820, (void *)a_7474B0, "045 MAG_045_sub_839820" },
-		{ 0x839840, (void *)a_7474D0, "045 MAG_045_sub_839840" },
-		{ 0x839860, (void *)a_73A6D0, "045 nullsub_1582" },
-		{ 0x839870, (void *)a_747500, "045 MAG_045_sub_839870" },
-		{ 0x8398B0, (void *)a_73A0D0, "045 MAG_045_sub_8398B0" },
-		{ 0x8398C0, (void *)a_747550, "045 MAG_045_sub_8398C0" },
-		{ 0x8398D0, (void *)a_73A0D0, "045 MAG_045_sub_8398D0" },
-		{ 0x8398E0, (void *)a_73A0D0, "045 MAG_045_sub_8398E0" },
-		{ 0x8398F0, (void *)a_7475A0, "045 MAG_045_sub_8398F0" },
-		{ 0x839910, (void *)a_73A6D0, "045 nullsub_1576" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_045_Stare_Master_State0_Advance, (void *)a_73A0D0, "045 MAG_045_sub_836930" },
+		{ game::MAG_045_Stare_Master_State1_Advance, (void *)a_73A0D0, "045 MAG_045_sub_836940" },
+		{ game::MAG_045_Stare_Master_State3_SpawnEmitter, (void *)a_73A170, "045 MAG_045_sub_836960" },
+		{ game::MAG_045_Stare_EmitterTask, (void *)a_73A1A0, "045 MAG_045_sub_836990" },
+		{ game::MAG_045_Stare_Director_State0_WaitDirGate1, (void *)a_73B790, "045 sub_836B80" },
+		{ game::MAG_045_DirSyncGate, (void *)a_73B640, "045 sub_836BA0" },
+		{ game::MAG_045_DirPhaseGE, (void *)a_73B7E0, "045 sub_836C00" },
+		{ game::MAG_045_Stare_Director_State3_Finish, (void *)a_7475A0, "045 sub_836C40" },
+		{ game::MAG_045_Stare_Director_State4_Empty, (void *)a_73A6D0, "045 nullsub_1577" },
+		{ game::MAG_045_St_Empty, (void *)a_73A6D0, "045 nullsub_1578" },
+		{ game::MAG_045_Stare_EyeTask, (void *)a_73A380, "045 sub_836D60" },
+		{ game::MAG_045_EmitG3, (void *)a_73D770, "045 sub_838360" },
+		{ game::MAG_045_EmitG4, (void *)a_73D9C0, "045 sub_8385B0" },
+		{ game::MAG_045_Stare_Eye_State2_Empty, (void *)a_73A6D0, "045 nullsub_1579" },
+		{ game::MAG_045_Stare_MarkTask, (void *)a_73A380, "045 sub_839590" },
+		{ game::MAG_045_Stare_Mark_State2_Empty, (void *)a_73A6D0, "045 nullsub_1580" },
+		{ game::MAG_045_Stare_StageDarkenTask, (void *)a_73F110, "045 sub_839690" },
+		{ game::MAG_045_Stare_StageDarken_State0_ResetEntityRecords, (void *)a_7335D0, "045 sub_839700" },
+		{ game::MAG_045_Stare_StageDarken_State4_Empty, (void *)a_73A6D0, "045 nullsub_1581" },
+		{ game::MAG_045_Stare_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "045 MAG_045_sub_839820" },
+		{ game::MAG_045_Stare_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "045 MAG_045_sub_839840" },
+		{ game::MAG_045_Stare_Emitter_State4_Empty, (void *)a_73A6D0, "045 nullsub_1582" },
+		{ game::MAG_045_Stare_Master_State4_NextTargetLoop, (void *)a_747500, "045 MAG_045_sub_839870" },
+		{ game::MAG_045_Stare_Master_State5_Advance, (void *)a_73A0D0, "045 MAG_045_sub_8398B0" },
+		{ game::MAG_045_Stare_Master_State6_WaitQueuesEmpty, (void *)a_747550, "045 MAG_045_sub_8398C0" },
+		{ game::MAG_045_Stare_Master_State7_Advance, (void *)a_73A0D0, "045 MAG_045_sub_8398D0" },
+		{ game::MAG_045_Stare_Master_State8_Advance, (void *)a_73A0D0, "045 MAG_045_sub_8398E0" },
+		{ game::MAG_045_Stare_Master_State9_Finish, (void *)a_7475A0, "045 MAG_045_sub_8398F0" },
+		{ game::MAG_045_Stare_Master_State10_Empty, (void *)a_73A6D0, "045 nullsub_1576" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x8366E0, (void *)st_8366E0, "045 st_8366E0" },
-		{ 0x836840, (void *)st_836840, "045 st_836840" },
-		{ 0x836950, (void *)st_836950, "045 st_836950" },
-		{ 0x836A10, (void *)st_836A10, "045 st_836A10" },
-		{ 0x836A40, (void *)st_836A40, "045 st_836A40" },
-		{ 0x836AC0, (void *)st_836AC0, "045 st_836AC0" },
-		{ 0x836B30, (void *)st_836B30, "045 st_836B30" },
-		{ 0x836BD0, (void *)st_836BD0, "045 st_836BD0" },
-		{ 0x836C20, (void *)st_836C20, "045 st_836C20" },
-		{ 0x836C80, (void *)st_836C80, "045 st_836C80" },
-		{ 0x836D10, (void *)st_836D10, "045 st_836D10" },
-		{ 0x836DC0, (void *)st_836DC0, "045 st_836DC0" },
-		{ 0x836EB0, (void *)st_836EB0, "045 st_836EB0" },
-		{ 0x836FE0, (void *)st_836FE0, "045 st_836FE0" },
-		{ 0x8372A0, (void *)st_8372A0, "045 st_8372A0" },
-		{ 0x8373D0, (void *)st_8373D0, "045 st_8373D0" },
-		{ 0x8375F0, (void *)st_8375F0, "045 st_8375F0" },
-		{ 0x837880, (void *)st_837880, "045 st_837880" },
-		{ 0x837D70, (void *)st_837D70, "045 st_837D70" },
-		{ 0x838890, (void *)st_838890, "045 st_838890" },
-		{ 0x838DF0, (void *)st_838DF0, "045 st_838DF0" },
-		{ 0x8394C0, (void *)st_8394C0, "045 st_8394C0" },
-		{ 0x8395F0, (void *)st_8395F0, "045 st_8395F0" },
-		{ 0x839660, (void *)st_839660, "045 st_839660" },
-		{ 0x839740, (void *)st_839740, "045 st_839740" },
-		{ 0x839780, (void *)st_839780, "045 st_839780" },
-		{ 0x839790, (void *)st_839790, "045 st_839790" },
-		{ 0x8397E0, (void *)st_8397E0, "045 st_8397E0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_045_Stare_MasterTask, (void *)st_8366E0, "045 st_8366E0" },
+		{ game::MAG_045_Stare_BuildViewAxisMatrix, (void *)st_836840, "045 st_836840" },
+		{ game::MAG_045_Stare_Master_State2_WaitNoChildren, (void *)st_836950, "045 st_836950" },
+		{ game::MAG_045_Stare_Emitter_SpawnDirector, (void *)st_836A10, "045 st_836A10" },
+		{ game::MAG_045_Stare_InitDirectorBlock, (void *)st_836A40, "045 st_836A40" },
+		{ game::MAG_045_Stare_DirectorTask, (void *)st_836AC0, "045 st_836AC0" },
+		{ game::MAG_045_Stare_Director_PhaseStep, (void *)st_836B30, "045 st_836B30" },
+		{ game::MAG_045_Stare_Director_PlaySound, (void *)st_836BD0, "045 st_836BD0" },
+		{ game::MAG_045_Stare_Director_DamageCue, (void *)st_836C20, "045 st_836C20" },
+		{ game::MAG_045_Stare_StartPhase, (void *)st_836C80, "045 st_836C80" },
+		{ game::MAG_045_Stare_SpawnPrimTask, (void *)st_836D10, "045 st_836D10" },
+		{ game::MAG_045_Stare_Eye_Init, (void *)st_836DC0, "045 st_836DC0" },
+		{ game::MAG_045_Stare_PlayPrimModel, (void *)st_836EB0, "045 st_836EB0" },
+		{ game::MAG_045_Stare_PrimDrawCallback, (void *)st_836FE0, "045 st_836FE0" },
+		{ game::MAG_045_Stare_RenderPrimModel, (void *)st_8372A0, "045 st_8372A0" },
+		{ game::MAG_045_PrimList_FlatTri, (void *)st_8373D0, "045 st_8373D0" },
+		{ game::MAG_045_PrimList_FlatQuad, (void *)st_8375F0, "045 st_8375F0" },
+		{ game::MAG_045_PrimList_TexTri, (void *)st_837880, "045 st_837880" },
+		{ game::MAG_045_PrimList_TexQuad, (void *)st_837D70, "045 st_837D70" },
+		{ game::MAG_045_PrimList_GT3Scroll, (void *)st_838890, "045 st_838890" },
+		{ game::MAG_045_PrimList_GT4Scroll, (void *)st_838DF0, "045 st_838DF0" },
+		{ game::MAG_045_Stare_Eye_Follow, (void *)st_8394C0, "045 st_8394C0" },
+		{ game::MAG_045_Stare_Mark_Init, (void *)st_8395F0, "045 st_8395F0" },
+		{ game::MAG_045_Stare_Mark_State1_PlayModel, (void *)st_839660, "045 st_839660" },
+		{ game::MAG_045_Stare_Darken_FadeIn, (void *)st_839740, "045 st_839740" },
+		{ game::MAG_045_Stare_Darken_Hold, (void *)st_839780, "045 st_839780" },
+		{ game::MAG_045_Stare_Darken_FadeOut, (void *)st_839790, "045 st_839790" },
+		{ game::MAG_045_Stare_Emitter_ApplyDamage, (void *)st_8397E0, "045 st_8397E0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

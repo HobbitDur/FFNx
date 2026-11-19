@@ -22,35 +22,35 @@ namespace act
 {
 namespace phoenixdown
 {
-	static const Mod MOD_005 = { "phoenixdown", 5, 0x8D4430, 0x8D5060,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8D4CB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_005 = { "phoenixdown", 5, game::MAG_005_PHOENIXDOWN_FL, game::MAG_004_DOUBLE_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_005_PHOENIXDOWN_StepCounterLimit, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x27618A4;
-	static const uint32_t ARENA_ODD = 0x276C294;
-	static const uint32_t ARENA_EVEN = 0x276C290;
-	static const uint32_t Q_EMITTER = 0x2769CF0;
-	static const uint32_t Q_UNUSED = 0x276C298;
-	static const uint32_t Q_SPRITE = 0x2769CD8;
-	static const uint32_t Q_GLINT = 0x276C280;
-	static const uint32_t GLINT_CURSOR_PTR = 0x2792E74;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_005_PHOENIXDOWN_PacketCursor;
+	static constexpr game::Id ARENA_ODD = game::MAGICEFFECT05_TEX_VRAM_A;
+	static constexpr game::Id ARENA_EVEN = game::MAGICEFFECT05_TEX_VRAM_B;
+	static constexpr game::Id Q_EMITTER = game::MAG_005_PHOENIXDOWN_EmitterQueue;
+	static constexpr game::Id Q_UNUSED = game::MAG_005_PHOENIXDOWN_UnusedQueue;
+	static constexpr game::Id Q_SPRITE = game::MAG_005_PHOENIXDOWN_SpriteQueue;
+	static constexpr game::Id Q_GLINT = game::MAG_005_PHOENIXDOWN_GlintQueue;
+	static constexpr game::Id GLINT_CURSOR_PTR = game::Effect_GlintPacketCursorPtr;
 
-	static const uint32_t ORIG_Master = 0x8D4530;
-	static const uint32_t ORIG_Emitter = 0x8D4640;
-	static const uint32_t ORIG_Fall = 0x8D4BA0;
-	static const uint32_t ORIG_Ring = 0x8D4CF0;
-	static const uint32_t ORIG_Sparkle = 0x8D4E60;
-	static const uint32_t ORIG_Glint = 0x8DCC20;
-	static const void *SOUND_PhoenixDown() { return (const void *)us(0x163E2A8); }
-	static const uint32_t SEQ_Revive = 0x163E7B0;
-	static const uint32_t SEQ_RiseA = 0x163E2AC;
-	static const uint32_t SEQ_RiseB = 0x163E458;
-	static const uint32_t SEQ_Ring = 0x163E604;
-	static const uint32_t SEQ_Fall = 0x163E80C;
+	static constexpr game::Id ORIG_Master = game::MAG_005_PHOENIXDOWN_Tick;
+	static constexpr game::Id ORIG_Emitter = game::MAG_005_PHOENIXDOWN_Emitter_Tick;
+	static constexpr game::Id ORIG_Fall = game::MAG_005_PHOENIXDOWN_FallSparkle_Tick;
+	static constexpr game::Id ORIG_Ring = game::MAG_005_PHOENIXDOWN_RingSparkle_Tick;
+	static constexpr game::Id ORIG_Sparkle = game::MAG_005_PHOENIXDOWN_Sparkle_Tick;
+	static constexpr game::Id ORIG_Glint = game::Effect_Glint_Tick;
+	static const void *SOUND_PhoenixDown() { return (const void *)game_addr(game::MAG_005_PHOENIXDOWN_Sound); }
+	static constexpr game::Id SEQ_Revive = game::MAG_005_PHOENIXDOWN_SeqRevive;
+	static constexpr game::Id SEQ_RiseA = game::MAG_005_PHOENIXDOWN_SeqRiseA;
+	static constexpr game::Id SEQ_RiseB = game::MAG_005_PHOENIXDOWN_SeqRiseB;
+	static constexpr game::Id SEQ_Ring = game::MAG_005_PHOENIXDOWN_SeqRing;
+	static constexpr game::Id SEQ_Fall = game::MAG_005_PHOENIXDOWN_SeqFall;
 
-	inline uint32_t Effect_CopyAnchorXZFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC6E0))(node, out); }
-	inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t scale, uint32_t offset) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(pos, scale, offset); }
-	inline uint32_t InitEffectSequenceFromData(uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(hdr, ot, mode, cursor); }
+	inline uint32_t Effect_CopyAnchorXZFromSource(uint32_t node, uint32_t out) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Effect_CopyAnchorXZFromSource))(node, out); }
+	inline uint32_t TransformCameraByShadowRotation(uint32_t pos, uint32_t scale, uint32_t offset) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(pos, scale, offset); }
+	inline uint32_t InitEffectSequenceFromData(uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(hdr, ot, mode, cursor); }
 
 	static inline uint32_t task_end(uint32_t node, uint8_t status)
 	{
@@ -76,21 +76,21 @@ namespace phoenixdown
 		g_mod = &MOD_005;
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x8D4600);
-		states[1] = us(0x8D4610);
-		states[2] = us(0x8D5000);
-		states[3] = us(0x8D5030);
-		states[4] = us(0x8D5050);
+		states[0] = game_addr(game::MAG_005_PHOENIXDOWN_Root_State0_Advance);
+		states[1] = game_addr(game::MAG_005_PHOENIXDOWN_SpawnEmitter);
+		states[2] = game_addr(game::MAG_005_PHOENIXDOWN_NextAction);
+		states[3] = game_addr(game::MAG_005_PHOENIXDOWN_WaitChildren);
+		states[4] = game_addr(game::MAG_005_PHOENIXDOWN_Root_State4_Empty);
 		if ((U8(node, 0x5C) & 1) != 0)
-			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = MEM<uint32_t>(game_addr(ARENA_ODD));
 		else
-			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = MEM<uint32_t>(game_addr(ARENA_EVEN));
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
-		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_UNUSED)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPRITE)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_GLINT)));
+		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_UNUSED)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_SPRITE)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_GLINT)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -100,7 +100,7 @@ namespace phoenixdown
 	static uint32_t __cdecl SpawnEmitter(uint32_t a1)
 	{
 		U8(a1, 0x63) = 1;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_EMITTER), us(ORIG_Emitter), 0x64, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_EMITTER), game_addr(ORIG_Emitter), 0x64, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -133,7 +133,7 @@ namespace phoenixdown
 
 	static uint32_t SpawnSparkle(uint32_t parent, uint32_t seq, uint32_t last, uint32_t offset)
 	{
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Sparkle), 0x70, parent);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Sparkle), 0x70, parent);
 		Effect_CopyAnchorXZFromSource(s, s + 0x1C);
 		U16(s, 0x54) = (uint16_t)offset;
 		U32(s, 0x4C) = seq;
@@ -162,7 +162,7 @@ namespace phoenixdown
 				radius = S16(node, 0x58);
 			if (radius == 0)
 				radius = 1;
-			const uint32_t seq = (x::CrtRand() & 1) != 0 ? us(SEQ_RiseA) : us(SEQ_RiseB);
+			const uint32_t seq = (x::CrtRand() & 1) != 0 ? game_addr(SEQ_RiseA) : game_addr(SEQ_RiseB);
 			const uint32_t s = SpawnSparkle(node, seq, 0xF, 0xFFFFFE00);
 			const int32_t angle = (int32_t)(x::CrtRand() & 0xFFF);
 			const int32_t dist = (int16_t)((int32_t)x::CrtRand() % (int32_t)radius);
@@ -179,11 +179,11 @@ namespace phoenixdown
 	static void SpawnRevive(uint32_t node)
 	{
 		if (U16(node, 0x24) == 0)
-			SpawnSparkle(node, us(SEQ_Revive), 2, 0xFFFFFC00);
+			SpawnSparkle(node, game_addr(SEQ_Revive), 2, 0xFFFFFC00);
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x16 || (t & 1) != 0)
 			return;
-		const uint32_t s = SpawnSparkle(node, us(SEQ_Revive), 2, 0xFFFFFC00);
+		const uint32_t s = SpawnSparkle(node, game_addr(SEQ_Revive), 2, 0xFFFFFC00);
 		int16_t dx = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
 		const int16_t dy = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x5A) + 1));
 		int16_t dz = (int16_t)((int32_t)(x::CrtRand() & 0x7FFF) % (S16(node, 0x58) / 2 + 1));
@@ -201,12 +201,12 @@ namespace phoenixdown
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0xA || t >= 0x1E)
 			return;
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Ring), 0x70, node);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Ring), 0x70, node);
 		Effect_CopyAnchorXZFromSource(s, s + 0x1C);
 		U16(s, 0x1E) = (uint16_t)(U16(s, 0x1E) + U16(node, 0x62));
 		U32(s, 0x60) = U32(s, 0x1C);
 		U32(s, 0x64) = U32(s, 0x20);
-		U32(s, 0x4C) = us(SEQ_Ring);
+		U32(s, 0x4C) = game_addr(SEQ_Ring);
 		U16(s, 0x52) = 0xF;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -218,8 +218,8 @@ namespace phoenixdown
 		const int16_t t = S16(node, 0x24);
 		if (t <= 0x14 || t >= 0x25)
 			return;
-		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_SPRITE), us(ORIG_Fall), 0x70, node);
-		U32(s, 0x4C) = us(SEQ_Fall);
+		const uint32_t s = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPRITE), game_addr(ORIG_Fall), 0x70, node);
+		U32(s, 0x4C) = game_addr(SEQ_Fall);
 		U16(s, 0x52) = 9;
 		U16(s, 0x68) = 0x1000;
 		U16(s, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -246,8 +246,8 @@ namespace phoenixdown
 			return;
 		do
 		{
-			MEM<uint32_t>(us(GLINT_CURSOR_PTR)) = us(PACKET_CURSOR);
-			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(us(Q_GLINT), us(ORIG_Glint), 0x5C, node);
+			MEM<uint32_t>(game_addr(GLINT_CURSOR_PTR)) = game_addr(PACKET_CURSOR);
+			const uint32_t s = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_GLINT), game_addr(ORIG_Glint), 0x5C, node);
 			U16(s, 0x56) = 8;
 			U8(s, 0x4C) = 0x10;
 			U8(s, 0x4D) = 0x10;
@@ -270,11 +270,11 @@ namespace phoenixdown
 	{
 		const uint32_t node = a1;
 		uint32_t states[5];
-		states[0] = us(0x8D4F10);
-		states[1] = us(0x8D4F50);
-		states[2] = us(0x8D4F70);
-		states[3] = us(0x8D4FA0);
-		states[4] = us(0x8D4FF0);
+		states[0] = game_addr(game::MAG_005_PHOENIXDOWN_Emitter_Init);
+		states[1] = game_addr(game::MAG_005_PHOENIXDOWN_Emitter_Grow);
+		states[2] = game_addr(game::MAG_005_PHOENIXDOWN_Emitter_Spread);
+		states[3] = game_addr(game::MAG_005_PHOENIXDOWN_Emitter_End);
+		states[4] = game_addr(game::MAG_005_PHOENIXDOWN_Emitter_State4_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -357,7 +357,7 @@ namespace phoenixdown
 		U32(hdr, 0) = U32(node, 0x4C);
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -370,7 +370,7 @@ namespace phoenixdown
 		U32(hdr, 0) = U32(node, 0x4C);
 		U16(hdr, 4) = U16(node, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(PACKET_CURSOR)));
 		x::Field_Free(0xB4);
 	}
 
@@ -378,9 +378,9 @@ namespace phoenixdown
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8D4C70);
-		states[1] = us(0x8D4C80);
-		states[2] = us(0x8D4CE0);
+		states[0] = game_addr(game::MAG_005_PHOENIXDOWN_FallSparkle_State0_Advance);
+		states[1] = game_addr(game::MAG_005_PHOENIXDOWN_FallSparkle_Step);
+		states[2] = game_addr(game::MAG_005_PHOENIXDOWN_FallSparkle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		DrawFall(node);
 		const uint8_t status = U8(node, 0x26);
@@ -405,9 +405,9 @@ namespace phoenixdown
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8D4DD0);
-		states[1] = us(0x8D4DE0);
-		states[2] = us(0x8D4E50);
+		states[0] = game_addr(game::MAG_005_PHOENIXDOWN_RingSparkle_State0_Advance);
+		states[1] = game_addr(game::MAG_005_PHOENIXDOWN_RingSparkle_Orbit);
+		states[2] = game_addr(game::MAG_005_PHOENIXDOWN_RingSparkle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
 		DrawScaled(node, U16(node, 0x68));
@@ -441,9 +441,9 @@ namespace phoenixdown
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8D4ED0);
-		states[1] = us(0x8D4EE0);
-		states[2] = us(0x8D4F00);
+		states[0] = game_addr(game::MAG_005_PHOENIXDOWN_Sparkle_State0_Advance);
+		states[1] = game_addr(game::MAG_005_PHOENIXDOWN_Sparkle_State1_CounterFinish);
+		states[2] = game_addr(game::MAG_005_PHOENIXDOWN_Sparkle_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
 		DrawScaled(node, U16(node, 0x68));
@@ -452,37 +452,37 @@ namespace phoenixdown
 		return task_end(node, status);
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x8D4600, (void *)a_73A0D0, "005 MAG_005_PHOENIXDOWN_Root_State0_Advance" },
-		{ 0x8D4C70, (void *)a_73A0D0, "005 sub_8D4C70" },
-		{ 0x8D4CB0, (void *)a_743C20, "005 sub_8D4CB0" },
-		{ 0x8D4CE0, (void *)a_73A6D0, "005 nullsub_1854" },
-		{ 0x8D4DD0, (void *)a_73A0D0, "005 sub_8D4DD0" },
-		{ 0x8D4E50, (void *)a_73A6D0, "005 nullsub_1855" },
-		{ 0x8D4ED0, (void *)a_73A0D0, "005 sub_8D4ED0" },
-		{ 0x8D4EE0, (void *)a_743C00, "005 sub_8D4EE0" },
-		{ 0x8D4F00, (void *)a_73A6D0, "005 nullsub_1856" },
-		{ 0x8D4FF0, (void *)a_73A6D0, "005 nullsub_1857" },
-		{ 0x8D5050, (void *)a_73A6D0, "005 nullsub_1858" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_005_PHOENIXDOWN_Root_State0_Advance, (void *)a_73A0D0, "005 MAG_005_PHOENIXDOWN_Root_State0_Advance" },
+		{ game::MAG_005_PHOENIXDOWN_FallSparkle_State0_Advance, (void *)a_73A0D0, "005 sub_8D4C70" },
+		{ game::MAG_005_PHOENIXDOWN_StepCounterLimit, (void *)a_743C20, "005 sub_8D4CB0" },
+		{ game::MAG_005_PHOENIXDOWN_FallSparkle_State2_Empty, (void *)a_73A6D0, "005 nullsub_1854" },
+		{ game::MAG_005_PHOENIXDOWN_RingSparkle_State0_Advance, (void *)a_73A0D0, "005 sub_8D4DD0" },
+		{ game::MAG_005_PHOENIXDOWN_RingSparkle_State2_Empty, (void *)a_73A6D0, "005 nullsub_1855" },
+		{ game::MAG_005_PHOENIXDOWN_Sparkle_State0_Advance, (void *)a_73A0D0, "005 sub_8D4ED0" },
+		{ game::MAG_005_PHOENIXDOWN_Sparkle_State1_CounterFinish, (void *)a_743C00, "005 sub_8D4EE0" },
+		{ game::MAG_005_PHOENIXDOWN_Sparkle_State2_Empty, (void *)a_73A6D0, "005 nullsub_1856" },
+		{ game::MAG_005_PHOENIXDOWN_Emitter_State4_Empty, (void *)a_73A6D0, "005 nullsub_1857" },
+		{ game::MAG_005_PHOENIXDOWN_Root_State4_Empty, (void *)a_73A6D0, "005 nullsub_1858" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
 		{ ORIG_Master, (void *)Master, "005 Phoenix Down Master" },
-		{ 0x8D4610, (void *)SpawnEmitter, "005 SpawnEmitter" },
-		{ 0x8D5000, (void *)NextAction, "005 NextAction" },
-		{ 0x8D5030, (void *)WaitChildren, "005 WaitChildren" },
+		{ game::MAG_005_PHOENIXDOWN_SpawnEmitter, (void *)SpawnEmitter, "005 SpawnEmitter" },
+		{ game::MAG_005_PHOENIXDOWN_NextAction, (void *)NextAction, "005 NextAction" },
+		{ game::MAG_005_PHOENIXDOWN_WaitChildren, (void *)WaitChildren, "005 WaitChildren" },
 		{ ORIG_Emitter, (void *)Emitter, "005 Emitter" },
-		{ 0x8D4F10, (void *)EmitterInit, "005 EmitterInit" },
-		{ 0x8D4F50, (void *)EmitterGrow, "005 EmitterGrow" },
-		{ 0x8D4F70, (void *)EmitterSpread, "005 EmitterSpread" },
-		{ 0x8D4FA0, (void *)EmitterEnd, "005 EmitterEnd" },
+		{ game::MAG_005_PHOENIXDOWN_Emitter_Init, (void *)EmitterInit, "005 EmitterInit" },
+		{ game::MAG_005_PHOENIXDOWN_Emitter_Grow, (void *)EmitterGrow, "005 EmitterGrow" },
+		{ game::MAG_005_PHOENIXDOWN_Emitter_Spread, (void *)EmitterSpread, "005 EmitterSpread" },
+		{ game::MAG_005_PHOENIXDOWN_Emitter_End, (void *)EmitterEnd, "005 EmitterEnd" },
 		{ ORIG_Fall, (void *)Fall, "005 Fall" },
-		{ 0x8D4C80, (void *)FallStep, "005 FallStep" },
+		{ game::MAG_005_PHOENIXDOWN_FallSparkle_Step, (void *)FallStep, "005 FallStep" },
 		{ ORIG_Ring, (void *)Ring, "005 Ring" },
-		{ 0x8D4DE0, (void *)RingStep, "005 RingStep" },
+		{ game::MAG_005_PHOENIXDOWN_RingSparkle_Orbit, (void *)RingStep, "005 RingStep" },
 		{ ORIG_Sparkle, (void *)Sparkle, "005 Sparkle" },
-		{ 0, nullptr, nullptr }
+		{ {}, nullptr, nullptr }
 	};
 }
 }

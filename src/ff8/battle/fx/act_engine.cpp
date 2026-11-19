@@ -23,942 +23,942 @@ namespace ff8fx
 {
 namespace act
 {
-	const Mod MOD_090 = { "tonberry", 90, 0x762320, 0x7684D0,
-		{ 0x15474D0, 0x0, 0x1547168, 0x1547510, 0x154EB08, 0x259EFB4, 0x0, 0x0, 0x0, 0x0, 0x25A4C1C, 0x25A4C28, 0x25A4C20, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25A2118, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x25A2B80, 0x0, 0x0, 0x25A2CF8, 0x25A3DEC, 0x0, 0x0, 0x0, 0x25A4008, 0x0, 0x0, 0x0, 0x25A4C18, 0x0 },
-		{ 0x0, 0x762E60, 0x762E90, 0x763690, 0x763790, 0x763920, 0x763970, 0x7639C0, 0x7639E0, 0x763A00, 0x763A30, 0x763A80, 0x763AA0, 0x763AC0, 0x763B10, 0x763B30, 0x763B60, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x762690, 0x762710, 0x7628B0, 0x762A50, 0x762A80, 0x762AB0, 0x762AC0, 0x762AD0, 0x762AE0, 0x762AF0, 0x762B30, 0x762BA0, 0x763C10, 0x762EC0, 0x762EE0, 0x7631D0, 0x763520, 0x763740, 0x763820, 0x763870, 0x763940, 0x763B50, 0x0, 0x764260, 0x767150, 0x767190, 0x767460, 0x767480, 0x7674D0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x766A40, 0x766F50, 0x768370, 0x7683B0, 0x7683D0, 0x7683F0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
-	const Mod MOD_095 = { "siren", 95, 0x739D80, 0x7475D0,
-		{ 0x0, 0x0, 0x1533010, 0x15339D0, 0x1533D18, 0x1D969A8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x257F8A0, 0x257F8A4, 0x257F988, 0x257F9AC, 0x257F9B0, 0x257FA90, 0x2585AE0, 0x2585E38, 0x2585EF0, 0x258A010, 0x258A020, 0x258A024, 0x258BA90, 0x258BE20, 0x258BE30, 0x258BFA0, 0x258BFA4, 0x258BFA8, 0x258EAA0, 0x258EC40, 0x258EC50, 0x258EC54, 0x258EF98, 0x258FB40, 0x258FB48, 0x258FB68, 0x258FB70, 0x258FB78 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x73A0D0, 0x73A0E0, 0x73A0F0, 0x73A170, 0x73A1A0, 0x73A220, 0x73A3E0, 0x73A580, 0x73A5B0, 0x73A5E0, 0x73A5F0, 0x73A600, 0x73A610, 0x73A620, 0x73A660, 0x73A6D0, 0x73A950, 0x73AAE0, 0x73AB20, 0x73AE10, 0x73B160, 0x73B430, 0x73B520, 0x73B570, 0x73B640, 0x73B770, 0x73B7E0, 0x73C3B0, 0x73F180, 0x73F1D0, 0x73F1E0, 0x73F220, 0x73F240, 0x73FB40, 0x73FC20, 0x73FDC0, 0x73FE90, 0x73FFB0, 0x740210, 0x7407C0, 0x740910, 0x740F70, 0x740FC0, 0x741050, 0x741120, 0x7418B0, 0x7419C0, 0x741A40, 0x741A70, 0x742290, 0x7422C0, 0x7423A0, 0x7424C0, 0x742610, 0x742CA0, 0x742CD0, 0x742EB0, 0x742FF0, 0x743720, 0x743C20, 0x747440, 0x7474B0, 0x7474D0, 0x7474F0, 0x747500, 0x747540, 0x747550, 0x747560, 0x747590, 0x7475A0, 0x7475C0 } };
-	const Mod MOD_096 = { "minimog", 96, 0x731DC0, 0x739D80,
-		{ 0x152BBA0, 0x1532F80, 0x152BB90, 0x152BC00, 0x0, 0x1D969A8, 0x257B748, 0x257F4D4, 0x257F698, 0x257F720, 0x257F728, 0x257F730, 0x257B740, 0x0, 0x0, 0x0, 0x257B850, 0x0, 0x257CF20, 0x0, 0x0, 0x0, 0x0, 0x0, 0x257E258, 0x0, 0x257E268, 0x0, 0x0, 0x257E3E0, 0x257F4D8, 0x0, 0x257F688, 0x257F68C, 0x0, 0x257F704, 0x0, 0x257F71C, 0x0, 0x257F72C },
-		{ 0x732160, 0x732AC0, 0x7332C0, 0x733310, 0x733340, 0x733370, 0x7333A0, 0x7333D0, 0x733400, 0x733430, 0x733460, 0x733490, 0x7334C0, 0x7334F0, 0x733510, 0x733530, 0x733560, 0x7348D0, 0x7353B0, 0x735440, 0x7354A0, 0x7355E0, 0x735720, 0x735930, 0x735BB0, 0x735DF0, 0x736090, 0x7362C0, 0x736580, 0x7367E0, 0x736AC0, 0x736C00, 0x736C40, 0x737ED0, 0x737F20, 0x737F50, 0x737FD0, 0x7386C0, 0x738710, 0x7387B0, 0x738870, 0x7390C0, 0x7394C0, 0x739550, 0x739960, 0x0, 0x0, 0x0, 0x0, 0x7321D0, 0x732250, 0x7323F0, 0x732590, 0x7325C0, 0x7325F0, 0x732600, 0x732610, 0x732620, 0x732630, 0x732670, 0x7326E0, 0x733A80, 0x0, 0x732B10, 0x732E00, 0x733150, 0x0, 0x0, 0x0, 0x732920, 0x733550, 0x7329E0, 0x0, 0x733700, 0x733730, 0x733760, 0x733780, 0x7337C0, 0x734A80, 0x734B60, 0x734D00, 0x734DD0, 0x734EF0, 0x735150, 0x736B80, 0x736CD0, 0x737330, 0x737380, 0x737410, 0x7374E0, 0x737C70, 0x737D80, 0x737E00, 0x737E30, 0x738650, 0x738680, 0x738760, 0x738880, 0x7389D0, 0x739060, 0x739090, 0x739270, 0x7393B0, 0x0, 0x0, 0x739BF0, 0x739C60, 0x739C80, 0x739CA0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
-	const Mod MOD_097 = { "chocofire", 97, 0x729A40, 0x731DC0,
-		{ 0x0, 0x152BB10, 0x152B5B8, 0x152BA30, 0x152BAC8, 0x1D969A8, 0x2575270, 0x257AFB4, 0x257B178, 0x257B5C0, 0x257B5C8, 0x0, 0x2575268, 0x0, 0x0, 0x0, 0x2575378, 0x0, 0x2578028, 0x257802C, 0x0, 0x0, 0x0, 0x0, 0x2579D38, 0x0, 0x2579D48, 0x0, 0x0, 0x2579EC0, 0x257AFB8, 0x0, 0x0, 0x257B16C, 0x0, 0x0, 0x0, 0x257B5BC, 0x257B5C4, 0x257B5CC },
-		{ 0x729DB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x72B780, 0x72B8C0, 0x72BA00, 0x72BC10, 0x72BE90, 0x72C0D0, 0x72C370, 0x72C5A0, 0x72C860, 0x72CAC0, 0x0, 0x0, 0x0, 0x0, 0x72E4D0, 0x72E500, 0x72E580, 0x72EC70, 0x72ECC0, 0x72ED60, 0x72EE20, 0x72F670, 0x72FA70, 0x0, 0x730A10, 0x0, 0x0, 0x0, 0x0, 0x729E20, 0x729EA0, 0x72A050, 0x72A1F0, 0x72A220, 0x72A250, 0x72A260, 0x72A270, 0x72A280, 0x72A290, 0x72A2D0, 0x72A340, 0x730590, 0x730490, 0x72FC90, 0x72FF80, 0x7302D0, 0x0, 0x0, 0x0, 0x730EC0, 0x730550, 0x730E80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x72AD60, 0x72AE40, 0x72AFE0, 0x72B0B0, 0x72B1D0, 0x72B430, 0x72CE60, 0x0, 0x72D610, 0x72D660, 0x0, 0x0, 0x0, 0x0, 0x72E3B0, 0x72E3E0, 0x72EC00, 0x72EC30, 0x72ED10, 0x72EE30, 0x72EF80, 0x72F610, 0x72F640, 0x72F820, 0x72F960, 0x0, 0x730DA0, 0x731C30, 0x731CA0, 0x731CC0, 0x731CE0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
-	const Mod MOD_098 = { "chocoflare", 98, 0x721840, 0x729A40,
-		{ 0x0, 0x152B4F0, 0x152AF30, 0x152B3C8, 0x152B460, 0x1D969A8, 0x256E360, 0x2574D34, 0x2574EF8, 0x25750E8, 0x25750F0, 0x0, 0x256E358, 0x0, 0x0, 0x0, 0x256E468, 0x0, 0x2571118, 0x257111C, 0x0, 0x0, 0x0, 0x0, 0x2573AB8, 0x0, 0x2573AC8, 0x0, 0x0, 0x2573C40, 0x2574D38, 0x0, 0x2574EE8, 0x2574EEC, 0x0, 0x25750C8, 0x0, 0x25750E4, 0x25750EC, 0x25750F4 },
-		{ 0x721BB0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7229B0, 0x723490, 0x723520, 0x723580, 0x7236C0, 0x723800, 0x723A10, 0x723C90, 0x723ED0, 0x724170, 0x7243A0, 0x724660, 0x7248C0, 0x724BA0, 0x724CE0, 0x724D20, 0x725FB0, 0x726000, 0x726030, 0x7260B0, 0x7267A0, 0x7267F0, 0x726890, 0x726950, 0x7271A0, 0x7275A0, 0x727630, 0x728580, 0x0, 0x0, 0x0, 0x0, 0x721C20, 0x721CA0, 0x721E50, 0x721FF0, 0x722020, 0x722050, 0x722060, 0x722070, 0x722080, 0x722090, 0x7220D0, 0x722140, 0x728100, 0x727FD0, 0x7277D0, 0x727AC0, 0x727E10, 0x0, 0x0, 0x0, 0x728A30, 0x7280C0, 0x7289F0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x722B60, 0x722C40, 0x722DE0, 0x722EB0, 0x722FD0, 0x723230, 0x724C60, 0x724DB0, 0x725410, 0x725460, 0x7254F0, 0x7255C0, 0x725D50, 0x725E60, 0x725EE0, 0x725F10, 0x726730, 0x726760, 0x726840, 0x726960, 0x726AB0, 0x727140, 0x727170, 0x727350, 0x727490, 0x0, 0x728910, 0x7298B0, 0x729920, 0x729940, 0x729960, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
-	const Mod MOD_099 = { "chocometeor", 99, 0x717D10, 0x721840,
-		{ 0x0, 0x0, 0x1529FA0, 0x152AC40, 0x152ACD8, 0x1D969A8, 0x2565A38, 0x256D6EC, 0x256D9F0, 0x256E1D8, 0x256E1E0, 0x0, 0x2565A30, 0x2565A34, 0x2565B18, 0x2565B3C, 0x2565B40, 0x2565C20, 0x2569330, 0x2569334, 0x2569338, 0x256B9D8, 0x256B9E8, 0x256B9EC, 0x256C1E0, 0x256C470, 0x256C480, 0x256C5F0, 0x256C5F4, 0x256C5F8, 0x256D6F0, 0x256D9D0, 0x256D9E0, 0x256D9E4, 0x0, 0x256E1B8, 0x256E1C0, 0x256E1D4, 0x256E1DC, 0x256E1E4 },
-		{ 0x7180C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x718F00, 0x7199E0, 0x719A70, 0x719AD0, 0x719C10, 0x719D50, 0x719F60, 0x71A1E0, 0x71A420, 0x71A6C0, 0x71A8F0, 0x71ABB0, 0x71AE10, 0x71B0F0, 0x71B230, 0x71B270, 0x71C500, 0x71C550, 0x71C580, 0x71C600, 0x71CCF0, 0x71CD40, 0x71CDE0, 0x71CEA0, 0x71D6F0, 0x71DAF0, 0x71DB80, 0x71EC30, 0x718060, 0x718070, 0x718080, 0x718100, 0x718130, 0x7181B0, 0x718370, 0x718510, 0x718540, 0x718570, 0x718580, 0x718590, 0x7185A0, 0x7185B0, 0x7185F0, 0x718660, 0x71E7C0, 0x71E520, 0x71DD20, 0x71E010, 0x71E360, 0x0, 0x0, 0x0, 0x71F110, 0x0, 0x71F0D0, 0x0, 0x71F380, 0x71F3A0, 0x71F450, 0x71F470, 0x71F4B0, 0x7190B0, 0x719190, 0x719330, 0x719400, 0x719520, 0x719780, 0x71B1B0, 0x71B300, 0x71B960, 0x71B9B0, 0x71BA40, 0x71BB10, 0x71C2A0, 0x71C3B0, 0x71C430, 0x71C460, 0x71CC80, 0x71CCB0, 0x71CD90, 0x71CEB0, 0x71D000, 0x71D690, 0x71D6C0, 0x71D8A0, 0x71D9E0, 0x0, 0x71EFE0, 0x7216B0, 0x721720, 0x721740, 0x721760, 0x721770, 0x7217B0, 0x7217C0, 0x7217D0, 0x721800, 0x721810, 0x721830 } };
-	const Mod MOD_100 = { "chocobocle", 100, 0x70D370, 0x717D10,
-		{ 0x0, 0x1529ED0, 0x15297F0, 0x1529CD0, 0x1529D68, 0x1D969A8, 0x255EAD0, 0x25653D4, 0x25656D8, 0x2565880, 0x2565888, 0x0, 0x255EAC8, 0x255EACC, 0x255EBB0, 0x255EBD4, 0x255EBD8, 0x255ECB8, 0x2561888, 0x256188C, 0x2561890, 0x2563420, 0x2563430, 0x2563434, 0x2563EC8, 0x2564158, 0x2564168, 0x25642D8, 0x25642DC, 0x25642E0, 0x25653D8, 0x25656B8, 0x25656C8, 0x25656CC, 0x0, 0x2565860, 0x2565868, 0x256587C, 0x2565884, 0x256588C },
-		{ 0x70ECF0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x70FB80, 0x710660, 0x7106F0, 0x710750, 0x710890, 0x7109D0, 0x710BE0, 0x710E60, 0x7110A0, 0x711340, 0x711570, 0x711830, 0x711A90, 0x711D70, 0x711EB0, 0x711EF0, 0x713180, 0x7131D0, 0x713200, 0x713280, 0x713970, 0x7139C0, 0x713A60, 0x713B20, 0x714370, 0x714770, 0x714800, 0x7158B0, 0x70EC90, 0x70ECA0, 0x70ECB0, 0x70ED30, 0x70ED60, 0x70EDE0, 0x70EF90, 0x70F130, 0x70F160, 0x70F190, 0x70F1A0, 0x70F1B0, 0x70F1C0, 0x70F1D0, 0x70F210, 0x70F280, 0x715430, 0x7151C0, 0x7149C0, 0x714CB0, 0x715000, 0x0, 0x0, 0x0, 0x715300, 0x7153F0, 0x715D20, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x70FD30, 0x70FE10, 0x70FFB0, 0x710080, 0x7101A0, 0x710400, 0x711E30, 0x711F80, 0x7125E0, 0x712630, 0x7126C0, 0x712790, 0x712F20, 0x713030, 0x7130B0, 0x7130E0, 0x713900, 0x713930, 0x713A10, 0x713B30, 0x713C80, 0x714310, 0x714340, 0x714520, 0x714660, 0x0, 0x715C40, 0x717B80, 0x717BF0, 0x717C10, 0x717C30, 0x717C40, 0x717C80, 0x717C90, 0x717CA0, 0x717CD0, 0x717CE0, 0x717D00 } };
-	struct AddrPort { uint32_t addr; void *port; const char *name; };
+	const Mod MOD_090 = { "tonberry", 90, game::MAG_090_TONBERRY_SUMMON_CHEFS_KNIFE_FL, game::MAG_088_INVINCIBLE_MOON_FL,
+		{ game::unk_15474D0, {}, game::unk_1547168, game::unk_1547510, game::unk_154EB08, game::unk_259EFB4, {}, {}, {}, {}, game::unk_25A4C1C, game::unk_25A4C28, game::unk_25A4C20, {}, {}, {}, {}, {}, {}, game::unk_25A2118, {}, {}, {}, {}, {}, {}, game::MAG_090_EmitterQueue, {}, {}, game::unk_25A2CF8, game::unk_25A3DEC, {}, {}, {}, game::unk_25A4008, {}, {}, {}, game::unk_25A4C18, {} },
+		{ {}, game::MAG_090_CameraScript_State0_ResetCamera, game::MAG_090_CameraScript_State1_StartScriptAtCue2, game::MAG_090_CameraScript_State2_StartCamScriptAtEnd, game::MAG_090_CameraScript_State3_StepCamScript, game::MAG_090_CameraScript_State4_WaitDirGate3, game::MAG_090_CameraScript_State5_PlaySEAtCue3, game::MAG_090_CameraScript_State6_CamKeyStep, game::MAG_090_CameraScript_State7_WaitCue4, game::MAG_090_CameraScript_State8_CamKeyStepThenKeyAtStep4, game::MAG_090_CameraScript_State9_StartScriptAtCue6, game::MAG_090_CameraScript_State10_CamKeyStep, game::MAG_090_CameraScript_State11_WaitCue7, game::MAG_090_CameraScript_State12_StartScriptAtCue7, game::MAG_090_CameraScript_State13_WaitCue9, game::MAG_090_CameraScript_State14_FinishNode, game::MAG_090_CameraScript_State15_Empty, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_090_EmitterTask, game::Tonberry_Master_Init, game::MAG_090_LoadScript_Issue, game::MAG_090_LoadCb_UploadTim, game::MAG_090_LoadCb_SummonStream, game::MAG_090_LoadCb_ClearBusy, game::MAG_090_LoadCb_ClearBusy_2, game::MAG_090_LoadCb_ClearBusy_3, game::MAG_090_LoadCb_ClearBusy_4, game::MAG_090_LoadScript_RecordFile, game::MAG_090_FileLoadScript_State1_LoadScriptWait, game::MAG_090_FileLoadScript_State2_Empty, game::MAG_090_LoadScript_TryArmStep, game::MAG_090_DirStepGE, game::MAG_090_Camera_StartKeyMove, game::MAG_090_Camera_KeyStep, game::MAG_090_Camera_WriteBattleCamera, game::MAG_090_CamScript_ReadKey, game::MAG_090_CamScript_ChannelStep, game::MAG_090_CamScript_RunKey, game::MAG_090_DirSyncGate, game::MAG_090_St_Empty, {}, game::Tonberry_PrimDrawCallback, game::MAG_090_RingSpawner_State0_SetupAtFrame29, game::MAG_090_RingSpawner_State1_SpawnRing, game::MAG_090_RingSpawner_State2_WidenAtFrame52, game::MAG_090_RingSpawner_State3_LowerAndSpawn, game::MAG_090_RingSpawner_State4_Nop, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_090_SpriteStrip_DrawQuads, game::MAG_090_StepCounterLimit, game::TonDamage_ApplyResult, game::MAG_090_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_090_Emitter_State3_FinishReleaseRoot, game::MAG_090_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
+	const Mod MOD_095 = { "siren", 95, game::MAG_095_SIREN_SUMMON_SILENT_VOICE_FL, game::MAG_094_ANGELO_REVERSE_FL,
+		{ {}, {}, game::unk_1533010, game::unk_15339D0, game::unk_1533D18, game::BATTLE_PACKET_BUFFER_END, {}, {}, {}, {}, {}, {}, game::unk_257F8A0, game::unk_257F8A4, game::MAG_095_DirectorQueue, game::unk_257F9AC, game::unk_257F9B0, game::MAG_095_EffectQueueA, game::MAG_095_ParticleCursor, game::MAG_095_PrimPlayerPause, game::MAG_095_EffectQueueB, game::MAG_095_ModelEmitterQueue, game::unk_258A020, game::unk_258A024, game::unk_258BA90, game::MAG_095_ScreenTintQueue, game::unk_258BE30, game::unk_258BFA0, game::unk_258BFA4, game::MAG_095_LoadScriptCursorPtr, game::MAG_095_AssetTablePtr, game::MAG_095_CreatureQueue, game::MAG_095_LiveCountB, game::MAG_095_ParticlePoolPtr, game::unk_258EF98, game::MAG_095_LiveCountA, game::MAG_095_LoadScriptQueue, game::MAG_095_ScratchSP, game::MAG_095_PauseToggle, game::MAG_095_ActorStatePtr },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_095_Sequence_State0_Advance, game::MAG_095_Sequence_State1_Advance, game::MAG_095_Sequence_State2_CarveScratchArenas, game::MAG_095_Sequence_State3_SpawnEmitter, game::ActEng_EmitterTask, game::MAG_095_ActEng_Emitter_State0_SpawnFileLoadScript, game::ActEng_LoadScript_Issue, game::MAG_095_LoadCb_UploadTim, game::MAG_095_LoadCb_SummonStream, game::MAG_095_LoadCb_ClearBusy, game::MAG_095_LoadCb_ClearBusy_2, game::MAG_095_LoadCb_ClearBusy_3, game::MAG_095_LoadCb_ClearBusy_4, game::MAG_095_LoadScript_RecordFile, game::MAG_095_ActEng_FileLoadScript_State1_LoadScriptWait, game::MAG_095_ActEng_FileLoadScript_State2_Empty, game::MAG_095_LoadScript_TryArmStep, game::ActEng_DirStepGE, game::ActEng_Camera_StartKeyMove, game::ActEng_Camera_KeyStep, game::ActEng_Camera_WriteBattleCamera, game::MAG_095_CamScript_ReadKey, game::MAG_095_CamScript_ChannelStep, game::MAG_095_CamScript_RunKey, game::ActEng_DirSyncGate, game::MAG_095_St_Empty, game::ActEng_DirPhaseGE, game::Siren_RenderModelInstance, game::MAG_095_ModelTaskC_State0_Init, game::MAG_095_ModelTaskC_State1_WaitFrame18, game::MAG_095_ModelTaskC_State2_ResizeAtPhase4, game::MAG_095_ModelTaskC_State3_DrawUntilEnd, game::MAG_095_ModelTaskC_State4_Nop, game::MAG_095_ResetTrailHistory, game::MAG_095_Director_StartPositions, game::MAG_095_FillTrailRows, game::MAG_095_Director_Mode3Setup, game::MAG_095_Director_TargetPositions, game::MAG_095_RelocateActorData, game::MAG_095_ActSys_DrawActorSprite, game::ActEng_ActorMotion, game::MAG_095_DampValue, game::MAG_095_DampVector, game::MAG_095_Instance_AdvanceTexFrame, game::ActEng_InstanceBuildTransform, game::MAG_095_MorphVertexBlock, game::MAG_095_Instance_EndOfLifeTest, game::MAG_095_Instance_SpawnFollowUp, game::ActEng_AllocParticle, game::MAG_095_RandRange, game::MAG_095_RandRangeWide, game::MAG_095_RandAngleJitter, game::MAG_095_Particle_AttachToOwner, game::MAG_095_Actor_InterpolatePosition, game::MAG_095_ParticleList_Append, game::MAG_095_ParticleList_Unlink, game::MAG_095_Particle_PlaceAtAnchorSet, game::MAG_095_Particle_PlaceAtPoint, game::SpriteStrip_DrawQuads, game::MAG_095_StepCounterLimit, game::MAG_095_ActEng_Emitter_State1_ApplyActionResults, game::MAG_095_ActEng_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_095_ActEng_Emitter_State3_FinishReleaseRoot, game::MAG_095_ActEng_Emitter_State4_Empty, game::MAG_095_Sequence_State4_NextTargetLoop, game::MAG_095_Sequence_State5_Advance, game::MAG_095_Sequence_State6_WaitQueuesEmpty, game::MAG_095_Sequence_State7_RequestBattleSync, game::MAG_095_Sequence_State8_WaitBattleSyncDone, game::MAG_095_Sequence_State9_Finish, game::MAG_095_Sequence_State10_Empty } };
+	const Mod MOD_096 = { "minimog", 96, game::MAG_096_MOOGLE_DANCE_FL, game::MAG_095_SIREN_SUMMON_SILENT_VOICE_FL,
+		{ game::unk_152BBA0, game::unk_1532F80, game::unk_152BB90, game::unk_152BC00, {}, game::BATTLE_PACKET_BUFFER_END, game::unk_257B748, game::unk_257F4D4, game::unk_257F698, game::unk_257F720, game::unk_257F728, game::unk_257F730, game::unk_257B740, {}, {}, {}, game::unk_257B850, {}, game::unk_257CF20, {}, {}, {}, {}, {}, game::unk_257E258, {}, game::unk_257E268, {}, {}, game::unk_257E3E0, game::unk_257F4D8, {}, game::unk_257F688, game::unk_257F68C, {}, game::unk_257F704, {}, game::unk_257F71C, {}, game::unk_257F72C },
+		{ game::MAG_096_ClearWorkBuffers, game::MAG_096_CameraScript_State0_StartScript, game::MAG_096_CameraScript_State1_StepNextAtCue2, game::MAG_096_CameraScript_State2_NextScriptAtEnd, game::MAG_096_CameraScript_State3_NextScriptAtEnd, game::MAG_096_CameraScript_State4_NextScriptAtEnd, game::MAG_096_CameraScript_State5_NextScriptAtEnd, game::MAG_096_CameraScript_State6_NextScriptAtEnd, game::MAG_096_CameraScript_State7_NextScriptAtEnd, game::MAG_096_CameraScript_State8_NextScriptAtEnd, game::MAG_096_CameraScript_State9_NextScriptAtEnd, game::MAG_096_CameraScript_State10_NextScriptAtEnd, game::MAG_096_CameraScript_State11_CamKeyStepThenStartKey, game::MAG_096_CameraScript_State12_CamKeyStep, game::MAG_096_CameraScript_State13_WaitCue4, game::MAG_096_CameraScript_State14_FinishNode, game::MAG_096_CameraScript_State15_Empty, game::MAG_096_DirectorSetup, game::ActSys_Step, game::MAG_096_ActSys_DrawPass, game::MAG_096_ActSys_DrawActorModel, game::MAG_096_RenderPrimModel, game::MAG_096_MeshEmitF3, game::MAG_096_MeshEmitF4, game::MAG_096_RenderPolyFT3List, game::MAG_096_RenderPolyFT4List, game::MAG_096_PrimList_G3, game::MAG_096_PrimList_G4, game::MAG_096_PrimList_GT3, game::MAG_096_PrimList_GT4, game::MAG_096_ActSys_DrawSpritePass, game::MAG_096_ActSys_UpdatePass, game::MAG_096_ActorStep, game::MAG_096_ActSys_UpdateEmitter, game::MAG_096_Particle_LifeCountdown, game::MAG_096_ActSys_EmitterSpawnStep, game::sub_737FD0, game::MAG_096_RandVec3, game::MAG_096_JitterAngles3, game::MAG_096_ActSys_AllocParticleSlot, game::MAG_096_GetWord8Minus1, game::MAG_096_Particle_Init, game::MAG_096_SpawnSubEffects, game::MAG_096_Director_SpawnGroupEffects, game::TexAnim_UploadFrame, {}, {}, {}, {}, game::MAG_096_EmitterTask, game::MAG_096_Emitter_State0_InitDirectorAndTasks, game::MAG_096_LoadScript_Issue, game::MAG_096_LoadCb_UploadTim, game::MAG_096_LoadCb_SummonStream, game::MAG_096_LoadCb_ClearBusy, game::MAG_096_LoadCb_ClearBusy_2, game::MAG_096_LoadCb_ClearBusy_3, game::MAG_096_LoadCb_ClearBusy_4, game::MAG_096_LoadScript_RecordFile, game::MAG_096_FileLoadScript_State1_LoadScriptWait, game::MAG_096_FileLoadScript_State2_Empty, game::MAG_096_LoadScript_TryArmStep, {}, game::MAG_096_Camera_StartKeyMove, game::MAG_096_Camera_KeyStep, game::MAG_096_Camera_WriteBattleCamera, {}, {}, {}, game::MAG_096_DirSyncGate, game::MAG_096_St_Empty, game::MAG_096_DirPhaseGE, {}, game::MAG_096_MusicFade_State0_SetVolumeAtCue2, game::MAG_096_MusicFade_State1_FadeOut, game::MAG_096_MusicFade_State2_WaitDirPhase4, game::MAG_096_MusicFade_State3_FadeIn, game::MAG_096_MusicFade_State4_Empty, game::MAG_096_ResetTrailHistory, game::MAG_096_Director_StartPositions, game::MAG_096_FillTrailRows, game::MAG_096_Director_Mode3Setup, game::MAG_096_Director_TargetPositions, game::MAG_096_RelocateActorData, game::MAG_096_ActSys_DrawActorSprite, game::MAG_096_ActorMotion, game::MAG_096_DampValue, game::MAG_096_DampVector, game::MAG_096_Instance_AdvanceTexFrame, game::MAG_096_Instance_BuildTransform, game::MAG_096_MorphVertexBlock, game::MAG_096_Instance_EndOfLifeTest, game::MAG_096_Instance_SpawnFollowUp, game::MAG_096_AllocParticle, game::MAG_096_RandRange, game::MAG_096_RandRangeWide, game::MAG_096_RandAngleJitter, game::MAG_096_Particle_AttachToOwner, game::MAG_096_Actor_InterpolatePosition, game::MAG_096_ParticleList_Append, game::MAG_096_ParticleList_Unlink, game::MAG_096_Particle_PlaceAtAnchorSet, game::MAG_096_Particle_PlaceAtPoint, {}, {}, game::MAG_096_Emitter_State1_ApplyActionResults, game::MAG_096_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_096_Emitter_State3_FinishReleaseRoot, game::MAG_096_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
+	const Mod MOD_097 = { "chocofire", 97, game::MAG_097_CHOCOFIRE_FL, game::MAG_096_MOOGLE_DANCE_FL,
+		{ {}, game::unk_152BB10, game::unk_152B5B8, game::unk_152BA30, game::unk_152BAC8, game::BATTLE_PACKET_BUFFER_END, game::unk_2575270, game::unk_257AFB4, game::unk_257B178, game::unk_257B5C0, game::unk_257B5C8, {}, game::unk_2575268, {}, {}, {}, game::MAG_097_CameraMatrixPtr, {}, game::unk_2578028, game::unk_257802C, {}, {}, {}, {}, game::unk_2579D38, {}, game::unk_2579D48, {}, {}, game::unk_2579EC0, game::MAG_097_AssetTablePtr, {}, {}, game::unk_257B16C, {}, {}, {}, game::unk_257B5BC, game::unk_257B5C4, game::unk_257B5CC },
+		{ game::MAG_097_ClearWorkBuffers, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_097_ActSys_DrawActorModel, game::MAG_097_RenderPrimModel, game::Boko_EmitMeshF3, game::Boko_EmitMeshF4, game::MAG_097_RenderPolyFT3List, game::MAG_097_RenderPolyFT4List, game::BokoPrim_DrawG3List, game::BokoPrim_DrawG4List, game::BokoPrim_DrawGT3List, game::BokoPrim_DrawGT4List, {}, {}, {}, {}, game::MAG_097_Particle_LifeCountdown, game::MAG_097_ActSys_EmitterSpawnStep, game::MAG_097_ActSys_SpawnParticles, game::MAG_097_RandVec3, game::MAG_097_JitterAngles3, game::MAG_097_ActSys_AllocParticleSlot, game::MAG_097_GetWord8Minus1, game::MAG_097_Particle_Init, game::MAG_097_SpawnSubEffects, {}, game::MAG_097_TexAnim_UploadFrame, {}, {}, {}, {}, game::MAG_097_EmitterTask, game::MAG_097_Emitter_State0_InitDirectorAndTasks, game::MAG_097_LoadScript_Issue, game::MAG_097_LoadCb_UploadTim, game::MAG_097_LoadCb_SummonStream, game::MAG_097_LoadCb_ClearBusy, game::MAG_097_LoadCb_ClearBusy_2, game::MAG_097_LoadCb_ClearBusy_3, game::MAG_097_LoadCb_ClearBusy_4, game::MAG_097_LoadScript_RecordFile, game::MAG_097_FileLoadScript_State1_LoadScriptWait, game::MAG_097_FileLoadScript_State2_Empty, game::MAG_097_LoadScript_TryArmStep, game::MAG_097_DirStepGE, game::MAG_097_Camera_StartKeyMove, game::MAG_097_Camera_KeyStep, game::MAG_097_Camera_WriteBattleCamera, {}, {}, {}, game::MAG_097_DirSyncGate, game::MAG_097_St_Empty, game::MAG_097_DirPhaseGE, {}, {}, {}, {}, {}, {}, game::Boko_ResetTrailHistory, game::MAG_097_Director_StartPositions, game::Boko_FillTrailRows, game::MAG_097_Director_Mode3Setup, game::MAG_097_Director_TargetPositions, game::MAG_097_RelocateActorData, game::MAG_097_ActSys_DrawActorSprite, {}, game::MAG_097_DampValue, game::MAG_097_DampVector, {}, {}, {}, {}, game::MAG_097_Instance_SpawnFollowUp, game::MAG_097_AllocParticle, game::MAG_097_RandRange, game::MAG_097_RandRangeWide, game::MAG_097_RandAngleJitter, game::MAG_097_Particle_AttachToOwner, game::BokoActor_InterpolatePosition, game::MAG_097_ParticleList_Append, game::MAG_097_ParticleList_Unlink, game::MAG_097_Particle_PlaceAtAnchorSet, game::MAG_097_Particle_PlaceAtPoint, {}, game::MAG_097_StepCounterLimit, game::MAG_097_Emitter_State1_ApplyActionResults, game::MAG_097_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_097_Emitter_State3_FinishReleaseRoot, game::MAG_097_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
+	const Mod MOD_098 = { "chocoflare", 98, game::MAG_098_CHOCOFLARE_FL, game::MAG_097_CHOCOFIRE_FL,
+		{ {}, game::unk_152B4F0, game::unk_152AF30, game::unk_152B3C8, game::unk_152B460, game::BATTLE_PACKET_BUFFER_END, game::unk_256E360, game::unk_2574D34, game::unk_2574EF8, game::unk_25750E8, game::unk_25750F0, {}, game::unk_256E358, {}, {}, {}, game::unk_256E468, {}, game::unk_2571118, game::unk_257111C, {}, {}, {}, {}, game::unk_2573AB8, {}, game::unk_2573AC8, {}, {}, game::unk_2573C40, game::unk_2574D38, {}, game::unk_2574EE8, game::unk_2574EEC, {}, game::unk_25750C8, {}, game::unk_25750E4, game::unk_25750EC, game::unk_25750F4 },
+		{ game::MAG_098_sub_721BB0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::sub_7229B0, game::sub_723490, game::sub_723520, game::sub_723580, game::sub_7236C0, game::sub_723800, game::sub_723A10, game::sub_723C90, game::sub_723ED0, game::sub_724170, game::sub_7243A0, game::sub_724660, game::sub_7248C0, game::sub_724BA0, game::sub_724CE0, game::sub_724D20, game::sub_725FB0, game::sub_726000, game::sub_726030, game::sub_7260B0, game::sub_7267A0, game::sub_7267F0, game::sub_726890, game::sub_726950, game::sub_7271A0, game::sub_7275A0, game::sub_727630, game::sub_728580, {}, {}, {}, {}, game::MAG_098_sub_721C20, game::MAG_098_sub_721CA0, game::sub_721E50, game::sub_721FF0, game::sub_722020, game::sub_722050, game::sub_722060, game::sub_722070, game::sub_722080, game::sub_722090, game::sub_7220D0, game::nullsub_1121, game::sub_728100, game::sub_727FD0, game::sub_7277D0, game::sub_727AC0, game::sub_727E10, {}, {}, {}, game::sub_728A30, game::nullsub_1124, game::sub_7289F0, {}, {}, {}, {}, {}, {}, game::sub_722B60, game::sub_722C40, game::sub_722DE0, game::sub_722EB0, game::sub_722FD0, game::sub_723230, game::sub_724C60, game::sub_724DB0, game::sub_725410, game::sub_725460, game::sub_7254F0, game::sub_7255C0, game::sub_725D50, game::sub_725E60, game::sub_725EE0, game::sub_725F10, game::MAG_098_RandRange, game::sub_726760, game::MAG_098_RandAngleJitter, game::sub_726960, game::sub_726AB0, game::sub_727140, game::sub_727170, game::sub_727350, game::sub_727490, {}, game::sub_728910, game::MAG_098_sub_7298B0, game::MAG_098_sub_729920, game::MAG_098_sub_729940, game::nullsub_1137, {}, {}, {}, {}, {}, {}, {} } };
+	const Mod MOD_099 = { "chocometeor", 99, game::MAG_099_CHOCOMETEOR_FL, game::MAG_098_CHOCOFLARE_FL,
+		{ {}, {}, game::unk_1529FA0, game::unk_152AC40, game::unk_152ACD8, game::BATTLE_PACKET_BUFFER_END, game::unk_2565A38, game::unk_256D6EC, game::unk_256D9F0, game::unk_256E1D8, game::unk_256E1E0, {}, game::unk_2565A30, game::unk_2565A34, game::unk_2565B18, game::unk_2565B3C, game::unk_2565B40, game::unk_2565C20, game::unk_2569330, game::unk_2569334, game::unk_2569338, game::unk_256B9D8, game::unk_256B9E8, game::unk_256B9EC, game::unk_256C1E0, game::unk_256C470, game::unk_256C480, game::unk_256C5F0, game::unk_256C5F4, game::unk_256C5F8, game::unk_256D6F0, game::unk_256D9D0, game::unk_256D9E0, game::unk_256D9E4, {}, game::unk_256E1B8, game::unk_256E1C0, game::unk_256E1D4, game::unk_256E1DC, game::unk_256E1E4 },
+		{ game::MAG_099_sub_7180C0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::sub_718F00, game::sub_7199E0, game::sub_719A70, game::sub_719AD0, game::sub_719C10, game::sub_719D50, game::sub_719F60, game::sub_71A1E0, game::sub_71A420, game::sub_71A6C0, game::sub_71A8F0, game::sub_71ABB0, game::sub_71AE10, game::sub_71B0F0, game::sub_71B230, game::sub_71B270, game::sub_71C500, game::sub_71C550, game::sub_71C580, game::sub_71C600, game::sub_71CCF0, game::sub_71CD40, game::sub_71CDE0, game::sub_71CEA0, game::sub_71D6F0, game::sub_71DAF0, game::sub_71DB80, game::sub_71EC30, game::MAG_099_sub_718060, game::MAG_099_sub_718070, game::MAG_099_sub_718080, game::MAG_099_sub_718100, game::MAG_099_sub_718130, game::MAG_099_sub_7181B0, game::sub_718370, game::sub_718510, game::sub_718540, game::sub_718570, game::sub_718580, game::sub_718590, game::sub_7185A0, game::sub_7185B0, game::sub_7185F0, game::nullsub_1088, game::sub_71E7C0, game::sub_71E520, game::sub_71DD20, game::sub_71E010, game::sub_71E360, {}, {}, {}, game::sub_71F110, {}, game::sub_71F0D0, {}, game::sub_71F380, game::sub_71F3A0, game::sub_71F450, game::sub_71F470, game::nullsub_1094, game::sub_7190B0, game::sub_719190, game::sub_719330, game::sub_719400, game::sub_719520, game::sub_719780, game::sub_71B1B0, game::sub_71B300, game::sub_71B960, game::sub_71B9B0, game::sub_71BA40, game::sub_71BB10, game::sub_71C2A0, game::sub_71C3B0, game::sub_71C430, game::sub_71C460, game::MAG_099_RandRange, game::sub_71CCB0, game::MAG_099_RandAngleJitter, game::sub_71CEB0, game::sub_71D000, game::sub_71D690, game::sub_71D6C0, game::sub_71D8A0, game::sub_71D9E0, {}, game::sub_71EFE0, game::MAG_099_sub_7216B0, game::MAG_099_sub_721720, game::MAG_099_sub_721740, game::nullsub_1117, game::MAG_099_sub_721770, game::MAG_099_sub_7217B0, game::MAG_099_sub_7217C0, game::MAG_099_sub_7217D0, game::MAG_099_sub_721800, game::MAG_099_sub_721810, game::nullsub_1087 } };
+	const Mod MOD_100 = { "chocobocle", 100, game::MAG_100_CHOCOBOCLE_FL, game::MAG_099_CHOCOMETEOR_FL,
+		{ {}, game::unk_1529ED0, game::unk_15297F0, game::unk_1529CD0, game::unk_1529D68, game::BATTLE_PACKET_BUFFER_END, game::unk_255EAD0, game::unk_25653D4, game::unk_25656D8, game::unk_2565880, game::unk_2565888, {}, game::unk_255EAC8, game::unk_255EACC, game::unk_255EBB0, game::unk_255EBD4, game::unk_255EBD8, game::unk_255ECB8, game::unk_2561888, game::unk_256188C, game::unk_2561890, game::unk_2563420, game::unk_2563430, game::unk_2563434, game::unk_2563EC8, game::unk_2564158, game::unk_2564168, game::unk_25642D8, game::unk_25642DC, game::unk_25642E0, game::unk_25653D8, game::unk_25656B8, game::unk_25656C8, game::unk_25656CC, {}, game::unk_2565860, game::unk_2565868, game::unk_256587C, game::unk_2565884, game::unk_256588C },
+		{ game::MAG_100_sub_70ECF0, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::sub_70FB80, game::sub_710660, game::sub_7106F0, game::sub_710750, game::sub_710890, game::sub_7109D0, game::sub_710BE0, game::sub_710E60, game::sub_7110A0, game::sub_711340, game::sub_711570, game::sub_711830, game::sub_711A90, game::sub_711D70, game::sub_711EB0, game::sub_711EF0, game::sub_713180, game::sub_7131D0, game::sub_713200, game::sub_713280, game::sub_713970, game::sub_7139C0, game::sub_713A60, game::sub_713B20, game::sub_714370, game::sub_714770, game::sub_714800, game::sub_7158B0, game::MAG_100_sub_70EC90, game::MAG_100_sub_70ECA0, game::MAG_100_sub_70ECB0, game::MAG_100_sub_70ED30, game::MAG_100_sub_70ED60, game::MAG_100_sub_70EDE0, game::sub_70EF90, game::sub_70F130, game::sub_70F160, game::sub_70F190, game::sub_70F1A0, game::sub_70F1B0, game::sub_70F1C0, game::sub_70F1D0, game::sub_70F210, game::nullsub_1069, game::sub_715430, game::sub_7151C0, game::sub_7149C0, game::sub_714CB0, game::sub_715000, {}, {}, {}, game::sub_715300, game::nullsub_1072, game::sub_715D20, {}, {}, {}, {}, {}, {}, game::sub_70FD30, game::sub_70FE10, game::sub_70FFB0, game::sub_710080, game::sub_7101A0, game::sub_710400, game::sub_711E30, game::sub_711F80, game::sub_7125E0, game::sub_712630, game::sub_7126C0, game::sub_712790, game::sub_712F20, game::sub_713030, game::sub_7130B0, game::sub_7130E0, game::MAG_100_RandRange, game::sub_713930, game::MAG_100_RandAngleJitter, game::sub_713B30, game::sub_713C80, game::sub_714310, game::sub_714340, game::sub_714520, game::sub_714660, {}, game::sub_715C40, game::MAG_100_sub_717B80, game::MAG_100_sub_717BF0, game::MAG_100_sub_717C10, game::nullsub_1086, game::MAG_100_sub_717C40, game::MAG_100_sub_717C80, game::MAG_100_sub_717C90, game::MAG_100_sub_717CA0, game::MAG_100_sub_717CD0, game::MAG_100_sub_717CE0, game::nullsub_1068 } };
+	struct AddrPort { game::Id addr; void *port; const char *name; };
 	static const AddrPort ENGINE_PORTS_090[] = {
-		{ 0x762760, (void *)a_7322A0, "090 MAG_090_sub_762760" },
-		{ 0x762DA0, (void *)a_732A00, "090 sub_762DA0" },
-		{ 0x7678D0, (void *)a_733950, "090 sub_7678D0" },
-		{ 0x763C50, (void *)a_733AC0, "090 sub_763C50" },
-		{ 0x763920, (void *)a_733B70, "090 sub_763920" },
-		{ 0x762630, (void *)a_73A0D0, "090 MAG_090_sub_762630" },
-		{ 0x762640, (void *)a_73A0D0, "090 MAG_090_sub_762640" },
-		{ 0x768440, (void *)a_73A0D0, "090 MAG_090_sub_768440" },
-		{ 0x762660, (void *)a_73A170, "090 MAG_090_sub_762660" },
-		{ 0x762690, (void *)a_73A1A0, "090 MAG_090_sub_762690" },
-		{ 0x762850, (void *)a_73A380, "090 MAG_090_sub_762850" },
-		{ 0x767B40, (void *)a_73A380, "090 sub_767B40" },
-		{ 0x7681B0, (void *)a_73A380, "090 sub_7681B0" },
-		{ 0x7682A0, (void *)a_73A380, "090 sub_7682A0" },
-		{ 0x7628B0, (void *)a_73A3E0, "090 sub_7628B0" },
-		{ 0x762A50, (void *)a_73A580, "090 sub_762A50" },
-		{ 0x762A80, (void *)a_73A5B0, "090 sub_762A80" },
-		{ 0x762AB0, (void *)a_73A5E0, "090 sub_762AB0" },
-		{ 0x762AC0, (void *)a_73A5E0, "090 sub_762AC0" },
-		{ 0x762AD0, (void *)a_73A5E0, "090 sub_762AD0" },
-		{ 0x762AE0, (void *)a_73A5E0, "090 sub_762AE0" },
-		{ 0x762AF0, (void *)a_73A620, "090 sub_762AF0" },
-		{ 0x762B30, (void *)a_73A660, "090 sub_762B30" },
-		{ 0x762BA0, (void *)a_73A6D0, "090 nullsub_1247" },
-		{ 0x763B50, (void *)a_73A6D0, "090 nullsub_1248" },
-		{ 0x763B60, (void *)a_73A6D0, "090 nullsub_1249" },
-		{ 0x763D40, (void *)a_73A6D0, "090 nullsub_1250" },
-		{ 0x763D50, (void *)a_73A6D0, "090 nullsub_1251" },
-		{ 0x7667A0, (void *)a_73A6D0, "090 nullsub_1252" },
-		{ 0x766FA0, (void *)a_73A6D0, "090 nullsub_1253" },
-		{ 0x7670D0, (void *)a_73A6D0, "090 nullsub_1254" },
-		{ 0x767450, (void *)a_73A6D0, "090 nullsub_1255" },
-		{ 0x7674D0, (void *)a_73A6D0, "090 nullsub_1256" },
-		{ 0x767C60, (void *)a_73A6D0, "090 nullsub_1257" },
-		{ 0x767DE0, (void *)a_73A6D0, "090 nullsub_1258" },
-		{ 0x7681A0, (void *)a_73A6D0, "090 nullsub_1259" },
-		{ 0x768290, (void *)a_73A6D0, "090 nullsub_1260" },
-		{ 0x768360, (void *)a_73A6D0, "090 nullsub_1261" },
-		{ 0x7683F0, (void *)a_73A6D0, "090 nullsub_1262" },
-		{ 0x7684C0, (void *)a_73A6D0, "090 nullsub_1246" },
-		{ 0x763BF0, (void *)a_73A930, "090 sub_763BF0" },
-		{ 0x763C10, (void *)a_73A950, "090 sub_763C10" },
-		{ 0x762EC0, (void *)a_73AAE0, "090 sub_762EC0" },
-		{ 0x762E70, (void *)a_73AB00, "090 sub_762E70" },
-		{ 0x762EE0, (void *)a_73AB20, "090 sub_762EE0" },
-		{ 0x7631D0, (void *)a_73AE10, "090 sub_7631D0" },
-		{ 0x763520, (void *)a_73B160, "090 sub_763520" },
-		{ 0x7639C0, (void *)a_73B2D0, "090 sub_7639C0" },
-		{ 0x763A80, (void *)a_73B2D0, "090 sub_763A80" },
-		{ 0x763A00, (void *)a_73B350, "090 sub_763A00" },
-		{ 0x7636C0, (void *)a_73B3B0, "090 sub_7636C0" },
-		{ 0x763740, (void *)a_73B430, "090 sub_763740" },
-		{ 0x7637B0, (void *)a_73B4B0, "090 sub_7637B0" },
-		{ 0x763820, (void *)a_73B520, "090 sub_763820" },
-		{ 0x763870, (void *)a_73B570, "090 sub_763870" },
-		{ 0x763C70, (void *)a_73B620, "090 sub_763C70" },
-		{ 0x763940, (void *)a_73B640, "090 sub_763940" },
-		{ 0x763B30, (void *)a_73B750, "090 sub_763B30" },
-		{ 0x763B70, (void *)a_73B790, "090 sub_763B70" },
-		{ 0x763BB0, (void *)a_73B7E0, "090 sub_763BB0" },
-		{ 0x7640E0, (void *)a_73B8A0, "090 sub_7640E0" },
-		{ 0x767ED0, (void *)a_73BB60, "090 sub_767ED0" },
-		{ 0x764130, (void *)a_73C280, "090 sub_764130" },
-		{ 0x765600, (void *)a_73D770, "090 sub_765600" },
-		{ 0x765850, (void *)a_73D9C0, "090 sub_765850" },
-		{ 0x7670E0, (void *)a_73F110, "090 sub_7670E0" },
-		{ 0x766900, (void *)a_7435E0, "090 InitEffectSequenceFromData_c5" },
-		{ 0x766A40, (void *)a_743720, "090 sub_766A40" },
-		{ 0x766F80, (void *)a_743C00, "090 sub_766F80" },
-		{ 0x766F50, (void *)a_743C20, "090 sub_766F50" },
-		{ 0x767610, (void *)a_746C10, "090 sub_767610" },
-		{ 0x7683B0, (void *)a_7474B0, "090 MAG_090_sub_7683B0" },
-		{ 0x7683D0, (void *)a_7474D0, "090 MAG_090_sub_7683D0" },
-		{ 0x768400, (void *)a_747500, "090 MAG_090_sub_768400" },
-		{ 0x768450, (void *)a_747550, "090 MAG_090_sub_768450" },
-		{ 0x768460, (void *)a_747560, "090 MAG_090_sub_768460" },
-		{ 0x768490, (void *)a_747590, "090 MAG_090_sub_768490" },
-		{ 0x763D20, (void *)a_7475A0, "090 sub_763D20" },
-		{ 0x7684A0, (void *)a_7475A0, "090 MAG_090_sub_7684A0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_090_InitModuleState, (void *)a_7322A0, "090 MAG_090_sub_762760" },
+		{ game::MAG_090_CameraScriptTask, (void *)a_732A00, "090 sub_762DA0" },
+		{ game::MAG_090_SetEntityColourTint, (void *)a_733950, "090 sub_7678D0" },
+		{ game::MAG_090_Tonberry_Director_State5_WaitLoadScriptIdle, (void *)a_733AC0, "090 sub_763C50" },
+		{ game::MAG_090_CameraScript_State4_WaitDirGate3, (void *)a_733B70, "090 sub_763920" },
+		{ game::MAG_090_Tonberry_Master_State0_Advance, (void *)a_73A0D0, "090 MAG_090_sub_762630" },
+		{ game::MAG_090_Tonberry_Master_State1_Advance, (void *)a_73A0D0, "090 MAG_090_sub_762640" },
+		{ game::MAG_090_Tonberry_Master_State5_Advance, (void *)a_73A0D0, "090 MAG_090_sub_768440" },
+		{ game::MAG_090_Tonberry_Master_State3_SpawnEmitter, (void *)a_73A170, "090 MAG_090_sub_762660" },
+		{ game::MAG_090_EmitterTask, (void *)a_73A1A0, "090 MAG_090_sub_762690" },
+		{ game::MAG_090_FileLoadScriptTask, (void *)a_73A380, "090 MAG_090_sub_762850" },
+		{ game::MAG_090_SparkFollowTask, (void *)a_73A380, "090 sub_767B40" },
+		{ game::MAG_090_EntityFadeInTask, (void *)a_73A380, "090 sub_7681B0" },
+		{ game::MAG_090_EntityFadeOutTask, (void *)a_73A380, "090 sub_7682A0" },
+		{ game::MAG_090_LoadScript_Issue, (void *)a_73A3E0, "090 sub_7628B0" },
+		{ game::MAG_090_LoadCb_UploadTim, (void *)a_73A580, "090 sub_762A50" },
+		{ game::MAG_090_LoadCb_SummonStream, (void *)a_73A5B0, "090 sub_762A80" },
+		{ game::MAG_090_LoadCb_ClearBusy, (void *)a_73A5E0, "090 sub_762AB0" },
+		{ game::MAG_090_LoadCb_ClearBusy_2, (void *)a_73A5E0, "090 sub_762AC0" },
+		{ game::MAG_090_LoadCb_ClearBusy_3, (void *)a_73A5E0, "090 sub_762AD0" },
+		{ game::MAG_090_LoadCb_ClearBusy_4, (void *)a_73A5E0, "090 sub_762AE0" },
+		{ game::MAG_090_LoadScript_RecordFile, (void *)a_73A620, "090 sub_762AF0" },
+		{ game::MAG_090_FileLoadScript_State1_LoadScriptWait, (void *)a_73A660, "090 sub_762B30" },
+		{ game::MAG_090_FileLoadScript_State2_Empty, (void *)a_73A6D0, "090 nullsub_1247" },
+		{ game::MAG_090_St_Empty, (void *)a_73A6D0, "090 nullsub_1248" },
+		{ game::MAG_090_CameraScript_State15_Empty, (void *)a_73A6D0, "090 nullsub_1249" },
+		{ game::MAG_090_Tonberry_Director_State11_Empty, (void *)a_73A6D0, "090 nullsub_1250" },
+		{ game::MAG_090_St_Empty_2, (void *)a_73A6D0, "090 nullsub_1251" },
+		{ game::MAG_090_Tonberry_Particle_State3_Empty, (void *)a_73A6D0, "090 nullsub_1252" },
+		{ game::MAG_090_Tonberry_PrimModelActor_State4_Empty, (void *)a_73A6D0, "090 nullsub_1253" },
+		{ game::MAG_090_PrimModelRise_State3_Nop, (void *)a_73A6D0, "090 nullsub_1254" },
+		{ game::MAG_090_TonRingParticle_State2_Empty, (void *)a_73A6D0, "090 nullsub_1255" },
+		{ game::MAG_090_RingSpawner_State4_Nop, (void *)a_73A6D0, "090 nullsub_1256" },
+		{ game::MAG_090_SparkFollow_State2_Nop, (void *)a_73A6D0, "090 nullsub_1257" },
+		{ game::MAG_090_TonSpark_State2_Empty, (void *)a_73A6D0, "090 nullsub_1258" },
+		{ game::MAG_090_CreatureActor_State13_Empty, (void *)a_73A6D0, "090 nullsub_1259" },
+		{ game::MAG_090_EntityFadeIn_State2_Nop, (void *)a_73A6D0, "090 nullsub_1260" },
+		{ game::MAG_090_EntityFadeOut_State2_Nop, (void *)a_73A6D0, "090 nullsub_1261" },
+		{ game::MAG_090_Emitter_State4_Empty, (void *)a_73A6D0, "090 nullsub_1262" },
+		{ game::MAG_090_Tonberry_Master_State10_Empty, (void *)a_73A6D0, "090 nullsub_1246" },
+		{ game::MAG_090_Tonberry_Director_State4_ArmLoadScriptStep, (void *)a_73A930, "090 sub_763BF0" },
+		{ game::MAG_090_LoadScript_TryArmStep, (void *)a_73A950, "090 sub_763C10" },
+		{ game::MAG_090_DirStepGE, (void *)a_73AAE0, "090 sub_762EC0" },
+		{ game::MAG_090_Camera_ResetBlock, (void *)a_73AB00, "090 sub_762E70" },
+		{ game::MAG_090_Camera_StartKeyMove, (void *)a_73AB20, "090 sub_762EE0" },
+		{ game::MAG_090_Camera_KeyStep, (void *)a_73AE10, "090 sub_7631D0" },
+		{ game::MAG_090_Camera_WriteBattleCamera, (void *)a_73B160, "090 sub_763520" },
+		{ game::MAG_090_CameraScript_State6_CamKeyStep, (void *)a_73B2D0, "090 sub_7639C0" },
+		{ game::MAG_090_CameraScript_State10_CamKeyStep, (void *)a_73B2D0, "090 sub_763A80" },
+		{ game::MAG_090_CameraScript_State8_CamKeyStepThenKeyAtStep4, (void *)a_73B350, "090 sub_763A00" },
+		{ game::MAG_090_CamScript_Start, (void *)a_73B3B0, "090 sub_7636C0" },
+		{ game::MAG_090_CamScript_ReadKey, (void *)a_73B430, "090 sub_763740" },
+		{ game::MAG_090_CamScript_Tick, (void *)a_73B4B0, "090 sub_7637B0" },
+		{ game::MAG_090_CamScript_ChannelStep, (void *)a_73B520, "090 sub_763820" },
+		{ game::MAG_090_CamScript_RunKey, (void *)a_73B570, "090 sub_763870" },
+		{ game::MAG_090_Tonberry_Director_State6_WaitDirGate5, (void *)a_73B620, "090 sub_763C70" },
+		{ game::MAG_090_DirSyncGate, (void *)a_73B640, "090 sub_763940" },
+		{ game::MAG_090_CameraScript_State14_FinishNode, (void *)a_73B750, "090 sub_763B30" },
+		{ game::MAG_090_Tonberry_Director_State1_WaitDirGate1, (void *)a_73B790, "090 sub_763B70" },
+		{ game::MAG_090_DirPhaseGE, (void *)a_73B7E0, "090 sub_763BB0" },
+		{ game::MAG_090_Tonberry_Particle_State0_WaitDirGate2, (void *)a_73B8A0, "090 sub_7640E0" },
+		{ game::MAG_090_SetPauseSwitch, (void *)a_73BB60, "090 sub_767ED0" },
+		{ game::MAG_090_DrawPrimModel, (void *)a_73C280, "090 sub_764130" },
+		{ game::MAG_090_EmitG3, (void *)a_73D770, "090 sub_765600" },
+		{ game::MAG_090_EmitG4, (void *)a_73D9C0, "090 sub_765850" },
+		{ game::MAG_090_RingSpawnerTask, (void *)a_73F110, "090 sub_7670E0" },
+		{ game::InitEffectSequenceFromData_c5, (void *)a_7435E0, "090 InitEffectSequenceFromData_c5" },
+		{ game::MAG_090_SpriteStrip_DrawQuads, (void *)a_743720, "090 sub_766A40" },
+		{ game::MAG_090_Tonberry_PrimModelActor_State3_CounterFinish, (void *)a_743C00, "090 sub_766F80" },
+		{ game::MAG_090_StepCounterLimit, (void *)a_743C20, "090 sub_766F50" },
+		{ game::MAG_090_DrawBattleModel, (void *)a_746C10, "090 sub_767610" },
+		{ game::MAG_090_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "090 MAG_090_sub_7683B0" },
+		{ game::MAG_090_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "090 MAG_090_sub_7683D0" },
+		{ game::MAG_090_Tonberry_Master_State4_NextTargetLoop, (void *)a_747500, "090 MAG_090_sub_768400" },
+		{ game::MAG_090_Tonberry_Master_State6_WaitQueuesEmpty, (void *)a_747550, "090 MAG_090_sub_768450" },
+		{ game::MAG_090_Tonberry_Master_State7_RequestBattleSync, (void *)a_747560, "090 MAG_090_sub_768460" },
+		{ game::MAG_090_Tonberry_Master_State8_WaitBattleSyncDone, (void *)a_747590, "090 MAG_090_sub_768490" },
+		{ game::MAG_090_Tonberry_Director_State10_Finish, (void *)a_7475A0, "090 sub_763D20" },
+		{ game::MAG_090_Tonberry_Master_State9_Finish, (void *)a_7475A0, "090 MAG_090_sub_7684A0" },
+		{ {}, nullptr, nullptr }
 	};
 	static const AddrPort ENGINE_PORTS_095[] = {
-		{ 0x739F40, (void *)a_739F40, "095 GF_095Siren_SequenceTick" },
-		{ 0x73A0D0, (void *)a_73A0D0, "095 MAG_095_sub_73A0D0" },
-		{ 0x73A0E0, (void *)a_73A0D0, "095 MAG_095_sub_73A0E0" },
-		{ 0x7432B0, (void *)a_73A0D0, "095 sub_7432B0" },
-		{ 0x743D00, (void *)a_73A0D0, "095 sub_743D00" },
-		{ 0x7440F0, (void *)a_73A0D0, "095 sub_7440F0" },
-		{ 0x7444E0, (void *)a_73A0D0, "095 sub_7444E0" },
-		{ 0x747540, (void *)a_73A0D0, "095 MAG_095_sub_747540" },
-		{ 0x73A170, (void *)a_73A170, "095 MAG_095_sub_73A170" },
-		{ 0x73A1A0, (void *)a_73A1A0, "095 MAG_095_sub_73A1A0" },
-		{ 0x73A380, (void *)a_73A380, "095 MAG_095_sub_73A380" },
-		{ 0x73F800, (void *)a_73A380, "095 sub_73F800" },
-		{ 0x73F900, (void *)a_73A380, "095 sub_73F900" },
-		{ 0x743250, (void *)a_73A380, "095 sub_743250" },
-		{ 0x7447C0, (void *)a_73A380, "095 sub_7447C0" },
-		{ 0x745180, (void *)a_73A380, "095 sub_745180" },
-		{ 0x745250, (void *)a_73A380, "095 sub_745250" },
-		{ 0x746920, (void *)a_73A380, "095 sub_746920" },
-		{ 0x746A40, (void *)a_73A380, "095 sub_746A40" },
-		{ 0x73A3E0, (void *)a_73A3E0, "095 sub_73A3E0" },
-		{ 0x73A580, (void *)a_73A580, "095 sub_73A580" },
-		{ 0x73A5B0, (void *)a_73A5B0, "095 sub_73A5B0" },
-		{ 0x73A5E0, (void *)a_73A5E0, "095 sub_73A5E0" },
-		{ 0x73A5F0, (void *)a_73A5E0, "095 sub_73A5F0" },
-		{ 0x73A600, (void *)a_73A5E0, "095 sub_73A600" },
-		{ 0x73A610, (void *)a_73A5E0, "095 sub_73A610" },
-		{ 0x73A620, (void *)a_73A620, "095 sub_73A620" },
-		{ 0x73A660, (void *)a_73A660, "095 sub_73A660" },
-		{ 0x73A6D0, (void *)a_73A6D0, "095 nullsub_1171" },
-		{ 0x73B770, (void *)a_73A6D0, "095 nullsub_1172" },
-		{ 0x73B780, (void *)a_73A6D0, "095 nullsub_1173" },
-		{ 0x73BCD0, (void *)a_73A6D0, "095 nullsub_1174" },
-		{ 0x73BCE0, (void *)a_73A6D0, "095 nullsub_1175" },
-		{ 0x73EE40, (void *)a_73A6D0, "095 nullsub_1176" },
-		{ 0x73EF50, (void *)a_73A6D0, "095 nullsub_1177" },
-		{ 0x73F100, (void *)a_73A6D0, "095 nullsub_1178" },
-		{ 0x73F240, (void *)a_73A6D0, "095 nullsub_1179" },
-		{ 0x73F360, (void *)a_73A6D0, "095 nullsub_1180" },
-		{ 0x73F4F0, (void *)a_73A6D0, "095 nullsub_1181" },
-		{ 0x73F690, (void *)a_73A6D0, "095 nullsub_1182" },
-		{ 0x73F7F0, (void *)a_73A6D0, "095 nullsub_1183" },
-		{ 0x73F8F0, (void *)a_73A6D0, "095 nullsub_1184" },
-		{ 0x743240, (void *)a_73A6D0, "095 nullsub_1185" },
-		{ 0x743C50, (void *)a_73A6D0, "095 nullsub_1186" },
-		{ 0x743C60, (void *)a_73A6D0, "095 nullsub_1187" },
-		{ 0x744040, (void *)a_73A6D0, "095 nullsub_1188" },
-		{ 0x744050, (void *)a_73A6D0, "095 nullsub_1189" },
-		{ 0x744430, (void *)a_73A6D0, "095 nullsub_1190" },
-		{ 0x744440, (void *)a_73A6D0, "095 nullsub_1191" },
-		{ 0x7447A0, (void *)a_73A6D0, "095 nullsub_1192" },
-		{ 0x7447B0, (void *)a_73A6D0, "095 nullsub_1193" },
-		{ 0x744C20, (void *)a_73A6D0, "095 nullsub_1194" },
-		{ 0x744F70, (void *)a_73A6D0, "095 nullsub_1195" },
-		{ 0x744F80, (void *)a_73A6D0, "095 nullsub_1196" },
-		{ 0x745230, (void *)a_73A6D0, "095 nullsub_1197" },
-		{ 0x745240, (void *)a_73A6D0, "095 nullsub_1198" },
-		{ 0x745640, (void *)a_73A6D0, "095 nullsub_1199" },
-		{ 0x745690, (void *)a_73A6D0, "095 nullsub_1200" },
-		{ 0x745AB0, (void *)a_73A6D0, "095 nullsub_1201" },
-		{ 0x745AC0, (void *)a_73A6D0, "095 nullsub_1202" },
-		{ 0x7467A0, (void *)a_73A6D0, "095 nullsub_1203" },
-		{ 0x746910, (void *)a_73A6D0, "095 nullsub_1204" },
-		{ 0x746A30, (void *)a_73A6D0, "095 nullsub_1205" },
-		{ 0x746B50, (void *)a_73A6D0, "095 nullsub_1206" },
-		{ 0x747150, (void *)a_73A6D0, "095 nullsub_1207" },
-		{ 0x747360, (void *)a_73A6D0, "095 nullsub_1208" },
-		{ 0x747430, (void *)a_73A6D0, "095 nullsub_1209" },
-		{ 0x7474F0, (void *)a_73A6D0, "095 nullsub_1210" },
-		{ 0x7475C0, (void *)a_73A6D0, "095 nullsub_1170" },
-		{ 0x73A720, (void *)a_73A720, "095 sub_73A720" },
-		{ 0x73A930, (void *)a_73A930, "095 sub_73A930" },
-		{ 0x73B8E0, (void *)a_73A930, "095 sub_73B8E0" },
-		{ 0x73BB00, (void *)a_73A930, "095 sub_73BB00" },
-		{ 0x73A950, (void *)a_73A950, "095 sub_73A950" },
-		{ 0x73AAE0, (void *)a_73AAE0, "095 sub_73AAE0" },
-		{ 0x73AB00, (void *)a_73AB00, "095 sub_73AB00" },
-		{ 0x73AB20, (void *)a_73AB20, "095 sub_73AB20" },
-		{ 0x73AE10, (void *)a_73AE10, "095 sub_73AE10" },
-		{ 0x73B160, (void *)a_73B160, "095 sub_73B160" },
-		{ 0x73B2D0, (void *)a_73B2D0, "095 sub_73B2D0" },
-		{ 0x73B350, (void *)a_73B350, "095 sub_73B350" },
-		{ 0x73B3B0, (void *)a_73B3B0, "095 sub_73B3B0" },
-		{ 0x73B430, (void *)a_73B430, "095 sub_73B430" },
-		{ 0x73B4B0, (void *)a_73B4B0, "095 sub_73B4B0" },
-		{ 0x73B520, (void *)a_73B520, "095 sub_73B520" },
-		{ 0x73B570, (void *)a_73B570, "095 sub_73B570" },
-		{ 0x73B620, (void *)a_73B620, "095 sub_73B620" },
-		{ 0x73B640, (void *)a_73B640, "095 sub_73B640" },
-		{ 0x73B750, (void *)a_73B750, "095 sub_73B750" },
-		{ 0x73B790, (void *)a_73B790, "095 sub_73B790" },
-		{ 0x73B7E0, (void *)a_73B7E0, "095 sub_73B7E0" },
-		{ 0x73B8A0, (void *)a_73B8A0, "095 sub_73B8A0" },
-		{ 0x73B8C0, (void *)a_73B8C0, "095 sub_73B8C0" },
-		{ 0x73B9F0, (void *)a_73B9F0, "095 sub_73B9F0" },
-		{ 0x73BA90, (void *)a_73BA90, "095 sub_73BA90" },
-		{ 0x73BB60, (void *)a_73BB60, "095 sub_73BB60" },
-		{ 0x73BBD0, (void *)a_73BBD0, "095 sub_73BBD0" },
-		{ 0x73BC40, (void *)a_73BC40, "095 sub_73BC40" },
-		{ 0x73BCB0, (void *)a_73BCB0, "095 sub_73BCB0" },
-		{ 0x73C100, (void *)a_73C100, "095 sub_73C100" },
-		{ 0x73C280, (void *)a_73C280, "095 sub_73C280" },
-		{ 0x73D770, (void *)a_73D770, "095 sub_73D770" },
-		{ 0x73D9C0, (void *)a_73D9C0, "095 sub_73D9C0" },
-		{ 0x73F110, (void *)a_73F110, "095 sub_73F110" },
-		{ 0x73F370, (void *)a_73F110, "095 sub_73F370" },
-		{ 0x73F500, (void *)a_73F110, "095 sub_73F500" },
-		{ 0x73F990, (void *)a_73F990, "095 sub_73F990" },
-		{ 0x73FC20, (void *)a_73FC20, "095 sub_73FC20" },
-		{ 0x73FE90, (void *)a_73FE90, "095 sub_73FE90" },
-		{ 0x73FFB0, (void *)a_73FFB0, "095 sub_73FFB0" },
-		{ 0x740210, (void *)a_740210, "095 sub_740210" },
-		{ 0x740700, (void *)a_740700, "095 sub_740700" },
-		{ 0x7407C0, (void *)a_7407C0, "095 sub_7407C0" },
-		{ 0x740880, (void *)a_740880, "095 sub_740880" },
-		{ 0x740910, (void *)a_740910, "095 sub_740910" },
-		{ 0x740F70, (void *)a_740F70, "095 sub_740F70" },
-		{ 0x740FC0, (void *)a_740FC0, "095 sub_740FC0" },
-		{ 0x741050, (void *)a_741050, "095 sub_741050" },
-		{ 0x741120, (void *)a_741120, "095 sub_741120" },
-		{ 0x7419C0, (void *)a_7419C0, "095 sub_7419C0" },
-		{ 0x741A40, (void *)a_741A40, "095 sub_741A40" },
-		{ 0x741A70, (void *)a_741A70, "095 sub_741A70" },
-		{ 0x741B60, (void *)a_741B60, "095 sub_741B60" },
-		{ 0x742290, (void *)a_742290, "095 au_re__rand_8" },
-		{ 0x7422C0, (void *)a_7422C0, "095 sub_7422C0" },
-		{ 0x742300, (void *)a_742300, "095 sub_742300" },
-		{ 0x742350, (void *)a_742350, "095 sub_742350" },
-		{ 0x7423A0, (void *)a_7423A0, "095 au_re__rand_8_0" },
-		{ 0x7424B0, (void *)a_7424B0, "095 sub_7424B0" },
-		{ 0x7424C0, (void *)a_7424C0, "095 sub_7424C0" },
-		{ 0x742CA0, (void *)a_742CA0, "095 sub_742CA0" },
-		{ 0x742CD0, (void *)a_742CD0, "095 sub_742CD0" },
-		{ 0x742D00, (void *)a_742D00, "095 sub_742D00" },
-		{ 0x742EB0, (void *)a_742EB0, "095 sub_742EB0" },
-		{ 0x742FF0, (void *)a_742FF0, "095 sub_742FF0" },
-		{ 0x743100, (void *)a_743100, "095 sub_743100" },
-		{ 0x743190, (void *)a_743190, "095 sub_743190" },
-		{ 0x7435E0, (void *)a_7435E0, "095 InitEffectSequenceFromData_c2" },
-		{ 0x743720, (void *)a_743720, "095 sub_743720" },
-		{ 0x743C00, (void *)a_743C00, "095 sub_743C00" },
-		{ 0x746780, (void *)a_743C00, "095 sub_746780" },
-		{ 0x747130, (void *)a_743C00, "095 sub_747130" },
-		{ 0x747340, (void *)a_743C00, "095 sub_747340" },
-		{ 0x743C20, (void *)a_743C20, "095 sub_743C20" },
-		{ 0x7458E0, (void *)a_7458E0, "095 sub_7458E0" },
-		{ 0x746980, (void *)a_746980, "095 sub_746980" },
-		{ 0x746A10, (void *)a_746A10, "095 sub_746A10" },
-		{ 0x746AE0, (void *)a_746AE0, "095 sub_746AE0" },
-		{ 0x746C10, (void *)a_746C10, "095 GF_095Siren_DrawModel" },
-		{ 0x747400, (void *)a_747400, "095 sub_747400" },
-		{ 0x747440, (void *)a_747440, "095 MAG_095_sub_747440" },
-		{ 0x7474B0, (void *)a_7474B0, "095 MAG_095_sub_7474B0" },
-		{ 0x7474D0, (void *)a_7474D0, "095 MAG_095_sub_7474D0" },
-		{ 0x747500, (void *)a_747500, "095 MAG_095_sub_747500" },
-		{ 0x747550, (void *)a_747550, "095 MAG_095_sub_747550" },
-		{ 0x747560, (void *)a_747560, "095 MAG_095_sub_747560" },
-		{ 0x747590, (void *)a_747590, "095 MAG_095_sub_747590" },
-		{ 0x7475A0, (void *)a_7475A0, "095 MAG_095_sub_7475A0" },
-		{ 0, nullptr, nullptr }
+		{ game::GF_095Siren_SequenceTick, (void *)a_739F40, "095 GF_095Siren_SequenceTick" },
+		{ game::MAG_095_Sequence_State0_Advance, (void *)a_73A0D0, "095 MAG_095_sub_73A0D0" },
+		{ game::MAG_095_Sequence_State1_Advance, (void *)a_73A0D0, "095 MAG_095_sub_73A0E0" },
+		{ game::MAG_095_BoxSparkleSpawner_State0_Advance, (void *)a_73A0D0, "095 sub_7432B0" },
+		{ game::MAG_095_OrbitSparkleSpawner_State1_Advance, (void *)a_73A0D0, "095 sub_743D00" },
+		{ game::MAG_095_BurstSparkleSpawner_State1_Advance, (void *)a_73A0D0, "095 sub_7440F0" },
+		{ game::MAG_095_KeyPathSparkleSpawner_State1_Advance, (void *)a_73A0D0, "095 sub_7444E0" },
+		{ game::MAG_095_Sequence_State5_Advance, (void *)a_73A0D0, "095 MAG_095_sub_747540" },
+		{ game::MAG_095_Sequence_State3_SpawnEmitter, (void *)a_73A170, "095 MAG_095_sub_73A170" },
+		{ game::ActEng_EmitterTask, (void *)a_73A1A0, "095 MAG_095_sub_73A1A0" },
+		{ game::ActEng_FileLoadScriptTask, (void *)a_73A380, "095 MAG_095_sub_73A380" },
+		{ game::MAG_095_TargetModelTask, (void *)a_73A380, "095 sub_73F800" },
+		{ game::MAG_095_ParticleSystemTask, (void *)a_73A380, "095 sub_73F900" },
+		{ game::MAG_095_BoxSparkleSpawnerTask, (void *)a_73A380, "095 sub_743250" },
+		{ game::MAG_095_TargetRiseSpawnerTask, (void *)a_73A380, "095 sub_7447C0" },
+		{ game::MAG_095_ScriptParticleSystemTask, (void *)a_73A380, "095 sub_745180" },
+		{ game::MAG_095_OrbitSpriteSpawnerTask, (void *)a_73A380, "095 sub_745250" },
+		{ game::MAG_095_StageWobbleInTask, (void *)a_73A380, "095 sub_746920" },
+		{ game::MAG_095_StageWobbleOutTask, (void *)a_73A380, "095 sub_746A40" },
+		{ game::ActEng_LoadScript_Issue, (void *)a_73A3E0, "095 sub_73A3E0" },
+		{ game::MAG_095_LoadCb_UploadTim, (void *)a_73A580, "095 sub_73A580" },
+		{ game::MAG_095_LoadCb_SummonStream, (void *)a_73A5B0, "095 sub_73A5B0" },
+		{ game::MAG_095_LoadCb_ClearBusy, (void *)a_73A5E0, "095 sub_73A5E0" },
+		{ game::MAG_095_LoadCb_ClearBusy_2, (void *)a_73A5E0, "095 sub_73A5F0" },
+		{ game::MAG_095_LoadCb_ClearBusy_3, (void *)a_73A5E0, "095 sub_73A600" },
+		{ game::MAG_095_LoadCb_ClearBusy_4, (void *)a_73A5E0, "095 sub_73A610" },
+		{ game::MAG_095_LoadScript_RecordFile, (void *)a_73A620, "095 sub_73A620" },
+		{ game::MAG_095_ActEng_FileLoadScript_State1_LoadScriptWait, (void *)a_73A660, "095 sub_73A660" },
+		{ game::MAG_095_ActEng_FileLoadScript_State2_Empty, (void *)a_73A6D0, "095 nullsub_1171" },
+		{ game::MAG_095_St_Empty, (void *)a_73A6D0, "095 nullsub_1172" },
+		{ game::MAG_095_Siren_CameraScript_State14_Empty, (void *)a_73A6D0, "095 nullsub_1173" },
+		{ game::MAG_095_Siren_Director_State27_Empty, (void *)a_73A6D0, "095 nullsub_1174" },
+		{ game::MAG_095_St_Empty_2, (void *)a_73A6D0, "095 nullsub_1175" },
+		{ game::MAG_095_Cut1ModelEmitter_State2_Nop, (void *)a_73A6D0, "095 nullsub_1176" },
+		{ game::MAG_095_ModelTaskA_State2_Nop, (void *)a_73A6D0, "095 nullsub_1177" },
+		{ game::MAG_095_ModelTaskB_State4_Nop, (void *)a_73A6D0, "095 nullsub_1178" },
+		{ game::MAG_095_ModelTaskC_State4_Nop, (void *)a_73A6D0, "095 nullsub_1179" },
+		{ game::MAG_095_ModelTaskD_State3_Nop, (void *)a_73A6D0, "095 nullsub_1180" },
+		{ game::MAG_095_ModelTaskE_State4_Nop, (void *)a_73A6D0, "095 nullsub_1181" },
+		{ game::MAG_095_ModelTaskF_State4_Nop, (void *)a_73A6D0, "095 nullsub_1182" },
+		{ game::MAG_095_ModelTaskG_State5_Nop, (void *)a_73A6D0, "095 nullsub_1183" },
+		{ game::MAG_095_TargetModel_State2_Nop, (void *)a_73A6D0, "095 nullsub_1184" },
+		{ game::MAG_095_ParticleSystem_State2_Nop, (void *)a_73A6D0, "095 nullsub_1185" },
+		{ game::MAG_095_BoxSparkle_State2_Nop, (void *)a_73A6D0, "095 nullsub_1186" },
+		{ game::MAG_095_BoxSparkleSpawner_State2_Nop, (void *)a_73A6D0, "095 nullsub_1187" },
+		{ game::MAG_095_OrbitSparkle_State2_Nop, (void *)a_73A6D0, "095 nullsub_1188" },
+		{ game::MAG_095_OrbitSparkleSpawner_State3_Nop, (void *)a_73A6D0, "095 nullsub_1189" },
+		{ game::MAG_095_BurstSparkle_State2_Nop, (void *)a_73A6D0, "095 nullsub_1190" },
+		{ game::MAG_095_BurstSparkleSpawner_State3_Nop, (void *)a_73A6D0, "095 nullsub_1191" },
+		{ game::MAG_095_KeyPathSparkle_State2_Nop, (void *)a_73A6D0, "095 nullsub_1192" },
+		{ game::MAG_095_KeyPathSparkleSpawner_State3_Nop, (void *)a_73A6D0, "095 nullsub_1193" },
+		{ game::MAG_095_RisingSparkle_State2_Nop, (void *)a_73A6D0, "095 nullsub_1194" },
+		{ game::MAG_095_SplashSparkle_State3_Nop, (void *)a_73A6D0, "095 nullsub_1195" },
+		{ game::MAG_095_TargetRiseSpawner_State2_Nop, (void *)a_73A6D0, "095 nullsub_1196" },
+		{ game::MAG_095_ScriptParticleSystem_State2_Nop, (void *)a_73A6D0, "095 nullsub_1197" },
+		{ game::MAG_095_SpawnScript_State3_Nop, (void *)a_73A6D0, "095 nullsub_1198" },
+		{ game::MAG_095_OrbitSprite_State4_Nop, (void *)a_73A6D0, "095 nullsub_1199" },
+		{ game::MAG_095_OrbitSpriteSpawner_State2_Nop, (void *)a_73A6D0, "095 nullsub_1200" },
+		{ game::MAG_095_TargetSpark_State4_Nop, (void *)a_73A6D0, "095 nullsub_1201" },
+		{ game::MAG_095_TargetSparkSpawner_State3_Nop, (void *)a_73A6D0, "095 nullsub_1202" },
+		{ game::MAG_095_SurfaceSplash_State2_Nop, (void *)a_73A6D0, "095 nullsub_1203" },
+		{ game::MAG_095_Siren_WaterSurface_State5_Empty, (void *)a_73A6D0, "095 nullsub_1204" },
+		{ game::MAG_095_StageWobbleIn_State2_Nop, (void *)a_73A6D0, "095 nullsub_1205" },
+		{ game::MAG_095_StageWobbleOut_State2_Nop, (void *)a_73A6D0, "095 nullsub_1206" },
+		{ game::MAG_095_Droplet_State2_Nop, (void *)a_73A6D0, "095 nullsub_1207" },
+		{ game::MAG_095_Bubble_State2_Nop, (void *)a_73A6D0, "095 nullsub_1208" },
+		{ game::MAG_095_CreatureActor_State7_Empty, (void *)a_73A6D0, "095 nullsub_1209" },
+		{ game::MAG_095_ActEng_Emitter_State4_Empty, (void *)a_73A6D0, "095 nullsub_1210" },
+		{ game::MAG_095_Sequence_State10_Empty, (void *)a_73A6D0, "095 nullsub_1170" },
+		{ game::MAG_095_GetMonstersCentre, (void *)a_73A720, "095 sub_73A720" },
+		{ game::MAG_095_Siren_Director_State0_ArmLoadScriptStep, (void *)a_73A930, "095 sub_73A930" },
+		{ game::MAG_095_Siren_Director_State8_ArmLoadScriptStep, (void *)a_73A930, "095 sub_73B8E0" },
+		{ game::MAG_095_Siren_Director_State17_ArmLoadScriptStep, (void *)a_73A930, "095 sub_73BB00" },
+		{ game::MAG_095_LoadScript_TryArmStep, (void *)a_73A950, "095 sub_73A950" },
+		{ game::ActEng_DirStepGE, (void *)a_73AAE0, "095 sub_73AAE0" },
+		{ game::MAG_095_Camera_ResetBlock, (void *)a_73AB00, "095 sub_73AB00" },
+		{ game::ActEng_Camera_StartKeyMove, (void *)a_73AB20, "095 sub_73AB20" },
+		{ game::ActEng_Camera_KeyStep, (void *)a_73AE10, "095 sub_73AE10" },
+		{ game::ActEng_Camera_WriteBattleCamera, (void *)a_73B160, "095 sub_73B160" },
+		{ game::MAG_095_Siren_CameraScript_State1_CamKeyStep, (void *)a_73B2D0, "095 sub_73B2D0" },
+		{ game::MAG_095_Siren_CameraScript_State4_CamKeyStepThenKeyAtStep4, (void *)a_73B350, "095 sub_73B350" },
+		{ game::ActEng_CamScript_Start, (void *)a_73B3B0, "095 sub_73B3B0" },
+		{ game::MAG_095_CamScript_ReadKey, (void *)a_73B430, "095 sub_73B430" },
+		{ game::ActEng_CamScript_Tick, (void *)a_73B4B0, "095 sub_73B4B0" },
+		{ game::MAG_095_CamScript_ChannelStep, (void *)a_73B520, "095 sub_73B520" },
+		{ game::MAG_095_CamScript_RunKey, (void *)a_73B570, "095 sub_73B570" },
+		{ game::MAG_095_Siren_CameraScript_State7_WaitDirGate5, (void *)a_73B620, "095 sub_73B620" },
+		{ game::ActEng_DirSyncGate, (void *)a_73B640, "095 sub_73B640" },
+		{ game::MAG_095_Siren_CameraScript_State13_FinishNode, (void *)a_73B750, "095 sub_73B750" },
+		{ game::MAG_095_Siren_Director_State2_WaitDirGate1, (void *)a_73B790, "095 sub_73B790" },
+		{ game::ActEng_DirPhaseGE, (void *)a_73B7E0, "095 sub_73B7E0" },
+		{ game::MAG_095_Siren_Director_State6_WaitDirGate2, (void *)a_73B8A0, "095 sub_73B8A0" },
+		{ game::MAG_095_Siren_Director_State7_WaitDirPhase2, (void *)a_73B8C0, "095 sub_73B8C0" },
+		{ game::MAG_095_HideMonsters, (void *)a_73B9F0, "095 sub_73B9F0" },
+		{ game::MAG_095_RestoreMonsters, (void *)a_73BA90, "095 sub_73BA90" },
+		{ game::MAG_095_SetPauseSwitch, (void *)a_73BB60, "095 sub_73BB60" },
+		{ game::MAG_095_Siren_Director_State20_WaitDirGate7, (void *)a_73BBD0, "095 sub_73BBD0" },
+		{ game::MAG_095_Siren_Director_State23_CountdownTimer, (void *)a_73BC40, "095 sub_73BC40" },
+		{ game::MAG_095_Siren_Director_State26_WaitDirGate9Finish, (void *)a_73BCB0, "095 sub_73BCB0" },
+		{ game::MAG_095_SpawnChildTask, (void *)a_73C100, "095 sub_73C100" },
+		{ game::ActEng_DrawPrimModel, (void *)a_73C280, "095 sub_73C280" },
+		{ game::ActEng_EmitG3, (void *)a_73D770, "095 sub_73D770" },
+		{ game::ActEng_EmitG4, (void *)a_73D9C0, "095 sub_73D9C0" },
+		{ game::MAG_095_ModelTaskC, (void *)a_73F110, "095 sub_73F110" },
+		{ game::MAG_095_ModelTaskE, (void *)a_73F110, "095 sub_73F370" },
+		{ game::MAG_095_ModelTaskF, (void *)a_73F110, "095 sub_73F500" },
+		{ game::ActEng_DirectorSetup, (void *)a_73F990, "095 sub_73F990" },
+		{ game::MAG_095_Director_StartPositions, (void *)a_73FC20, "095 sub_73FC20" },
+		{ game::MAG_095_Director_Mode3Setup, (void *)a_73FE90, "095 sub_73FE90" },
+		{ game::MAG_095_Director_TargetPositions, (void *)a_73FFB0, "095 sub_73FFB0" },
+		{ game::MAG_095_RelocateActorData, (void *)a_740210, "095 sub_740210" },
+		{ game::MAG_095_ActSys_DrawSpritePass, (void *)a_740700, "095 sub_740700" },
+		{ game::MAG_095_ActSys_DrawActorSprite, (void *)a_7407C0, "095 sub_7407C0" },
+		{ game::ActEng_ActorStep, (void *)a_740880, "095 sub_740880" },
+		{ game::ActEng_ActorMotion, (void *)a_740910, "095 sub_740910" },
+		{ game::MAG_095_DampValue, (void *)a_740F70, "095 sub_740F70" },
+		{ game::MAG_095_DampVector, (void *)a_740FC0, "095 sub_740FC0" },
+		{ game::MAG_095_Instance_AdvanceTexFrame, (void *)a_741050, "095 sub_741050" },
+		{ game::ActEng_InstanceBuildTransform, (void *)a_741120, "095 sub_741120" },
+		{ game::MAG_095_Instance_EndOfLifeTest, (void *)a_7419C0, "095 sub_7419C0" },
+		{ game::MAG_095_Instance_SpawnFollowUp, (void *)a_741A40, "095 sub_741A40" },
+		{ game::ActEng_AllocParticle, (void *)a_741A70, "095 sub_741A70" },
+		{ game::MAG_095_Particle_LifeCountdown, (void *)a_741B60, "095 sub_741B60" },
+		{ game::MAG_095_RandRange, (void *)a_742290, "095 au_re__rand_8" },
+		{ game::MAG_095_RandRangeWide, (void *)a_7422C0, "095 sub_7422C0" },
+		{ game::MAG_095_RandVec3, (void *)a_742300, "095 sub_742300" },
+		{ game::MAG_095_JitterAngles3, (void *)a_742350, "095 sub_742350" },
+		{ game::MAG_095_RandAngleJitter, (void *)a_7423A0, "095 au_re__rand_8_0" },
+		{ game::MAG_095_GetWord8Minus1, (void *)a_7424B0, "095 sub_7424B0" },
+		{ game::MAG_095_Particle_AttachToOwner, (void *)a_7424C0, "095 sub_7424C0" },
+		{ game::MAG_095_ParticleList_Append, (void *)a_742CA0, "095 sub_742CA0" },
+		{ game::MAG_095_ParticleList_Unlink, (void *)a_742CD0, "095 sub_742CD0" },
+		{ game::MAG_095_Particle_Init, (void *)a_742D00, "095 sub_742D00" },
+		{ game::MAG_095_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "095 sub_742EB0" },
+		{ game::MAG_095_Particle_PlaceAtPoint, (void *)a_742FF0, "095 sub_742FF0" },
+		{ game::MAG_095_SpawnSubEffects, (void *)a_743100, "095 sub_743100" },
+		{ game::MAG_095_Director_SpawnGroupEffects, (void *)a_743190, "095 sub_743190" },
+		{ game::InitEffectSequenceFromData_c2, (void *)a_7435E0, "095 InitEffectSequenceFromData_c2" },
+		{ game::SpriteStrip_DrawQuads, (void *)a_743720, "095 sub_743720" },
+		{ game::MAG_095_BoxSparkle_State1_CounterFinish, (void *)a_743C00, "095 sub_743C00" },
+		{ game::MAG_095_SurfaceSplash_State1_PlayUntilEnd, (void *)a_743C00, "095 sub_746780" },
+		{ game::MAG_095_Droplet_State1_PlayUntilEnd, (void *)a_743C00, "095 sub_747130" },
+		{ game::MAG_095_Bubble_State1_PlayUntilEnd, (void *)a_743C00, "095 sub_747340" },
+		{ game::MAG_095_StepCounterLimit, (void *)a_743C20, "095 sub_743C20" },
+		{ game::MAG_095_DrawNodePrimModel, (void *)a_7458E0, "095 sub_7458E0" },
+		{ game::MAG_095_StageWobbleIn_State0_InitEntityRecords, (void *)a_746980, "095 sub_746980" },
+		{ game::MAG_095_ClearEntityRecordBit1, (void *)a_746A10, "095 sub_746A10" },
+		{ game::MAG_095_RestoreEntityRecordBit1, (void *)a_746AE0, "095 sub_746AE0" },
+		{ game::GF_095Siren_DrawModel, (void *)a_746C10, "095 GF_095Siren_DrawModel" },
+		{ game::MAG_095_CreatureActor_State6_AnimUntilDirPhase6, (void *)a_747400, "095 sub_747400" },
+		{ game::MAG_095_ActEng_Emitter_State1_ApplyActionResults, (void *)a_747440, "095 MAG_095_sub_747440" },
+		{ game::MAG_095_ActEng_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "095 MAG_095_sub_7474B0" },
+		{ game::MAG_095_ActEng_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "095 MAG_095_sub_7474D0" },
+		{ game::MAG_095_Sequence_State4_NextTargetLoop, (void *)a_747500, "095 MAG_095_sub_747500" },
+		{ game::MAG_095_Sequence_State6_WaitQueuesEmpty, (void *)a_747550, "095 MAG_095_sub_747550" },
+		{ game::MAG_095_Sequence_State7_RequestBattleSync, (void *)a_747560, "095 MAG_095_sub_747560" },
+		{ game::MAG_095_Sequence_State8_WaitBattleSyncDone, (void *)a_747590, "095 MAG_095_sub_747590" },
+		{ game::MAG_095_Sequence_State9_Finish, (void *)a_7475A0, "095 MAG_095_sub_7475A0" },
+		{ {}, nullptr, nullptr }
 	};
 	static const AddrPort ENGINE_PORTS_096[] = {
-		{ 0x732120, (void *)a_732120, "096 MAG_096_sub_732120" },
-		{ 0x732160, (void *)a_732160, "096 MAG_096_sub_732160" },
-		{ 0x7322A0, (void *)a_7322A0, "096 MAG_096_sub_7322A0" },
-		{ 0x732A00, (void *)a_732A00, "096 sub_732A00" },
-		{ 0x7334C0, (void *)a_7334C0, "096 sub_7334C0" },
-		{ 0x7335D0, (void *)a_7335D0, "096 sub_7335D0" },
-		{ 0x733760, (void *)a_733760, "096 sub_733760" },
-		{ 0x733950, (void *)a_733950, "096 sub_733950" },
-		{ 0x733AC0, (void *)a_733AC0, "096 sub_733AC0" },
-		{ 0x733AE0, (void *)a_733AE0, "096 sub_733AE0" },
-		{ 0x733B70, (void *)a_733B70, "096 sub_733B70" },
-		{ 0x7340A0, (void *)a_7340A0, "096 sub_7340A0" },
-		{ 0x7348A0, (void *)a_7348A0, "096 sub_7348A0" },
-		{ 0x7353B0, (void *)a_7353B0, "096 sub_7353B0" },
-		{ 0x735440, (void *)a_735440, "096 sub_735440" },
-		{ 0x7354A0, (void *)a_7354A0, "096 sub_7354A0" },
-		{ 0x7355E0, (void *)a_7355E0, "096 sub_7355E0" },
-		{ 0x735BB0, (void *)a_735BB0, "096 sub_735BB0" },
-		{ 0x735DF0, (void *)a_735DF0, "096 sub_735DF0" },
-		{ 0x736C00, (void *)a_736C00, "096 sub_736C00" },
-		{ 0x737ED0, (void *)a_737ED0, "096 sub_737ED0" },
-		{ 0x737F50, (void *)a_737F50, "096 sub_737F50" },
-		{ 0x737FD0, (void *)a_737FD0, "096 sub_737FD0" },
-		{ 0x7387B0, (void *)a_7387B0, "096 sub_7387B0" },
-		{ 0x7395E0, (void *)a_7395E0, "096 sub_7395E0" },
-		{ 0x739890, (void *)a_739890, "096 sub_739890" },
-		{ 0x739960, (void *)a_739960, "096 sub_739960" },
-		{ 0x739AC0, (void *)a_739AC0, "096 sub_739AC0" },
-		{ 0x739B40, (void *)a_739B40, "096 sub_739B40" },
-		{ 0x732100, (void *)a_73A0D0, "096 MAG_096_sub_732100" },
-		{ 0x732110, (void *)a_73A0D0, "096 MAG_096_sub_732110" },
-		{ 0x739CF0, (void *)a_73A0D0, "096 MAG_096_sub_739CF0" },
-		{ 0x7321A0, (void *)a_73A170, "096 MAG_096_sub_7321A0" },
-		{ 0x7321D0, (void *)a_73A1A0, "096 MAG_096_sub_7321D0" },
-		{ 0x732390, (void *)a_73A380, "096 MAG_096_sub_732390" },
-		{ 0x733570, (void *)a_73A380, "096 sub_733570" },
-		{ 0x733810, (void *)a_73A380, "096 sub_733810" },
-		{ 0x733BE0, (void *)a_73A380, "096 sub_733BE0" },
-		{ 0x733CE0, (void *)a_73A380, "096 sub_733CE0" },
-		{ 0x734840, (void *)a_73A380, "096 sub_734840" },
-		{ 0x7323F0, (void *)a_73A3E0, "096 sub_7323F0" },
-		{ 0x732590, (void *)a_73A580, "096 sub_732590" },
-		{ 0x7325C0, (void *)a_73A5B0, "096 sub_7325C0" },
-		{ 0x7325F0, (void *)a_73A5E0, "096 sub_7325F0" },
-		{ 0x732600, (void *)a_73A5E0, "096 sub_732600" },
-		{ 0x732610, (void *)a_73A5E0, "096 sub_732610" },
-		{ 0x732620, (void *)a_73A5E0, "096 sub_732620" },
-		{ 0x732630, (void *)a_73A620, "096 sub_732630" },
-		{ 0x732670, (void *)a_73A660, "096 sub_732670" },
-		{ 0x7326E0, (void *)a_73A6D0, "096 nullsub_1156" },
-		{ 0x733550, (void *)a_73A6D0, "096 nullsub_1166" },
-		{ 0x733560, (void *)a_73A6D0, "096 nullsub_1167" },
-		{ 0x733680, (void *)a_73A6D0, "096 nullsub_1168" },
-		{ 0x7337C0, (void *)a_73A6D0, "096 nullsub_1169" },
-		{ 0x733A50, (void *)a_73A6D0, "096 nullsub_1157" },
-		{ 0x733CD0, (void *)a_73A6D0, "096 nullsub_1158" },
-		{ 0x733DE0, (void *)a_73A6D0, "096 nullsub_1159" },
-		{ 0x733E70, (void *)a_73A6D0, "096 nullsub_1160" },
-		{ 0x733E80, (void *)a_73A6D0, "096 nullsub_1161" },
-		{ 0x734830, (void *)a_73A6D0, "096 nullsub_1162" },
-		{ 0x739600, (void *)a_73A6D0, "096 nullsub_1163" },
-		{ 0x739BE0, (void *)a_73A6D0, "096 nullsub_1164" },
-		{ 0x739CA0, (void *)a_73A6D0, "096 nullsub_1165" },
-		{ 0x739D70, (void *)a_73A6D0, "096 nullsub_1155" },
-		{ 0x732720, (void *)a_73A720, "096 sub_732720" },
-		{ 0x733A60, (void *)a_73A930, "096 sub_733A60" },
-		{ 0x733A80, (void *)a_73A950, "096 sub_733A80" },
-		{ 0x7332F0, (void *)a_73AAE0, "096 sub_7332F0" },
-		{ 0x732AF0, (void *)a_73AB00, "096 sub_732AF0" },
-		{ 0x732B10, (void *)a_73AB20, "096 sub_732B10" },
-		{ 0x732E00, (void *)a_73AE10, "096 sub_732E00" },
-		{ 0x733150, (void *)a_73B160, "096 sub_733150" },
-		{ 0x7334F0, (void *)a_73B2D0, "096 sub_7334F0" },
-		{ 0x732920, (void *)a_73B640, "096 sub_732920" },
-		{ 0x733530, (void *)a_73B750, "096 sub_733530" },
-		{ 0x732900, (void *)a_73B790, "096 sub_732900" },
-		{ 0x7329E0, (void *)a_73B7E0, "096 sub_7329E0" },
-		{ 0x733B00, (void *)a_73B8A0, "096 sub_733B00" },
-		{ 0x7338D0, (void *)a_73B9F0, "096 sub_7338D0" },
-		{ 0x733D60, (void *)a_73BA90, "096 sub_733D60" },
-		{ 0x733B50, (void *)a_73BC40, "096 sub_733B50" },
-		{ 0x733DF0, (void *)a_73BC40, "096 sub_733DF0" },
-		{ 0x733F20, (void *)a_73C100, "096 sub_733F20" },
-		{ 0x733690, (void *)a_73F110, "096 sub_733690" },
-		{ 0x7348D0, (void *)a_73F990, "096 sub_7348D0" },
-		{ 0x734B60, (void *)a_73FC20, "096 sub_734B60" },
-		{ 0x734DD0, (void *)a_73FE90, "096 sub_734DD0" },
-		{ 0x734EF0, (void *)a_73FFB0, "096 sub_734EF0" },
-		{ 0x735150, (void *)a_740210, "096 sub_735150" },
-		{ 0x736AC0, (void *)a_740700, "096 sub_736AC0" },
-		{ 0x736B80, (void *)a_7407C0, "096 sub_736B80" },
-		{ 0x736C40, (void *)a_740880, "096 sub_736C40" },
-		{ 0x736CD0, (void *)a_740910, "096 sub_736CD0" },
-		{ 0x737330, (void *)a_740F70, "096 sub_737330" },
-		{ 0x737380, (void *)a_740FC0, "096 sub_737380" },
-		{ 0x737410, (void *)a_741050, "096 sub_737410" },
-		{ 0x7374E0, (void *)a_741120, "096 sub_7374E0" },
-		{ 0x737D80, (void *)a_7419C0, "096 sub_737D80" },
-		{ 0x737E00, (void *)a_741A40, "096 sub_737E00" },
-		{ 0x737E30, (void *)a_741A70, "096 sub_737E30" },
-		{ 0x737F20, (void *)a_741B60, "096 sub_737F20" },
-		{ 0x738650, (void *)a_742290, "096 au_re__rand_7" },
-		{ 0x738680, (void *)a_7422C0, "096 sub_738680" },
-		{ 0x7386C0, (void *)a_742300, "096 sub_7386C0" },
-		{ 0x738710, (void *)a_742350, "096 sub_738710" },
-		{ 0x738760, (void *)a_7423A0, "096 au_re__rand_7_0" },
-		{ 0x738870, (void *)a_7424B0, "096 sub_738870" },
-		{ 0x738880, (void *)a_7424C0, "096 sub_738880" },
-		{ 0x739060, (void *)a_742CA0, "096 sub_739060" },
-		{ 0x739090, (void *)a_742CD0, "096 sub_739090" },
-		{ 0x7390C0, (void *)a_742D00, "096 sub_7390C0" },
-		{ 0x739270, (void *)a_742EB0, "096 sub_739270" },
-		{ 0x7393B0, (void *)a_742FF0, "096 sub_7393B0" },
-		{ 0x7394C0, (void *)a_743100, "096 sub_7394C0" },
-		{ 0x739550, (void *)a_743190, "096 sub_739550" },
-		{ 0x733660, (void *)a_746A10, "096 sub_733660" },
-		{ 0x733C60, (void *)a_746AE0, "096 sub_733C60" },
-		{ 0x7396B0, (void *)a_746C10, "096 sub_7396B0" },
-		{ 0x739BF0, (void *)a_747440, "096 MAG_096_sub_739BF0" },
-		{ 0x739C60, (void *)a_7474B0, "096 MAG_096_sub_739C60" },
-		{ 0x739C80, (void *)a_7474D0, "096 MAG_096_sub_739C80" },
-		{ 0x739CB0, (void *)a_747500, "096 MAG_096_sub_739CB0" },
-		{ 0x739D00, (void *)a_747550, "096 MAG_096_sub_739D00" },
-		{ 0x739D10, (void *)a_747560, "096 MAG_096_sub_739D10" },
-		{ 0x739D40, (void *)a_747590, "096 MAG_096_sub_739D40" },
-		{ 0x733E50, (void *)a_7475A0, "096 sub_733E50" },
-		{ 0x739D50, (void *)a_7475A0, "096 MAG_096_sub_739D50" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_096_MiniMog_Master_State2_CarveWorkBuffers, (void *)a_732120, "096 MAG_096_sub_732120" },
+		{ game::MAG_096_ClearWorkBuffers, (void *)a_732160, "096 MAG_096_sub_732160" },
+		{ game::MAG_096_InitModuleState, (void *)a_7322A0, "096 MAG_096_sub_7322A0" },
+		{ game::MAG_096_CameraScriptTask, (void *)a_732A00, "096 sub_732A00" },
+		{ game::MAG_096_CameraScript_State11_CamKeyStepThenStartKey, (void *)a_7334C0, "096 sub_7334C0" },
+		{ game::MAG_096_StageFadeIn_State0_ResetEntityRecords, (void *)a_7335D0, "096 sub_7335D0" },
+		{ game::MAG_096_MusicFade_State2_WaitDirPhase4, (void *)a_733760, "096 sub_733760" },
+		{ game::MAG_096_SetEntityColourTint, (void *)a_733950, "096 sub_733950" },
+		{ game::MAG_096_MiniMog_Director_State4_WaitLoadScriptIdle, (void *)a_733AC0, "096 sub_733AC0" },
+		{ game::MAG_096_MiniMog_Director_State5_Wait20Frames, (void *)a_733AE0, "096 sub_733AE0" },
+		{ game::MAG_096_MiniMog_Director_State9_WaitDirGate3, (void *)a_733B70, "096 sub_733B70" },
+		{ game::MAG_096_ScrollModelTextureV, (void *)a_7340A0, "096 sub_7340A0" },
+		{ game::MAG_096_ActorSystem_State0_StartActorSystemAtFrame, (void *)a_7348A0, "096 sub_7348A0" },
+		{ game::ActSys_Step, (void *)a_7353B0, "096 sub_7353B0" },
+		{ game::MAG_096_ActSys_DrawPass, (void *)a_735440, "096 sub_735440" },
+		{ game::MAG_096_ActSys_DrawActorModel, (void *)a_7354A0, "096 sub_7354A0" },
+		{ game::MAG_096_RenderPrimModel, (void *)a_7355E0, "096 sub_7355E0" },
+		{ game::MAG_096_RenderPolyFT3List, (void *)a_735BB0, "096 sub_735BB0" },
+		{ game::MAG_096_RenderPolyFT4List, (void *)a_735DF0, "096 sub_735DF0" },
+		{ game::MAG_096_ActSys_UpdatePass, (void *)a_736C00, "096 sub_736C00" },
+		{ game::MAG_096_ActSys_UpdateEmitter, (void *)a_737ED0, "096 sub_737ED0" },
+		{ game::MAG_096_ActSys_EmitterSpawnStep, (void *)a_737F50, "096 sub_737F50" },
+		{ game::sub_737FD0, (void *)a_737FD0, "096 sub_737FD0" },
+		{ game::MAG_096_ActSys_AllocParticleSlot, (void *)a_7387B0, "096 sub_7387B0" },
+		{ game::MAG_096_ActorSystem_State1_StepActorSystem, (void *)a_7395E0, "096 sub_7395E0" },
+		{ game::TexAnim_Step, (void *)a_739890, "096 sub_739890" },
+		{ game::TexAnim_UploadFrame, (void *)a_739960, "096 sub_739960" },
+		{ game::MAG_096_TexAnim_Start, (void *)a_739AC0, "096 sub_739AC0" },
+		{ game::MAG_096_MiniMog_CreatureActor_State2_WaitModelAnimDone, (void *)a_739B40, "096 sub_739B40" },
+		{ game::MAG_096_MiniMog_Master_State0_Advance, (void *)a_73A0D0, "096 MAG_096_sub_732100" },
+		{ game::MAG_096_MiniMog_Master_State1_Advance, (void *)a_73A0D0, "096 MAG_096_sub_732110" },
+		{ game::MAG_096_MiniMog_Master_State5_Advance, (void *)a_73A0D0, "096 MAG_096_sub_739CF0" },
+		{ game::MAG_096_MiniMog_Master_State3_SpawnEmitter, (void *)a_73A170, "096 MAG_096_sub_7321A0" },
+		{ game::MAG_096_EmitterTask, (void *)a_73A1A0, "096 MAG_096_sub_7321D0" },
+		{ game::MAG_096_FileLoadScriptTask, (void *)a_73A380, "096 MAG_096_sub_732390" },
+		{ game::MAG_096_StageFadeInTask, (void *)a_73A380, "096 sub_733570" },
+		{ game::MAG_096_EntityFadeInTask, (void *)a_73A380, "096 sub_733810" },
+		{ game::MAG_096_StageFadeOutTask, (void *)a_73A380, "096 sub_733BE0" },
+		{ game::MAG_096_EntityFadeOutTask, (void *)a_73A380, "096 sub_733CE0" },
+		{ game::MAG_096_ActorSystemTask, (void *)a_73A380, "096 sub_734840" },
+		{ game::MAG_096_LoadScript_Issue, (void *)a_73A3E0, "096 sub_7323F0" },
+		{ game::MAG_096_LoadCb_UploadTim, (void *)a_73A580, "096 sub_732590" },
+		{ game::MAG_096_LoadCb_SummonStream, (void *)a_73A5B0, "096 sub_7325C0" },
+		{ game::MAG_096_LoadCb_ClearBusy, (void *)a_73A5E0, "096 sub_7325F0" },
+		{ game::MAG_096_LoadCb_ClearBusy_2, (void *)a_73A5E0, "096 sub_732600" },
+		{ game::MAG_096_LoadCb_ClearBusy_3, (void *)a_73A5E0, "096 sub_732610" },
+		{ game::MAG_096_LoadCb_ClearBusy_4, (void *)a_73A5E0, "096 sub_732620" },
+		{ game::MAG_096_LoadScript_RecordFile, (void *)a_73A620, "096 sub_732630" },
+		{ game::MAG_096_FileLoadScript_State1_LoadScriptWait, (void *)a_73A660, "096 sub_732670" },
+		{ game::MAG_096_FileLoadScript_State2_Empty, (void *)a_73A6D0, "096 nullsub_1156" },
+		{ game::MAG_096_St_Empty, (void *)a_73A6D0, "096 nullsub_1166" },
+		{ game::MAG_096_CameraScript_State15_Empty, (void *)a_73A6D0, "096 nullsub_1167" },
+		{ game::MAG_096_StageFadeIn_State2_Empty, (void *)a_73A6D0, "096 nullsub_1168" },
+		{ game::MAG_096_MusicFade_State4_Empty, (void *)a_73A6D0, "096 nullsub_1169" },
+		{ game::MAG_096_EntityFadeIn_State2_Empty, (void *)a_73A6D0, "096 nullsub_1157" },
+		{ game::MAG_096_StageFadeOut_State2_Empty, (void *)a_73A6D0, "096 nullsub_1158" },
+		{ game::MAG_096_EntityFadeOut_State2_Empty, (void *)a_73A6D0, "096 nullsub_1159" },
+		{ game::MAG_096_MiniMog_Director_State14_Empty, (void *)a_73A6D0, "096 nullsub_1160" },
+		{ game::MAG_096_St_Empty_2, (void *)a_73A6D0, "096 nullsub_1161" },
+		{ game::MAG_096_ParticleModel_State2_Empty, (void *)a_73A6D0, "096 nullsub_1162" },
+		{ game::MAG_096_ActorSystem_State2_Empty, (void *)a_73A6D0, "096 nullsub_1163" },
+		{ game::MAG_096_MiniMog_CreatureActor_State5_Empty, (void *)a_73A6D0, "096 nullsub_1164" },
+		{ game::MAG_096_Emitter_State4_Empty, (void *)a_73A6D0, "096 nullsub_1165" },
+		{ game::MAG_096_MiniMog_Master_State10_Empty, (void *)a_73A6D0, "096 nullsub_1155" },
+		{ game::MAG_096_GetMonstersCentre, (void *)a_73A720, "096 sub_732720" },
+		{ game::MAG_096_MiniMog_Director_State3_ArmLoadScriptStep, (void *)a_73A930, "096 sub_733A60" },
+		{ game::MAG_096_LoadScript_TryArmStep, (void *)a_73A950, "096 sub_733A80" },
+		{ game::MAG_096_DirStepGE, (void *)a_73AAE0, "096 sub_7332F0" },
+		{ game::MAG_096_Camera_ResetBlock, (void *)a_73AB00, "096 sub_732AF0" },
+		{ game::MAG_096_Camera_StartKeyMove, (void *)a_73AB20, "096 sub_732B10" },
+		{ game::MAG_096_Camera_KeyStep, (void *)a_73AE10, "096 sub_732E00" },
+		{ game::MAG_096_Camera_WriteBattleCamera, (void *)a_73B160, "096 sub_733150" },
+		{ game::MAG_096_CameraScript_State12_CamKeyStep, (void *)a_73B2D0, "096 sub_7334F0" },
+		{ game::MAG_096_DirSyncGate, (void *)a_73B640, "096 sub_732920" },
+		{ game::MAG_096_CameraScript_State14_FinishNode, (void *)a_73B750, "096 sub_733530" },
+		{ game::MAG_096_MiniMog_Director_State0_WaitDirGate1, (void *)a_73B790, "096 sub_732900" },
+		{ game::MAG_096_DirPhaseGE, (void *)a_73B7E0, "096 sub_7329E0" },
+		{ game::MAG_096_MiniMog_Director_State6_WaitDirGate2, (void *)a_73B8A0, "096 sub_733B00" },
+		{ game::MAG_096_HideMonsters, (void *)a_73B9F0, "096 sub_7338D0" },
+		{ game::MAG_096_RestoreMonsters, (void *)a_73BA90, "096 sub_733D60" },
+		{ game::MAG_096_MiniMog_Director_State8_CountdownTimer, (void *)a_73BC40, "096 sub_733B50" },
+		{ game::MAG_096_MiniMog_Director_State11_CountdownTimer, (void *)a_73BC40, "096 sub_733DF0" },
+		{ game::MAG_096_SpawnChildTask, (void *)a_73C100, "096 sub_733F20" },
+		{ game::MAG_096_MusicFadeTask, (void *)a_73F110, "096 sub_733690" },
+		{ game::MAG_096_DirectorSetup, (void *)a_73F990, "096 sub_7348D0" },
+		{ game::MAG_096_Director_StartPositions, (void *)a_73FC20, "096 sub_734B60" },
+		{ game::MAG_096_Director_Mode3Setup, (void *)a_73FE90, "096 sub_734DD0" },
+		{ game::MAG_096_Director_TargetPositions, (void *)a_73FFB0, "096 sub_734EF0" },
+		{ game::MAG_096_RelocateActorData, (void *)a_740210, "096 sub_735150" },
+		{ game::MAG_096_ActSys_DrawSpritePass, (void *)a_740700, "096 sub_736AC0" },
+		{ game::MAG_096_ActSys_DrawActorSprite, (void *)a_7407C0, "096 sub_736B80" },
+		{ game::MAG_096_ActorStep, (void *)a_740880, "096 sub_736C40" },
+		{ game::MAG_096_ActorMotion, (void *)a_740910, "096 sub_736CD0" },
+		{ game::MAG_096_DampValue, (void *)a_740F70, "096 sub_737330" },
+		{ game::MAG_096_DampVector, (void *)a_740FC0, "096 sub_737380" },
+		{ game::MAG_096_Instance_AdvanceTexFrame, (void *)a_741050, "096 sub_737410" },
+		{ game::MAG_096_Instance_BuildTransform, (void *)a_741120, "096 sub_7374E0" },
+		{ game::MAG_096_Instance_EndOfLifeTest, (void *)a_7419C0, "096 sub_737D80" },
+		{ game::MAG_096_Instance_SpawnFollowUp, (void *)a_741A40, "096 sub_737E00" },
+		{ game::MAG_096_AllocParticle, (void *)a_741A70, "096 sub_737E30" },
+		{ game::MAG_096_Particle_LifeCountdown, (void *)a_741B60, "096 sub_737F20" },
+		{ game::MAG_096_RandRange, (void *)a_742290, "096 au_re__rand_7" },
+		{ game::MAG_096_RandRangeWide, (void *)a_7422C0, "096 sub_738680" },
+		{ game::MAG_096_RandVec3, (void *)a_742300, "096 sub_7386C0" },
+		{ game::MAG_096_JitterAngles3, (void *)a_742350, "096 sub_738710" },
+		{ game::MAG_096_RandAngleJitter, (void *)a_7423A0, "096 au_re__rand_7_0" },
+		{ game::MAG_096_GetWord8Minus1, (void *)a_7424B0, "096 sub_738870" },
+		{ game::MAG_096_Particle_AttachToOwner, (void *)a_7424C0, "096 sub_738880" },
+		{ game::MAG_096_ParticleList_Append, (void *)a_742CA0, "096 sub_739060" },
+		{ game::MAG_096_ParticleList_Unlink, (void *)a_742CD0, "096 sub_739090" },
+		{ game::MAG_096_Particle_Init, (void *)a_742D00, "096 sub_7390C0" },
+		{ game::MAG_096_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "096 sub_739270" },
+		{ game::MAG_096_Particle_PlaceAtPoint, (void *)a_742FF0, "096 sub_7393B0" },
+		{ game::MAG_096_SpawnSubEffects, (void *)a_743100, "096 sub_7394C0" },
+		{ game::MAG_096_Director_SpawnGroupEffects, (void *)a_743190, "096 sub_739550" },
+		{ game::MAG_096_ClearEntityRecordBit1, (void *)a_746A10, "096 sub_733660" },
+		{ game::MAG_096_RestoreEntityRecordBit1, (void *)a_746AE0, "096 sub_733C60" },
+		{ game::MAG_096_DrawBattleModel, (void *)a_746C10, "096 sub_7396B0" },
+		{ game::MAG_096_Emitter_State1_ApplyActionResults, (void *)a_747440, "096 MAG_096_sub_739BF0" },
+		{ game::MAG_096_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "096 MAG_096_sub_739C60" },
+		{ game::MAG_096_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "096 MAG_096_sub_739C80" },
+		{ game::MAG_096_MiniMog_Master_State4_NextTargetLoop, (void *)a_747500, "096 MAG_096_sub_739CB0" },
+		{ game::MAG_096_MiniMog_Master_State6_WaitQueuesEmpty, (void *)a_747550, "096 MAG_096_sub_739D00" },
+		{ game::MAG_096_MiniMog_Master_State7_RequestBattleSync, (void *)a_747560, "096 MAG_096_sub_739D10" },
+		{ game::MAG_096_MiniMog_Master_State8_WaitBattleSyncDone, (void *)a_747590, "096 MAG_096_sub_739D40" },
+		{ game::MAG_096_MiniMog_Director_State13_Finish, (void *)a_7475A0, "096 sub_733E50" },
+		{ game::MAG_096_MiniMog_Master_State9_Finish, (void *)a_7475A0, "096 MAG_096_sub_739D50" },
+		{ {}, nullptr, nullptr }
 	};
 	static const AddrPort ENGINE_PORTS_097[] = {
-		{ 0x729D70, (void *)a_732120, "097 MAG_097_sub_729D70" },
-		{ 0x729DB0, (void *)a_732160, "097 MAG_097_sub_729DB0" },
-		{ 0x7304E0, (void *)a_7334C0, "097 sub_7304E0" },
-		{ 0x731AB0, (void *)a_7335D0, "097 sub_731AB0" },
-		{ 0x731050, (void *)a_733AC0, "097 sub_731050" },
-		{ 0x731070, (void *)a_733B70, "097 sub_731070" },
-		{ 0x7311C0, (void *)a_7340A0, "097 sub_7311C0" },
-		{ 0x72B720, (void *)a_735440, "097 sub_72B720" },
-		{ 0x72B780, (void *)a_7354A0, "097 sub_72B780" },
-		{ 0x72B8C0, (void *)a_7355E0, "097 sub_72B8C0" },
-		{ 0x72BE90, (void *)a_735BB0, "097 sub_72BE90" },
-		{ 0x72C0D0, (void *)a_735DF0, "097 sub_72C0D0" },
-		{ 0x72E480, (void *)a_737ED0, "097 sub_72E480" },
-		{ 0x72E500, (void *)a_737F50, "097 sub_72E500" },
-		{ 0x72E580, (void *)a_737FD0, "097 sub_72E580" },
-		{ 0x72ED60, (void *)a_7387B0, "097 sub_72ED60" },
-		{ 0x730940, (void *)a_739890, "097 sub_730940" },
-		{ 0x730A10, (void *)a_739960, "097 sub_730A10" },
-		{ 0x730B60, (void *)a_739AC0, "097 sub_730B60" },
-		{ 0x730BA0, (void *)a_739B40, "097 sub_730BA0" },
-		{ 0x729D50, (void *)a_73A0D0, "097 MAG_097_sub_729D50" },
-		{ 0x729D60, (void *)a_73A0D0, "097 MAG_097_sub_729D60" },
-		{ 0x731D30, (void *)a_73A0D0, "097 MAG_097_sub_731D30" },
-		{ 0x729DF0, (void *)a_73A170, "097 MAG_097_sub_729DF0" },
-		{ 0x729E20, (void *)a_73A1A0, "097 MAG_097_sub_729E20" },
-		{ 0x729FF0, (void *)a_73A380, "097 MAG_097_sub_729FF0" },
-		{ 0x72A660, (void *)a_73A380, "097 sub_72A660" },
-		{ 0x72AB20, (void *)a_73A380, "097 sub_72AB20" },
-		{ 0x731630, (void *)a_73A380, "097 sub_731630" },
-		{ 0x731A50, (void *)a_73A380, "097 sub_731A50" },
-		{ 0x731B40, (void *)a_73A380, "097 sub_731B40" },
-		{ 0x72A050, (void *)a_73A3E0, "097 sub_72A050" },
-		{ 0x72A1F0, (void *)a_73A580, "097 sub_72A1F0" },
-		{ 0x72A220, (void *)a_73A5B0, "097 sub_72A220" },
-		{ 0x72A250, (void *)a_73A5E0, "097 sub_72A250" },
-		{ 0x72A260, (void *)a_73A5E0, "097 sub_72A260" },
-		{ 0x72A270, (void *)a_73A5E0, "097 sub_72A270" },
-		{ 0x72A280, (void *)a_73A5E0, "097 sub_72A280" },
-		{ 0x72A290, (void *)a_73A620, "097 sub_72A290" },
-		{ 0x72A2D0, (void *)a_73A660, "097 sub_72A2D0" },
-		{ 0x72A340, (void *)a_73A6D0, "097 nullsub_1139" },
-		{ 0x72AB10, (void *)a_73A6D0, "097 nullsub_1140" },
-		{ 0x72FBB0, (void *)a_73A6D0, "097 nullsub_1141" },
-		{ 0x730550, (void *)a_73A6D0, "097 nullsub_1142" },
-		{ 0x730560, (void *)a_73A6D0, "097 nullsub_1143" },
-		{ 0x730E20, (void *)a_73A6D0, "097 nullsub_1144" },
-		{ 0x730FB0, (void *)a_73A6D0, "097 nullsub_1145" },
-		{ 0x731590, (void *)a_73A6D0, "097 nullsub_1146" },
-		{ 0x7316F0, (void *)a_73A6D0, "097 nullsub_1147" },
-		{ 0x731760, (void *)a_73A6D0, "097 nullsub_1148" },
-		{ 0x731770, (void *)a_73A6D0, "097 nullsub_1149" },
-		{ 0x731940, (void *)a_73A6D0, "097 nullsub_1150" },
-		{ 0x731A40, (void *)a_73A6D0, "097 nullsub_1151" },
-		{ 0x731B30, (void *)a_73A6D0, "097 nullsub_1152" },
-		{ 0x731C20, (void *)a_73A6D0, "097 nullsub_1153" },
-		{ 0x731CE0, (void *)a_73A6D0, "097 nullsub_1154" },
-		{ 0x731DB0, (void *)a_73A6D0, "097 nullsub_1138" },
-		{ 0x72A380, (void *)a_73A720, "097 sub_72A380" },
-		{ 0x730570, (void *)a_73A930, "097 sub_730570" },
-		{ 0x730FC0, (void *)a_73A930, "097 sub_730FC0" },
-		{ 0x731030, (void *)a_73A930, "097 sub_731030" },
-		{ 0x730590, (void *)a_73A950, "097 sub_730590" },
-		{ 0x730490, (void *)a_73AAE0, "097 sub_730490" },
-		{ 0x72FC70, (void *)a_73AB00, "097 sub_72FC70" },
-		{ 0x72FC90, (void *)a_73AB20, "097 sub_72FC90" },
-		{ 0x72FF80, (void *)a_73AE10, "097 sub_72FF80" },
-		{ 0x7302D0, (void *)a_73B160, "097 sub_7302D0" },
-		{ 0x730440, (void *)a_73B2D0, "097 sub_730440" },
-		{ 0x7304B0, (void *)a_73B350, "097 sub_7304B0" },
-		{ 0x730EC0, (void *)a_73B640, "097 sub_730EC0" },
-		{ 0x730530, (void *)a_73B750, "097 sub_730530" },
-		{ 0x730E80, (void *)a_73B7E0, "097 sub_730E80" },
-		{ 0x731010, (void *)a_73B8C0, "097 sub_731010" },
-		{ 0x730610, (void *)a_73BB60, "097 sub_730610" },
-		{ 0x731700, (void *)a_73BC40, "097 sub_731700" },
-		{ 0x72A5C0, (void *)a_73C100, "097 sub_72A5C0" },
-		{ 0x72ABB0, (void *)a_73F990, "097 sub_72ABB0" },
-		{ 0x72AE40, (void *)a_73FC20, "097 sub_72AE40" },
-		{ 0x72B0B0, (void *)a_73FE90, "097 sub_72B0B0" },
-		{ 0x72B1D0, (void *)a_73FFB0, "097 sub_72B1D0" },
-		{ 0x72B430, (void *)a_740210, "097 sub_72B430" },
-		{ 0x72CDA0, (void *)a_740700, "097 sub_72CDA0" },
-		{ 0x72CE60, (void *)a_7407C0, "097 sub_72CE60" },
-		{ 0x72CFB0, (void *)a_740910, "097 sub_72CFB0" },
-		{ 0x72D610, (void *)a_740F70, "097 sub_72D610" },
-		{ 0x72D660, (void *)a_740FC0, "097 sub_72D660" },
-		{ 0x72D6F0, (void *)a_741050, "097 sub_72D6F0" },
-		{ 0x72E330, (void *)a_7419C0, "097 sub_72E330" },
-		{ 0x72E3B0, (void *)a_741A40, "097 sub_72E3B0" },
-		{ 0x72E3E0, (void *)a_741A70, "097 sub_72E3E0" },
-		{ 0x72E4D0, (void *)a_741B60, "097 sub_72E4D0" },
-		{ 0x72EC00, (void *)a_742290, "097 au_re__rand_6" },
-		{ 0x72EC30, (void *)a_7422C0, "097 sub_72EC30" },
-		{ 0x72EC70, (void *)a_742300, "097 sub_72EC70" },
-		{ 0x72ECC0, (void *)a_742350, "097 sub_72ECC0" },
-		{ 0x72ED10, (void *)a_7423A0, "097 au_re__rand_6_0" },
-		{ 0x72EE20, (void *)a_7424B0, "097 sub_72EE20" },
-		{ 0x72EE30, (void *)a_7424C0, "097 sub_72EE30" },
-		{ 0x72F610, (void *)a_742CA0, "097 sub_72F610" },
-		{ 0x72F640, (void *)a_742CD0, "097 sub_72F640" },
-		{ 0x72F670, (void *)a_742D00, "097 sub_72F670" },
-		{ 0x72F820, (void *)a_742EB0, "097 sub_72F820" },
-		{ 0x72F960, (void *)a_742FF0, "097 sub_72F960" },
-		{ 0x72FA70, (void *)a_743100, "097 sub_72FA70" },
-		{ 0x72FB00, (void *)a_743190, "097 sub_72FB00" },
-		{ 0x730E00, (void *)a_743C00, "097 sub_730E00" },
-		{ 0x730DA0, (void *)a_743C20, "097 sub_730DA0" },
-		{ 0x731BA0, (void *)a_746980, "097 sub_731BA0" },
-		{ 0x730760, (void *)a_746C10, "097 sub_730760" },
-		{ 0x730F80, (void *)a_747400, "097 sub_730F80" },
-		{ 0x731C30, (void *)a_747440, "097 MAG_097_sub_731C30" },
-		{ 0x731CA0, (void *)a_7474B0, "097 MAG_097_sub_731CA0" },
-		{ 0x731CC0, (void *)a_7474D0, "097 MAG_097_sub_731CC0" },
-		{ 0x731CF0, (void *)a_747500, "097 MAG_097_sub_731CF0" },
-		{ 0x731D40, (void *)a_747550, "097 MAG_097_sub_731D40" },
-		{ 0x731D50, (void *)a_747560, "097 MAG_097_sub_731D50" },
-		{ 0x731D80, (void *)a_747590, "097 MAG_097_sub_731D80" },
-		{ 0x731D90, (void *)a_7475A0, "097 MAG_097_sub_731D90" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_097_Boko_Master_State2_CarveWorkBuffers, (void *)a_732120, "097 MAG_097_sub_729D70" },
+		{ game::MAG_097_ClearWorkBuffers, (void *)a_732160, "097 MAG_097_sub_729DB0" },
+		{ game::MAG_097_EmitterStage_State4_CamKeyStepThenStartKey, (void *)a_7334C0, "097 sub_7304E0" },
+		{ game::MAG_097_EntityFadeIn_State0_Clear, (void *)a_7335D0, "097 sub_731AB0" },
+		{ game::MAG_097_Director_State8_WaitLoadScriptIdle, (void *)a_733AC0, "097 sub_731050" },
+		{ game::MAG_097_Director_State9_WaitDirGate3, (void *)a_733B70, "097 sub_731070" },
+		{ game::MAG_097_UvModel_ScrollTextureV, (void *)a_7340A0, "097 sub_7311C0" },
+		{ game::MAG_097_ActSys_DrawPass, (void *)a_735440, "097 sub_72B720" },
+		{ game::MAG_097_ActSys_DrawActorModel, (void *)a_7354A0, "097 sub_72B780" },
+		{ game::MAG_097_RenderPrimModel, (void *)a_7355E0, "097 sub_72B8C0" },
+		{ game::MAG_097_RenderPolyFT3List, (void *)a_735BB0, "097 sub_72BE90" },
+		{ game::MAG_097_RenderPolyFT4List, (void *)a_735DF0, "097 sub_72C0D0" },
+		{ game::MAG_097_ActSys_UpdateEmitter, (void *)a_737ED0, "097 sub_72E480" },
+		{ game::MAG_097_ActSys_EmitterSpawnStep, (void *)a_737F50, "097 sub_72E500" },
+		{ game::MAG_097_ActSys_SpawnParticles, (void *)a_737FD0, "097 sub_72E580" },
+		{ game::MAG_097_ActSys_AllocParticleSlot, (void *)a_7387B0, "097 sub_72ED60" },
+		{ game::MAG_097_TexAnim_Step, (void *)a_739890, "097 sub_730940" },
+		{ game::MAG_097_TexAnim_UploadFrame, (void *)a_739960, "097 sub_730A10" },
+		{ game::MAG_097_TexAnim_Start, (void *)a_739AC0, "097 sub_730B60" },
+		{ game::MAG_097_Boko_CreatureActor_State1_WaitModelAnimDone, (void *)a_739B40, "097 sub_730BA0" },
+		{ game::MAG_097_Boko_Master_State0_Advance, (void *)a_73A0D0, "097 MAG_097_sub_729D50" },
+		{ game::MAG_097_Boko_Master_State1_Advance, (void *)a_73A0D0, "097 MAG_097_sub_729D60" },
+		{ game::MAG_097_Boko_Master_State5_Advance, (void *)a_73A0D0, "097 MAG_097_sub_731D30" },
+		{ game::MAG_097_Boko_Master_State3_SpawnEmitter, (void *)a_73A170, "097 MAG_097_sub_729DF0" },
+		{ game::MAG_097_EmitterTask, (void *)a_73A1A0, "097 MAG_097_sub_729E20" },
+		{ game::MAG_097_FileLoadScriptTask, (void *)a_73A380, "097 MAG_097_sub_729FF0" },
+		{ game::MAG_097_MainModelTask, (void *)a_73A380, "097 sub_72A660" },
+		{ game::MAG_097_EmitterStageSpawnTask, (void *)a_73A380, "097 sub_72AB20" },
+		{ game::MAG_097_EntityFadeOutTask, (void *)a_73A380, "097 sub_731630" },
+		{ game::MAG_097_EntityFadeInTask, (void *)a_73A380, "097 sub_731A50" },
+		{ game::MAG_097_EntityFadeInBrightTask, (void *)a_73A380, "097 sub_731B40" },
+		{ game::MAG_097_LoadScript_Issue, (void *)a_73A3E0, "097 sub_72A050" },
+		{ game::MAG_097_LoadCb_UploadTim, (void *)a_73A580, "097 sub_72A1F0" },
+		{ game::MAG_097_LoadCb_SummonStream, (void *)a_73A5B0, "097 sub_72A220" },
+		{ game::MAG_097_LoadCb_ClearBusy, (void *)a_73A5E0, "097 sub_72A250" },
+		{ game::MAG_097_LoadCb_ClearBusy_2, (void *)a_73A5E0, "097 sub_72A260" },
+		{ game::MAG_097_LoadCb_ClearBusy_3, (void *)a_73A5E0, "097 sub_72A270" },
+		{ game::MAG_097_LoadCb_ClearBusy_4, (void *)a_73A5E0, "097 sub_72A280" },
+		{ game::MAG_097_LoadScript_RecordFile, (void *)a_73A620, "097 sub_72A290" },
+		{ game::MAG_097_FileLoadScript_State1_LoadScriptWait, (void *)a_73A660, "097 sub_72A2D0" },
+		{ game::MAG_097_FileLoadScript_State2_Empty, (void *)a_73A6D0, "097 nullsub_1139" },
+		{ game::MAG_097_MainModel_State2_Nop, (void *)a_73A6D0, "097 nullsub_1140" },
+		{ game::MAG_097_EmitterStageSpawn_State2_Nop, (void *)a_73A6D0, "097 nullsub_1141" },
+		{ game::MAG_097_St_Empty, (void *)a_73A6D0, "097 nullsub_1142" },
+		{ game::MAG_097_EmitterStage_State7_Empty, (void *)a_73A6D0, "097 nullsub_1143" },
+		{ game::MAG_097_Boko_Shadow_State5_Empty, (void *)a_73A6D0, "097 nullsub_1144" },
+		{ game::MAG_097_Boko_CreatureActor_State9_Empty, (void *)a_73A6D0, "097 nullsub_1145" },
+		{ game::MAG_097_UvModel_State2_Nop, (void *)a_73A6D0, "097 nullsub_1146" },
+		{ game::MAG_097_EntityFadeOut_State2_Nop, (void *)a_73A6D0, "097 nullsub_1147" },
+		{ game::MAG_097_Director_State17_Empty, (void *)a_73A6D0, "097 nullsub_1148" },
+		{ game::MAG_097_St_Empty_2, (void *)a_73A6D0, "097 nullsub_1149" },
+		{ game::MAG_097_Boko_ParticleTaskA_State2_Empty, (void *)a_73A6D0, "097 nullsub_1150" },
+		{ game::MAG_097_Boko_ParticleTaskB_State2_Empty, (void *)a_73A6D0, "097 nullsub_1151" },
+		{ game::MAG_097_EntityFadeIn_State2_Nop, (void *)a_73A6D0, "097 nullsub_1152" },
+		{ game::MAG_097_EntityFadeInBright_State2_Nop, (void *)a_73A6D0, "097 nullsub_1153" },
+		{ game::MAG_097_Emitter_State4_Empty, (void *)a_73A6D0, "097 nullsub_1154" },
+		{ game::MAG_097_Boko_Master_State10_Empty, (void *)a_73A6D0, "097 nullsub_1138" },
+		{ game::MAG_097_GetMonstersCentre, (void *)a_73A720, "097 sub_72A380" },
+		{ game::MAG_097_Director_State1_ArmLoadScriptStep, (void *)a_73A930, "097 sub_730570" },
+		{ game::MAG_097_Director_State4_ArmLoadScriptStep, (void *)a_73A930, "097 sub_730FC0" },
+		{ game::MAG_097_Director_State7_ArmLoadScriptStep, (void *)a_73A930, "097 sub_731030" },
+		{ game::MAG_097_LoadScript_TryArmStep, (void *)a_73A950, "097 sub_730590" },
+		{ game::MAG_097_DirStepGE, (void *)a_73AAE0, "097 sub_730490" },
+		{ game::MAG_097_Camera_ResetBlock, (void *)a_73AB00, "097 sub_72FC70" },
+		{ game::MAG_097_Camera_StartKeyMove, (void *)a_73AB20, "097 sub_72FC90" },
+		{ game::MAG_097_Camera_KeyStep, (void *)a_73AE10, "097 sub_72FF80" },
+		{ game::MAG_097_Camera_WriteBattleCamera, (void *)a_73B160, "097 sub_7302D0" },
+		{ game::MAG_097_EmitterStage_State1_CamKeyStep, (void *)a_73B2D0, "097 sub_730440" },
+		{ game::MAG_097_EmitterStage_State3_CamKeyStepThenKeyAtStep4, (void *)a_73B350, "097 sub_7304B0" },
+		{ game::MAG_097_DirSyncGate, (void *)a_73B640, "097 sub_730EC0" },
+		{ game::MAG_097_EmitterStage_State6_FinishNode, (void *)a_73B750, "097 sub_730530" },
+		{ game::MAG_097_DirPhaseGE, (void *)a_73B7E0, "097 sub_730E80" },
+		{ game::MAG_097_Director_State6_WaitDirPhase2, (void *)a_73B8C0, "097 sub_731010" },
+		{ game::MAG_097_SetPauseSwitch, (void *)a_73BB60, "097 sub_730610" },
+		{ game::MAG_097_Director_State15_CountdownTimer, (void *)a_73BC40, "097 sub_731700" },
+		{ game::MAG_097_SpawnChildTask, (void *)a_73C100, "097 sub_72A5C0" },
+		{ game::MAG_097_DirectorSetup, (void *)a_73F990, "097 sub_72ABB0" },
+		{ game::MAG_097_Director_StartPositions, (void *)a_73FC20, "097 sub_72AE40" },
+		{ game::MAG_097_Director_Mode3Setup, (void *)a_73FE90, "097 sub_72B0B0" },
+		{ game::MAG_097_Director_TargetPositions, (void *)a_73FFB0, "097 sub_72B1D0" },
+		{ game::MAG_097_RelocateActorData, (void *)a_740210, "097 sub_72B430" },
+		{ game::MAG_097_ActSys_DrawSpritePass, (void *)a_740700, "097 sub_72CDA0" },
+		{ game::MAG_097_ActSys_DrawActorSprite, (void *)a_7407C0, "097 sub_72CE60" },
+		{ game::MAG_097_ActorMotion, (void *)a_740910, "097 sub_72CFB0" },
+		{ game::MAG_097_DampValue, (void *)a_740F70, "097 sub_72D610" },
+		{ game::MAG_097_DampVector, (void *)a_740FC0, "097 sub_72D660" },
+		{ game::MAG_097_Instance_AdvanceTexFrame, (void *)a_741050, "097 sub_72D6F0" },
+		{ game::MAG_097_Instance_EndOfLifeTest, (void *)a_7419C0, "097 sub_72E330" },
+		{ game::MAG_097_Instance_SpawnFollowUp, (void *)a_741A40, "097 sub_72E3B0" },
+		{ game::MAG_097_AllocParticle, (void *)a_741A70, "097 sub_72E3E0" },
+		{ game::MAG_097_Particle_LifeCountdown, (void *)a_741B60, "097 sub_72E4D0" },
+		{ game::MAG_097_RandRange, (void *)a_742290, "097 au_re__rand_6" },
+		{ game::MAG_097_RandRangeWide, (void *)a_7422C0, "097 sub_72EC30" },
+		{ game::MAG_097_RandVec3, (void *)a_742300, "097 sub_72EC70" },
+		{ game::MAG_097_JitterAngles3, (void *)a_742350, "097 sub_72ECC0" },
+		{ game::MAG_097_RandAngleJitter, (void *)a_7423A0, "097 au_re__rand_6_0" },
+		{ game::MAG_097_GetWord8Minus1, (void *)a_7424B0, "097 sub_72EE20" },
+		{ game::MAG_097_Particle_AttachToOwner, (void *)a_7424C0, "097 sub_72EE30" },
+		{ game::MAG_097_ParticleList_Append, (void *)a_742CA0, "097 sub_72F610" },
+		{ game::MAG_097_ParticleList_Unlink, (void *)a_742CD0, "097 sub_72F640" },
+		{ game::MAG_097_Particle_Init, (void *)a_742D00, "097 sub_72F670" },
+		{ game::MAG_097_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "097 sub_72F820" },
+		{ game::MAG_097_Particle_PlaceAtPoint, (void *)a_742FF0, "097 sub_72F960" },
+		{ game::MAG_097_SpawnSubEffects, (void *)a_743100, "097 sub_72FA70" },
+		{ game::MAG_097_Director_SpawnGroupEffects, (void *)a_743190, "097 sub_72FB00" },
+		{ game::MAG_097_Boko_Shadow_State4_CounterFinish, (void *)a_743C00, "097 sub_730E00" },
+		{ game::MAG_097_StepCounterLimit, (void *)a_743C20, "097 sub_730DA0" },
+		{ game::MAG_097_EntityFadeInBright_State0_Clear, (void *)a_746980, "097 sub_731BA0" },
+		{ game::MAG_097_DrawBattleModel, (void *)a_746C10, "097 sub_730760" },
+		{ game::MAG_097_Boko_CreatureActor_State8_AnimUntilDirPhase6, (void *)a_747400, "097 sub_730F80" },
+		{ game::MAG_097_Emitter_State1_ApplyActionResults, (void *)a_747440, "097 MAG_097_sub_731C30" },
+		{ game::MAG_097_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "097 MAG_097_sub_731CA0" },
+		{ game::MAG_097_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "097 MAG_097_sub_731CC0" },
+		{ game::MAG_097_Boko_Master_State4_NextTargetLoop, (void *)a_747500, "097 MAG_097_sub_731CF0" },
+		{ game::MAG_097_Boko_Master_State6_WaitQueuesEmpty, (void *)a_747550, "097 MAG_097_sub_731D40" },
+		{ game::MAG_097_Boko_Master_State7_RequestBattleSync, (void *)a_747560, "097 MAG_097_sub_731D50" },
+		{ game::MAG_097_Boko_Master_State8_WaitBattleSyncDone, (void *)a_747590, "097 MAG_097_sub_731D80" },
+		{ game::MAG_097_Boko_Master_State9_Finish, (void *)a_7475A0, "097 MAG_097_sub_731D90" },
+		{ {}, nullptr, nullptr }
 	};
 	static const AddrPort ENGINE_PORTS_098[] = {
-		{ 0x721B70, (void *)a_732120, "098 MAG_098_sub_721B70" },
-		{ 0x721BB0, (void *)a_732160, "098 MAG_098_sub_721BB0" },
-		{ 0x728020, (void *)a_7334C0, "098 sub_728020" },
-		{ 0x729730, (void *)a_7335D0, "098 sub_729730" },
-		{ 0x728B40, (void *)a_733AC0, "098 sub_728B40" },
-		{ 0x728BA0, (void *)a_733AC0, "098 sub_728BA0" },
-		{ 0x728BC0, (void *)a_733B70, "098 sub_728BC0" },
-		{ 0x728E60, (void *)a_7340A0, "098 sub_728E60" },
-		{ 0x722980, (void *)a_7348A0, "098 sub_722980" },
-		{ 0x723490, (void *)a_7353B0, "098 sub_723490" },
-		{ 0x723520, (void *)a_735440, "098 sub_723520" },
-		{ 0x723580, (void *)a_7354A0, "098 sub_723580" },
-		{ 0x7236C0, (void *)a_7355E0, "098 sub_7236C0" },
-		{ 0x723C90, (void *)a_735BB0, "098 sub_723C90" },
-		{ 0x723ED0, (void *)a_735DF0, "098 sub_723ED0" },
-		{ 0x724CE0, (void *)a_736C00, "098 sub_724CE0" },
-		{ 0x725FB0, (void *)a_737ED0, "098 sub_725FB0" },
-		{ 0x726030, (void *)a_737F50, "098 sub_726030" },
-		{ 0x7260B0, (void *)a_737FD0, "098 sub_7260B0" },
-		{ 0x726890, (void *)a_7387B0, "098 sub_726890" },
-		{ 0x7276C0, (void *)a_7395E0, "098 sub_7276C0" },
-		{ 0x7284B0, (void *)a_739890, "098 sub_7284B0" },
-		{ 0x728580, (void *)a_739960, "098 sub_728580" },
-		{ 0x7286D0, (void *)a_739AC0, "098 sub_7286D0" },
-		{ 0x728710, (void *)a_739B40, "098 sub_728710" },
-		{ 0x721B50, (void *)a_73A0D0, "098 MAG_098_sub_721B50" },
-		{ 0x721B60, (void *)a_73A0D0, "098 MAG_098_sub_721B60" },
-		{ 0x7299B0, (void *)a_73A0D0, "098 MAG_098_sub_7299B0" },
-		{ 0x721BF0, (void *)a_73A170, "098 MAG_098_sub_721BF0" },
-		{ 0x721C20, (void *)a_73A1A0, "098 MAG_098_sub_721C20" },
-		{ 0x721DF0, (void *)a_73A380, "098 MAG_098_sub_721DF0" },
-		{ 0x722460, (void *)a_73A380, "098 sub_722460" },
-		{ 0x722920, (void *)a_73A380, "098 sub_722920" },
-		{ 0x728C60, (void *)a_73A380, "098 sub_728C60" },
-		{ 0x7292D0, (void *)a_73A380, "098 sub_7292D0" },
-		{ 0x7296D0, (void *)a_73A380, "098 sub_7296D0" },
-		{ 0x7297C0, (void *)a_73A380, "098 sub_7297C0" },
-		{ 0x721E50, (void *)a_73A3E0, "098 sub_721E50" },
-		{ 0x721FF0, (void *)a_73A580, "098 sub_721FF0" },
-		{ 0x722020, (void *)a_73A5B0, "098 sub_722020" },
-		{ 0x722050, (void *)a_73A5E0, "098 sub_722050" },
-		{ 0x722060, (void *)a_73A5E0, "098 sub_722060" },
-		{ 0x722070, (void *)a_73A5E0, "098 sub_722070" },
-		{ 0x722080, (void *)a_73A5E0, "098 sub_722080" },
-		{ 0x722090, (void *)a_73A620, "098 sub_722090" },
-		{ 0x7220D0, (void *)a_73A660, "098 sub_7220D0" },
-		{ 0x722140, (void *)a_73A6D0, "098 nullsub_1121" },
-		{ 0x722910, (void *)a_73A6D0, "098 nullsub_1122" },
-		{ 0x7276E0, (void *)a_73A6D0, "098 nullsub_1123" },
-		{ 0x7280C0, (void *)a_73A6D0, "098 nullsub_1124" },
-		{ 0x7280D0, (void *)a_73A6D0, "098 nullsub_1125" },
-		{ 0x728990, (void *)a_73A6D0, "098 nullsub_1126" },
-		{ 0x728B10, (void *)a_73A6D0, "098 nullsub_1127" },
-		{ 0x728D50, (void *)a_73A6D0, "098 nullsub_1128" },
-		{ 0x729230, (void *)a_73A6D0, "098 nullsub_1129" },
-		{ 0x729390, (void *)a_73A6D0, "098 nullsub_1130" },
-		{ 0x729400, (void *)a_73A6D0, "098 nullsub_1131" },
-		{ 0x729410, (void *)a_73A6D0, "098 nullsub_1132" },
-		{ 0x7295C0, (void *)a_73A6D0, "098 nullsub_1133" },
-		{ 0x7296C0, (void *)a_73A6D0, "098 nullsub_1134" },
-		{ 0x7297B0, (void *)a_73A6D0, "098 nullsub_1135" },
-		{ 0x7298A0, (void *)a_73A6D0, "098 nullsub_1136" },
-		{ 0x729960, (void *)a_73A6D0, "098 nullsub_1137" },
-		{ 0x729A30, (void *)a_73A6D0, "098 nullsub_1120" },
-		{ 0x722180, (void *)a_73A720, "098 sub_722180" },
-		{ 0x7280E0, (void *)a_73A930, "098 sub_7280E0" },
-		{ 0x728B80, (void *)a_73A930, "098 sub_728B80" },
-		{ 0x728100, (void *)a_73A950, "098 sub_728100" },
-		{ 0x727FD0, (void *)a_73AAE0, "098 sub_727FD0" },
-		{ 0x7277B0, (void *)a_73AB00, "098 sub_7277B0" },
-		{ 0x7277D0, (void *)a_73AB20, "098 sub_7277D0" },
-		{ 0x727AC0, (void *)a_73AE10, "098 sub_727AC0" },
-		{ 0x727E10, (void *)a_73B160, "098 sub_727E10" },
-		{ 0x727F80, (void *)a_73B2D0, "098 sub_727F80" },
-		{ 0x727FF0, (void *)a_73B350, "098 sub_727FF0" },
-		{ 0x728A30, (void *)a_73B640, "098 sub_728A30" },
-		{ 0x7280A0, (void *)a_73B750, "098 sub_7280A0" },
-		{ 0x7289F0, (void *)a_73B7E0, "098 sub_7289F0" },
-		{ 0x728B60, (void *)a_73B8C0, "098 sub_728B60" },
-		{ 0x728180, (void *)a_73BB60, "098 sub_728180" },
-		{ 0x7293A0, (void *)a_73BC40, "098 sub_7293A0" },
-		{ 0x7223C0, (void *)a_73C100, "098 sub_7223C0" },
-		{ 0x7229B0, (void *)a_73F990, "098 sub_7229B0" },
-		{ 0x722C40, (void *)a_73FC20, "098 sub_722C40" },
-		{ 0x722EB0, (void *)a_73FE90, "098 sub_722EB0" },
-		{ 0x722FD0, (void *)a_73FFB0, "098 sub_722FD0" },
-		{ 0x723230, (void *)a_740210, "098 sub_723230" },
-		{ 0x724BA0, (void *)a_740700, "098 sub_724BA0" },
-		{ 0x724C60, (void *)a_7407C0, "098 sub_724C60" },
-		{ 0x724D20, (void *)a_740880, "098 sub_724D20" },
-		{ 0x724DB0, (void *)a_740910, "098 sub_724DB0" },
-		{ 0x725410, (void *)a_740F70, "098 sub_725410" },
-		{ 0x725460, (void *)a_740FC0, "098 sub_725460" },
-		{ 0x7254F0, (void *)a_741050, "098 sub_7254F0" },
-		{ 0x7255C0, (void *)a_741120, "098 sub_7255C0" },
-		{ 0x725E60, (void *)a_7419C0, "098 sub_725E60" },
-		{ 0x725EE0, (void *)a_741A40, "098 sub_725EE0" },
-		{ 0x725F10, (void *)a_741A70, "098 sub_725F10" },
-		{ 0x726000, (void *)a_741B60, "098 sub_726000" },
-		{ 0x726730, (void *)a_742290, "098 au_re__rand_5" },
-		{ 0x726760, (void *)a_7422C0, "098 sub_726760" },
-		{ 0x7267A0, (void *)a_742300, "098 sub_7267A0" },
-		{ 0x7267F0, (void *)a_742350, "098 sub_7267F0" },
-		{ 0x726840, (void *)a_7423A0, "098 au_re__rand_5_0" },
-		{ 0x726950, (void *)a_7424B0, "098 sub_726950" },
-		{ 0x726960, (void *)a_7424C0, "098 sub_726960" },
-		{ 0x727140, (void *)a_742CA0, "098 sub_727140" },
-		{ 0x727170, (void *)a_742CD0, "098 sub_727170" },
-		{ 0x7271A0, (void *)a_742D00, "098 sub_7271A0" },
-		{ 0x727350, (void *)a_742EB0, "098 sub_727350" },
-		{ 0x727490, (void *)a_742FF0, "098 sub_727490" },
-		{ 0x7275A0, (void *)a_743100, "098 sub_7275A0" },
-		{ 0x727630, (void *)a_743190, "098 sub_727630" },
-		{ 0x728970, (void *)a_743C00, "098 sub_728970" },
-		{ 0x728910, (void *)a_743C20, "098 sub_728910" },
-		{ 0x729820, (void *)a_746980, "098 sub_729820" },
-		{ 0x7282D0, (void *)a_746C10, "098 sub_7282D0" },
-		{ 0x7298B0, (void *)a_747440, "098 MAG_098_sub_7298B0" },
-		{ 0x729920, (void *)a_7474B0, "098 MAG_098_sub_729920" },
-		{ 0x729940, (void *)a_7474D0, "098 MAG_098_sub_729940" },
-		{ 0x729970, (void *)a_747500, "098 MAG_098_sub_729970" },
-		{ 0x7299C0, (void *)a_747550, "098 MAG_098_sub_7299C0" },
-		{ 0x7299D0, (void *)a_747560, "098 MAG_098_sub_7299D0" },
-		{ 0x729A00, (void *)a_747590, "098 MAG_098_sub_729A00" },
-		{ 0x729A10, (void *)a_7475A0, "098 MAG_098_sub_729A10" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_098_sub_721B70, (void *)a_732120, "098 MAG_098_sub_721B70" },
+		{ game::MAG_098_sub_721BB0, (void *)a_732160, "098 MAG_098_sub_721BB0" },
+		{ game::sub_728020, (void *)a_7334C0, "098 sub_728020" },
+		{ game::sub_729730, (void *)a_7335D0, "098 sub_729730" },
+		{ game::sub_728B40, (void *)a_733AC0, "098 sub_728B40" },
+		{ game::sub_728BA0, (void *)a_733AC0, "098 sub_728BA0" },
+		{ game::sub_728BC0, (void *)a_733B70, "098 sub_728BC0" },
+		{ game::sub_728E60, (void *)a_7340A0, "098 sub_728E60" },
+		{ game::sub_722980, (void *)a_7348A0, "098 sub_722980" },
+		{ game::sub_723490, (void *)a_7353B0, "098 sub_723490" },
+		{ game::sub_723520, (void *)a_735440, "098 sub_723520" },
+		{ game::sub_723580, (void *)a_7354A0, "098 sub_723580" },
+		{ game::sub_7236C0, (void *)a_7355E0, "098 sub_7236C0" },
+		{ game::sub_723C90, (void *)a_735BB0, "098 sub_723C90" },
+		{ game::sub_723ED0, (void *)a_735DF0, "098 sub_723ED0" },
+		{ game::sub_724CE0, (void *)a_736C00, "098 sub_724CE0" },
+		{ game::sub_725FB0, (void *)a_737ED0, "098 sub_725FB0" },
+		{ game::sub_726030, (void *)a_737F50, "098 sub_726030" },
+		{ game::sub_7260B0, (void *)a_737FD0, "098 sub_7260B0" },
+		{ game::sub_726890, (void *)a_7387B0, "098 sub_726890" },
+		{ game::sub_7276C0, (void *)a_7395E0, "098 sub_7276C0" },
+		{ game::sub_7284B0, (void *)a_739890, "098 sub_7284B0" },
+		{ game::sub_728580, (void *)a_739960, "098 sub_728580" },
+		{ game::sub_7286D0, (void *)a_739AC0, "098 sub_7286D0" },
+		{ game::sub_728710, (void *)a_739B40, "098 sub_728710" },
+		{ game::MAG_098_sub_721B50, (void *)a_73A0D0, "098 MAG_098_sub_721B50" },
+		{ game::MAG_098_sub_721B60, (void *)a_73A0D0, "098 MAG_098_sub_721B60" },
+		{ game::MAG_098_sub_7299B0, (void *)a_73A0D0, "098 MAG_098_sub_7299B0" },
+		{ game::MAG_098_sub_721BF0, (void *)a_73A170, "098 MAG_098_sub_721BF0" },
+		{ game::MAG_098_sub_721C20, (void *)a_73A1A0, "098 MAG_098_sub_721C20" },
+		{ game::MAG_098_sub_721DF0, (void *)a_73A380, "098 MAG_098_sub_721DF0" },
+		{ game::sub_722460, (void *)a_73A380, "098 sub_722460" },
+		{ game::sub_722920, (void *)a_73A380, "098 sub_722920" },
+		{ game::sub_728C60, (void *)a_73A380, "098 sub_728C60" },
+		{ game::sub_7292D0, (void *)a_73A380, "098 sub_7292D0" },
+		{ game::sub_7296D0, (void *)a_73A380, "098 sub_7296D0" },
+		{ game::sub_7297C0, (void *)a_73A380, "098 sub_7297C0" },
+		{ game::sub_721E50, (void *)a_73A3E0, "098 sub_721E50" },
+		{ game::sub_721FF0, (void *)a_73A580, "098 sub_721FF0" },
+		{ game::sub_722020, (void *)a_73A5B0, "098 sub_722020" },
+		{ game::sub_722050, (void *)a_73A5E0, "098 sub_722050" },
+		{ game::sub_722060, (void *)a_73A5E0, "098 sub_722060" },
+		{ game::sub_722070, (void *)a_73A5E0, "098 sub_722070" },
+		{ game::sub_722080, (void *)a_73A5E0, "098 sub_722080" },
+		{ game::sub_722090, (void *)a_73A620, "098 sub_722090" },
+		{ game::sub_7220D0, (void *)a_73A660, "098 sub_7220D0" },
+		{ game::nullsub_1121, (void *)a_73A6D0, "098 nullsub_1121" },
+		{ game::nullsub_1122, (void *)a_73A6D0, "098 nullsub_1122" },
+		{ game::nullsub_1123, (void *)a_73A6D0, "098 nullsub_1123" },
+		{ game::nullsub_1124, (void *)a_73A6D0, "098 nullsub_1124" },
+		{ game::nullsub_1125, (void *)a_73A6D0, "098 nullsub_1125" },
+		{ game::nullsub_1126, (void *)a_73A6D0, "098 nullsub_1126" },
+		{ game::nullsub_1127, (void *)a_73A6D0, "098 nullsub_1127" },
+		{ game::nullsub_1128, (void *)a_73A6D0, "098 nullsub_1128" },
+		{ game::nullsub_1129, (void *)a_73A6D0, "098 nullsub_1129" },
+		{ game::nullsub_1130, (void *)a_73A6D0, "098 nullsub_1130" },
+		{ game::nullsub_1131, (void *)a_73A6D0, "098 nullsub_1131" },
+		{ game::nullsub_1132, (void *)a_73A6D0, "098 nullsub_1132" },
+		{ game::nullsub_1133, (void *)a_73A6D0, "098 nullsub_1133" },
+		{ game::nullsub_1134, (void *)a_73A6D0, "098 nullsub_1134" },
+		{ game::nullsub_1135, (void *)a_73A6D0, "098 nullsub_1135" },
+		{ game::nullsub_1136, (void *)a_73A6D0, "098 nullsub_1136" },
+		{ game::nullsub_1137, (void *)a_73A6D0, "098 nullsub_1137" },
+		{ game::nullsub_1120, (void *)a_73A6D0, "098 nullsub_1120" },
+		{ game::sub_722180, (void *)a_73A720, "098 sub_722180" },
+		{ game::sub_7280E0, (void *)a_73A930, "098 sub_7280E0" },
+		{ game::sub_728B80, (void *)a_73A930, "098 sub_728B80" },
+		{ game::sub_728100, (void *)a_73A950, "098 sub_728100" },
+		{ game::sub_727FD0, (void *)a_73AAE0, "098 sub_727FD0" },
+		{ game::sub_7277B0, (void *)a_73AB00, "098 sub_7277B0" },
+		{ game::sub_7277D0, (void *)a_73AB20, "098 sub_7277D0" },
+		{ game::sub_727AC0, (void *)a_73AE10, "098 sub_727AC0" },
+		{ game::sub_727E10, (void *)a_73B160, "098 sub_727E10" },
+		{ game::sub_727F80, (void *)a_73B2D0, "098 sub_727F80" },
+		{ game::sub_727FF0, (void *)a_73B350, "098 sub_727FF0" },
+		{ game::sub_728A30, (void *)a_73B640, "098 sub_728A30" },
+		{ game::sub_7280A0, (void *)a_73B750, "098 sub_7280A0" },
+		{ game::sub_7289F0, (void *)a_73B7E0, "098 sub_7289F0" },
+		{ game::sub_728B60, (void *)a_73B8C0, "098 sub_728B60" },
+		{ game::sub_728180, (void *)a_73BB60, "098 sub_728180" },
+		{ game::sub_7293A0, (void *)a_73BC40, "098 sub_7293A0" },
+		{ game::sub_7223C0, (void *)a_73C100, "098 sub_7223C0" },
+		{ game::sub_7229B0, (void *)a_73F990, "098 sub_7229B0" },
+		{ game::sub_722C40, (void *)a_73FC20, "098 sub_722C40" },
+		{ game::sub_722EB0, (void *)a_73FE90, "098 sub_722EB0" },
+		{ game::sub_722FD0, (void *)a_73FFB0, "098 sub_722FD0" },
+		{ game::sub_723230, (void *)a_740210, "098 sub_723230" },
+		{ game::sub_724BA0, (void *)a_740700, "098 sub_724BA0" },
+		{ game::sub_724C60, (void *)a_7407C0, "098 sub_724C60" },
+		{ game::sub_724D20, (void *)a_740880, "098 sub_724D20" },
+		{ game::sub_724DB0, (void *)a_740910, "098 sub_724DB0" },
+		{ game::sub_725410, (void *)a_740F70, "098 sub_725410" },
+		{ game::sub_725460, (void *)a_740FC0, "098 sub_725460" },
+		{ game::sub_7254F0, (void *)a_741050, "098 sub_7254F0" },
+		{ game::sub_7255C0, (void *)a_741120, "098 sub_7255C0" },
+		{ game::sub_725E60, (void *)a_7419C0, "098 sub_725E60" },
+		{ game::sub_725EE0, (void *)a_741A40, "098 sub_725EE0" },
+		{ game::sub_725F10, (void *)a_741A70, "098 sub_725F10" },
+		{ game::sub_726000, (void *)a_741B60, "098 sub_726000" },
+		{ game::MAG_098_RandRange, (void *)a_742290, "098 au_re__rand_5" },
+		{ game::sub_726760, (void *)a_7422C0, "098 sub_726760" },
+		{ game::sub_7267A0, (void *)a_742300, "098 sub_7267A0" },
+		{ game::sub_7267F0, (void *)a_742350, "098 sub_7267F0" },
+		{ game::MAG_098_RandAngleJitter, (void *)a_7423A0, "098 au_re__rand_5_0" },
+		{ game::sub_726950, (void *)a_7424B0, "098 sub_726950" },
+		{ game::sub_726960, (void *)a_7424C0, "098 sub_726960" },
+		{ game::sub_727140, (void *)a_742CA0, "098 sub_727140" },
+		{ game::sub_727170, (void *)a_742CD0, "098 sub_727170" },
+		{ game::sub_7271A0, (void *)a_742D00, "098 sub_7271A0" },
+		{ game::sub_727350, (void *)a_742EB0, "098 sub_727350" },
+		{ game::sub_727490, (void *)a_742FF0, "098 sub_727490" },
+		{ game::sub_7275A0, (void *)a_743100, "098 sub_7275A0" },
+		{ game::sub_727630, (void *)a_743190, "098 sub_727630" },
+		{ game::sub_728970, (void *)a_743C00, "098 sub_728970" },
+		{ game::sub_728910, (void *)a_743C20, "098 sub_728910" },
+		{ game::sub_729820, (void *)a_746980, "098 sub_729820" },
+		{ game::sub_7282D0, (void *)a_746C10, "098 sub_7282D0" },
+		{ game::MAG_098_sub_7298B0, (void *)a_747440, "098 MAG_098_sub_7298B0" },
+		{ game::MAG_098_sub_729920, (void *)a_7474B0, "098 MAG_098_sub_729920" },
+		{ game::MAG_098_sub_729940, (void *)a_7474D0, "098 MAG_098_sub_729940" },
+		{ game::MAG_098_sub_729970, (void *)a_747500, "098 MAG_098_sub_729970" },
+		{ game::MAG_098_sub_7299C0, (void *)a_747550, "098 MAG_098_sub_7299C0" },
+		{ game::MAG_098_sub_7299D0, (void *)a_747560, "098 MAG_098_sub_7299D0" },
+		{ game::MAG_098_sub_729A00, (void *)a_747590, "098 MAG_098_sub_729A00" },
+		{ game::MAG_098_sub_729A10, (void *)a_7475A0, "098 MAG_098_sub_729A10" },
+		{ {}, nullptr, nullptr }
 	};
 	static const AddrPort ENGINE_PORTS_099[] = {
-		{ 0x718080, (void *)a_732120, "099 MAG_099_sub_718080" },
-		{ 0x7180C0, (void *)a_732160, "099 MAG_099_sub_7180C0" },
-		{ 0x721070, (void *)a_7335D0, "099 sub_721070" },
-		{ 0x71F260, (void *)a_733AC0, "099 sub_71F260" },
-		{ 0x71F4E0, (void *)a_733AC0, "099 sub_71F4E0" },
-		{ 0x71F280, (void *)a_733B70, "099 sub_71F280" },
-		{ 0x71F9E0, (void *)a_7340A0, "099 sub_71F9E0" },
-		{ 0x718ED0, (void *)a_7348A0, "099 sub_718ED0" },
-		{ 0x7199E0, (void *)a_7353B0, "099 sub_7199E0" },
-		{ 0x719A70, (void *)a_735440, "099 sub_719A70" },
-		{ 0x719AD0, (void *)a_7354A0, "099 sub_719AD0" },
-		{ 0x719C10, (void *)a_7355E0, "099 sub_719C10" },
-		{ 0x71A1E0, (void *)a_735BB0, "099 sub_71A1E0" },
-		{ 0x71A420, (void *)a_735DF0, "099 sub_71A420" },
-		{ 0x71B230, (void *)a_736C00, "099 sub_71B230" },
-		{ 0x71C500, (void *)a_737ED0, "099 sub_71C500" },
-		{ 0x71C580, (void *)a_737F50, "099 sub_71C580" },
-		{ 0x71C600, (void *)a_737FD0, "099 sub_71C600" },
-		{ 0x71CDE0, (void *)a_7387B0, "099 sub_71CDE0" },
-		{ 0x71DC10, (void *)a_7395E0, "099 sub_71DC10" },
-		{ 0x71EB60, (void *)a_739890, "099 sub_71EB60" },
-		{ 0x71EC30, (void *)a_739960, "099 sub_71EC30" },
-		{ 0x71ED80, (void *)a_739AC0, "099 sub_71ED80" },
-		{ 0x71EDC0, (void *)a_739B40, "099 sub_71EDC0" },
-		{ 0x717ED0, (void *)a_739F40, "099 MAG_099_sub_717ED0" },
-		{ 0x718060, (void *)a_73A0D0, "099 MAG_099_sub_718060" },
-		{ 0x718070, (void *)a_73A0D0, "099 MAG_099_sub_718070" },
-		{ 0x7217B0, (void *)a_73A0D0, "099 MAG_099_sub_7217B0" },
-		{ 0x718100, (void *)a_73A170, "099 MAG_099_sub_718100" },
-		{ 0x718130, (void *)a_73A1A0, "099 MAG_099_sub_718130" },
-		{ 0x718310, (void *)a_73A380, "099 MAG_099_sub_718310" },
-		{ 0x7189B0, (void *)a_73A380, "099 sub_7189B0" },
-		{ 0x718E70, (void *)a_73A380, "099 sub_718E70" },
-		{ 0x71F880, (void *)a_73A380, "099 sub_71F880" },
-		{ 0x71FEC0, (void *)a_73A380, "099 sub_71FEC0" },
-		{ 0x7201F0, (void *)a_73A380, "099 sub_7201F0" },
-		{ 0x720320, (void *)a_73A380, "099 sub_720320" },
-		{ 0x720410, (void *)a_73A380, "099 sub_720410" },
-		{ 0x720610, (void *)a_73A380, "099 sub_720610" },
-		{ 0x721010, (void *)a_73A380, "099 sub_721010" },
-		{ 0x721100, (void *)a_73A380, "099 sub_721100" },
-		{ 0x721460, (void *)a_73A380, "099 sub_721460" },
-		{ 0x718370, (void *)a_73A3E0, "099 sub_718370" },
-		{ 0x718510, (void *)a_73A580, "099 sub_718510" },
-		{ 0x718540, (void *)a_73A5B0, "099 sub_718540" },
-		{ 0x718570, (void *)a_73A5E0, "099 sub_718570" },
-		{ 0x718580, (void *)a_73A5E0, "099 sub_718580" },
-		{ 0x718590, (void *)a_73A5E0, "099 sub_718590" },
-		{ 0x7185A0, (void *)a_73A5E0, "099 sub_7185A0" },
-		{ 0x7185B0, (void *)a_73A620, "099 sub_7185B0" },
-		{ 0x7185F0, (void *)a_73A660, "099 sub_7185F0" },
-		{ 0x718660, (void *)a_73A6D0, "099 nullsub_1088" },
-		{ 0x718E60, (void *)a_73A6D0, "099 nullsub_1089" },
-		{ 0x71DC30, (void *)a_73A6D0, "099 nullsub_1090" },
-		{ 0x71E780, (void *)a_73A6D0, "099 nullsub_1119" },
-		{ 0x71E790, (void *)a_73A6D0, "099 nullsub_1091" },
-		{ 0x71F070, (void *)a_73A6D0, "099 nullsub_1092" },
-		{ 0x71F1C0, (void *)a_73A6D0, "099 nullsub_1093" },
-		{ 0x71F4B0, (void *)a_73A6D0, "099 nullsub_1094" },
-		{ 0x71F600, (void *)a_73A6D0, "099 nullsub_1095" },
-		{ 0x71F610, (void *)a_73A6D0, "099 nullsub_1096" },
-		{ 0x71F940, (void *)a_73A6D0, "099 nullsub_1097" },
-		{ 0x71FDB0, (void *)a_73A6D0, "099 nullsub_1098" },
-		{ 0x71FEB0, (void *)a_73A6D0, "099 nullsub_1099" },
-		{ 0x71FFA0, (void *)a_73A6D0, "099 nullsub_1100" },
-		{ 0x7201E0, (void *)a_73A6D0, "099 nullsub_1101" },
-		{ 0x720310, (void *)a_73A6D0, "099 nullsub_1102" },
-		{ 0x720400, (void *)a_73A6D0, "099 nullsub_1103" },
-		{ 0x7204F0, (void *)a_73A6D0, "099 nullsub_1104" },
-		{ 0x720770, (void *)a_73A6D0, "099 nullsub_1105" },
-		{ 0x720780, (void *)a_73A6D0, "099 nullsub_1106" },
-		{ 0x720990, (void *)a_73A6D0, "099 nullsub_1107" },
-		{ 0x7209A0, (void *)a_73A6D0, "099 nullsub_1108" },
-		{ 0x720D60, (void *)a_73A6D0, "099 nullsub_1109" },
-		{ 0x721000, (void *)a_73A6D0, "099 nullsub_1110" },
-		{ 0x7210F0, (void *)a_73A6D0, "099 nullsub_1111" },
-		{ 0x7211C0, (void *)a_73A6D0, "099 nullsub_1112" },
-		{ 0x721380, (void *)a_73A6D0, "099 nullsub_1113" },
-		{ 0x721450, (void *)a_73A6D0, "099 nullsub_1114" },
-		{ 0x721590, (void *)a_73A6D0, "099 nullsub_1115" },
-		{ 0x7216A0, (void *)a_73A6D0, "099 nullsub_1116" },
-		{ 0x721760, (void *)a_73A6D0, "099 nullsub_1117" },
-		{ 0x721830, (void *)a_73A6D0, "099 nullsub_1087" },
-		{ 0x7186C0, (void *)a_73A720, "099 sub_7186C0" },
-		{ 0x71E7A0, (void *)a_73A930, "099 sub_71E7A0" },
-		{ 0x71F1D0, (void *)a_73A930, "099 sub_71F1D0" },
-		{ 0x71F240, (void *)a_73A930, "099 sub_71F240" },
-		{ 0x71E7C0, (void *)a_73A950, "099 sub_71E7C0" },
-		{ 0x71E520, (void *)a_73AAE0, "099 sub_71E520" },
-		{ 0x71DD00, (void *)a_73AB00, "099 sub_71DD00" },
-		{ 0x71DD20, (void *)a_73AB20, "099 sub_71DD20" },
-		{ 0x71E010, (void *)a_73AE10, "099 sub_71E010" },
-		{ 0x71E360, (void *)a_73B160, "099 sub_71E360" },
-		{ 0x71E4D0, (void *)a_73B2D0, "099 sub_71E4D0" },
-		{ 0x71E540, (void *)a_73B350, "099 sub_71E540" },
-		{ 0x71F380, (void *)a_73B620, "099 sub_71F380" },
-		{ 0x71F110, (void *)a_73B640, "099 sub_71F110" },
-		{ 0x71F0D0, (void *)a_73B7E0, "099 sub_71F0D0" },
-		{ 0x71F220, (void *)a_73B8C0, "099 sub_71F220" },
-		{ 0x71F410, (void *)a_73B9F0, "099 sub_71F410" },
-		{ 0x721550, (void *)a_73BA90, "099 sub_721550" },
-		{ 0x71E840, (void *)a_73BB60, "099 sub_71E840" },
-		{ 0x71F580, (void *)a_73BC40, "099 sub_71F580" },
-		{ 0x721680, (void *)a_73BCB0, "099 sub_721680" },
-		{ 0x718910, (void *)a_73C100, "099 sub_718910" },
-		{ 0x71F310, (void *)a_73F110, "099 sub_71F310" },
-		{ 0x71FFB0, (void *)a_73F110, "099 sub_71FFB0" },
-		{ 0x7215A0, (void *)a_73F110, "099 sub_7215A0" },
-		{ 0x718F00, (void *)a_73F990, "099 sub_718F00" },
-		{ 0x719190, (void *)a_73FC20, "099 sub_719190" },
-		{ 0x719400, (void *)a_73FE90, "099 sub_719400" },
-		{ 0x719520, (void *)a_73FFB0, "099 sub_719520" },
-		{ 0x719780, (void *)a_740210, "099 sub_719780" },
-		{ 0x71B0F0, (void *)a_740700, "099 sub_71B0F0" },
-		{ 0x71B1B0, (void *)a_7407C0, "099 sub_71B1B0" },
-		{ 0x71B270, (void *)a_740880, "099 sub_71B270" },
-		{ 0x71B300, (void *)a_740910, "099 sub_71B300" },
-		{ 0x71B960, (void *)a_740F70, "099 sub_71B960" },
-		{ 0x71B9B0, (void *)a_740FC0, "099 sub_71B9B0" },
-		{ 0x71BA40, (void *)a_741050, "099 sub_71BA40" },
-		{ 0x71BB10, (void *)a_741120, "099 sub_71BB10" },
-		{ 0x71C3B0, (void *)a_7419C0, "099 sub_71C3B0" },
-		{ 0x71C430, (void *)a_741A40, "099 sub_71C430" },
-		{ 0x71C460, (void *)a_741A70, "099 sub_71C460" },
-		{ 0x71C550, (void *)a_741B60, "099 sub_71C550" },
-		{ 0x71CC80, (void *)a_742290, "099 au_re__rand_4" },
-		{ 0x71CCB0, (void *)a_7422C0, "099 sub_71CCB0" },
-		{ 0x71CCF0, (void *)a_742300, "099 sub_71CCF0" },
-		{ 0x71CD40, (void *)a_742350, "099 sub_71CD40" },
-		{ 0x71CD90, (void *)a_7423A0, "099 au_re__rand_4_0" },
-		{ 0x71CEA0, (void *)a_7424B0, "099 sub_71CEA0" },
-		{ 0x71CEB0, (void *)a_7424C0, "099 sub_71CEB0" },
-		{ 0x71D690, (void *)a_742CA0, "099 sub_71D690" },
-		{ 0x71D6C0, (void *)a_742CD0, "099 sub_71D6C0" },
-		{ 0x71D6F0, (void *)a_742D00, "099 sub_71D6F0" },
-		{ 0x71D8A0, (void *)a_742EB0, "099 sub_71D8A0" },
-		{ 0x71D9E0, (void *)a_742FF0, "099 sub_71D9E0" },
-		{ 0x71DAF0, (void *)a_743100, "099 sub_71DAF0" },
-		{ 0x71DB80, (void *)a_743190, "099 sub_71DB80" },
-		{ 0x71F050, (void *)a_743C00, "099 sub_71F050" },
-		{ 0x71EFE0, (void *)a_743C20, "099 sub_71EFE0" },
-		{ 0x721230, (void *)a_7458E0, "099 sub_721230" },
-		{ 0x71F3F0, (void *)a_746A10, "099 sub_71F3F0" },
-		{ 0x721520, (void *)a_746AE0, "099 sub_721520" },
-		{ 0x71E980, (void *)a_746C10, "099 sub_71E980" },
-		{ 0x7216B0, (void *)a_747440, "099 MAG_099_sub_7216B0" },
-		{ 0x721720, (void *)a_7474B0, "099 MAG_099_sub_721720" },
-		{ 0x721740, (void *)a_7474D0, "099 MAG_099_sub_721740" },
-		{ 0x721770, (void *)a_747500, "099 MAG_099_sub_721770" },
-		{ 0x7217C0, (void *)a_747550, "099 MAG_099_sub_7217C0" },
-		{ 0x7217D0, (void *)a_747560, "099 MAG_099_sub_7217D0" },
-		{ 0x721800, (void *)a_747590, "099 MAG_099_sub_721800" },
-		{ 0x721810, (void *)a_7475A0, "099 MAG_099_sub_721810" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_099_sub_718080, (void *)a_732120, "099 MAG_099_sub_718080" },
+		{ game::MAG_099_sub_7180C0, (void *)a_732160, "099 MAG_099_sub_7180C0" },
+		{ game::sub_721070, (void *)a_7335D0, "099 sub_721070" },
+		{ game::sub_71F260, (void *)a_733AC0, "099 sub_71F260" },
+		{ game::sub_71F4E0, (void *)a_733AC0, "099 sub_71F4E0" },
+		{ game::sub_71F280, (void *)a_733B70, "099 sub_71F280" },
+		{ game::sub_71F9E0, (void *)a_7340A0, "099 sub_71F9E0" },
+		{ game::sub_718ED0, (void *)a_7348A0, "099 sub_718ED0" },
+		{ game::sub_7199E0, (void *)a_7353B0, "099 sub_7199E0" },
+		{ game::sub_719A70, (void *)a_735440, "099 sub_719A70" },
+		{ game::sub_719AD0, (void *)a_7354A0, "099 sub_719AD0" },
+		{ game::sub_719C10, (void *)a_7355E0, "099 sub_719C10" },
+		{ game::sub_71A1E0, (void *)a_735BB0, "099 sub_71A1E0" },
+		{ game::sub_71A420, (void *)a_735DF0, "099 sub_71A420" },
+		{ game::sub_71B230, (void *)a_736C00, "099 sub_71B230" },
+		{ game::sub_71C500, (void *)a_737ED0, "099 sub_71C500" },
+		{ game::sub_71C580, (void *)a_737F50, "099 sub_71C580" },
+		{ game::sub_71C600, (void *)a_737FD0, "099 sub_71C600" },
+		{ game::sub_71CDE0, (void *)a_7387B0, "099 sub_71CDE0" },
+		{ game::sub_71DC10, (void *)a_7395E0, "099 sub_71DC10" },
+		{ game::sub_71EB60, (void *)a_739890, "099 sub_71EB60" },
+		{ game::sub_71EC30, (void *)a_739960, "099 sub_71EC30" },
+		{ game::sub_71ED80, (void *)a_739AC0, "099 sub_71ED80" },
+		{ game::sub_71EDC0, (void *)a_739B40, "099 sub_71EDC0" },
+		{ game::MAG_099_sub_717ED0, (void *)a_739F40, "099 MAG_099_sub_717ED0" },
+		{ game::MAG_099_sub_718060, (void *)a_73A0D0, "099 MAG_099_sub_718060" },
+		{ game::MAG_099_sub_718070, (void *)a_73A0D0, "099 MAG_099_sub_718070" },
+		{ game::MAG_099_sub_7217B0, (void *)a_73A0D0, "099 MAG_099_sub_7217B0" },
+		{ game::MAG_099_sub_718100, (void *)a_73A170, "099 MAG_099_sub_718100" },
+		{ game::MAG_099_sub_718130, (void *)a_73A1A0, "099 MAG_099_sub_718130" },
+		{ game::MAG_099_sub_718310, (void *)a_73A380, "099 MAG_099_sub_718310" },
+		{ game::sub_7189B0, (void *)a_73A380, "099 sub_7189B0" },
+		{ game::sub_718E70, (void *)a_73A380, "099 sub_718E70" },
+		{ game::sub_71F880, (void *)a_73A380, "099 sub_71F880" },
+		{ game::sub_71FEC0, (void *)a_73A380, "099 sub_71FEC0" },
+		{ game::sub_7201F0, (void *)a_73A380, "099 sub_7201F0" },
+		{ game::sub_720320, (void *)a_73A380, "099 sub_720320" },
+		{ game::sub_720410, (void *)a_73A380, "099 sub_720410" },
+		{ game::sub_720610, (void *)a_73A380, "099 sub_720610" },
+		{ game::sub_721010, (void *)a_73A380, "099 sub_721010" },
+		{ game::sub_721100, (void *)a_73A380, "099 sub_721100" },
+		{ game::sub_721460, (void *)a_73A380, "099 sub_721460" },
+		{ game::sub_718370, (void *)a_73A3E0, "099 sub_718370" },
+		{ game::sub_718510, (void *)a_73A580, "099 sub_718510" },
+		{ game::sub_718540, (void *)a_73A5B0, "099 sub_718540" },
+		{ game::sub_718570, (void *)a_73A5E0, "099 sub_718570" },
+		{ game::sub_718580, (void *)a_73A5E0, "099 sub_718580" },
+		{ game::sub_718590, (void *)a_73A5E0, "099 sub_718590" },
+		{ game::sub_7185A0, (void *)a_73A5E0, "099 sub_7185A0" },
+		{ game::sub_7185B0, (void *)a_73A620, "099 sub_7185B0" },
+		{ game::sub_7185F0, (void *)a_73A660, "099 sub_7185F0" },
+		{ game::nullsub_1088, (void *)a_73A6D0, "099 nullsub_1088" },
+		{ game::nullsub_1089, (void *)a_73A6D0, "099 nullsub_1089" },
+		{ game::nullsub_1090, (void *)a_73A6D0, "099 nullsub_1090" },
+		{ game::nullsub_1119, (void *)a_73A6D0, "099 nullsub_1119" },
+		{ game::nullsub_1091, (void *)a_73A6D0, "099 nullsub_1091" },
+		{ game::nullsub_1092, (void *)a_73A6D0, "099 nullsub_1092" },
+		{ game::nullsub_1093, (void *)a_73A6D0, "099 nullsub_1093" },
+		{ game::nullsub_1094, (void *)a_73A6D0, "099 nullsub_1094" },
+		{ game::nullsub_1095, (void *)a_73A6D0, "099 nullsub_1095" },
+		{ game::nullsub_1096, (void *)a_73A6D0, "099 nullsub_1096" },
+		{ game::nullsub_1097, (void *)a_73A6D0, "099 nullsub_1097" },
+		{ game::nullsub_1098, (void *)a_73A6D0, "099 nullsub_1098" },
+		{ game::nullsub_1099, (void *)a_73A6D0, "099 nullsub_1099" },
+		{ game::nullsub_1100, (void *)a_73A6D0, "099 nullsub_1100" },
+		{ game::nullsub_1101, (void *)a_73A6D0, "099 nullsub_1101" },
+		{ game::nullsub_1102, (void *)a_73A6D0, "099 nullsub_1102" },
+		{ game::nullsub_1103, (void *)a_73A6D0, "099 nullsub_1103" },
+		{ game::nullsub_1104, (void *)a_73A6D0, "099 nullsub_1104" },
+		{ game::nullsub_1105, (void *)a_73A6D0, "099 nullsub_1105" },
+		{ game::nullsub_1106, (void *)a_73A6D0, "099 nullsub_1106" },
+		{ game::nullsub_1107, (void *)a_73A6D0, "099 nullsub_1107" },
+		{ game::nullsub_1108, (void *)a_73A6D0, "099 nullsub_1108" },
+		{ game::nullsub_1109, (void *)a_73A6D0, "099 nullsub_1109" },
+		{ game::nullsub_1110, (void *)a_73A6D0, "099 nullsub_1110" },
+		{ game::nullsub_1111, (void *)a_73A6D0, "099 nullsub_1111" },
+		{ game::nullsub_1112, (void *)a_73A6D0, "099 nullsub_1112" },
+		{ game::nullsub_1113, (void *)a_73A6D0, "099 nullsub_1113" },
+		{ game::nullsub_1114, (void *)a_73A6D0, "099 nullsub_1114" },
+		{ game::nullsub_1115, (void *)a_73A6D0, "099 nullsub_1115" },
+		{ game::nullsub_1116, (void *)a_73A6D0, "099 nullsub_1116" },
+		{ game::nullsub_1117, (void *)a_73A6D0, "099 nullsub_1117" },
+		{ game::nullsub_1087, (void *)a_73A6D0, "099 nullsub_1087" },
+		{ game::sub_7186C0, (void *)a_73A720, "099 sub_7186C0" },
+		{ game::sub_71E7A0, (void *)a_73A930, "099 sub_71E7A0" },
+		{ game::sub_71F1D0, (void *)a_73A930, "099 sub_71F1D0" },
+		{ game::sub_71F240, (void *)a_73A930, "099 sub_71F240" },
+		{ game::sub_71E7C0, (void *)a_73A950, "099 sub_71E7C0" },
+		{ game::sub_71E520, (void *)a_73AAE0, "099 sub_71E520" },
+		{ game::sub_71DD00, (void *)a_73AB00, "099 sub_71DD00" },
+		{ game::sub_71DD20, (void *)a_73AB20, "099 sub_71DD20" },
+		{ game::sub_71E010, (void *)a_73AE10, "099 sub_71E010" },
+		{ game::sub_71E360, (void *)a_73B160, "099 sub_71E360" },
+		{ game::sub_71E4D0, (void *)a_73B2D0, "099 sub_71E4D0" },
+		{ game::sub_71E540, (void *)a_73B350, "099 sub_71E540" },
+		{ game::sub_71F380, (void *)a_73B620, "099 sub_71F380" },
+		{ game::sub_71F110, (void *)a_73B640, "099 sub_71F110" },
+		{ game::sub_71F0D0, (void *)a_73B7E0, "099 sub_71F0D0" },
+		{ game::sub_71F220, (void *)a_73B8C0, "099 sub_71F220" },
+		{ game::sub_71F410, (void *)a_73B9F0, "099 sub_71F410" },
+		{ game::sub_721550, (void *)a_73BA90, "099 sub_721550" },
+		{ game::sub_71E840, (void *)a_73BB60, "099 sub_71E840" },
+		{ game::sub_71F580, (void *)a_73BC40, "099 sub_71F580" },
+		{ game::sub_721680, (void *)a_73BCB0, "099 sub_721680" },
+		{ game::sub_718910, (void *)a_73C100, "099 sub_718910" },
+		{ game::sub_71F310, (void *)a_73F110, "099 sub_71F310" },
+		{ game::sub_71FFB0, (void *)a_73F110, "099 sub_71FFB0" },
+		{ game::sub_7215A0, (void *)a_73F110, "099 sub_7215A0" },
+		{ game::sub_718F00, (void *)a_73F990, "099 sub_718F00" },
+		{ game::sub_719190, (void *)a_73FC20, "099 sub_719190" },
+		{ game::sub_719400, (void *)a_73FE90, "099 sub_719400" },
+		{ game::sub_719520, (void *)a_73FFB0, "099 sub_719520" },
+		{ game::sub_719780, (void *)a_740210, "099 sub_719780" },
+		{ game::sub_71B0F0, (void *)a_740700, "099 sub_71B0F0" },
+		{ game::sub_71B1B0, (void *)a_7407C0, "099 sub_71B1B0" },
+		{ game::sub_71B270, (void *)a_740880, "099 sub_71B270" },
+		{ game::sub_71B300, (void *)a_740910, "099 sub_71B300" },
+		{ game::sub_71B960, (void *)a_740F70, "099 sub_71B960" },
+		{ game::sub_71B9B0, (void *)a_740FC0, "099 sub_71B9B0" },
+		{ game::sub_71BA40, (void *)a_741050, "099 sub_71BA40" },
+		{ game::sub_71BB10, (void *)a_741120, "099 sub_71BB10" },
+		{ game::sub_71C3B0, (void *)a_7419C0, "099 sub_71C3B0" },
+		{ game::sub_71C430, (void *)a_741A40, "099 sub_71C430" },
+		{ game::sub_71C460, (void *)a_741A70, "099 sub_71C460" },
+		{ game::sub_71C550, (void *)a_741B60, "099 sub_71C550" },
+		{ game::MAG_099_RandRange, (void *)a_742290, "099 au_re__rand_4" },
+		{ game::sub_71CCB0, (void *)a_7422C0, "099 sub_71CCB0" },
+		{ game::sub_71CCF0, (void *)a_742300, "099 sub_71CCF0" },
+		{ game::sub_71CD40, (void *)a_742350, "099 sub_71CD40" },
+		{ game::MAG_099_RandAngleJitter, (void *)a_7423A0, "099 au_re__rand_4_0" },
+		{ game::sub_71CEA0, (void *)a_7424B0, "099 sub_71CEA0" },
+		{ game::sub_71CEB0, (void *)a_7424C0, "099 sub_71CEB0" },
+		{ game::sub_71D690, (void *)a_742CA0, "099 sub_71D690" },
+		{ game::sub_71D6C0, (void *)a_742CD0, "099 sub_71D6C0" },
+		{ game::sub_71D6F0, (void *)a_742D00, "099 sub_71D6F0" },
+		{ game::sub_71D8A0, (void *)a_742EB0, "099 sub_71D8A0" },
+		{ game::sub_71D9E0, (void *)a_742FF0, "099 sub_71D9E0" },
+		{ game::sub_71DAF0, (void *)a_743100, "099 sub_71DAF0" },
+		{ game::sub_71DB80, (void *)a_743190, "099 sub_71DB80" },
+		{ game::sub_71F050, (void *)a_743C00, "099 sub_71F050" },
+		{ game::sub_71EFE0, (void *)a_743C20, "099 sub_71EFE0" },
+		{ game::sub_721230, (void *)a_7458E0, "099 sub_721230" },
+		{ game::sub_71F3F0, (void *)a_746A10, "099 sub_71F3F0" },
+		{ game::sub_721520, (void *)a_746AE0, "099 sub_721520" },
+		{ game::sub_71E980, (void *)a_746C10, "099 sub_71E980" },
+		{ game::MAG_099_sub_7216B0, (void *)a_747440, "099 MAG_099_sub_7216B0" },
+		{ game::MAG_099_sub_721720, (void *)a_7474B0, "099 MAG_099_sub_721720" },
+		{ game::MAG_099_sub_721740, (void *)a_7474D0, "099 MAG_099_sub_721740" },
+		{ game::MAG_099_sub_721770, (void *)a_747500, "099 MAG_099_sub_721770" },
+		{ game::MAG_099_sub_7217C0, (void *)a_747550, "099 MAG_099_sub_7217C0" },
+		{ game::MAG_099_sub_7217D0, (void *)a_747560, "099 MAG_099_sub_7217D0" },
+		{ game::MAG_099_sub_721800, (void *)a_747590, "099 MAG_099_sub_721800" },
+		{ game::MAG_099_sub_721810, (void *)a_7475A0, "099 MAG_099_sub_721810" },
+		{ {}, nullptr, nullptr }
 	};
 	static const AddrPort ENGINE_PORTS_100[] = {
-		{ 0x70ECB0, (void *)a_732120, "100 MAG_100_sub_70ECB0" },
-		{ 0x70ECF0, (void *)a_732160, "100 MAG_100_sub_70ECF0" },
-		{ 0x715380, (void *)a_7334C0, "100 sub_715380" },
-		{ 0x716AC0, (void *)a_7335D0, "100 sub_716AC0" },
-		{ 0x715F00, (void *)a_733760, "100 sub_715F00" },
-		{ 0x717A70, (void *)a_733950, "100 sub_717A70" },
-		{ 0x715EC0, (void *)a_733AC0, "100 sub_715EC0" },
-		{ 0x715F40, (void *)a_733AC0, "100 sub_715F40" },
-		{ 0x715FE0, (void *)a_733AC0, "100 sub_715FE0" },
-		{ 0x716020, (void *)a_733AE0, "100 sub_716020" },
-		{ 0x715EE0, (void *)a_733B70, "100 sub_715EE0" },
-		{ 0x716460, (void *)a_7340A0, "100 sub_716460" },
-		{ 0x70FB50, (void *)a_7348A0, "100 sub_70FB50" },
-		{ 0x710660, (void *)a_7353B0, "100 sub_710660" },
-		{ 0x7106F0, (void *)a_735440, "100 sub_7106F0" },
-		{ 0x710750, (void *)a_7354A0, "100 sub_710750" },
-		{ 0x710890, (void *)a_7355E0, "100 sub_710890" },
-		{ 0x710E60, (void *)a_735BB0, "100 sub_710E60" },
-		{ 0x7110A0, (void *)a_735DF0, "100 sub_7110A0" },
-		{ 0x711EB0, (void *)a_736C00, "100 sub_711EB0" },
-		{ 0x713180, (void *)a_737ED0, "100 sub_713180" },
-		{ 0x713200, (void *)a_737F50, "100 sub_713200" },
-		{ 0x713280, (void *)a_737FD0, "100 sub_713280" },
-		{ 0x713A60, (void *)a_7387B0, "100 sub_713A60" },
-		{ 0x714890, (void *)a_7395E0, "100 sub_714890" },
-		{ 0x7157E0, (void *)a_739890, "100 sub_7157E0" },
-		{ 0x7158B0, (void *)a_739960, "100 sub_7158B0" },
-		{ 0x715A00, (void *)a_739AC0, "100 sub_715A00" },
-		{ 0x715A40, (void *)a_739B40, "100 sub_715A40" },
-		{ 0x70EB00, (void *)a_739F40, "100 MAG_100_sub_70EB00" },
-		{ 0x70EC90, (void *)a_73A0D0, "100 MAG_100_sub_70EC90" },
-		{ 0x70ECA0, (void *)a_73A0D0, "100 MAG_100_sub_70ECA0" },
-		{ 0x717C80, (void *)a_73A0D0, "100 MAG_100_sub_717C80" },
-		{ 0x70ED30, (void *)a_73A170, "100 MAG_100_sub_70ED30" },
-		{ 0x70ED60, (void *)a_73A1A0, "100 MAG_100_sub_70ED60" },
-		{ 0x70EF30, (void *)a_73A380, "100 MAG_100_sub_70EF30" },
-		{ 0x70F5F0, (void *)a_73A380, "100 sub_70F5F0" },
-		{ 0x70FAF0, (void *)a_73A380, "100 sub_70FAF0" },
-		{ 0x716300, (void *)a_73A380, "100 sub_716300" },
-		{ 0x716950, (void *)a_73A380, "100 sub_716950" },
-		{ 0x716A60, (void *)a_73A380, "100 sub_716A60" },
-		{ 0x716B50, (void *)a_73A380, "100 sub_716B50" },
-		{ 0x70EF90, (void *)a_73A3E0, "100 sub_70EF90" },
-		{ 0x70F130, (void *)a_73A580, "100 sub_70F130" },
-		{ 0x70F160, (void *)a_73A5B0, "100 sub_70F160" },
-		{ 0x70F190, (void *)a_73A5E0, "100 sub_70F190" },
-		{ 0x70F1A0, (void *)a_73A5E0, "100 sub_70F1A0" },
-		{ 0x70F1B0, (void *)a_73A5E0, "100 sub_70F1B0" },
-		{ 0x70F1C0, (void *)a_73A5E0, "100 sub_70F1C0" },
-		{ 0x70F1D0, (void *)a_73A620, "100 sub_70F1D0" },
-		{ 0x70F210, (void *)a_73A660, "100 sub_70F210" },
-		{ 0x70F280, (void *)a_73A6D0, "100 nullsub_1069" },
-		{ 0x70FAE0, (void *)a_73A6D0, "100 nullsub_1070" },
-		{ 0x7148B0, (void *)a_73A6D0, "100 nullsub_1071" },
-		{ 0x7153F0, (void *)a_73A6D0, "100 nullsub_1072" },
-		{ 0x715400, (void *)a_73A6D0, "100 nullsub_1073" },
-		{ 0x715CC0, (void *)a_73A6D0, "100 nullsub_1074" },
-		{ 0x715E20, (void *)a_73A6D0, "100 nullsub_1075" },
-		{ 0x716100, (void *)a_73A6D0, "100 nullsub_1076" },
-		{ 0x716110, (void *)a_73A6D0, "100 nullsub_1077" },
-		{ 0x7163C0, (void *)a_73A6D0, "100 nullsub_1078" },
-		{ 0x716830, (void *)a_73A6D0, "100 nullsub_1079" },
-		{ 0x716940, (void *)a_73A6D0, "100 nullsub_1080" },
-		{ 0x716A50, (void *)a_73A6D0, "100 nullsub_1081" },
-		{ 0x716B40, (void *)a_73A6D0, "100 nullsub_1082" },
-		{ 0x716C10, (void *)a_73A6D0, "100 nullsub_1083" },
-		{ 0x7175E0, (void *)a_73A6D0, "100 nullsub_1084" },
-		{ 0x717B70, (void *)a_73A6D0, "100 nullsub_1085" },
-		{ 0x717C30, (void *)a_73A6D0, "100 nullsub_1086" },
-		{ 0x717D00, (void *)a_73A6D0, "100 nullsub_1068" },
-		{ 0x70F2E0, (void *)a_73A720, "100 sub_70F2E0" },
-		{ 0x715410, (void *)a_73A930, "100 sub_715410" },
-		{ 0x715E30, (void *)a_73A930, "100 sub_715E30" },
-		{ 0x715EA0, (void *)a_73A930, "100 sub_715EA0" },
-		{ 0x715F20, (void *)a_73A930, "100 sub_715F20" },
-		{ 0x715FC0, (void *)a_73A930, "100 sub_715FC0" },
-		{ 0x715430, (void *)a_73A950, "100 sub_715430" },
-		{ 0x7151C0, (void *)a_73AAE0, "100 sub_7151C0" },
-		{ 0x7149A0, (void *)a_73AB00, "100 sub_7149A0" },
-		{ 0x7149C0, (void *)a_73AB20, "100 sub_7149C0" },
-		{ 0x714CB0, (void *)a_73AE10, "100 sub_714CB0" },
-		{ 0x715000, (void *)a_73B160, "100 sub_715000" },
-		{ 0x715170, (void *)a_73B2D0, "100 sub_715170" },
-		{ 0x7151E0, (void *)a_73B350, "100 sub_7151E0" },
-		{ 0x715300, (void *)a_73B640, "100 sub_715300" },
-		{ 0x7153D0, (void *)a_73B750, "100 sub_7153D0" },
-		{ 0x715D20, (void *)a_73B7E0, "100 sub_715D20" },
-		{ 0x715E80, (void *)a_73B8C0, "100 sub_715E80" },
-		{ 0x7154B0, (void *)a_73BB60, "100 sub_7154B0" },
-		{ 0x716000, (void *)a_73BBD0, "100 sub_716000" },
-		{ 0x7160A0, (void *)a_73BC40, "100 sub_7160A0" },
-		{ 0x70F550, (void *)a_73C100, "100 sub_70F550" },
-		{ 0x70FB80, (void *)a_73F990, "100 sub_70FB80" },
-		{ 0x70FE10, (void *)a_73FC20, "100 sub_70FE10" },
-		{ 0x710080, (void *)a_73FE90, "100 sub_710080" },
-		{ 0x7101A0, (void *)a_73FFB0, "100 sub_7101A0" },
-		{ 0x710400, (void *)a_740210, "100 sub_710400" },
-		{ 0x711D70, (void *)a_740700, "100 sub_711D70" },
-		{ 0x711E30, (void *)a_7407C0, "100 sub_711E30" },
-		{ 0x711EF0, (void *)a_740880, "100 sub_711EF0" },
-		{ 0x711F80, (void *)a_740910, "100 sub_711F80" },
-		{ 0x7125E0, (void *)a_740F70, "100 sub_7125E0" },
-		{ 0x712630, (void *)a_740FC0, "100 sub_712630" },
-		{ 0x7126C0, (void *)a_741050, "100 sub_7126C0" },
-		{ 0x712790, (void *)a_741120, "100 sub_712790" },
-		{ 0x713030, (void *)a_7419C0, "100 sub_713030" },
-		{ 0x7130B0, (void *)a_741A40, "100 sub_7130B0" },
-		{ 0x7130E0, (void *)a_741A70, "100 sub_7130E0" },
-		{ 0x7131D0, (void *)a_741B60, "100 sub_7131D0" },
-		{ 0x713900, (void *)a_742290, "100 au_re__rand_3" },
-		{ 0x713930, (void *)a_7422C0, "100 sub_713930" },
-		{ 0x713970, (void *)a_742300, "100 sub_713970" },
-		{ 0x7139C0, (void *)a_742350, "100 sub_7139C0" },
-		{ 0x713A10, (void *)a_7423A0, "100 au_re__rand_3_0" },
-		{ 0x713B20, (void *)a_7424B0, "100 sub_713B20" },
-		{ 0x713B30, (void *)a_7424C0, "100 sub_713B30" },
-		{ 0x714310, (void *)a_742CA0, "100 sub_714310" },
-		{ 0x714340, (void *)a_742CD0, "100 sub_714340" },
-		{ 0x714370, (void *)a_742D00, "100 sub_714370" },
-		{ 0x714520, (void *)a_742EB0, "100 sub_714520" },
-		{ 0x714660, (void *)a_742FF0, "100 sub_714660" },
-		{ 0x714770, (void *)a_743100, "100 sub_714770" },
-		{ 0x714800, (void *)a_743190, "100 sub_714800" },
-		{ 0x715CA0, (void *)a_743C00, "100 sub_715CA0" },
-		{ 0x715C40, (void *)a_743C20, "100 sub_715C40" },
-		{ 0x715600, (void *)a_746C10, "100 sub_715600" },
-		{ 0x717B80, (void *)a_747440, "100 MAG_100_sub_717B80" },
-		{ 0x717BF0, (void *)a_7474B0, "100 MAG_100_sub_717BF0" },
-		{ 0x717C10, (void *)a_7474D0, "100 MAG_100_sub_717C10" },
-		{ 0x717C40, (void *)a_747500, "100 MAG_100_sub_717C40" },
-		{ 0x717C90, (void *)a_747550, "100 MAG_100_sub_717C90" },
-		{ 0x717CA0, (void *)a_747560, "100 MAG_100_sub_717CA0" },
-		{ 0x717CD0, (void *)a_747590, "100 MAG_100_sub_717CD0" },
-		{ 0x717CE0, (void *)a_7475A0, "100 MAG_100_sub_717CE0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_100_sub_70ECB0, (void *)a_732120, "100 MAG_100_sub_70ECB0" },
+		{ game::MAG_100_sub_70ECF0, (void *)a_732160, "100 MAG_100_sub_70ECF0" },
+		{ game::sub_715380, (void *)a_7334C0, "100 sub_715380" },
+		{ game::sub_716AC0, (void *)a_7335D0, "100 sub_716AC0" },
+		{ game::sub_715F00, (void *)a_733760, "100 sub_715F00" },
+		{ game::sub_717A70, (void *)a_733950, "100 sub_717A70" },
+		{ game::sub_715EC0, (void *)a_733AC0, "100 sub_715EC0" },
+		{ game::sub_715F40, (void *)a_733AC0, "100 sub_715F40" },
+		{ game::sub_715FE0, (void *)a_733AC0, "100 sub_715FE0" },
+		{ game::sub_716020, (void *)a_733AE0, "100 sub_716020" },
+		{ game::sub_715EE0, (void *)a_733B70, "100 sub_715EE0" },
+		{ game::sub_716460, (void *)a_7340A0, "100 sub_716460" },
+		{ game::sub_70FB50, (void *)a_7348A0, "100 sub_70FB50" },
+		{ game::sub_710660, (void *)a_7353B0, "100 sub_710660" },
+		{ game::sub_7106F0, (void *)a_735440, "100 sub_7106F0" },
+		{ game::sub_710750, (void *)a_7354A0, "100 sub_710750" },
+		{ game::sub_710890, (void *)a_7355E0, "100 sub_710890" },
+		{ game::sub_710E60, (void *)a_735BB0, "100 sub_710E60" },
+		{ game::sub_7110A0, (void *)a_735DF0, "100 sub_7110A0" },
+		{ game::sub_711EB0, (void *)a_736C00, "100 sub_711EB0" },
+		{ game::sub_713180, (void *)a_737ED0, "100 sub_713180" },
+		{ game::sub_713200, (void *)a_737F50, "100 sub_713200" },
+		{ game::sub_713280, (void *)a_737FD0, "100 sub_713280" },
+		{ game::sub_713A60, (void *)a_7387B0, "100 sub_713A60" },
+		{ game::sub_714890, (void *)a_7395E0, "100 sub_714890" },
+		{ game::sub_7157E0, (void *)a_739890, "100 sub_7157E0" },
+		{ game::sub_7158B0, (void *)a_739960, "100 sub_7158B0" },
+		{ game::sub_715A00, (void *)a_739AC0, "100 sub_715A00" },
+		{ game::sub_715A40, (void *)a_739B40, "100 sub_715A40" },
+		{ game::MAG_100_sub_70EB00, (void *)a_739F40, "100 MAG_100_sub_70EB00" },
+		{ game::MAG_100_sub_70EC90, (void *)a_73A0D0, "100 MAG_100_sub_70EC90" },
+		{ game::MAG_100_sub_70ECA0, (void *)a_73A0D0, "100 MAG_100_sub_70ECA0" },
+		{ game::MAG_100_sub_717C80, (void *)a_73A0D0, "100 MAG_100_sub_717C80" },
+		{ game::MAG_100_sub_70ED30, (void *)a_73A170, "100 MAG_100_sub_70ED30" },
+		{ game::MAG_100_sub_70ED60, (void *)a_73A1A0, "100 MAG_100_sub_70ED60" },
+		{ game::MAG_100_sub_70EF30, (void *)a_73A380, "100 MAG_100_sub_70EF30" },
+		{ game::sub_70F5F0, (void *)a_73A380, "100 sub_70F5F0" },
+		{ game::sub_70FAF0, (void *)a_73A380, "100 sub_70FAF0" },
+		{ game::sub_716300, (void *)a_73A380, "100 sub_716300" },
+		{ game::sub_716950, (void *)a_73A380, "100 sub_716950" },
+		{ game::sub_716A60, (void *)a_73A380, "100 sub_716A60" },
+		{ game::sub_716B50, (void *)a_73A380, "100 sub_716B50" },
+		{ game::sub_70EF90, (void *)a_73A3E0, "100 sub_70EF90" },
+		{ game::sub_70F130, (void *)a_73A580, "100 sub_70F130" },
+		{ game::sub_70F160, (void *)a_73A5B0, "100 sub_70F160" },
+		{ game::sub_70F190, (void *)a_73A5E0, "100 sub_70F190" },
+		{ game::sub_70F1A0, (void *)a_73A5E0, "100 sub_70F1A0" },
+		{ game::sub_70F1B0, (void *)a_73A5E0, "100 sub_70F1B0" },
+		{ game::sub_70F1C0, (void *)a_73A5E0, "100 sub_70F1C0" },
+		{ game::sub_70F1D0, (void *)a_73A620, "100 sub_70F1D0" },
+		{ game::sub_70F210, (void *)a_73A660, "100 sub_70F210" },
+		{ game::nullsub_1069, (void *)a_73A6D0, "100 nullsub_1069" },
+		{ game::nullsub_1070, (void *)a_73A6D0, "100 nullsub_1070" },
+		{ game::nullsub_1071, (void *)a_73A6D0, "100 nullsub_1071" },
+		{ game::nullsub_1072, (void *)a_73A6D0, "100 nullsub_1072" },
+		{ game::nullsub_1073, (void *)a_73A6D0, "100 nullsub_1073" },
+		{ game::nullsub_1074, (void *)a_73A6D0, "100 nullsub_1074" },
+		{ game::nullsub_1075, (void *)a_73A6D0, "100 nullsub_1075" },
+		{ game::nullsub_1076, (void *)a_73A6D0, "100 nullsub_1076" },
+		{ game::nullsub_1077, (void *)a_73A6D0, "100 nullsub_1077" },
+		{ game::nullsub_1078, (void *)a_73A6D0, "100 nullsub_1078" },
+		{ game::nullsub_1079, (void *)a_73A6D0, "100 nullsub_1079" },
+		{ game::nullsub_1080, (void *)a_73A6D0, "100 nullsub_1080" },
+		{ game::nullsub_1081, (void *)a_73A6D0, "100 nullsub_1081" },
+		{ game::nullsub_1082, (void *)a_73A6D0, "100 nullsub_1082" },
+		{ game::nullsub_1083, (void *)a_73A6D0, "100 nullsub_1083" },
+		{ game::nullsub_1084, (void *)a_73A6D0, "100 nullsub_1084" },
+		{ game::nullsub_1085, (void *)a_73A6D0, "100 nullsub_1085" },
+		{ game::nullsub_1086, (void *)a_73A6D0, "100 nullsub_1086" },
+		{ game::nullsub_1068, (void *)a_73A6D0, "100 nullsub_1068" },
+		{ game::sub_70F2E0, (void *)a_73A720, "100 sub_70F2E0" },
+		{ game::sub_715410, (void *)a_73A930, "100 sub_715410" },
+		{ game::sub_715E30, (void *)a_73A930, "100 sub_715E30" },
+		{ game::sub_715EA0, (void *)a_73A930, "100 sub_715EA0" },
+		{ game::sub_715F20, (void *)a_73A930, "100 sub_715F20" },
+		{ game::sub_715FC0, (void *)a_73A930, "100 sub_715FC0" },
+		{ game::sub_715430, (void *)a_73A950, "100 sub_715430" },
+		{ game::sub_7151C0, (void *)a_73AAE0, "100 sub_7151C0" },
+		{ game::sub_7149A0, (void *)a_73AB00, "100 sub_7149A0" },
+		{ game::sub_7149C0, (void *)a_73AB20, "100 sub_7149C0" },
+		{ game::sub_714CB0, (void *)a_73AE10, "100 sub_714CB0" },
+		{ game::sub_715000, (void *)a_73B160, "100 sub_715000" },
+		{ game::sub_715170, (void *)a_73B2D0, "100 sub_715170" },
+		{ game::sub_7151E0, (void *)a_73B350, "100 sub_7151E0" },
+		{ game::sub_715300, (void *)a_73B640, "100 sub_715300" },
+		{ game::sub_7153D0, (void *)a_73B750, "100 sub_7153D0" },
+		{ game::sub_715D20, (void *)a_73B7E0, "100 sub_715D20" },
+		{ game::sub_715E80, (void *)a_73B8C0, "100 sub_715E80" },
+		{ game::sub_7154B0, (void *)a_73BB60, "100 sub_7154B0" },
+		{ game::sub_716000, (void *)a_73BBD0, "100 sub_716000" },
+		{ game::sub_7160A0, (void *)a_73BC40, "100 sub_7160A0" },
+		{ game::sub_70F550, (void *)a_73C100, "100 sub_70F550" },
+		{ game::sub_70FB80, (void *)a_73F990, "100 sub_70FB80" },
+		{ game::sub_70FE10, (void *)a_73FC20, "100 sub_70FE10" },
+		{ game::sub_710080, (void *)a_73FE90, "100 sub_710080" },
+		{ game::sub_7101A0, (void *)a_73FFB0, "100 sub_7101A0" },
+		{ game::sub_710400, (void *)a_740210, "100 sub_710400" },
+		{ game::sub_711D70, (void *)a_740700, "100 sub_711D70" },
+		{ game::sub_711E30, (void *)a_7407C0, "100 sub_711E30" },
+		{ game::sub_711EF0, (void *)a_740880, "100 sub_711EF0" },
+		{ game::sub_711F80, (void *)a_740910, "100 sub_711F80" },
+		{ game::sub_7125E0, (void *)a_740F70, "100 sub_7125E0" },
+		{ game::sub_712630, (void *)a_740FC0, "100 sub_712630" },
+		{ game::sub_7126C0, (void *)a_741050, "100 sub_7126C0" },
+		{ game::sub_712790, (void *)a_741120, "100 sub_712790" },
+		{ game::sub_713030, (void *)a_7419C0, "100 sub_713030" },
+		{ game::sub_7130B0, (void *)a_741A40, "100 sub_7130B0" },
+		{ game::sub_7130E0, (void *)a_741A70, "100 sub_7130E0" },
+		{ game::sub_7131D0, (void *)a_741B60, "100 sub_7131D0" },
+		{ game::MAG_100_RandRange, (void *)a_742290, "100 au_re__rand_3" },
+		{ game::sub_713930, (void *)a_7422C0, "100 sub_713930" },
+		{ game::sub_713970, (void *)a_742300, "100 sub_713970" },
+		{ game::sub_7139C0, (void *)a_742350, "100 sub_7139C0" },
+		{ game::MAG_100_RandAngleJitter, (void *)a_7423A0, "100 au_re__rand_3_0" },
+		{ game::sub_713B20, (void *)a_7424B0, "100 sub_713B20" },
+		{ game::sub_713B30, (void *)a_7424C0, "100 sub_713B30" },
+		{ game::sub_714310, (void *)a_742CA0, "100 sub_714310" },
+		{ game::sub_714340, (void *)a_742CD0, "100 sub_714340" },
+		{ game::sub_714370, (void *)a_742D00, "100 sub_714370" },
+		{ game::sub_714520, (void *)a_742EB0, "100 sub_714520" },
+		{ game::sub_714660, (void *)a_742FF0, "100 sub_714660" },
+		{ game::sub_714770, (void *)a_743100, "100 sub_714770" },
+		{ game::sub_714800, (void *)a_743190, "100 sub_714800" },
+		{ game::sub_715CA0, (void *)a_743C00, "100 sub_715CA0" },
+		{ game::sub_715C40, (void *)a_743C20, "100 sub_715C40" },
+		{ game::sub_715600, (void *)a_746C10, "100 sub_715600" },
+		{ game::MAG_100_sub_717B80, (void *)a_747440, "100 MAG_100_sub_717B80" },
+		{ game::MAG_100_sub_717BF0, (void *)a_7474B0, "100 MAG_100_sub_717BF0" },
+		{ game::MAG_100_sub_717C10, (void *)a_7474D0, "100 MAG_100_sub_717C10" },
+		{ game::MAG_100_sub_717C40, (void *)a_747500, "100 MAG_100_sub_717C40" },
+		{ game::MAG_100_sub_717C90, (void *)a_747550, "100 MAG_100_sub_717C90" },
+		{ game::MAG_100_sub_717CA0, (void *)a_747560, "100 MAG_100_sub_717CA0" },
+		{ game::MAG_100_sub_717CD0, (void *)a_747590, "100 MAG_100_sub_717CD0" },
+		{ game::MAG_100_sub_717CE0, (void *)a_7475A0, "100 MAG_100_sub_717CE0" },
+		{ {}, nullptr, nullptr }
 	};
 
 	const Mod *g_mod = &MOD_095;
@@ -975,7 +975,7 @@ namespace act
 	void set_mod_by_code(uint32_t code_addr)
 	{
 		for (const Mod *m : MODS)
-			if (code_addr >= us(m->lo) && code_addr < us(m->hi)) { g_mod = m; return; }
+			if (code_addr >= game_addr(m->lo) && code_addr < game_addr(m->hi)) { g_mod = m; return; }
 	}
 
 	static const int DISPATCH_BITS = 14;
@@ -1039,9 +1039,9 @@ namespace act
 		return nullptr;
 	}
 
-	void register_module_port(int effect_id, uint32_t orig, void *port, const char *name)
+	void register_module_port(int effect_id, game::Id orig, void *port, const char *name)
 	{
-		add_port(us(orig), port);
+		add_port(game_addr(orig), port);
 		ff8fx::register_port(orig, port, name, effect_id);
 	}
 
@@ -1051,11 +1051,11 @@ namespace act
 		if (!global_done)
 		{
 			global_done = true;
-			add_port(us(0x8DDC30), (void *)a_8DDC30);
-			add_port(us(0x8DDCA0), (void *)a_8DDCA0);
-			add_port(us(0x8DDCD0), (void *)a_8DDCD0);
+			add_port(game_addr(game::Effect_ScreenTintTask), (void *)a_8DDC30);
+			add_port(game_addr(game::sub_8DDCA0), (void *)a_8DDCA0);
+			add_port(game_addr(game::sub_8DDCD0), (void *)a_8DDCD0);
 		}
-		ff8fx::register_port(0x8DDC30, (void *)a_8DDC30, "act 8DDC30 shared engine task", effect_id);
+		ff8fx::register_port(game::Effect_ScreenTintTask, (void *)a_8DDC30, "act 8DDC30 shared engine task", effect_id);
 		for (const AddrPort *p = engine_ports(effect_id); p && p->addr; p++)
 			register_module_port(effect_id, p->addr, p->port, p->name);
 	}
@@ -1063,7 +1063,7 @@ namespace act
 	uint32_t orig_of_port(void *port)
 	{
 		for (const AddrPort *p = engine_ports(g_mod->effect_id); p && p->addr; p++)
-			if (p->port == port) return us(p->addr);
+			if (p->port == port) return game_addr(p->addr);
 		return 0;
 	}
 
@@ -1196,7 +1196,7 @@ namespace act
 		U32(st, 0x100) = cur;
 		cur += 0xA000;
 		U32(G(G_257F728), 0) = cur;
-		const uint32_t def = us(0x19DB018);
+		const uint32_t def = game_addr(game::unk_19DB018);
 		U32(st, 0x114) = def;
 		U32(st, 0x118) = def;
 		U32(st, 0x11C) = def;
@@ -1270,7 +1270,7 @@ namespace act
 	uint32_t __cdecl a_7335D0(uint32_t a1)
 	{
 		U16(a1, 0x1C) = 0;
-		uint32_t p = us(0x1D989BA);
+		uint32_t p = game_addr(game::unk_1D989BA);
 		for (int n = 4; n != 0; n--)
 		{
 			U16(p, -0x28) = 0;
@@ -1293,7 +1293,7 @@ namespace act
 	uint32_t __cdecl a_733950(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
 		uint8_t c[4];
-		uint32_t base = U32(us(0xB8B7D8), 0);
+		uint32_t base = U32(game_addr(game::CURRENT_BS_MODEL_PALETTE), 0);
 		ff8fx::copy<(4)>(c, &base);
 		int16_t amount = (int16_t)a2;
 		if (amount == 0)
@@ -1500,10 +1500,10 @@ namespace act
 			uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			uint32_t cursor = U32(us(0x1D8E054), 0);
-			uint32_t ot = U32(us(0x1D8E04C), 0) + 0x44;
+			uint32_t cursor = U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0);
+			uint32_t ot = U32(game_addr(game::g_Battle_FrameRenderListBase), 0) + 0x44;
 			uint32_t r = a_7355E0(ctx, ot, 2, cursor);
-			U32(us(0x1D8E054), 0) = r;
+			U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0) = r;
 		}
 		else if (copies > 0)
 		{
@@ -1518,13 +1518,13 @@ namespace act
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				uint32_t cursor = U32(us(0x1D8E054), 0);
-				uint32_t ot = U32(us(0x1D8E04C), 0) + 0x44;
+				uint32_t cursor = U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0);
+				uint32_t ot = U32(game_addr(game::g_Battle_FrameRenderListBase), 0) + 0x44;
 				uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				U32(us(0x1D8E054), 0) = r;
+				U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0) = r;
 			} while (i < n);
 		}
 		uint32_t top = U32(G(G_258FB68), 0) + 0x58;
@@ -1967,11 +1967,11 @@ namespace act
 	uint32_t __cdecl a_8DDC30(uint32_t a1)
 	{
 		uint32_t tab[3];
-		tab[0] = us(0x8DDCA0);
-		tab[1] = us(0x8DDCD0);
-		tab[2] = us(0x8DDEB0);
+		tab[0] = game_addr(game::sub_8DDCA0);
+		tab[1] = game_addr(game::sub_8DDCD0);
+		tab[2] = game_addr(game::nullsub_1118);
 		callp(tab[(int32_t)S8(a1, 0x29)], a1);
-		if (U32(us(0x2795914), 0) == 0)
+		if (U32(game_addr(game::unk_2795914), 0) == 0)
 			U16(a1, 0x3C) = (uint16_t)(U16(a1, 0x3C) + 1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24) = (uint16_t)(U16(a1, 0x24) + 1);
@@ -1985,7 +1985,7 @@ namespace act
 
 	uint32_t __cdecl a_8DDCA0(uint32_t a1)
 	{
-		if (U32(us(0x2795914), 0) == 0)
+		if (U32(game_addr(game::unk_2795914), 0) == 0)
 		{
 			U16(a1, 0x38) = (uint16_t)(U16(a1, 0x38) - 1);
 			if (S16(a1, 0x38) <= 0)
@@ -2012,7 +2012,7 @@ namespace act
 		}
 		if (op == 0xFE)
 		{
-			if (S16(a1, 0x24) >= (int16_t)(uint16_t)b2 && U32(us(0x2795914), 0) == 0)
+			if (S16(a1, 0x24) >= (int16_t)(uint16_t)b2 && U32(game_addr(game::unk_2795914), 0) == 0)
 			{
 				uint16_t ni = (uint16_t)(idx + 1);
 				U16(a1, 0x3A) = ni;
@@ -2022,52 +2022,52 @@ namespace act
 		else
 		{
 			U32(a1, 0x30) = ent;
-			if (U32(us(0x2795914), 0) == 0)
+			if (U32(game_addr(game::unk_2795914), 0) == 0)
 				U16(a1, 0x3A) = (uint16_t)(idx + 1);
 		}
-		uint32_t ot = U32(us(0x1D8E04C), 0) + 0x1C;
+		uint32_t ot = U32(game_addr(game::g_Battle_FrameRenderListBase), 0) + 0x1C;
 		const uint8_t code = 0x2A;
 		const uint32_t v_mid = 0x7800A0;
 
-		U32(us(0x2795114), 0) = U32(a1, 0x30);
-		U32(us(0x2795110), 0) = 0x5000000;
-		U8(us(0x2795117), 0) = code;
-		U32(us(0x2795118), 0) = 0;
-		U32(us(0x279511C), 0) = 0xA0;
-		U32(us(0x2795120), 0) = 0x780000;
-		U32(us(0x2795124), 0) = v_mid;
-		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795110));
+		U32(game_addr(game::unk_2795114), 0) = U32(a1, 0x30);
+		U32(game_addr(game::unk_2795110), 0) = 0x5000000;
+		U8(game_addr(game::unk_2795117), 0) = code;
+		U32(game_addr(game::unk_2795118), 0) = 0;
+		U32(game_addr(game::unk_279511C), 0) = 0xA0;
+		U32(game_addr(game::unk_2795120), 0) = 0x780000;
+		U32(game_addr(game::unk_2795124), 0) = v_mid;
+		x::SSIGPU_InsertPrimAltViewport(ot, game_addr(game::unk_2795110));
 
-		U32(us(0x279512C), 0) = U32(a1, 0x30);
-		U32(us(0x2795128), 0) = 0x5000000;
-		U8(us(0x279512F), 0) = code;
-		U32(us(0x2795130), 0) = 0xA0;
-		U32(us(0x2795134), 0) = 0x140;
-		U32(us(0x2795138), 0) = v_mid;
-		U32(us(0x279513C), 0) = 0x780140;
-		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795128));
+		U32(game_addr(game::unk_279512C), 0) = U32(a1, 0x30);
+		U32(game_addr(game::unk_2795128), 0) = 0x5000000;
+		U8(game_addr(game::unk_279512F), 0) = code;
+		U32(game_addr(game::unk_2795130), 0) = 0xA0;
+		U32(game_addr(game::unk_2795134), 0) = 0x140;
+		U32(game_addr(game::unk_2795138), 0) = v_mid;
+		U32(game_addr(game::unk_279513C), 0) = 0x780140;
+		x::SSIGPU_InsertPrimAltViewport(ot, game_addr(game::unk_2795128));
 
-		U32(us(0x2795144), 0) = U32(a1, 0x30);
-		U32(us(0x2795140), 0) = 0x5000000;
-		U8(us(0x2795147), 0) = code;
-		U32(us(0x2795148), 0) = 0x780000;
-		U32(us(0x279514C), 0) = v_mid;
-		U32(us(0x2795150), 0) = 0xF00000;
-		U32(us(0x2795154), 0) = 0xF000A0;
-		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795140));
+		U32(game_addr(game::unk_2795144), 0) = U32(a1, 0x30);
+		U32(game_addr(game::unk_2795140), 0) = 0x5000000;
+		U8(game_addr(game::unk_2795147), 0) = code;
+		U32(game_addr(game::unk_2795148), 0) = 0x780000;
+		U32(game_addr(game::unk_279514C), 0) = v_mid;
+		U32(game_addr(game::unk_2795150), 0) = 0xF00000;
+		U32(game_addr(game::unk_2795154), 0) = 0xF000A0;
+		x::SSIGPU_InsertPrimAltViewport(ot, game_addr(game::unk_2795140));
 
-		U32(us(0x279515C), 0) = U32(a1, 0x30);
-		U32(us(0x2795158), 0) = 0x5000000;
-		U8(us(0x279515F), 0) = code;
-		U32(us(0x2795160), 0) = v_mid;
-		U32(us(0x2795164), 0) = 0x780140;
-		U32(us(0x2795168), 0) = 0xF000A0;
-		U32(us(0x279516C), 0) = 0xF00140;
-		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795158));
+		U32(game_addr(game::unk_279515C), 0) = U32(a1, 0x30);
+		U32(game_addr(game::unk_2795158), 0) = 0x5000000;
+		U8(game_addr(game::unk_279515F), 0) = code;
+		U32(game_addr(game::unk_2795160), 0) = v_mid;
+		U32(game_addr(game::unk_2795164), 0) = 0x780140;
+		U32(game_addr(game::unk_2795168), 0) = 0xF000A0;
+		U32(game_addr(game::unk_279516C), 0) = 0xF00140;
+		x::SSIGPU_InsertPrimAltViewport(ot, game_addr(game::unk_2795158));
 
 		uint32_t tpage = x::sub_45C690(0, 1, 0x280, 0) & 0xFFFF;
-		x::sub_45BFC0(us(0x2795170), 0, 0, tpage, 0);
-		x::SSIGPU_InsertPrimAltViewport(ot, us(0x2795170));
+		x::sub_45BFC0(game_addr(game::unk_2795170), 0, 0, tpage, 0);
+		x::SSIGPU_InsertPrimAltViewport(ot, game_addr(game::unk_2795170));
 		return 0;
 	}
 
@@ -2111,9 +2111,9 @@ namespace act
 	{
 		set_mod_by_code(U32(a1, 8));
 
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
-		MEM<uint32_t>(G(G_258FB68)) = us(0x2793E58);
-		MEM<uint32_t>(G(G_257F9B0)) = us(0x2793E58);
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
+		MEM<uint32_t>(G(G_258FB68)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(G(G_257F9B0)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
 		uint32_t states[11] = {
 			F(F_73A0D0), F(F_73A0E0), F(F_73A0F0), F(F_73A170), F(F_747500), F(F_747540),
 			F(F_747550), F(F_747560), F(F_747590), F(F_7475A0), F(F_7475C0),
@@ -2329,7 +2329,7 @@ namespace act
 	{
 		uint32_t count = 0;
 		int16_t max_z = 0, min_z = 0, max_x = 0, min_x = 0;
-		for (uint32_t e = us(0x1D974B4); e < us(0x1D97724); e += 0x9C)
+		for (uint32_t e = game_addr(game::unk_1D974B4); e < game_addr(game::battle_camera_world_y_edx); e += 0x9C)
 		{
 			if (!(U8(e, -0x20) & 2))
 				continue;
@@ -2550,10 +2550,10 @@ namespace act
 	{
 		alignas(4) uint8_t fr[0x38] = {};
 		uint32_t L = P(fr);
-		U16(L, 0) = MEM<uint16_t>(us(0xB8B7F0));
-		U16(L, 2) = MEM<uint16_t>(us(0xB8B7F2));
-		U16(L, 4) = MEM<uint16_t>(us(0xB8B7F4));
-		U16(L, 6) = MEM<uint16_t>(us(0xB8B7F6));
+		U16(L, 0) = MEM<uint16_t>(game_addr(game::Battle_Camera_world_XZ_s16));
+		U16(L, 2) = MEM<uint16_t>(game_addr(game::unk_B8B7F2));
+		U16(L, 4) = MEM<uint16_t>(game_addr(game::Battle_Camera_world_Y));
+		U16(L, 6) = MEM<uint16_t>(game_addr(game::unk_B8B7F6));
 		uint32_t mat = L + 0x18;
 		x::MAG_022_sub_8DD770(mat);
 		uint32_t c = e2_cam();
@@ -2589,14 +2589,14 @@ namespace act
 		}
 		uint32_t look_xy = U32(c, 0x5C);
 		uint32_t look_z = U32(c, 0x60);
-		MEM<uint32_t>(us(0xB8B7F8)) = look_xy;
-		MEM<uint32_t>(us(0xB8B7F0)) = U32(L, 0);
+		MEM<uint32_t>(game_addr(game::Battle_Camera_LookAt_XZ_s16)) = look_xy;
+		MEM<uint32_t>(game_addr(game::Battle_Camera_world_XZ_s16)) = U32(L, 0);
 		uint16_t e0 = U16(c, 0xE0);
 		uint16_t dc = U16(c, 0xDC);
-		MEM<uint32_t>(us(0xB8B7FC)) = look_z;
-		MEM<uint16_t>(us(0x1D8E038)) = e0;
-		MEM<uint32_t>(us(0xB8B7F4)) = U32(L, 4);
-		MEM<uint16_t>(us(0x1D977A2)) = dc;
+		MEM<uint32_t>(game_addr(game::Battle_Camera_LookAt_Y)) = look_z;
+		MEM<uint16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE)) = e0;
+		MEM<uint32_t>(game_addr(game::Battle_Camera_world_Y)) = U32(L, 4);
+		MEM<uint16_t>(game_addr(game::g_BattleCam_Roll)) = dc;
 		return 0;
 	}
 
@@ -2803,7 +2803,7 @@ namespace act
 	uint32_t __cdecl a_73B9F0(void)
 	{
 		uint32_t save = e2_dir() + 0x2C;
-		for (uint32_t e = us(0x1D97494); e < us(0x1D97704); e += 0x9C, save += 4)
+		for (uint32_t e = game_addr(game::unk_1D97494); e < game_addr(game::CAMERA_FLAG_RELATED); e += 0x9C, save += 4)
 		{
 			uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -2818,7 +2818,7 @@ namespace act
 	uint32_t __cdecl a_73BA90(void)
 	{
 		uint32_t save = e2_dir() + 0x2C;
-		for (uint32_t e = us(0x1D97494); e < us(0x1D97704); e += 0x9C, save += 4)
+		for (uint32_t e = game_addr(game::unk_1D97494); e < game_addr(game::CAMERA_FLAG_RELATED); e += 0x9C, save += 4)
 		{
 			uint16_t f = U16(e, 0);
 			if (f & 2)
@@ -2905,7 +2905,7 @@ namespace act
 		S32(L, 0x14) = S16(a1, 0x1C);
 		S32(L, 0x18) = S16(a1, 0x1E);
 		S32(L, 0x1C) = S16(a1, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
 		U16(L, 0x54) = U16(a1, 0x86);
 		U32(L, 0x44) = U32(a1, 0x7C);
 		U16(L, 0x4C) = U16(a1, 0x8C);
@@ -3164,11 +3164,11 @@ namespace act
 			st = MEM<uint32_t>(G(G_258FB78));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
+		uint32_t e2 = game_addr(game::BattleEntitySlotData) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
@@ -3184,7 +3184,7 @@ namespace act
 	{
 		uint32_t st = MEM<uint32_t>(G(G_258FB78));
 		int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) == 2)
@@ -3286,7 +3286,7 @@ namespace act
 			do
 			{
 				uint32_t slot = U32(sofs + st, 0);
-				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+				const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 				if (U16(st, 0x24) == 2)
 				{
 					U32(pp, 0) = U32(fixed, 8);
@@ -3459,14 +3459,14 @@ namespace act
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		uint32_t seq = U32(act, 0x170);
-		uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
+		uint32_t cursor = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
 		int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
 		uint32_t r = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(0x1D8E054)) = r;
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = r;
 		MEM<uint32_t>(G(G_258FB68)) = MEM<uint32_t>(G(G_258FB68)) + 0xB4;
 		return 0;
 	}
@@ -4257,7 +4257,7 @@ namespace act
 				x::MAG_022_sub_8DD770(m);
 				uint32_t d = U32(G(G_258FB78), 0);
 				int32_t ent = (int32_t)S16(d, 0x1E);
-				int32_t yaw = (int32_t)S16(us(0x1D972CE) + (uint32_t)(ent * 39) * 4, 0);
+				int32_t yaw = (int32_t)S16(game_addr(game::unk_1D972CE) + (uint32_t)(ent * 39) * 4, 0);
 				if (yaw != 0)
 					x::MAG_022_sub_8DD8A0(m, (uint32_t)yaw);
 				break;
@@ -4459,12 +4459,12 @@ namespace act
 		uint16_t fl = U16(node, 0x24);
 		if (fl & 1)
 		{
-			int32_t roll = S16(us(0x1D977A2), 0);
+			int32_t roll = S16(game_addr(game::g_BattleCam_Roll), 0);
 			x::ApplyZRotation((uint32_t)sub32(S32(node, 8), roll), cam);
 		}
 		else if (!(fl & 0x200))
 		{
-			int32_t roll = S16(us(0x1D977A2), 0);
+			int32_t roll = S16(game_addr(game::g_BattleCam_Roll), 0);
 			x::ApplyZRotation((uint32_t)sub32(0, roll), cam);
 		}
 		if (U8(node, 0x24) & 2)
@@ -4652,10 +4652,10 @@ namespace act
 				S32(node, 0x3C) = z;
 				if (z < 0)
 					S32(node, 0x3C) = 0;
-				uint32_t k3 = MEM<uint32_t>(us(0x1CA8A5C)) + ioff;
-				uint32_t k2 = MEM<uint32_t>(us(0x1CA8A58)) + ioff;
-				uint32_t k1 = MEM<uint32_t>(us(0x1CA8A54)) + ioff;
-				uint32_t k0 = MEM<uint32_t>(us(0x1CA8A50)) + ioff;
+				uint32_t k3 = MEM<uint32_t>(game_addr(game::GTE_SZ3)) + ioff;
+				uint32_t k2 = MEM<uint32_t>(game_addr(game::GTE_SZ2)) + ioff;
+				uint32_t k1 = MEM<uint32_t>(game_addr(game::GTE_SZ1)) + ioff;
+				uint32_t k0 = MEM<uint32_t>(game_addr(game::GTE_SZ0)) + ioff;
 				x::SSIGPU_InsertPrimDepthKeys(a2 + ot_slot * 4, pkt, k0, k1, k2, k3);
 				pkt += 0x28;
 			}
@@ -4677,19 +4677,19 @@ namespace act
 					U32(mode, 4) = 0xE1000220;
 					a4slot = ot;
 					x::SSIGPU_InsertPrimAutoDepth(ot, mode);
-					uint32_t k3 = MEM<uint32_t>(us(0x1CA8A5C)) + ioff;
-					uint32_t k2 = MEM<uint32_t>(us(0x1CA8A58)) + ioff;
-					uint32_t k1 = MEM<uint32_t>(us(0x1CA8A54)) + ioff;
-					uint32_t k0 = MEM<uint32_t>(us(0x1CA8A50)) + ioff;
+					uint32_t k3 = MEM<uint32_t>(game_addr(game::GTE_SZ3)) + ioff;
+					uint32_t k2 = MEM<uint32_t>(game_addr(game::GTE_SZ2)) + ioff;
+					uint32_t k1 = MEM<uint32_t>(game_addr(game::GTE_SZ1)) + ioff;
+					uint32_t k0 = MEM<uint32_t>(game_addr(game::GTE_SZ0)) + ioff;
 					x::SSIGPU_InsertPrimDepthKeys(a4slot, pkt, k0, k1, k2, k3);
 					pkt = mode + 0xC;
 				}
 				else
 				{
-					uint32_t k3 = MEM<uint32_t>(us(0x1CA8A5C)) + ioff;
-					uint32_t k2 = MEM<uint32_t>(us(0x1CA8A58)) + ioff;
-					uint32_t k1 = MEM<uint32_t>(us(0x1CA8A54)) + ioff;
-					uint32_t k0 = MEM<uint32_t>(us(0x1CA8A50)) + ioff;
+					uint32_t k3 = MEM<uint32_t>(game_addr(game::GTE_SZ3)) + ioff;
+					uint32_t k2 = MEM<uint32_t>(game_addr(game::GTE_SZ2)) + ioff;
+					uint32_t k1 = MEM<uint32_t>(game_addr(game::GTE_SZ1)) + ioff;
+					uint32_t k0 = MEM<uint32_t>(game_addr(game::GTE_SZ0)) + ioff;
 					x::SSIGPU_InsertPrimDepthKeys(a2 + (uint32_t)depth * 4, pkt, k0, k1, k2, k3);
 					pkt += 0x28;
 				}
@@ -4743,7 +4743,7 @@ namespace act
 		S32(m, 0x18) = ty;
 		S32(m, 0x1C) = tz;
 		x::scale3DMatrix(m, node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		uint32_t prm = x::Field_Alloc(0x58);
@@ -4752,12 +4752,12 @@ namespace act
 		U32(prm, 0) = model;
 		U32(prm, 8) = v40;
 		int32_t v50 = S16(node, 0x50);
-		uint32_t cursor = MEM<uint32_t>(us(0x1D8E054));
+		uint32_t cursor = MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR));
 		S32(prm, 0xC) = v50;
-		uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(prm, 0x1C) = 0xF0;
 		uint32_t next = x::Effect_RenderPrimModel(prm, ot, 2, cursor);
-		MEM<uint32_t>(us(0x1D8E054)) = next;
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = next;
 		x::Field_Free(0x58);
 		return 0;
 	}
@@ -4766,7 +4766,7 @@ namespace act
 	{
 		const uint32_t node = a1;
 		U16(node, 0x1C) = 0x600;
-		uint32_t p = us(0x1D989BA);
+		uint32_t p = game_addr(game::unk_1D989BA);
 		for (int k = 0; k < 4; k++)
 		{
 			U16(p, -0x28) = 0x600;
@@ -4781,7 +4781,7 @@ namespace act
 
 	uint32_t __cdecl a_746A10(void)
 	{
-		uint32_t p = us(0x1D98991);
+		uint32_t p = game_addr(game::unk_1D98991);
 		for (int k = 0; k < 4; k++)
 		{
 			uint8_t b = U8(p, 0);
@@ -4793,7 +4793,7 @@ namespace act
 
 	uint32_t __cdecl a_746AE0(void)
 	{
-		uint32_t p = us(0x1D98991);
+		uint32_t p = game_addr(game::unk_1D98991);
 		for (int k = 0; k < 4; k++)
 		{
 			uint8_t b = U8(p, 0);
@@ -4819,7 +4819,7 @@ namespace act
 		S32(mdl, 0x58) = py;
 		S32(mdl, 0x5C) = pz;
 		x::scale3DMatrix(mat, a1 + 0x114);
-		x::ComposeAffineTransform(us(0x1D97778), mat, ws);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), mat, ws);
 		x::BS_ComputeBonesWorldMatrices(skel, ws);
 		uint32_t v28 = U32(mdl, 0x28);
 		U32(ws, 0x24) = a2;
@@ -4834,7 +4834,7 @@ namespace act
 		U16(ws, 0x44) = 0;
 		uint32_t g969a8 = MEM<uint32_t>(G(G_1D969A8));
 		U32(ws, 0x40) = v7c;
-		uint32_t otbase = MEM<uint32_t>(us(0x1D8E04C));
+		uint32_t otbase = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase));
 		U16(ws, 0x38) = 0x140;
 		U16(ws, 0x3A) = 0xD8;
 		U32(ws, 0x30) = g969a8;
@@ -4860,7 +4860,7 @@ namespace act
 		}
 		if (!(U8(mdl, 0) & 0x20))
 		{
-			uint32_t ot2 = MEM<uint32_t>(us(0x1D8E04C)) + 0x4064;
+			uint32_t ot2 = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4064;
 			cursor = x::sub_5088A0(mdl, ot2, 0x10, cursor);
 		}
 		x::Field_Free(0x4C);

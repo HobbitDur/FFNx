@@ -25,35 +25,35 @@ namespace junk044
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2545104)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2545108)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2545174)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2545180)); }
-	inline TaskQueue *QDebris() { return (TaskQueue *)us(0x2545110); }
-	inline TaskQueue *QItems() { return (TaskQueue *)us(0x2545120); }
-	inline TaskQueue *QSmoke() { return (TaskQueue *)us(0x2545130); }
-	inline TaskQueue *QControl() { return (TaskQueue *)us(0x2545140); }
-	inline int16_t &BattleWord1D97712() { return var<int16_t>(us(0x1D97712)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_Junk_CastContext)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::g_Junk_CasterEntity)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_Junk_PacketCursor)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g_Junk_TexBase)); }
+	inline TaskQueue *QDebris() { return (TaskQueue *)game_addr(game::g_Junk_DebrisQueue); }
+	inline TaskQueue *QItems() { return (TaskQueue *)game_addr(game::g_Junk_ItemQueue); }
+	inline TaskQueue *QSmoke() { return (TaskQueue *)game_addr(game::g_Junk_SmokeQueue); }
+	inline TaskQueue *QControl() { return (TaskQueue *)game_addr(game::g_Junk_ControlQueue); }
+	inline int16_t &BattleWord1D97712() { return var<int16_t>(game_addr(game::BATTLE_CAMERA_SHAKE_OFFSET_Y)); }
 
-	static const uint32_t ORIG_RootTask = 0x6E7B90;
-	static const uint32_t ORIG_ControlTask = 0x6E7E00;
-	static const uint32_t ORIG_SmokeTask = 0x6E82C0;
-	static const uint32_t ORIG_ItemTask = 0x6E84D0;
-	static const uint32_t ORIG_DebrisTask = 0x6E8810;
-	static const void *SOUND_Junk() { return (const void *)us(0x1354B7C); }
-	static const uint32_t SEQ_Smoke = 0x1354B80;
-	static const uint32_t MODEL_Debris = 0x1354CE0;
-	static const uint32_t ITEM_KINDS = 0x1362730;
+	static constexpr game::Id ORIG_RootTask = game::MAG_044_Junk_RootTask;
+	static constexpr game::Id ORIG_ControlTask = game::MAG_044_Junk_ControlTask;
+	static constexpr game::Id ORIG_SmokeTask = game::MAG_044_Junk_SmokeTask;
+	static constexpr game::Id ORIG_ItemTask = game::MAG_044_Junk_ItemTask;
+	static constexpr game::Id ORIG_DebrisTask = game::MAG_044_Junk_DebrisTask;
+	static const void *SOUND_Junk() { return (const void *)game_addr(game::g_Junk_Sound); }
+	static constexpr game::Id SEQ_Smoke = game::g_Junk_SmokeSequence;
+	static constexpr game::Id MODEL_Debris = game::g_Junk_DebrisLayout;
+	static constexpr game::Id ITEM_KINDS = game::g_Junk_ItemKinds;
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void StreamLoad(int32_t id, uint32_t dst, int32_t n) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, n); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
-	inline int32_t StreamBusy(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void StreamLoad(int32_t id, uint32_t dst, int32_t n) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(game_addr(game::Stream_QueueLoad))(id, dst, n); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(game_addr(game::Stream_Pump))(); }
+	inline int32_t StreamBusy(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::BattleFile_PreLoad_IsLoaded))(a); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -142,7 +142,7 @@ namespace junk044
 
 	static void DamageEntity(uint8_t *entity)
 	{
-		const int32_t slot = (int32_t)((uint32_t)entity - 0x1D972C0u) / 0x9C;
+		const int32_t slot = (int32_t)((uint32_t)entity - game_addr(game::BattleEntitySlotData)) / 0x9C;
 		for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
 		{
 			uint8_t *t = Ctx()->actions[0].targets + i * TARGET_STRIDE;
@@ -172,7 +172,7 @@ namespace junk044
 		GetEffectSpawnPosition(Caster(), bone, 0, pos);
 		while (count-- != 0)
 		{
-			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), us(ORIG_SmokeTask));
+			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), game_addr(ORIG_SmokeTask));
 			if (!s) break;
 			SmokeOne(s, pos[0], pos[2], radius, spread, base);
 		}
@@ -182,7 +182,7 @@ namespace junk044
 	{
 		while (count-- != 0)
 		{
-			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), us(ORIG_SmokeTask));
+			SmokeNode *s = (SmokeNode *)AddTaskToQueue(QSmoke(), game_addr(ORIG_SmokeTask));
 			if (!s) break;
 			SmokeOne(s, pos[0], pos[2], radius, spread, base);
 		}
@@ -190,14 +190,14 @@ namespace junk044
 
 	static ItemNode *NewItem(int32_t x, int32_t z, uint8_t *entity, int32_t kind)
 	{
-		ItemNode *it = (ItemNode *)AddTaskToQueue(QItems(), us(ORIG_ItemTask));
+		ItemNode *it = (ItemNode *)AddTaskToQueue(QItems(), game_addr(ORIG_ItemTask));
 		if (!it) return nullptr;
 		it->y = (int16_t)0xF000;
 		it->life = 0x14;
 		it->vz = 0;
 		it->vx = 0;
 		it->vy = 0x320;
-		it->kind = (const uint8_t *)(us(ITEM_KINDS) + kind * 24);
+		it->kind = (const uint8_t *)(game_addr(ITEM_KINDS) + kind * 24);
 		it->entity = entity;
 		it->x = (int16_t)x;
 		it->z = (int16_t)z;
@@ -208,9 +208,9 @@ namespace junk044
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(s->pos, (int32_t)s->rot, -((int32_t)s->rot >> 2));
-		*(uint32_t *)h = us(SEQ_Smoke);
+		*(uint32_t *)h = game_addr(SEQ_Smoke);
 		*(int16_t *)(h + 0x24) = 0;
-		*(int16_t *)(h + 4) = (int16_t)(*(const uint16_t *)(us(SEQ_Smoke) + 8) - s->life);
+		*(int16_t *)(h + 4) = (int16_t)(*(const uint16_t *)(game_addr(SEQ_Smoke) + 8) - s->life);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
@@ -358,7 +358,7 @@ namespace junk044
 				GetDefaultEffectPosition(it->entity, pos);
 				int32_t a = CrtRand();
 				int32_t count = 8;
-				DebrisNode *d = (DebrisNode *)AddTaskToQueue(QDebris(), us(ORIG_DebrisTask));
+				DebrisNode *d = (DebrisNode *)AddTaskToQueue(QDebris(), game_addr(ORIG_DebrisTask));
 				while (d)
 				{
 					d->x = (int16_t)(ComputeSin(a) / 16 + pos[0]);
@@ -370,10 +370,10 @@ namespace junk044
 					d->angle = (int16_t)CrtRand();
 					d->speed = (int16_t)((CrtRand() & 0xFF) + 0x100);
 					if (CrtRand() < 0x4000) d->speed = (int16_t)-d->speed;
-					DecodeModelPrimLayout(us(MODEL_Debris), d->layout, 0x40);
+					DecodeModelPrimLayout(game_addr(MODEL_Debris), d->layout, 0x40);
 					a = a + (CrtRand() & 0xFF) + 0x180;
 					if (--count == 0) break;
-					d = (DebrisNode *)AddTaskToQueue(QDebris(), us(ORIG_DebrisTask));
+					d = (DebrisNode *)AddTaskToQueue(QDebris(), game_addr(ORIG_DebrisTask));
 				}
 				DamageEntity(it->entity);
 				it->vz = 0x50;
@@ -517,7 +517,7 @@ namespace junk044
 			InitTaskQueuePool(QItems(), (void *)(TexBase() + 0xB00), 0x34, 0x10);
 			InitTaskQueuePool(QSmoke(), (void *)(TexBase() + 0xE40), 0x20, 0x20);
 			InitTaskQueuePool(QControl(), (void *)(TexBase() + 0x1240), 0x4C, 1);
-			ControlNode *c = (ControlNode *)AddTaskToQueue(QControl(), us(ORIG_ControlTask));
+			ControlNode *c = (ControlNode *)AddTaskToQueue(QControl(), game_addr(ORIG_ControlTask));
 			Memset32(&c->counter, 0, 0x10);
 			c->avg[2] = 0;
 			c->avg[1] = 0;

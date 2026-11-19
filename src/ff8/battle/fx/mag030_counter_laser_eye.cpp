@@ -24,32 +24,32 @@ namespace act
 {
 namespace lasereye
 {
-	static const Mod MOD_030 = { "lasereye", 30, 0x8735D0, 0x879480,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D40DC, 0x0, 0x26D4768, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D65F8, 0x0, 0x26D6898, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26D6A12, 0x26D6A14, 0x0, 0x26D6A22, 0x0, 0x26D6A28, 0x0, 0x26D6A38 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x873C20, 0x874670, 0x874700, 0x874760, 0x0, 0x8749E0, 0x874BF0, 0x874E70, 0x8750B0, 0x875350, 0x875580, 0x875840, 0x875AA0, 0x875D80, 0x875EC0, 0x875F00, 0x877190, 0x8771E0, 0x877210, 0x877290, 0x877980, 0x8779D0, 0x877A70, 0x877B30, 0x878380, 0x8787E0, 0x878870, 0x0, 0x0, 0x0, 0x0, 0x0, 0x873A70, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x873DD0, 0x873EB0, 0x874010, 0x8740E0, 0x874200, 0x874410, 0x875E40, 0x875F90, 0x8765F0, 0x876640, 0x8766D0, 0x8767A0, 0x876F30, 0x877040, 0x8770C0, 0x8770F0, 0x877910, 0x877940, 0x877A20, 0x877B40, 0x877C90, 0x878320, 0x878350, 0x878590, 0x8786D0, 0x0, 0x874670, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_030 = { "lasereye", 30, game::MAG_030_COUNTER_LASEREYE_FL, game::MAG_029_WIND_BLAST_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::unk_26D40DC, {}, game::MAG_030_ParticleCursor, {}, {}, {}, {}, {}, game::MAG_030_ActorSystemQueue, {}, game::MAG_030_EmitterQueue, {}, {}, {}, {}, {}, game::unk_26D6A12, game::MAG_030_ParticlePoolPtr, {}, game::unk_26D6A22, {}, game::MAG_030_ScratchSP, {}, game::MAG_030_ActorStatePtr },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_030_DirectorSetup, game::MAG_030_ActSys_Step, game::MAG_030_ActSys_DrawPass, game::MAG_030_ActSys_DrawActorModel, {}, game::MAG_030_MeshEmitF3, game::MAG_030_MeshEmitF4, game::MAG_030_RenderPolyFT3List, game::MAG_030_RenderPolyFT4List, game::MAG_030_PrimList_G3, game::MAG_030_PrimList_G4, game::MAG_030_PrimList_GT3, game::MAG_030_PrimList_GT4, game::MAG_030_ActSys_DrawSpritePass, game::MAG_030_ActSys_UpdatePass, game::MAG_030_ActorStep, game::MAG_030_ActSys_UpdateEmitter, game::MAG_030_Particle_LifeCountdown, game::MAG_030_ActSys_EmitterSpawnStep, game::MAG_030_ActSys_SpawnParticles, game::MAG_030_RandVec3, game::MAG_030_JitterAngles3, game::MAG_030_ActSys_AllocParticleSlot, game::MAG_030_GetWord8Minus1, game::MAG_030_COUNTER_LASEREYE_Actor_InitPlacement, game::MAG_030_SpawnSubEffects, game::MAG_030_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_030_COUNTER_LASEREYE_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_030_ResetTrailHistory, game::MAG_030_Director_CasterRefPoints, game::MAG_030_FillTrailRows, game::MAG_030_Director_Mode3Setup, game::MAG_030_Director_TargetRefPoints, game::MAG_030_RelocateActorData, game::MAG_030_ActSys_DrawActorSprite, game::MAG_030_ActorMotion, game::MAG_030_DampValue, game::MAG_030_DampVector, game::MAG_030_Instance_AdvanceTexFrame, game::MAG_030_Instance_BuildTransform, game::MAG_030_MorphVertexBlock, game::MAG_030_Instance_EndOfLifeTest, game::MAG_030_Instance_SpawnFollowUp, game::MAG_030_AllocParticle, game::MAG_030_RandRange, game::MAG_030_RandRangeWide, game::MAG_030_RandAngleJitter, game::MAG_030_Particle_AttachToOwner, game::MAG_030_Actor_InterpolatePosition, game::MAG_030_ParticleList_Append, game::MAG_030_ParticleList_Unlink, game::MAG_030_Particle_PlaceAtAnchorSet, game::MAG_030_Particle_PlaceAtPoint, {}, game::MAG_030_ActSys_Step, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x26D40BC;
-	static const uint32_t ACTOR_STATE = 0x26D6A38;
-	static const uint32_t SCRATCH_SP = 0x26D6A28;
-	static const uint32_t Q_EMITTER = 0x26D6898, Q_ACTORS = 0x26D65F8, Q_LASER = 0x26D41B8;
-	static const uint32_t Q_SPARK = 0x26D4770, Q_STAGE = 0x26D6888;
-	static const uint32_t ORIG_Master = 0x873740;
-	static const uint32_t ORIG_Emitter = 0x873A70;
-	static const uint32_t ORIG_ActorSystem = 0x873B90;
-	static const uint32_t ORIG_Laser = 0x878930;
-	static const uint32_t ORIG_Spark = 0x878F20;
-	static const void *SOUND_LaserEye() { return (const void *)us(0x160D3E8); }
-	static const uint32_t ACTOR_DATA = 0x17CC72C;
-	static const uint32_t SPARK_TABLE = 0x160DED8;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_030_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::MAG_030_ActorStatePtr;
+	static constexpr game::Id SCRATCH_SP = game::MAG_030_ScratchSP;
+	static constexpr game::Id Q_EMITTER = game::MAG_030_EmitterQueue, Q_ACTORS = game::MAG_030_ActorSystemQueue, Q_LASER = game::MAG_030_LaserBeamQueue;
+	static constexpr game::Id Q_SPARK = game::MAG_030_SparkQueue, Q_STAGE = game::MAG_030_StageLightQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_030_COUNTER_LASEREYE_MasterTask;
+	static constexpr game::Id ORIG_Emitter = game::MAG_030_COUNTER_LASEREYE_EmitterTask;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_030_COUNTER_LASEREYE_ActorSystemTask;
+	static constexpr game::Id ORIG_Laser = game::MAG_030_COUNTER_LASEREYE_LaserBeamTask;
+	static constexpr game::Id ORIG_Spark = game::MAG_030_COUNTER_LASEREYE_SparkTask;
+	static const void *SOUND_LaserEye() { return (const void *)game_addr(game::unk_160D3E8); }
+	static constexpr game::Id ACTOR_DATA = game::unk_17CC72C;
+	static constexpr game::Id SPARK_TABLE = game::unk_160DED8;
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(a1, a2, a3); }
-		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(a1, a2, a3, a4); }
-		static inline uint32_t Effect_BuildMatrixFromDirAndUp(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDA50))(a1, a2, a3); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(a1, a2, a3); }
+		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(a1, a2, a3, a4); }
+		static inline uint32_t Effect_BuildMatrixFromDirAndUp(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::Effect_BuildMatrixFromDirAndUp))(a1, a2, a3); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -193,46 +193,46 @@ namespace lasereye
 		g_mod = &MOD_030;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x26D40DC)) = us(0x2793E58);
-		states[0] = us(0x8738A0);
-		states[1] = us(0x8738B0);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_26D40DC)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_State1_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = us(0x8738C0);
-		states[3] = us(0x873A40);
-		states[4] = us(0x8792E0);
-		states[5] = us(0x879320);
-		states[6] = us(0x879420);
-		states[7] = us(0x879430);
-		states[8] = us(0x879440);
-		states[9] = us(0x879450);
-		states[10] = us(0x879470);
+		states[2] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_AllocActorPools);
+		states[3] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_SpawnEmitter);
+		states[4] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_ActionLoop);
+		states[5] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_WaitThenLightDown);
+		states[6] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_030_COUNTER_LASEREYE_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26D6A0C));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26D5E04));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26D40D8)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26D6A0C));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26D5E04));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26D40D8)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26D6A08));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26D5E00));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26D40D8)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26D6A08));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26D5E00));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26D40D8)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x26D6A22)) = 0;
-		MEM<uint16_t>(us(0x26D6A12)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_LASER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_SPARK)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
+		MEM<uint16_t>(game_addr(game::unk_26D6A22)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26D6A12)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_LASER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_SPARK)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -243,26 +243,26 @@ namespace lasereye
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x26D6A34));
-		MEM<uint32_t>(us(0x26D6A14)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_030_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_030_ParticlePoolPtr)) = p;
 		p += 0x870;
-		MEM<uint32_t>(us(0x26D6A2C)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_030_ActorPoolPtr)) = p;
 		p += 0x8340;
-		MEM<uint32_t>(us(0x26D6A34)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_030_FileArenaCursor)) = p;
 		cl_873910();
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x873950), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_030_COUNTER_LASEREYE_LightRampUpTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl cl_873910(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26D6A14)), 0x870);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26D6A2C)), 0x8340);
-		MEM<uint16_t>(us(0x26D4768)) = 0;
-		MEM<uint16_t>(us(0x26D6A20)) = 0;
-		MEM<uint16_t>(us(0x26D6A10)) = 0;
-		MEM<uint16_t>(us(0x26D40C0)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_030_ParticlePoolPtr)), 0x870);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_030_ActorPoolPtr)), 0x8340);
+		MEM<uint16_t>(game_addr(game::MAG_030_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_030_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26D6A10)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26D40C0)) = 0;
 		return 0;
 	}
 
@@ -270,10 +270,10 @@ namespace lasereye
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x873B00);
-		states[1] = us(0x879270);
-		states[2] = us(0x879290);
-		states[3] = us(0x8792D0);
+		states[0] = game_addr(game::MAG_030_COUNTER_LASEREYE_Emitter_SpawnActorsAndLaser);
+		states[1] = game_addr(game::MAG_030_COUNTER_LASEREYE_Emitter_ReleaseMaster);
+		states[2] = game_addr(game::MAG_030_COUNTER_LASEREYE_Emitter_ApplyDamage);
+		states[3] = game_addr(game::MAG_030_COUNTER_LASEREYE_Emitter_State3_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -286,8 +286,8 @@ namespace lasereye
 
 	uint32_t __cdecl cl_873B00(uint32_t a1)
 	{
-		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0, 0x2D, 0);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_LASER), us(ORIG_Laser), 0x90, a1);
+		a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(ACTOR_DATA), 0, 0x2D, 0);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_LASER), game_addr(ORIG_Laser), 0x90, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -322,7 +322,7 @@ namespace lasereye
 	{
 		alignas(4) uint8_t frame[0x10] = {};
 		const uint32_t f = P(frame);
-		uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		const uint32_t table = U32(dir, 0x224);
 		const int32_t di = (int32_t)S8(a1, 0x6A);
 		const uint32_t owner = U32(a1, 0x5C);
@@ -338,7 +338,7 @@ namespace lasereye
 			{
 				x::MAG_022_sub_8DD770(m);
 				const int32_t k = shl32((int32_t)S8(a1, 0x6B), 4);
-				const uint32_t d = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t d = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				const uint32_t e = (uint32_t)k + d;
 				const int32_t dx = sub32(S32(d, 0x1C4), S32(e, 0x54));
 				const int32_t dz = sub32(S32(d, 0x1CC), S32(e, 0x5C));
@@ -366,9 +366,9 @@ namespace lasereye
 			case 4:
 			{
 				x::MAG_022_sub_8DD770(m);
-				dir = MEM<uint32_t>(us(ACTOR_STATE));
+				dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				const int32_t ent = (int32_t)S16(dir, 0x1E);
-				const int32_t yaw = (int32_t)S16(us(0x1D972CE) + (uint32_t)(ent * 39) * 4, 0);
+				const int32_t yaw = (int32_t)S16(game_addr(game::unk_1D972CE) + (uint32_t)(ent * 39) * 4, 0);
 				if (yaw != 0)
 					x::MAG_022_sub_8DD8A0(m, (uint32_t)yaw);
 				break;
@@ -393,19 +393,19 @@ namespace lasereye
 	{
 		alignas(4) uint8_t frame[0x48] = {};
 		const uint32_t f = P(frame);
-		U32(f, 0x28) = us(0x879140);
-		U32(f, 0x2C) = us(0x879180);
-		U32(f, 0x30) = us(0x8791B0);
-		U32(f, 0x34) = us(0x8791F0);
-		U32(f, 0x38) = us(0x879220);
-		U32(f, 0x3C) = us(0x879260);
+		U32(f, 0x28) = game_addr(game::MAG_030_COUNTER_LASEREYE_Laser_StateAppear);
+		U32(f, 0x2C) = game_addr(game::MAG_030_COUNTER_LASEREYE_Laser_StateShow);
+		U32(f, 0x30) = game_addr(game::MAG_030_COUNTER_LASEREYE_Laser_StateGrow);
+		U32(f, 0x34) = game_addr(game::MAG_030_COUNTER_LASEREYE_Laser_StateHold);
+		U32(f, 0x38) = game_addr(game::MAG_030_COUNTER_LASEREYE_Laser_StateShrink);
+		U32(f, 0x3C) = game_addr(game::MAG_030_COUNTER_LASEREYE_LaserBeam_State5_Empty);
 		if (U16(node, 0x24) == 0)
-			x::GetEffectSpawnPosition(us(0x1D972C0) + (uint32_t)U8(node, 0x2D) * 0x9C, 0xF1, 0, node + 0x7C);
-		x::GetEffectSpawnPosition(us(0x1D972C0) + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C, 0xF1, 0, node + 0x74);
+			x::GetEffectSpawnPosition(game_addr(game::BattleEntitySlotData) + (uint32_t)U8(node, 0x2D) * 0x9C, 0xF1, 0, node + 0x7C);
+		x::GetEffectSpawnPosition(game_addr(game::BattleEntitySlotData) + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C, 0xF1, 0, node + 0x74);
 		S16(f, 8) = 0;
 		S16(f, 0xA) = 0x80;
 		S16(f, 0xC) = 0;
-		x::matrixMultiplyVector(us(0x1D97300) + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C, f + 8, f + 0x10);
+		x::matrixMultiplyVector(game_addr(game::unk_1D97300) + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C, f + 8, f + 0x10);
 		U16(node, 0x74) = (uint16_t)(U16(node, 0x74) + U16(f, 0x10));
 		const uint16_t ex = U16(node, 0x74);
 		const uint16_t tx = U16(node, 0x7C);
@@ -425,7 +425,7 @@ namespace lasereye
 		x::MAG_022_sub_8DD8A0(node + 0x54, (uint32_t)(int32_t)S16(node, 0x46));
 		const int32_t w = S16(node, 0x8C);
 		S32(node, 0x38) = div4864(mul32(w, S16(node, 0x8E)));
-		U32(node, 0x4C) = us(0x160D538);
+		U32(node, 0x4C) = game_addr(game::unk_160D538);
 		S16(f, 0x18) = 0;
 		S16(f, 0x1A) = 0;
 		S16(f, 0x1C) = (int16_t)(-0x80 - mul32(w, 0x1300) / 4096);
@@ -449,11 +449,11 @@ namespace lasereye
 		U16(node, 0x8E) = len;
 		U16(node, 0x1E) = 0;
 		S32(node, 0x38) = div4864(mul32(w2, (int16_t)len));
-		U32(node, 0x4C) = us(0x160DCF8);
+		U32(node, 0x4C) = game_addr(game::unk_160DCF8);
 		cl_878CC0(node, node + 0x54);
 		if (U16(node, 0x8C) != 0x1000)
 		{
-			U32(node, 0x4C) = us(0x160DC50);
+			U32(node, 0x4C) = game_addr(game::unk_160DC50);
 			const uint32_t s0 = U32(node, 0x30);
 			U32(f, 0x1C) = U32(node, 0x34);
 			U32(f, 0x20) = U32(node, 0x38);
@@ -466,7 +466,7 @@ namespace lasereye
 			const uint32_t p1 = U32(node, 0x88);
 			U32(node, 0x1C) = p0;
 			U32(node, 0x20) = p1;
-			x::UnpackRotationMatrix(us(0x1D97778), f + 0x28);
+			x::UnpackRotationMatrix(game_addr(game::unk_1D97778), f + 0x28);
 			cl_878CC0(node, f + 0x28);
 			U32(node, 0x30) = s0;
 			U32(node, 0x34) = U32(f, 0x1C);
@@ -499,17 +499,17 @@ namespace lasereye
 		S32(m, 0x18) = py;
 		S32(m, 0x1C) = pz;
 		x::scale3DMatrix(m, a1 + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), m, m);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), m, m);
 		x::GTE_SetRotMatrix_W(m);
 		x::GTE_SetTransVector_W(m);
 		const uint32_t hdr = x::Field_Alloc(0x58);
 		U32(hdr, 0) = U32(a1, 0x4C);
 		U32(hdr, 8) = U32(a1, 0x40);
 		S32(hdr, 0xC) = S16(a1, 0x50);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(hdr, 0x1C) = 0xF0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::Effect_RenderPrimModel(hdr, ot, 2, cursor);
 		x::Field_Free(0x58);
 		return 0;
 	}
@@ -519,10 +519,10 @@ namespace lasereye
 		const int16_t tick = S16(a1, 0x24);
 		if (tick > 0x12)
 			return 0;
-		const uint32_t rec = us(SPARK_TABLE) + (uint32_t)((int32_t)tick * 8);
+		const uint32_t rec = game_addr(SPARK_TABLE) + (uint32_t)((int32_t)tick * 8);
 		int32_t count = S16(rec, 4);
-		const uint32_t sp = MEM<uint32_t>(us(SCRATCH_SP)) - 8;
-		MEM<uint32_t>(us(SCRATCH_SP)) = sp;
+		const uint32_t sp = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 8;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = sp;
 		if (count > 0)
 		{
 			const uint32_t pt = sp + 4;
@@ -532,7 +532,7 @@ namespace lasereye
 				const int32_t t = S16(rec, 0) + r % (int32_t)S16(rec, 2);
 				S32(pt, 0) = t;
 				S32(sp, 0) = 0x1000 - t;
-				const uint32_t spark = x::Effect_AddTaskAndInitFromCtx(us(Q_SPARK), us(ORIG_Spark), 0x60, a1);
+				const uint32_t spark = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_SPARK), game_addr(ORIG_Spark), 0x60, a1);
 				x::set_dword_1CA8A30(U32(sp, 0));
 				gx::sub_45E0B0(a1 + 0x74);
 				gx::sub_45E9D0();
@@ -544,7 +544,7 @@ namespace lasereye
 				count--;
 			} while (count != 0);
 		}
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 8;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 8;
 		return 0;
 	}
 
@@ -583,7 +583,7 @@ namespace lasereye
 		U32(a1, 0x30) = 0x1000;
 		const uint8_t st = U8(a1, 0x29);
 		U32(a1, 0x20) = e1;
-		U32(a1, 0x4C) = us(0x160D538);
+		U32(a1, 0x4C) = game_addr(game::unk_160D538);
 		U8(a1, 0x29) = (uint8_t)(st + 1);
 		return a1;
 	}
@@ -661,17 +661,17 @@ namespace lasereye
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0;
 	}
 
 	uint32_t __cdecl cl_878FF0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(0x160DE10);
+		U32(a1, 0x4C) = game_addr(game::unk_160DE10);
 		U16(a1, 0x52) = 6;
 		U16(a1, 0x58) = (uint16_t)((x::CrtRand() & 0x3FF) - 0x200);
 		U16(a1, 0x5A) = (uint16_t)((x::CrtRand() & 0x3FF) - 0x200);
@@ -713,7 +713,7 @@ namespace lasereye
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -738,7 +738,7 @@ namespace lasereye
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;
 		const uint32_t root = U32(node, 0x10);
-		MEM<uint32_t>(us(0x26D6A38)) = st;
+		MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x24) = w29c;
@@ -750,7 +750,7 @@ namespace lasereye
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(us(0x26D6A38));
+			st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -770,41 +770,41 @@ namespace lasereye
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		cl_873EB0();
-		st = MEM<uint32_t>(us(0x26D6A38));
+		st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		if (U16(st, 0x24) == 4)
-			callp(us(0x873DD0), node);
+			callp(game_addr(game::MAG_030_ResetTrailHistory), node);
 		cl_874200();
-		st = MEM<uint32_t>(us(0x26D6A38));
+		st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		if (U16(st, 0x24) == 1)
 		{
-			callp(us(0x874010), node);
-			st = MEM<uint32_t>(us(0x26D6A38));
+			callp(game_addr(game::MAG_030_FillTrailRows), node);
+			st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(us(0x26D6A38));
+			st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
+		uint32_t e2 = game_addr(game::BattleEntitySlotData) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(us(0x26D6A38));
+		st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		U32(st, 0) = dist;
 		return 0;
 	}
 
 	uint32_t __cdecl cl_873DD0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26D6A38));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -821,15 +821,15 @@ namespace lasereye
 
 	uint32_t __cdecl cl_873EB0(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -842,7 +842,7 @@ namespace lasereye
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -850,7 +850,7 @@ namespace lasereye
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -865,7 +865,7 @@ namespace lasereye
 
 	uint32_t __cdecl cl_874010(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26D6A38));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -886,7 +886,7 @@ namespace lasereye
 
 	uint32_t __cdecl cl_874200(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -895,11 +895,11 @@ namespace lasereye
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+				const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -912,7 +912,7 @@ namespace lasereye
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -920,7 +920,7 @@ namespace lasereye
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -962,7 +962,7 @@ namespace lasereye
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x26D6A38), 0) = sys;
+		U32(game_addr(game::MAG_030_ActorStatePtr), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -974,7 +974,7 @@ namespace lasereye
 			cl_875EC0();
 			cl_875D80();
 			cl_874700();
-			sys = U32(us(0x26D6A38), 0);
+			sys = U32(game_addr(game::MAG_030_ActorStatePtr), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -987,19 +987,19 @@ namespace lasereye
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x26D6A22), 0) = (uint16_t)(U16(us(0x26D6A22), 0) + c14);
-		U16(us(0x26D6A12), 0) = (uint16_t)(U16(us(0x26D6A12), 0) + c16);
+		U16(game_addr(game::unk_26D6A22), 0) = (uint16_t)(U16(game_addr(game::unk_26D6A22), 0) + c14);
+		U16(game_addr(game::unk_26D6A12), 0) = (uint16_t)(U16(game_addr(game::unk_26D6A12), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl cl_874700(void)
 	{
-		uint32_t act = U32(U32(us(0x26D6A38), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_030_ActorStatePtr), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x26D6A38), 0);
+				uint32_t sys = U32(game_addr(game::MAG_030_ActorStatePtr), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1013,10 +1013,10 @@ namespace lasereye
 
 	uint32_t __cdecl cl_874760(uint32_t a1, uint32_t a2)
 	{
-		uint32_t ctx = MEM<uint32_t>(us(SCRATCH_SP)) - 0x58;
+		uint32_t ctx = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x58;
 		const bool def3a = U16(a2, 0x3A) != 0;
 		const uint32_t model = U32(a1, 0x170);
-		MEM<uint32_t>(us(SCRATCH_SP)) = ctx;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = ctx;
 		const uint32_t saved_ctx = ctx;
 		U32(ctx, 0) = model;
 		U32(ctx, 0x1C) = 0;
@@ -1036,9 +1036,9 @@ namespace lasereye
 			const uint32_t m = a1 + 0xAC;
 			x::GTE_SetRotMatrix(m);
 			x::GTE_SetTransVector(m);
-			const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-			const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-			MEM<uint32_t>(us(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
+			const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+			const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = a_7355E0(ctx, ot, 2, cursor);
 		}
 		else if (copies > 0)
 		{
@@ -1053,17 +1053,17 @@ namespace lasereye
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(m);
 				x::GTE_SetTransVector(m);
-				const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
-				const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+				const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
+				const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 				const uint32_t r = a_7355E0(saved_ctx, ot, 2, cursor);
 				n = S8(a1, 0x1D8);
 				i++;
 				pos += 8;
-				MEM<uint32_t>(us(PACKET_CURSOR)) = r;
+				MEM<uint32_t>(game_addr(PACKET_CURSOR)) = r;
 			} while (i < n);
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x58;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x58;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1568,14 +1568,14 @@ namespace lasereye
 
 	uint32_t __cdecl cl_875D80(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x26D6A38)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x26D6A38));
+				uint32_t st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1610,26 +1610,26 @@ namespace lasereye
 	uint32_t __cdecl cl_875E40(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl cl_875EC0(void)
 	{
-		uint32_t act = U32(U32(us(0x26D6A38), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_030_ActorStatePtr), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1645,7 +1645,7 @@ namespace lasereye
 	uint32_t __cdecl cl_875F00(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x26D6A38));
+		uint32_t st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1666,7 +1666,7 @@ namespace lasereye
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x26D6A38));
+			st = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1678,7 +1678,7 @@ namespace lasereye
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x26D6A38), 0);
+		uint32_t st = U32(game_addr(game::MAG_030_ActorStatePtr), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1761,8 +1761,8 @@ namespace lasereye
 
 	uint32_t __cdecl cl_8770F0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x26D6A14));
-		int32_t idx = MEM<int16_t>(us(0x26D4768));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_030_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_030_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1772,7 +1772,7 @@ namespace lasereye
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1787,9 +1787,9 @@ namespace lasereye
 		} while (tries < 0x14);
 		idx++;
 		if (idx < 0x13)
-			MEM<uint16_t>(us(0x26D4768)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_030_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x26D4768)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_030_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -1802,9 +1802,9 @@ namespace lasereye
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x877B40), a1);
+			callp(game_addr(game::MAG_030_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x877C90), a1);
+			callp(game_addr(game::MAG_030_Actor_InterpolatePosition), a1);
 		cl_877210(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1813,7 +1813,7 @@ namespace lasereye
 
 	uint32_t __cdecl cl_877210(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x26D6A38), 0);
+		uint32_t sys = U32(game_addr(game::MAG_030_ActorStatePtr), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1840,9 +1840,9 @@ namespace lasereye
 
 	uint32_t __cdecl cl_877290(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x26D6A28), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::MAG_030_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x26D6A28), 0) = sp;
+		U32(game_addr(game::MAG_030_ScratchSP), 0) = sp;
 		uint32_t node = cl_877A70(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1852,7 +1852,7 @@ namespace lasereye
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x26D6A38), 0);
+			uint32_t ctx = U32(game_addr(game::MAG_030_ActorStatePtr), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2020,14 +2020,14 @@ namespace lasereye
 			}
 		}
 		cl_8787E0(node, desc);
-		U32(us(0x26D6A28), 0) = U32(us(0x26D6A28), 0) + 0x50;
+		U32(game_addr(game::MAG_030_ScratchSP), 0) = U32(game_addr(game::MAG_030_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl cl_877A70(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x26D6A2C));
-		int32_t i = MEM<int16_t>(us(0x26D6A20));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_030_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_030_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2040,7 +2040,7 @@ namespace lasereye
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2057,16 +2057,16 @@ namespace lasereye
 		}
 		i++;
 		if (i >= 0x31)
-			MEM<uint16_t>(us(0x26D6A20)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_030_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x26D6A20)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_030_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl cl_877C90(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x26D6A38), 0);
+		const uint32_t st = U32(game_addr(game::MAG_030_ActorStatePtr), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -2126,7 +2126,7 @@ namespace lasereye
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x26D6A38), 0);
+				uint32_t g = U32(game_addr(game::MAG_030_ActorStatePtr), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2136,7 +2136,7 @@ namespace lasereye
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x26D6A38), 0);
+				uint32_t g = U32(game_addr(game::MAG_030_ActorStatePtr), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2211,7 +2211,7 @@ namespace lasereye
 
 	uint32_t __cdecl cl_878870(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x26D6A38));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2236,14 +2236,14 @@ namespace lasereye
 				do
 				{
 					cl_8770F0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x26D6A38));
+					dir = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				cl_8770F0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x26D6A38));
+				dir = MEM<uint32_t>(game_addr(game::MAG_030_ActorStatePtr));
 			}
 		}
 		return 0;
@@ -2264,9 +2264,9 @@ namespace lasereye
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x878FF0);
-		states[1] = us(0x879050);
-		states[2] = us(0x879130);
+		states[0] = game_addr(game::MAG_030_COUNTER_LASEREYE_Spark_Init);
+		states[1] = game_addr(game::MAG_030_COUNTER_LASEREYE_Spark_Move);
+		states[2] = game_addr(game::MAG_030_COUNTER_LASEREYE_Spark_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		cl_878F80(node);
 		const uint8_t status = U8(node, 0x26);
@@ -2300,7 +2300,7 @@ namespace lasereye
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) - 1);
 		if (S16(a1, 0x60) > 0)
 			return 0;
-		x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x879350), 0x40, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::MAG_030_COUNTER_LASEREYE_LightRampDownTask), 0x40, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -2324,117 +2324,117 @@ namespace lasereye
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x8738A0, (void *)a_73A0D0, "030 MAG_030_sub_8738A0" },
-		{ 0x8738B0, (void *)a_73A0D0, "030 MAG_030_sub_8738B0" },
-		{ 0x873950, (void *)a_73A380, "030 MAG_030_sub_873950" },
-		{ 0x8739B0, (void *)a_7335D0, "030 MAG_030_sub_8739B0" },
-		{ 0x873A30, (void *)a_73A6D0, "030 nullsub_1683" },
-		{ 0x873A40, (void *)a_73A170, "030 MAG_030_sub_873A40" },
-		{ 0x873B40, (void *)a_73C100, "030 MAG_030_sub_873B40" },
-		{ 0x873B90, (void *)a_73A380, "030 MAG_030_sub_873B90" },
-		{ 0x8740E0, (void *)a_73FE90, "030 sub_8740E0" },
-		{ 0x874410, (void *)a_740210, "030 sub_874410" },
-		{ 0x8748A0, (void *)a_7355E0, "030 sub_8748A0" },
-		{ 0x874E70, (void *)a_735BB0, "030 sub_874E70" },
-		{ 0x8750B0, (void *)a_735DF0, "030 sub_8750B0" },
-		{ 0x875F90, (void *)a_740910, "030 sub_875F90" },
-		{ 0x8765F0, (void *)a_740F70, "030 sub_8765F0" },
-		{ 0x876640, (void *)a_740FC0, "030 sub_876640" },
-		{ 0x8766D0, (void *)a_741050, "030 sub_8766D0" },
-		{ 0x8767A0, (void *)a_741120, "030 sub_8767A0" },
-		{ 0x8771E0, (void *)a_741B60, "030 sub_8771E0" },
-		{ 0x877910, (void *)a_742290, "030 au_re__rand_56" },
-		{ 0x877940, (void *)a_7422C0, "030 sub_877940" },
-		{ 0x877980, (void *)a_742300, "030 sub_877980" },
-		{ 0x8779D0, (void *)a_742350, "030 sub_8779D0" },
-		{ 0x877A20, (void *)a_7423A0, "030 au_re__rand_56_0" },
-		{ 0x877B30, (void *)a_7424B0, "030 sub_877B30" },
-		{ 0x877B40, (void *)a_7424C0, "030 sub_877B40" },
-		{ 0x878320, (void *)a_742CA0, "030 sub_878320" },
-		{ 0x878350, (void *)a_742CD0, "030 sub_878350" },
-		{ 0x878590, (void *)a_742EB0, "030 sub_878590" },
-		{ 0x8786D0, (void *)a_742FF0, "030 sub_8786D0" },
-		{ 0x878920, (void *)a_73A6D0, "030 nullsub_1684" },
-		{ 0x879100, (void *)a_743C20, "030 sub_879100" },
-		{ 0x879130, (void *)a_73A6D0, "030 nullsub_1685" },
-		{ 0x879260, (void *)a_73A6D0, "030 nullsub_1686" },
-		{ 0x8792D0, (void *)a_73A6D0, "030 nullsub_1687" },
-		{ 0x879350, (void *)a_73A380, "030 MAG_030_sub_879350" },
-		{ 0x879410, (void *)a_73A6D0, "030 nullsub_1689" },
-		{ 0x879420, (void *)a_747550, "030 MAG_030_sub_879420" },
-		{ 0x879430, (void *)a_73A0D0, "030 MAG_030_sub_879430" },
-		{ 0x879440, (void *)a_73A0D0, "030 MAG_030_sub_879440" },
-		{ 0x879450, (void *)a_7475A0, "030 MAG_030_sub_879450" },
-		{ 0x879470, (void *)a_73A6D0, "030 nullsub_1688" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_030_COUNTER_LASEREYE_Master_State0_Advance, (void *)a_73A0D0, "030 MAG_030_sub_8738A0" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_State1_Advance, (void *)a_73A0D0, "030 MAG_030_sub_8738B0" },
+		{ game::MAG_030_COUNTER_LASEREYE_LightRampUpTask, (void *)a_73A380, "030 MAG_030_sub_873950" },
+		{ game::MAG_030_COUNTER_LASEREYE_LightRampUp_State0_ResetEntityRecords, (void *)a_7335D0, "030 MAG_030_sub_8739B0" },
+		{ game::MAG_030_COUNTER_LASEREYE_LightRampUp_State2_Empty, (void *)a_73A6D0, "030 nullsub_1683" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_SpawnEmitter, (void *)a_73A170, "030 MAG_030_sub_873A40" },
+		{ game::MAG_030_SpawnChildTask, (void *)a_73C100, "030 MAG_030_sub_873B40" },
+		{ game::MAG_030_COUNTER_LASEREYE_ActorSystemTask, (void *)a_73A380, "030 MAG_030_sub_873B90" },
+		{ game::MAG_030_Director_Mode3Setup, (void *)a_73FE90, "030 sub_8740E0" },
+		{ game::MAG_030_RelocateActorData, (void *)a_740210, "030 sub_874410" },
+		{ game::MAG_030_RenderPrimModel, (void *)a_7355E0, "030 sub_8748A0" },
+		{ game::MAG_030_RenderPolyFT3List, (void *)a_735BB0, "030 sub_874E70" },
+		{ game::MAG_030_RenderPolyFT4List, (void *)a_735DF0, "030 sub_8750B0" },
+		{ game::MAG_030_ActorMotion, (void *)a_740910, "030 sub_875F90" },
+		{ game::MAG_030_DampValue, (void *)a_740F70, "030 sub_8765F0" },
+		{ game::MAG_030_DampVector, (void *)a_740FC0, "030 sub_876640" },
+		{ game::MAG_030_Instance_AdvanceTexFrame, (void *)a_741050, "030 sub_8766D0" },
+		{ game::MAG_030_Instance_BuildTransform, (void *)a_741120, "030 sub_8767A0" },
+		{ game::MAG_030_Particle_LifeCountdown, (void *)a_741B60, "030 sub_8771E0" },
+		{ game::MAG_030_RandRange, (void *)a_742290, "030 au_re__rand_56" },
+		{ game::MAG_030_RandRangeWide, (void *)a_7422C0, "030 sub_877940" },
+		{ game::MAG_030_RandVec3, (void *)a_742300, "030 sub_877980" },
+		{ game::MAG_030_JitterAngles3, (void *)a_742350, "030 sub_8779D0" },
+		{ game::MAG_030_RandAngleJitter, (void *)a_7423A0, "030 au_re__rand_56_0" },
+		{ game::MAG_030_GetWord8Minus1, (void *)a_7424B0, "030 sub_877B30" },
+		{ game::MAG_030_Particle_AttachToOwner, (void *)a_7424C0, "030 sub_877B40" },
+		{ game::MAG_030_ParticleList_Append, (void *)a_742CA0, "030 sub_878320" },
+		{ game::MAG_030_ParticleList_Unlink, (void *)a_742CD0, "030 sub_878350" },
+		{ game::MAG_030_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "030 sub_878590" },
+		{ game::MAG_030_Particle_PlaceAtPoint, (void *)a_742FF0, "030 sub_8786D0" },
+		{ game::MAG_030_COUNTER_LASEREYE_ActorSystem_State2_Empty, (void *)a_73A6D0, "030 nullsub_1684" },
+		{ game::MAG_030_StepCounterLimit, (void *)a_743C20, "030 sub_879100" },
+		{ game::MAG_030_COUNTER_LASEREYE_Spark_State2_Empty, (void *)a_73A6D0, "030 nullsub_1685" },
+		{ game::MAG_030_COUNTER_LASEREYE_LaserBeam_State5_Empty, (void *)a_73A6D0, "030 nullsub_1686" },
+		{ game::MAG_030_COUNTER_LASEREYE_Emitter_State3_Empty, (void *)a_73A6D0, "030 nullsub_1687" },
+		{ game::MAG_030_COUNTER_LASEREYE_LightRampDownTask, (void *)a_73A380, "030 MAG_030_sub_879350" },
+		{ game::MAG_030_COUNTER_LASEREYE_LightRampDown_State2_Empty, (void *)a_73A6D0, "030 nullsub_1689" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_State6_WaitQueuesEmpty, (void *)a_747550, "030 MAG_030_sub_879420" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_State7_Advance, (void *)a_73A0D0, "030 MAG_030_sub_879430" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_State8_Advance, (void *)a_73A0D0, "030 MAG_030_sub_879440" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_State9_Finish, (void *)a_7475A0, "030 MAG_030_sub_879450" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_State10_Empty, (void *)a_73A6D0, "030 nullsub_1688" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x873740, (void *)cl_873740, "030 cl_873740" },
-		{ 0x8738C0, (void *)cl_8738C0, "030 cl_8738C0" },
-		{ 0x873910, (void *)cl_873910, "030 cl_873910" },
-		{ 0x8739F0, (void *)cl_8739F0, "030 cl_8739F0" },
-		{ 0x873A70, (void *)cl_873A70, "030 cl_873A70" },
-		{ 0x873B00, (void *)cl_873B00, "030 cl_873B00" },
-		{ 0x873BF0, (void *)cl_873BF0, "030 cl_873BF0" },
-		{ 0x873C20, (void *)cl_873C20, "030 cl_873C20" },
-		{ 0x873DD0, (void *)cl_873DD0, "030 cl_873DD0" },
-		{ 0x873EB0, (void *)cl_873EB0, "030 cl_873EB0" },
-		{ 0x874010, (void *)cl_874010, "030 cl_874010" },
-		{ 0x874200, (void *)cl_874200, "030 cl_874200" },
-		{ 0x874670, (void *)cl_874670, "030 cl_874670" },
-		{ 0x874700, (void *)cl_874700, "030 cl_874700" },
-		{ 0x874760, (void *)cl_874760, "030 cl_874760" },
-		{ 0x8749E0, (void *)cl_8749E0, "030 cl_8749E0" },
-		{ 0x874BF0, (void *)cl_874BF0, "030 cl_874BF0" },
-		{ 0x875350, (void *)cl_875350, "030 cl_875350" },
-		{ 0x875580, (void *)cl_875580, "030 cl_875580" },
-		{ 0x875840, (void *)cl_875840, "030 cl_875840" },
-		{ 0x875AA0, (void *)cl_875AA0, "030 cl_875AA0" },
-		{ 0x875D80, (void *)cl_875D80, "030 cl_875D80" },
-		{ 0x875E40, (void *)cl_875E40, "030 cl_875E40" },
-		{ 0x875EC0, (void *)cl_875EC0, "030 cl_875EC0" },
-		{ 0x875F00, (void *)cl_875F00, "030 cl_875F00" },
-		{ 0x876F30, (void *)cl_876F30, "030 cl_876F30" },
-		{ 0x877040, (void *)cl_877040, "030 cl_877040" },
-		{ 0x8770C0, (void *)cl_8770C0, "030 cl_8770C0" },
-		{ 0x8770F0, (void *)cl_8770F0, "030 cl_8770F0" },
-		{ 0x877190, (void *)cl_877190, "030 cl_877190" },
-		{ 0x877210, (void *)cl_877210, "030 cl_877210" },
-		{ 0x877290, (void *)cl_877290, "030 cl_877290" },
-		{ 0x877A70, (void *)cl_877A70, "030 cl_877A70" },
-		{ 0x877C90, (void *)cl_877C90, "030 cl_877C90" },
-		{ 0x878380, (void *)cl_878380, "030 cl_878380" },
-		{ 0x8787E0, (void *)cl_8787E0, "030 cl_8787E0" },
-		{ 0x878870, (void *)cl_878870, "030 cl_878870" },
-		{ 0x878900, (void *)cl_878900, "030 cl_878900" },
-		{ 0x878930, (void *)cl_878930, "030 cl_878930" },
-		{ 0x878CC0, (void *)cl_878CC0, "030 cl_878CC0" },
-		{ 0x878D80, (void *)cl_878D80, "030 cl_878D80" },
-		{ 0x878E70, (void *)cl_878E70, "030 cl_878E70" },
-		{ 0x878F20, (void *)cl_878F20, "030 cl_878F20" },
-		{ 0x878F80, (void *)cl_878F80, "030 cl_878F80" },
-		{ 0x878FF0, (void *)cl_878FF0, "030 cl_878FF0" },
-		{ 0x879050, (void *)cl_879050, "030 cl_879050" },
-		{ 0x879140, (void *)cl_879140, "030 cl_879140" },
-		{ 0x879180, (void *)cl_879180, "030 cl_879180" },
-		{ 0x8791B0, (void *)cl_8791B0, "030 cl_8791B0" },
-		{ 0x8791F0, (void *)cl_8791F0, "030 cl_8791F0" },
-		{ 0x879220, (void *)cl_879220, "030 cl_879220" },
-		{ 0x879270, (void *)cl_879270, "030 cl_879270" },
-		{ 0x879290, (void *)cl_879290, "030 cl_879290" },
-		{ 0x8792E0, (void *)cl_8792E0, "030 cl_8792E0" },
-		{ 0x879320, (void *)cl_879320, "030 cl_879320" },
-		{ 0x8793B0, (void *)cl_8793B0, "030 cl_8793B0" },
-		{ 0x8793D0, (void *)cl_8793D0, "030 cl_8793D0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_030_COUNTER_LASEREYE_MasterTask, (void *)cl_873740, "030 cl_873740" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_AllocActorPools, (void *)cl_8738C0, "030 cl_8738C0" },
+		{ game::MAG_030_COUNTER_LASEREYE_ClearActorPools, (void *)cl_873910, "030 cl_873910" },
+		{ game::MAG_030_COUNTER_LASEREYE_LightRampUp_Step, (void *)cl_8739F0, "030 cl_8739F0" },
+		{ game::MAG_030_COUNTER_LASEREYE_EmitterTask, (void *)cl_873A70, "030 cl_873A70" },
+		{ game::MAG_030_COUNTER_LASEREYE_Emitter_SpawnActorsAndLaser, (void *)cl_873B00, "030 cl_873B00" },
+		{ game::MAG_030_COUNTER_LASEREYE_ActorSystem_State0_StartActorSystemAtFrame, (void *)cl_873BF0, "030 cl_873BF0" },
+		{ game::MAG_030_DirectorSetup, (void *)cl_873C20, "030 cl_873C20" },
+		{ game::MAG_030_ResetTrailHistory, (void *)cl_873DD0, "030 cl_873DD0" },
+		{ game::MAG_030_Director_CasterRefPoints, (void *)cl_873EB0, "030 cl_873EB0" },
+		{ game::MAG_030_FillTrailRows, (void *)cl_874010, "030 cl_874010" },
+		{ game::MAG_030_Director_TargetRefPoints, (void *)cl_874200, "030 cl_874200" },
+		{ game::MAG_030_ActSys_Step, (void *)cl_874670, "030 cl_874670" },
+		{ game::MAG_030_ActSys_DrawPass, (void *)cl_874700, "030 cl_874700" },
+		{ game::MAG_030_ActSys_DrawActorModel, (void *)cl_874760, "030 cl_874760" },
+		{ game::MAG_030_MeshEmitF3, (void *)cl_8749E0, "030 cl_8749E0" },
+		{ game::MAG_030_MeshEmitF4, (void *)cl_874BF0, "030 cl_874BF0" },
+		{ game::MAG_030_PrimList_G3, (void *)cl_875350, "030 cl_875350" },
+		{ game::MAG_030_PrimList_G4, (void *)cl_875580, "030 cl_875580" },
+		{ game::MAG_030_PrimList_GT3, (void *)cl_875840, "030 cl_875840" },
+		{ game::MAG_030_PrimList_GT4, (void *)cl_875AA0, "030 cl_875AA0" },
+		{ game::MAG_030_ActSys_DrawSpritePass, (void *)cl_875D80, "030 cl_875D80" },
+		{ game::MAG_030_ActSys_DrawActorSprite, (void *)cl_875E40, "030 cl_875E40" },
+		{ game::MAG_030_ActSys_UpdatePass, (void *)cl_875EC0, "030 cl_875EC0" },
+		{ game::MAG_030_ActorStep, (void *)cl_875F00, "030 cl_875F00" },
+		{ game::MAG_030_MorphVertexBlock, (void *)cl_876F30, "030 cl_876F30" },
+		{ game::MAG_030_Instance_EndOfLifeTest, (void *)cl_877040, "030 cl_877040" },
+		{ game::MAG_030_Instance_SpawnFollowUp, (void *)cl_8770C0, "030 cl_8770C0" },
+		{ game::MAG_030_AllocParticle, (void *)cl_8770F0, "030 cl_8770F0" },
+		{ game::MAG_030_ActSys_UpdateEmitter, (void *)cl_877190, "030 cl_877190" },
+		{ game::MAG_030_ActSys_EmitterSpawnStep, (void *)cl_877210, "030 cl_877210" },
+		{ game::MAG_030_ActSys_SpawnParticles, (void *)cl_877290, "030 cl_877290" },
+		{ game::MAG_030_ActSys_AllocParticleSlot, (void *)cl_877A70, "030 cl_877A70" },
+		{ game::MAG_030_Actor_InterpolatePosition, (void *)cl_877C90, "030 cl_877C90" },
+		{ game::MAG_030_COUNTER_LASEREYE_Actor_InitPlacement, (void *)cl_878380, "030 cl_878380" },
+		{ game::MAG_030_SpawnSubEffects, (void *)cl_8787E0, "030 cl_8787E0" },
+		{ game::MAG_030_Director_SpawnGroupEffects, (void *)cl_878870, "030 cl_878870" },
+		{ game::MAG_030_COUNTER_LASEREYE_ActorSystem_State1_StepActorSystem, (void *)cl_878900, "030 cl_878900" },
+		{ game::MAG_030_COUNTER_LASEREYE_LaserBeamTask, (void *)cl_878930, "030 cl_878930" },
+		{ game::MAG_030_COUNTER_LASEREYE_LaserBeam_DrawModel, (void *)cl_878CC0, "030 cl_878CC0" },
+		{ game::MAG_030_COUNTER_LASEREYE_LaserBeam_SpawnSparks, (void *)cl_878D80, "030 cl_878D80" },
+		{ game::MAG_030_COUNTER_LASEREYE_RandomOffset, (void *)cl_878E70, "030 cl_878E70" },
+		{ game::MAG_030_COUNTER_LASEREYE_SparkTask, (void *)cl_878F20, "030 cl_878F20" },
+		{ game::MAG_030_COUNTER_LASEREYE_Spark_DrawSprite, (void *)cl_878F80, "030 cl_878F80" },
+		{ game::MAG_030_COUNTER_LASEREYE_Spark_Init, (void *)cl_878FF0, "030 cl_878FF0" },
+		{ game::MAG_030_COUNTER_LASEREYE_Spark_Move, (void *)cl_879050, "030 cl_879050" },
+		{ game::MAG_030_COUNTER_LASEREYE_Laser_StateAppear, (void *)cl_879140, "030 cl_879140" },
+		{ game::MAG_030_COUNTER_LASEREYE_Laser_StateShow, (void *)cl_879180, "030 cl_879180" },
+		{ game::MAG_030_COUNTER_LASEREYE_Laser_StateGrow, (void *)cl_8791B0, "030 cl_8791B0" },
+		{ game::MAG_030_COUNTER_LASEREYE_Laser_StateHold, (void *)cl_8791F0, "030 cl_8791F0" },
+		{ game::MAG_030_COUNTER_LASEREYE_Laser_StateShrink, (void *)cl_879220, "030 cl_879220" },
+		{ game::MAG_030_COUNTER_LASEREYE_Emitter_ReleaseMaster, (void *)cl_879270, "030 cl_879270" },
+		{ game::MAG_030_COUNTER_LASEREYE_Emitter_ApplyDamage, (void *)cl_879290, "030 cl_879290" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_ActionLoop, (void *)cl_8792E0, "030 cl_8792E0" },
+		{ game::MAG_030_COUNTER_LASEREYE_Master_WaitThenLightDown, (void *)cl_879320, "030 cl_879320" },
+		{ game::MAG_030_COUNTER_LASEREYE_LightRampDown_State0_SetAmplitude400, (void *)cl_8793B0, "030 cl_8793B0" },
+		{ game::MAG_030_COUNTER_LASEREYE_LightRampDown_Step, (void *)cl_8793D0, "030 cl_8793D0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

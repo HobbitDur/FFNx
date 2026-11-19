@@ -34,54 +34,54 @@ namespace sleep145
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 	inline uint32_t &H32(uint8_t *h, int off) { return *(uint32_t *)(h + off); }
 
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x24AAAC0); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x24AB8E0)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x24BB95C)); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	static const uint32_t ZZZ = 0x24AA638, ZZZ_END = 0x24AA818;
-	static const uint32_t BUBBLE_TRAILS = 0x24AA838;
-	static const uint32_t MAIN_TRAILS = 0x24AB8F0;
-	static const uint32_t ARENA_EVEN = 0x24AB95C, ARENA_ODD = 0x24B395C;
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::unk_24AAAC0); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::unk_24AB8E0)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_Sleep_PacketCursor)); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	static constexpr game::Id ZZZ = game::unk_24AA638, ZZZ_END = game::unk_24AA818;
+	static constexpr game::Id BUBBLE_TRAILS = game::unk_24AA838;
+	static constexpr game::Id MAIN_TRAILS = game::unk_24AB8F0;
+	static constexpr game::Id ARENA_EVEN = game::unk_24AB95C, ARENA_ODD = game::unk_24B395C;
 
-	static const uint32_t ORIG_Root = 0x61AA80;
-	static const uint32_t ORIG_Director = 0x6186A0;
-	static const uint32_t ORIG_Bubble = 0x618BB0;
-	static const uint32_t ORIG_Particle = 0x619000;
-	static const uint32_t ORIG_Main = 0x619100;
-	static const uint32_t MODEL_Bubble = 0xDD746C;
-	static const uint32_t SEQ_Particle = 0xDD6FF0, SEQ_Zzz = 0xDD7114;
-	static const void *SOUND_Sleep() { return (const void *)us(0xDD7904); }
+	static constexpr game::Id ORIG_Root = game::SLEEP_Root_Tick;
+	static constexpr game::Id ORIG_Director = game::MAG_145_SLEEP_Director_Tick;
+	static constexpr game::Id ORIG_Bubble = game::MAG_145_SLEEP_OrbitBubble_Tick;
+	static constexpr game::Id ORIG_Particle = game::SLEEP_Particle_Tick;
+	static constexpr game::Id ORIG_Main = game::MAG_145_SLEEP_SpawnMainVisual;
+	static constexpr game::Id MODEL_Bubble = game::unk_DD746C;
+	static constexpr game::Id SEQ_Particle = game::unk_DD6FF0, SEQ_Zzz = game::unk_DD7114;
+	static const void *SOUND_Sleep() { return (const void *)game_addr(game::unk_DD7904); }
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, mode, out); }
-	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, v, out); }
-	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
-	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x5099D0))(model, hdr, ot, mode, cursor); }
-	inline void GteWriteData(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45D7C0))(value, reg); }
-	inline void GteReadData(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(us(0x45D7A0))(dst, reg); }
-	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45D7F0))(value, reg); }
-	inline void GteReadCtrl(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(us(0x45D7D0))(dst, reg); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
-	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(v); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
-	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DDA0))(r, g, b); }
-	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(us(0x45E360))(c); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
-	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(us(0x460810))(); }
-	inline void GteReadMAC123u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E450))(dst); }
-	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF80))(p); }
-	inline void GteReadBK(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x64DFA0))(dst); }
+	inline void GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t mode, int16_t *out) { fn<void (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, mode, out); }
+	inline void MatrixMulVector(const Mat4x3 *m, const int16_t *v, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, v, out); }
+	inline uint32_t DrawShadow(uint32_t entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(entity, ot, mode, cursor); }
+	inline uint32_t RenderGeometry(uint32_t model, uint32_t hdr, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::RenderGeometry))(model, hdr, ot, mode, cursor); }
+	inline void GteWriteData(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::GTE_WriteDataReg))(value, reg); }
+	inline void GteReadData(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(game_addr(game::GTE_ReadDataRegTo))(dst, reg); }
+	inline void GteWriteCtrl(uint32_t value, uint32_t reg) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::GTE_WriteControlReg))(value, reg); }
+	inline void GteReadCtrl(void *dst, uint32_t reg) { fn<void (__cdecl *)(void *, uint32_t)>(game_addr(game::sub_45D7D0))(dst, reg); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteLoadV0u(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadV0))(v); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteReadSXY2u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSXY2))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteSetFarColorB(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColorRGB))(r, g, b); }
+	inline void GteLoadRGBC(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(uint32_t c) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreRGB2))(c); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0_Tr_2))(); }
+	inline void GteMVMVA_LightIR() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightIR))(); }
+	inline void GteReadMAC123u(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadMAC123))(dst); }
+	inline void GteSetIR0FromWord(uint32_t p) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetIR0FromS16))(p); }
+	inline void GteReadBK(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::sub_64DFA0))(dst); }
 	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { InsertPrimAutoDepth(bucket, (void *)pkt); }
 
 #pragma pack(push, 1)
@@ -143,8 +143,8 @@ namespace sleep145
 	static_assert(sizeof(DirectorNode) == 0x24 && sizeof(MainNode) == 0x24 && sizeof(BubbleNode) == 0x24 && sizeof(ParticleNode) == 0x24, "Sleep nodes are 0x24 bytes");
 	static_assert(sizeof(Zzz) == 12 && sizeof(Trail) == 12, "Zzz / trail entries are 12 bytes");
 
-	inline Trail *MainTrail(int32_t action) { return (Trail *)(us(MAIN_TRAILS) + (uint32_t)(action * 3 * 12)); }
-	inline Trail *BubbleTrail(int32_t action, int32_t index) { return (Trail *)(us(BUBBLE_TRAILS) + (uint32_t)((action * 6 + index) * 3 * 12)); }
+	inline Trail *MainTrail(int32_t action) { return (Trail *)(game_addr(MAIN_TRAILS) + (uint32_t)(action * 3 * 12)); }
+	inline Trail *BubbleTrail(int32_t action, int32_t index) { return (Trail *)(game_addr(BUBBLE_TRAILS) + (uint32_t)((action * 6 + index) * 3 * 12)); }
 
 	static int32_t Div18(int32_t x)
 	{
@@ -542,7 +542,7 @@ namespace sleep145
 
 	static uint32_t ModelObjects(uint32_t model, uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
-		const uint32_t cam0 = U32(us(0x1D97778), 0), cam8 = U32(us(0x1D97778), 8), cam10 = U32(us(0x1D97778), 0x10);
+		const uint32_t cam0 = U32(game_addr(game::unk_1D97778), 0), cam8 = U32(game_addr(game::unk_1D97778), 8), cam10 = U32(game_addr(game::unk_1D97778), 0x10);
 		const uint32_t bones = U32(model, 0) + 0x10;
 		uint32_t table = U32(model, 4);
 		const int32_t count = S32(table, 0);
@@ -605,7 +605,7 @@ namespace sleep145
 	{
 		const uint32_t anim = entity + 0x60;
 		if (!(U8(entity, 0) & 0x20))
-			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
+			FrameCursor() = DrawShadow(entity, var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0xBC));
 		ComputeBonesWorldMatrices((void *)anim, (void *)(entity + 0x40));
 		U32(hdr, 0x1C) = U32(entity, 0x28);
@@ -614,8 +614,8 @@ namespace sleep145
 		U8(hdr, 0x2A) = cue;
 		U8(hdr, 0x29) = cue;
 		U8(hdr, 0x28) = cue;
-		U32(hdr, 4) = var<uint32_t>(us(0x1D98B3C));
-		U32(hdr, 0x10) = var<uint32_t>(us(0x1D969A8));
+		U32(hdr, 4) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
+		U32(hdr, 0x10) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		U16(hdr, 0x14) = 0;
 		U16(hdr, 0x16) = 0;
 		U16(hdr, 0x18) = 0x140;
@@ -666,7 +666,7 @@ namespace sleep145
 		GteSetRotMatrix(&v);
 		GteSetTransVector(&v);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = us(MODEL_Bubble);
+		H32(h, 0) = game_addr(MODEL_Bubble);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -777,7 +777,7 @@ namespace sleep145
 		{
 			for (int k = 0; k < 3; k++)
 			{
-				ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Particle));
+				ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Particle));
 				q->frame = 0;
 				q->delay = (int16_t)(CrtRand() % 4 + k);
 				ff8fx::copy<(8)>(q->pos, f.pos);
@@ -813,7 +813,7 @@ namespace sleep145
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
-		H32(h, 0) = us(MODEL_Bubble);
+		H32(h, 0) = game_addr(MODEL_Bubble);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -883,7 +883,7 @@ namespace sleep145
 		p->vz = (int16_t)(v - (int16_t)(v >> 6));
 		if (c >= 2 && c <= 0x12)
 		{
-			ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Particle));
+			ParticleNode *q = (ParticleNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Particle));
 			q->frame = 0;
 			q->delay = (int16_t)(CrtRand() % 3);
 			q->pos[0] = drawn[0];
@@ -907,7 +907,7 @@ namespace sleep145
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 3));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->frame;
-		H32(h, 0) = us(SEQ_Particle);
+		H32(h, 0) = game_addr(SEQ_Particle);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -951,7 +951,7 @@ namespace sleep145
 	static uint8_t *ZzzBegin()
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		H32(h, 0) = us(SEQ_Zzz);
+		H32(h, 0) = game_addr(SEQ_Zzz);
 		*(uint16_t *)(h + 0x24) = 1;
 		return h;
 	}
@@ -959,7 +959,7 @@ namespace sleep145
 	static void ZzzTick()
 	{
 		uint8_t *h = ZzzBegin();
-		for (Zzz *z = (Zzz *)us(ZZZ); P(z) < us(ZZZ_END); z++)
+		for (Zzz *z = (Zzz *)game_addr(ZZZ); P(z) < game_addr(ZZZ_END); z++)
 		{
 			if (z->frame < 0) continue;
 			ZzzDraw(h, z);
@@ -973,8 +973,8 @@ namespace sleep145
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		PacketCursor() = us(ARENA_ODD);
-		if (!(r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
+		PacketCursor() = game_addr(ARENA_ODD);
+		if (!(r->counter & 1)) PacketCursor() = game_addr(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(EffectQueue());
 		ZzzTick();
 		r->counter++;
@@ -998,7 +998,7 @@ namespace sleep145
 		{
 			int32_t spread = (EntitySize(d->slot) * 5000) >> 12;
 			if (spread > 0x578) spread = 0x578;
-			MainNode *m = (MainNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Main));
+			MainNode *m = (MainNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Main));
 			ff8fx::copy<(8)>(m->pos, d->pos);
 			m->pos[1] = (int16_t)(m->pos[1] - 200);
 			m->action = d->action;
@@ -1025,7 +1025,7 @@ namespace sleep145
 				int16_t dir[3];
 				BuildRotationMatrixFromAngles(ang, &m);
 				MatrixMulVector(&m, out0, dir);
-				BubbleNode *b = (BubbleNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Bubble));
+				BubbleNode *b = (BubbleNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Bubble));
 				b->action = d->action;
 				b->counter = 0;
 				b->pos[0] = d->pos[0];
@@ -1051,14 +1051,14 @@ namespace sleep145
 			for (int spawned = 0; spawned < 1; spawned++)
 			{
 				int idx = 0;
-				Zzz *z = (Zzz *)us(ZZZ);
+				Zzz *z = (Zzz *)game_addr(ZZZ);
 				while (z->frame >= 0)
 				{
 					z++;
 					idx++;
-					if (P(z) >= us(ZZZ_END)) break;
+					if (P(z) >= game_addr(ZZZ_END)) break;
 				}
-				if (P(z) >= us(ZZZ_END) || idx >= 0x28) break;
+				if (P(z) >= game_addr(ZZZ_END) || idx >= 0x28) break;
 				z->frame = 0;
 				z->scale = (int16_t)(CrtRand() % 0x700 + 0xA00);
 				z->pos[0] = (int16_t)(CrtRand() % 0x578 + pos[0] - 0x2BC);
@@ -1073,7 +1073,7 @@ namespace sleep145
 			const int32_t next = d->action + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *t = (DirectorNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Director));
+				DirectorNode *t = (DirectorNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Director));
 				t->counter = 0;
 				t->action = (int16_t)next;
 				t->slot = (int16_t)(uint16_t)Ctx()->actions[next].targets[0];

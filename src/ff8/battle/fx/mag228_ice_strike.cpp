@@ -39,52 +39,52 @@ namespace icestrike228
 	{
 		c.name = "228 Ice Strike";
 		c.effect_id = 228;
-		c.vm_table = us(0x186B8FC);
-		c.bone_table = us(0x186B56C);
-		c.prim_table = us(0x186B5B4);
-		c.prim_size = us(0x186B6A4);
-		c.spr_table = us(0x186B6B8);
-		c.ptype_table = us(0x186B6E4);
-		c.pop_table = us(0x186B6F8);
-		c.draw_table = us(0x186B758);
-		c.attr_16A = us(0x186B8C2);
-		c.attr_184 = us(0x186B8DC);
-		c.attr_186 = us(0x186B8DE);
-		c.attr_194 = us(0x186B8EC);
-		c.attr_19C = us(0x186B8F4);
-		c.desc = us(0x186B438);
-		c.ptr_block = us(0x186B544);
-		c.queue = us(0x2796B38);
-		c.file00 = us(0x2796B4C);
-		c.file01 = us(0x2796B48);
-		c.tick = us(0xA85C30);
-		c.load_cb = us(0xA8B230);
+		c.vm_table = game_addr(game::funcs_A8F34C);
+		c.bone_table = game_addr(game::funcs_A8BE47);
+		c.prim_table = game_addr(game::funcs_A879D4);
+		c.prim_size = game_addr(game::unk_186B6A4);
+		c.spr_table = game_addr(game::unk_186B6B8);
+		c.ptype_table = game_addr(game::unk_186B6E4);
+		c.pop_table = game_addr(game::funcs_A897E7);
+		c.draw_table = game_addr(game::unk_186B758);
+		c.attr_16A = game_addr(game::unk_186B8C2);
+		c.attr_184 = game_addr(game::unk_186B8DC);
+		c.attr_186 = game_addr(game::unk_186B8DE);
+		c.attr_194 = game_addr(game::unk_186B8EC);
+		c.attr_19C = game_addr(game::unk_186B8F4);
+		c.desc = game_addr(game::unk_186B438);
+		c.ptr_block = game_addr(game::unk_186B544);
+		c.queue = game_addr(game::unk_2796B38);
+		c.file00 = game_addr(game::unk_2796B4C);
+		c.file01 = game_addr(game::unk_2796B48);
+		c.tick = game_addr(game::MAG_228_sub_A85C30);
+		c.load_cb = game_addr(game::MAG_228_sub_A8B230);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
-	static const uint32_t COMDATA = 0x18821A0;
-	static const uint32_t EFFECT_LIGHT = 0x1D99AB0;
+	static constexpr game::Id COMDATA = game::MAG_228_ICE_STRIKE_AnimSet;
+	static constexpr game::Id EFFECT_LIGHT = game::unk_1D99AB0;
 
 	template<typename F> static inline F fx(uint32_t a) { return (F)a; }
-	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
-	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
+	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { fx<void (__cdecl *)(void *, void *, uint32_t)>(game_addr(game::BattleEntity_BindExternalAnimSet))(ent, out, data); }
+	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { fx<void (__cdecl *)(void *, int32_t)>(game_addr(game::QueueChainTransformation))(ent, id); }
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
-	static inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(us(0xB8B7F0) + 4 * i); }
-	static inline uint16_t &Word1D977A0() { return MEM<uint16_t>(us(0x1D977A0)); }
-	static inline uint16_t &Word1D977A2() { return MEM<uint16_t>(us(0x1D977A2)); }
-	static inline uint16_t &Word1D9771C() { return MEM<uint16_t>(us(0x1D9771C)); }
+	static inline uint32_t &CamWord32(int i) { return MEM<uint32_t>(game_addr(game::Battle_Camera_world_XZ_s16) + 4 * i); }
+	static inline uint16_t &Word1D977A0() { return MEM<uint16_t>(game_addr(game::Battle_Camera_ReturnView_Param1D8E038)); }
+	static inline uint16_t &Word1D977A2() { return MEM<uint16_t>(game_addr(game::g_BattleCam_Roll)); }
+	static inline uint16_t &Word1D9771C() { return MEM<uint16_t>(game_addr(game::Battle_Camera_ReturnView_Roll)); }
 
 	static void __cdecl op_0AB_BindLimitAnimSet()
 	{
 		uint8_t *ent = SlotEntity();
 		uint8_t *blk = blob::ArenaAlloc(0x20);
-		xl_BindEntityModelFromComData(ent, blk, us(COMDATA));
+		xl_BindEntityModelFromComData(ent, blk, game_addr(COMDATA));
 		xl_QueueChainTransformation(ent, S16(STREAM(), 2));
 		STREAM() += 4;
 	}
@@ -152,11 +152,11 @@ namespace icestrike228
 		}
 		case 4:
 		{
-			blob::CopyMatrix((void *)us(EFFECT_LIGHT), BBMAT());
+			blob::CopyMatrix((void *)game_addr(EFFECT_LIGHT), BBMAT());
 			uint8_t *b = CUR();
-			MEM<int32_t>(us(EFFECT_LIGHT) + 0x14) = S16(b, 0x94);
-			MEM<int32_t>(us(EFFECT_LIGHT) + 0x18) = S16(b, 0x96);
-			MEM<int32_t>(us(EFFECT_LIGHT) + 0x1C) = S16(b, 0x98);
+			MEM<int32_t>(game_addr(EFFECT_LIGHT) + 0x14) = S16(b, 0x94);
+			MEM<int32_t>(game_addr(EFFECT_LIGHT) + 0x18) = S16(b, 0x96);
+			MEM<int32_t>(game_addr(EFFECT_LIGHT) + 0x1C) = S16(b, 0x98);
 			break;
 		}
 		case 5:
@@ -205,7 +205,7 @@ namespace icestrike228
 		icestrike228::describe(icestrike228::g_c);
 		init_clone(icestrike228::g_c, nullptr, 0);
 		icestrike228::apply_slots(icestrike228::g_c);
-		register_port(0xA85C30, (void *)icestrike228::SequenceTask, "MAG228 Ice Strike SequenceTick", 228);
+		register_port(game::MAG_228_sub_A85C30, (void *)icestrike228::SequenceTask, "MAG228 Ice Strike SequenceTick", 228);
 	}
 }
 

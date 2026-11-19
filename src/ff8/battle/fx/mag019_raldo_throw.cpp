@@ -22,37 +22,37 @@ namespace act
 {
 namespace raldo
 {
-	static const Mod MOD_019 = { "granaldo", 19, 0x8A3280, 0x8AB120,
-		{ 0x0, 0x0, 0x1629FA8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x272B8F8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x272E090, 0x0, 0x2730270, 0x0, 0x0, 0x0, 0x0, 0x0, 0x273046C, 0x0, 0x0, 0x273047E, 0x0, 0x2730484, 0x0, 0x2730494 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8A4670, 0x8A46D0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8A6890, 0x8A69D0, 0x8A6A10, 0x8A7CA0, 0x8A7CF0, 0x8A7D20, 0x8A7DA0, 0x8A8490, 0x8A84E0, 0x8A8580, 0x8A8640, 0x8A8E90, 0x8A9290, 0x8A9320, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8A3620, 0x8A36A0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8A3850, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8A3CB0, 0x8A3D90, 0x8A3F30, 0x8A4000, 0x8A4120, 0x8A4380, 0x8A6950, 0x8A6AA0, 0x8A7100, 0x8A7150, 0x8A71E0, 0x8A72B0, 0x8A7A40, 0x8A7B50, 0x8A7BD0, 0x8A7C00, 0x8A8420, 0x8A8450, 0x8A8530, 0x8A8650, 0x8A87A0, 0x0, 0x8A8E60, 0x8A9040, 0x8A9180, 0x8AA540, 0x8A45E0, 0x8AAFE0, 0x8AB020, 0x8AB040, 0x8AB060, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_019 = { "granaldo", 19, game::MAG_019_UNK0_FL, game::MAG_016_RECOVER_FL,
+		{ {}, {}, game::p_RaldoThrow_Director, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::unk_272B8F8, {}, {}, {}, {}, {}, {}, {}, game::MAG_019_BallActorSystemQueue, {}, game::MAG_019_EmitterQueue, {}, {}, {}, {}, {}, game::unk_273046C, {}, {}, game::unk_273047E, {}, game::g_RaldoThrow_ScratchSP, {}, game::g_RaldoThrow_ActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_019_ActSys_DrawPass, game::MAG_019_ActSys_DrawPrimActor, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_019_ActSys_DrawSpritePass, game::MAG_019_ActSys_UpdatePass, game::MAG_019_ActorStep, game::MAG_019_ActSys_UpdateEmitter, game::MAG_019_Particle_LifeCountdown, game::MAG_019_ActSys_EmitterSpawnStep, game::MAG_019_ActSys_SpawnParticles, game::MAG_019_RandVec3, game::MAG_019_JitterAngles3, game::MAG_019_ActSys_AllocParticleSlot, game::MAG_019_GetWord8Minus1, game::MAG_019_Particle_Init, game::MAG_019_SpawnSubEffects, game::MAG_019_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_019_RaldoThrow_EmitterTask, game::MAG_019_RaldoThrow_Emitter_State0_PlaceAndSpawnDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_019_DirSyncGate, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_019_ResetTrailHistory, game::MAG_019_Director_StartPositions, game::MAG_019_FillTrailRows, game::MAG_019_Director_Mode3Setup, game::MAG_019_Director_TargetPositions, game::MAG_019_RelocateActorData, game::MAG_019_ActSys_DrawActorSprite, game::MAG_019_ActorMotion, game::MAG_019_DampValue, game::MAG_019_DampVector, game::MAG_019_Instance_AdvanceTexFrame, game::MAG_019_Instance_BuildTransform, game::MAG_019_MorphVertexBlock, game::MAG_019_Instance_EndOfLifeTest, game::MAG_019_Instance_SpawnFollowUp, game::MAG_019_AllocParticle, game::MAG_019_RandRange, game::MAG_019_RandRangeWide, game::MAG_019_RandAngleJitter, game::MAG_019_Particle_AttachToOwner, game::MAG_019_Actor_InterpolatePosition, {}, game::MAG_019_ParticleList_Unlink, game::MAG_019_Particle_PlaceAtAnchorSet, game::MAG_019_Particle_PlaceAtPoint, game::MAG_019_SpriteStrip_DrawQuads, game::MAG_019_ActSys_Step, game::MAG_019_RaldoThrow_Emitter_ApplyDamage, game::MAG_019_RaldoThrow_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_019_RaldoThrow_Emitter_State3_FinishReleaseRoot, game::MAG_019_RaldoThrow_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x2726904;
-	static const uint32_t ACTOR_STATE = 0x2730494;
-	static const uint32_t SCRATCH_SP = 0x2730484;
-	static const uint32_t DIR_PTR = 0x1629FA8;
-	static const uint32_t BLK = 0x2726910;
-	static const uint32_t Q_EMITTER = 0x2730270, Q_DIRECTOR = 0x2726AB0, Q_BALL = 0x272E090, Q_RALDO = 0x272B9D8, Q_STAGE = 0x2730260;
-	static const uint32_t ORIG_Master = 0x8A33F0;
-	static const uint32_t ORIG_Ball = 0x8A3A30;
-	static const uint32_t ORIG_Raldo = 0x8A93E0;
-	static const uint32_t ORIG_DebrisHigh = 0x8AA1D0, ORIG_DebrisLow = 0x8AAA30;
-	static const uint32_t BALL_DATA = 0x17F37BC;
-	static const uint32_t SOUND_Throw = 0x1629FAC;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id PACKET_CURSOR = game::g_RaldoThrow_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::g_RaldoThrow_ActorState;
+	static constexpr game::Id SCRATCH_SP = game::g_RaldoThrow_ScratchSP;
+	static constexpr game::Id DIR_PTR = game::p_RaldoThrow_Director;
+	static constexpr game::Id BLK = game::g_RaldoThrow_BallBlock;
+	static constexpr game::Id Q_EMITTER = game::MAG_019_EmitterQueue, Q_DIRECTOR = game::MAG_019_DirectorQueue, Q_BALL = game::MAG_019_BallActorSystemQueue, Q_RALDO = game::MAG_019_RaldoDebrisQueue, Q_STAGE = game::MAG_019_StageWobbleQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_019_RaldoThrow_MasterTask;
+	static constexpr game::Id ORIG_Ball = game::MAG_019_RaldoThrow_BallActorSystemTask;
+	static constexpr game::Id ORIG_Raldo = game::MAG_019_RaldoThrow_RaldoTask;
+	static constexpr game::Id ORIG_DebrisHigh = game::MAG_019_RaldoThrow_DebrisHighTask, ORIG_DebrisLow = game::MAG_019_RaldoThrow_DebrisLowTask;
+	static constexpr game::Id BALL_DATA = game::unk_17F37BC;
+	static constexpr game::Id SOUND_Throw = game::unk_1629FAC;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(us(0x4607D0))(); }
-		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(us(0x4607E0))(); }
-		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DCF0))(a1, a2, a3); }
-		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DE50))(a1); }
-		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45DEA0))(a1); }
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a1, a2, a3); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x56BDE0))(a1, a2); }
+		static inline uint32_t GTE_MVMVA_ColorV0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_ColorV0))(); }
+		static inline uint32_t GTE_MVMVA_LightV0_Bk() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_MVMVA_LightV0_Bk))(); }
+		static inline uint32_t GTE_SetBackgroundVector(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetBackgroundVector))(a1, a2, a3); }
+		static inline uint32_t GTE_SetLightMatrix(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetLightMatrix))(a1); }
+		static inline uint32_t sub_45DEA0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::sub_45DEA0))(a1); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E160(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a1, a2, a3); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSZ3))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t sub_56BDE0(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::VectorNormalS16))(a1, a2); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -350,7 +350,7 @@ namespace raldo
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 
@@ -431,46 +431,46 @@ namespace raldo
 		g_mod = &MOD_019;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x272B8F8)) = us(0x2793E58);
-		states[0] = us(0x8A3550);
-		states[1] = us(0x8A3560);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_272B8F8)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_019_RaldoThrow_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_019_RaldoThrow_Master_State1_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = us(0x8A3570);
-		states[3] = us(0x8A35F0);
-		states[4] = us(0x8AB070);
-		states[5] = us(0x8AB0B0);
-		states[6] = us(0x8AB0C0);
-		states[7] = us(0x8AB0D0);
-		states[8] = us(0x8AB0E0);
-		states[9] = us(0x8AB0F0);
-		states[10] = us(0x8AB110);
+		states[2] = game_addr(game::MAG_019_RaldoThrow_CarveActorPools);
+		states[3] = game_addr(game::MAG_019_RaldoThrow_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_019_RaldoThrow_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_019_RaldoThrow_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_019_RaldoThrow_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_019_RaldoThrow_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_019_RaldoThrow_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_019_RaldoThrow_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_019_RaldoThrow_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x27303E4));
-			const uint32_t v2 = MEM<uint32_t>(us(0x272DDE4));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x272B8F4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_27303E4));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_272DDE4));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_272B8F4)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x27303E0));
-			const uint32_t v2 = MEM<uint32_t>(us(0x272DDE0));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x272B8F4)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_27303E0));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_272DDE0));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_272B8F4)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x273047E)) = 0;
-		MEM<uint16_t>(us(0x273046C)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_BALL)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_RALDO)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
+		MEM<uint16_t>(game_addr(game::unk_273047E)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_273046C)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_BALL)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_RALDO)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -481,12 +481,12 @@ namespace raldo
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x2730490));
-		MEM<uint32_t>(us(0x2730470)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_019_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_019_ParticlePoolPtr)) = p;
 		p += 0x438;
-		MEM<uint32_t>(us(0x2730488)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_019_ActorPoolPtr)) = p;
 		p += 0xB7C0;
-		MEM<uint32_t>(us(0x2730490)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_019_FileArenaCursor)) = p;
 		rt_8A35B0();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -494,19 +494,19 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A35B0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2730470)), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2730488)), 0xB7C0);
-		MEM<uint16_t>(us(0x272DDD8)) = 0;
-		MEM<uint16_t>(us(0x273047C)) = 0;
-		MEM<uint16_t>(us(0x2730414)) = 0;
-		MEM<uint16_t>(us(0x2726908)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_019_ParticlePoolPtr)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_019_ActorPoolPtr)), 0xB7C0);
+		MEM<uint16_t>(game_addr(game::MAG_019_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_019_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2730414)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2726908)) = 0;
 		return 0;
 	}
 
 	uint32_t __cdecl rt_8A36A0(uint32_t a1)
 	{
 		rt_8A36D0(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x2726AB0), us(0x8A3760), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_019_DirectorQueue), game_addr(game::MAG_019_RaldoThrow_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -541,7 +541,7 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A38C0(uint32_t a1)
 	{
-		uint32_t blk = U32(us(0x1629FA8), 0);
+		uint32_t blk = U32(game_addr(game::p_RaldoThrow_Director), 0);
 		if (S16(blk, 0x46) < 4) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -549,7 +549,7 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A38E0(uint32_t a1)
 	{
-		uint32_t blk = U32(us(0x1629FA8), 0);
+		uint32_t blk = U32(game_addr(game::p_RaldoThrow_Director), 0);
 		if (S16(blk, 0x46) <= 0x2D) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -557,7 +557,7 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A3CB0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x2730494));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_RaldoThrow_ActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -574,7 +574,7 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A3F30(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x2730494));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_RaldoThrow_ActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -597,7 +597,7 @@ namespace raldo
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x2730494), 0) = sys;
+		U32(game_addr(game::g_RaldoThrow_ActorState), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -609,7 +609,7 @@ namespace raldo
 			rt_8A69D0();
 			a_740700();
 			rt_8A4670();
-			sys = U32(us(0x2730494), 0);
+			sys = U32(game_addr(game::g_RaldoThrow_ActorState), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -622,19 +622,19 @@ namespace raldo
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x273047E), 0) = (uint16_t)(U16(us(0x273047E), 0) + c14);
-		U16(us(0x273046C), 0) = (uint16_t)(U16(us(0x273046C), 0) + c16);
+		U16(game_addr(game::unk_273047E), 0) = (uint16_t)(U16(game_addr(game::unk_273047E), 0) + c14);
+		U16(game_addr(game::unk_273046C), 0) = (uint16_t)(U16(game_addr(game::unk_273046C), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl rt_8A4670(void)
 	{
-		uint32_t act = U32(U32(us(0x2730494), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_RaldoThrow_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x2730494), 0);
+				uint32_t sys = U32(game_addr(game::g_RaldoThrow_ActorState), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -648,10 +648,10 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A46D0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
+		const uint32_t h = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(us(SCRATCH_SP)) = h;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -679,7 +679,7 @@ namespace raldo
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(us(0x1D8E054)) = rt_8A4830(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+			MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = rt_8A4830(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		}
 		else if (copies > 0)
 		{
@@ -691,11 +691,11 @@ namespace raldo
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(us(0x1D8E054)) = rt_8A4830(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+				MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = rt_8A4830(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
@@ -1279,7 +1279,7 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A69D0(void)
 	{
-		uint32_t act = U32(U32(us(0x2730494), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_RaldoThrow_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1295,7 +1295,7 @@ namespace raldo
 	uint32_t __cdecl rt_8A6A10(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x2730494));
+		uint32_t st = MEM<uint32_t>(game_addr(game::g_RaldoThrow_ActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1316,7 +1316,7 @@ namespace raldo
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x2730494));
+			st = MEM<uint32_t>(game_addr(game::g_RaldoThrow_ActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1328,7 +1328,7 @@ namespace raldo
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x2730494), 0);
+		uint32_t st = U32(game_addr(game::g_RaldoThrow_ActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1411,8 +1411,8 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A7C00(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2730470));
-		int32_t idx = MEM<int16_t>(us(0x272DDD8));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_019_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_019_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1422,7 +1422,7 @@ namespace raldo
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1437,9 +1437,9 @@ namespace raldo
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(us(0x272DDD8)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_019_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x272DDD8)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_019_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -1452,9 +1452,9 @@ namespace raldo
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x8A8650), a1);
+			callp(game_addr(game::MAG_019_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x8A87A0), a1);
+			callp(game_addr(game::MAG_019_Actor_InterpolatePosition), a1);
 		rt_8A7D20(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1463,7 +1463,7 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A7D20(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x2730494), 0);
+		uint32_t sys = U32(game_addr(game::g_RaldoThrow_ActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1490,9 +1490,9 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A7DA0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x2730484), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::g_RaldoThrow_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x2730484), 0) = sp;
+		U32(game_addr(game::g_RaldoThrow_ScratchSP), 0) = sp;
 		uint32_t node = rt_8A8580(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1502,7 +1502,7 @@ namespace raldo
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x2730494), 0);
+			uint32_t ctx = U32(game_addr(game::g_RaldoThrow_ActorState), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1670,14 +1670,14 @@ namespace raldo
 			}
 		}
 		rt_8A9290(node, desc);
-		U32(us(0x2730484), 0) = U32(us(0x2730484), 0) + 0x50;
+		U32(game_addr(game::g_RaldoThrow_ScratchSP), 0) = U32(game_addr(game::g_RaldoThrow_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl rt_8A8580(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2730488));
-		int32_t i = MEM<int16_t>(us(0x273047C));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_019_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_019_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1690,7 +1690,7 @@ namespace raldo
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1707,16 +1707,16 @@ namespace raldo
 		}
 		i++;
 		if (i >= 0x45)
-			MEM<uint16_t>(us(0x273047C)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_019_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x273047C)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_019_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl rt_8A87A0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x2730494), 0);
+		const uint32_t st = U32(game_addr(game::g_RaldoThrow_ActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1776,7 +1776,7 @@ namespace raldo
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x2730494), 0);
+				uint32_t g = U32(game_addr(game::g_RaldoThrow_ActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1786,7 +1786,7 @@ namespace raldo
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x2730494), 0);
+				uint32_t g = U32(game_addr(game::g_RaldoThrow_ActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1861,7 +1861,7 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A9320(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x2730494));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::g_RaldoThrow_ActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1886,14 +1886,14 @@ namespace raldo
 				do
 				{
 					rt_8A7C00(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x2730494));
+					dir = MEM<uint32_t>(game_addr(game::g_RaldoThrow_ActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				rt_8A7C00(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x2730494));
+				dir = MEM<uint32_t>(game_addr(game::g_RaldoThrow_ActorState));
 			}
 		}
 		return 0;
@@ -1912,11 +1912,11 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A94E0(uint32_t a1)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)((int32_t)S16(a1, 0xAC) * 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)((int32_t)S16(a1, 0xAC) * 0x9C);
 		ff8fx::copy<(0x20)>((void *)(a1 + 0x20), (const void *)(ent + 0x40));
 		const uint32_t pose = ent + 0x60;
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(a1 + 0x20);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(a1 + 0x40);
@@ -1926,20 +1926,20 @@ namespace raldo
 		x::GTE_LoadIRFromMatrixColumn(a1 + 0x24);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(a1 + 0x44);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(a1 + 0x34);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(a1 + 0x54);
 		uint32_t cp = U32(a1, 0x6C);
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x4040;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x4040;
 		const uint32_t r = x::sub_5088A0(ent, ot, 0x10, U32(cp, 0));
 		cp = U32(a1, 0x6C);
-		const uint32_t ot44 = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot44 = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(cp, 0) = r;
 		rt_8A95F0(U32(ent, 0x64), ot44, 4, a1);
 		const uint32_t wpn = U32(ent, 0x78);
 		if (wpn != 0)
-			rt_8A95F0(U32(wpn, 4), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, a1);
+			rt_8A95F0(U32(wpn, 4), MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 4, a1);
 		x::BattleModel_BuildBoneMatricesFromPose(pose);
 		return 0;
 	}
@@ -2164,8 +2164,8 @@ namespace raldo
 		x::MAG_007_sub_8DCC00(a1, 0xC4);
 		U32(a1, 0x68) = a5;
 		U32(a1, 0x60) = a2;
-		U32(a1, 0x6C) = us(0x1D8E054);
-		U32(a1, 0x70) = us(0x1D8E054);
+		U32(a1, 0x6C) = game_addr(game::BATTLE_PACKET_WRITE_CURSOR);
+		U32(a1, 0x70) = game_addr(game::BATTLE_PACKET_WRITE_CURSOR);
 		U16(a1, 0xAC) = (uint16_t)a6;
 		U32(a3, 4) = a4;
 		U32(a1, 0x64) = a3;
@@ -2185,8 +2185,8 @@ namespace raldo
 	{
 		const uint32_t node = a1;
 		uint32_t states[2];
-		states[0] = us(0x8A9F60);
-		states[1] = us(0x8AAB90);
+		states[0] = game_addr(game::MAG_019_RaldoThrow_DebrisBurst);
+		states[1] = game_addr(game::MAG_019_RaldoThrow_DebrisSpawner_State1_Empty);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2199,7 +2199,7 @@ namespace raldo
 			return 0;
 		uint32_t hdr = x::Field_Alloc(0xD8);
 		uint32_t m = hdr + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), m);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), m);
 		int32_t px = S16(a1, 0x1C);
 		int32_t py = S16(a1, 0x1E);
 		int32_t pz = S16(a1, 0x20);
@@ -2207,7 +2207,7 @@ namespace raldo
 		S32(hdr, 0xD0) = py;
 		S32(hdr, 0xD4) = pz;
 		S32(vec, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(m);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(m);
@@ -2217,7 +2217,7 @@ namespace raldo
 		x::GTE_LoadIRFromMatrixColumn(hdr + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(hdr + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(vec);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(vec);
@@ -2227,12 +2227,12 @@ namespace raldo
 		uint16_t frame = U16(a1, 0x50);
 		uint16_t depth = U16(a1, 0x56);
 		U32(hdr, 0) = data;
-		uint32_t cursor = U32(us(0x1D8E054), 0);
+		uint32_t cursor = U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0);
 		U16(hdr, 4) = frame;
-		uint32_t ot = U32(us(0x1D8E04C), 0) + 0x44;
+		uint32_t ot = U32(game_addr(game::g_Battle_FrameRenderListBase), 0) + 0x44;
 		U16(hdr, 0x24) = 0;
 		U16(hdr, 0xB4) = depth;
-		U32(us(0x1D8E054), 0) = a_7435E0(hdr, ot, 2, cursor);
+		U32(game_addr(game::BATTLE_PACKET_WRITE_CURSOR), 0) = a_7435E0(hdr, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
@@ -2241,7 +2241,7 @@ namespace raldo
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = us(0x1629FB0);
+		U32(node, 0x4c) = game_addr(game::unk_1629FB0);
 		st++;
 		U16(node, 0x56) = 0xfff0;
 		U16(node, 0x52) = 9;
@@ -2264,7 +2264,7 @@ namespace raldo
 	{
 		uint32_t node = a1;
 		uint8_t st = U8(node, 0x29);
-		U32(node, 0x4c) = us(0x162A0C0);
+		U32(node, 0x4c) = game_addr(game::unk_162A0C0);
 		st++;
 		U16(node, 0x56) = 0xfff0;
 		U16(node, 0x52) = 0xB;
@@ -2285,7 +2285,7 @@ namespace raldo
 
 	uint32_t __cdecl rt_8AAFE0(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x1629FA8));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::p_RaldoThrow_Director));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -2301,8 +2301,8 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A36D0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -2312,7 +2312,7 @@ namespace raldo
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0;
 	}
 
@@ -2320,12 +2320,12 @@ namespace raldo
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = us(0x8A3830);
-		states[1] = us(0x8A3880);
-		states[2] = us(0x8A38C0);
-		states[3] = us(0x8A38E0);
-		states[4] = us(0x8A3900);
-		states[5] = us(0x8A3920);
+		states[0] = game_addr(game::MAG_019_RaldoThrow_Director_State0_WaitDirGate1);
+		states[1] = game_addr(game::MAG_019_RaldoThrow_Director_State1_WaitDirPhase1);
+		states[2] = game_addr(game::MAG_019_RaldoThrow_Director_State2_WaitCutFrame4);
+		states[3] = game_addr(game::MAG_019_RaldoThrow_Director_State3_WaitCutFrame2D);
+		states[4] = game_addr(game::MAG_019_RaldoThrow_Director_State4_Finish);
+		states[5] = game_addr(game::MAG_019_RaldoThrow_Director_State5_Empty);
 		rt_8A37E0(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -2335,12 +2335,12 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A3940(uint32_t a1)
 	{
-		if (S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) != 1)
+		if (S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40) != 1)
 			return 0;
 		const uint32_t node = a1;
-		a_73C100(node, us(ORIG_Ball), us(BALL_DATA), 0x1C, 0, 4);
+		a_73C100(node, game_addr(ORIG_Ball), game_addr(BALL_DATA), 0x1C, 0, 4);
 		const uint32_t cst = ENT(U8(node, 0x2C));
-		const uint32_t raldo = x::Effect_AddTaskAndInitFromCtx(us(Q_RALDO), us(ORIG_Raldo), 0xB8, node);
+		const uint32_t raldo = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RALDO), game_addr(ORIG_Raldo), 0xB8, node);
 		uint8_t slot = 0;
 		for (uint32_t e = ENT(0); e < ENT(7); e += 0x9C, slot++)
 		{
@@ -2486,30 +2486,30 @@ namespace raldo
 	{
 		const uint32_t node = a1;
 		uint32_t states[10];
-		states[0] = us(0x8A9CA0);
-		states[1] = us(0x8A9DA0);
-		states[2] = us(0x8A9DD0);
-		states[3] = us(0x8AAC50);
-		states[4] = us(0x8AAD90);
-		states[5] = us(0x8AAEC0);
-		states[6] = us(0x8AAF00);
-		states[7] = us(0x8AAF60);
-		states[8] = us(0x8AAFB0);
-		states[9] = us(0x8AAFD0);
+		states[0] = game_addr(game::MAG_019_RaldoThrow_Raldo_Setup);
+		states[1] = game_addr(game::MAG_019_RaldoThrow_Raldo_Sound);
+		states[2] = game_addr(game::MAG_019_RaldoThrow_Raldo_Take);
+		states[3] = game_addr(game::MAG_019_RaldoThrow_Raldo_Throw);
+		states[4] = game_addr(game::MAG_019_RaldoThrow_Raldo_Rebound);
+		states[5] = game_addr(game::MAG_019_RaldoThrow_Raldo_Unmorph);
+		states[6] = game_addr(game::MAG_019_RaldoThrow_Raldo_GiveBack);
+		states[7] = game_addr(game::MAG_019_RaldoThrow_Raldo_RestoreRotation);
+		states[8] = game_addr(game::MAG_019_RaldoThrow_Raldo_State8_Finish);
+		states[9] = game_addr(game::MAG_019_RaldoThrow_Raldo_State9_Empty);
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 8) != 0)
 		{
 			const uint32_t ent = ENT(U8(node, 0x2C));
-			const int16_t px = (int16_t)(MEM<uint16_t>(us(BLK) + 0x7C) - MEM<uint16_t>(us(BLK) + 0x74));
+			const int16_t px = (int16_t)(MEM<uint16_t>(game_addr(BLK) + 0x7C) - MEM<uint16_t>(game_addr(BLK) + 0x74));
 			S16(ent, 0x1C) = px;
 			S32(ent, 0x54) = px;
-			const int16_t py = (int16_t)(MEM<uint16_t>(us(BLK) + 0x7E) - MEM<uint16_t>(us(BLK) + 0x76));
+			const int16_t py = (int16_t)(MEM<uint16_t>(game_addr(BLK) + 0x7E) - MEM<uint16_t>(game_addr(BLK) + 0x76));
 			S16(ent, 0x1E) = py;
 			S32(ent, 0x58) = py;
-			const int16_t pz = (int16_t)(MEM<uint16_t>(us(BLK) + 0x80) - MEM<uint16_t>(us(BLK) + 0x78));
+			const int16_t pz = (int16_t)(MEM<uint16_t>(game_addr(BLK) + 0x80) - MEM<uint16_t>(game_addr(BLK) + 0x78));
 			S16(ent, 0x20) = pz;
 			S32(ent, 0x5C) = pz;
-			rt_8A94E0(us(BLK));
+			rt_8A94E0(game_addr(BLK));
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2521,17 +2521,17 @@ namespace raldo
 		const uint32_t node = a1;
 		const uint8_t slot = U8(node, 0x2C);
 		const uint32_t e = ENT(slot);
-		rt_8A9D20(us(BLK), us(0x2726AC0), us(0x27303E8), us(0x272E0A0), e, slot);
+		rt_8A9D20(game_addr(BLK), game_addr(game::unk_2726AC0), game_addr(game::MAG_019_GeometryDescriptor), game_addr(game::g_RaldoThrow_BallVertexScratch), e, slot);
 		const uint32_t z = U32(e, 0x20);
 		const uint32_t r0 = U32(e, 0xC);
 		const uint32_t xy = U32(e, 0x1C);
-		MEM<uint32_t>(us(0x27269C4)) = z;
-		MEM<uint32_t>(us(0x27269C8)) = r0;
-		MEM<uint32_t>(us(0x27269C0)) = xy;
+		MEM<uint32_t>(game_addr(game::unk_27269C4)) = z;
+		MEM<uint32_t>(game_addr(game::unk_27269C8)) = r0;
+		MEM<uint32_t>(game_addr(game::unk_27269C0)) = xy;
 		const uint32_t r1 = U32(e, 0x10);
-		U16(e, 0xE) = U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A);
+		U16(e, 0xE) = U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
-		MEM<uint32_t>(us(0x27269CC)) = r1;
+		MEM<uint32_t>(game_addr(game::unk_27269CC)) = r1;
 		return 0;
 	}
 
@@ -2539,7 +2539,7 @@ namespace raldo
 	{
 		if (S16(a1, 0x24) < 0x1C)
 			return 0;
-		x::BdPlaySE(us(SOUND_Throw), 0, 0x80);
+		x::BdPlaySE(game_addr(SOUND_Throw), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -2550,27 +2550,27 @@ namespace raldo
 		U8(node, 0x26) = (uint8_t)(U8(node, 0x26) | 8);
 		const uint32_t e = ENT(U8(node, 0x2C));
 		U8(e, 0) = (uint8_t)(U8(e, 0) | 4);
-		rt_8AABA0(node, us(BLK));
-		MEM<uint16_t>(us(0x27269B8)) = 0x1C0;
-		MEM<uint16_t>(us(0x27269BA)) = 0x1C0;
-		MEM<uint16_t>(us(0x27269B6)) = 0x1C0;
-		x::MAG_022_sub_8DD770(us(BLK));
+		rt_8AABA0(node, game_addr(BLK));
+		MEM<uint16_t>(game_addr(game::unk_27269B8)) = 0x1C0;
+		MEM<uint16_t>(game_addr(game::unk_27269BA)) = 0x1C0;
+		MEM<uint16_t>(game_addr(game::unk_27269B6)) = 0x1C0;
+		x::MAG_022_sub_8DD770(game_addr(BLK));
 		const uint32_t xy = U32(e, 0x1C);
-		const uint16_t py = MEM<uint16_t>(us(0x2726986));
-		MEM<uint32_t>(us(0x272698C)) = xy;
-		MEM<uint16_t>(us(0x272698E)) = (uint16_t)(MEM<uint16_t>(us(0x272698E)) + py);
+		const uint16_t py = MEM<uint16_t>(game_addr(game::unk_2726986));
+		MEM<uint32_t>(game_addr(game::unk_272698C)) = xy;
+		MEM<uint16_t>(game_addr(game::unk_272698E)) = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_272698E)) + py);
 		const uint32_t z = U32(e, 0x20);
 		const uint32_t tgt = ENT(U8(node, 0x2D));
-		const uint32_t pos = MEM<uint32_t>(us(0x272698C));
-		MEM<uint32_t>(us(0x2726990)) = z;
-		MEM<uint32_t>(us(0x272699C)) = pos;
-		MEM<uint32_t>(us(0x27269A0)) = z;
-		x::GetEffectSpawnPosition(tgt, 0xF1, 0, us(0x2726994));
-		MEM<uint16_t>(us(0x27269A6)) = 0xFE80;
-		MEM<uint16_t>(us(0x27269D2)) = 0;
+		const uint32_t pos = MEM<uint32_t>(game_addr(game::unk_272698C));
+		MEM<uint32_t>(game_addr(game::unk_2726990)) = z;
+		MEM<uint32_t>(game_addr(game::unk_272699C)) = pos;
+		MEM<uint32_t>(game_addr(game::unk_27269A0)) = z;
+		x::GetEffectSpawnPosition(tgt, 0xF1, 0, game_addr(game::unk_2726994));
+		MEM<uint16_t>(game_addr(game::unk_27269A6)) = 0xFE80;
+		MEM<uint16_t>(game_addr(game::unk_27269D2)) = 0;
 		rt_8A9EC0(node, 2);
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_STAGE), us(0x8DDC30), 0x40, node);
-		U32(t, 0x34) = us(0x162A470);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_STAGE), game_addr(game::Effect_ScreenTintTask), 0x40, node);
+		U32(t, 0x34) = game_addr(game::unk_162A470);
 		U16(t, 0x38) = 9;
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -2578,11 +2578,11 @@ namespace raldo
 
 	uint32_t __cdecl rt_8A9EC0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_RALDO), us(0x8A9F10), 0xB8, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RALDO), game_addr(game::MAG_019_RaldoThrow_DebrisSpawnerTask), 0xB8, a1);
 		const uint16_t n = (uint16_t)a2;
-		const uint32_t xy = MEM<uint32_t>(us(0x272698C));
+		const uint32_t xy = MEM<uint32_t>(game_addr(game::unk_272698C));
 		U16(t, 0xB6) = n;
-		const uint32_t z = MEM<uint32_t>(us(0x2726990));
+		const uint32_t z = MEM<uint32_t>(game_addr(game::unk_2726990));
 		U32(t, 0x1C) = xy;
 		U32(t, 0x20) = z;
 		U16(t, 0x1E) = 0;
@@ -2627,9 +2627,9 @@ namespace raldo
 	uint32_t __cdecl rt_8A9F60(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(us(Q_RALDO), us(0x8AAA30), 0xB8, node);
+		const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RALDO), game_addr(game::MAG_019_RaldoThrow_DebrisLowTask), 0xB8, node);
 		rt_debris_burst(t1, node, 0x40, 0x100, false);
-		const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(us(Q_RALDO), us(0x8AA1D0), 0xB8, node);
+		const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RALDO), game_addr(game::MAG_019_RaldoThrow_DebrisHighTask), 0xB8, node);
 		rt_debris_burst(t2, node, 0x80, 0x800, true);
 		if ((int32_t)S16(node, 0x24) >= (int32_t)S16(node, 0xB6) - 1)
 		{
@@ -2657,9 +2657,9 @@ namespace raldo
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8AA9B0);
-		states[1] = us(0x8AA9D0);
-		states[2] = us(0x8AAA20);
+		states[0] = game_addr(game::MAG_019_RaldoThrow_DebrisHigh_State0_InitSprite);
+		states[1] = game_addr(game::MAG_019_RaldoThrow_DebrisHigh_State1_Animate);
+		states[2] = game_addr(game::MAG_019_RaldoThrow_DebrisHigh_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		for (int k = 0; k < 4; k++)
 		{
@@ -2677,9 +2677,9 @@ namespace raldo
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x8AAB40);
-		states[1] = us(0x8AAB60);
-		states[2] = us(0x8AAB80);
+		states[0] = game_addr(game::MAG_019_RaldoThrow_DebrisLow_State0_InitSprite);
+		states[1] = game_addr(game::MAG_019_RaldoThrow_DebrisLow_State1_Animate);
+		states[2] = game_addr(game::MAG_019_RaldoThrow_DebrisLow_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		for (int k = 0; k < 4; k++)
 		{
@@ -2718,47 +2718,47 @@ namespace raldo
 
 	static inline void rt_ball_xz(int32_t t)
 	{
-		const int32_t dx = mul32((int32_t)MEM<int16_t>(us(0x2726994)) - (int32_t)MEM<int16_t>(us(0x272699C)), t) / 4096;
-		MEM<uint16_t>(us(0x272698C)) = (uint16_t)add32(dx, (int32_t)MEM<uint32_t>(us(0x272699C)));
-		const int32_t dz = mul32((int32_t)MEM<int16_t>(us(0x2726998)) - (int32_t)MEM<int16_t>(us(0x27269A0)), t) / 4096;
-		MEM<uint16_t>(us(0x2726990)) = (uint16_t)add32(dz, (int32_t)MEM<uint32_t>(us(0x27269A0)));
+		const int32_t dx = mul32((int32_t)MEM<int16_t>(game_addr(game::unk_2726994)) - (int32_t)MEM<int16_t>(game_addr(game::unk_272699C)), t) / 4096;
+		MEM<uint16_t>(game_addr(game::unk_272698C)) = (uint16_t)add32(dx, (int32_t)MEM<uint32_t>(game_addr(game::unk_272699C)));
+		const int32_t dz = mul32((int32_t)MEM<int16_t>(game_addr(game::unk_2726998)) - (int32_t)MEM<int16_t>(game_addr(game::unk_27269A0)), t) / 4096;
+		MEM<uint16_t>(game_addr(game::unk_2726990)) = (uint16_t)add32(dz, (int32_t)MEM<uint32_t>(game_addr(game::unk_27269A0)));
 	}
 
 	uint32_t __cdecl rt_8AAC50(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		rt_8AABA0(node, us(BLK));
-		uint16_t m = (uint16_t)(MEM<uint16_t>(us(0x27269B4)) + 0x200);
-		MEM<uint16_t>(us(0x27269B4)) = m;
+		rt_8AABA0(node, game_addr(BLK));
+		uint16_t m = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_27269B4)) + 0x200);
+		MEM<uint16_t>(game_addr(game::unk_27269B4)) = m;
 		if ((int16_t)m >= 0x1000)
-			MEM<uint16_t>(us(0x27269B4)) = 0x1000;
-		uint16_t t = MEM<uint16_t>(us(0x27269D0));
-		MEM<uint16_t>(us(0x27269AC)) = (uint16_t)(MEM<uint16_t>(us(0x27269AC)) + 0x200);
-		MEM<uint16_t>(us(0x27269B0)) = (uint16_t)(MEM<uint16_t>(us(0x27269B0)) & 0xFFF);
+			MEM<uint16_t>(game_addr(game::unk_27269B4)) = 0x1000;
+		uint16_t t = MEM<uint16_t>(game_addr(game::unk_27269D0));
+		MEM<uint16_t>(game_addr(game::unk_27269AC)) = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_27269AC)) + 0x200);
+		MEM<uint16_t>(game_addr(game::unk_27269B0)) = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_27269B0)) & 0xFFF);
 		t = (uint16_t)(t + 0x200);
-		MEM<uint16_t>(us(0x27269D0)) = t;
+		MEM<uint16_t>(game_addr(game::unk_27269D0)) = t;
 		uint16_t vy;
 		if ((int16_t)t >= 0x1000)
 		{
 			t = 0x1000;
-			MEM<uint16_t>(us(0x27269D0)) = t;
+			MEM<uint16_t>(game_addr(game::unk_27269D0)) = t;
 			vy = 0xFDA0;
-			U16(MEM<uint32_t>(us(DIR_PTR)), 0x48) = 1;
+			U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x48) = 1;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		else
-			vy = MEM<uint16_t>(us(0x27269A6));
+			vy = MEM<uint16_t>(game_addr(game::unk_27269A6));
 		vy = (uint16_t)(vy + 0x80);
-		MEM<uint16_t>(us(0x27269A6)) = vy;
+		MEM<uint16_t>(game_addr(game::unk_27269A6)) = vy;
 		rt_ball_xz((int32_t)(int16_t)t);
-		const uint16_t ground = MEM<uint16_t>(us(0x2726986));
-		const uint16_t y = (uint16_t)(MEM<uint16_t>(us(0x272698E)) + vy);
-		MEM<uint16_t>(us(0x272698E)) = y;
+		const uint16_t ground = MEM<uint16_t>(game_addr(game::unk_2726986));
+		const uint16_t y = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_272698E)) + vy);
+		MEM<uint16_t>(game_addr(game::unk_272698E)) = y;
 		if ((int16_t)y >= (int16_t)ground)
 		{
-			MEM<uint16_t>(us(0x272698E)) = ground;
-			if (MEM<uint16_t>(us(0x27269D2)) == 0)
-				MEM<uint16_t>(us(0x27269D2)) = 1;
+			MEM<uint16_t>(game_addr(game::unk_272698E)) = ground;
+			if (MEM<uint16_t>(game_addr(game::unk_27269D2)) == 0)
+				MEM<uint16_t>(game_addr(game::unk_27269D2)) = 1;
 			rt_8A9EC0(node, 1);
 		}
 		return 0;
@@ -2767,37 +2767,37 @@ namespace raldo
 	uint32_t __cdecl rt_8AAD90(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		rt_8AABA0(node, us(BLK));
-		uint16_t t = MEM<uint16_t>(us(0x27269D0));
-		MEM<uint16_t>(us(0x27269AC)) = (uint16_t)(MEM<uint16_t>(us(0x27269AC)) + 0xFE00);
-		MEM<uint16_t>(us(0x27269B0)) = (uint16_t)(MEM<uint16_t>(us(0x27269B0)) & 0xFFF);
+		rt_8AABA0(node, game_addr(BLK));
+		uint16_t t = MEM<uint16_t>(game_addr(game::unk_27269D0));
+		MEM<uint16_t>(game_addr(game::unk_27269AC)) = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_27269AC)) + 0xFE00);
+		MEM<uint16_t>(game_addr(game::unk_27269B0)) = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_27269B0)) & 0xFFF);
 		t = (uint16_t)(t + 0xFF00);
-		MEM<uint16_t>(us(0x27269D0)) = t;
+		MEM<uint16_t>(game_addr(game::unk_27269D0)) = t;
 		if (!((int16_t)t > 0))
 		{
 			t = 0;
-			MEM<uint16_t>(us(0x27269D0)) = t;
+			MEM<uint16_t>(game_addr(game::unk_27269D0)) = t;
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		rt_ball_xz((int32_t)(int16_t)t);
-		const uint16_t vy = (uint16_t)(MEM<uint16_t>(us(0x27269A6)) + 0x80);
-		MEM<uint16_t>(us(0x27269A6)) = vy;
-		const uint16_t y = (uint16_t)(MEM<uint16_t>(us(0x272698E)) + vy);
-		const uint16_t ground = MEM<uint16_t>(us(0x2726986));
-		MEM<uint16_t>(us(0x272698E)) = y;
+		const uint16_t vy = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_27269A6)) + 0x80);
+		MEM<uint16_t>(game_addr(game::unk_27269A6)) = vy;
+		const uint16_t y = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_272698E)) + vy);
+		const uint16_t ground = MEM<uint16_t>(game_addr(game::unk_2726986));
+		MEM<uint16_t>(game_addr(game::unk_272698E)) = y;
 		if ((int16_t)y >= (int16_t)ground)
 		{
-			MEM<uint16_t>(us(0x272698E)) = ground;
-			const uint16_t b = MEM<uint16_t>(us(0x27269D2));
+			MEM<uint16_t>(game_addr(game::unk_272698E)) = ground;
+			const uint16_t b = MEM<uint16_t>(game_addr(game::unk_27269D2));
 			if (b == 1)
 			{
-				MEM<uint16_t>(us(0x27269D2)) = 2;
-				MEM<uint16_t>(us(0x27269A6)) = 0xFE80;
+				MEM<uint16_t>(game_addr(game::unk_27269D2)) = 2;
+				MEM<uint16_t>(game_addr(game::unk_27269A6)) = 0xFE80;
 				rt_8A9EC0(node, 4);
 				return 0;
 			}
 			if (b == 2)
-				MEM<uint16_t>(us(0x27269D2)) = 3;
+				MEM<uint16_t>(game_addr(game::unk_27269D2)) = 3;
 			rt_8A9EC0(node, 1);
 		}
 		return 0;
@@ -2805,12 +2805,12 @@ namespace raldo
 
 	uint32_t __cdecl rt_8AAEC0(uint32_t a1)
 	{
-		rt_8AABA0(a1, us(BLK));
-		const uint16_t m = (uint16_t)(MEM<uint16_t>(us(0x27269B4)) + 0xFD00);
-		MEM<uint16_t>(us(0x27269B4)) = m;
+		rt_8AABA0(a1, game_addr(BLK));
+		const uint16_t m = (uint16_t)(MEM<uint16_t>(game_addr(game::unk_27269B4)) + 0xFD00);
+		MEM<uint16_t>(game_addr(game::unk_27269B4)) = m;
 		if (!((int16_t)m > 0))
 		{
-			MEM<uint16_t>(us(0x27269B4)) = 0;
+			MEM<uint16_t>(game_addr(game::unk_27269B4)) = 0;
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		}
 		return 0;
@@ -2824,8 +2824,8 @@ namespace raldo
 		const uint32_t e = ENT(U8(node, 0x2C));
 		U16(e, 0) = (uint16_t)(U16(e, 0) & 0xFFFB);
 		U16(e, 0x1E) = U16(e, 0x24);
-		U32(e, 0x1C) = MEM<uint32_t>(us(0x27269C0));
-		U32(e, 0x20) = MEM<uint32_t>(us(0x27269C4));
+		U32(e, 0x1C) = MEM<uint32_t>(game_addr(game::unk_27269C0));
+		U32(e, 0x20) = MEM<uint32_t>(game_addr(game::unk_27269C4));
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -2837,138 +2837,138 @@ namespace raldo
 		if (S16(node, 0xB4) > 0)
 			return 0;
 		const uint32_t e = ENT(U8(node, 0x2C));
-		U32(e, 0xC) = MEM<uint32_t>(us(0x27269C8));
-		U32(e, 0x10) = MEM<uint32_t>(us(0x27269CC));
+		U32(e, 0xC) = MEM<uint32_t>(game_addr(game::unk_27269C8));
+		U32(e, 0x10) = MEM<uint32_t>(game_addr(game::unk_27269CC));
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x8A3550, (void *)a_73A0D0, "019 MAG_019_sub_8A3550" },
-		{ 0x8A3560, (void *)a_73A0D0, "019 MAG_019_sub_8A3560" },
-		{ 0x8A35F0, (void *)a_73A170, "019 MAG_019_sub_8A35F0" },
-		{ 0x8A3620, (void *)a_73A1A0, "019 MAG_019_sub_8A3620" },
-		{ 0x8A3830, (void *)a_73B790, "019 sub_8A3830" },
-		{ 0x8A3850, (void *)a_73B640, "019 sub_8A3850" },
-		{ 0x8A38A0, (void *)a_73B7E0, "019 sub_8A38A0" },
-		{ 0x8A3900, (void *)a_7475A0, "019 sub_8A3900" },
-		{ 0x8A3920, (void *)a_73A6D0, "019 nullsub_1777" },
-		{ 0x8A3930, (void *)a_73A6D0, "019 nullsub_1778" },
-		{ 0x8A39E0, (void *)a_73C100, "019 sub_8A39E0" },
-		{ 0x8A3A30, (void *)a_73A380, "019 sub_8A3A30" },
-		{ 0x8A3B00, (void *)a_73F990, "019 sub_8A3B00" },
-		{ 0x8A3D90, (void *)a_73FC20, "019 sub_8A3D90" },
-		{ 0x8A4000, (void *)a_73FE90, "019 sub_8A4000" },
-		{ 0x8A4120, (void *)a_73FFB0, "019 sub_8A4120" },
-		{ 0x8A4380, (void *)a_740210, "019 sub_8A4380" },
-		{ 0x8A5810, (void *)a_73D770, "019 sub_8A5810" },
-		{ 0x8A5A60, (void *)a_73D9C0, "019 sub_8A5A60" },
-		{ 0x8A6890, (void *)a_740700, "019 sub_8A6890" },
-		{ 0x8A6950, (void *)a_7407C0, "019 sub_8A6950" },
-		{ 0x8A6AA0, (void *)a_740910, "019 sub_8A6AA0" },
-		{ 0x8A7100, (void *)a_740F70, "019 sub_8A7100" },
-		{ 0x8A7150, (void *)a_740FC0, "019 sub_8A7150" },
-		{ 0x8A71E0, (void *)a_741050, "019 sub_8A71E0" },
-		{ 0x8A72B0, (void *)a_741120, "019 sub_8A72B0" },
-		{ 0x8A7CF0, (void *)a_741B60, "019 sub_8A7CF0" },
-		{ 0x8A8420, (void *)a_742290, "019 au_re__rand_65" },
-		{ 0x8A8450, (void *)a_7422C0, "019 sub_8A8450" },
-		{ 0x8A8490, (void *)a_742300, "019 sub_8A8490" },
-		{ 0x8A84E0, (void *)a_742350, "019 sub_8A84E0" },
-		{ 0x8A8530, (void *)a_7423A0, "019 au_re__rand_70_0" },
-		{ 0x8A8640, (void *)a_7424B0, "019 sub_8A8640" },
-		{ 0x8A8650, (void *)a_7424C0, "019 sub_8A8650" },
-		{ 0x8A8E30, (void *)a_742CA0, "019 sub_8A8E30" },
-		{ 0x8A8E60, (void *)a_742CD0, "019 sub_8A8E60" },
-		{ 0x8A8E90, (void *)a_742D00, "019 sub_8A8E90" },
-		{ 0x8A9040, (void *)a_742EB0, "019 sub_8A9040" },
-		{ 0x8A9180, (void *)a_742FF0, "019 sub_8A9180" },
-		{ 0x8A93D0, (void *)a_73A6D0, "019 nullsub_1779" },
-		{ 0x8AA400, (void *)a_7435E0, "019 InitEffectSequenceFromData_c16" },
-		{ 0x8AA540, (void *)a_743720, "019 sub_8AA540" },
-		{ 0x8AA9F0, (void *)a_743C20, "019 sub_8AA9F0" },
-		{ 0x8AAA20, (void *)a_73A6D0, "019 nullsub_1780" },
-		{ 0x8AAB80, (void *)a_73A6D0, "019 nullsub_1781" },
-		{ 0x8AAB90, (void *)a_73A6D0, "019 nullsub_1782" },
-		{ 0x8AAFB0, (void *)a_7475A0, "019 sub_8AAFB0" },
-		{ 0x8AAFD0, (void *)a_73A6D0, "019 nullsub_1783" },
-		{ 0x8AB020, (void *)a_7474B0, "019 MAG_019_sub_8AB020" },
-		{ 0x8AB040, (void *)a_7474D0, "019 MAG_019_sub_8AB040" },
-		{ 0x8AB060, (void *)a_73A6D0, "019 nullsub_1784" },
-		{ 0x8AB070, (void *)a_747500, "019 MAG_019_sub_8AB070" },
-		{ 0x8AB0B0, (void *)a_73A0D0, "019 MAG_019_sub_8AB0B0" },
-		{ 0x8AB0C0, (void *)a_747550, "019 MAG_019_sub_8AB0C0" },
-		{ 0x8AB0D0, (void *)a_73A0D0, "019 MAG_019_sub_8AB0D0" },
-		{ 0x8AB0E0, (void *)a_73A0D0, "019 MAG_019_sub_8AB0E0" },
-		{ 0x8AB0F0, (void *)a_7475A0, "019 MAG_019_sub_8AB0F0" },
-		{ 0x8AB110, (void *)a_73A6D0, "019 nullsub_1776" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_019_RaldoThrow_Master_State0_Advance, (void *)a_73A0D0, "019 MAG_019_sub_8A3550" },
+		{ game::MAG_019_RaldoThrow_Master_State1_Advance, (void *)a_73A0D0, "019 MAG_019_sub_8A3560" },
+		{ game::MAG_019_RaldoThrow_Master_State3_SpawnEmitter, (void *)a_73A170, "019 MAG_019_sub_8A35F0" },
+		{ game::MAG_019_RaldoThrow_EmitterTask, (void *)a_73A1A0, "019 MAG_019_sub_8A3620" },
+		{ game::MAG_019_RaldoThrow_Director_State0_WaitDirGate1, (void *)a_73B790, "019 sub_8A3830" },
+		{ game::MAG_019_DirSyncGate, (void *)a_73B640, "019 sub_8A3850" },
+		{ game::MAG_019_DirPhaseGE, (void *)a_73B7E0, "019 sub_8A38A0" },
+		{ game::MAG_019_RaldoThrow_Director_State4_Finish, (void *)a_7475A0, "019 sub_8A3900" },
+		{ game::MAG_019_RaldoThrow_Director_State5_Empty, (void *)a_73A6D0, "019 nullsub_1777" },
+		{ game::MAG_019_St_Empty, (void *)a_73A6D0, "019 nullsub_1778" },
+		{ game::MAG_019_SpawnChildTask, (void *)a_73C100, "019 sub_8A39E0" },
+		{ game::MAG_019_RaldoThrow_BallActorSystemTask, (void *)a_73A380, "019 sub_8A3A30" },
+		{ game::MAG_019_DirectorSetup, (void *)a_73F990, "019 sub_8A3B00" },
+		{ game::MAG_019_Director_StartPositions, (void *)a_73FC20, "019 sub_8A3D90" },
+		{ game::MAG_019_Director_Mode3Setup, (void *)a_73FE90, "019 sub_8A4000" },
+		{ game::MAG_019_Director_TargetPositions, (void *)a_73FFB0, "019 sub_8A4120" },
+		{ game::MAG_019_RelocateActorData, (void *)a_740210, "019 sub_8A4380" },
+		{ game::MAG_019_EmitG3, (void *)a_73D770, "019 sub_8A5810" },
+		{ game::MAG_019_EmitG4, (void *)a_73D9C0, "019 sub_8A5A60" },
+		{ game::MAG_019_ActSys_DrawSpritePass, (void *)a_740700, "019 sub_8A6890" },
+		{ game::MAG_019_ActSys_DrawActorSprite, (void *)a_7407C0, "019 sub_8A6950" },
+		{ game::MAG_019_ActorMotion, (void *)a_740910, "019 sub_8A6AA0" },
+		{ game::MAG_019_DampValue, (void *)a_740F70, "019 sub_8A7100" },
+		{ game::MAG_019_DampVector, (void *)a_740FC0, "019 sub_8A7150" },
+		{ game::MAG_019_Instance_AdvanceTexFrame, (void *)a_741050, "019 sub_8A71E0" },
+		{ game::MAG_019_Instance_BuildTransform, (void *)a_741120, "019 sub_8A72B0" },
+		{ game::MAG_019_Particle_LifeCountdown, (void *)a_741B60, "019 sub_8A7CF0" },
+		{ game::MAG_019_RandRange, (void *)a_742290, "019 au_re__rand_65" },
+		{ game::MAG_019_RandRangeWide, (void *)a_7422C0, "019 sub_8A8450" },
+		{ game::MAG_019_RandVec3, (void *)a_742300, "019 sub_8A8490" },
+		{ game::MAG_019_JitterAngles3, (void *)a_742350, "019 sub_8A84E0" },
+		{ game::MAG_019_RandAngleJitter, (void *)a_7423A0, "019 au_re__rand_70_0" },
+		{ game::MAG_019_GetWord8Minus1, (void *)a_7424B0, "019 sub_8A8640" },
+		{ game::MAG_019_Particle_AttachToOwner, (void *)a_7424C0, "019 sub_8A8650" },
+		{ game::MAG_019_ParticleList_Append, (void *)a_742CA0, "019 sub_8A8E30" },
+		{ game::MAG_019_ParticleList_Unlink, (void *)a_742CD0, "019 sub_8A8E60" },
+		{ game::MAG_019_Particle_Init, (void *)a_742D00, "019 sub_8A8E90" },
+		{ game::MAG_019_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "019 sub_8A9040" },
+		{ game::MAG_019_Particle_PlaceAtPoint, (void *)a_742FF0, "019 sub_8A9180" },
+		{ game::MAG_019_RaldoThrow_BallActorSystem_State2_Empty, (void *)a_73A6D0, "019 nullsub_1779" },
+		{ game::InitEffectSequenceFromData_c16, (void *)a_7435E0, "019 InitEffectSequenceFromData_c16" },
+		{ game::MAG_019_SpriteStrip_DrawQuads, (void *)a_743720, "019 sub_8AA540" },
+		{ game::MAG_019_StepCounterLimit, (void *)a_743C20, "019 sub_8AA9F0" },
+		{ game::MAG_019_RaldoThrow_DebrisHigh_State2_Empty, (void *)a_73A6D0, "019 nullsub_1780" },
+		{ game::MAG_019_RaldoThrow_DebrisLow_State2_Empty, (void *)a_73A6D0, "019 nullsub_1781" },
+		{ game::MAG_019_RaldoThrow_DebrisSpawner_State1_Empty, (void *)a_73A6D0, "019 nullsub_1782" },
+		{ game::MAG_019_RaldoThrow_Raldo_State8_Finish, (void *)a_7475A0, "019 sub_8AAFB0" },
+		{ game::MAG_019_RaldoThrow_Raldo_State9_Empty, (void *)a_73A6D0, "019 nullsub_1783" },
+		{ game::MAG_019_RaldoThrow_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "019 MAG_019_sub_8AB020" },
+		{ game::MAG_019_RaldoThrow_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "019 MAG_019_sub_8AB040" },
+		{ game::MAG_019_RaldoThrow_Emitter_State4_Empty, (void *)a_73A6D0, "019 nullsub_1784" },
+		{ game::MAG_019_RaldoThrow_Master_State4_NextTargetLoop, (void *)a_747500, "019 MAG_019_sub_8AB070" },
+		{ game::MAG_019_RaldoThrow_Master_State5_Advance, (void *)a_73A0D0, "019 MAG_019_sub_8AB0B0" },
+		{ game::MAG_019_RaldoThrow_Master_State6_WaitQueuesEmpty, (void *)a_747550, "019 MAG_019_sub_8AB0C0" },
+		{ game::MAG_019_RaldoThrow_Master_State7_Advance, (void *)a_73A0D0, "019 MAG_019_sub_8AB0D0" },
+		{ game::MAG_019_RaldoThrow_Master_State8_Advance, (void *)a_73A0D0, "019 MAG_019_sub_8AB0E0" },
+		{ game::MAG_019_RaldoThrow_Master_State9_Finish, (void *)a_7475A0, "019 MAG_019_sub_8AB0F0" },
+		{ game::MAG_019_RaldoThrow_Master_State10_Empty, (void *)a_73A6D0, "019 nullsub_1776" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x8A33F0, (void *)rt_8A33F0, "019 rt_8A33F0" },
-		{ 0x8A3570, (void *)rt_8A3570, "019 rt_8A3570" },
-		{ 0x8A35B0, (void *)rt_8A35B0, "019 rt_8A35B0" },
-		{ 0x8A36A0, (void *)rt_8A36A0, "019 rt_8A36A0" },
-		{ 0x8A36D0, (void *)rt_8A36D0, "019 rt_8A36D0" },
-		{ 0x8A3760, (void *)rt_8A3760, "019 rt_8A3760" },
-		{ 0x8A37E0, (void *)rt_8A37E0, "019 rt_8A37E0" },
-		{ 0x8A3880, (void *)rt_8A3880, "019 rt_8A3880" },
-		{ 0x8A38C0, (void *)rt_8A38C0, "019 rt_8A38C0" },
-		{ 0x8A38E0, (void *)rt_8A38E0, "019 rt_8A38E0" },
-		{ 0x8A3940, (void *)rt_8A3940, "019 rt_8A3940" },
-		{ 0x8A3A90, (void *)rt_8A3A90, "019 rt_8A3A90" },
-		{ 0x8A3CB0, (void *)rt_8A3CB0, "019 rt_8A3CB0" },
-		{ 0x8A3F30, (void *)rt_8A3F30, "019 rt_8A3F30" },
-		{ 0x8A45E0, (void *)rt_8A45E0, "019 rt_8A45E0" },
-		{ 0x8A4670, (void *)rt_8A4670, "019 rt_8A4670" },
-		{ 0x8A46D0, (void *)rt_8A46D0, "019 rt_8A46D0" },
-		{ 0x8A4830, (void *)rt_8A4830, "019 rt_8A4830" },
-		{ 0x8A4960, (void *)rt_8A4960, "019 rt_8A4960" },
-		{ 0x8A4B80, (void *)rt_8A4B80, "019 rt_8A4B80" },
-		{ 0x8A4E10, (void *)rt_8A4E10, "019 rt_8A4E10" },
-		{ 0x8A5290, (void *)rt_8A5290, "019 rt_8A5290" },
-		{ 0x8A5D40, (void *)rt_8A5D40, "019 rt_8A5D40" },
-		{ 0x8A6240, (void *)rt_8A6240, "019 rt_8A6240" },
-		{ 0x8A69D0, (void *)rt_8A69D0, "019 rt_8A69D0" },
-		{ 0x8A6A10, (void *)rt_8A6A10, "019 rt_8A6A10" },
-		{ 0x8A7A40, (void *)rt_8A7A40, "019 rt_8A7A40" },
-		{ 0x8A7B50, (void *)rt_8A7B50, "019 rt_8A7B50" },
-		{ 0x8A7BD0, (void *)rt_8A7BD0, "019 rt_8A7BD0" },
-		{ 0x8A7C00, (void *)rt_8A7C00, "019 rt_8A7C00" },
-		{ 0x8A7CA0, (void *)rt_8A7CA0, "019 rt_8A7CA0" },
-		{ 0x8A7D20, (void *)rt_8A7D20, "019 rt_8A7D20" },
-		{ 0x8A7DA0, (void *)rt_8A7DA0, "019 rt_8A7DA0" },
-		{ 0x8A8580, (void *)rt_8A8580, "019 rt_8A8580" },
-		{ 0x8A87A0, (void *)rt_8A87A0, "019 rt_8A87A0" },
-		{ 0x8A9290, (void *)rt_8A9290, "019 rt_8A9290" },
-		{ 0x8A9320, (void *)rt_8A9320, "019 rt_8A9320" },
-		{ 0x8A93B0, (void *)rt_8A93B0, "019 rt_8A93B0" },
-		{ 0x8A93E0, (void *)rt_8A93E0, "019 rt_8A93E0" },
-		{ 0x8A94E0, (void *)rt_8A94E0, "019 rt_8A94E0" },
-		{ 0x8A95F0, (void *)rt_8A95F0, "019 rt_8A95F0" },
-		{ 0x8A9CA0, (void *)rt_8A9CA0, "019 rt_8A9CA0" },
-		{ 0x8A9D20, (void *)rt_8A9D20, "019 rt_8A9D20" },
-		{ 0x8A9DA0, (void *)rt_8A9DA0, "019 rt_8A9DA0" },
-		{ 0x8A9DD0, (void *)rt_8A9DD0, "019 rt_8A9DD0" },
-		{ 0x8A9EC0, (void *)rt_8A9EC0, "019 rt_8A9EC0" },
-		{ 0x8A9F10, (void *)rt_8A9F10, "019 rt_8A9F10" },
-		{ 0x8A9F60, (void *)rt_8A9F60, "019 rt_8A9F60" },
-		{ 0x8AA1D0, (void *)rt_8AA1D0, "019 rt_8AA1D0" },
-		{ 0x8AA2E0, (void *)rt_8AA2E0, "019 rt_8AA2E0" },
-		{ 0x8AA9B0, (void *)rt_8AA9B0, "019 rt_8AA9B0" },
-		{ 0x8AA9D0, (void *)rt_8AA9D0, "019 rt_8AA9D0" },
-		{ 0x8AAA30, (void *)rt_8AAA30, "019 rt_8AAA30" },
-		{ 0x8AAB40, (void *)rt_8AAB40, "019 rt_8AAB40" },
-		{ 0x8AAB60, (void *)rt_8AAB60, "019 rt_8AAB60" },
-		{ 0x8AABA0, (void *)rt_8AABA0, "019 rt_8AABA0" },
-		{ 0x8AAC50, (void *)rt_8AAC50, "019 rt_8AAC50" },
-		{ 0x8AAD90, (void *)rt_8AAD90, "019 rt_8AAD90" },
-		{ 0x8AAEC0, (void *)rt_8AAEC0, "019 rt_8AAEC0" },
-		{ 0x8AAF00, (void *)rt_8AAF00, "019 rt_8AAF00" },
-		{ 0x8AAF60, (void *)rt_8AAF60, "019 rt_8AAF60" },
-		{ 0x8AAFE0, (void *)rt_8AAFE0, "019 rt_8AAFE0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_019_RaldoThrow_MasterTask, (void *)rt_8A33F0, "019 rt_8A33F0" },
+		{ game::MAG_019_RaldoThrow_CarveActorPools, (void *)rt_8A3570, "019 rt_8A3570" },
+		{ game::MAG_019_RaldoThrow_ClearActorPools, (void *)rt_8A35B0, "019 rt_8A35B0" },
+		{ game::MAG_019_RaldoThrow_Emitter_State0_PlaceAndSpawnDirector, (void *)rt_8A36A0, "019 rt_8A36A0" },
+		{ game::MAG_019_RaldoThrow_Director_InitFacing, (void *)rt_8A36D0, "019 rt_8A36D0" },
+		{ game::MAG_019_RaldoThrow_DirectorTask, (void *)rt_8A3760, "019 rt_8A3760" },
+		{ game::MAG_019_RaldoThrow_Director_PhaseBookkeeping, (void *)rt_8A37E0, "019 rt_8A37E0" },
+		{ game::MAG_019_RaldoThrow_Director_State1_WaitDirPhase1, (void *)rt_8A3880, "019 rt_8A3880" },
+		{ game::MAG_019_RaldoThrow_Director_State2_WaitCutFrame4, (void *)rt_8A38C0, "019 rt_8A38C0" },
+		{ game::MAG_019_RaldoThrow_Director_State3_WaitCutFrame2D, (void *)rt_8A38E0, "019 rt_8A38E0" },
+		{ game::MAG_019_RaldoThrow_Director_StartThrow, (void *)rt_8A3940, "019 rt_8A3940" },
+		{ game::MAG_019_RaldoThrow_BallActorSystem_Start, (void *)rt_8A3A90, "019 rt_8A3A90" },
+		{ game::MAG_019_ResetTrailHistory, (void *)rt_8A3CB0, "019 rt_8A3CB0" },
+		{ game::MAG_019_FillTrailRows, (void *)rt_8A3F30, "019 rt_8A3F30" },
+		{ game::MAG_019_ActSys_Step, (void *)rt_8A45E0, "019 rt_8A45E0" },
+		{ game::MAG_019_ActSys_DrawPass, (void *)rt_8A4670, "019 rt_8A4670" },
+		{ game::MAG_019_ActSys_DrawPrimActor, (void *)rt_8A46D0, "019 rt_8A46D0" },
+		{ game::MAG_019_RaldoThrow_RenderPrimModel, (void *)rt_8A4830, "019 rt_8A4830" },
+		{ game::MAG_019_PrimList_FlatTri, (void *)rt_8A4960, "019 rt_8A4960" },
+		{ game::MAG_019_PrimList_FlatQuad, (void *)rt_8A4B80, "019 rt_8A4B80" },
+		{ game::MAG_019_PrimList_TexTri, (void *)rt_8A4E10, "019 rt_8A4E10" },
+		{ game::MAG_019_PrimList_TexQuad, (void *)rt_8A5290, "019 rt_8A5290" },
+		{ game::MAG_019_RaldoThrow_PrimList_GouraudTexTriScroll, (void *)rt_8A5D40, "019 rt_8A5D40" },
+		{ game::MAG_019_PrimList_GT4, (void *)rt_8A6240, "019 rt_8A6240" },
+		{ game::MAG_019_ActSys_UpdatePass, (void *)rt_8A69D0, "019 rt_8A69D0" },
+		{ game::MAG_019_ActorStep, (void *)rt_8A6A10, "019 rt_8A6A10" },
+		{ game::MAG_019_MorphVertexBlock, (void *)rt_8A7A40, "019 rt_8A7A40" },
+		{ game::MAG_019_Instance_EndOfLifeTest, (void *)rt_8A7B50, "019 rt_8A7B50" },
+		{ game::MAG_019_Instance_SpawnFollowUp, (void *)rt_8A7BD0, "019 rt_8A7BD0" },
+		{ game::MAG_019_AllocParticle, (void *)rt_8A7C00, "019 rt_8A7C00" },
+		{ game::MAG_019_ActSys_UpdateEmitter, (void *)rt_8A7CA0, "019 rt_8A7CA0" },
+		{ game::MAG_019_ActSys_EmitterSpawnStep, (void *)rt_8A7D20, "019 rt_8A7D20" },
+		{ game::MAG_019_ActSys_SpawnParticles, (void *)rt_8A7DA0, "019 rt_8A7DA0" },
+		{ game::MAG_019_ActSys_AllocParticleSlot, (void *)rt_8A8580, "019 rt_8A8580" },
+		{ game::MAG_019_Actor_InterpolatePosition, (void *)rt_8A87A0, "019 rt_8A87A0" },
+		{ game::MAG_019_SpawnSubEffects, (void *)rt_8A9290, "019 rt_8A9290" },
+		{ game::MAG_019_Director_SpawnGroupEffects, (void *)rt_8A9320, "019 rt_8A9320" },
+		{ game::MAG_019_RaldoThrow_BallActorSystem_State1_StepActorSystem, (void *)rt_8A93B0, "019 rt_8A93B0" },
+		{ game::MAG_019_RaldoThrow_RaldoTask, (void *)rt_8A93E0, "019 rt_8A93E0" },
+		{ game::MAG_019_RaldoThrow_DrawRaldoBall, (void *)rt_8A94E0, "019 rt_8A94E0" },
+		{ game::MAG_019_RaldoThrow_BallRenderer, (void *)rt_8A95F0, "019 rt_8A95F0" },
+		{ game::MAG_019_RaldoThrow_Raldo_Setup, (void *)rt_8A9CA0, "019 rt_8A9CA0" },
+		{ game::MAG_019_RaldoThrow_InitBallBlock, (void *)rt_8A9D20, "019 rt_8A9D20" },
+		{ game::MAG_019_RaldoThrow_Raldo_Sound, (void *)rt_8A9DA0, "019 rt_8A9DA0" },
+		{ game::MAG_019_RaldoThrow_Raldo_Take, (void *)rt_8A9DD0, "019 rt_8A9DD0" },
+		{ game::MAG_019_RaldoThrow_SpawnDebrisSpawner, (void *)rt_8A9EC0, "019 rt_8A9EC0" },
+		{ game::MAG_019_RaldoThrow_DebrisSpawnerTask, (void *)rt_8A9F10, "019 rt_8A9F10" },
+		{ game::MAG_019_RaldoThrow_DebrisBurst, (void *)rt_8A9F60, "019 rt_8A9F60" },
+		{ game::MAG_019_RaldoThrow_DebrisHighTask, (void *)rt_8AA1D0, "019 rt_8AA1D0" },
+		{ game::MAG_019_RaldoThrow_Debris_DrawSprite, (void *)rt_8AA2E0, "019 rt_8AA2E0" },
+		{ game::MAG_019_RaldoThrow_DebrisHigh_State0_InitSprite, (void *)rt_8AA9B0, "019 rt_8AA9B0" },
+		{ game::MAG_019_RaldoThrow_DebrisHigh_State1_Animate, (void *)rt_8AA9D0, "019 rt_8AA9D0" },
+		{ game::MAG_019_RaldoThrow_DebrisLowTask, (void *)rt_8AAA30, "019 rt_8AAA30" },
+		{ game::MAG_019_RaldoThrow_DebrisLow_State0_InitSprite, (void *)rt_8AAB40, "019 rt_8AAB40" },
+		{ game::MAG_019_RaldoThrow_DebrisLow_State1_Animate, (void *)rt_8AAB60, "019 rt_8AAB60" },
+		{ game::MAG_019_RaldoThrow_Raldo_UpdatePivot, (void *)rt_8AABA0, "019 rt_8AABA0" },
+		{ game::MAG_019_RaldoThrow_Raldo_Throw, (void *)rt_8AAC50, "019 rt_8AAC50" },
+		{ game::MAG_019_RaldoThrow_Raldo_Rebound, (void *)rt_8AAD90, "019 rt_8AAD90" },
+		{ game::MAG_019_RaldoThrow_Raldo_Unmorph, (void *)rt_8AAEC0, "019 rt_8AAEC0" },
+		{ game::MAG_019_RaldoThrow_Raldo_GiveBack, (void *)rt_8AAF00, "019 rt_8AAF00" },
+		{ game::MAG_019_RaldoThrow_Raldo_RestoreRotation, (void *)rt_8AAF60, "019 rt_8AAF60" },
+		{ game::MAG_019_RaldoThrow_Emitter_ApplyDamage, (void *)rt_8AAFE0, "019 rt_8AAFE0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

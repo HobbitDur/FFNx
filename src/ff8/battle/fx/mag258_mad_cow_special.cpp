@@ -40,33 +40,33 @@ namespace mad_cow_special
 	{
 		c.name = "258 Mad Cow Special";
 		c.effect_id = 258;
-		c.vm_table = us(0x1859B2C);
-		c.bone_table = us(0x185979C);
-		c.prim_table = us(0x18597E4);
-		c.prim_size = us(0x18598D4);
-		c.spr_table = us(0x18598E8);
-		c.ptype_table = us(0x1859914);
-		c.pop_table = us(0x1859928);
-		c.draw_table = us(0x1859988);
-		c.attr_16A = us(0x1859AF2);
-		c.attr_184 = us(0x1859B0C);
-		c.attr_186 = us(0x1859B0E);
-		c.attr_194 = us(0x1859B1C);
-		c.attr_19C = us(0x1859B24);
-		c.desc = us(0x18596D4);
-		c.ptr_block = us(0x1859774);
-		c.queue = us(0x27964D0);
-		c.file00 = us(0x27964F4);
-		c.file01 = us(0x27964F0);
-		c.tick = us(0x965070);
-		c.load_cb = us(0x96AC00);
+		c.vm_table = game_addr(game::MAG_258_VmOpcodeTable);
+		c.bone_table = game_addr(game::MAG_258_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_967924);
+		c.prim_size = game_addr(game::unk_18598D4);
+		c.spr_table = game_addr(game::unk_18598E8);
+		c.ptype_table = game_addr(game::unk_1859914);
+		c.pop_table = game_addr(game::funcs_969207);
+		c.draw_table = game_addr(game::MAG_258_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_1859AF2);
+		c.attr_184 = game_addr(game::unk_1859B0C);
+		c.attr_186 = game_addr(game::unk_1859B0E);
+		c.attr_194 = game_addr(game::unk_1859B1C);
+		c.attr_19C = game_addr(game::unk_1859B24);
+		c.desc = game_addr(game::MAG_258_ResourceDesc);
+		c.ptr_block = game_addr(game::unk_1859774);
+		c.queue = game_addr(game::MAG_258_TaskQueue);
+		c.file00 = game_addr(game::MAG_258_File00);
+		c.file01 = game_addr(game::MAG_258_File01);
+		c.tick = game_addr(game::MAG_258_SequenceTick);
+		c.load_cb = game_addr(game::MAG_258_LoadBattleFileDone);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
@@ -131,7 +131,7 @@ namespace mad_cow_special
 		mad_cow_special::describe(mad_cow_special::g_c);
 		init_clone(mad_cow_special::g_c, nullptr, 0);
 		mad_cow_special::apply_slots(mad_cow_special::g_c);
-		register_port(0x965070, (void *)mad_cow_special::SequenceTask, "MAG258 Mad Cow Special SequenceTick", 258);
+		register_port(game::MAG_258_SequenceTick, (void *)mad_cow_special::SequenceTask, "MAG258 Mad Cow Special SequenceTick", 258);
 	}
 }
 

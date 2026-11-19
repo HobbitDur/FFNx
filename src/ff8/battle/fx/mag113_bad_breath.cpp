@@ -25,45 +25,45 @@ namespace badbreath113
 	using namespace eng;
 	using namespace magc;
 
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2521870)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2521878)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x252187C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2521894)); }
-	inline TaskQueue *QTargets() { return (TaskQueue *)us(0x2521898); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x25218A8); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x25218B8); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(us(0x1D98B3C)); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::g_BadBreath_CasterEntity)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g_BadBreath_MagicBuffer)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_BadBreath_CastContext)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_BadBreath_PacketCursor)); }
+	inline TaskQueue *QTargets() { return (TaskQueue *)game_addr(game::g_BadBreath_TargetQueue); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)game_addr(game::g_BadBreath_ParticleQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::g_BadBreath_MainQueue); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(game_addr(game::g_BattleVertexWorkspace)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
 
-	static const uint32_t ORIG_RootTask = 0x6CACD0;
-	static const uint32_t ORIG_MainTask = 0x6CAE10;
-	static const uint32_t ORIG_ParticleTask = 0x6CB260;
-	static const uint32_t ORIG_TargetTask = 0x6CB340;
-	static const uint32_t MODEL_Cloud = 0x12C0244;
-	static const uint32_t PART_Flags = 0x12C3604;
-	static const uint32_t SEQ_Stream = 0x12C118C;
-	static const uint32_t SEQ_Spray = 0x12C1418;
-	static const uint32_t SEQ_Rise = 0x12C1014;
-	static const uint32_t ZERO_Vector = 0x25218D8;
-	static const uint32_t WAVE_Table = 0x12C1604;
-	static const void *SOUND_BadBreath() { return (const void *)us(0x12C1600); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_113_BadBreath_RootTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_113_BadBreath_MainTask;
+	static constexpr game::Id ORIG_ParticleTask = game::MAG_113_BadBreath_ParticleTask;
+	static constexpr game::Id ORIG_TargetTask = game::MAG_113_BadBreath_TargetTask;
+	static constexpr game::Id MODEL_Cloud = game::g_BadBreath_CloudLayout;
+	static constexpr game::Id PART_Flags = game::g_BadBreath_PartFlags;
+	static constexpr game::Id SEQ_Stream = game::unk_12C118C;
+	static constexpr game::Id SEQ_Spray = game::unk_12C1418;
+	static constexpr game::Id SEQ_Rise = game::unk_12C1014;
+	static constexpr game::Id ZERO_Vector = game::g_BadBreath_ZeroVector;
+	static constexpr game::Id WAVE_Table = game::g_BadBreath_WaveTable;
+	static const void *SOUND_BadBreath() { return (const void *)game_addr(game::g_BadBreath_Sound); }
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
-	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(us(0x703FB0))(v); }
-	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E160))(a, b, c); }
-	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E1B0))(a, b, c); }
-	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x45E1D0))(a, b, c, d); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3C0))(dst); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E3D0))(dst); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, int32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(entity, ot, mode, cursor); }
+	inline void GteLoadV0u(const void *v) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadV0_u16))(v); }
+	inline void GteSetSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSXY012))(a, b, c); }
+	inline void GteSetSZ123(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSZ123))(a, b, c); }
+	inline void GteSetSZ0123(uint32_t a, uint32_t b, uint32_t c, uint32_t d) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetSZ0123))(a, b, c, d); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZWord(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_ReadOTZ))(dst); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -211,7 +211,7 @@ namespace badbreath113
 				GteStoreIR123(s + 0x2C);
 				const uint32_t idx = ((uint32_t)F<uint16_t>(s, 0x64) + (uint32_t)F<uint16_t>(s, 0x2E) * 4) & 0xFFF;
 				const int16_t sx = F<int16_t>(s, 0x24);
-				int32_t d = mul32(*(const int16_t *)(us(WAVE_Table) + idx * 2), F<int16_t>(s, 0x66)) >> 12;
+				int32_t d = mul32(*(const int16_t *)(game_addr(WAVE_Table) + idx * 2), F<int16_t>(s, 0x66)) >> 12;
 				d = mul32(d, (int32_t)sx - (int32_t)F<int16_t>(s, 0x5C)) >> 11;
 				const int16_t nx = (int16_t)(sx + d);
 				F<int16_t>(s, 0x24) = nx;
@@ -368,7 +368,7 @@ namespace badbreath113
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		GteLoadV0((const void *)us(ZERO_Vector));
+		GteLoadV0((const void *)game_addr(ZERO_Vector));
 		GteRTPS();
 		GteReadSXY2(h + 0x7C);
 		GteReadOTZ(h + 0x88);
@@ -422,7 +422,7 @@ namespace badbreath113
 
 	static void DamageEntity(uint8_t *entity)
 	{
-		const int32_t slot = (int32_t)((uint32_t)entity - 0x1D972C0u) / 0x9C;
+		const int32_t slot = (int32_t)((uint32_t)entity - game_addr(game::BattleEntitySlotData)) / 0x9C;
 		for (uint32_t i = 0; i < Ctx()->actions[0].target_count; i++)
 		{
 			uint8_t *t = Ctx()->actions[0].targets + i * TARGET_STRIDE;
@@ -433,7 +433,7 @@ namespace badbreath113
 	static void ParticleDraw(const ParticleNode *p)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		if (p->seq == us(SEQ_Stream) && p->counter < 4) TransformCameraByShadowRotation(p->pos, p->scale, 0);
+		if (p->seq == game_addr(SEQ_Stream) && p->counter < 4) TransformCameraByShadowRotation(p->pos, p->scale, 0);
 		else TransformCameraByShadowRotation(p->pos, p->scale, -((int32_t)p->rot >> 2));
 		F<uint32_t>(h, 0) = p->seq;
 		F<int16_t>(h, 4) = p->counter;
@@ -454,7 +454,7 @@ namespace badbreath113
 
 	static ParticleNode *NewParticle()
 	{
-		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
+		ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_ParticleTask));
 		if (p) Memset32(&p->counter, 0, 8);
 		return p;
 	}
@@ -491,7 +491,7 @@ namespace badbreath113
 				p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] << 2));
 				p->vel[1] = (int16_t)(-0x20 - (r & 0x1F));
 				const int32_t r2 = CrtRand();
-				p->seq = us(SEQ_Rise);
+				p->seq = game_addr(SEQ_Rise);
 				const int32_t prod = mul32(r2, p->pos[1]);
 				int32_t q = (int32_t)(((int64_t)prod * 0x57619F1) >> 32) >> 9;
 				q += (int32_t)((uint32_t)q >> 31);
@@ -515,7 +515,7 @@ namespace badbreath113
 			PrimArg arg;
 			GetEffectSpawnPosition(entity, 0xF1, 0, arg.pos);
 			arg.pos[1] = *(const int16_t *)(entity + 0x24);
-			arg.flags = us(PART_Flags);
+			arg.flags = game_addr(PART_Flags);
 			arg.morph = TexBase() + 0x11B8;
 			prim::play((prim::Layout *)t->cloud, PartCallback, (int)&arg, 0);
 		}
@@ -562,11 +562,11 @@ namespace badbreath113
 			{
 				if (m->mask & 1)
 				{
-					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), us(ORIG_TargetTask));
+					TargetNode *t = (TargetNode *)AddTaskToQueue(QTargets(), game_addr(ORIG_TargetTask));
 					if (t)
 					{
 						Memset32(&t->counter, 0, 0x3C);
-						DecodeModelPrimLayout(us(MODEL_Cloud), t->cloud, 0xEC);
+						DecodeModelPrimLayout(game_addr(MODEL_Cloud), t->cloud, 0xEC);
 						t->slot = (int16_t)(uint16_t)m->slot;
 					}
 				}
@@ -585,7 +585,7 @@ namespace badbreath113
 				p->vel[1] = (int16_t)((r1 & 0x3F) + ((int32_t)m->pos[1] - sp[1]) / 16 - 0x20);
 				const int32_t r2 = CrtRand();
 				const int32_t vz = (r2 & 0x3F) + ((int32_t)m->pos[2] - sp[2]) / 16 - 0x20;
-				p->seq = us(SEQ_Stream);
+				p->seq = game_addr(SEQ_Stream);
 				p->end = 0x14;
 				p->rot = 0x800;
 				p->vel[2] = (int16_t)vz;
@@ -610,7 +610,7 @@ namespace badbreath113
 				q->acc[0] = (int16_t)(-(int32_t)q->vel[0] >> 4);
 				q->acc[2] = (int16_t)(-(int32_t)q->vel[2] >> 4);
 				q->acc[1] = (int16_t)(-(int32_t)q->vel[1] >> 4);
-				q->seq = us(SEQ_Spray);
+				q->seq = game_addr(SEQ_Spray);
 				q->end = 0xE;
 				const int32_t r = CrtRand();
 				q->rot = 0;
@@ -632,7 +632,7 @@ namespace badbreath113
 				p->acc[2] = 0;
 				p->acc[1] = 0;
 				p->acc[0] = 0;
-				p->seq = us(SEQ_Spray);
+				p->seq = game_addr(SEQ_Spray);
 				p->end = 0xE;
 				const int16_t s = (int16_t)((CrtRand() >> 4) + 0x800);
 				p->scale = s;
@@ -669,7 +669,7 @@ namespace badbreath113
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + 0x10B4), 0x104, 1);
 			InitTaskQueuePool(QParticles(), (void *)(TexBase() + 0x2F4), 0x2C, 0x50);
 			InitTaskQueuePool(QTargets(), (void *)TexBase(), 0xFC, 3);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x3E);

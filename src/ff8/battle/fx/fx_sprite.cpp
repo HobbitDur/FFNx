@@ -25,8 +25,8 @@ namespace sprite
 	using namespace eng;
 	using namespace magc;
 
-	static const uint32_t ORIG_Sprite = 0x570BC0;
-	static const uint32_t ORIG_SharedSprite = 0x570AC0;
+	static constexpr game::Id ORIG_Sprite = game::BattleFx_TickSpriteEffect;
+	static constexpr game::Id ORIG_SharedSprite = game::EffectSprite_SharedSequenceTask;
 
 #pragma pack(push, 1)
 	struct SpriteNode
@@ -47,12 +47,12 @@ namespace sprite
 	static_assert(sizeof(SpriteNode) == 0x24, "sprite node");
 
 	inline bool Paused() { return (UpdateFlags() & 1) != 0; }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
 
 	static const uint8_t *SharedSequence()
 	{
-		const uint8_t *s = var<const uint8_t *>(us(0xC7E554) + 5 * 4);
-		if (*(const uint32_t *)s & 0xFF000000) s = var<const uint8_t *>(us(0xC7E554));
+		const uint8_t *s = var<const uint8_t *>(game_addr(game::EFFECT_SELECTION_LIST) + 5 * 4);
+		if (*(const uint32_t *)s & 0xFF000000) s = var<const uint8_t *>(game_addr(game::EFFECT_SELECTION_LIST));
 		return s;
 	}
 

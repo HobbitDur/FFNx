@@ -31,48 +31,48 @@ namespace suicide180
 	inline int32_t &S32(uint32_t p, int32_t o) { return AT<int32_t>(p, o); }
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2309540)); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x2309544)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x230954C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2309550)); }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)us(0x2308720); }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
-	inline uint32_t &BoneWorkspace() { return var<uint32_t>(us(0x1D98B3C)); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
-	static const uint32_t POOL = 0x2307DC0, POOL_END = 0x2308720;
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::g_Suicide_CastContext)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(game_addr(game::g_Suicide_CasterSlot)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::g_Suicide_TexBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::g_Suicide_PacketCursor)); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)game_addr(game::g_Suicide_EffectQueue); }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline uint32_t &BoneWorkspace() { return var<uint32_t>(game_addr(game::g_BattleVertexWorkspace)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
+	static constexpr game::Id POOL = game::g_Suicide_ParticlePool, POOL_END = game::g_Suicide_EffectQueue;
 
-	static const uint32_t ORIG_RootTask = 0x5CDED0;
-	static const uint32_t ORIG_Director = 0x5CC900;
-	static const uint32_t ORIG_CasterGlow = 0x5CCB60;
-	static const uint32_t ORIG_Explosion = 0x5CD1C0;
-	static const uint32_t ORIG_Ring = 0x5CD560;
-	static const uint32_t ORIG_Ring2 = 0x5CD6C0;
-	static const uint32_t ORIG_Sparks = 0x5CD800;
-	static const uint32_t ORIG_Smoke = 0x5CDAC0;
-	static const uint32_t ORIG_FuseSparks = 0x5CDC80;
-	static const uint32_t MODEL_Explosion = 0xD4353C, MODEL_Ring = 0xD417D4, MODEL_Ring2 = 0xD4380C;
-	static const uint32_t SEQ_Spark = 0xD41674, SEQ_Smoke = 0xD414C8;
-	static const void *SOUND_Fuse() { return (const void *)us(0xD445B4); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_180_SUICIDE_RootTask;
+	static constexpr game::Id ORIG_Director = game::MAG_180_SUICIDE_DirectorTask;
+	static constexpr game::Id ORIG_CasterGlow = game::MAG_180_SUICIDE_CasterGlowTask;
+	static constexpr game::Id ORIG_Explosion = game::MAG_180_SUICIDE_ExplosionTask;
+	static constexpr game::Id ORIG_Ring = game::MAG_180_SUICIDE_RingTask;
+	static constexpr game::Id ORIG_Ring2 = game::MAG_180_SUICIDE_Ring2Task;
+	static constexpr game::Id ORIG_Sparks = game::MAG_180_SUICIDE_SparksTask;
+	static constexpr game::Id ORIG_Smoke = game::MAG_180_SUICIDE_SmokeTask;
+	static constexpr game::Id ORIG_FuseSparks = game::MAG_180_SUICIDE_FuseSparksTask;
+	static constexpr game::Id MODEL_Explosion = game::unk_D4353C, MODEL_Ring = game::unk_D417D4, MODEL_Ring2 = game::unk_D4380C;
+	static constexpr game::Id SEQ_Spark = game::unk_D41674, SEQ_Smoke = game::unk_D414C8;
+	static const void *SOUND_Fuse() { return (const void *)game_addr(game::unk_D445B4); }
 
-	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteLoadRGBC(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E110))(c); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(us(0x45E360))(c); }
-	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
-	inline void GteNCLIP() { fn<void (__cdecl *)()>(us(0x45EE10))(); }
-	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3C0))(dst); }
-	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
-	inline void GteAVSZ3() { fn<void (__cdecl *)()>(us(0x45E5C0))(); }
-	inline void GteAVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
-	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(us(0x460830))(); }
-	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C7A0))(bucket, pkt); }
-	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(us(0x64DEE0))(v); }
-	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(us(0x64DF10))(out); }
-	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t, uint32_t)>(us(0x5088A0))(entity, ot, mode, cursor); }
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
+	inline void GteSetFarColor(uint32_t r, uint32_t g, uint32_t b) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteLoadRGBC(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_LoadRGBC))(c); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *c) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(c); }
+	inline void GteLoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void GteNCLIP() { fn<void (__cdecl *)()>(game_addr(game::GTE_NCLIP))(); }
+	inline void GteReadMAC0(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadMAC0))(dst); }
+	inline void GteReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void GteAVSZ3() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ3))(); }
+	inline void GteAVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void GteReadOTZ32(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void GteMVMVA_RotV0Tr2() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0_Tr_2))(); }
+	inline void InsertPrim(uint32_t bucket, uint32_t pkt) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(bucket, pkt); }
+	inline void GteLoadV0Words(uint32_t v) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadV0FromSVec3))(v); }
+	inline void GteStoreIRVertex(uint32_t out) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_StoreIR123ToSVec))(out); }
+	inline uint32_t DrawShadow(uint8_t *entity, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint8_t *, uint32_t, uint32_t, uint32_t)>(game_addr(game::BattleEntity_DrawShadow))(entity, ot, mode, cursor); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -106,17 +106,17 @@ namespace suicide180
 	static_assert(sizeof(RootNode) == 0x10 && sizeof(EffectNode) == 0x24, "Suicide nodes");
 	static_assert(sizeof(Particle) == 0x18, "Suicide particle");
 
-	inline Particle *Pool() { return (Particle *)us(POOL); }
+	inline Particle *Pool() { return (Particle *)game_addr(POOL); }
 	static const int POOL_COUNT = 0x64;
 	inline uint8_t *Caster() { return Entity((int)CasterSlot()); }
 
 	static int FreeParticle()
 	{
 		int i = 0;
-		for (uint32_t p = us(POOL); ; p += 0x18, i++)
+		for (uint32_t p = game_addr(POOL); ; p += 0x18, i++)
 		{
 			if (U32(p, 0) == 0) break;
-			if (p + 0x18 >= us(POOL_END)) return -1;
+			if (p + 0x18 >= game_addr(POOL_END)) return -1;
 		}
 		if (i >= 0x64) return -1;
 		return i;
@@ -261,7 +261,7 @@ namespace suicide180
 		AT<uint8_t>(h, 0x2A) = entity[7];
 		AT<uint8_t>(h, 0x29) = entity[7];
 		AT<uint8_t>(h, 0x28) = entity[7];
-		U32(h, 0x10) = var<uint32_t>(us(0x1D969A8));
+		U32(h, 0x10) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		U16(h, 0x18) = 0x140;
 		U16(h, 0x1A) = 0xD8;
 		FrameCursor() = RenderModel(U32(anim, 4), h, RenderOT(0x44), 2, FrameCursor());
@@ -341,7 +341,7 @@ namespace suicide180
 
 	static void ExplosionHeader(uint8_t *h)
 	{
-		*(uint32_t *)(h + 0) = us(MODEL_Explosion);
+		*(uint32_t *)(h + 0) = game_addr(MODEL_Explosion);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 	}
@@ -431,7 +431,7 @@ namespace suicide180
 		ExplosionHeader(h);
 		ExplosionBlock(m);
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
+		for (Particle *p = Pool(); (uint32_t)p < game_addr(POOL_END); p++)
 		{
 			if (!(p->type & 1)) continue;
 			DrawExplosionParticle(h, m, p, shl32(p->frame - 2, 10));
@@ -489,7 +489,7 @@ namespace suicide180
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		DrawRing(t, us(MODEL_Ring), 8, shl32(t->counter - 8, 9));
+		DrawRing(t, game_addr(MODEL_Ring), 8, shl32(t->counter - 8, 9));
 		if (DrawOnly()) return 0;
 		RingUpdate(t);
 		return t->counter >= 0x10 ? TASK_END : 0;
@@ -498,7 +498,7 @@ namespace suicide180
 	static uint32_t __cdecl Ring2Task(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		DrawRing(t, us(MODEL_Ring2), 0xA, shl32(t->counter - 0xA, 9));
+		DrawRing(t, game_addr(MODEL_Ring2), 0xA, shl32(t->counter - 0xA, 9));
 		if (DrawOnly()) return 0;
 		Ring2Update(t);
 		return t->counter >= 0x12 ? TASK_END : 0;
@@ -515,9 +515,9 @@ namespace suicide180
 	static uint32_t __cdecl SparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		uint8_t *h = SpriteHeader(us(SEQ_Spark));
+		uint8_t *h = SpriteHeader(game_addr(SEQ_Spark));
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
+		for (Particle *p = Pool(); (uint32_t)p < game_addr(POOL_END); p++)
 		{
 			if (!(p->type & 2)) continue;
 			DrawSpriteParticle(h, p);
@@ -573,9 +573,9 @@ namespace suicide180
 	static uint32_t __cdecl SmokeTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		uint8_t *h = SpriteHeader(us(SEQ_Smoke));
+		uint8_t *h = SpriteHeader(game_addr(SEQ_Smoke));
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
+		for (Particle *p = Pool(); (uint32_t)p < game_addr(POOL_END); p++)
 		{
 			if (!(p->type & 4)) continue;
 			DrawSpriteParticle(h, p);
@@ -610,10 +610,10 @@ namespace suicide180
 	static uint32_t __cdecl FuseSparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		uint8_t *h = SpriteHeader(us(SEQ_Spark));
+		uint8_t *h = SpriteHeader(game_addr(SEQ_Spark));
 		*(int32_t *)(h + 0x14) = 0x1000;
 		int alive = 0;
-		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
+		for (Particle *p = Pool(); (uint32_t)p < game_addr(POOL_END); p++)
 		{
 			if (!(p->type & 8)) continue;
 			DrawFuseParticle(h, p);
@@ -657,19 +657,19 @@ namespace suicide180
 		EffectNode *t = (EffectNode *)n;
 		if (t->counter == 0x10)
 		{
-			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_CasterGlow));
+			EffectNode *g = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_CasterGlow));
 			g->counter = 0;
 		}
 		if (t->counter == 0xF)
 		{
 			GetDefaultEffectPosition(Caster(), t->pos);
-			EffectNode *e = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Explosion));
+			EffectNode *e = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Explosion));
 			ff8fx::copy<(8)>(e->pos, t->pos);
 			e->counter = 0;
 		}
 		if (t->counter == 0x1C)
 		{
-			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
+			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring));
 			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->zero = 0;
@@ -678,7 +678,7 @@ namespace suicide180
 			r->scale_speed = 0x1CC;
 			r->scale = 0x1CC;
 			r->spin_speed = (int16_t)(s + 0x3C);
-			r = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring));
+			r = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring));
 			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->zero = 0;
@@ -690,25 +690,25 @@ namespace suicide180
 		}
 		if (t->counter == 0x1B)
 		{
-			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Ring2));
+			EffectNode *r = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Ring2));
 			ff8fx::copy<(8)>(r->pos, t->pos);
 			r->counter = 0;
 			r->spin = (int16_t)(CrtRand() % 0x1000);
 			r->scale_speed = 0x580;
 			r->scale = 0x580;
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Sparks));
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Sparks));
 			ff8fx::copy<(8)>(s->pos, t->pos);
 			s->counter = 0;
 		}
 		if (t->counter == 0x1C)
 		{
-			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_Smoke));
+			EffectNode *s = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_Smoke));
 			ff8fx::copy<(8)>(s->pos, t->pos);
 			s->counter = 0;
 		}
 		if (t->counter == 1)
 		{
-			EffectNode *f = (EffectNode *)AddTaskToQueue(EffectQueue(), us(ORIG_FuseSparks));
+			EffectNode *f = (EffectNode *)AddTaskToQueue(EffectQueue(), game_addr(ORIG_FuseSparks));
 			f->counter = 0;
 		}
 		if (t->counter == 0x26) ApplyActionResultToTarget(Ctx()->actions[0].targets);

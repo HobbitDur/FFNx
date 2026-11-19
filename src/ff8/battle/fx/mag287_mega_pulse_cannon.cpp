@@ -25,64 +25,64 @@ namespace megapulse287
 	using namespace eng;
 	using namespace magc;
 
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x25562F8)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x25562FC)); }
-	inline TaskQueue *QSparks() { return (TaskQueue *)us(0x2556300); }
-	inline TaskQueue *QRocks() { return (TaskQueue *)us(0x2556310); }
-	inline TaskQueue *QSpots() { return (TaskQueue *)us(0x2556320); }
-	inline TaskQueue *QArcs() { return (TaskQueue *)us(0x2556330); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2556340); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2556374)); }
-	inline uint32_t &Flash() { return var<uint32_t>(us(0x255637C)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2556380)); }
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
-	inline uint32_t &FrameCursor() { return var<uint32_t>(us(0x1D8E054)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_287_MegaPulseCannon_CastContext)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_287_MegaPulseCannon_CasterEntity)); }
+	inline TaskQueue *QSparks() { return (TaskQueue *)game_addr(game::MAG_287_MegaPulseCannon_SparksQueue); }
+	inline TaskQueue *QRocks() { return (TaskQueue *)game_addr(game::MAG_287_MegaPulseCannon_RocksQueue); }
+	inline TaskQueue *QSpots() { return (TaskQueue *)game_addr(game::MAG_287_MegaPulseCannon_SpotsQueue); }
+	inline TaskQueue *QArcs() { return (TaskQueue *)game_addr(game::MAG_287_MegaPulseCannon_ArcsQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::MAG_287_MegaPulseCannon_MainQueue); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_287_MegaPulseCannon_PacketCursor)); }
+	inline uint32_t &Flash() { return var<uint32_t>(game_addr(game::MAG_287_MegaPulseCannon_Flash)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_287_MegaPulseCannon_MagicBufferBase)); }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
+	inline uint32_t &FrameCursor() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
 
-	static const uint32_t ORIG_MasterTask = 0x6F2F20;
-	static const uint32_t ORIG_MainTask = 0x6F31A0;
-	static const uint32_t ORIG_SparkTask = 0x6F3B80;
-	static const uint32_t ORIG_RockTask = 0x6F3C20;
-	static const uint32_t ORIG_SpotTask = 0x6F3D00;
-	static const uint32_t ORIG_ArcTask = 0x6F3DF0;
-	static const uint32_t ORIG_PrimCallback = 0x6F3760;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_287_MegaPulseCannon_MasterTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_287_MegaPulseCannon_MainTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_287_MegaPulseCannon_SparkTask;
+	static constexpr game::Id ORIG_RockTask = game::MAG_287_MegaPulseCannon_RockTask;
+	static constexpr game::Id ORIG_SpotTask = game::MAG_287_MegaPulseCannon_SpotTask;
+	static constexpr game::Id ORIG_ArcTask = game::MAG_287_MegaPulseCannon_ArcTask;
+	static constexpr game::Id ORIG_PrimCallback = game::MAG_287_MegaPulseCannon_PrimCallback;
 	static const uint32_t POOL_Rocks = 0x900, POOL_Spots = 0xB00, POOL_Main = 0x1070, POOL_Arcs = 0x21FF4;
 	static const uint32_t BUF_Morph = 0x1A18;
 	static const uint32_t BUF_Profile = 0x1F98, BUF_ProfileEnd = 0x1FA8;
 	static const uint32_t BUF_Stream = 0x1FA8;
 	static const uint32_t BUF_StreamDst = 0x21FF0;
 	static const uint32_t ARENA_A = 0x1FF0, ARENA_B = 0x11FF0;
-	static const uint32_t MODEL_Cannon = 0x13EF924;
-	static const uint32_t MODEL_Beam = 0x13F87E8;
-	static const uint32_t MODEL_Spot = 0x13F8F5C;
-	static const uint32_t MODEL_Rock = 0x13EF72C;
-	static const uint32_t SEQ_Charge = 0x13EF448;
-	static const uint32_t SEQ_Spark = 0x13EF5E8;
-	static const uint32_t POINT_Muzzle = 0x13FAEA0;
-	static const uint32_t TBL_SpotTargets = 0x13FAEA8;
-	static const uint32_t TRI_Rows = 0x13FAEB0;
-	static const uint32_t TBL_Distance = 0x13FAFE8;
-	static const uint32_t TBL_Lengths = 0x13FEF68;
+	static constexpr game::Id MODEL_Cannon = game::MAG_287_MegaPulseCannon_ModelCannon;
+	static constexpr game::Id MODEL_Beam = game::MAG_287_MegaPulseCannon_ModelBeam;
+	static constexpr game::Id MODEL_Spot = game::MAG_287_MegaPulseCannon_ModelSpot;
+	static constexpr game::Id MODEL_Rock = game::MAG_287_MegaPulseCannon_ModelRock;
+	static constexpr game::Id SEQ_Charge = game::MAG_287_MegaPulseCannon_SeqCharge;
+	static constexpr game::Id SEQ_Spark = game::MAG_287_MegaPulseCannon_SeqSpark;
+	static constexpr game::Id POINT_Muzzle = game::unk_13FAEA0;
+	static constexpr game::Id TBL_SpotTargets = game::MAG_287_MegaPulseCannon_TableSpotTargets;
+	static constexpr game::Id TRI_Rows = game::unk_13FAEB0;
+	static constexpr game::Id TBL_Distance = game::MAG_287_MegaPulseCannon_TableDistance;
+	static constexpr game::Id TBL_Lengths = game::MAG_287_MegaPulseCannon_TableLengths;
 	static const int32_t STREAM_File = 0x168;
-	static const void *SOUND_Cannon() { return (const void *)us(0x13FAE98); }
+	static const void *SOUND_Cannon() { return (const void *)game_addr(game::MAG_287_MegaPulseCannon_SoundCannon); }
 	static const uint32_t QUAD_UV0 = 0x3E14C048, QUAD_UV1 = 0xB9C078;
 	static const uint16_t QUAD_UV2 = 0xC048, QUAD_UV3 = 0xC078;
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(us(0x56C220))(a, b); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
-	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(us(0x701270))(angle, out); }
-	inline void TriangleCentreNormal(uint32_t bones, uint32_t tri, int16_t *centre, int16_t *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, int16_t *, int16_t *)>(us(0x704130))(bones, tri, centre, normal); }
-	inline void TransformCoordinateToCameraSpace(const void *v, int32_t *out, void *flag) { fn<void (__cdecl *)(const void *, int32_t *, void *)>(us(0x56C820))(v, out, flag); }
-	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(us(0x7059E0))(); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(us(0x5341D0))(id, dst, kind); }
-	inline void StreamPump() { fn<void (__cdecl *)()>(us(0x534210))(); }
-	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x5342C0))(a); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MulMatrix3(Mat4x3 *a, const void *b) { fn<void (__cdecl *)(Mat4x3 *, const void *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_063_RenderPrimSet))(h, ot, mode, cursor); }
+	inline void RotY(int32_t angle, Mat4x3 *out) { fn<void (__cdecl *)(int32_t, Mat4x3 *)>(game_addr(game::Effect_RotationYMatrix))(angle, out); }
+	inline void TriangleCentreNormal(uint32_t bones, uint32_t tri, int16_t *centre, int16_t *normal) { fn<void (__cdecl *)(uint32_t, uint32_t, int16_t *, int16_t *)>(game_addr(game::MAG_TriangleCentreNormal))(bones, tri, centre, normal); }
+	inline void TransformCoordinateToCameraSpace(const void *v, int32_t *out, void *flag) { fn<void (__cdecl *)(const void *, int32_t *, void *)>(game_addr(game::TransformCoordinateToCameraSpace))(v, out, flag); }
+	inline int32_t SharedRand() { return fn<int32_t (__cdecl *)()>(game_addr(game::Effect_SharedLcg_Rand))(); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline void StreamQueueLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(game_addr(game::Stream_QueueLoad))(id, dst, kind); }
+	inline void StreamPump() { fn<void (__cdecl *)()>(game_addr(game::Stream_Pump))(); }
+	inline int32_t StreamPreload(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::BattleFile_PreLoad_IsLoaded))(a); }
 
 	template<typename T> inline T &AT(uint32_t a, int32_t off = 0) { return *(T *)(a + (uint32_t)off); }
 	inline int16_t &S16(uint32_t a, int32_t off) { return AT<int16_t>(a, off); }
@@ -324,7 +324,7 @@ namespace megapulse287
 			const int32_t dy = (int32_t)S16(p, sxy + 2) - S16(next, sxy + 2);
 			int32_t ay = dy < 0 ? -dy : dy;
 			if (ay >= 0x80) ay = 0x7F;
-			const int32_t dist = U8(us(TBL_Distance), ay * 128 + ax);
+			const int32_t dist = U8(game_addr(TBL_Distance), ay * 128 + ax);
 			int32_t nx, ny;
 			if (prev)
 			{
@@ -460,7 +460,7 @@ namespace megapulse287
 		ComposeAffineTransform(&Camera(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		*(uint32_t *)h = us(MODEL_Rock);
+		*(uint32_t *)h = game_addr(MODEL_Rock);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -497,7 +497,7 @@ namespace megapulse287
 
 	static void SpawnArc(uint32_t model, uint32_t from, uint32_t to, uint8_t anchor, uint8_t amp_shift, uint8_t fade_shift)
 	{
-		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), us(ORIG_ArcTask));
+		ArcNode *a = (ArcNode *)AddTaskToQueue(QArcs(), game_addr(ORIG_ArcTask));
 		if (!a) return;
 		a->amp_shift = amp_shift;
 		a->fade_shift = fade_shift;
@@ -546,7 +546,7 @@ namespace megapulse287
 			const int32_t norm = lz - 0x18;
 			if (norm > 0) sum = shl32(sum, norm);
 			else sum >>= (0x18 - lz);
-			const int32_t len = (int32_t)((uint32_t)AT<uint16_t>(us(TBL_Lengths), sum * 2) << shift);
+			const int32_t len = (int32_t)((uint32_t)AT<uint16_t>(game_addr(TBL_Lengths), sum * 2) << shift);
 			amp = len >> 12;
 			GteSetIR0(len >> a->amp_shift);
 			GteLoadIR123(ctrl);
@@ -645,7 +645,7 @@ namespace megapulse287
 			int32_t pt[4];
 			if ((uint32_t)c < 0x24)
 			{
-				BonePoint((const int16_t *)us(POINT_Muzzle), pt);
+				BonePoint((const int16_t *)game_addr(POINT_Muzzle), pt);
 				pt[3] = MainPointPad();
 				for (int k = 0; k < 4; k++) m->point[k] = pt[k];
 			}
@@ -653,7 +653,7 @@ namespace megapulse287
 				for (int k = 0; k < 4; k++) pt[k] = m->point[k];
 			if ((uint32_t)c < 0x1E)
 			{
-				SpawnArc(U32((uint32_t)Caster(), 0x64), us(TRI_Rows) + ((uint32_t)c % 0xD) * 0x18, us(POINT_Muzzle), 0, 0xC, 7);
+				SpawnArc(U32((uint32_t)Caster(), 0x64), game_addr(TRI_Rows) + ((uint32_t)c % 0xD) * 0x18, game_addr(POINT_Muzzle), 0, 0xC, 7);
 				*Caster() |= 8;
 			}
 			else if ((uint32_t)c < 0x3C)
@@ -661,9 +661,9 @@ namespace megapulse287
 				if ((uint32_t)c >= 0x20 && (uint32_t)c < 0x26)
 					for (int32_t i = 5; i >= 0; i--)
 					{
-						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 						if (!s) continue;
-						s->seq = us(SEQ_Spark);
+						s->seq = game_addr(SEQ_Spark);
 						BoneTipPoint(Caster(), i + 0x16, s->pos);
 						s->vel[2] = 0;
 						s->vel[0] = 0;
@@ -679,7 +679,7 @@ namespace megapulse287
 				}
 				if ((c & 1) == 0)
 				{
-					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), us(ORIG_RockTask));
+					RockNode *k = (RockNode *)AddTaskToQueue(QRocks(), game_addr(ORIG_RockTask));
 					if (k)
 					{
 						const int32_t a = CrtRand() & 0x7FF;
@@ -709,11 +709,11 @@ namespace megapulse287
 			if ((uint32_t)c < 8)
 			{
 				GteSetRotMatrix(&M);
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 				int32_t base = shl32(c + 0x20, 7);
 				for (int32_t left = 4; s; )
 				{
-					s->seq = us(SEQ_Charge);
+					s->seq = game_addr(SEQ_Charge);
 					const int32_t a = (CrtRand() & 0x3F) + base - 0x20;
 					const int32_t r = (CrtRand() & 0x7FF) + 0x400;
 					s->pos[0] = (int16_t)(mul32(ComputeSin(a), r) >> 12);
@@ -734,7 +734,7 @@ namespace megapulse287
 					s->shadow = 0x7D0;
 					base -= 0x400;
 					if (--left == 0) break;
-					s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
+					s = (SparkNode *)AddTaskToQueue(QSparks(), game_addr(ORIG_SparkTask));
 				}
 			}
 			PrimArg arg;
@@ -753,15 +753,15 @@ namespace megapulse287
 		const int32_t e = m->counter - 0x28;
 		if ((uint32_t)e < 0xC && (e & 3) == 0)
 		{
-			const int32_t idx = U8(us(TBL_SpotTargets), (int32_t)((uint32_t)e >> 2));
+			const int32_t idx = U8(game_addr(TBL_SpotTargets), (int32_t)((uint32_t)e >> 2));
 			if (idx < m->ntargets)
 			{
-				SpotNode *p = (SpotNode *)AddTaskToQueue(QSpots(), us(ORIG_SpotTask));
+				SpotNode *p = (SpotNode *)AddTaskToQueue(QSpots(), game_addr(ORIG_SpotTask));
 				if (p)
 				{
 					GetDefaultEffectPosition(m->targets[idx], p->pos);
 					p->pos[2] = (int16_t)(p->pos[2] - 0x1F4);
-					DecodeModelPrimLayout(us(MODEL_Spot), p->layout, 0x1BC);
+					DecodeModelPrimLayout(game_addr(MODEL_Spot), p->layout, 0x1BC);
 				}
 			}
 		}
@@ -797,10 +797,10 @@ namespace megapulse287
 			InitTaskQueuePool(QSpots(), (void *)(TexBase() + POOL_Spots), 0x1D0, 3);
 			InitTaskQueuePool(QRocks(), (void *)(TexBase() + POOL_Rocks), 0x20, 0x10);
 			InitTaskQueuePool(QSparks(), (void *)TexBase(), 0x24, 0x40);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x267);
-			DecodeModelPrimLayout(us(MODEL_Cannon), m->cannon, 0x8C4);
-			DecodeModelPrimLayout(us(MODEL_Beam), m->beam, 0xB8);
+			DecodeModelPrimLayout(game_addr(MODEL_Cannon), m->cannon, 0x8C4);
+			DecodeModelPrimLayout(game_addr(MODEL_Beam), m->beam, 0xB8);
 			for (int32_t k = 0; k < 8; k++)
 				S16(TexBase(), BUF_Profile + 2 * k) = (int16_t)ComputeSin(shl32(k, 11) / 7);
 			m->ntargets = Ctx()->actions->target_count;

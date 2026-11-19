@@ -22,37 +22,37 @@ namespace act
 {
 namespace raijin
 {
-	static const Mod MOD_060 = { "raijin", 60, 0x7EB070, 0x7F27F0,
-		{ 0x0, 0x0, 0x1597358, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2604078, 0x0, 0x0, 0x0, 0x2604188, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26067E0, 0x0, 0x2606A80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2606C60, 0x0, 0x0, 0x2607040, 0x0, 0x2607048, 0x0, 0x2607058 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7EB440, 0x7EB4C0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7EB670, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x7EE360, 0x7EE440, 0x7EE5E0, 0x7EE6B0, 0x7EE7D0, 0x7EEA30, 0x0, 0x0, 0x7EF750, 0x7EF7A0, 0x0, 0x0, 0x7F0090, 0x0, 0x0, 0x0, 0x7F0A70, 0x7F0AA0, 0x7F0B80, 0x7F0CA0, 0x7F0DF0, 0x0, 0x7F14B0, 0x7F1690, 0x7F17D0, 0x7F2190, 0x0, 0x7F2690, 0x7F26D0, 0x7F26F0, 0x7F2710, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_060 = { "raijin", 60, game::MAG_060_UNK1_FL, game::MAG_059_MEGALIXIR_FL,
+		{ {}, {}, game::g_RaijinStrike_DirectorBlockPtr, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::g_RaijinStrike_File, {}, {}, {}, game::unk_2604188, {}, {}, {}, {}, {}, {}, {}, game::MAG_060_ActorSystemQueue, {}, game::MAG_060_EmitterQueue, {}, {}, {}, {}, {}, game::unk_2606C60, {}, {}, game::unk_2607040, {}, game::g_RaijinStrike_ScratchSP, {}, game::g_RaijinStrike_ActorState },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_060_RaijinStrike_EmitterTask, game::MAG_060_RaijinStrike_StartDirector, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_060_DirSyncGate, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_060_ResetTrailHistory, game::MAG_060_Director_StartPositions, game::MAG_060_FillTrailRows, game::MAG_060_Director_Mode3Setup, game::MAG_060_Director_TargetPositions, game::MAG_060_RelocateActorData, {}, {}, game::MAG_060_DampValue, game::MAG_060_DampVector, {}, {}, game::MAG_060_MorphVertexBlock, {}, {}, {}, game::MAG_060_RandRange, game::MAG_060_RandRangeWide, game::MAG_060_RandAngleJitter, game::MAG_060_Particle_AttachToOwner, game::MAG_060_Actor_InterpolatePosition, {}, game::MAG_060_ParticleList_Unlink, game::MAG_060_Particle_PlaceAtAnchorSet, game::MAG_060_Particle_PlaceAtPoint, game::MAG_060_SpriteStrip_DrawQuads, {}, game::MAG_060_RaijinStrike_Emitter_State1_ApplyDamage, game::MAG_060_RaijinStrike_Emitter_State2_WaitChildrenOrDirFlag, game::MAG_060_RaijinStrike_Emitter_State3_FinishReleaseRoot, game::MAG_060_RaijinStrike_Emitter_State4_Empty, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x260407C;
-	static const uint32_t DIR_PTR = 0x1597358;
-	static const uint32_t SCRATCH_SP = 0x2607048;
-	static const uint32_t ACTOR_STATE = 0x2607058;
-	static const uint32_t BLEND_BUF = 0x2606C78;
-	static const uint32_t PRIM_CB = 0x7EBBB0;
-	static const uint32_t Q_EMITTER = 0x2606A80, Q_DIRECTOR = 0x2604160, Q_ACTORS = 0x26067E0;
-	static const uint32_t Q_TASKS = 0x2604268, Q_MODELS = 0x2606280, Q_STAGE = 0x2606A70;
-	static const uint32_t ORIG_Master = 0x7EB200;
-	static const uint32_t ORIG_ActorsA = 0x7EE0F0;
-	static const uint32_t ORIG_ActorsB = 0x7F1A30;
-	static const uint32_t ORIG_Strike = 0x7EB8C0;
-	static const uint32_t ORIG_Impact = 0x7EDE50;
-	static const uint32_t ORIG_DebrisSpawner = 0x7F1C70;
-	static const uint32_t ORIG_Debris = 0x7F1E50;
-	static const uint32_t ORIG_Darken = 0x7F1B20;
-	static const uint32_t TGT_WORD0C = 0x2606C58;
-	static const uint32_t TGT_WORD10 = 0x2606C5C;
-	static const uint32_t SLIDE_CURVE = 0x1597820;
-	static const uint32_t STAGE_LIGHT = 0x1D98992;
-	static inline uint32_t ENT(uint32_t slot) { return us(0x1D972C0) + slot * 0x9C; }
+	static constexpr game::Id PACKET_CURSOR = game::g_RaijinStrike_PacketCursor;
+	static constexpr game::Id DIR_PTR = game::g_RaijinStrike_DirectorBlockPtr;
+	static constexpr game::Id SCRATCH_SP = game::g_RaijinStrike_ScratchSP;
+	static constexpr game::Id ACTOR_STATE = game::g_RaijinStrike_ActorState;
+	static constexpr game::Id BLEND_BUF = game::MAG_060_BlendBuffer;
+	static constexpr game::Id PRIM_CB = game::MAG_060_RaijinStrike_PrimCallback;
+	static constexpr game::Id Q_EMITTER = game::MAG_060_EmitterQueue, Q_DIRECTOR = game::MAG_060_DirectorQueue, Q_ACTORS = game::MAG_060_ActorSystemQueue;
+	static constexpr game::Id Q_TASKS = game::MAG_060_TaskQueue, Q_MODELS = game::MAG_060_PrimModelQueue, Q_STAGE = game::MAG_060_StageQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_060_RaijinStrike_MasterTask;
+	static constexpr game::Id ORIG_ActorsA = game::MAG_060_RaijinStrike_ActorSystemATask;
+	static constexpr game::Id ORIG_ActorsB = game::MAG_060_RaijinStrike_ActorSystemBTask;
+	static constexpr game::Id ORIG_Strike = game::MAG_060_RaijinStrike_StrikeTask;
+	static constexpr game::Id ORIG_Impact = game::MAG_060_RaijinStrike_ImpactTask;
+	static constexpr game::Id ORIG_DebrisSpawner = game::MAG_060_RaijinStrike_DebrisSpawnerTask;
+	static constexpr game::Id ORIG_Debris = game::MAG_060_RaijinStrike_DebrisTask;
+	static constexpr game::Id ORIG_Darken = game::MAG_060_RaijinStrike_DarkenTask;
+	static constexpr game::Id TGT_WORD0C = game::g_RaijinStrike_TargetWord0C;
+	static constexpr game::Id TGT_WORD10 = game::g_RaijinStrike_TargetWord10;
+	static constexpr game::Id SLIDE_CURVE = game::RaijinStrike_SlideCurve;
+	static constexpr game::Id STAGE_LIGHT = game::unk_1D98992;
+	static inline uint32_t ENT(uint32_t slot) { return game_addr(game::BattleEntitySlotData) + slot * 0x9C; }
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -350,7 +350,7 @@ namespace raijin
 		}
 	}
 
-	static inline uint32_t t1_data() { return MEM<uint32_t>(us(DIR_PTR)); }
+	static inline uint32_t t1_data() { return MEM<uint32_t>(game_addr(DIR_PTR)); }
 	static inline void t1_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void t4_next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
 	static inline void next_state(uint32_t node) { U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1); }
@@ -429,7 +429,7 @@ namespace raijin
 {
 	uint32_t __cdecl rj_7EB710(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		if (S16(d, 0x46) < 0x24)
 			return d;
 		U16(d, 0x48) = 1;
@@ -439,20 +439,20 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EB790(uint32_t a1)
 	{
-		const int32_t ph = (int32_t)S16(MEM<uint32_t>(us(DIR_PTR)), 0x40) - 1;
+		const int32_t ph = (int32_t)S16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x40) - 1;
 		if (ph != 0)
 			return (uint32_t)ph;
 		const uint32_t node = a1;
-		a_73C100(node, us(ORIG_ActorsA), us(0x1797CC0), 6, 0x28, 4);
-		a_73C100(node, us(ORIG_ActorsB), us(0x179C998), 0x24, 0x28, 4);
-		rj_7EB870(node, us(ORIG_Strike), us(0x17A0D04), 0xE4, 0, 0);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_DebrisSpawner), 0x8C, node);
-		return x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Darken), 0x8C, node);
+		a_73C100(node, game_addr(ORIG_ActorsA), game_addr(game::unk_1797CC0), 6, 0x28, 4);
+		a_73C100(node, game_addr(ORIG_ActorsB), game_addr(game::unk_179C998), 0x24, 0x28, 4);
+		rj_7EB870(node, game_addr(ORIG_Strike), game_addr(game::unk_17A0D04), 0xE4, 0, 0);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_DebrisSpawner), 0x8C, node);
+		return x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Darken), 0x8C, node);
 	}
 
 	uint32_t __cdecl rj_7EB870(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, uint32_t a6)
 	{
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_MODELS), a2, 0x18C, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_MODELS), a2, 0x18C, a1);
 		U16(t, 0x80) = (uint16_t)a5;
 		U32(t, 0x74) = a3;
 		S32(t, 0x78) = (int16_t)a4;
@@ -469,9 +469,9 @@ namespace raijin
 		const uint32_t L = P(fr);
 		const uint32_t M = L + 8;
 		const uint32_t ent = ENT(U8(node, 0x2D));
-		MEM<uint32_t>(us(TGT_WORD10)) = U32(ent, 0x10);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
-		MEM<uint32_t>(us(TGT_WORD0C)) = U32(ent, 0xC);
+		MEM<uint32_t>(game_addr(TGT_WORD10)) = U32(ent, 0x10);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
+		MEM<uint32_t>(game_addr(TGT_WORD0C)) = U32(ent, 0xC);
 		U32(node, 0x180) = U32(ent, 0x1C);
 		U32(node, 0x184) = U32(ent, 0x20);
 		U16(ent, 0xE) = (uint16_t)((U16(d, 0x4A) - 0x800) & 0xFFF);
@@ -504,7 +504,7 @@ namespace raijin
 		U16(node, 0x88) = 0xFE00;
 		x::GetEffectSpawnPosition(ent, 0x19, 0x400, node + 0x1C);
 		rj_7EBAC0(node);
-		rj_7EB870(node, us(ORIG_Impact), us(0x17A3150), 0x24, 1, 0);
+		rj_7EB870(node, game_addr(ORIG_Impact), game_addr(game::unk_17A3150), 0x24, 1, 0);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		U16(node, 0x84) = 0;
 		return 0;
@@ -536,7 +536,7 @@ namespace raijin
 		const int16_t ox = S16(ent, 0x1C);
 		const int16_t oy = S16(ent, 0x1E);
 		const int16_t oz = S16(ent, 0x20);
-		const uint16_t f = MEM<uint16_t>(us(SLIDE_CURVE) + (uint32_t)((int32_t)(int16_t)k * 2));
+		const uint16_t f = MEM<uint16_t>(game_addr(SLIDE_CURVE) + (uint32_t)((int32_t)(int16_t)k * 2));
 		U16(node, 0x188) = f;
 		if (f == 0x1000)
 		{
@@ -560,8 +560,8 @@ namespace raijin
 		if (rj_7EBAC0(node) == 0)
 		{
 			U8(node, 0x26) |= 1;
-			U32(ent, 0xC) = MEM<uint32_t>(us(TGT_WORD0C));
-			U32(ent, 0x10) = MEM<uint32_t>(us(TGT_WORD10));
+			U32(ent, 0xC) = MEM<uint32_t>(game_addr(TGT_WORD0C));
+			U32(ent, 0x10) = MEM<uint32_t>(game_addr(TGT_WORD10));
 			U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		}
 		return 0;
@@ -596,7 +596,7 @@ namespace raijin
 		if (S16(node, 0x24) < 5)
 			return 0;
 		U16(node, 0x1C) = 0;
-		uint32_t p = us(STAGE_LIGHT) + 0x28;
+		uint32_t p = game_addr(STAGE_LIGHT) + 0x28;
 		for (int k = 4; k != 0; k--)
 		{
 			MEM<uint16_t>(p - 0x28) = 0;
@@ -620,7 +620,7 @@ namespace raijin
 		}
 		const uint16_t v = U16(node, 0x1C);
 		for (int k = 0; k < 4; k++)
-			MEM<uint16_t>(us(STAGE_LIGHT) + (uint32_t)k * 0x2C) = v;
+			MEM<uint16_t>(game_addr(STAGE_LIGHT) + (uint32_t)k * 0x2C) = v;
 		return 0;
 	}
 
@@ -656,7 +656,7 @@ namespace raijin
 		int32_t n = 2;
 		do
 		{
-			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_TASKS), us(ORIG_Debris), 0x8C, node);
+			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_TASKS), game_addr(ORIG_Debris), 0x8C, node);
 			U32(t, 0x1C) = U32(node, 0x1C);
 			U32(t, 0x20) = U32(node, 0x20);
 			const uint32_t r0 = x::CrtRand();
@@ -690,9 +690,9 @@ namespace raijin
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x7F2600);
-		states[1] = us(0x7F2620);
-		states[2] = us(0x7F2670);
+		states[0] = game_addr(game::MAG_060_RaijinStrike_Debris_State0_InitSprite);
+		states[1] = game_addr(game::MAG_060_RaijinStrike_Debris_State1_Animate);
+		states[2] = game_addr(game::MAG_060_RaijinStrike_Debris_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		int16_t vx = S16(node, 0x78);
 		int16_t vy = (int16_t)(U16(node, 0x82) + U16(node, 0x7A));
@@ -806,12 +806,12 @@ namespace raijin
 			U32(hdr, 0x14) = 0x20F0;
 			U32(hdr, 8) = U32(rec, 0x20);
 		}
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 0x22) = 0x100;
 		U16(hdr, 0x20) = 0x100;
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U32(hdr, 0x10) = (uint32_t)(int32_t)S16(blk, 0x58);
 		U16(hdr, 0x18) = 0;
 		U16(hdr, 0x1A) = 0;
@@ -819,7 +819,7 @@ namespace raijin
 		U16(hdr, 0x1C) = 0;
 		U16(hdr, 0x26) = 0;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = rj_7EBDF0(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = rj_7EBDF0(hdr, ot, 2, cursor);
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -829,47 +829,47 @@ namespace raijin
 		g_mod = &MOD_060;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x2604188)) = us(0x2793E58);
-		states[0] = us(0x7EB370);
-		states[1] = us(0x7EB380);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_2604188)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_060_RaijinStrike_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_060_RaijinStrike_Master_State1_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = us(0x7EB390);
-		states[3] = us(0x7EB410);
-		states[4] = us(0x7F2720);
-		states[5] = us(0x7F2760);
-		states[6] = us(0x7F2770);
-		states[7] = us(0x7F2780);
-		states[8] = us(0x7F27B0);
-		states[9] = us(0x7F27C0);
-		states[10] = us(0x7F27E0);
+		states[2] = game_addr(game::MAG_060_RaijinStrike_CarveActorPools);
+		states[3] = game_addr(game::MAG_060_RaijinStrike_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_060_RaijinStrike_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_060_RaijinStrike_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_060_RaijinStrike_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_060_RaijinStrike_Master_State7_RequestBattleSync);
+		states[8] = game_addr(game::MAG_060_RaijinStrike_Master_State8_WaitBattleSyncDone);
+		states[9] = game_addr(game::MAG_060_RaijinStrike_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_060_RaijinStrike_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2606BF4));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2606294));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x2604184)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_2606BF4));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2606294));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_2604184)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x2606BF0));
-			const uint32_t v2 = MEM<uint32_t>(us(0x2606290));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x2604184)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_2606BF0));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_2606290));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_2604184)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x2607040)) = 0;
-		MEM<uint16_t>(us(0x2606C60)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_DIRECTOR)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_TASKS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_MODELS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
+		MEM<uint16_t>(game_addr(game::unk_2607040)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2606C60)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_DIRECTOR)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_TASKS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_MODELS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -880,12 +880,12 @@ namespace raijin
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x2607054));
-		MEM<uint32_t>(us(0x2606C64)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_060_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_060_ParticlePoolPtr)) = p;
 		p += 0x438;
-		MEM<uint32_t>(us(0x260704C)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_060_ActorPoolPtr)) = p;
 		p += 0xD200;
-		MEM<uint32_t>(us(0x2607054)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_060_FileArenaCursor)) = p;
 		rj_7EB3D0();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -893,27 +893,27 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EB3D0(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2606C64)), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x260704C)), 0xD200);
-		MEM<uint16_t>(us(0x2605DD0)) = 0;
-		MEM<uint16_t>(us(0x2606C70)) = 0;
-		MEM<uint16_t>(us(0x2606BF8)) = 0;
-		MEM<uint16_t>(us(0x2604080)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_060_ParticlePoolPtr)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_060_ActorPoolPtr)), 0xD200);
+		MEM<uint16_t>(game_addr(game::MAG_060_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_060_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2606BF8)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_2604080)) = 0;
 		return 0;
 	}
 
 	uint32_t __cdecl rj_7EB4C0(uint32_t a1)
 	{
 		rj_7EB4F0(a1);
-		x::Effect_AddTaskAndInitFromCtx(us(0x2604160), us(0x7EB580), 0x48, a1);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(game::MAG_060_DirectorQueue), game_addr(game::MAG_060_RaijinStrike_DirectorTask), 0x48, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
 
 	uint32_t __cdecl rj_7EB4F0(uint32_t a1)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
-		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(DIR_PTR)), 0x54);
+		const uint32_t d = MEM<uint32_t>(game_addr(DIR_PTR));
 		const uint32_t tgt = ENT(U8(a1, 0x2D));
 		U32(d, 8) = U32(tgt, 0x1C);
 		U32(d, 0xC) = U32(tgt, 0x20);
@@ -923,7 +923,7 @@ namespace raijin
 		const int16_t dz = (int16_t)(U16(d, 0xC) - U16(d, 4));
 		const int16_t dx = (int16_t)(U16(d, 8) - U16(d, 0));
 		const uint32_t ang = x::CartesianToGameAngle((uint32_t)(int32_t)dx, (uint32_t)(int32_t)dz);
-		U16(MEM<uint32_t>(us(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
+		U16(MEM<uint32_t>(game_addr(DIR_PTR)), 0x4A) = (uint16_t)((ang - 0x800) & 0xFFF);
 		return 0;
 	}
 
@@ -931,13 +931,13 @@ namespace raijin
 	{
 		const uint32_t node = a1;
 		uint32_t states[7];
-		states[0] = us(0x7EB650);
-		states[1] = us(0x7EB6A0);
-		states[2] = us(0x7EB6F0);
-		states[3] = us(0x7EB710);
-		states[4] = us(0x7EB730);
-		states[5] = us(0x7EB750);
-		states[6] = us(0x7EB770);
+		states[0] = game_addr(game::MAG_060_RaijinStrike_Director_State0_WaitDirGate1);
+		states[1] = game_addr(game::MAG_060_RaijinStrike_PlaySound);
+		states[2] = game_addr(game::MAG_060_RaijinStrike_WaitPhaseTick4);
+		states[3] = game_addr(game::MAG_060_RaijinStrike_DamageCue);
+		states[4] = game_addr(game::MAG_060_RaijinStrike_Director_State4_WaitDirGate2);
+		states[5] = game_addr(game::MAG_060_RaijinStrike_Director_State5_Finish);
+		states[6] = game_addr(game::MAG_060_RaijinStrike_Director_State6_Empty);
 		rj_7EB600(node);
 		callp(states[S8(node, 0x29)], node);
 		const uint8_t status = U8(node, 0x26);
@@ -970,14 +970,14 @@ namespace raijin
 	{
 		uint32_t r = a_73B7E0(1);
 		if (r == 0) return 0;
-		x::BdPlaySE(us(0x159735C), 0, 0x80);
+		x::BdPlaySE(game_addr(game::unk_159735C), 0, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
 	}
 
 	uint32_t __cdecl rj_7EB6F0(uint32_t a1)
 	{
-		uint32_t blk = U32(us(0x1597358), 0);
+		uint32_t blk = U32(game_addr(game::g_RaijinStrike_DirectorBlockPtr), 0);
 		if (S16(blk, 0x46) < 4) return blk;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return a1;
@@ -985,7 +985,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EB8C0(uint32_t a1)
 	{
-		const uint32_t tab[4] = { us(0x7EB920), us(0x7EBA10), us(0x7EDF70), us(0x7EE0E0) };
+		const uint32_t tab[4] = { game_addr(game::MAG_060_RaijinStrike_PushTarget), game_addr(game::MAG_060_RaijinStrike_PlaceStrike), game_addr(game::MAG_060_RaijinStrike_SlideTarget), game_addr(game::MAG_060_RaijinStrike_Strike_State3_Empty) };
 		callp(tab[S8(a1, 0x29)], a1);
 		uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x24)++;
@@ -1001,7 +1001,7 @@ namespace raijin
 		S32(L, 0x14) = S16(a1, 0x1C);
 		S32(L, 0x18) = S16(a1, 0x1E);
 		S32(L, 0x1C) = S16(a1, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), L, L);
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), L, L);
 		U16(L, 0x54) = U16(a1, 0x86);
 		U32(L, 0x44) = U32(a1, 0x7C);
 		U32(L, 0x38) = U32(a1, 0x70);
@@ -1009,10 +1009,10 @@ namespace raijin
 		U16(L, 0x4E) = U16(a1, 0x8E);
 		U16(L, 0x52) = U16(a1, 0x92);
 		U16(L, 0x50) = U16(a1, 0x90);
-		U32(L, 0x48) = us(BLEND_BUF);
+		U32(L, 0x48) = game_addr(BLEND_BUF);
 		U16(L, 0x56) = U16(a1, 0x80);
 		U16(L, 0x58) = U16(a1, 0x88);
-		return prim_play(a1 + 0x94, us(PRIM_CB), L, 0);
+		return prim_play(a1 + 0x94, game_addr(PRIM_CB), L, 0);
 	}
 
 	uint32_t __cdecl rj_7EBDF0(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4)
@@ -1719,7 +1719,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EE360(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x2607058));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -1736,7 +1736,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EE5E0(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x2607058));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -1759,7 +1759,7 @@ namespace raijin
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x2607058), 0) = sys;
+		U32(game_addr(game::g_RaijinStrike_ActorState), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -1771,7 +1771,7 @@ namespace raijin
 			rj_7EF020();
 			rj_7EEEE0();
 			rj_7EED20();
-			sys = U32(us(0x2607058), 0);
+			sys = U32(game_addr(game::g_RaijinStrike_ActorState), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -1784,19 +1784,19 @@ namespace raijin
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x2607040), 0) = (uint16_t)(U16(us(0x2607040), 0) + c14);
-		U16(us(0x2606C60), 0) = (uint16_t)(U16(us(0x2606C60), 0) + c16);
+		U16(game_addr(game::unk_2607040), 0) = (uint16_t)(U16(game_addr(game::unk_2607040), 0) + c14);
+		U16(game_addr(game::unk_2606C60), 0) = (uint16_t)(U16(game_addr(game::unk_2606C60), 0) + c16);
 		return done;
 	}
 
 	uint32_t __cdecl rj_7EED20(void)
 	{
-		uint32_t act = U32(U32(us(0x2607058), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_RaijinStrike_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t sys = U32(us(0x2607058), 0);
+				uint32_t sys = U32(game_addr(game::g_RaijinStrike_ActorState), 0);
 				int32_t k = S8(act, 0x1D6);
 				uint32_t def = U32(U32(sys, 0x224), k * 4);
 				uint8_t kind = U8(def, 0x16);
@@ -1810,10 +1810,10 @@ namespace raijin
 
 	uint32_t __cdecl rj_7EED80(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t h = MEM<uint32_t>(us(SCRATCH_SP)) - 0x68;
+		const uint32_t h = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0x68;
 		U32(h, 0) = U32(a1, 0x170);
 		const bool def3a = U16(a2, 0x3A) != 0;
-		MEM<uint32_t>(us(SCRATCH_SP)) = h;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = h;
 		U32(h, 0x14) = 0;
 		if (!def3a)
 			U32(h, 0x14) = 0x30;
@@ -1841,7 +1841,7 @@ namespace raijin
 		{
 			x::GTE_SetRotMatrix(a1 + 0xAC);
 			x::GTE_SetTransVector(a1 + 0xAC);
-			MEM<uint32_t>(us(0x1D8E054)) = rj_7EBDF0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+			MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = rj_7EBDF0(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		}
 		else if (copies > 0)
 		{
@@ -1853,24 +1853,24 @@ namespace raijin
 				S32(a1, 0xC8) = S16(pos, 2);
 				x::GTE_SetRotMatrix(a1 + 0xAC);
 				x::GTE_SetTransVector(a1 + 0xAC);
-				MEM<uint32_t>(us(0x1D8E054)) = rj_7EBDF0(h, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+				MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = rj_7EBDF0(h, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 			}
 		}
-		const uint32_t top = MEM<uint32_t>(us(SCRATCH_SP)) + 0x68;
-		MEM<uint32_t>(us(SCRATCH_SP)) = top;
+		const uint32_t top = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0x68;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = top;
 		return top;
 	}
 
 	uint32_t __cdecl rj_7EEEE0(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x2607058)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x2607058));
+				uint32_t st = MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1905,26 +1905,26 @@ namespace raijin
 	uint32_t __cdecl rj_7EEFA0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl rj_7EF020(void)
 	{
-		uint32_t act = U32(U32(us(0x2607058), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::g_RaijinStrike_ActorState), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1940,7 +1940,7 @@ namespace raijin
 	uint32_t __cdecl rj_7EF060(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x2607058));
+		uint32_t st = MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1961,7 +1961,7 @@ namespace raijin
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x2607058));
+			st = MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1973,7 +1973,7 @@ namespace raijin
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x2607058), 0);
+		uint32_t st = U32(game_addr(game::g_RaijinStrike_ActorState), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -2056,8 +2056,8 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F0250(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x2606C64));
-		int32_t idx = MEM<int16_t>(us(0x2605DD0));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_060_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_060_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -2067,7 +2067,7 @@ namespace raijin
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -2082,9 +2082,9 @@ namespace raijin
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(us(0x2605DD0)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_060_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x2605DD0)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_060_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -2097,9 +2097,9 @@ namespace raijin
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x7F0CA0), a1);
+			callp(game_addr(game::MAG_060_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x7F0DF0), a1);
+			callp(game_addr(game::MAG_060_Actor_InterpolatePosition), a1);
 		rj_7F0370(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -2108,7 +2108,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F0370(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x2607058), 0);
+		uint32_t sys = U32(game_addr(game::g_RaijinStrike_ActorState), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -2135,9 +2135,9 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F03F0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x2607048), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::g_RaijinStrike_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x2607048), 0) = sp;
+		U32(game_addr(game::g_RaijinStrike_ScratchSP), 0) = sp;
 		uint32_t node = rj_7F0BD0(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -2147,7 +2147,7 @@ namespace raijin
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x2607058), 0);
+			uint32_t ctx = U32(game_addr(game::g_RaijinStrike_ActorState), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -2315,14 +2315,14 @@ namespace raijin
 			}
 		}
 		rj_7F18E0(node, desc);
-		U32(us(0x2607048), 0) = U32(us(0x2607048), 0) + 0x50;
+		U32(game_addr(game::g_RaijinStrike_ScratchSP), 0) = U32(game_addr(game::g_RaijinStrike_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl rj_7F0BD0(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x260704C));
-		int32_t i = MEM<int16_t>(us(0x2606C70));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_060_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_060_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -2335,7 +2335,7 @@ namespace raijin
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -2352,16 +2352,16 @@ namespace raijin
 		}
 		i++;
 		if (i >= 0x4F)
-			MEM<uint16_t>(us(0x2606C70)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_060_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x2606C70)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_060_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl rj_7F0DF0(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x2607058), 0);
+		const uint32_t st = U32(game_addr(game::g_RaijinStrike_ActorState), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -2421,7 +2421,7 @@ namespace raijin
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x2607058), 0);
+				uint32_t g = U32(game_addr(game::g_RaijinStrike_ActorState), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -2431,7 +2431,7 @@ namespace raijin
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x2607058), 0);
+				uint32_t g = U32(game_addr(game::g_RaijinStrike_ActorState), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -2506,7 +2506,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F1970(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x2607058));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -2531,14 +2531,14 @@ namespace raijin
 				do
 				{
 					rj_7F0250(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x2607058));
+					dir = MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				rj_7F0250(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x2607058));
+				dir = MEM<uint32_t>(game_addr(game::g_RaijinStrike_ActorState));
 			}
 		}
 		return 0;
@@ -2577,7 +2577,7 @@ namespace raijin
 			U8(a1, 0x29) = (uint8_t)(st + 1);
 		}
 		const uint16_t level = U16(a1, 0x1C);
-		uint32_t p = us(0x1D98992);
+		uint32_t p = game_addr(game::unk_1D98992);
 		for (int i = 4; i != 0; i--, p += 0x2C)
 			MEM<uint16_t>(p) = level;
 		return 0;
@@ -2590,7 +2590,7 @@ namespace raijin
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
-		x::UnpackRotationMatrix(us(0x1D97778), mat);
+		x::UnpackRotationMatrix(game_addr(game::unk_1D97778), mat);
 		const int32_t px = S16(node, 0x1C);
 		const int32_t py = S16(node, 0x1E);
 		const int32_t pz = S16(node, 0x20);
@@ -2598,7 +2598,7 @@ namespace raijin
 		S32(blk, 0xD0) = py;
 		S32(blk, 0xD4) = pz;
 		S32(tr, 0) = px;
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		x::GTE_LoadIRFromMatrixColumn(mat);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(mat);
@@ -2608,7 +2608,7 @@ namespace raijin
 		x::GTE_LoadIRFromMatrixColumn(blk + 0xBC);
 		x::GTE_MVMVA_RotIR();
 		x::GTE_StoreIRToMatrixColumn(blk + 0xBC);
-		x::GTE_SetTransVector(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
 		x::GTE_LoadV0FromDwords(tr);
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(tr);
@@ -2618,11 +2618,11 @@ namespace raijin
 		const uint16_t frame = U16(node, 0x50);
 		const uint16_t colour = U16(node, 0x56);
 		U16(blk, 4) = frame;
-		const uint32_t cursor = MEM<uint32_t>(us(0x260407C));
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t cursor = MEM<uint32_t>(game_addr(game::g_RaijinStrike_PacketCursor));
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		U16(blk, 0x24) = 0;
 		U16(blk, 0xB4) = colour;
-		MEM<uint32_t>(us(0x260407C)) = a_7435E0(blk, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(game::g_RaijinStrike_PacketCursor)) = a_7435E0(blk, ot, 2, cursor);
 		x::Field_Free(0xD8);
 		return 0;
 	}
@@ -2630,7 +2630,7 @@ namespace raijin
 	uint32_t __cdecl rj_7F2600(uint32_t a1)
 	{
 		const uint8_t st = U8(a1, 0x29);
-		U32(a1, 0x4C) = us(0x1597360);
+		U32(a1, 0x4C) = game_addr(game::unk_1597360);
 		U16(a1, 0x56) = 0xFFC0;
 		U16(a1, 0x52) = 0xF;
 		U8(a1, 0x29) = (uint8_t)(st + 1);
@@ -2650,7 +2650,7 @@ namespace raijin
 
 	uint32_t __cdecl rj_7F2690(uint32_t a1)
 	{
-		const uint32_t d = MEM<uint32_t>(us(0x1597358));
+		const uint32_t d = MEM<uint32_t>(game_addr(game::g_RaijinStrike_DirectorBlockPtr));
 		if (U16(d, 0x48) != 1)
 			return 0;
 		const uint32_t node = a1;
@@ -2664,136 +2664,136 @@ namespace raijin
 		return 0;
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x7EB370, (void *)a_73A0D0, "060 MAG_060_sub_7EB370" },
-		{ 0x7EB380, (void *)a_73A0D0, "060 MAG_060_sub_7EB380" },
-		{ 0x7EB410, (void *)a_73A170, "060 MAG_060_sub_7EB410" },
-		{ 0x7EB440, (void *)a_73A1A0, "060 MAG_060_sub_7EB440" },
-		{ 0x7EB650, (void *)a_73B790, "060 sub_7EB650" },
-		{ 0x7EB670, (void *)a_73B640, "060 sub_7EB670" },
-		{ 0x7EB6D0, (void *)a_73B7E0, "060 sub_7EB6D0" },
-		{ 0x7EB730, (void *)a_73B8A0, "060 sub_7EB730" },
-		{ 0x7EB750, (void *)a_7475A0, "060 sub_7EB750" },
-		{ 0x7EB770, (void *)a_73A6D0, "060 nullsub_1470" },
-		{ 0x7EB780, (void *)a_73A6D0, "060 nullsub_1471" },
-		{ 0x7EB820, (void *)a_73C100, "060 sub_7EB820" },
-		{ 0x7ECDD0, (void *)a_73D770, "060 sub_7ECDD0" },
-		{ 0x7ED020, (void *)a_73D9C0, "060 sub_7ED020" },
-		{ 0x7EDE50, (void *)a_73A380, "060 sub_7EDE50" },
-		{ 0x7EDF60, (void *)a_73A6D0, "060 nullsub_1472" },
-		{ 0x7EE0E0, (void *)a_73A6D0, "060 nullsub_1473" },
-		{ 0x7EE0F0, (void *)a_73A380, "060 sub_7EE0F0" },
-		{ 0x7EE1B0, (void *)a_73F990, "060 sub_7EE1B0" },
-		{ 0x7EE440, (void *)a_73FC20, "060 sub_7EE440" },
-		{ 0x7EE6B0, (void *)a_73FE90, "060 sub_7EE6B0" },
-		{ 0x7EE7D0, (void *)a_73FFB0, "060 sub_7EE7D0" },
-		{ 0x7EEA30, (void *)a_740210, "060 sub_7EEA30" },
-		{ 0x7EF0F0, (void *)a_740910, "060 sub_7EF0F0" },
-		{ 0x7EF750, (void *)a_740F70, "060 sub_7EF750" },
-		{ 0x7EF7A0, (void *)a_740FC0, "060 sub_7EF7A0" },
-		{ 0x7EF830, (void *)a_741050, "060 sub_7EF830" },
-		{ 0x7EF900, (void *)a_741120, "060 sub_7EF900" },
-		{ 0x7F0340, (void *)a_741B60, "060 sub_7F0340" },
-		{ 0x7F0A70, (void *)a_742290, "060 au_re__rand_33" },
-		{ 0x7F0AA0, (void *)a_7422C0, "060 sub_7F0AA0" },
-		{ 0x7F0AE0, (void *)a_742300, "060 sub_7F0AE0" },
-		{ 0x7F0B30, (void *)a_742350, "060 sub_7F0B30" },
-		{ 0x7F0B80, (void *)a_7423A0, "060 au_re__rand_33_0" },
-		{ 0x7F0C90, (void *)a_7424B0, "060 sub_7F0C90" },
-		{ 0x7F0CA0, (void *)a_7424C0, "060 sub_7F0CA0" },
-		{ 0x7F1480, (void *)a_742CA0, "060 sub_7F1480" },
-		{ 0x7F14B0, (void *)a_742CD0, "060 sub_7F14B0" },
-		{ 0x7F14E0, (void *)a_742D00, "060 sub_7F14E0" },
-		{ 0x7F1690, (void *)a_742EB0, "060 sub_7F1690" },
-		{ 0x7F17D0, (void *)a_742FF0, "060 sub_7F17D0" },
-		{ 0x7F1A20, (void *)a_73A6D0, "060 nullsub_1474" },
-		{ 0x7F1A30, (void *)a_73A380, "060 sub_7F1A30" },
-		{ 0x7F1B10, (void *)a_73A6D0, "060 nullsub_1475" },
-		{ 0x7F1B20, (void *)a_73F110, "060 sub_7F1B20" },
-		{ 0x7F1C60, (void *)a_73A6D0, "060 nullsub_1476" },
-		{ 0x7F1C70, (void *)a_73A380, "060 sub_7F1C70" },
-		{ 0x7F2050, (void *)a_7435E0, "060 InitEffectSequenceFromData_c12" },
-		{ 0x7F2190, (void *)a_743720, "060 sub_7F2190" },
-		{ 0x7F2640, (void *)a_743C20, "060 sub_7F2640" },
-		{ 0x7F2670, (void *)a_73A6D0, "060 nullsub_1477" },
-		{ 0x7F2680, (void *)a_73A6D0, "060 nullsub_1478" },
-		{ 0x7F26D0, (void *)a_7474B0, "060 MAG_060_sub_7F26D0" },
-		{ 0x7F26F0, (void *)a_7474D0, "060 MAG_060_sub_7F26F0" },
-		{ 0x7F2710, (void *)a_73A6D0, "060 nullsub_1479" },
-		{ 0x7F2720, (void *)a_747500, "060 MAG_060_sub_7F2720" },
-		{ 0x7F2760, (void *)a_73A0D0, "060 MAG_060_sub_7F2760" },
-		{ 0x7F2770, (void *)a_747550, "060 MAG_060_sub_7F2770" },
-		{ 0x7F2780, (void *)a_747560, "060 MAG_060_sub_7F2780" },
-		{ 0x7F27B0, (void *)a_747590, "060 MAG_060_sub_7F27B0" },
-		{ 0x7F27C0, (void *)a_7475A0, "060 MAG_060_sub_7F27C0" },
-		{ 0x7F27E0, (void *)a_73A6D0, "060 nullsub_1469" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_060_RaijinStrike_Master_State0_Advance, (void *)a_73A0D0, "060 MAG_060_sub_7EB370" },
+		{ game::MAG_060_RaijinStrike_Master_State1_Advance, (void *)a_73A0D0, "060 MAG_060_sub_7EB380" },
+		{ game::MAG_060_RaijinStrike_Master_State3_SpawnEmitter, (void *)a_73A170, "060 MAG_060_sub_7EB410" },
+		{ game::MAG_060_RaijinStrike_EmitterTask, (void *)a_73A1A0, "060 MAG_060_sub_7EB440" },
+		{ game::MAG_060_RaijinStrike_Director_State0_WaitDirGate1, (void *)a_73B790, "060 sub_7EB650" },
+		{ game::MAG_060_DirSyncGate, (void *)a_73B640, "060 sub_7EB670" },
+		{ game::MAG_060_DirPhaseGE, (void *)a_73B7E0, "060 sub_7EB6D0" },
+		{ game::MAG_060_RaijinStrike_Director_State4_WaitDirGate2, (void *)a_73B8A0, "060 sub_7EB730" },
+		{ game::MAG_060_RaijinStrike_Director_State5_Finish, (void *)a_7475A0, "060 sub_7EB750" },
+		{ game::MAG_060_RaijinStrike_Director_State6_Empty, (void *)a_73A6D0, "060 nullsub_1470" },
+		{ game::MAG_060_St_Empty, (void *)a_73A6D0, "060 nullsub_1471" },
+		{ game::MAG_060_SpawnChildTask, (void *)a_73C100, "060 sub_7EB820" },
+		{ game::MAG_060_EmitG3, (void *)a_73D770, "060 sub_7ECDD0" },
+		{ game::MAG_060_EmitG4, (void *)a_73D9C0, "060 sub_7ED020" },
+		{ game::MAG_060_RaijinStrike_ImpactTask, (void *)a_73A380, "060 sub_7EDE50" },
+		{ game::MAG_060_RaijinStrike_Impact_State2_Empty, (void *)a_73A6D0, "060 nullsub_1472" },
+		{ game::MAG_060_RaijinStrike_Strike_State3_Empty, (void *)a_73A6D0, "060 nullsub_1473" },
+		{ game::MAG_060_RaijinStrike_ActorSystemATask, (void *)a_73A380, "060 sub_7EE0F0" },
+		{ game::MAG_060_DirectorSetup, (void *)a_73F990, "060 sub_7EE1B0" },
+		{ game::MAG_060_Director_StartPositions, (void *)a_73FC20, "060 sub_7EE440" },
+		{ game::MAG_060_Director_Mode3Setup, (void *)a_73FE90, "060 sub_7EE6B0" },
+		{ game::MAG_060_Director_TargetPositions, (void *)a_73FFB0, "060 sub_7EE7D0" },
+		{ game::MAG_060_RelocateActorData, (void *)a_740210, "060 sub_7EEA30" },
+		{ game::MAG_060_ActorMotion, (void *)a_740910, "060 sub_7EF0F0" },
+		{ game::MAG_060_DampValue, (void *)a_740F70, "060 sub_7EF750" },
+		{ game::MAG_060_DampVector, (void *)a_740FC0, "060 sub_7EF7A0" },
+		{ game::MAG_060_Instance_AdvanceTexFrame, (void *)a_741050, "060 sub_7EF830" },
+		{ game::MAG_060_RaijinStrike_InstanceBuildTransform, (void *)a_741120, "060 sub_7EF900" },
+		{ game::MAG_060_Particle_LifeCountdown, (void *)a_741B60, "060 sub_7F0340" },
+		{ game::MAG_060_RandRange, (void *)a_742290, "060 au_re__rand_33" },
+		{ game::MAG_060_RandRangeWide, (void *)a_7422C0, "060 sub_7F0AA0" },
+		{ game::MAG_060_RandVec3, (void *)a_742300, "060 sub_7F0AE0" },
+		{ game::MAG_060_JitterAngles3, (void *)a_742350, "060 sub_7F0B30" },
+		{ game::MAG_060_RandAngleJitter, (void *)a_7423A0, "060 au_re__rand_33_0" },
+		{ game::MAG_060_GetWord8Minus1, (void *)a_7424B0, "060 sub_7F0C90" },
+		{ game::MAG_060_Particle_AttachToOwner, (void *)a_7424C0, "060 sub_7F0CA0" },
+		{ game::MAG_060_ParticleList_Append, (void *)a_742CA0, "060 sub_7F1480" },
+		{ game::MAG_060_ParticleList_Unlink, (void *)a_742CD0, "060 sub_7F14B0" },
+		{ game::MAG_060_Particle_Init, (void *)a_742D00, "060 sub_7F14E0" },
+		{ game::MAG_060_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "060 sub_7F1690" },
+		{ game::MAG_060_Particle_PlaceAtPoint, (void *)a_742FF0, "060 sub_7F17D0" },
+		{ game::MAG_060_RaijinStrike_ActorSystemA_State2_Empty, (void *)a_73A6D0, "060 nullsub_1474" },
+		{ game::MAG_060_RaijinStrike_ActorSystemBTask, (void *)a_73A380, "060 sub_7F1A30" },
+		{ game::MAG_060_RaijinStrike_ActorSystemB_State2_Empty, (void *)a_73A6D0, "060 nullsub_1475" },
+		{ game::MAG_060_RaijinStrike_DarkenTask, (void *)a_73F110, "060 sub_7F1B20" },
+		{ game::MAG_060_RaijinStrike_Darken_State4_Empty, (void *)a_73A6D0, "060 nullsub_1476" },
+		{ game::MAG_060_RaijinStrike_DebrisSpawnerTask, (void *)a_73A380, "060 sub_7F1C70" },
+		{ game::InitEffectSequenceFromData_c12, (void *)a_7435E0, "060 InitEffectSequenceFromData_c12" },
+		{ game::MAG_060_SpriteStrip_DrawQuads, (void *)a_743720, "060 sub_7F2190" },
+		{ game::MAG_060_StepCounterLimit, (void *)a_743C20, "060 sub_7F2640" },
+		{ game::MAG_060_RaijinStrike_Debris_State2_Empty, (void *)a_73A6D0, "060 nullsub_1477" },
+		{ game::MAG_060_RaijinStrike_DebrisSpawner_State2_Empty, (void *)a_73A6D0, "060 nullsub_1478" },
+		{ game::MAG_060_RaijinStrike_Emitter_State2_WaitChildrenOrDirFlag, (void *)a_7474B0, "060 MAG_060_sub_7F26D0" },
+		{ game::MAG_060_RaijinStrike_Emitter_State3_FinishReleaseRoot, (void *)a_7474D0, "060 MAG_060_sub_7F26F0" },
+		{ game::MAG_060_RaijinStrike_Emitter_State4_Empty, (void *)a_73A6D0, "060 nullsub_1479" },
+		{ game::MAG_060_RaijinStrike_Master_State4_NextTargetLoop, (void *)a_747500, "060 MAG_060_sub_7F2720" },
+		{ game::MAG_060_RaijinStrike_Master_State5_Advance, (void *)a_73A0D0, "060 MAG_060_sub_7F2760" },
+		{ game::MAG_060_RaijinStrike_Master_State6_WaitQueuesEmpty, (void *)a_747550, "060 MAG_060_sub_7F2770" },
+		{ game::MAG_060_RaijinStrike_Master_State7_RequestBattleSync, (void *)a_747560, "060 MAG_060_sub_7F2780" },
+		{ game::MAG_060_RaijinStrike_Master_State8_WaitBattleSyncDone, (void *)a_747590, "060 MAG_060_sub_7F27B0" },
+		{ game::MAG_060_RaijinStrike_Master_State9_Finish, (void *)a_7475A0, "060 MAG_060_sub_7F27C0" },
+		{ game::MAG_060_RaijinStrike_Master_State10_Empty, (void *)a_73A6D0, "060 nullsub_1469" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x7EB200, (void *)rj_7EB200, "060 rj_7EB200" },
-		{ 0x7EB390, (void *)rj_7EB390, "060 rj_7EB390" },
-		{ 0x7EB3D0, (void *)rj_7EB3D0, "060 rj_7EB3D0" },
-		{ 0x7EB4C0, (void *)rj_7EB4C0, "060 rj_7EB4C0" },
-		{ 0x7EB4F0, (void *)rj_7EB4F0, "060 rj_7EB4F0" },
-		{ 0x7EB580, (void *)rj_7EB580, "060 rj_7EB580" },
-		{ 0x7EB600, (void *)rj_7EB600, "060 rj_7EB600" },
-		{ 0x7EB6A0, (void *)rj_7EB6A0, "060 rj_7EB6A0" },
-		{ 0x7EB6F0, (void *)rj_7EB6F0, "060 rj_7EB6F0" },
-		{ 0x7EB710, (void *)rj_7EB710, "060 rj_7EB710" },
-		{ 0x7EB790, (void *)rj_7EB790, "060 rj_7EB790" },
-		{ 0x7EB870, (void *)rj_7EB870, "060 rj_7EB870" },
-		{ 0x7EB8C0, (void *)rj_7EB8C0, "060 rj_7EB8C0" },
-		{ 0x7EB920, (void *)rj_7EB920, "060 rj_7EB920" },
-		{ 0x7EBA10, (void *)rj_7EBA10, "060 rj_7EBA10" },
-		{ 0x7EBAC0, (void *)rj_7EBAC0, "060 rj_7EBAC0" },
-		{ 0x7EBBB0, (void *)rj_7EBBB0, "060 rj_7EBBB0" },
-		{ 0x7EBDF0, (void *)rj_7EBDF0, "060 rj_7EBDF0" },
-		{ 0x7EBF20, (void *)rj_7EBF20, "060 rj_7EBF20" },
-		{ 0x7EC140, (void *)rj_7EC140, "060 rj_7EC140" },
-		{ 0x7EC3D0, (void *)rj_7EC3D0, "060 rj_7EC3D0" },
-		{ 0x7EC850, (void *)rj_7EC850, "060 rj_7EC850" },
-		{ 0x7ED300, (void *)rj_7ED300, "060 rj_7ED300" },
-		{ 0x7ED800, (void *)rj_7ED800, "060 rj_7ED800" },
-		{ 0x7EDEB0, (void *)rj_7EDEB0, "060 rj_7EDEB0" },
-		{ 0x7EDF40, (void *)rj_7EDF40, "060 rj_7EDF40" },
-		{ 0x7EDF70, (void *)rj_7EDF70, "060 rj_7EDF70" },
-		{ 0x7EE150, (void *)rj_7EE150, "060 rj_7EE150" },
-		{ 0x7EE360, (void *)rj_7EE360, "060 rj_7EE360" },
-		{ 0x7EE5E0, (void *)rj_7EE5E0, "060 rj_7EE5E0" },
-		{ 0x7EEC90, (void *)rj_7EEC90, "060 rj_7EEC90" },
-		{ 0x7EED20, (void *)rj_7EED20, "060 rj_7EED20" },
-		{ 0x7EED80, (void *)rj_7EED80, "060 rj_7EED80" },
-		{ 0x7EEEE0, (void *)rj_7EEEE0, "060 rj_7EEEE0" },
-		{ 0x7EEFA0, (void *)rj_7EEFA0, "060 rj_7EEFA0" },
-		{ 0x7EF020, (void *)rj_7EF020, "060 rj_7EF020" },
-		{ 0x7EF060, (void *)rj_7EF060, "060 rj_7EF060" },
-		{ 0x7F0090, (void *)rj_7F0090, "060 rj_7F0090" },
-		{ 0x7F01A0, (void *)rj_7F01A0, "060 rj_7F01A0" },
-		{ 0x7F0220, (void *)rj_7F0220, "060 rj_7F0220" },
-		{ 0x7F0250, (void *)rj_7F0250, "060 rj_7F0250" },
-		{ 0x7F02F0, (void *)rj_7F02F0, "060 rj_7F02F0" },
-		{ 0x7F0370, (void *)rj_7F0370, "060 rj_7F0370" },
-		{ 0x7F03F0, (void *)rj_7F03F0, "060 rj_7F03F0" },
-		{ 0x7F0BD0, (void *)rj_7F0BD0, "060 rj_7F0BD0" },
-		{ 0x7F0DF0, (void *)rj_7F0DF0, "060 rj_7F0DF0" },
-		{ 0x7F18E0, (void *)rj_7F18E0, "060 rj_7F18E0" },
-		{ 0x7F1970, (void *)rj_7F1970, "060 rj_7F1970" },
-		{ 0x7F1A00, (void *)rj_7F1A00, "060 rj_7F1A00" },
-		{ 0x7F1A90, (void *)rj_7F1A90, "060 rj_7F1A90" },
-		{ 0x7F1AF0, (void *)rj_7F1AF0, "060 rj_7F1AF0" },
-		{ 0x7F1B90, (void *)rj_7F1B90, "060 rj_7F1B90" },
-		{ 0x7F1BD0, (void *)rj_7F1BD0, "060 rj_7F1BD0" },
-		{ 0x7F1C10, (void *)rj_7F1C10, "060 rj_7F1C10" },
-		{ 0x7F1C20, (void *)rj_7F1C20, "060 rj_7F1C20" },
-		{ 0x7F1CD0, (void *)rj_7F1CD0, "060 rj_7F1CD0" },
-		{ 0x7F1D20, (void *)rj_7F1D20, "060 rj_7F1D20" },
-		{ 0x7F1E50, (void *)rj_7F1E50, "060 rj_7F1E50" },
-		{ 0x7F1F30, (void *)rj_7F1F30, "060 rj_7F1F30" },
-		{ 0x7F2600, (void *)rj_7F2600, "060 rj_7F2600" },
-		{ 0x7F2620, (void *)rj_7F2620, "060 rj_7F2620" },
-		{ 0x7F2690, (void *)rj_7F2690, "060 rj_7F2690" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_060_RaijinStrike_MasterTask, (void *)rj_7EB200, "060 rj_7EB200" },
+		{ game::MAG_060_RaijinStrike_CarveActorPools, (void *)rj_7EB390, "060 rj_7EB390" },
+		{ game::MAG_060_RaijinStrike_ClearActorPools, (void *)rj_7EB3D0, "060 rj_7EB3D0" },
+		{ game::MAG_060_RaijinStrike_StartDirector, (void *)rj_7EB4C0, "060 rj_7EB4C0" },
+		{ game::MAG_060_RaijinStrike_InitDirectorBlock, (void *)rj_7EB4F0, "060 rj_7EB4F0" },
+		{ game::MAG_060_RaijinStrike_DirectorTask, (void *)rj_7EB580, "060 rj_7EB580" },
+		{ game::MAG_060_RaijinStrike_PhaseBookkeeping, (void *)rj_7EB600, "060 rj_7EB600" },
+		{ game::MAG_060_RaijinStrike_PlaySound, (void *)rj_7EB6A0, "060 rj_7EB6A0" },
+		{ game::MAG_060_RaijinStrike_WaitPhaseTick4, (void *)rj_7EB6F0, "060 rj_7EB6F0" },
+		{ game::MAG_060_RaijinStrike_DamageCue, (void *)rj_7EB710, "060 rj_7EB710" },
+		{ game::MAG_060_RaijinStrike_SpawnPhase1, (void *)rj_7EB790, "060 rj_7EB790" },
+		{ game::MAG_060_RaijinStrike_SpawnModelTask, (void *)rj_7EB870, "060 rj_7EB870" },
+		{ game::MAG_060_RaijinStrike_StrikeTask, (void *)rj_7EB8C0, "060 rj_7EB8C0" },
+		{ game::MAG_060_RaijinStrike_PushTarget, (void *)rj_7EB920, "060 rj_7EB920" },
+		{ game::MAG_060_RaijinStrike_PlaceStrike, (void *)rj_7EBA10, "060 rj_7EBA10" },
+		{ game::MAG_060_RaijinStrike_DrawPrimModel, (void *)rj_7EBAC0, "060 rj_7EBAC0" },
+		{ game::MAG_060_RaijinStrike_PrimCallback, (void *)rj_7EBBB0, "060 rj_7EBBB0" },
+		{ game::MAG_060_RaijinStrike_RenderPrimLists, (void *)rj_7EBDF0, "060 rj_7EBDF0" },
+		{ game::MAG_060_PrimList_FlatTri, (void *)rj_7EBF20, "060 rj_7EBF20" },
+		{ game::MAG_060_PrimList_FlatQuad, (void *)rj_7EC140, "060 rj_7EC140" },
+		{ game::MAG_060_PrimList_TexTri, (void *)rj_7EC3D0, "060 rj_7EC3D0" },
+		{ game::MAG_060_PrimList_TexQuad, (void *)rj_7EC850, "060 rj_7EC850" },
+		{ game::MAG_060_PrimList_GT3Scroll, (void *)rj_7ED300, "060 rj_7ED300" },
+		{ game::MAG_060_PrimList_GT4, (void *)rj_7ED800, "060 rj_7ED800" },
+		{ game::MAG_060_RaijinStrike_PlaceImpact, (void *)rj_7EDEB0, "060 rj_7EDEB0" },
+		{ game::MAG_060_RaijinStrike_Impact_State1_PlayModel, (void *)rj_7EDF40, "060 rj_7EDF40" },
+		{ game::MAG_060_RaijinStrike_SlideTarget, (void *)rj_7EDF70, "060 rj_7EDF70" },
+		{ game::MAG_060_RaijinStrike_ActorSystemAStart, (void *)rj_7EE150, "060 rj_7EE150" },
+		{ game::MAG_060_ResetTrailHistory, (void *)rj_7EE360, "060 rj_7EE360" },
+		{ game::MAG_060_FillTrailRows, (void *)rj_7EE5E0, "060 rj_7EE5E0" },
+		{ game::MAG_060_RaijinStrike_ActorSystemStep, (void *)rj_7EEC90, "060 rj_7EEC90" },
+		{ game::MAG_060_ActSys_DrawPass, (void *)rj_7EED20, "060 rj_7EED20" },
+		{ game::MAG_060_ActSys_DrawPrimActor, (void *)rj_7EED80, "060 rj_7EED80" },
+		{ game::MAG_060_ActSys_DrawSpritePass, (void *)rj_7EEEE0, "060 rj_7EEEE0" },
+		{ game::MAG_060_ActSys_DrawActorSprite, (void *)rj_7EEFA0, "060 rj_7EEFA0" },
+		{ game::MAG_060_ActSys_UpdatePass, (void *)rj_7EF020, "060 rj_7EF020" },
+		{ game::MAG_060_ActorStep, (void *)rj_7EF060, "060 rj_7EF060" },
+		{ game::MAG_060_MorphVertexBlock, (void *)rj_7F0090, "060 rj_7F0090" },
+		{ game::MAG_060_Instance_EndOfLifeTest, (void *)rj_7F01A0, "060 rj_7F01A0" },
+		{ game::MAG_060_Instance_SpawnFollowUp, (void *)rj_7F0220, "060 rj_7F0220" },
+		{ game::MAG_060_AllocParticle, (void *)rj_7F0250, "060 rj_7F0250" },
+		{ game::MAG_060_ActSys_UpdateEmitter, (void *)rj_7F02F0, "060 rj_7F02F0" },
+		{ game::MAG_060_ActSys_EmitterSpawnStep, (void *)rj_7F0370, "060 rj_7F0370" },
+		{ game::MAG_060_ActSys_SpawnParticles, (void *)rj_7F03F0, "060 rj_7F03F0" },
+		{ game::MAG_060_ActSys_AllocParticleSlot, (void *)rj_7F0BD0, "060 rj_7F0BD0" },
+		{ game::MAG_060_Actor_InterpolatePosition, (void *)rj_7F0DF0, "060 rj_7F0DF0" },
+		{ game::MAG_060_SpawnSubEffects, (void *)rj_7F18E0, "060 rj_7F18E0" },
+		{ game::MAG_060_Director_SpawnGroupEffects, (void *)rj_7F1970, "060 rj_7F1970" },
+		{ game::MAG_060_RaijinStrike_ActorSystemA_State1_StepActorSystem, (void *)rj_7F1A00, "060 rj_7F1A00" },
+		{ game::MAG_060_RaijinStrike_ActorSystemBStart, (void *)rj_7F1A90, "060 rj_7F1A90" },
+		{ game::MAG_060_RaijinStrike_ActorSystemB_State1_StepActorSystem, (void *)rj_7F1AF0, "060 rj_7F1AF0" },
+		{ game::MAG_060_RaijinStrike_Darken_Init, (void *)rj_7F1B90, "060 rj_7F1B90" },
+		{ game::MAG_060_RaijinStrike_Darken_FadeIn, (void *)rj_7F1BD0, "060 rj_7F1BD0" },
+		{ game::MAG_060_RaijinStrike_Darken_Hold, (void *)rj_7F1C10, "060 rj_7F1C10" },
+		{ game::MAG_060_RaijinStrike_Darken_State3_FadeOut, (void *)rj_7F1C20, "060 rj_7F1C20" },
+		{ game::MAG_060_RaijinStrike_FacingMatrix, (void *)rj_7F1CD0, "060 rj_7F1CD0" },
+		{ game::MAG_060_RaijinStrike_EmitDebris, (void *)rj_7F1D20, "060 rj_7F1D20" },
+		{ game::MAG_060_RaijinStrike_DebrisTask, (void *)rj_7F1E50, "060 rj_7F1E50" },
+		{ game::MAG_060_RaijinStrike_DrawDebris, (void *)rj_7F1F30, "060 rj_7F1F30" },
+		{ game::MAG_060_RaijinStrike_Debris_State0_InitSprite, (void *)rj_7F2600, "060 rj_7F2600" },
+		{ game::MAG_060_RaijinStrike_Debris_State1_Animate, (void *)rj_7F2620, "060 rj_7F2620" },
+		{ game::MAG_060_RaijinStrike_Emitter_State1_ApplyDamage, (void *)rj_7F2690, "060 rj_7F2690" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

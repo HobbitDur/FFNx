@@ -25,40 +25,40 @@ namespace thundara102
 	using namespace eng;
 	using namespace magc;
 
-	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(us(0x2544DD0)); }
-	inline TaskQueuePair &Particles() { return var<TaskQueuePair>(us(0x2544DF0)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2544360)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2544364)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x254437C)); }
+	inline TaskQueuePair &Queues() { return var<TaskQueuePair>(game_addr(game::MAG102_THUNDARA_queueRootAndBolts)); }
+	inline TaskQueuePair &Particles() { return var<TaskQueuePair>(game_addr(game::MAG102_THUNDARA_queueSparksAndFlashes)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG102_THUNDARA_packetArenaBase)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG102_THUNDARA_castCtx)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG102_THUNDARA_packetCursor)); }
 
-	static const uint32_t ORIG_RootTask = 0x6DC390;
-	static const uint32_t ORIG_BoltTask = 0x6DC510;
-	static const uint32_t ORIG_SparkTask = 0x6DCC00;
-	static const uint32_t ORIG_FlashTask = 0x6DCD10;
-	static const uint32_t BOLT_POOL = 0x2543F18;
+	static constexpr game::Id ORIG_RootTask = game::MAG_102_THUNDARA_Tick;
+	static constexpr game::Id ORIG_BoltTask = game::MAG_102_THUNDARA_BoltTask;
+	static constexpr game::Id ORIG_SparkTask = game::MAG_102_Spark_Tick;
+	static constexpr game::Id ORIG_FlashTask = game::MAG_102_FlashSprite_Tick;
+	static constexpr game::Id BOLT_POOL = game::MAG102_THUNDARA_boltPool;
 	static const int BOLT_POOL_COUNT = 3;
-	static const void *SOUND_Thundara() { return (const void *)us(0x1321BD8); }
-	static const void *FLASH_Colour() { return (const void *)us(0x1321BDC); }
-	static const uint32_t SEQ_Strike = 0x131E878;
-	static const uint32_t SEQ_UpperA = 0x131EABC;
-	static const uint32_t SEQ_UpperB = 0x131ECB0;
-	static const uint32_t SEQ_Core = 0x131F0E8;
-	static const uint32_t SEQ_Arc = 0x131FF74;
-	static const uint32_t SEQ_ArcLow = 0x131EECC;
-	static const uint32_t SEQ_Glow = 0x131F458;
-	static const uint32_t SEQ_Smoke = 0x131F5B4;
-	static const uint32_t SEQ_Fade = 0x131FA68;
-	static const uint32_t SEQ_Spark = 0x131F244;
-	static const uint32_t SEQ_FlashSprite = 0x131E760;
-	static const uint32_t MODEL_TiltedGlow = 0x13200D0;
-	static const uint32_t MODEL_Column = 0x13207B8;
-	static const uint32_t MODEL_FlashBall = 0x1320EA0;
+	static const void *SOUND_Thundara() { return (const void *)game_addr(game::MAG102_THUNDARA_boltSoundId); }
+	static const void *FLASH_Colour() { return (const void *)game_addr(game::MAG102_THUNDARA_screenFlashParam); }
+	static constexpr game::Id SEQ_Strike = game::MAG102_THUNDARA_boltLayer_core_f0;
+	static constexpr game::Id SEQ_UpperA = game::MAG102_THUNDARA_boltLayer_high_f2;
+	static constexpr game::Id SEQ_UpperB = game::MAG102_THUNDARA_boltLayer_mid_f2;
+	static constexpr game::Id SEQ_Core = game::MAG102_THUNDARA_boltLayer_ground_f2;
+	static constexpr game::Id SEQ_Arc = game::MAG102_THUNDARA_boltLayer_burst_f5;
+	static constexpr game::Id SEQ_ArcLow = game::MAG102_THUNDARA_boltLayer_highBurst_f5;
+	static constexpr game::Id SEQ_Glow = game::MAG102_THUNDARA_boltLayer_afterglow_f8;
+	static constexpr game::Id SEQ_Smoke = game::MAG102_THUNDARA_boltLayer_fade_f11;
+	static constexpr game::Id SEQ_Fade = game::MAG102_THUNDARA_boltLayer_pulsing_f9;
+	static constexpr game::Id SEQ_Spark = game::MAG102_THUNDARA_sparkSeq;
+	static constexpr game::Id SEQ_FlashSprite = game::MAG102_THUNDARA_flashSeq;
+	static constexpr game::Id MODEL_TiltedGlow = game::MAG102_THUNDARA_tiltedGlowModel;
+	static constexpr game::Id MODEL_Column = game::MAG102_THUNDARA_columnModel;
+	static constexpr game::Id MODEL_FlashBall = game::MAG102_THUNDARA_flashBallModel;
 
-	inline uint32_t RenderOT44() { return var<uint32_t>(us(0x1D8E04C)) + 0x44; }
+	inline uint32_t RenderOT44() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44; }
 
-	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(us(0x502170))(entity, bone, flag, out); }
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
+	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, flag, out); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAltViewport))(bucket, packet); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -124,7 +124,7 @@ namespace thundara102
 		*(uint32_t *)p = 0x5000000;
 		*(uint32_t *)(p + 4) = *(const uint32_t *)colour;
 		p[7] = 0x2A;
-		InsertPrimAltViewport(var<uint32_t>(us(0x1D8E04C)) + 0x20, p);
+		InsertPrimAltViewport(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x20, p);
 		return cursor + 0x18;
 	}
 
@@ -170,7 +170,7 @@ namespace thundara102
 			if (r->action <= acts[0].last_action)
 			{
 				uint8_t *entity = Entity(acts[r->action].targets[0]);
-				BoltNode *pool = (BoltNode *)us(BOLT_POOL);
+				BoltNode *pool = (BoltNode *)game_addr(BOLT_POOL);
 				bool busy = false;
 				for (int k = 0; k < BOLT_POOL_COUNT; k++)
 					if ((pool[k].hdr.flags & 1) && pool[k].entity == entity && pool[k].counter <= 0x1A)
@@ -181,7 +181,7 @@ namespace thundara102
 				if (busy) r->counter = 0;
 				else
 				{
-					BoltNode *b = (BoltNode *)AddTaskToQueue(&Queues().second, us(ORIG_BoltTask));
+					BoltNode *b = (BoltNode *)AddTaskToQueue(&Queues().second, game_addr(ORIG_BoltTask));
 					FillDwords(&b->counter, 0, 0x18);
 					b->action = (int16_t)(uint16_t)r->action;
 					b->entity = Entity(Ctx()->actions[b->action].targets[0]);
@@ -235,7 +235,7 @@ namespace thundara102
 		Mat4x3 m = {};
 		BuildTiltMatrix((int16_t)tilt, &m, s);
 		ModelGte(&m, pos[0], pos[1], pos[2]);
-		*(uint32_t *)h = us(MODEL_TiltedGlow);
+		*(uint32_t *)h = game_addr(MODEL_TiltedGlow);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -265,7 +265,7 @@ namespace thundara102
 		m.m[2][2] = (int16_t)w;
 		m.m[1][1] = (int16_t)v;
 		ModelGte(&m, pos[0], height, pos[2]);
-		*(uint32_t *)h = us(MODEL_Column);
+		*(uint32_t *)h = game_addr(MODEL_Column);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -286,7 +286,7 @@ namespace thundara102
 		m.m[1][1] = (int16_t)s;
 		m.m[2][2] = (int16_t)s;
 		ModelGte(&m, pos[0], height, pos[2]);
-		*(uint32_t *)h = us(MODEL_FlashBall);
+		*(uint32_t *)h = game_addr(MODEL_FlashBall);
 		h[0xA] = 0;
 		h[9] = 0;
 		h[8] = 0;
@@ -310,7 +310,7 @@ namespace thundara102
 		if (f < 8)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, us(SEQ_Strike), f);
+			Layer(h, game_addr(SEQ_Strike), f);
 		}
 		if (f >= 2)
 		{
@@ -320,15 +320,15 @@ namespace thundara102
 				ff8fx::copy<(8)>(low, p->pos);
 				low[1] = (int16_t)(low[1] + 0xC8);
 				TransformCameraByShadowRotation(low, 0x1000, -0x400);
-				Layer(h, us(SEQ_UpperA), f - 2);
+				Layer(h, game_addr(SEQ_UpperA), f - 2);
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				*(uint32_t *)h = us(SEQ_UpperB);
+				*(uint32_t *)h = game_addr(SEQ_UpperB);
 				PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 			}
 			if (f < 11)
 			{
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				Layer(h, us(SEQ_Core), f - 2);
+				Layer(h, game_addr(SEQ_Core), f - 2);
 			}
 		}
 		if (f >= 1 && f < 13) PacketCursor() = TiltedGlow(p->pos, 0x200, f - 1, 0xC, RenderOT44(), 2, PacketCursor());
@@ -338,7 +338,7 @@ namespace thundara102
 			if (f < 14)
 			{
 				TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-				Layer(h, us(SEQ_Arc), f - 5);
+				Layer(h, game_addr(SEQ_Arc), f - 5);
 			}
 			if (f < 13)
 			{
@@ -346,7 +346,7 @@ namespace thundara102
 				ff8fx::copy<(8)>(low, p->pos);
 				low[1] = (int16_t)(low[1] + 0xC8);
 				TransformCameraByShadowRotation(low, 0x1000, -0x400);
-				Layer(h, us(SEQ_ArcLow), f - 5);
+				Layer(h, game_addr(SEQ_ArcLow), f - 5);
 			}
 		}
 		if (f >= 3 && f < 15) PacketCursor() = TiltedGlow(p->pos, -0x200, f - 3, 0xC, RenderOT44(), 2, PacketCursor());
@@ -354,12 +354,12 @@ namespace thundara102
 		if (f >= 8 && f < 0x11)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, us(SEQ_Glow), f - 8);
+			Layer(h, game_addr(SEQ_Glow), f - 8);
 		}
 		if (f >= 0xB && f < 0x14)
 		{
 			TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-			Layer(h, us(SEQ_Smoke), f - 0xB);
+			Layer(h, game_addr(SEQ_Smoke), f - 0xB);
 		}
 		if (f >= 9 && f < 0x13)
 		{
@@ -369,7 +369,7 @@ namespace thundara102
 			int32_t x = shl32(k, 10);
 			int32_t q = (int32_t)(((int64_t)x * 0x66666667) >> 32) >> 2;
 			q += (int32_t)((uint32_t)q >> 31);
-			*(uint32_t *)h = us(SEQ_Fade);
+			*(uint32_t *)h = game_addr(SEQ_Fade);
 			uint8_t level = (uint8_t)(0x80 - (uint8_t)(ComputeSin(q) >> 7));
 			*(uint16_t *)(h + 0x24) = 4;
 			h[0x1E] = level;
@@ -383,7 +383,7 @@ namespace thundara102
 	{
 		for (int k = 2; k; k--)
 		{
-			FlashNode *f = (FlashNode *)AddTaskToQueue(&Particles().second, us(ORIG_FlashTask));
+			FlashNode *f = (FlashNode *)AddTaskToQueue(&Particles().second, game_addr(ORIG_FlashTask));
 			if (!f) continue;
 			FillDwords(&f->counter, 0, 3);
 			int32_t radius = (EntitySizeOf(p->entity) >> 1) + 0x12C;
@@ -404,7 +404,7 @@ namespace thundara102
 		{
 			for (int k = 0; k < 20; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(&Particles().first, us(ORIG_SparkTask));
+				SparkNode *s = (SparkNode *)AddTaskToQueue(&Particles().first, game_addr(ORIG_SparkTask));
 				if (!s) break;
 				p->sparks[19 - k] = s;
 				FillDwords(&s->counter, 0, 8);
@@ -454,7 +454,7 @@ namespace thundara102
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, 0x1000, -0x400);
-		*(uint32_t *)h = us(SEQ_Spark);
+		*(uint32_t *)h = game_addr(SEQ_Spark);
 		*(uint16_t *)(h + 4) = (uint16_t)(p->anim % 20);
 		uint8_t level = (uint8_t)p->level;
 		h[0x1E] = level;
@@ -497,7 +497,7 @@ namespace thundara102
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(p->pos, 0xC00, -0x300);
-		*(uint32_t *)h = us(SEQ_FlashSprite);
+		*(uint32_t *)h = game_addr(SEQ_FlashSprite);
 		*(uint16_t *)(h + 0x24) = 0;
 		*(uint16_t *)(h + 4) = (uint16_t)(*(const uint8_t *)&p->counter & 7);
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());

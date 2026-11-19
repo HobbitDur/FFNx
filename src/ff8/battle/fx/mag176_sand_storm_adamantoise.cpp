@@ -32,68 +32,68 @@ namespace sandstorm176
 	inline int32_t &S32(uint32_t p, int32_t o) { return AT<int32_t>(p, o); }
 	inline uint32_t &U32(uint32_t p, int32_t o) { return AT<uint32_t>(p, o); }
 
-	inline uint32_t &RingSel() { return var<uint32_t>(us(0x2368580)); }
-	inline uint32_t &TargetSlot() { return var<uint32_t>(us(0x2368584)); }
-	inline uint32_t &PacketSel() { return var<uint32_t>(us(0x2374560)); }
-	inline uint32_t &HeadSel() { return var<uint32_t>(us(0x2374564)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x237454C)); }
-	inline uint32_t &CasterSlot() { return var<uint32_t>(us(0x2374550)); }
-	inline uint32_t &TexFile() { return var<uint32_t>(us(0x2374554)); }
-	inline uint32_t &Parity() { return var<uint32_t>(us(0x2374568)); }
-	inline uint32_t &ArenaBase() { return var<uint32_t>(us(0x237456C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2374570)); }
-	static const uint32_t Q_ROOT = 0x2368598, Q_FX = 0x23733E8;
-	static const uint32_t POINT_A = 0x23685A8, POINT_B = 0x23685B0;
-	static const uint32_t POOL = 0x23685B8, POOL_END = 0x23693C8;
-	static const uint32_t PACKETS_A = 0x23693C8, PACKETS_B = 0x236E3C8;
-	static const uint32_t HEAD_A = 0x23733C8, HEAD_B = 0x23733D8;
-	static const uint32_t SAVE = 0x2374208, SAVE_SIZE = 0x14;
-	static const uint32_t CENTRE = 0x2374298;
-	static const uint32_t CASTER_POS = 0x2374558;
-	static const uint32_t RINGS_A = 0x23742A0, RINGS_B = 0x23743F8, RING_SIZE = 0x14;
+	inline uint32_t &RingSel() { return var<uint32_t>(game_addr(game::MAG_176_g_curFunnelRings)); }
+	inline uint32_t &TargetSlot() { return var<uint32_t>(game_addr(game::MAG_176_g_firstTargetSlot)); }
+	inline uint32_t &PacketSel() { return var<uint32_t>(game_addr(game::MAG_176_g_curFunnelPackets)); }
+	inline uint32_t &HeadSel() { return var<uint32_t>(game_addr(game::MAG_176_g_curFunnelWander)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_176_g_castContext)); }
+	inline uint32_t &CasterSlot() { return var<uint32_t>(game_addr(game::MAG_176_g_casterSlot)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(game_addr(game::MAG_176_g_texFile)); }
+	inline uint32_t &Parity() { return var<uint32_t>(game_addr(game::MAG_176_g_packetParity)); }
+	inline uint32_t &ArenaBase() { return var<uint32_t>(game_addr(game::MAG_176_g_packetArenaBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_176_g_packetCursor)); }
+	static constexpr game::Id Q_ROOT = game::MAG_176_g_rootQueue, Q_FX = game::MAG_176_g_effectQueue;
+	static constexpr game::Id POINT_A = game::MAG_176_g_funnelBaseA, POINT_B = game::MAG_176_g_funnelBaseB;
+	static constexpr game::Id POOL = game::MAG_176_g_sandPool, POOL_END = game::MAG_176_g_funnelPacketsA;
+	static constexpr game::Id PACKETS_A = game::MAG_176_g_funnelPacketsA, PACKETS_B = game::MAG_176_g_funnelPacketsB;
+	static constexpr game::Id HEAD_A = game::MAG_176_g_funnelWanderA, HEAD_B = game::MAG_176_g_funnelWanderB;
+	static constexpr game::Id SAVE = game::MAG_176_g_liftEntitySave; static const uint32_t SAVE_SIZE = 0x14;
+	static constexpr game::Id CENTRE = game::MAG_176_g_targetsCentre;
+	static constexpr game::Id CASTER_POS = game::MAG_176_g_casterDefaultPos;
+	static constexpr game::Id RINGS_A = game::MAG_176_g_funnelRingsA, RINGS_B = game::MAG_176_g_funnelRingsB; static const uint32_t RING_SIZE = 0x14;
 	static const uint32_t ARENA_HALF = 0xC000;
 
-	static const uint32_t FUNNEL_Matrix = 0xD45158;
-	static const uint32_t SEQ_Sand = 0xD44FA0;
-	static const void *SOUND_Wind() { return (const void *)us(0xD4514C); }
-	static const void *SOUND_Land() { return (const void *)us(0xD45150); }
+	static constexpr game::Id FUNNEL_Matrix = game::MAG_176_FunnelMatrix;
+	static constexpr game::Id SEQ_Sand = game::MAG_176_SandSpriteSeq;
+	static const void *SOUND_Wind() { return (const void *)game_addr(game::MAG_176_SoundWind); }
+	static const void *SOUND_Land() { return (const void *)game_addr(game::MAG_176_SoundLand); }
 
-	static const uint32_t ENTITY0 = 0x1D972C0, ENTITY_SIZE = 0x9C;
-	static const uint32_t CAMERA = 0x1D97778;
-	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
+	static constexpr game::Id ENTITY0 = game::BattleEntitySlotData; static const uint32_t ENTITY_SIZE = 0x9C;
+	static constexpr game::Id CAMERA = game::unk_1D97778;
+	inline uint32_t OTBase() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
 
-	static const uint32_t ORIG_Root = 0x5D1A60;
-	static const uint32_t ORIG_Director = 0x5D01B0;
-	static const uint32_t ORIG_Funnel = 0x5D0740;
-	static const uint32_t ORIG_Sand = 0x5D11F0;
-	static const uint32_t ORIG_Lift = 0x5D14B0;
-	static const uint32_t ORIG_Landing = 0x5D1820;
+	static constexpr game::Id ORIG_Root = game::MAG_176_SandStorm_RootTask;
+	static constexpr game::Id ORIG_Director = game::MAG_176_SandStorm_DirectorTask;
+	static constexpr game::Id ORIG_Funnel = game::MAG_176_SandStorm_FunnelTask;
+	static constexpr game::Id ORIG_Sand = game::MAG_176_SandStorm_SandTask;
+	static constexpr game::Id ORIG_Lift = game::MAG_176_SandStorm_TargetLiftTask;
+	static constexpr game::Id ORIG_Landing = game::MAG_176_SandStorm_LandingDustTask;
 
 	inline uint32_t Add(uint32_t q, uint32_t task) { return (uint32_t)AddTaskToQueue((TaskQueue *)q, task); }
 	inline uint32_t Alloc(int size) { return (uint32_t)FieldAlloc(size); }
-	inline uint32_t Entity(int slot) { return us(ENTITY0) + ENTITY_SIZE * slot; }
-	inline int32_t Sin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D130))(a); }
-	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	inline void ComposeZYX(uint32_t angles, uint32_t m) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x56CE30))(angles, m); }
-	inline void Compose(uint32_t a, uint32_t b, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56C2F0))(a, b, out); }
-	inline void MatVec(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56C4F0))(m, in, out); }
-	inline void SetRotW(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(us(0x56BAE0))(m); }
-	inline void SetTransW(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(us(0x56BB30))(m); }
-	inline void LoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45DFE0))(a, b, c); }
-	inline void LoadV0(uint32_t a) { fn<void (__cdecl *)(uint32_t)>(us(0x45DF80))(a); }
-	inline void RTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void RTPS() { fn<void (__cdecl *)()>(us(0x45FAA0))(); }
-	inline void AVSZ4() { fn<void (__cdecl *)()>(us(0x45E610))(); }
-	inline void ReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E210))(dst); }
-	inline void ReadOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E3D0))(dst); }
-	inline void ReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x45E270))(a, b, c); }
-	inline void ReadSXY2(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(us(0x45E260))(dst); }
-	inline void Insert(uint32_t slot, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x45C7A0))(slot, packet); }
-	inline void ShadowRotation(uint32_t pos, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(us(0x571BC0))(pos, a, b); }
-	inline uint32_t SpriteSeq(uint32_t hdr, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(us(0x571C80))(hdr, ot, mode, cursor); }
-	inline void SpawnPosition(uint32_t entity, int32_t bone, int32_t frac, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(us(0x502170))(entity, bone, frac, out); }
-	inline void CalculateCenterPosition(uint32_t mask, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(us(0x5020A0))(mask, out); }
+	inline uint32_t Entity(int slot) { return game_addr(ENTITY0) + ENTITY_SIZE * slot; }
+	inline int32_t Sin(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeSin))(a); }
+	inline int32_t Cos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	inline void ComposeZYX(uint32_t angles, uint32_t m) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::ComposeZYXRotationMatrix))(angles, m); }
+	inline void Compose(uint32_t a, uint32_t b, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::ComposeAffineTransform))(a, b, out); }
+	inline void MatVec(uint32_t m, uint32_t in, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void SetRotW(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetRotMatrix_W))(m); }
+	inline void SetTransW(uint32_t m) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_SetTransVector_W))(m); }
+	inline void LoadV012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_LoadV012))(a, b, c); }
+	inline void LoadV0(uint32_t a) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadV0))(a); }
+	inline void RTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void RTPS() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPS))(); }
+	inline void AVSZ4() { fn<void (__cdecl *)()>(game_addr(game::GTE_AVSZ4))(); }
+	inline void ReadFLAG(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadFLAG))(dst); }
+	inline void ReadOTZ(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadOTZ))(dst); }
+	inline void ReadSXY012(uint32_t a, uint32_t b, uint32_t c) { fn<void (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::GTE_ReadSXY012_Split))(a, b, c); }
+	inline void ReadSXY2(uint32_t dst) { fn<void (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSXY2))(dst); }
+	inline void Insert(uint32_t slot, uint32_t packet) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::SSIGPU_InsertPrimAutoDepth))(slot, packet); }
+	inline void ShadowRotation(uint32_t pos, int32_t a, int32_t b) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t)>(game_addr(game::TransformCameraByShadowRotation))(pos, a, b); }
+	inline uint32_t SpriteSeq(uint32_t hdr, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, int32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(hdr, ot, mode, cursor); }
+	inline void SpawnPosition(uint32_t entity, int32_t bone, int32_t frac, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, uint32_t)>(game_addr(game::GetEffectSpawnPosition))(entity, bone, frac, out); }
+	inline void CalculateCenterPosition(uint32_t mask, uint32_t out) { fn<void (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::CalculateCenterPosition))(mask, out); }
 
 	struct FunnelParams { int32_t p[6]; };
 
@@ -169,8 +169,8 @@ namespace sandstorm176
 			return;
 		}
 		const int32_t t = shl32(c - 0x1A, 12) / 38;
-		*x = (int16_t)((mul32((int32_t)S16(us(CENTRE), 0) - S16(f, 0x10), t) >> 12) + S16(f, 0x10));
-		*z = (int16_t)((mul32((int32_t)S16(us(CENTRE), 4) - S16(f, 0x14), t) >> 12) + S16(f, 0x14));
+		*x = (int16_t)((mul32((int32_t)S16(game_addr(CENTRE), 0) - S16(f, 0x10), t) >> 12) + S16(f, 0x10));
+		*z = (int16_t)((mul32((int32_t)S16(game_addr(CENTRE), 4) - S16(f, 0x14), t) >> 12) + S16(f, 0x14));
 		int16_t v[4];
 		v[0] = (int16_t)(mul32(Sin(S16(f, 0x20)), S16(f, 0x1C)) >> 12);
 		v[1] = 0;
@@ -403,28 +403,28 @@ namespace sandstorm176
 		}
 		if (S16(f, 0xE) != 0)
 		{
-			RingSel() = us(RINGS_B);
-			PacketSel() = us(PACKETS_B);
-			HeadSel() = us(HEAD_B);
-			S16(us(POINT_B), 0) = x;
-			S16(us(POINT_B), 4) = z;
-			S16(us(POINT_B), 6) = (int16_t)P.p[1];
+			RingSel() = game_addr(RINGS_B);
+			PacketSel() = game_addr(PACKETS_B);
+			HeadSel() = game_addr(HEAD_B);
+			S16(game_addr(POINT_B), 0) = x;
+			S16(game_addr(POINT_B), 4) = z;
+			S16(game_addr(POINT_B), 6) = (int16_t)P.p[1];
 		}
 		else
 		{
-			RingSel() = us(RINGS_A);
-			PacketSel() = us(PACKETS_A);
-			HeadSel() = us(HEAD_A);
-			S16(us(POINT_A), 0) = x;
-			S16(us(POINT_A), 4) = z;
-			S16(us(POINT_A), 6) = (int16_t)P.p[1];
+			RingSel() = game_addr(RINGS_A);
+			PacketSel() = game_addr(PACKETS_A);
+			HeadSel() = game_addr(HEAD_A);
+			S16(game_addr(POINT_A), 0) = x;
+			S16(game_addr(POINT_A), 4) = z;
+			S16(game_addr(POINT_A), 6) = (int16_t)P.p[1];
 		}
 		FunnelRings(P);
-		S32(us(FUNNEL_Matrix), 0x14) = x;
-		S32(us(FUNNEL_Matrix), 0x18) = 0;
-		S32(us(FUNNEL_Matrix), 0x1C) = z;
+		S32(game_addr(FUNNEL_Matrix), 0x14) = x;
+		S32(game_addr(FUNNEL_Matrix), 0x18) = 0;
+		S32(game_addr(FUNNEL_Matrix), 0x1C) = z;
 		Mat4x3 m;
-		Compose(us(CAMERA), us(FUNNEL_Matrix), (uint32_t)&m);
+		Compose(game_addr(CAMERA), game_addr(FUNNEL_Matrix), (uint32_t)&m);
 		SetRotW((uint32_t)&m);
 		SetTransW((uint32_t)&m);
 		const int16_t c = S16(f, 0xC);
@@ -432,16 +432,16 @@ namespace sandstorm176
 		int32_t angle = c * 100;
 		if (S16(f, 0xE) != 0)
 		{
-			RingSel() = us(RINGS_B);
-			PacketSel() = us(PACKETS_B);
-			HeadSel() = us(HEAD_B);
+			RingSel() = game_addr(RINGS_B);
+			PacketSel() = game_addr(PACKETS_B);
+			HeadSel() = game_addr(HEAD_B);
 			angle = -angle;
 		}
 		else
 		{
-			RingSel() = us(RINGS_A);
-			PacketSel() = us(PACKETS_A);
-			HeadSel() = us(HEAD_A);
+			RingSel() = game_addr(RINGS_A);
+			PacketSel() = game_addr(PACKETS_A);
+			HeadSel() = game_addr(HEAD_A);
 		}
 		FunnelDraw(RingSel(), PacketSel(), angle, alpha);
 		if (DrawOnly()) return 0;
@@ -452,24 +452,24 @@ namespace sandstorm176
 	static uint32_t FreeSand()
 	{
 		int32_t i = 0;
-		uint32_t e = us(POOL);
+		uint32_t e = game_addr(POOL);
 		while (U32(e, 0) != 0)
 		{
 			e += 0x18;
 			i++;
-			if (e >= us(POOL_END)) return 0;
+			if (e >= game_addr(POOL_END)) return 0;
 		}
-		return i < 0x96 ? us(POOL) + (uint32_t)i * 0x18 : 0;
+		return i < 0x96 ? game_addr(POOL) + (uint32_t)i * 0x18 : 0;
 	}
 
 	static uint32_t __cdecl SandTask(TaskNode *n)
 	{
 		const uint32_t t = (uint32_t)n;
 		const uint32_t h = Alloc(0xB4);
-		U32(h, 0) = us(SEQ_Sand);
+		U32(h, 0) = game_addr(SEQ_Sand);
 		S16(h, 0x24) = 0;
 		int32_t alive = 0;
-		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
+		for (uint32_t e = game_addr(POOL); e < game_addr(POOL_END); e += 0x18)
 		{
 			if (!(U32(e, 0) & (uint32_t)(int32_t)S16(t, 0xE))) continue;
 			SandDraw(h, e);
@@ -494,7 +494,7 @@ namespace sandstorm176
 		if (c >= 0 && c <= 0x50)
 		{
 			const int32_t count = (c >> 5) + 1;
-			const uint32_t pt = S16(t, 0xE) == 1 ? us(POINT_A) : us(POINT_B);
+			const uint32_t pt = S16(t, 0xE) == 1 ? game_addr(POINT_A) : game_addr(POINT_B);
 			for (int32_t k = 0; k < count; k++)
 			{
 				const uint32_t e = FreeSand();
@@ -532,7 +532,7 @@ namespace sandstorm176
 		}
 		const int16_t c = S16(l, 0xC);
 		const int32_t slot = S16(l, 0xE);
-		const uint32_t ent = Entity(slot), save = us(SAVE) + (uint32_t)slot * SAVE_SIZE;
+		const uint32_t ent = Entity(slot), save = game_addr(SAVE) + (uint32_t)slot * SAVE_SIZE;
 		if (c == 0)
 		{
 			U16(save, 0) = (uint16_t)(U16(ent, 0) & 0x1020);
@@ -556,7 +556,7 @@ namespace sandstorm176
 			S16(ent, 0x1C) = (int16_t)(S16(l, 0x10) - v[0]);
 			S16(ent, 0x1E) = (int16_t)(S16(l, 0x12) - v[1]);
 			S16(ent, 0x20) = (int16_t)(S16(l, 0x14) - v[2]);
-			const uint32_t pt = S16(l, 0x1C) != 0 ? us(POINT_B) : us(POINT_A);
+			const uint32_t pt = S16(l, 0x1C) != 0 ? game_addr(POINT_B) : game_addr(POINT_A);
 			const int32_t frac = S16(ent, 0xE);
 			S16(ent, 0x1C) = (int16_t)(S16(ent, 0x1C) + (int16_t)(mul32((int32_t)S16(pt, 0) - S16(l, 0x10), frac) >> 12));
 			S16(ent, 0x1E) = (int16_t)(S16(ent, 0x1E) + S16(l, 0x20));
@@ -588,7 +588,7 @@ namespace sandstorm176
 		U32(ent, 0x20) = U32(save, 0x10);
 		U32(ent, 0xC) = U32(save, 4);
 		U32(ent, 0x10) = U32(save, 8);
-		const uint32_t d = Add(us(Q_FX), us(ORIG_Landing));
+		const uint32_t d = Add(game_addr(Q_FX), game_addr(ORIG_Landing));
 		const int16_t index = S16(l, 0x1A);
 		U32(d, 0x10) = U32(save, 0xC);
 		U32(d, 0x14) = U32(save, 0x10);
@@ -604,9 +604,9 @@ namespace sandstorm176
 		const uint32_t t = (uint32_t)n;
 		const uint32_t h = Alloc(0xB4);
 		int32_t alive = 0;
-		U32(h, 0) = us(SEQ_Sand);
+		U32(h, 0) = game_addr(SEQ_Sand);
 		S16(h, 0x24) = 0;
-		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
+		for (uint32_t e = game_addr(POOL); e < game_addr(POOL_END); e += 0x18)
 		{
 			if (!(U32(e, 0) & (uint32_t)(int32_t)S16(t, 0xE))) continue;
 			SandDraw(h, e);
@@ -655,23 +655,23 @@ namespace sandstorm176
 		const uint32_t d = (uint32_t)n;
 		if (S16(d, 0xC) == 0)
 		{
-			GetDefaultEffectPosition((uint8_t *)Entity(CasterSlot()), (int16_t *)us(CASTER_POS));
-			const int16_t y = S16(us(CASTER_POS), 2);
-			S16(us(CASTER_POS), 2) = S16(us(CASTER_POS), 6);
-			S16(us(CASTER_POS), 6) = y;
-			CalculateCenterPosition(Ctx()->target_mask, us(CENTRE));
-			RingSel() = us(RINGS_A);
-			PacketSel() = us(PACKETS_A);
-			HeadSel() = us(HEAD_A);
+			GetDefaultEffectPosition((uint8_t *)Entity(CasterSlot()), (int16_t *)game_addr(CASTER_POS));
+			const int16_t y = S16(game_addr(CASTER_POS), 2);
+			S16(game_addr(CASTER_POS), 2) = S16(game_addr(CASTER_POS), 6);
+			S16(game_addr(CASTER_POS), 6) = y;
+			CalculateCenterPosition(Ctx()->target_mask, game_addr(CENTRE));
+			RingSel() = game_addr(RINGS_A);
+			PacketSel() = game_addr(PACKETS_A);
+			HeadSel() = game_addr(HEAD_A);
 			FunnelInit();
-			RingSel() = us(RINGS_B);
-			PacketSel() = us(PACKETS_B);
-			HeadSel() = us(HEAD_B);
+			RingSel() = game_addr(RINGS_B);
+			PacketSel() = game_addr(PACKETS_B);
+			HeadSel() = game_addr(HEAD_B);
 			FunnelInit();
 		}
 		if (S16(d, 0xC) == 0xC)
 		{
-			const uint32_t a = Add(us(Q_FX), us(ORIG_Funnel));
+			const uint32_t a = Add(game_addr(Q_FX), game_addr(ORIG_Funnel));
 			S16(a, 0xC) = 0;
 			S16(a, 0xE) = 0;
 			S16(a, 0x1C) = (int16_t)(CrtRand() % 100 - 50);
@@ -681,7 +681,7 @@ namespace sandstorm176
 			S16(a, 0x20) = 0;
 			S16(a, 0x22) = (int16_t)(CrtRand() % 150 + 0x96);
 			SpawnPosition(Entity(CasterSlot()), 0x15, 0x1000, a + 0x10);
-			const uint32_t b = Add(us(Q_FX), us(ORIG_Funnel));
+			const uint32_t b = Add(game_addr(Q_FX), game_addr(ORIG_Funnel));
 			S16(b, 0x1C) = (int16_t)-S16(a, 0x1C);
 			S16(b, 0xC) = 0;
 			S16(b, 0xE) = 1;
@@ -689,16 +689,16 @@ namespace sandstorm176
 			S16(b, 0x20) = 0;
 			S16(b, 0x22) = S16(a, 0x22);
 			SpawnPosition(Entity(CasterSlot()), 0x16, 0x1000, b + 0x10);
-			S16(us(POINT_B), 2) = 0;
-			S16(us(POINT_A), 2) = 0;
-			S16(us(POINT_B), 6) = 0x12C;
-			S16(us(POINT_A), 6) = 0x12C;
+			S16(game_addr(POINT_B), 2) = 0;
+			S16(game_addr(POINT_A), 2) = 0;
+			S16(game_addr(POINT_B), 6) = 0x12C;
+			S16(game_addr(POINT_A), 6) = 0x12C;
 			if (S16(d, 0xC) == 0xC)
 			{
-				const uint32_t s1 = Add(us(Q_FX), us(ORIG_Sand));
+				const uint32_t s1 = Add(game_addr(Q_FX), game_addr(ORIG_Sand));
 				S16(s1, 0xC) = 0;
 				S16(s1, 0xE) = 1;
-				const uint32_t s2 = Add(us(Q_FX), us(ORIG_Sand));
+				const uint32_t s2 = Add(game_addr(Q_FX), game_addr(ORIG_Sand));
 				S16(s2, 0xC) = 0;
 				S16(s2, 0xE) = 2;
 			}
@@ -708,7 +708,7 @@ namespace sandstorm176
 			for (int32_t i = 0; i < (int32_t)Ctx()->actions->target_count; i++)
 			{
 				const int32_t slot = Ctx()->actions->targets[i * TARGET_STRIDE];
-				const uint32_t l = Add(us(Q_FX), us(ORIG_Lift));
+				const uint32_t l = Add(game_addr(Q_FX), game_addr(ORIG_Lift));
 				S16(l, 0xC) = 0;
 				S16(l, 0xE) = (int16_t)slot;
 				const int32_t r = CrtRand() % 2 + 1;
@@ -718,10 +718,10 @@ namespace sandstorm176
 				const int32_t r2 = CrtRand() % 65;
 				S16(l, 0x22) = (int16_t)(-45 - r2);
 				SpawnPosition(Entity(slot), 0xF1, 0, l + 0x10);
-				int32_t dx = (int32_t)S16(us(POINT_A), 0) - S16(l, 0x10), dz = (int32_t)S16(us(POINT_A), 4) - S16(l, 0x14);
+				int32_t dx = (int32_t)S16(game_addr(POINT_A), 0) - S16(l, 0x10), dz = (int32_t)S16(game_addr(POINT_A), 4) - S16(l, 0x14);
 				const int32_t da = Sqrt(mul32(dz, dz) + mul32(dx, dx));
-				dx = (int32_t)S16(us(POINT_B), 0) - S16(l, 0x10);
-				dz = (int32_t)S16(us(POINT_B), 4) - S16(l, 0x14);
+				dx = (int32_t)S16(game_addr(POINT_B), 0) - S16(l, 0x10);
+				dz = (int32_t)S16(game_addr(POINT_B), 4) - S16(l, 0x14);
 				const int32_t db = Sqrt(mul32(dz, dz) + mul32(dx, dx));
 				S16(l, 0x1C) = (int16_t)(da < db ? 1 : 0);
 				S16(l, 0x1E) = (int16_t)(CrtRand() % 6);
@@ -737,7 +737,7 @@ namespace sandstorm176
 		const uint32_t r = (uint32_t)n;
 		Parity() = U8(r, 0xC) & 1;
 		PacketCursor() = Parity() ? ArenaBase() + ARENA_HALF : ArenaBase();
-		const int a = ExecuteTaskQueue((TaskQueue *)us(Q_FX));
+		const int a = ExecuteTaskQueue((TaskQueue *)game_addr(Q_FX));
 		S16(r, 0xC) = (int16_t)(S16(r, 0xC) + 1);
 		return a ? 0 : TASK_END;
 	}

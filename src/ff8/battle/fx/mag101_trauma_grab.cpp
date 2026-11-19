@@ -23,31 +23,31 @@ namespace grab101
 	using namespace eng;
 	using namespace magc;
 
-	inline int32_t *ScaleVector() { return (int32_t *)us(0x2544E18); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2544E28)); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(us(0x2544E2C)); }
-	inline uint8_t *&Target() { return var<uint8_t *>(us(0x2544E30)); }
-	inline TaskQueue *QGrab() { return (TaskQueue *)us(0x2544E38); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2544E6C)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x2544E70)); }
-	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(us(0x1D8E04C)) + off; }
+	inline int32_t *ScaleVector() { return (int32_t *)game_addr(game::MAG_101_TargetScaleVec); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_101_CastContext)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(game_addr(game::MAG_101_CasterEntity)); }
+	inline uint8_t *&Target() { return var<uint8_t *>(game_addr(game::MAG_101_TargetEntity)); }
+	inline TaskQueue *QGrab() { return (TaskQueue *)game_addr(game::MAG_101_GrabQueue); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_101_PacketCursor)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_101_MagicBufferBase)); }
+	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + off; }
 
-	static const uint32_t ORIG_RootTask = 0x6DD1A0;
-	static const uint32_t ORIG_GrabTask = 0x6DD300;
-	static const uint32_t MODEL_Grab = 0x1321BEC;
-	static const void *SOUND_Grab() { return (const void *)us(0x13249DC); }
+	static constexpr game::Id ORIG_RootTask = game::MAG_101_TraumaGrab_RootTask;
+	static constexpr game::Id ORIG_GrabTask = game::MAG_101_TraumaGrab_GrabTask;
+	static constexpr game::Id MODEL_Grab = game::MAG_101_GrabLayout;
+	static const void *SOUND_Grab() { return (const void *)game_addr(game::MAG_101_GrabSound); }
 
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x7043B0))(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline void GteLoadIRBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(us(0x45E0E0))(rgb); }
-	inline void GteStoreIRBytes(void *rgb) { fn<void (__cdecl *)(void *)>(us(0x45E410))(rgb); }
-	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(us(0x56CB90))(a, b, wa, wb, out); }
-	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimModel2(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_070_RenderPrimModel))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline void GteLoadIRBytes(const void *rgb) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadIR123FromBytes))(rgb); }
+	inline void GteStoreIRBytes(void *rgb) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreIR123LowBytes))(rgb); }
+	inline void VecLerp(const void *a, const void *b, int32_t wa, int32_t wb, void *out) { fn<void (__cdecl *)(const void *, const void *, int32_t, int32_t, void *)>(game_addr(game::VecLerp))(a, b, wa, wb, out); }
+	inline void QueueChainTransformation(uint8_t *entity, int32_t id) { fn<void (__cdecl *)(uint8_t *, int32_t)>(game_addr(game::QueueChainTransformation))(entity, id); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -266,9 +266,9 @@ namespace grab101
 		{
 			r->started = 1;
 			InitTaskQueuePool(QGrab(), (void *)TexBase(), 0x2D0, 1);
-			GrabNode *g = (GrabNode *)AddTaskToQueue(QGrab(), us(ORIG_GrabTask));
+			GrabNode *g = (GrabNode *)AddTaskToQueue(QGrab(), game_addr(ORIG_GrabTask));
 			Memset32(&g->counter, 0, 0xB1);
-			DecodeModelPrimLayout(us(MODEL_Grab), g->layout, 0x2B0);
+			DecodeModelPrimLayout(game_addr(MODEL_Grab), g->layout, 0x2B0);
 			g->pos_xy = *(const uint32_t *)(Target() + 0x1C);
 			g->pos_z = *(const uint32_t *)(Target() + 0x20);
 			g->colour = *(const uint32_t *)(Target() + 0x2C);

@@ -39,26 +39,26 @@ namespace beam242
 	{
 		c.name = "242 Beam Cannon (BGH251F2)";
 		c.effect_id = 242;
-		c.vm_table = us(0x1862E50);
-		c.bone_table = us(0x1862AC0);
-		c.prim_table = us(0x1862B08);
-		c.prim_size = us(0x1862BF8);
-		c.spr_table = us(0x1862C0C);
-		c.ptype_table = us(0x1862C38);
-		c.pop_table = us(0x1862C4C);
-		c.draw_table = us(0x1862CAC);
-		c.attr_16A = us(0x1862E16);
-		c.attr_184 = us(0x1862E30);
-		c.attr_186 = us(0x1862E32);
-		c.attr_194 = us(0x1862E40);
-		c.attr_19C = us(0x1862E48);
-		c.desc = us(0x18629A4);
-		c.ptr_block = us(0x1862A98);
-		c.queue = us(0x2796828);
-		c.file00 = us(0x279683C);
-		c.file01 = us(0x2796838);
-		c.tick = us(0x9F8380);
-		c.load_cb = us(0x9FD890);
+		c.vm_table = game_addr(game::funcs_A018CC);
+		c.bone_table = game_addr(game::funcs_9FE4A7);
+		c.prim_table = game_addr(game::funcs_9FA0E4);
+		c.prim_size = game_addr(game::unk_1862BF8);
+		c.spr_table = game_addr(game::unk_1862C0C);
+		c.ptype_table = game_addr(game::unk_1862C38);
+		c.pop_table = game_addr(game::funcs_9FBE97);
+		c.draw_table = game_addr(game::unk_1862CAC);
+		c.attr_16A = game_addr(game::unk_1862E16);
+		c.attr_184 = game_addr(game::unk_1862E30);
+		c.attr_186 = game_addr(game::unk_1862E32);
+		c.attr_194 = game_addr(game::unk_1862E40);
+		c.attr_19C = game_addr(game::unk_1862E48);
+		c.desc = game_addr(game::unk_18629A4);
+		c.ptr_block = game_addr(game::unk_1862A98);
+		c.queue = game_addr(game::unk_2796828);
+		c.file00 = game_addr(game::unk_279683C);
+		c.file01 = game_addr(game::unk_2796838);
+		c.tick = game_addr(game::MAG_242_sub_9F8380);
+		c.load_cb = game_addr(game::MAG_242_sub_9FD890);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -91,7 +91,7 @@ namespace beam242
 		beam242::describe(beam242::g_c);
 		init_clone(beam242::g_c, nullptr, 0);
 		beam242::apply_slots(beam242::g_c);
-		register_port(0x9F8380, (void *)beam242::SequenceTask, "MAG242 Beam Cannon (BGH251F2) SequenceTick", 242);
+		register_port(game::MAG_242_sub_9F8380, (void *)beam242::SequenceTask, "MAG242 Beam Cannon (BGH251F2) SequenceTick", 242);
 	}
 }
 

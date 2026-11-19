@@ -24,41 +24,41 @@ namespace act
 {
 namespace drinkmagic
 {
-	static const Mod MOD_037 = { "drink", 37, 0x8569D0, 0x85F4C0,
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26A05EC, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26A8968, 0x0, 0x26A8C08, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26A8D8A, 0x0, 0x0, 0x26A8D9A, 0x0, 0x26A8DA0, 0x0, 0x26A8DB0 },
-		{ 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x856F20, 0x857970, 0x857A00, 0x857A60, 0x857BA0, 0x857CE0, 0x857EF0, 0x858170, 0x8583B0, 0x858650, 0x858880, 0x858B40, 0x858DA0, 0x859080, 0x8591C0, 0x859200, 0x85A490, 0x85A4E0, 0x85A510, 0x85A590, 0x85AC80, 0x85ACD0, 0x85AD70, 0x85AE30, 0x85B680, 0x85BA80, 0x85BB10, 0x0, 0x0, 0x0, 0x0, 0x0, 0x856D70, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8570D0, 0x8571B0, 0x857310, 0x8573E0, 0x857500, 0x857710, 0x859140, 0x859290, 0x8598F0, 0x859940, 0x8599D0, 0x859AA0, 0x85A230, 0x85A340, 0x85A3C0, 0x85A3F0, 0x85AC10, 0x85AC40, 0x85AD20, 0x85AE40, 0x85AF90, 0x0, 0x85B650, 0x85B830, 0x85B970, 0x0, 0x85F210, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 } };
+	static const Mod MOD_037 = { "drink", 37, game::MAG_037_DRINK_MAGIC_FL, game::MAG_036_CONFUSE_FL,
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::unk_26A05EC, {}, {}, {}, {}, {}, {}, {}, game::MAG_037_ActorSystemQueue, {}, game::MAG_037_EmitterQueue, {}, {}, {}, {}, {}, game::unk_26A8D8A, {}, {}, game::unk_26A8D9A, {}, game::MAG_037_ScratchSP, {}, game::MAG_037_ActorStatePtr },
+		{ {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_037_DirectorSetup, game::MAG_037_ActSys_Step, game::MAG_037_ActSys_DrawPass, game::MAG_037_ActSys_DrawActorModel, game::MAG_037_RenderPrimModel, game::MAG_037_MeshEmitF3, game::MAG_037_MeshEmitF4, game::MAG_037_RenderPolyFT3List, game::MAG_037_RenderPolyFT4List, game::MAG_037_PrimList_G3, game::MAG_037_PrimList_G4, game::MAG_037_PrimList_GT3, game::MAG_037_PrimList_GT4, game::MAG_037_ActSys_DrawSpritePass, game::MAG_037_ActSys_UpdatePass, game::MAG_037_ActorStep, game::MAG_037_ActSys_UpdateEmitter, game::MAG_037_Particle_LifeCountdown, game::MAG_037_ActSys_EmitterSpawnStep, game::MAG_037_ActSys_SpawnParticles, game::MAG_037_RandVec3, game::MAG_037_JitterAngles3, game::MAG_037_ActSys_AllocParticleSlot, game::MAG_037_GetWord8Minus1, game::MAG_037_Particle_Init, game::MAG_037_SpawnSubEffects, game::MAG_037_Director_SpawnGroupEffects, {}, {}, {}, {}, {}, game::MAG_037_DrinkMagic_EmitterTask, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, game::MAG_037_ResetTrailHistory, game::MAG_037_Director_CasterRefPoints, game::MAG_037_FillTrailRows, game::MAG_037_Director_Mode3Setup, game::MAG_037_Director_TargetRefPoints, game::MAG_037_RelocateActorData, game::MAG_037_ActSys_DrawActorSprite, game::MAG_037_ActorMotion, game::MAG_037_DampValue, game::MAG_037_DampVector, game::MAG_037_Instance_AdvanceTexFrame, game::MAG_037_Instance_BuildTransform, game::MAG_037_MorphVertexBlock, game::MAG_037_Instance_EndOfLifeTest, game::MAG_037_Instance_SpawnFollowUp, game::MAG_037_AllocParticle, game::MAG_037_RandRange, game::MAG_037_RandRangeWide, game::MAG_037_RandAngleJitter, game::MAG_037_Particle_AttachToOwner, game::MAG_037_Actor_InterpolatePosition, {}, game::MAG_037_ParticleList_Unlink, game::MAG_037_Particle_PlaceAtAnchorSet, game::MAG_037_Particle_PlaceAtPoint, {}, game::MAG_037_StepCounterLimit, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} } };
 
-	static const uint32_t PACKET_CURSOR = 0x26A05CC;
-	static const uint32_t ACTOR_STATE = 0x26A8DB0;
-	static const uint32_t SCRATCH_SP = 0x26A8DA0;
-	static const uint32_t GATHER = 0x26A8D80;
-	static const uint32_t Q_EMITTER = 0x26A8C08, Q_ACTORS = 0x26A8968, Q_RIBBON = 0x26A06C8, Q_ORB = 0x26A7DA0, Q_STAGE = 0x26A8BF8;
-	static const uint32_t ORIG_Master = 0x856B40;
-	static const uint32_t ORIG_Emitter = 0x856D70;
-	static const uint32_t ORIG_ActorSystem = 0x856E90;
-	static const uint32_t ORIG_Spawner = 0x85BBD0;
-	static const uint32_t ORIG_Streak = 0x85BD50;
-	static const uint32_t ORIG_Orb = 0x85C1F0;
-	static const uint32_t ORIG_Ribbon = 0x85E930;
-	static const uint32_t ORIG_Spark = 0x85F060;
+	static constexpr game::Id PACKET_CURSOR = game::MAG_037_PacketCursor;
+	static constexpr game::Id ACTOR_STATE = game::MAG_037_ActorStatePtr;
+	static constexpr game::Id SCRATCH_SP = game::MAG_037_ScratchSP;
+	static constexpr game::Id GATHER = game::g_DrinkMagic_GatherPoint;
+	static constexpr game::Id Q_EMITTER = game::MAG_037_EmitterQueue, Q_ACTORS = game::MAG_037_ActorSystemQueue, Q_RIBBON = game::MAG_037_RibbonQueue, Q_ORB = game::MAG_037_OrbQueue, Q_STAGE = game::MAG_037_UnusedQueue;
+	static constexpr game::Id ORIG_Master = game::MAG_037_DrinkMagic_MasterTask;
+	static constexpr game::Id ORIG_Emitter = game::MAG_037_DrinkMagic_EmitterTask;
+	static constexpr game::Id ORIG_ActorSystem = game::MAG_037_ActorSystemTask;
+	static constexpr game::Id ORIG_Spawner = game::MAG_037_DrinkMagic_SpawnerTask;
+	static constexpr game::Id ORIG_Streak = game::MAG_037_DrinkMagic_StreakTask;
+	static constexpr game::Id ORIG_Orb = game::MAG_037_DrinkMagic_OrbTask;
+	static constexpr game::Id ORIG_Ribbon = game::MAG_037_DrinkMagic_RibbonTask;
+	static constexpr game::Id ORIG_Spark = game::MAG_037_DrinkMagic_SparkTask;
 	static const uint32_t NODE_SIZE = 0x130;
-	static const uint32_t ACTOR_DATA = 0x17C8420;
-	static const void *SOUND_Drink() { return (const void *)us(0x15D62E8); }
-	static const uint32_t RIBBON_FLIPBOOK = 0x15D92F4, SPARK_FLIPBOOK = 0x15D9504, STREAK_FLIPBOOK = 0x15D9624;
-	static const uint32_t ORB_MODEL = 0x15D62EC, ORB_TEMPLATE = 0x15D860C;
+	static constexpr game::Id ACTOR_DATA = game::unk_17C8420;
+	static const void *SOUND_Drink() { return (const void *)game_addr(game::unk_15D62E8); }
+	static constexpr game::Id RIBBON_FLIPBOOK = game::unk_15D92F4, SPARK_FLIPBOOK = game::unk_15D9504, STREAK_FLIPBOOK = game::unk_15D9624;
+	static constexpr game::Id ORB_MODEL = game::unk_15D62EC, ORB_TEMPLATE = game::unk_15D860C;
 
 	namespace gx
 	{
-		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E0B0))(a1); }
-		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(us(0x45E9D0))(); }
-		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(us(0x45EBF0))(); }
-		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(us(0x45E220))(a1); }
-		static inline uint32_t BdPlaySy(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x501740))(a1, a2, a3); }
-		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x571BC0))(a1, a2, a3); }
-		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x571C80))(a1, a2, a3, a4); }
-		static inline uint32_t Effect_CopyMidpointFromSource(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(us(0x8DC700))(a1, a2); }
-		static inline uint32_t MAG_037_render(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(us(0x85D990))(a1, a2, a3, a4); }
-		static inline uint32_t Effect_BuildMatrixFromDirAndUp(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x8DDA50))(a1, a2, a3); }
+		static inline uint32_t sub_45E0B0(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_LoadIR123_u16))(a1); }
+		static inline uint32_t sub_45E9D0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPF))(); }
+		static inline uint32_t sub_45EBF0() { return fn<uint32_t (__cdecl *)()>(game_addr(game::GTE_GPL))(); }
+		static inline uint32_t sub_45E220(uint32_t a1) { return fn<uint32_t (__cdecl *)(uint32_t)>(game_addr(game::GTE_ReadSZ3))(a1); }
+		static inline uint32_t BdPlaySy(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::BdPlaySy))(a1, a2, a3); }
+		static inline uint32_t TransformCameraByShadowRotation(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::TransformCameraByShadowRotation))(a1, a2, a3); }
+		static inline uint32_t InitEffectSequenceFromData(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::InitEffectSequenceFromData))(a1, a2, a3, a4); }
+		static inline uint32_t Effect_CopyMidpointFromSource(uint32_t a1, uint32_t a2) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t)>(game_addr(game::Effect_CopyMidpointFromSource))(a1, a2); }
+		static inline uint32_t MAG_037_render(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t, uint32_t)>(game_addr(game::MAG_037_PrimList_GT3Scroll))(a1, a2, a3, a4); }
+		static inline uint32_t Effect_BuildMatrixFromDirAndUp(uint32_t a1, uint32_t a2, uint32_t a3) { return fn<uint32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(game_addr(game::Effect_BuildMatrixFromDirAndUp))(a1, a2, a3); }
 	}
 
 	static inline void e6_copy16(uint32_t dst, uint32_t src)
@@ -446,46 +446,46 @@ namespace drinkmagic
 		g_mod = &MOD_037;
 
 		uint32_t states[11];
-		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
+		ff8fx::copy<(8 * 4)>((void *)game_addr(game::Effect_SharedCamMatrixSnapshot), (const void *)game_addr(game::unk_1D97778));
 		const uint32_t node = a1;
-		MEM<uint32_t>(us(SCRATCH_SP)) = us(0x2793E58);
-		MEM<uint32_t>(us(0x26A05EC)) = us(0x2793E58);
-		states[0] = us(0x856CA0);
-		states[1] = us(0x856CB0);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		MEM<uint32_t>(game_addr(game::unk_26A05EC)) = game_addr(game::Effect_SharedCamMatrixSnapshot);
+		states[0] = game_addr(game::MAG_037_DrinkMagic_Master_State0_Advance);
+		states[1] = game_addr(game::MAG_037_DrinkMagic_Master_State1_Advance);
 		const uint8_t parity = U8(node, 0x5C);
-		states[2] = us(0x856CC0);
-		states[3] = us(0x856D40);
-		states[4] = us(0x85F410);
-		states[5] = us(0x85F450);
-		states[6] = us(0x85F460);
-		states[7] = us(0x85F470);
-		states[8] = us(0x85F480);
-		states[9] = us(0x85F490);
-		states[10] = us(0x85F4B0);
+		states[2] = game_addr(game::MAG_037_DrinkMagic_Master_State2_CarveActorPools);
+		states[3] = game_addr(game::MAG_037_DrinkMagic_Master_State3_SpawnEmitter);
+		states[4] = game_addr(game::MAG_037_DrinkMagic_Master_State4_NextTargetLoop);
+		states[5] = game_addr(game::MAG_037_DrinkMagic_Master_State5_Advance);
+		states[6] = game_addr(game::MAG_037_DrinkMagic_Master_State6_WaitQueuesEmpty);
+		states[7] = game_addr(game::MAG_037_DrinkMagic_Master_State7_Advance);
+		states[8] = game_addr(game::MAG_037_DrinkMagic_Master_State8_Advance);
+		states[9] = game_addr(game::MAG_037_DrinkMagic_Master_State9_Finish);
+		states[10] = game_addr(game::MAG_037_DrinkMagic_Master_State10_Empty);
 		if ((parity & 1) != 0)
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26A8D7C));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26A8174));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26A05E8)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26A8D7C));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26A8174));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26A05E8)) = v2;
 		}
 		else
 		{
-			const uint32_t v1 = MEM<uint32_t>(us(0x26A8D78));
-			const uint32_t v2 = MEM<uint32_t>(us(0x26A8170));
-			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
-			MEM<uint32_t>(us(0x26A05E8)) = v2;
+			const uint32_t v1 = MEM<uint32_t>(game_addr(game::unk_26A8D78));
+			const uint32_t v2 = MEM<uint32_t>(game_addr(game::unk_26A8170));
+			MEM<uint32_t>(game_addr(PACKET_CURSOR)) = v1;
+			MEM<uint32_t>(game_addr(game::unk_26A05E8)) = v2;
 		}
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
-		MEM<uint16_t>(us(0x26A8D9A)) = 0;
-		MEM<uint16_t>(us(0x26A8D8A)) = 0;
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ACTORS)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_RIBBON)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_ORB)));
-		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(us(Q_STAGE)));
+		MEM<uint16_t>(game_addr(game::unk_26A8D9A)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26A8D8A)) = 0;
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_EMITTER)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ACTORS)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_RIBBON)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_ORB)));
+		U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)x::ExecuteTaskQueue(game_addr(Q_STAGE)));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -496,12 +496,12 @@ namespace drinkmagic
 	{
 		if (U8(a1, 0x28) != 0)
 			return 0;
-		uint32_t p = MEM<uint32_t>(us(0x26A8DAC));
-		MEM<uint32_t>(us(0x26A8D8C)) = p;
+		uint32_t p = MEM<uint32_t>(game_addr(game::MAG_037_FileArenaCursor));
+		MEM<uint32_t>(game_addr(game::MAG_037_ParticlePoolPtr)) = p;
 		p += 0x438;
-		MEM<uint32_t>(us(0x26A8DA4)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_037_ActorPoolPtr)) = p;
 		p += 0x6900;
-		MEM<uint32_t>(us(0x26A8DAC)) = p;
+		MEM<uint32_t>(game_addr(game::MAG_037_FileArenaCursor)) = p;
 		dk_856D00();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -509,12 +509,12 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_856D00(void)
 	{
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26A8D8C)), 0x438);
-		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x26A8DA4)), 0x6900);
-		MEM<uint16_t>(us(0x26A7D98)) = 0;
-		MEM<uint16_t>(us(0x26A8D98)) = 0;
-		MEM<uint16_t>(us(0x26A8D88)) = 0;
-		MEM<uint16_t>(us(0x26A05D0)) = 0;
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_037_ParticlePoolPtr)), 0x438);
+		x::MAG_007_sub_8DCC00(MEM<uint32_t>(game_addr(game::MAG_037_ActorPoolPtr)), 0x6900);
+		MEM<uint16_t>(game_addr(game::MAG_037_ParticleCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::MAG_037_ActorCursor)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26A8D88)) = 0;
+		MEM<uint16_t>(game_addr(game::unk_26A05D0)) = 0;
 		return 0;
 	}
 
@@ -522,10 +522,10 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[4];
-		states[0] = us(0x856E00);
-		states[1] = us(0x85F3A0);
-		states[2] = us(0x85F3C0);
-		states[3] = us(0x85F400);
+		states[0] = game_addr(game::MAG_037_DrinkMagic_Emitter_State0_SpawnActorSystem);
+		states[1] = game_addr(game::MAG_037_DrinkMagic_Emitter_State1_ReleaseMasterAt15);
+		states[2] = game_addr(game::MAG_037_DrinkMagic_Emitter_State2_ApplyDamage);
+		states[3] = game_addr(game::MAG_037_DrinkMagic_Emitter_State3_Empty);
 		x::MAG_001_CURE_Emitter_UpdatePos(node);
 		x::MAG_001_CURE_Emitter_ComputeModelBounds(node);
 		callp(states[S8(node, 0x29)], node);
@@ -555,7 +555,7 @@ namespace drinkmagic
 		uint16_t w29c = U16(node, 0x29C);
 		uint32_t st = node + 0x34;
 		const uint32_t root = U32(node, 0x10);
-		MEM<uint32_t>(us(0x26A8DB0)) = st;
+		MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr)) = st;
 		U16(st, 0x22) = w29a;
 		uint16_t caster = (uint16_t)U8(node, 0x2C);
 		U16(st, 0x24) = w29c;
@@ -567,7 +567,7 @@ namespace drinkmagic
 		if (relocated == 0)
 		{
 			a_740210(data);
-			st = MEM<uint32_t>(us(0x26A8DB0));
+			st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 			U32(data, 0) = 1;
 		}
 		uint16_t ntargets = U16(root, 0x5A);
@@ -587,41 +587,41 @@ namespace drinkmagic
 		}
 		U16(st, 0x1A) = U16(node, 0x29E);
 		dk_8571B0();
-		st = MEM<uint32_t>(us(0x26A8DB0));
+		st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		if (U16(st, 0x24) == 4)
-			callp(us(0x8570D0), node);
+			callp(game_addr(game::MAG_037_ResetTrailHistory), node);
 		dk_857500();
-		st = MEM<uint32_t>(us(0x26A8DB0));
+		st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		if (U16(st, 0x24) == 1)
 		{
-			callp(us(0x857310), node);
-			st = MEM<uint32_t>(us(0x26A8DB0));
+			callp(game_addr(game::MAG_037_FillTrailRows), node);
+			st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		}
 		if (U16(st, 0x24) == 3)
 		{
 			a_73FE90(node);
-			st = MEM<uint32_t>(us(0x26A8DB0));
+			st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		}
 		int32_t s1 = S16(st, 0x1E);
-		uint32_t e1 = us(0x1D972C0) + (uint32_t)mul32(s1, 0x9C);
+		uint32_t e1 = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(s1, 0x9C);
 		uint32_t d10 = U32(e1, 0x1C);
 		uint32_t d14 = U32(e1, 0x20);
 		uint32_t s2 = U32(st, 4);
-		uint32_t e2 = us(0x1D972C0) + s2 * 0x9C;
+		uint32_t e2 = game_addr(game::BattleEntitySlotData) + s2 * 0x9C;
 		uint32_t d18 = U32(e2, 0x1C);
 		int32_t dx = (int16_t)(uint16_t)((uint16_t)d10 - (uint16_t)d18);
 		int32_t dy = (int16_t)(uint16_t)((uint16_t)(d10 >> 16) - (uint16_t)(d18 >> 16));
 		int32_t dz = (int16_t)(uint16_t)((uint16_t)d14 - (uint16_t)U32(e2, 0x20));
 		int32_t sq = add32(add32(mul32(dx, dx), mul32(dy, dy)), mul32(dz, dz));
 		uint32_t dist = x::Sqrt((uint32_t)sq);
-		st = MEM<uint32_t>(us(0x26A8DB0));
+		st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		U32(st, 0) = dist;
 		return 0;
 	}
 
 	uint32_t __cdecl dk_8570D0(uint32_t a1)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26A8DB0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		const uint32_t v = arena + 0x1B4;
 		U32(v, 0) = (uint32_t)shl32((int32_t)S16(a1, 0x290), 16);
 		const int32_t y = S16(a1, 0x292);
@@ -638,15 +638,15 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_8571B0(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		const int32_t slot = S16(st, 0x1E);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)mul32(slot, 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)mul32(slot, 0x9C);
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		const int32_t px = S16(pp, 0);
 		U16(pp, 2) = U16(ent, 0x24);
@@ -659,7 +659,7 @@ namespace drinkmagic
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1E4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1E8) = shl32(S16(pp, 2), 16);
@@ -667,7 +667,7 @@ namespace drinkmagic
 		if (U16(st, 0x24) != 2)
 		{
 			x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-			st = MEM<uint32_t>(us(ACTOR_STATE));
+			st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		}
 		S32(st, 0x1F4) = shl32(S16(pp, 0), 16);
 		S32(st, 0x1F8) = shl32(S16(pp, 2), 16);
@@ -682,7 +682,7 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_857310(void)
 	{
-		const uint32_t arena = MEM<uint32_t>(us(0x26A8DB0));
+		const uint32_t arena = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		int32_t i = 0;
 		if (S16(arena, 0x1C) <= 0)
 			return arena;
@@ -703,7 +703,7 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_857500(void)
 	{
-		uint32_t st = MEM<uint32_t>(us(ACTOR_STATE));
+		uint32_t st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 		alignas(4) uint8_t pos[8] = {};
 		const uint32_t pp = P(pos);
 		if (S16(st, 0x1C) > 0)
@@ -712,11 +712,11 @@ namespace drinkmagic
 			for (int32_t i = 0; ; )
 			{
 				const uint32_t slot = U32(st, 4 + 4 * i);
-				const uint32_t ent = us(0x1D972C0) + slot * 0x9C;
+				const uint32_t ent = game_addr(game::BattleEntitySlotData) + slot * 0x9C;
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				const int32_t px = S16(pp, 0);
 				U16(pp, 2) = U16(ent, 0x24);
@@ -729,7 +729,7 @@ namespace drinkmagic
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF1, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0xD4) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0xD8) = shl32(S16(pp, 2), 16);
@@ -737,7 +737,7 @@ namespace drinkmagic
 				if (U16(st, 0x24) != 2)
 				{
 					x::GetEffectSpawnPosition(ent, 0xF0, 0, pp);
-					st = MEM<uint32_t>(us(ACTOR_STATE));
+					st = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				}
 				S32(st, o + 0x114) = shl32(S16(pp, 0), 16);
 				S32(st, o + 0x118) = shl32(S16(pp, 2), 16);
@@ -779,7 +779,7 @@ namespace drinkmagic
 	{
 		uint32_t done = 0;
 		uint32_t sys = a1 + 0x34;
-		U32(us(0x26A8DB0), 0) = sys;
+		U32(game_addr(game::MAG_037_ActorStatePtr), 0) = sys;
 		uint16_t phase = U16(sys, 0x20);
 		switch ((int16_t)phase)
 		{
@@ -791,7 +791,7 @@ namespace drinkmagic
 			dk_8591C0();
 			dk_859080();
 			a_735440();
-			sys = U32(us(0x26A8DB0), 0);
+			sys = U32(game_addr(game::MAG_037_ActorStatePtr), 0);
 			U16(sys, 0x18) = (uint16_t)(U16(sys, 0x18) + 1);
 			if (S16(sys, 0x18) >= S16(sys, 0x1A) && U16(sys, 0x14) == 0 && U16(sys, 0x16) == 0)
 				U16(sys, 0x20) = (uint16_t)(U16(sys, 0x20) + 1);
@@ -804,8 +804,8 @@ namespace drinkmagic
 		}
 		uint16_t c14 = U16(sys, 0x14);
 		uint16_t c16 = U16(sys, 0x16);
-		U16(us(0x26A8D9A), 0) = (uint16_t)(U16(us(0x26A8D9A), 0) + c14);
-		U16(us(0x26A8D8A), 0) = (uint16_t)(U16(us(0x26A8D8A), 0) + c16);
+		U16(game_addr(game::unk_26A8D9A), 0) = (uint16_t)(U16(game_addr(game::unk_26A8D9A), 0) + c14);
+		U16(game_addr(game::unk_26A8D8A), 0) = (uint16_t)(U16(game_addr(game::unk_26A8D8A), 0) + c16);
 		return done;
 	}
 
@@ -1310,14 +1310,14 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_859080(void)
 	{
-		uint32_t act = U32(MEM<uint32_t>(us(0x26A8DB0)), 0x2C);
+		uint32_t act = U32(MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr)), 0x2C);
 		if (act == 0)
 			return 0;
 		do
 		{
 			if (U16(act, 8) == 1)
 			{
-				uint32_t st = MEM<uint32_t>(us(0x26A8DB0));
+				uint32_t st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 				int32_t b = S8(act, 0x1D6);
 				uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 				uint8_t kind = U8(bone, 0x16);
@@ -1352,26 +1352,26 @@ namespace drinkmagic
 	uint32_t __cdecl dk_859140(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t hdr = MEM<uint32_t>(us(SCRATCH_SP)) - 0xB4;
-		MEM<uint32_t>(us(SCRATCH_SP)) = hdr;
+		const uint32_t hdr = MEM<uint32_t>(game_addr(SCRATCH_SP)) - 0xB4;
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = hdr;
 		const uint32_t mtx = act + 0xAC;
 		x::GTE_SetRotMatrix(mtx);
 		x::GTE_SetTransVector(mtx);
 		const uint32_t seq = U32(act, 0x170);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t variant = (int16_t)S8(act, 0x1D0);
 		U32(hdr, 0) = seq;
-		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
+		const uint32_t ot = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
 		S16(hdr, 4) = variant;
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
-		MEM<uint32_t>(us(SCRATCH_SP)) = MEM<uint32_t>(us(SCRATCH_SP)) + 0xB4;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = x::InitEffectSequenceFromData_c19(hdr, ot, 2, cursor);
+		MEM<uint32_t>(game_addr(SCRATCH_SP)) = MEM<uint32_t>(game_addr(SCRATCH_SP)) + 0xB4;
 		return 0;
 	}
 
 	uint32_t __cdecl dk_8591C0(void)
 	{
-		uint32_t act = U32(U32(us(0x26A8DB0), 0), 0x2C);
+		uint32_t act = U32(U32(game_addr(game::MAG_037_ActorStatePtr), 0), 0x2C);
 		while (act != 0)
 		{
 			int32_t type = S16(act, 8);
@@ -1387,7 +1387,7 @@ namespace drinkmagic
 	uint32_t __cdecl dk_859200(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		uint32_t st = MEM<uint32_t>(us(0x26A8DB0));
+		uint32_t st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		int32_t b = S8(act, 0x1D6);
 		const uint32_t bone = U32(U32(st, 0x224) + (uint32_t)b * 4, 0);
 		int32_t phase = S16(act, 0x1CC);
@@ -1408,7 +1408,7 @@ namespace drinkmagic
 		if (phase == 1)
 		{
 			a_742CD0(act);
-			st = MEM<uint32_t>(us(0x26A8DB0));
+			st = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 			U8(act, 0x1D7) = 0;
 			U16(st, 0x16) = (uint16_t)(U16(st, 0x16) - 1);
 		}
@@ -1420,7 +1420,7 @@ namespace drinkmagic
 		const uint32_t data = a2;
 		int32_t frame = S16(a1, 0x1CA);
 		uint32_t i_dst = U8(U32(data, 0x12C), frame);
-		uint32_t st = U32(us(0x26A8DB0), 0);
+		uint32_t st = U32(game_addr(game::MAG_037_ActorStatePtr), 0);
 		uint32_t dst_tab = U32(st, 0x22C);
 		uint32_t src_tab = U32(st, 0x230);
 		uint32_t dst = U32(dst_tab, i_dst * 4);
@@ -1503,8 +1503,8 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_85A3F0(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x26A8D8C));
-		int32_t idx = MEM<int16_t>(us(0x26A7D98));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_037_ParticlePoolPtr));
+		int32_t idx = MEM<int16_t>(game_addr(game::MAG_037_ParticleCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		do
@@ -1514,7 +1514,7 @@ namespace drinkmagic
 				slot = pool + (uint32_t)(idx * 27) * 4;
 				x::MAG_007_sub_8DCC00(slot, 0x6C);
 				U8(slot, 0x6A) = (uint8_t)a2;
-				const uint32_t dir = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t dir = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x69) = 1;
 				U16(dir, 0x14) = (uint16_t)(U16(dir, 0x14) + 1);
 				U32(slot, 0x5C) = a1;
@@ -1529,9 +1529,9 @@ namespace drinkmagic
 		} while (tries < 0xA);
 		idx++;
 		if (idx < 9)
-			MEM<uint16_t>(us(0x26A7D98)) = (uint16_t)idx;
+			MEM<uint16_t>(game_addr(game::MAG_037_ParticleCursor)) = (uint16_t)idx;
 		else
-			MEM<uint16_t>(us(0x26A7D98)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_037_ParticleCursor)) = 0;
 		return slot;
 	}
 
@@ -1544,9 +1544,9 @@ namespace drinkmagic
 		}
 		int32_t mode = S8(a1, 0x68);
 		if (mode == 3)
-			callp(us(0x85AE40), a1);
+			callp(game_addr(game::MAG_037_Particle_AttachToOwner), a1);
 		else if (mode == 4)
-			callp(us(0x85AF90), a1);
+			callp(game_addr(game::MAG_037_Actor_InterpolatePosition), a1);
 		dk_85A510(a1);
 		U16(a1, 0x60) = (uint16_t)(U16(a1, 0x60) + 1);
 		a_741B60(a1);
@@ -1555,7 +1555,7 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_85A510(uint32_t a1)
 	{
-		uint32_t sys = U32(us(0x26A8DB0), 0);
+		uint32_t sys = U32(game_addr(game::MAG_037_ActorStatePtr), 0);
 		int32_t k = S8(a1, 0x6A);
 		uint32_t def = U32(U32(sys, 0x224), k * 4);
 		int16_t frame = S16(a1, 0x60);
@@ -1582,9 +1582,9 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_85A590(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		uint32_t sp = U32(us(0x26A8DA0), 0) - 0x50;
+		uint32_t sp = U32(game_addr(game::MAG_037_ScratchSP), 0) - 0x50;
 		int16_t kind = (int16_t)S8(a1, 0x6A);
-		U32(us(0x26A8DA0), 0) = sp;
+		U32(game_addr(game::MAG_037_ScratchSP), 0) = sp;
 		uint32_t node = dk_85AD70(a1, (uint16_t)kind);
 		uint32_t desc = a2;
 		uint8_t a3_lo = (uint8_t)a3;
@@ -1594,7 +1594,7 @@ namespace drinkmagic
 		U16(sp, 0x4E) = w60;
 		if (mode == 0 || mode == 1 || mode == 2)
 		{
-			uint32_t ctx = U32(us(0x26A8DB0), 0);
+			uint32_t ctx = U32(game_addr(game::MAG_037_ActorStatePtr), 0);
 			int32_t k = S8(a1, 0x6A);
 			uint32_t v = U32(U32(ctx, 0x228), shl32(k, 2));
 			U32(node, 0x170) = v;
@@ -1762,14 +1762,14 @@ namespace drinkmagic
 			}
 		}
 		dk_85BA80(node, desc);
-		U32(us(0x26A8DA0), 0) = U32(us(0x26A8DA0), 0) + 0x50;
+		U32(game_addr(game::MAG_037_ScratchSP), 0) = U32(game_addr(game::MAG_037_ScratchSP), 0) + 0x50;
 		return 0;
 	}
 
 	uint32_t __cdecl dk_85AD70(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t pool = MEM<uint32_t>(us(0x26A8DA4));
-		int32_t i = MEM<int16_t>(us(0x26A8D98));
+		const uint32_t pool = MEM<uint32_t>(game_addr(game::MAG_037_ActorPoolPtr));
+		int32_t i = MEM<int16_t>(game_addr(game::MAG_037_ActorCursor));
 		uint32_t slot = 0;
 		int32_t tries = 0;
 		for (;;)
@@ -1782,7 +1782,7 @@ namespace drinkmagic
 				const uint8_t def_idx = (uint8_t)a2;
 				U32(slot, 0x1BC) = a1;
 				const uint8_t b6b = U8(a1, 0x6B);
-				const uint32_t sys = MEM<uint32_t>(us(ACTOR_STATE));
+				const uint32_t sys = MEM<uint32_t>(game_addr(ACTOR_STATE));
 				U8(slot, 0x1D7) = 1;
 				U16(sys, 0x16) = (uint16_t)(U16(sys, 0x16) + 1);
 				U8(slot, 0x1D6) = def_idx;
@@ -1799,16 +1799,16 @@ namespace drinkmagic
 		}
 		i++;
 		if (i >= 0x27)
-			MEM<uint16_t>(us(0x26A8D98)) = 0;
+			MEM<uint16_t>(game_addr(game::MAG_037_ActorCursor)) = 0;
 		else
-			MEM<uint16_t>(us(0x26A8D98)) = (uint16_t)i;
+			MEM<uint16_t>(game_addr(game::MAG_037_ActorCursor)) = (uint16_t)i;
 		return slot;
 	}
 
 	uint32_t __cdecl dk_85AF90(uint32_t a1)
 	{
 		const uint32_t act = a1;
-		const uint32_t st = U32(us(0x26A8DB0), 0);
+		const uint32_t st = U32(game_addr(game::MAG_037_ActorStatePtr), 0);
 		int32_t aidx = S8(act, 0x6A);
 		int32_t key = S16(act, 0x60);
 		const uint32_t data = U32(U32(st, 0x224), aidx * 4);
@@ -1868,7 +1868,7 @@ namespace drinkmagic
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs0[4] = { 0x94, 0xD4, 0x114, 0x154 };
-				uint32_t g = U32(us(0x26A8DB0), 0);
+				uint32_t g = U32(game_addr(game::MAG_037_ActorStatePtr), 0);
 				base2 = (uint32_t)((int32_t)S8(act, 0x6B) << 4) + g + offs0[sel2];
 				have2 = true;
 			}
@@ -1878,7 +1878,7 @@ namespace drinkmagic
 			if (sel2 <= 3)
 			{
 				static const uint32_t offs1[4] = { 0x1D4, 0x1E4, 0x1F4, 0x204 };
-				uint32_t g = U32(us(0x26A8DB0), 0);
+				uint32_t g = U32(game_addr(game::MAG_037_ActorStatePtr), 0);
 				base2 = g + offs1[sel2];
 				have2 = true;
 			}
@@ -1953,7 +1953,7 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_85BB10(void)
 	{
-		uint32_t dir = MEM<uint32_t>(us(0x26A8DB0));
+		uint32_t dir = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 		for (int32_t slot = 0; slot < 0x10; slot++)
 		{
 			uint32_t table = U32(dir, 0x224);
@@ -1978,14 +1978,14 @@ namespace drinkmagic
 				do
 				{
 					dk_85A3F0(0, (uint32_t)slot, (uint32_t)n);
-					dir = MEM<uint32_t>(us(0x26A8DB0));
+					dir = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 					n++;
 				} while (n < (int32_t)S16(dir, 0x1C));
 			}
 			else
 			{
 				dk_85A3F0(0, (uint32_t)slot, 0);
-				dir = MEM<uint32_t>(us(0x26A8DB0));
+				dir = MEM<uint32_t>(game_addr(game::MAG_037_ActorStatePtr));
 			}
 		}
 		return 0;
@@ -2033,10 +2033,10 @@ namespace drinkmagic
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0;
 	}
@@ -2640,9 +2640,9 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x85EF20);
-		states[1] = us(0x85F020);
-		states[2] = us(0x85F250);
+		states[0] = game_addr(game::MAG_037_DrinkMagic_Ribbon_Setup);
+		states[1] = game_addr(game::MAG_037_DrinkMagic_Ribbon_State1_SpawnSpark);
+		states[2] = game_addr(game::MAG_037_DrinkMagic_Ribbon_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		dk_85EA30(node);
 		dk_85BE30(node);
@@ -2707,8 +2707,8 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85EB60(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t bucket = MEM<uint32_t>(us(0x1D8E04C)) + 0x44;
-		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t bucket = MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44;
+		uint32_t pkt = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		const int16_t last = S16(node, 0x12A);
 		if (last == 0 || S16(node, 0x128) >= 0xA)
 			return 0;
@@ -2760,8 +2760,8 @@ namespace drinkmagic
 			U16(pb, 4) = (uint16_t)(U16(pb, 4) + U16(P(o), 4));
 			roll += 0x120;
 		}
-		x::GTE_SetTransVector(us(0x1D97778));
-		x::GTE_SetRotMatrix(us(0x1D97778));
+		x::GTE_SetTransVector(game_addr(game::unk_1D97778));
+		x::GTE_SetRotMatrix(game_addr(game::unk_1D97778));
 		uint32_t sxy[22];
 		int32_t sz[22];
 		for (int32_t j = first * 2; j < S16(node, 0x12A) * 2 + 2; j++)
@@ -2826,14 +2826,14 @@ namespace drinkmagic
 			x::SSIGPU_InsertPrimAutoDepth(bucket + (uint32_t)(z * 4), pkt);
 			pkt += 0x28;
 		}
-		MEM<uint32_t>(us(PACKET_CURSOR)) = pkt;
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = pkt;
 		return 0;
 	}
 
 	uint32_t __cdecl dk_85F020(uint32_t a1)
 	{
 		if (S16(a1, 0x124) < 0xA)
-			return x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Spark), NODE_SIZE, a1);
+			return x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RIBBON), game_addr(ORIG_Spark), NODE_SIZE, a1);
 		U8(a1, 0x26) |= 5;
 		U16(a1, 0x124) = 0xA;
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
@@ -2844,9 +2844,9 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x85F1B0);
-		states[1] = us(0x85F1F0);
-		states[2] = us(0x85F240);
+		states[0] = game_addr(game::MAG_037_DrinkMagic_Spark_State0_Setup);
+		states[1] = game_addr(game::MAG_037_DrinkMagic_Spark_State1_CounterFinish);
+		states[2] = game_addr(game::MAG_037_DrinkMagic_Spark_State2_Empty);
 		const uint32_t owner = U32(node, 0x18);
 		U32(node, 0x1C) = U32(owner, 0x1C);
 		U32(node, 0x20) = U32(owner, 0x20);
@@ -2869,22 +2869,22 @@ namespace drinkmagic
 		S32(P(m), 0x14) = S16(a1, 0x1C);
 		S32(P(m), 0x18) = S16(a1, 0x1E);
 		S32(P(m), 0x1C) = S16(a1, 0x20);
-		x::ComposeAffineTransform(us(0x1D97778), P(m), P(m));
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), P(m), P(m));
 		x::GTE_SetRotMatrix_W(P(m));
 		x::GTE_SetTransVector_W(P(m));
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		U32(hdr, 0) = U32(a1, 0x4C);
-		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
+		const uint32_t cursor = MEM<uint32_t>(game_addr(PACKET_CURSOR));
 		U16(hdr, 4) = U16(a1, 0x50);
 		U16(hdr, 0x24) = 0;
-		MEM<uint32_t>(us(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, cursor);
+		MEM<uint32_t>(game_addr(PACKET_CURSOR)) = gx::InitEffectSequenceFromData(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, cursor);
 		x::Field_Free(0xB4);
 		return 0;
 	}
 
 	uint32_t __cdecl dk_85F1B0(uint32_t a1)
 	{
-		U32(a1, 0x4C) = us(SPARK_FLIPBOOK);
+		U32(a1, 0x4C) = game_addr(SPARK_FLIPBOOK);
 		U16(a1, 0x52) = 5;
 		U16(a1, 0x54) = 0;
 		U16(a1, 0x42) = (uint16_t)(x::CrtRand() & 0xFFF);
@@ -2921,8 +2921,8 @@ namespace drinkmagic
 
 	uint32_t __cdecl dk_856E00(uint32_t a1)
 	{
-		a_73C100(a1, us(ORIG_ActorSystem), us(ACTOR_DATA), 0x28, 0xF, 0);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Spawner), NODE_SIZE, a1);
+		a_73C100(a1, game_addr(ORIG_ActorSystem), game_addr(ACTOR_DATA), 0x28, 0xF, 0);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RIBBON), game_addr(ORIG_Spawner), NODE_SIZE, a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
 	}
@@ -2950,10 +2950,10 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85C110(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t caster = us(0x1D972C0) + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C;
-		spawn_point_up(caster, 0, us(GATHER));
+		const uint32_t caster = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(U32(node, 0xC), 0) * 0x9C;
+		spawn_point_up(caster, 0, game_addr(GATHER));
 		gx::Effect_CopyMidpointFromSource(node, node + 0x1C);
-		x::Effect_AddTaskAndInitFromCtx(us(Q_ORB), us(ORIG_Orb), 0x60, node);
+		x::Effect_AddTaskAndInitFromCtx(game_addr(Q_ORB), game_addr(ORIG_Orb), 0x60, node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
 	}
@@ -2962,7 +2962,7 @@ namespace drinkmagic
 	{
 		if (U16(a1, 0x24) != tick)
 			return 0;
-		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Ribbon), NODE_SIZE, a1);
+		const uint32_t t = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RIBBON), game_addr(ORIG_Ribbon), NODE_SIZE, a1);
 		dk_85BC90(t, 0x80);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		U16(t, 0x120) = number;
@@ -2976,10 +2976,10 @@ namespace drinkmagic
 	{
 		if (U16(a1, 0x24) != 0x2E)
 			return 0;
-		const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Ribbon), NODE_SIZE, a1);
+		const uint32_t t1 = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RIBBON), game_addr(ORIG_Ribbon), NODE_SIZE, a1);
 		dk_85BC90(t1, 0x80);
 		U16(t1, 0x120) = 3;
-		const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Ribbon), NODE_SIZE, a1);
+		const uint32_t t2 = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RIBBON), game_addr(ORIG_Ribbon), NODE_SIZE, a1);
 		dk_85BC90(t2, 0x80);
 		U16(a1, 0x26) |= 1;
 		U16(t2, 0x122) = 1;
@@ -2994,7 +2994,7 @@ namespace drinkmagic
 		const int16_t t = S16(a1, 0x24);
 		if (t <= 0xD || t >= 0x3F)
 			return 0;
-		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(us(Q_RIBBON), us(ORIG_Streak), NODE_SIZE, a1);
+		const uint32_t n = x::Effect_AddTaskAndInitFromCtx(game_addr(Q_RIBBON), game_addr(ORIG_Streak), NODE_SIZE, a1);
 		dk_85BC90(n, 0x80);
 		return 0;
 	}
@@ -3003,12 +3003,12 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = us(0x85C110);
-		states[1] = us(0x85E8E0);
-		states[2] = us(0x85F260);
-		states[3] = us(0x85F2B0);
-		states[4] = us(0x85F300);
-		states[5] = us(0x85F390);
+		states[0] = game_addr(game::MAG_037_DrinkMagic_Spawner_GatherPointAndOrb);
+		states[1] = game_addr(game::MAG_037_DrinkMagic_Spawner_State1_SpawnRibbon);
+		states[2] = game_addr(game::MAG_037_DrinkMagic_Spawner_State2_SpawnRibbon);
+		states[3] = game_addr(game::MAG_037_DrinkMagic_Spawner_State3_SpawnRibbon);
+		states[4] = game_addr(game::MAG_037_DrinkMagic_Spawner_State4_SpawnRibbon);
+		states[5] = game_addr(game::MAG_037_DrinkMagic_Spawner_State5_Empty);
 		callp(states[S8(node, 0x29)], node);
 		dk_85BC50(node);
 		const uint8_t status = U8(node, 0x26);
@@ -3019,16 +3019,16 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85BFD0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = us(STREAK_FLIPBOOK);
+		U32(node, 0x4C) = game_addr(STREAK_FLIPBOOK);
 		U16(node, 0x52) = 0xA;
 		U16(node, 0x54) = 0;
 		const uint32_t r = x::CrtRand();
-		const uint32_t g0 = MEM<uint32_t>(us(GATHER));
+		const uint32_t g0 = MEM<uint32_t>(game_addr(GATHER));
 		const uint32_t z0 = U32(node, 0x20);
 		U32(node, 0x80) = g0;
 		U16(node, 0x126) = (uint16_t)(r & 0xFFF);
 		U32(node, 0x88) = U32(node, 0x1C);
-		const uint32_t g1 = MEM<uint32_t>(us(GATHER) + 4);
+		const uint32_t g1 = MEM<uint32_t>(game_addr(GATHER) + 4);
 		U32(node, 0x8C) = z0;
 		U32(node, 0x84) = g1;
 		alignas(4) uint8_t up[8];
@@ -3087,9 +3087,9 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[3];
-		states[0] = us(0x85BFD0);
-		states[1] = us(0x85C0C0);
-		states[2] = us(0x85C100);
+		states[0] = game_addr(game::MAG_037_DrinkMagic_Streak_Setup);
+		states[1] = game_addr(game::MAG_037_DrinkMagic_Streak_Accelerate);
+		states[2] = game_addr(game::MAG_037_DrinkMagic_Streak_State2_Empty);
 		callp(states[S8(node, 0x29)], node);
 		dk_85BEC0(node);
 		dk_85BE30(node);
@@ -3121,16 +3121,16 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85EF20(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		U32(node, 0x4C) = us(RIBBON_FLIPBOOK);
+		U32(node, 0x4C) = game_addr(RIBBON_FLIPBOOK);
 		U16(node, 0x52) = 5;
 		U16(node, 0x54) = 0;
 		const uint32_t r = x::CrtRand();
-		const uint32_t g0 = MEM<uint32_t>(us(GATHER));
+		const uint32_t g0 = MEM<uint32_t>(game_addr(GATHER));
 		const uint32_t z0 = U32(node, 0x20);
 		U32(node, 0x80) = g0;
 		U16(node, 0x126) = (uint16_t)(r & 0xFFF);
 		U32(node, 0x88) = U32(node, 0x1C);
-		const uint32_t g1 = MEM<uint32_t>(us(GATHER) + 4);
+		const uint32_t g1 = MEM<uint32_t>(game_addr(GATHER) + 4);
 		U32(node, 0x8C) = z0;
 		U32(node, 0x84) = g1;
 		alignas(4) uint8_t up[8];
@@ -3155,7 +3155,7 @@ namespace drinkmagic
 	static uint16_t g_85E780_m2 = 0;
 	uint32_t __cdecl dk_85E780(uint32_t a1, uint32_t a2)
 	{
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)((int32_t)(int16_t)a2 * 0x9C);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)((int32_t)(int16_t)a2 * 0x9C);
 		g_85E780_m2 = spawn_point_up(ent, 0x400, a1);
 		return 0;
 	}
@@ -3163,14 +3163,14 @@ namespace drinkmagic
 	uint32_t __cdecl dk_85E6C0(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(node, 0x2C) * 0x9C;
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(node, 0x2C) * 0x9C;
 		int32_t best = 0;
 		uint32_t act = U32(U32(node, 0xC), 4) + (uint32_t)((int32_t)S8(node, 0x2A) * 20);
 		if (U8(act, 0x10) == 0)
 			return 0;
 		for (uint32_t i = 0; ; )
 		{
-			const uint32_t t = us(0x1D972C0) + (uint32_t)U8(U32(act, 8), (int32_t)(i * 0x18)) * 0x9C;
+			const uint32_t t = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(U32(act, 8), (int32_t)(i * 0x18)) * 0x9C;
 			const int32_t dx = sub32(S16(t, 0x1C), S16(ent, 0x1C));
 			const int32_t dz = sub32(S16(t, 0x20), S16(ent, 0x20));
 			const int32_t d = (int32_t)x::Sqrt((uint32_t)add32(mul32(dz, dz), mul32(dx, dx)));
@@ -3190,8 +3190,8 @@ namespace drinkmagic
 		if (S16(node, 0x24) < 0xF)
 			return 0;
 		U8(node, 0x26) &= 0xFB;
-		U32(node, 0x4C) = us(ORB_MODEL);
-		const uint32_t ent = us(0x1D972C0) + (uint32_t)U8(node, 0x2C) * 0x9C;
+		U32(node, 0x4C) = game_addr(ORB_MODEL);
+		const uint32_t ent = game_addr(game::BattleEntitySlotData) + (uint32_t)U8(node, 0x2C) * 0x9C;
 		U32(node, 0x30) = 0x1400;
 		U32(node, 0x34) = 0x1400;
 		U32(node, 0x38) = dk_85E6C0(node);
@@ -3314,7 +3314,7 @@ namespace drinkmagic
 		S32(P(m), 0x18) = S16(node, 0x1E);
 		S32(P(m), 0x1C) = S16(node, 0x20);
 		x::scale3DMatrix(P(m), node + 0x30);
-		x::ComposeAffineTransform(us(0x1D97778), P(m), P(m));
+		x::ComposeAffineTransform(game_addr(game::unk_1D97778), P(m), P(m));
 		x::GTE_SetRotMatrix_W(P(m));
 		x::GTE_SetTransVector_W(P(m));
 		const uint32_t hdr = x::Field_Alloc(0x68);
@@ -3333,7 +3333,7 @@ namespace drinkmagic
 		S32(hdr, 0x10) = S16(node, 0x52);
 		U32(hdr, 0x14) = 0xF0;
 		U16(hdr, 0x28) = 0x80;
-		MEM<uint32_t>(us(0x1D8E054)) = dk_85C480(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(0x1D8E054)));
+		MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = dk_85C480(hdr, MEM<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 0x44, 2, MEM<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
 	}
@@ -3342,12 +3342,12 @@ namespace drinkmagic
 	{
 		const uint32_t node = a1;
 		uint32_t states[6];
-		states[0] = us(0x85E620);
-		states[1] = us(0x85E640);
-		states[2] = us(0x85E820);
-		states[3] = us(0x85E860);
-		states[4] = us(0x85E890);
-		states[5] = us(0x85E8D0);
+		states[0] = game_addr(game::MAG_037_DrinkMagic_Orb_State0_Finish);
+		states[1] = game_addr(game::MAG_037_DrinkMagic_Orb_State1_ShowAtCaster);
+		states[2] = game_addr(game::MAG_037_DrinkMagic_Orb_State2_FadeOutAtCaster);
+		states[3] = game_addr(game::MAG_037_DrinkMagic_Orb_State3_HoldAtCaster);
+		states[4] = game_addr(game::MAG_037_DrinkMagic_Orb_State4_FadeInFinish);
+		states[5] = game_addr(game::MAG_037_DrinkMagic_Orb_State5_Empty);
 		const int32_t st = S8(node, 0x29);
 		callp(states[st], node);
 		if ((U8(node, 0x26) & 4) == 0)
@@ -3357,7 +3357,7 @@ namespace drinkmagic
 			const uint32_t a = (uint32_t)(uint16_t)(U16(node, 0x54) + 0xA0) & 0xFFF;
 			U16(node, 0x58) = (uint16_t)b;
 			U16(node, 0x54) = (uint16_t)a;
-			dk_85E4E0(us(ORB_TEMPLATE), U32(node, 0x4C), a, b);
+			dk_85E4E0(game_addr(ORB_TEMPLATE), U32(node, 0x4C), a, b);
 			U16(node, 0x5E) = (uint16_t)((uint8_t)(U8(node, 0x5E) + 8) & 0x7F);
 			dk_85C350(node);
 			alignas(4) uint8_t bounds[0xC];
@@ -3368,135 +3368,135 @@ namespace drinkmagic
 		return task_end(node, status);
 	}
 
-	struct ModPort { uint32_t addr; void *port; const char *name; };
+	struct ModPort { game::Id addr; void *port; const char *name; };
 	static const ModPort ENGINE_PORTS[] = {
-		{ 0x856CA0, (void *)a_73A0D0, "037 MAG_037_sub_856CA0" },
-		{ 0x856CB0, (void *)a_73A0D0, "037 MAG_037_sub_856CB0" },
-		{ 0x856D40, (void *)a_73A170, "037 MAG_037_sub_856D40" },
-		{ 0x856E40, (void *)a_73C100, "037 MAG_037_sub_856E40" },
-		{ 0x856E90, (void *)a_73A380, "037 MAG_037_sub_856E90" },
-		{ 0x8573E0, (void *)a_73FE90, "037 sub_8573E0" },
-		{ 0x857710, (void *)a_740210, "037 sub_857710" },
-		{ 0x857A00, (void *)a_735440, "037 sub_857A00" },
-		{ 0x857A60, (void *)a_7354A0, "037 sub_857A60" },
-		{ 0x857BA0, (void *)a_7355E0, "037 sub_857BA0" },
-		{ 0x858170, (void *)a_735BB0, "037 sub_858170" },
-		{ 0x8583B0, (void *)a_735DF0, "037 sub_8583B0" },
-		{ 0x859290, (void *)a_740910, "037 sub_859290" },
-		{ 0x8598F0, (void *)a_740F70, "037 sub_8598F0" },
-		{ 0x859940, (void *)a_740FC0, "037 sub_859940" },
-		{ 0x8599D0, (void *)a_741050, "037 sub_8599D0" },
-		{ 0x859AA0, (void *)a_741120, "037 sub_859AA0" },
-		{ 0x85A4E0, (void *)a_741B60, "037 sub_85A4E0" },
-		{ 0x85AC10, (void *)a_742290, "037 au_re__rand_51" },
-		{ 0x85AC40, (void *)a_7422C0, "037 sub_85AC40" },
-		{ 0x85AC80, (void *)a_742300, "037 sub_85AC80" },
-		{ 0x85ACD0, (void *)a_742350, "037 sub_85ACD0" },
-		{ 0x85AD20, (void *)a_7423A0, "037 au_re__rand_51_0" },
-		{ 0x85AE30, (void *)a_7424B0, "037 sub_85AE30" },
-		{ 0x85AE40, (void *)a_7424C0, "037 sub_85AE40" },
-		{ 0x85B620, (void *)a_742CA0, "037 sub_85B620" },
-		{ 0x85B650, (void *)a_742CD0, "037 sub_85B650" },
-		{ 0x85B680, (void *)a_742D00, "037 sub_85B680" },
-		{ 0x85B830, (void *)a_742EB0, "037 sub_85B830" },
-		{ 0x85B970, (void *)a_742FF0, "037 sub_85B970" },
-		{ 0x85BBC0, (void *)a_73A6D0, "037 nullsub_1636" },
-		{ 0x85C100, (void *)a_73A6D0, "037 nullsub_1637" },
-		{ 0x85D460, (void *)a_73D770, "037 sub_85D460" },
-		{ 0x85D6B0, (void *)a_73D9C0, "037 sub_85D6B0" },
-		{ 0x85E8D0, (void *)a_73A6D0, "037 nullsub_1638" },
-		{ 0x85F1F0, (void *)a_743C00, "037 sub_85F1F0" },
-		{ 0x85F210, (void *)a_743C20, "037 sub_85F210" },
-		{ 0x85F240, (void *)a_73A6D0, "037 nullsub_1639" },
-		{ 0x85F250, (void *)a_73A6D0, "037 nullsub_1640" },
-		{ 0x85F390, (void *)a_73A6D0, "037 nullsub_1641" },
-		{ 0x85F400, (void *)a_73A6D0, "037 nullsub_1642" },
-		{ 0x85F410, (void *)a_747500, "037 MAG_037_sub_85F410" },
-		{ 0x85F450, (void *)a_73A0D0, "037 MAG_037_sub_85F450" },
-		{ 0x85F460, (void *)a_747550, "037 MAG_037_sub_85F460" },
-		{ 0x85F470, (void *)a_73A0D0, "037 MAG_037_sub_85F470" },
-		{ 0x85F480, (void *)a_73A0D0, "037 MAG_037_sub_85F480" },
-		{ 0x85F490, (void *)a_7475A0, "037 MAG_037_sub_85F490" },
-		{ 0x85F4B0, (void *)a_73A6D0, "037 nullsub_1635" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_037_DrinkMagic_Master_State0_Advance, (void *)a_73A0D0, "037 MAG_037_sub_856CA0" },
+		{ game::MAG_037_DrinkMagic_Master_State1_Advance, (void *)a_73A0D0, "037 MAG_037_sub_856CB0" },
+		{ game::MAG_037_DrinkMagic_Master_State3_SpawnEmitter, (void *)a_73A170, "037 MAG_037_sub_856D40" },
+		{ game::MAG_037_SpawnChildTask, (void *)a_73C100, "037 MAG_037_sub_856E40" },
+		{ game::MAG_037_ActorSystemTask, (void *)a_73A380, "037 MAG_037_sub_856E90" },
+		{ game::MAG_037_Director_Mode3Setup, (void *)a_73FE90, "037 sub_8573E0" },
+		{ game::MAG_037_RelocateActorData, (void *)a_740210, "037 sub_857710" },
+		{ game::MAG_037_ActSys_DrawPass, (void *)a_735440, "037 sub_857A00" },
+		{ game::MAG_037_ActSys_DrawActorModel, (void *)a_7354A0, "037 sub_857A60" },
+		{ game::MAG_037_RenderPrimModel, (void *)a_7355E0, "037 sub_857BA0" },
+		{ game::MAG_037_RenderPolyFT3List, (void *)a_735BB0, "037 sub_858170" },
+		{ game::MAG_037_RenderPolyFT4List, (void *)a_735DF0, "037 sub_8583B0" },
+		{ game::MAG_037_ActorMotion, (void *)a_740910, "037 sub_859290" },
+		{ game::MAG_037_DampValue, (void *)a_740F70, "037 sub_8598F0" },
+		{ game::MAG_037_DampVector, (void *)a_740FC0, "037 sub_859940" },
+		{ game::MAG_037_Instance_AdvanceTexFrame, (void *)a_741050, "037 sub_8599D0" },
+		{ game::MAG_037_Instance_BuildTransform, (void *)a_741120, "037 sub_859AA0" },
+		{ game::MAG_037_Particle_LifeCountdown, (void *)a_741B60, "037 sub_85A4E0" },
+		{ game::MAG_037_RandRange, (void *)a_742290, "037 au_re__rand_51" },
+		{ game::MAG_037_RandRangeWide, (void *)a_7422C0, "037 sub_85AC40" },
+		{ game::MAG_037_RandVec3, (void *)a_742300, "037 sub_85AC80" },
+		{ game::MAG_037_JitterAngles3, (void *)a_742350, "037 sub_85ACD0" },
+		{ game::MAG_037_RandAngleJitter, (void *)a_7423A0, "037 au_re__rand_51_0" },
+		{ game::MAG_037_GetWord8Minus1, (void *)a_7424B0, "037 sub_85AE30" },
+		{ game::MAG_037_Particle_AttachToOwner, (void *)a_7424C0, "037 sub_85AE40" },
+		{ game::MAG_037_ParticleList_Append, (void *)a_742CA0, "037 sub_85B620" },
+		{ game::MAG_037_ParticleList_Unlink, (void *)a_742CD0, "037 sub_85B650" },
+		{ game::MAG_037_Particle_Init, (void *)a_742D00, "037 sub_85B680" },
+		{ game::MAG_037_Particle_PlaceAtAnchorSet, (void *)a_742EB0, "037 sub_85B830" },
+		{ game::MAG_037_Particle_PlaceAtPoint, (void *)a_742FF0, "037 sub_85B970" },
+		{ game::MAG_037_ActorSystem_State2_Empty, (void *)a_73A6D0, "037 nullsub_1636" },
+		{ game::MAG_037_DrinkMagic_Streak_State2_Empty, (void *)a_73A6D0, "037 nullsub_1637" },
+		{ game::MAG_037_EmitG3, (void *)a_73D770, "037 sub_85D460" },
+		{ game::MAG_037_EmitG4, (void *)a_73D9C0, "037 sub_85D6B0" },
+		{ game::MAG_037_DrinkMagic_Orb_State5_Empty, (void *)a_73A6D0, "037 nullsub_1638" },
+		{ game::MAG_037_DrinkMagic_Spark_State1_CounterFinish, (void *)a_743C00, "037 sub_85F1F0" },
+		{ game::MAG_037_StepCounterLimit, (void *)a_743C20, "037 sub_85F210" },
+		{ game::MAG_037_DrinkMagic_Spark_State2_Empty, (void *)a_73A6D0, "037 nullsub_1639" },
+		{ game::MAG_037_DrinkMagic_Ribbon_State2_Empty, (void *)a_73A6D0, "037 nullsub_1640" },
+		{ game::MAG_037_DrinkMagic_Spawner_State5_Empty, (void *)a_73A6D0, "037 nullsub_1641" },
+		{ game::MAG_037_DrinkMagic_Emitter_State3_Empty, (void *)a_73A6D0, "037 nullsub_1642" },
+		{ game::MAG_037_DrinkMagic_Master_State4_NextTargetLoop, (void *)a_747500, "037 MAG_037_sub_85F410" },
+		{ game::MAG_037_DrinkMagic_Master_State5_Advance, (void *)a_73A0D0, "037 MAG_037_sub_85F450" },
+		{ game::MAG_037_DrinkMagic_Master_State6_WaitQueuesEmpty, (void *)a_747550, "037 MAG_037_sub_85F460" },
+		{ game::MAG_037_DrinkMagic_Master_State7_Advance, (void *)a_73A0D0, "037 MAG_037_sub_85F470" },
+		{ game::MAG_037_DrinkMagic_Master_State8_Advance, (void *)a_73A0D0, "037 MAG_037_sub_85F480" },
+		{ game::MAG_037_DrinkMagic_Master_State9_Finish, (void *)a_7475A0, "037 MAG_037_sub_85F490" },
+		{ game::MAG_037_DrinkMagic_Master_State10_Empty, (void *)a_73A6D0, "037 nullsub_1635" },
+		{ {}, nullptr, nullptr }
 	};
 	static const ModPort PORTS[] = {
-		{ 0x856B40, (void *)dk_856B40, "037 dk_856B40" },
-		{ 0x856CC0, (void *)dk_856CC0, "037 dk_856CC0" },
-		{ 0x856D00, (void *)dk_856D00, "037 dk_856D00" },
-		{ 0x856D70, (void *)dk_856D70, "037 dk_856D70" },
-		{ 0x856E00, (void *)dk_856E00, "037 dk_856E00" },
-		{ 0x856EF0, (void *)dk_856EF0, "037 dk_856EF0" },
-		{ 0x856F20, (void *)dk_856F20, "037 dk_856F20" },
-		{ 0x8570D0, (void *)dk_8570D0, "037 dk_8570D0" },
-		{ 0x8571B0, (void *)dk_8571B0, "037 dk_8571B0" },
-		{ 0x857310, (void *)dk_857310, "037 dk_857310" },
-		{ 0x857500, (void *)dk_857500, "037 dk_857500" },
-		{ 0x857970, (void *)dk_857970, "037 dk_857970" },
-		{ 0x857CE0, (void *)dk_857CE0, "037 dk_857CE0" },
-		{ 0x857EF0, (void *)dk_857EF0, "037 dk_857EF0" },
-		{ 0x858650, (void *)dk_858650, "037 dk_858650" },
-		{ 0x858880, (void *)dk_858880, "037 dk_858880" },
-		{ 0x858B40, (void *)dk_858B40, "037 dk_858B40" },
-		{ 0x858DA0, (void *)dk_858DA0, "037 dk_858DA0" },
-		{ 0x859080, (void *)dk_859080, "037 dk_859080" },
-		{ 0x859140, (void *)dk_859140, "037 dk_859140" },
-		{ 0x8591C0, (void *)dk_8591C0, "037 dk_8591C0" },
-		{ 0x859200, (void *)dk_859200, "037 dk_859200" },
-		{ 0x85A230, (void *)dk_85A230, "037 dk_85A230" },
-		{ 0x85A340, (void *)dk_85A340, "037 dk_85A340" },
-		{ 0x85A3C0, (void *)dk_85A3C0, "037 dk_85A3C0" },
-		{ 0x85A3F0, (void *)dk_85A3F0, "037 dk_85A3F0" },
-		{ 0x85A490, (void *)dk_85A490, "037 dk_85A490" },
-		{ 0x85A510, (void *)dk_85A510, "037 dk_85A510" },
-		{ 0x85A590, (void *)dk_85A590, "037 dk_85A590" },
-		{ 0x85AD70, (void *)dk_85AD70, "037 dk_85AD70" },
-		{ 0x85AF90, (void *)dk_85AF90, "037 dk_85AF90" },
-		{ 0x85BA80, (void *)dk_85BA80, "037 dk_85BA80" },
-		{ 0x85BB10, (void *)dk_85BB10, "037 dk_85BB10" },
-		{ 0x85BBA0, (void *)dk_85BBA0, "037 dk_85BBA0" },
-		{ 0x85BBD0, (void *)dk_85BBD0, "037 dk_85BBD0" },
-		{ 0x85BC50, (void *)dk_85BC50, "037 dk_85BC50" },
-		{ 0x85BC90, (void *)dk_85BC90, "037 dk_85BC90" },
-		{ 0x85BD50, (void *)dk_85BD50, "037 dk_85BD50" },
-		{ 0x85BE30, (void *)dk_85BE30, "037 dk_85BE30" },
-		{ 0x85BEA0, (void *)dk_85BEA0, "037 dk_85BEA0" },
-		{ 0x85BEC0, (void *)dk_85BEC0, "037 dk_85BEC0" },
-		{ 0x85BFD0, (void *)dk_85BFD0, "037 dk_85BFD0" },
-		{ 0x85C0C0, (void *)dk_85C0C0, "037 dk_85C0C0" },
-		{ 0x85C110, (void *)dk_85C110, "037 dk_85C110" },
-		{ 0x85C1F0, (void *)dk_85C1F0, "037 dk_85C1F0" },
-		{ 0x85C2C0, (void *)dk_85C2C0, "037 dk_85C2C0" },
-		{ 0x85C350, (void *)dk_85C350, "037 dk_85C350" },
-		{ 0x85C480, (void *)dk_85C480, "037 dk_85C480" },
-		{ 0x85C5B0, (void *)dk_85C5B0, "037 dk_85C5B0" },
-		{ 0x85C7D0, (void *)dk_85C7D0, "037 dk_85C7D0" },
-		{ 0x85CA60, (void *)dk_85CA60, "037 dk_85CA60" },
-		{ 0x85CEE0, (void *)dk_85CEE0, "037 dk_85CEE0" },
-		{ 0x85DE90, (void *)dk_85DE90, "037 dk_85DE90" },
-		{ 0x85E4E0, (void *)dk_85E4E0, "037 dk_85E4E0" },
-		{ 0x85E620, (void *)dk_85E620, "037 dk_85E620" },
-		{ 0x85E640, (void *)dk_85E640, "037 dk_85E640" },
-		{ 0x85E6C0, (void *)dk_85E6C0, "037 dk_85E6C0" },
-		{ 0x85E780, (void *)dk_85E780, "037 dk_85E780" },
-		{ 0x85E820, (void *)dk_85E820, "037 dk_85E820" },
-		{ 0x85E860, (void *)dk_85E860, "037 dk_85E860" },
-		{ 0x85E890, (void *)dk_85E890, "037 dk_85E890" },
-		{ 0x85E8E0, (void *)dk_85E8E0, "037 dk_85E8E0" },
-		{ 0x85E930, (void *)dk_85E930, "037 dk_85E930" },
-		{ 0x85EA30, (void *)dk_85EA30, "037 dk_85EA30" },
-		{ 0x85EB60, (void *)dk_85EB60, "037 dk_85EB60" },
-		{ 0x85EF20, (void *)dk_85EF20, "037 dk_85EF20" },
-		{ 0x85F020, (void *)dk_85F020, "037 dk_85F020" },
-		{ 0x85F060, (void *)dk_85F060, "037 dk_85F060" },
-		{ 0x85F0D0, (void *)dk_85F0D0, "037 dk_85F0D0" },
-		{ 0x85F1B0, (void *)dk_85F1B0, "037 dk_85F1B0" },
-		{ 0x85F260, (void *)dk_85F260, "037 dk_85F260" },
-		{ 0x85F2B0, (void *)dk_85F2B0, "037 dk_85F2B0" },
-		{ 0x85F300, (void *)dk_85F300, "037 dk_85F300" },
-		{ 0x85F3A0, (void *)dk_85F3A0, "037 dk_85F3A0" },
-		{ 0x85F3C0, (void *)dk_85F3C0, "037 dk_85F3C0" },
-		{ 0, nullptr, nullptr }
+		{ game::MAG_037_DrinkMagic_MasterTask, (void *)dk_856B40, "037 dk_856B40" },
+		{ game::MAG_037_DrinkMagic_Master_State2_CarveActorPools, (void *)dk_856CC0, "037 dk_856CC0" },
+		{ game::MAG_037_Master_ClearActorPools, (void *)dk_856D00, "037 dk_856D00" },
+		{ game::MAG_037_DrinkMagic_EmitterTask, (void *)dk_856D70, "037 dk_856D70" },
+		{ game::MAG_037_DrinkMagic_Emitter_State0_SpawnActorSystem, (void *)dk_856E00, "037 dk_856E00" },
+		{ game::MAG_037_ActorSystem_State0_StartActorSystemAtFrame, (void *)dk_856EF0, "037 dk_856EF0" },
+		{ game::MAG_037_DirectorSetup, (void *)dk_856F20, "037 dk_856F20" },
+		{ game::MAG_037_ResetTrailHistory, (void *)dk_8570D0, "037 dk_8570D0" },
+		{ game::MAG_037_Director_CasterRefPoints, (void *)dk_8571B0, "037 dk_8571B0" },
+		{ game::MAG_037_FillTrailRows, (void *)dk_857310, "037 dk_857310" },
+		{ game::MAG_037_Director_TargetRefPoints, (void *)dk_857500, "037 dk_857500" },
+		{ game::MAG_037_ActSys_Step, (void *)dk_857970, "037 dk_857970" },
+		{ game::MAG_037_MeshEmitF3, (void *)dk_857CE0, "037 dk_857CE0" },
+		{ game::MAG_037_MeshEmitF4, (void *)dk_857EF0, "037 dk_857EF0" },
+		{ game::MAG_037_PrimList_G3, (void *)dk_858650, "037 dk_858650" },
+		{ game::MAG_037_PrimList_G4, (void *)dk_858880, "037 dk_858880" },
+		{ game::MAG_037_PrimList_GT3, (void *)dk_858B40, "037 dk_858B40" },
+		{ game::MAG_037_PrimList_GT4, (void *)dk_858DA0, "037 dk_858DA0" },
+		{ game::MAG_037_ActSys_DrawSpritePass, (void *)dk_859080, "037 dk_859080" },
+		{ game::MAG_037_ActSys_DrawActorSprite, (void *)dk_859140, "037 dk_859140" },
+		{ game::MAG_037_ActSys_UpdatePass, (void *)dk_8591C0, "037 dk_8591C0" },
+		{ game::MAG_037_ActorStep, (void *)dk_859200, "037 dk_859200" },
+		{ game::MAG_037_MorphVertexBlock, (void *)dk_85A230, "037 dk_85A230" },
+		{ game::MAG_037_Instance_EndOfLifeTest, (void *)dk_85A340, "037 dk_85A340" },
+		{ game::MAG_037_Instance_SpawnFollowUp, (void *)dk_85A3C0, "037 dk_85A3C0" },
+		{ game::MAG_037_AllocParticle, (void *)dk_85A3F0, "037 dk_85A3F0" },
+		{ game::MAG_037_ActSys_UpdateEmitter, (void *)dk_85A490, "037 dk_85A490" },
+		{ game::MAG_037_ActSys_EmitterSpawnStep, (void *)dk_85A510, "037 dk_85A510" },
+		{ game::MAG_037_ActSys_SpawnParticles, (void *)dk_85A590, "037 dk_85A590" },
+		{ game::MAG_037_ActSys_AllocParticleSlot, (void *)dk_85AD70, "037 dk_85AD70" },
+		{ game::MAG_037_Actor_InterpolatePosition, (void *)dk_85AF90, "037 dk_85AF90" },
+		{ game::MAG_037_SpawnSubEffects, (void *)dk_85BA80, "037 dk_85BA80" },
+		{ game::MAG_037_Director_SpawnGroupEffects, (void *)dk_85BB10, "037 dk_85BB10" },
+		{ game::MAG_037_ActorSystem_State1_StepActorSystem, (void *)dk_85BBA0, "037 dk_85BBA0" },
+		{ game::MAG_037_DrinkMagic_SpawnerTask, (void *)dk_85BBD0, "037 dk_85BBD0" },
+		{ game::MAG_037_DrinkMagic_Spawner_SpawnStreak, (void *)dk_85BC50, "037 dk_85BC50" },
+		{ game::MAG_037_RandomOffsetPosition, (void *)dk_85BC90, "037 dk_85BC90" },
+		{ game::MAG_037_DrinkMagic_StreakTask, (void *)dk_85BD50, "037 dk_85BD50" },
+		{ game::MAG_037_DrawSprite, (void *)dk_85BE30, "037 dk_85BE30" },
+		{ game::MAG_037_FlipbookStep, (void *)dk_85BEA0, "037 dk_85BEA0" },
+		{ game::MAG_037_DrinkMagic_Streak_StepHead, (void *)dk_85BEC0, "037 dk_85BEC0" },
+		{ game::MAG_037_DrinkMagic_Streak_Setup, (void *)dk_85BFD0, "037 dk_85BFD0" },
+		{ game::MAG_037_DrinkMagic_Streak_Accelerate, (void *)dk_85C0C0, "037 dk_85C0C0" },
+		{ game::MAG_037_DrinkMagic_Spawner_GatherPointAndOrb, (void *)dk_85C110, "037 dk_85C110" },
+		{ game::MAG_037_DrinkMagic_OrbTask, (void *)dk_85C1F0, "037 dk_85C1F0" },
+		{ game::MAG_037_DrinkMagic_ModelBounds, (void *)dk_85C2C0, "037 dk_85C2C0" },
+		{ game::MAG_037_DrinkMagic_Orb_Draw, (void *)dk_85C350, "037 dk_85C350" },
+		{ game::MAG_037_DrinkMagic_RenderPrimModel, (void *)dk_85C480, "037 dk_85C480" },
+		{ game::MAG_037_PrimList_FlatTri, (void *)dk_85C5B0, "037 dk_85C5B0" },
+		{ game::MAG_037_PrimList_FlatQuad, (void *)dk_85C7D0, "037 dk_85C7D0" },
+		{ game::MAG_037_PrimList_TexTri, (void *)dk_85CA60, "037 dk_85CA60" },
+		{ game::MAG_037_PrimList_TexQuad, (void *)dk_85CEE0, "037 dk_85CEE0" },
+		{ game::MAG_037_PrimList_GT4Scroll, (void *)dk_85DE90, "037 dk_85DE90" },
+		{ game::MAG_037_DrinkMagic_Orb_WarpModel, (void *)dk_85E4E0, "037 dk_85E4E0" },
+		{ game::MAG_037_DrinkMagic_Orb_State0_Finish, (void *)dk_85E620, "037 dk_85E620" },
+		{ game::MAG_037_DrinkMagic_Orb_State1_ShowAtCaster, (void *)dk_85E640, "037 dk_85E640" },
+		{ game::MAG_037_DrinkMagic_FarthestTargetDistance, (void *)dk_85E6C0, "037 dk_85E6C0" },
+		{ game::MAG_037_DrinkMagic_CasterPointUp, (void *)dk_85E780, "037 dk_85E780" },
+		{ game::MAG_037_DrinkMagic_Orb_State2_FadeOutAtCaster, (void *)dk_85E820, "037 dk_85E820" },
+		{ game::MAG_037_DrinkMagic_Orb_State3_HoldAtCaster, (void *)dk_85E860, "037 dk_85E860" },
+		{ game::MAG_037_DrinkMagic_Orb_State4_FadeInFinish, (void *)dk_85E890, "037 dk_85E890" },
+		{ game::MAG_037_DrinkMagic_Spawner_State1_SpawnRibbon, (void *)dk_85E8E0, "037 dk_85E8E0" },
+		{ game::MAG_037_DrinkMagic_RibbonTask, (void *)dk_85E930, "037 dk_85E930" },
+		{ game::MAG_037_Ribbon_StepHead, (void *)dk_85EA30, "037 dk_85EA30" },
+		{ game::MAG_037_Ribbon_Draw, (void *)dk_85EB60, "037 dk_85EB60" },
+		{ game::MAG_037_DrinkMagic_Ribbon_Setup, (void *)dk_85EF20, "037 dk_85EF20" },
+		{ game::MAG_037_DrinkMagic_Ribbon_State1_SpawnSpark, (void *)dk_85F020, "037 dk_85F020" },
+		{ game::MAG_037_DrinkMagic_SparkTask, (void *)dk_85F060, "037 dk_85F060" },
+		{ game::MAG_037_Spark_Draw, (void *)dk_85F0D0, "037 dk_85F0D0" },
+		{ game::MAG_037_DrinkMagic_Spark_State0_Setup, (void *)dk_85F1B0, "037 dk_85F1B0" },
+		{ game::MAG_037_DrinkMagic_Spawner_State2_SpawnRibbon, (void *)dk_85F260, "037 dk_85F260" },
+		{ game::MAG_037_DrinkMagic_Spawner_State3_SpawnRibbon, (void *)dk_85F2B0, "037 dk_85F2B0" },
+		{ game::MAG_037_DrinkMagic_Spawner_State4_SpawnRibbon, (void *)dk_85F300, "037 dk_85F300" },
+		{ game::MAG_037_DrinkMagic_Emitter_State1_ReleaseMasterAt15, (void *)dk_85F3A0, "037 dk_85F3A0" },
+		{ game::MAG_037_DrinkMagic_Emitter_State2_ApplyDamage, (void *)dk_85F3C0, "037 dk_85F3C0" },
+		{ {}, nullptr, nullptr }
 	};
 }
 }

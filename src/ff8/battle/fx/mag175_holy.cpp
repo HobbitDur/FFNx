@@ -25,91 +25,91 @@ namespace holy175
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexFile() { return var<uint32_t>(us(0x2392CE0)); }
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x23941BC)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x23941C0)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2377744)); }
-	inline int32_t &FadeSide() { return var<int32_t>(us(0x2374578)); }
-	inline int32_t &GridTextured() { return var<int32_t>(us(0x2377740)); }
-	inline int32_t &GridActive() { return var<int32_t>(us(0x2376880)); }
-	inline TaskQueuePair &RootQueues() { return var<TaskQueuePair>(us(0x23745A0)); }
-	inline TaskQueue &Tasks() { return var<TaskQueue>(us(0x2376870)); }
-	inline uint32_t &FadeFlag(int slot) { return var<uint32_t>(us(0x2377698) + 0x18 * slot); }
-	inline Mat4x3 *OrbitMatrix(int index) { return (Mat4x3 *)(us(0x23745B0) + 0x20 * index); }
-	inline Mat4x3 *SpriteMatrix() { return (Mat4x3 *)us(0x23941E8); }
-	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
-	inline uint32_t &FrameArena() { return var<uint32_t>(us(0x1D8E054)); }
-	inline int16_t ProjH() { return var<int16_t>(us(0x1D8E038)); }
-	inline uint8_t DisplayBuffer() { return var<uint8_t>(us(0x1D96A80)); }
+	inline uint32_t &TexFile() { return var<uint32_t>(game_addr(game::MAG_175_TexFile)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_175_TexBase)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_175_PacketCursor)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_175_Ctx)); }
+	inline int32_t &FadeSide() { return var<int32_t>(game_addr(game::MAG_175_FadeSide)); }
+	inline int32_t &GridTextured() { return var<int32_t>(game_addr(game::MAG_175_GridTextured)); }
+	inline int32_t &GridActive() { return var<int32_t>(game_addr(game::MAG_175_GridActive)); }
+	inline TaskQueuePair &RootQueues() { return var<TaskQueuePair>(game_addr(game::MAG_175_RootQueues)); }
+	inline TaskQueue &Tasks() { return var<TaskQueue>(game_addr(game::MAG_175_Tasks)); }
+	inline uint32_t &FadeFlag(int slot) { return var<uint32_t>(game_addr(game::unk_2377698) + 0x18 * slot); }
+	inline Mat4x3 *OrbitMatrix(int index) { return (Mat4x3 *)(game_addr(game::unk_23745B0) + 0x20 * index); }
+	inline Mat4x3 *SpriteMatrix() { return (Mat4x3 *)game_addr(game::unk_23941E8); }
+	inline uint32_t OTBase() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
+	inline uint32_t &FrameArena() { return var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)); }
+	inline int16_t ProjH() { return var<int16_t>(game_addr(game::BATTLE_PROJECTION_DISTANCE)); }
+	inline uint8_t DisplayBuffer() { return var<uint8_t>(game_addr(game::g_Battle_DisplayParity)); }
 
-	static const uint32_t ORIG_RootTask = 0x5D44C0;
-	static const uint32_t ORIG_RestoreTask = 0x5D4540;
-	static const uint32_t ORIG_DirectorTask = 0x5D1BD0;
-	static const uint32_t ORIG_ShatterTask = 0x5D2910;
-	static const uint32_t ORIG_FadeInTask = 0x5D27C0;
-	static const uint32_t ORIG_FadeOutTask = 0x5D3030;
-	static const uint32_t ORIG_SparkleTask = 0x5D3180;
-	static const uint32_t ORIG_OrbitCtrlTask = 0x5D3420;
-	static const uint32_t ORIG_OrbitTask = 0x5D3590;
-	static const uint32_t ORIG_MoteTask = 0x5D37B0;
-	static const uint32_t ORIG_RingTask = 0x5D3A50;
-	static const uint32_t ORIG_WaveTask = 0x5D3B80;
-	static const uint32_t ORIG_ExpandTask = 0x5D3CE0;
-	static const uint32_t ORIG_PillarTask = 0x5D3E20;
-	static const uint32_t ORIG_BeamTask = 0x5D3FB0;
-	static const uint32_t ORIG_DiskTask = 0x5D42B0;
-	static const uint32_t ORIG_FlashTask = 0x5D43B0;
+	static constexpr game::Id ORIG_RootTask = game::MAG_175_RootTask;
+	static constexpr game::Id ORIG_RestoreTask = game::MAG_175_RestoreTask;
+	static constexpr game::Id ORIG_DirectorTask = game::MAG_175_HOLY_Director_Tick;
+	static constexpr game::Id ORIG_ShatterTask = game::MAG_175_ShatterTask;
+	static constexpr game::Id ORIG_FadeInTask = game::MAG_175_FadeInTask;
+	static constexpr game::Id ORIG_FadeOutTask = game::MAG_175_FadeOutTask;
+	static constexpr game::Id ORIG_SparkleTask = game::MAG_175_SparkleTask;
+	static constexpr game::Id ORIG_OrbitCtrlTask = game::MAG_175_OrbitCtrlTask;
+	static constexpr game::Id ORIG_OrbitTask = game::MAG_175_OrbitTask;
+	static constexpr game::Id ORIG_MoteTask = game::MAG_175_MoteTask;
+	static constexpr game::Id ORIG_RingTask = game::MAG_175_RingTask;
+	static constexpr game::Id ORIG_WaveTask = game::MAG_175_WaveTask;
+	static constexpr game::Id ORIG_ExpandTask = game::MAG_175_ExpandTask;
+	static constexpr game::Id ORIG_PillarTask = game::MAG_175_PillarTask;
+	static constexpr game::Id ORIG_BeamTask = game::MAG_175_BeamTask;
+	static constexpr game::Id ORIG_DiskTask = game::MAG_175_DiskTask;
+	static constexpr game::Id ORIG_FlashTask = game::MAG_175_FlashTask;
 
-	static const void *SOUND_Holy() { return (const void *)us(0xD59180); }
-	static const void *TIM_Upload() { return (const void *)us(0xD45EAC); }
-	static const uint32_t PILLAR_Delays = 0xD59188;
-	static const uint32_t BEAM_Sprites = 0xD591D0;
-	static const uint32_t WAVE_Textures = 0xD59210;
-	static const uint32_t STAGE_Buckets = 0xD59250;
-	static const uint32_t STAGE_EnvRestore = 0xD592C0;
-	static const uint32_t DRAWENV = 0x1D969C8;
-	static const uint32_t SEQ_Sparkle = 0xD524C4;
-	static const uint32_t SEQ_OrbitSpark = 0xD523E8;
-	static const uint32_t SEQ_Mote = 0xD52374;
-	static const uint32_t SEQ_Beam = 0xD522CC;
-	static const uint32_t MODEL_Ring = 0xD54588;
-	static const uint32_t MODEL_Wave = 0xD56C58;
-	static const uint32_t MODEL_Expand = 0xD53BA0;
-	static const uint32_t MODEL_Pillar = 0xD53688;
-	static const uint32_t MODEL_Disk = 0xD52DD8;
-	static const uint32_t MODEL_Flash = 0xD527F8;
+	static const void *SOUND_Holy() { return (const void *)game_addr(game::unk_D59180); }
+	static const void *TIM_Upload() { return (const void *)game_addr(game::unk_D45EAC); }
+	static constexpr game::Id PILLAR_Delays = game::unk_D59188;
+	static constexpr game::Id BEAM_Sprites = game::unk_D591D0;
+	static constexpr game::Id WAVE_Textures = game::unk_D59210;
+	static constexpr game::Id STAGE_Buckets = game::unk_D59250;
+	static constexpr game::Id STAGE_EnvRestore = game::unk_D592C0;
+	static constexpr game::Id DRAWENV = game::g_Battle_DrawEnv;
+	static constexpr game::Id SEQ_Sparkle = game::unk_D524C4;
+	static constexpr game::Id SEQ_OrbitSpark = game::unk_D523E8;
+	static constexpr game::Id SEQ_Mote = game::unk_D52374;
+	static constexpr game::Id SEQ_Beam = game::unk_D522CC;
+	static constexpr game::Id MODEL_Ring = game::unk_D54588;
+	static constexpr game::Id MODEL_Wave = game::unk_D56C58;
+	static constexpr game::Id MODEL_Expand = game::unk_D53BA0;
+	static constexpr game::Id MODEL_Pillar = game::unk_D53688;
+	static constexpr game::Id MODEL_Disk = game::unk_D52DD8;
+	static constexpr game::Id MODEL_Flash = game::unk_D527F8;
 
-	static const uint32_t GRID_Vertices = 0x2392CE8, GRID_VerticesEnd = 0x2394098;
-	static const uint32_t GRID_Centres = 0x23756F0, GRID_CentresEnd = 0x2376870;
-	static const uint32_t GRID_Triangles = 0x2377748;
-	static const uint32_t GRID_Packets = 0x23814E0;
-	static const uint32_t GRID_CellPointers = 0x23814C8;
+	static constexpr game::Id GRID_Vertices = game::MAG_175_GRID_Vertices, GRID_VerticesEnd = game::MAG_175_GRID_VerticesEnd;
+	static constexpr game::Id GRID_Centres = game::MAG_175_GRID_Centres, GRID_CentresEnd = game::MAG_175_Tasks;
+	static constexpr game::Id GRID_Triangles = game::MAG175_HOLY_lightPillarTable;
+	static constexpr game::Id GRID_Packets = game::MAG_175_GRID_Packets;
+	static constexpr game::Id GRID_CellPointers = game::MAG_175_GRID_CellPointers;
 	static const int GRID_TriangleCount = 14 * 20 * 4;
-	static const uint32_t SPARKLES = 0x2374D90, SPARKLES_End = 0x23756F0;
-	static const uint32_t MOTES = 0x2374610, MOTES_End = 0x2374D90;
-	static const uint32_t STAGE_AnimHeaders = 0x1D989A4;
+	static constexpr game::Id SPARKLES = game::MAG_175_Sparkles, SPARKLES_End = game::MAG_175_GRID_Centres;
+	static constexpr game::Id MOTES = game::MAG_175_Motes, MOTES_End = game::MAG_175_Sparkles;
+	static constexpr game::Id STAGE_AnimHeaders = game::unk_1D989A4;
 
-	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56BEC0))(v); }
-	inline void QueueTimUpload(const void *tim) { fn<void (__cdecl *)(const void *)>(us(0x505E30))(tim); }
-	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(us(0x56C4F0))(m, in, out); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline Mat4x3 *ShadowRotation(const void *pos, int32_t a, int32_t b) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(us(0x571BC0))(pos, a, b); }
-	inline uint32_t RenderWaveModel(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(us(0x650720))(header, ot, mode, cursor); }
-	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(bucket, packet); }
-	inline uint32_t RenderGeometry(void *group, void *header, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t, uint32_t)>(us(0x5099D0))(group, header, ot, mode, cursor); }
-	inline void BuildDrawEnvPacket(void *packet, uint32_t env) { fn<void (__cdecl *)(void *, uint32_t)>(us(0x45C0F0))(packet, env); }
-	inline void BuildDrawAreaPacket(void *packet, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(us(0x45C940))(packet, rect); }
-	inline void BuildDrawOffsetPacket(void *packet, const void *xy) { fn<void (__cdecl *)(void *, const void *)>(us(0x45C9B0))(packet, xy); }
-	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(us(0x56CD10))(x, y); }
-	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x56CCE0))(x, y); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
-	inline void GteSetRGB(const void *rgb) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(rgb); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteReadRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
-	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(us(0x45DFE0))(v0, v1, v2); }
-	inline void GteRTPT() { fn<void (__cdecl *)()>(us(0x45FE10))(); }
-	inline void GteReadSXY012(void *s0, void *s1, void *s2) { fn<void (__cdecl *)(void *, void *, void *)>(us(0x45E270))(s0, s1, s2); }
+	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	inline int32_t Sqrt(int32_t v) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::Math_SqrtInt))(v); }
+	inline void QueueTimUpload(const void *tim) { fn<void (__cdecl *)(const void *)>(game_addr(game::Battle_QueueTIMUpload_GetEOF))(tim); }
+	inline void MatrixMultiplyVector(const Mat4x3 *m, const int16_t *in, int16_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int16_t *, int16_t *)>(game_addr(game::matrixMultiplyVector))(m, in, out); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline Mat4x3 *ShadowRotation(const void *pos, int32_t a, int32_t b) { return fn<Mat4x3 *(__cdecl *)(const void *, int32_t, int32_t)>(game_addr(game::TransformCameraByShadowRotation))(pos, a, b); }
+	inline uint32_t RenderWaveModel(void *header, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int, uint32_t)>(game_addr(game::MAG_066_RenderScrollPrimModel))(header, ot, mode, cursor); }
+	inline void InsertPrimAltViewport(uint32_t bucket, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAltViewport))(bucket, packet); }
+	inline uint32_t RenderGeometry(void *group, void *header, uint32_t ot, uint32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, uint32_t, uint32_t)>(game_addr(game::RenderGeometry))(group, header, ot, mode, cursor); }
+	inline void BuildDrawEnvPacket(void *packet, uint32_t env) { fn<void (__cdecl *)(void *, uint32_t)>(game_addr(game::SSIGPU_SetDrawEnv))(packet, env); }
+	inline void BuildDrawAreaPacket(void *packet, const int16_t *rect) { fn<void (__cdecl *)(void *, const int16_t *)>(game_addr(game::GPU_SetDrawAreaPrim))(packet, rect); }
+	inline void BuildDrawOffsetPacket(void *packet, const void *xy) { fn<void (__cdecl *)(void *, const void *)>(game_addr(game::SSIGPU_SetDrawOffsetPrim))(packet, xy); }
+	inline void GetScreenOffset(int32_t *x, int32_t *y) { fn<void (__cdecl *)(int32_t *, int32_t *)>(game_addr(game::GTE_ReadScreenOffset))(x, y); }
+	inline void SetScreenOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(game_addr(game::Call_Bs_ParseCamera))(x, y); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void GteSetRGB(const void *rgb) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(rgb); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteReadRGB2(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(dst); }
+	inline void GteLoadV012(const void *v0, const void *v1, const void *v2) { fn<void (__cdecl *)(const void *, const void *, const void *)>(game_addr(game::GTE_LoadV012))(v0, v1, v2); }
+	inline void GteRTPT() { fn<void (__cdecl *)()>(game_addr(game::GTE_RTPT))(); }
+	inline void GteReadSXY012(void *s0, void *s1, void *s2) { fn<void (__cdecl *)(void *, void *, void *)>(game_addr(game::GTE_ReadSXY012_Split))(s0, s1, s2); }
 
 #pragma pack(push, 1)
 	struct RootNode
@@ -279,7 +279,7 @@ namespace holy175
 		int left = ExecuteTaskQueue(&Tasks());
 		if (!left && !(Ctx()->flags & 2))
 		{
-			RestoreNode *t = (RestoreNode *)AddTaskToQueue(&RootQueues().first, us(ORIG_RestoreTask));
+			RestoreNode *t = (RestoreNode *)AddTaskToQueue(&RootQueues().first, game_addr(ORIG_RestoreTask));
 			t->counter = (int16_t)left;
 			t->done = (uint16_t)left;
 		}
@@ -305,7 +305,7 @@ namespace holy175
 
 	static void BuildGrid()
 	{
-		Vertex *e = (Vertex *)us(GRID_Vertices);
+		Vertex *e = (Vertex *)game_addr(GRID_Vertices);
 		int32_t y = -0x78;
 		for (int row = 0; row < 15; row++, y += 0x10)
 		{
@@ -342,7 +342,7 @@ namespace holy175
 				e->v = (int16_t)(e->v + (int16_t)(y + 0x78));
 			}
 		}
-		Vertex *c = (Vertex *)us(GRID_Centres);
+		Vertex *c = (Vertex *)game_addr(GRID_Centres);
 		int32_t yb = -0x78;
 		for (int row = 0; row < 14; row++, yb += 0x10)
 		{
@@ -363,11 +363,11 @@ namespace holy175
 				c->v = (int16_t)(c->v + (int16_t)(yb + 0x80));
 			}
 		}
-		Vertex *a = (Vertex *)us(GRID_Vertices);
-		Vertex *b = (Vertex *)us(GRID_Centres);
-		uint8_t *pk = (uint8_t *)us(GRID_Packets);
-		Triangle *t = (Triangle *)us(GRID_Triangles);
-		Vertex **cell = (Vertex **)us(GRID_CellPointers);
+		Vertex *a = (Vertex *)game_addr(GRID_Vertices);
+		Vertex *b = (Vertex *)game_addr(GRID_Centres);
+		uint8_t *pk = (uint8_t *)game_addr(GRID_Packets);
+		Triangle *t = (Triangle *)game_addr(GRID_Triangles);
+		Vertex **cell = (Vertex **)game_addr(GRID_CellPointers);
 		for (int row = 0; row < 14; row++, a++)
 		{
 			for (int col = 0; col < 20; col++, a++, b++, pk += 0x100, t += 4)
@@ -408,7 +408,7 @@ namespace holy175
 
 	static void InitTriangles()
 	{
-		Triangle *t = (Triangle *)us(GRID_Triangles);
+		Triangle *t = (Triangle *)game_addr(GRID_Triangles);
 		for (int i = 0; i < GRID_TriangleCount; i++, t++)
 		{
 			const Vertex *v0 = t->v[0], *v1 = t->v[1], *v2 = t->v[2];
@@ -456,7 +456,7 @@ namespace holy175
 			if ((f & 2) && !(f & 4))
 			{
 				FadeFlag(s) = 1;
-				FadeNode *t = (FadeNode *)AddTask(us(ORIG_FadeOutTask));
+				FadeNode *t = (FadeNode *)AddTask(game_addr(ORIG_FadeOutTask));
 				t->counter = 0;
 				t->slot = (int16_t)s;
 				t->duration = duration;
@@ -473,7 +473,7 @@ namespace holy175
 		for (int32_t s = lo; s < hi; s++)
 		{
 			if (!FadeFlag(s)) continue;
-			FadeNode *t = (FadeNode *)AddTask(us(ORIG_FadeInTask));
+			FadeNode *t = (FadeNode *)AddTask(game_addr(ORIG_FadeInTask));
 			t->counter = 0;
 			t->slot = (int16_t)s;
 			t->duration = duration;
@@ -484,12 +484,12 @@ namespace holy175
 	static void FadeColours(uint8_t *e, int32_t ir0)
 	{
 		uint32_t rgb = 0x32000000;
-		GteSetFarColor(var<uint8_t>(us(0xB8B9A8)), var<uint8_t>(us(0xB8B9A9)), var<uint8_t>(us(0xB8B9AA)));
+		GteSetFarColor(var<uint8_t>(game_addr(game::CURRENT_BS_SHADOW_PALETTE)), var<uint8_t>(game_addr(game::unk_B8B9A9)), var<uint8_t>(game_addr(game::unk_B8B9AA)));
 		GteSetRGB(&rgb);
 		GteSetIR0(ir0);
 		GteDPCS();
 		GteReadRGB2(e + 0x2C);
-		GteSetFarColor(var<uint8_t>(us(0xB8B7D8)) >> 1, var<uint8_t>(us(0xB8B7D9)) >> 1, var<uint8_t>(us(0xB8B7DA)) >> 1);
+		GteSetFarColor(var<uint8_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE)) >> 1, var<uint8_t>(game_addr(game::unk_B8B7D9)) >> 1, var<uint8_t>(game_addr(game::unk_B8B7DA)) >> 1);
 		rgb = 0;
 		GteSetRGB(&rgb);
 		GteDPCS();
@@ -507,7 +507,7 @@ namespace holy175
 		if (p->counter == 0) EntityFlags(p->slot) = (uint16_t)((EntityFlags(p->slot) & 0xFFFB) | 0x800);
 		p->counter++;
 		if (p->counter < p->duration) return 0;
-		uint32_t colour = var<uint32_t>(us(0xB8B7D8));
+		uint32_t colour = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE));
 		e[7] = 0;
 		*(uint32_t *)(e + 0x28) = colour;
 		EntityFlags(p->slot) = (uint16_t)((EntityFlags(p->slot) & 0xF7FF) | p->saved);
@@ -532,7 +532,7 @@ namespace holy175
 
 	static void StageGroupsFlag(bool set)
 	{
-		for (uint32_t a = us(0x1D98991); a < us(0x1D98A41); a += 0x2C)
+		for (uint32_t a = game_addr(game::unk_1D98991); a < game_addr(game::unk_1D98A41); a += 0x2C)
 		{
 			if (set) *(uint8_t *)a |= 2;
 			else *(uint8_t *)a &= 0xFD;
@@ -556,7 +556,7 @@ namespace holy175
 		uint32_t other = DisplayBuffer() ^ 1u;
 		uint8_t *pk = (uint8_t *)FrameArena();
 		int16_t rect[4] = { 0x240, 0x100, 0x140, 0xE8 };
-		BuildDrawEnvPacket(pk, us(DRAWENV) + 0x5C * other);
+		BuildDrawEnvPacket(pk, game_addr(DRAWENV) + 0x5C * other);
 		InsertPrimAutoDepth(OTBase() + 0x406C, pk);
 		pk += 0x40;
 		FrameArena() = (uint32_t)pk;
@@ -568,13 +568,13 @@ namespace holy175
 		*(uint16_t *)(h + 0x3E) = 0;
 		*(uint16_t *)(h + 0x40) = 0x140;
 		*(uint16_t *)(h + 0x42) = 0xD8;
-		*(uint32_t *)(h + 0x2C) = var<uint32_t>(us(0x1D98B3C));
-		*(uint32_t *)(h + 0x38) = var<uint32_t>(us(0x1D969A8));
+		*(uint32_t *)(h + 0x2C) = var<uint32_t>(game_addr(game::g_BattleVertexWorkspace));
+		*(uint32_t *)(h + 0x38) = var<uint32_t>(game_addr(game::BATTLE_PACKET_BUFFER_END));
 		*(uint32_t *)(h + 0x48) = 0xFFFFFFFF;
 		for (int k = 0; k < 4; k++)
 		{
-			uint8_t *anim = (uint8_t *)(us(STAGE_AnimHeaders) + 0x2C * k);
-			const uint32_t *bucket = (const uint32_t *)(us(STAGE_Buckets) + 8 * k);
+			uint8_t *anim = (uint8_t *)(game_addr(STAGE_AnimHeaders) + 0x2C * k);
+			const uint32_t *bucket = (const uint32_t *)(game_addr(STAGE_Buckets) + 8 * k);
 			BuildBoneMatricesFromPose(anim);
 			ComputeBonesWorldMatrices(anim, &Camera());
 			if (anim[-0x13] & 1)
@@ -586,15 +586,15 @@ namespace holy175
 		}
 		FieldFree(0x54);
 		SetScreenOffset(ofx, ofy);
-		uint8_t *env = (uint8_t *)(us(STAGE_EnvRestore) + 0x18 * DisplayBuffer());
+		uint8_t *env = (uint8_t *)(game_addr(STAGE_EnvRestore) + 0x18 * DisplayBuffer());
 		InsertPrimAltViewport(OTBase() + 0x4484, env);
 		pk = (uint8_t *)FrameArena();
 		BuildDrawAreaPacket(pk, rect);
 		InsertPrimAutoDepth(OTBase() + 0x4484, pk);
 		pk += 0xC;
-		var<int16_t>(us(0x23941B8)) = rect[0];
-		var<int16_t>(us(0x23941BA)) = rect[1];
-		BuildDrawOffsetPacket(pk, (const void *)us(0x23941B8));
+		var<int16_t>(game_addr(game::unk_23941B8)) = rect[0];
+		var<int16_t>(game_addr(game::unk_23941BA)) = rect[1];
+		BuildDrawOffsetPacket(pk, (const void *)game_addr(game::unk_23941B8));
 		InsertPrimAutoDepth(OTBase() + 0x4484, pk);
 		pk += 0xC;
 		FrameArena() = (uint32_t)pk;
@@ -609,13 +609,13 @@ namespace holy175
 		m->t[2] = ProjH();
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		for (Vertex *v = (Vertex *)us(GRID_Vertices); v < (Vertex *)us(GRID_VerticesEnd); v++)
+		for (Vertex *v = (Vertex *)game_addr(GRID_Vertices); v < (Vertex *)game_addr(GRID_VerticesEnd); v++)
 		{
 			GteLoadV0(&v->x);
 			GteRTPS();
 			GteReadSXY2(v->sxy);
 		}
-		for (Vertex *v = (Vertex *)us(GRID_Centres); v < (Vertex *)us(GRID_CentresEnd); v++)
+		for (Vertex *v = (Vertex *)game_addr(GRID_Centres); v < (Vertex *)game_addr(GRID_CentresEnd); v++)
 		{
 			GteLoadV0(&v->x);
 			GteRTPS();
@@ -697,8 +697,8 @@ namespace holy175
 		ProjectGrid(h);
 		*(int32_t *)(h + 0x30) = ProjH();
 		int32_t drawn = 0;
-		uint8_t *pk = (uint8_t *)us(GRID_Packets);
-		Triangle *t = (Triangle *)us(GRID_Triangles);
+		uint8_t *pk = (uint8_t *)game_addr(GRID_Packets);
+		Triangle *t = (Triangle *)game_addr(GRID_Triangles);
 		for (int i = 0; i < GRID_TriangleCount; i++, t++, pk += 0x40)
 		{
 			if (t->delay < 0) continue;
@@ -775,11 +775,11 @@ namespace holy175
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int16_t *s = (int16_t *)FieldAlloc(0x10);
 		*(uint32_t *)s = *(const uint32_t *)&p->pos[0];
-		*(uint32_t *)h = us(SEQ_Sparkle);
+		*(uint32_t *)h = game_addr(SEQ_Sparkle);
 		*(uint16_t *)(h + 0x24) = 0;
 		*(uint32_t *)(s + 2) = *(const uint32_t *)&p->pos[2];
 		int32_t alive = 0;
-		for (Sparkle *e = (Sparkle *)us(SPARKLES); e < (Sparkle *)us(SPARKLES_End); e++)
+		for (Sparkle *e = (Sparkle *)game_addr(SPARKLES); e < (Sparkle *)game_addr(SPARKLES_End); e++)
 		{
 			if (!(e->active & 1)) continue;
 			SparkleDraw(h, s, e);
@@ -801,13 +801,13 @@ namespace holy175
 		{
 			for (int j = 0; j < 2; j++)
 			{
-				Sparkle *e = (Sparkle *)us(SPARKLES);
+				Sparkle *e = (Sparkle *)game_addr(SPARKLES);
 				int idx = 0;
 				while (e->active)
 				{
 					e++;
 					idx++;
-					if (e >= (Sparkle *)us(SPARKLES_End)) goto spawned;
+					if (e >= (Sparkle *)game_addr(SPARKLES_End)) goto spawned;
 				}
 				if (idx >= 100) goto spawned;
 				e->active = 1;
@@ -856,7 +856,7 @@ namespace holy175
 			int32_t r = CrtRand() % 0x1000;
 			for (int k = 0; k < 8; k++)
 			{
-				OrbitNode *o = (OrbitNode *)AddTask(us(ORIG_OrbitTask));
+				OrbitNode *o = (OrbitNode *)AddTask(game_addr(ORIG_OrbitTask));
 				o->index = p->index;
 				o->k = (int16_t)k;
 				o->counter = 0;
@@ -889,7 +889,7 @@ namespace holy175
 		ShadowRotation(v, p->size, -(p->size >> 4));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)(*(const uint8_t *)&p->counter & 7);
-		*(uint32_t *)h = us(SEQ_OrbitSpark);
+		*(uint32_t *)h = game_addr(SEQ_OrbitSpark);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -969,7 +969,7 @@ namespace holy175
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *m = (uint8_t *)FieldAlloc(0x48);
 		int32_t alive = 0;
-		*(uint32_t *)h = us(SEQ_Mote);
+		*(uint32_t *)h = game_addr(SEQ_Mote);
 		*(uint16_t *)(h + 0x24) = 0xC;
 		int16_t *ang = (int16_t *)m;
 		ang[0] = 0;
@@ -979,7 +979,7 @@ namespace holy175
 		*(int32_t *)(m + 0x1C) = 0;
 		*(int32_t *)(m + 0x20) = 0;
 		*(int32_t *)(m + 0x24) = ProjH();
-		for (Mote *e = (Mote *)us(MOTES); e < (Mote *)us(MOTES_End); e++)
+		for (Mote *e = (Mote *)game_addr(MOTES); e < (Mote *)game_addr(MOTES_End); e++)
 		{
 			if (!(e->active & 1)) continue;
 			MoteDraw(h, m, e);
@@ -1000,13 +1000,13 @@ namespace holy175
 		{
 			for (int j = 0; j < 2; j++)
 			{
-				Mote *e = (Mote *)us(MOTES);
+				Mote *e = (Mote *)game_addr(MOTES);
 				int idx = 0;
 				while (e->active)
 				{
 					e++;
 					idx++;
-					if (e >= (Mote *)us(MOTES_End)) goto spawned;
+					if (e >= (Mote *)game_addr(MOTES_End)) goto spawned;
 				}
 				if (idx >= 0x50) goto spawned;
 				e->active = 1;
@@ -1059,7 +1059,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { 0, p->angle, 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(us(MODEL_Ring));
+		uint8_t *h = ModelHeader(game_addr(MODEL_Ring));
 		if (p->counter < 8)
 		{
 			int32_t fade = (8 - p->counter) << 9;
@@ -1087,10 +1087,10 @@ namespace holy175
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x10) = 0;
 		*(uint16_t *)(h + 0x18) = 0;
-		*(uint32_t *)(h + 0x24) = *(const uint32_t *)(us(WAVE_Textures) + 4 * (*(const uint8_t *)&p->w22 & 0xF));
+		*(uint32_t *)(h + 0x24) = *(const uint32_t *)(game_addr(WAVE_Textures) + 4 * (*(const uint8_t *)&p->w22 & 0xF));
 		int32_t c = p->counter;
 		int32_t scroll = p->w20 * c;
-		*(uint32_t *)h = us(MODEL_Wave);
+		*(uint32_t *)h = game_addr(MODEL_Wave);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int32_t *)(h + 0x14) = scroll;
 		*(uint16_t *)(h + 0x1A) = 0x80;
@@ -1120,7 +1120,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { 0, 0, 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(us(MODEL_Expand));
+		uint8_t *h = ModelHeader(game_addr(MODEL_Expand));
 		if (p->counter >= 8)
 		{
 			int32_t fade = (p->counter - 8) << 9;
@@ -1151,7 +1151,7 @@ namespace holy175
 	{
 		int16_t ang[3] = { p->angle, p->pos[3], 0 };
 		ModelGte(ang, p->pos, p->scale);
-		uint8_t *h = ModelHeader(us(MODEL_Pillar));
+		uint8_t *h = ModelHeader(game_addr(MODEL_Pillar));
 		int32_t c = p->counter;
 		if (c < 8)
 		{
@@ -1217,9 +1217,9 @@ namespace holy175
 	{
 		int32_t a[3] = { 0, 0, -0x1000 };
 		int32_t b[3];
-		b[0] = var<int16_t>(us(0xB8B7F0)) - p->pos[0];
-		b[1] = var<int16_t>(us(0xB8B7F2)) - p->pos[1];
-		b[2] = var<int16_t>(us(0xB8B7F4)) - p->pos[2];
+		b[0] = var<int16_t>(game_addr(game::Battle_Camera_world_XZ_s16)) - p->pos[0];
+		b[1] = var<int16_t>(game_addr(game::unk_B8B7F2)) - p->pos[1];
+		b[2] = var<int16_t>(game_addr(game::Battle_Camera_world_Y)) - p->pos[2];
 		NormalizeVector(b, b);
 		int32_t axis[3];
 		int32_t angle = RotationBetweenVectors(a, b, axis);
@@ -1230,7 +1230,7 @@ namespace holy175
 		r.t[2] = p->pos[2];
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t c = p->counter;
-		*(uint32_t *)h = us(SEQ_Beam);
+		*(uint32_t *)h = game_addr(SEQ_Beam);
 		*(uint16_t *)(h + 0x24) = 0;
 		bool lit = false;
 		int32_t level = 0;
@@ -1253,7 +1253,7 @@ namespace holy175
 		NormalizeVector(d, d);
 		for (uint32_t k = 0; k < 8; k++)
 		{
-			const int16_t *e = (const int16_t *)(us(BEAM_Sprites) + 8 * k);
+			const int16_t *e = (const int16_t *)(game_addr(BEAM_Sprites) + 8 * k);
 			int32_t dist = (e[2] * 2000) >> 12;
 			int16_t v[4];
 			v[0] = (int16_t)(mul32(dist, d[0]) >> 12);
@@ -1288,7 +1288,7 @@ namespace holy175
 		ComposeZYXRotationMatrix(ang, &m);
 		MatrixMultiply(s, &m);
 		GteSetRotMatrix(&m);
-		uint8_t *h = ModelHeader(us(MODEL_Disk));
+		uint8_t *h = ModelHeader(game_addr(MODEL_Disk));
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 0xD, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1318,7 +1318,7 @@ namespace holy175
 		m->m[0][0] = p->scale;
 		m->m[1][1] = 0x1000;
 		GteSetRotMatrix(m);
-		uint8_t *h = ModelHeader(us(MODEL_Flash));
+		uint8_t *h = ModelHeader(game_addr(MODEL_Flash));
 		int32_t c = p->counter;
 		if (c < 4)
 		{
@@ -1372,19 +1372,19 @@ namespace holy175
 		if (p->counter == 4) InitTriangles();
 		if (p->counter == 5)
 		{
-			ShatterNode *t = (ShatterNode *)AddTask(us(ORIG_ShatterTask));
+			ShatterNode *t = (ShatterNode *)AddTask(game_addr(ORIG_ShatterTask));
 			t->counter = 0;
 			FadeSide() = p->target;
 		}
 		if (p->counter == 1)
 		{
-			SparkleNode *t = (SparkleNode *)AddTask(us(ORIG_SparkleTask));
+			SparkleNode *t = (SparkleNode *)AddTask(game_addr(ORIG_SparkleTask));
 			CopyAnchor(t->pos, p);
 			t->counter = 0;
 		}
 		if (p->counter == 6)
 		{
-			OrbitCtrlNode *a = (OrbitCtrlNode *)AddTask(us(ORIG_OrbitCtrlTask));
+			OrbitCtrlNode *a = (OrbitCtrlNode *)AddTask(game_addr(ORIG_OrbitCtrlTask));
 			CopyAnchor(a->pos, p);
 			a->counter = 0;
 			a->index = 0;
@@ -1393,7 +1393,7 @@ namespace holy175
 			a->az = 0;
 			a->dax = (int16_t)(CrtRand() % 50 + 0x3C);
 			a->daz = (int16_t)(CrtRand() % 40 + 0x1E);
-			OrbitCtrlNode *b = (OrbitCtrlNode *)AddTask(us(ORIG_OrbitCtrlTask));
+			OrbitCtrlNode *b = (OrbitCtrlNode *)AddTask(game_addr(ORIG_OrbitCtrlTask));
 			CopyAnchor(b->pos, p);
 			b->target = p->target;
 			b->counter = 0;
@@ -1405,7 +1405,7 @@ namespace holy175
 		}
 		if (p->counter == 0x10)
 		{
-			EmitterNode *t = (EmitterNode *)AddTask(us(ORIG_MoteTask));
+			EmitterNode *t = (EmitterNode *)AddTask(game_addr(ORIG_MoteTask));
 			t->counter = 0;
 		}
 		if (p->counter == 0x1E)
@@ -1415,21 +1415,21 @@ namespace holy175
 		}
 		if (p->counter == 0x1F)
 		{
-			RingNode *r = (RingNode *)AddTask(us(ORIG_RingTask));
+			RingNode *r = (RingNode *)AddTask(game_addr(ORIG_RingTask));
 			CopyAnchor(r->pos, p);
 			r->pos[1] = (int16_t)(r->pos[1] + 0x1F4);
 			r->counter = 0;
 			r->scale = 0x1000;
 			r->angle = (int16_t)(CrtRand() % 0x1000);
 			r->spin = (int16_t)(CrtRand() % 20 + 0x1E);
-			RingNode *w = (RingNode *)AddTask(us(ORIG_WaveTask));
+			RingNode *w = (RingNode *)AddTask(game_addr(ORIG_WaveTask));
 			CopyAnchor(w->pos, p);
 			w->pos[1] = (int16_t)(w->pos[1] + 0x258);
 			w->counter = 0;
 			w->scale = 0x1000;
 			w->w20 = 0xC;
 			w->w22 = 0;
-			w = (RingNode *)AddTask(us(ORIG_WaveTask));
+			w = (RingNode *)AddTask(game_addr(ORIG_WaveTask));
 			CopyAnchor(w->pos, p);
 			w->pos[1] = (int16_t)(w->pos[1] + 0x258);
 			w->counter = 0;
@@ -1439,7 +1439,7 @@ namespace holy175
 		}
 		if (p->counter >= 0x1F && p->counter <= 0x49 && p->counter % 6 == 1)
 		{
-			RingNode *e = (RingNode *)AddTask(us(ORIG_ExpandTask));
+			RingNode *e = (RingNode *)AddTask(game_addr(ORIG_ExpandTask));
 			CopyAnchor(e->pos, p);
 			e->pos[1] = (int16_t)(e->pos[1] + 0x5DC);
 			e->counter = 0;
@@ -1452,8 +1452,8 @@ namespace holy175
 			int32_t acc = 0;
 			for (int k = 0; k < 12; k++, acc += 0x1000)
 			{
-				RingNode *q = (RingNode *)AddTask(us(ORIG_PillarTask));
-				q->delay = (int16_t)(*(const int16_t *)(us(PILLAR_Delays) + 4 * k) * 3);
+				RingNode *q = (RingNode *)AddTask(game_addr(ORIG_PillarTask));
+				q->delay = (int16_t)(*(const int16_t *)(game_addr(PILLAR_Delays) + 4 * k) * 3);
 				q->counter = 0;
 				int32_t ang = (Div12(acc) + r) & 0xFFF;
 				int32_t cs = ComputeCos(ang);
@@ -1469,20 +1469,20 @@ namespace holy175
 		}
 		if (p->counter == 0x42)
 		{
-			RingNode *b = (RingNode *)AddTask(us(ORIG_BeamTask));
+			RingNode *b = (RingNode *)AddTask(game_addr(ORIG_BeamTask));
 			CopyAnchor(b->pos, p);
 			b->counter = 0;
 		}
 		if (p->counter == 0x4E)
 		{
-			RingNode *d = (RingNode *)AddTask(us(ORIG_DiskTask));
+			RingNode *d = (RingNode *)AddTask(game_addr(ORIG_DiskTask));
 			CopyAnchor(d->pos, p);
 			d->counter = 0;
 			d->angle = (int16_t)(CrtRand() % 0x1000);
 			d->spin = 0x28;
 			d->scale = 0;
 			d->dscale = 0x140;
-			d = (RingNode *)AddTask(us(ORIG_DiskTask));
+			d = (RingNode *)AddTask(game_addr(ORIG_DiskTask));
 			CopyAnchor(d->pos, p);
 			d->counter = 0;
 			d->angle = (int16_t)(CrtRand() % 0x1000);
@@ -1492,7 +1492,7 @@ namespace holy175
 		}
 		if (p->counter == 0x5A)
 		{
-			RingNode *f = (RingNode *)AddTask(us(ORIG_FlashTask));
+			RingNode *f = (RingNode *)AddTask(game_addr(ORIG_FlashTask));
 			CopyAnchor(f->pos, p);
 			f->counter = 0;
 			f->scale = 0x3C00;
@@ -1514,7 +1514,7 @@ namespace holy175
 			int32_t next = p->action + 1;
 			if (next <= Ctx()->actions[0].last_action)
 			{
-				DirectorNode *d = (DirectorNode *)AddTask(us(ORIG_DirectorTask));
+				DirectorNode *d = (DirectorNode *)AddTask(game_addr(ORIG_DirectorTask));
 				d->counter = 0;
 				d->action = (int16_t)next;
 				d->target = Ctx()->actions[next].targets[0];

@@ -24,7 +24,7 @@ namespace gfc
 {
 namespace part_cerberus
 {
-	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(us(0xB65150))(); }
+	static inline void xl_Nop_B65150() { blob::f<int32_t (__cdecl *)()>(game_addr(game::xorEAX_6))(); }
 
 	static inline int32_t DepthKey(uint32_t off)
 	{
@@ -378,26 +378,26 @@ namespace cerberus
 	{
 		c.name = "203 Cerberus";
 		c.effect_id = 203;
-		c.vm_table = us(0x1873528);
-		c.bone_table = us(0x1873198);
-		c.prim_table = us(0x18731E0);
-		c.prim_size = us(0x18732D0);
-		c.spr_table = us(0x18732E4);
-		c.ptype_table = us(0x1873310);
-		c.pop_table = us(0x1873324);
-		c.draw_table = us(0x1873384);
-		c.attr_16A = us(0x18734EE);
-		c.attr_184 = us(0x1873508);
-		c.attr_186 = us(0x187350A);
-		c.attr_194 = us(0x1873518);
-		c.attr_19C = us(0x1873520);
-		c.desc = us(0x1872EF8);
-		c.ptr_block = us(0x1873170);
-		c.queue = us(0x2796DA8);
-		c.file00 = us(0x2796DDC);
-		c.file01 = us(0x2796DD8);
-		c.tick = us(0xB0C820);
-		c.load_cb = us(0xB143F0);
+		c.vm_table = game_addr(game::GF_203Cerberus_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_203Cerberus_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_B0FCB4);
+		c.prim_size = game_addr(game::unk_18732D0);
+		c.spr_table = game_addr(game::unk_18732E4);
+		c.ptype_table = game_addr(game::unk_1873310);
+		c.pop_table = game_addr(game::funcs_B129F7);
+		c.draw_table = game_addr(game::GF_203Cerberus_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_18734EE);
+		c.attr_184 = game_addr(game::unk_1873508);
+		c.attr_186 = game_addr(game::unk_187350A);
+		c.attr_194 = game_addr(game::unk_1873518);
+		c.attr_19C = game_addr(game::unk_1873520);
+		c.desc = game_addr(game::unk_1872EF8);
+		c.ptr_block = game_addr(game::unk_1873170);
+		c.queue = game_addr(game::unk_2796DA8);
+		c.file00 = game_addr(game::unk_2796DDC);
+		c.file01 = game_addr(game::unk_2796DD8);
+		c.tick = game_addr(game::GF_203Cerberus_SequenceTick);
+		c.load_cb = game_addr(game::MAG_203_sub_B143F0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -417,7 +417,7 @@ namespace cerberus
 		apply_cerberus(cerberus::g_c);
 		apply_shared_ribbon(cerberus::g_c);
 		apply_shared_misc(cerberus::g_c);
-		register_port(0xB0C820, (void *)cerberus::SequenceTask, "GFC203 Cerberus SequenceTick", 203);
+		register_port(game::GF_203Cerberus_SequenceTick, (void *)cerberus::SequenceTask, "GFC203 Cerberus SequenceTick", 203);
 	}
 }
 

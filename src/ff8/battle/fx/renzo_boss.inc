@@ -40,10 +40,10 @@
 	static int32_t FreeRecord()
 	{
 		int32_t i = 0;
-		for (uint32_t a = SLOTS; *(const int32_t *)a != 0; i++)
+		for (uint32_t a = game_addr(SLOTS); *(const int32_t *)a != 0; i++)
 		{
 			a += 0x20;
-			if (a >= SLOTS_END) return -1;
+			if (a >= game_addr(SLOTS_END)) return -1;
 		}
 		return i >= 100 ? -1 : i;
 	}
@@ -63,14 +63,14 @@
 	{
 		const int32_t last = (int32_t)StageCount() + 1;
 		Length() = 0;
-		for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(us(0x1D98214) + i);
+		for (int32_t i = 1; i <= last; i++) Length() = Length() + var<uint8_t>(game_addr(game::unk_1D98214) + i);
 	}
 
 	static void StartTasks()
 	{
 		Node24 *t = (Node24 *)AddTaskToQueue(QMain(), ORIG_Trail);
 		t->c = 0;
-		for (uint32_t a = RING; a < RING_END; a += 0x14) var<int32_t>(a) = 0;
+		for (uint32_t a = game_addr(RING); a < game_addr(RING_END); a += 0x14) var<int32_t>(a) = 0;
 		t = (Node24 *)AddTaskToQueue(QMain(), ORIG_SparkSpawn);
 		t->c = 0;
 		t->e = (int16_t)(CrtRand() % 0x18);
@@ -90,7 +90,7 @@
 			*flags = (uint16_t)(f | 0x800);
 		}
 #ifndef RENZO_CUSTOM_START
-		if (n->c == 1) BindBoth(Caster(), Target(), BIND_OUT, ANIM_SETS, (Finisher() != 0) + 1);
+		if (n->c == 1) BindBoth(Caster(), Target(), game_addr(BIND_OUT), game_addr(ANIM_SETS), (Finisher() != 0) + 1);
 		if (n->c == 2)
 		{
 			ComputeLength();
@@ -129,7 +129,7 @@
 		}
 		if (tint)
 		{
-			uint32_t colour = var<uint32_t>(us(0xB8B7D8));
+			uint32_t colour = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE));
 			GteLoadRGBC(&colour);
 			GteSetIR0(shl32(k, 9));
 			GteDPCS();
@@ -142,7 +142,7 @@
 		n->c++;
 		if ((int32_t)n->c <= Length()) return 0;
 		if (Finisher() == 0) SetScreenFlash(0, 0);
-		*(uint32_t *)(Caster() + 0x28) = var<uint32_t>(us(0xB8B7D8));
+		*(uint32_t *)(Caster() + 0x28) = var<uint32_t>(game_addr(game::CURRENT_BS_MODEL_PALETTE));
 		uint16_t *flags = (uint16_t *)Caster();
 		*flags = (uint16_t)((*flags & 0xF7FF) | (uint16_t)n->e);
 		return TASK_END;
@@ -212,7 +212,7 @@
 		}
 		int16_t q[4];
 		GetEffectSpawnPosition(Entity(n->w1A), n->w18, shl32(n->c, 9), q);
-		int32_t d[3] = { (int32_t)var<int16_t>(us(0xB8B7F0)) - q[0], 0, (int32_t)var<int16_t>(us(0xB8B7F4)) - q[2] };
+		int32_t d[3] = { (int32_t)var<int16_t>(game_addr(game::Battle_Camera_world_XZ_s16)) - q[0], 0, (int32_t)var<int16_t>(game_addr(game::Battle_Camera_world_Y)) - q[2] };
 		int32_t u[3] = { 0, 0, -0x1000 };
 		Normalize(d, d);
 		int32_t axis[3];
@@ -250,12 +250,12 @@
 		GteSetRotMatrix(&m1);
 		GteSetTransVector(&m1);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SPARKLE;
+		*(uint32_t *)h = game_addr(MODEL_SPARKLE);
 		*(uint32_t *)(h + 8) = 0;
-		*(uint32_t *)(h + 0xC) = var<uint16_t>(SPARKLE_FADE + 2 * n->c);
-		*(uint32_t *)(h + 0x18) = var<uint16_t>(SPARKLE_DEPTH + 2 * n->w1C);
+		*(uint32_t *)(h + 0xC) = var<uint16_t>(game_addr(SPARKLE_FADE) + 2 * n->c);
+		*(uint32_t *)(h + 0x18) = var<uint16_t>(game_addr(SPARKLE_DEPTH) + 2 * n->w1C);
 		*(uint32_t *)(h + 0x1C) = 0x10F3;
-		var<uint32_t>(us(0x1D8E054)) = RenderPrimModel(h, RenderOT(), 2, var<uint32_t>(us(0x1D8E054)));
+		var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)) = RenderPrimModel(h, RenderOT(), 2, var<uint32_t>(game_addr(game::BATTLE_PACKET_WRITE_CURSOR)));
 		FieldFree(0x58);
 		if (DrawOnly()) return 0;
 		n->w1C++;
@@ -303,8 +303,8 @@
 
 	static void TrailHitPoint(const uint8_t *sb, uint8_t *pos, int32_t *dir)
 	{
-		ff8fx::copy<(8)>((void *)PREV_HIT, pos);
-		ff8fx::copy<(16)>((void *)(PREV_HIT + 8), dir);
+		ff8fx::copy<(8)>((void *)game_addr(PREV_HIT), pos);
+		ff8fx::copy<(16)>((void *)(game_addr(PREV_HIT) + 8), dir);
 		*(uint32_t *)pos = *(const uint32_t *)(sb + 8);
 		*(uint32_t *)(pos + 4) = *(const uint32_t *)(sb + 0xC);
 		dir[0] = (int32_t)*(const int16_t *)sb - *(const int16_t *)(sb + 8);
@@ -343,7 +343,7 @@
 			GteStoreRGB2(&w->col1);
 			pk[5] = pk[1] = w->col0;
 			pk[7] = pk[3] = w->col1;
-			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
+			InsertPrimAutoDepth(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk);
 			pk2[5] = w->col0;
 			pk2[3] = pk2[1] = 0x3A000000;
 			pk2[7] = w->col1;
@@ -352,7 +352,7 @@
 			pk2[6] = pk[6];
 			pk2[8] = pk[8];
 			pk2[0] = 0x8000000;
-			InsertPrimAutoDepth(var<uint32_t>(us(0x1D8E04C)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
+			InsertPrimAutoDepth(var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)) + 4 * (uint32_t)(w->otz >> 2) + 0x44, pk2);
 			pk += 0x12;
 			pk2 += 0x12;
 		}
@@ -366,19 +366,19 @@
 		TrailPoints(w);
 		const int32_t c = n->c;
 		const int32_t idx = c % 7;
-		RingEntry *e = (RingEntry *)(RING + 0x14 * idx);
+		RingEntry *e = (RingEntry *)(game_addr(RING) + 0x14 * idx);
 		e->alive = 1;
 		e->base[0] = *(const uint32_t *)&w->base[0];
 		e->base[1] = *(const uint32_t *)&w->base[2];
 		e->tip[0] = *(const uint32_t *)&w->tip[0];
 		e->tip[1] = *(const uint32_t *)&w->tip[2];
 		const int32_t want = c < Length() - 7 ? 7 : Length() - c;
-		const int32_t cnt = TrailGather((const uint8_t *)RING, idx, want, (uint8_t *)PTS_A, (uint8_t *)PTS_B);
+		const int32_t cnt = TrailGather((const uint8_t *)game_addr(RING), idx, want, (uint8_t *)game_addr(PTS_A), (uint8_t *)game_addr(PTS_B));
 		if (cnt > 1)
 		{
-			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
-			TrailHitPoint((const uint8_t *)SPL_B, (uint8_t *)HIT_POS, (int32_t *)HIT_DIR);
-			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
+			TrailSplines(cnt, (const uint8_t *)game_addr(PTS_A), (const uint8_t *)game_addr(PTS_B), (uint8_t *)game_addr(SPL_A), (uint8_t *)game_addr(SPL_B));
+			TrailHitPoint((const uint8_t *)game_addr(SPL_B), (uint8_t *)game_addr(HIT_POS), (int32_t *)game_addr(HIT_DIR));
+			TrailDraw((const uint8_t *)game_addr(SPL_A), (const uint8_t *)game_addr(SPL_B), w);
 		}
 		FieldFree(0x40);
 		if (DrawOnly()) return 0;
@@ -394,9 +394,9 @@
 		{
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(us(POOL_B), POOL_B_SPAWN_END, 0x10);
+				const int32_t i = FreeSlot(game_addr(POOL_B), game_addr(POOL_B_SPAWN_END), 0x10);
 				if (i < 0) break;
-				SparkP *p = (SparkP *)(us(POOL_B) + 0x10 * i);
+				SparkP *p = (SparkP *)(game_addr(POOL_B) + 0x10 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x300 + 0x400);
 				const uint8_t *sk = **(uint8_t ***)(Caster() + 0x64);
@@ -419,7 +419,7 @@
 		int32_t sum = 0;
 		for (int32_t b = 0; b < (int32_t)StageCount(); b++)
 		{
-			const int32_t lead = var<int32_t>(HIT_LEAD + 4 * b);
+			const int32_t lead = var<int32_t>(game_addr(HIT_LEAD) + 4 * b);
 			sum += StageLen(b);
 			if ((int32_t)n->c != sum - lead) continue;
 			Node24 *s = (Node24 *)AddTaskToQueue(QMain(), ORIG_Slash);
@@ -429,14 +429,14 @@
 			s->w1E = sc;
 			s->w1C = sc;
 			int16_t hp[4];
-			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(HIT_OFFS + 8 * b), hp);
-			hp[0] = (int16_t)(hp[0] + var<int16_t>(HIT_POS));
-			hp[1] = (int16_t)(hp[1] + var<int16_t>(HIT_POS + 2));
-			hp[2] = (int16_t)(hp[2] + var<int16_t>(HIT_POS + 4));
+			MatVec((const Mat4x3 *)(Caster() + 0x40), (const int16_t *)(game_addr(HIT_OFFS) + 8 * b), hp);
+			hp[0] = (int16_t)(hp[0] + var<int16_t>(game_addr(HIT_POS)));
+			hp[1] = (int16_t)(hp[1] + var<int16_t>(game_addr(HIT_POS) + 2));
+			hp[2] = (int16_t)(hp[2] + var<int16_t>(game_addr(HIT_POS) + 4));
 			hp[3] = 0;
-			HitRec *r = (HitRec *)(HIT_REC + 0x9C * b);
+			HitRec *r = (HitRec *)(game_addr(HIT_REC) + 0x9C * b);
 			ff8fx::copy<(8)>(r->pos, hp);
-			ff8fx::copy<(16)>(r->dir, (const void *)HIT_DIR);
+			ff8fx::copy<(16)>(r->dir, (const void *)game_addr(HIT_DIR));
 			r->count = 0x10;
 			for (int32_t k = 0; k < r->count; k++)
 			{
@@ -448,9 +448,9 @@
 			}
 			for (int32_t j = 0; j < 3; j++)
 			{
-				const int32_t i = FreeSlot(us(POOL_A), us(POOL_A_END), 0xC);
+				const int32_t i = FreeSlot(game_addr(POOL_A), game_addr(POOL_A_END), 0xC);
 				if (i < 0) break;
-				FlashP *p = (FlashP *)(us(POOL_A) + 0xC * i);
+				FlashP *p = (FlashP *)(game_addr(POOL_A) + 0xC * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x600 + 0xA00);
 				ff8fx::copy<(8)>(p->pos, hp);
@@ -460,14 +460,14 @@
 			}
 			for (int32_t j = 0; j < 0xC; j++)
 			{
-				const int32_t i = FreeSlot(POOL_C, POOL_C_END, 0x14);
+				const int32_t i = FreeSlot(game_addr(POOL_C), game_addr(POOL_C_END), 0x14);
 				if (i < 0) break;
-				DebrisP *p = (DebrisP *)(POOL_C + 0x14 * i);
+				DebrisP *p = (DebrisP *)(game_addr(POOL_C) + 0x14 * i);
 				p->life = 0;
 				p->scale = (int16_t)(CrtRand() % 0x800 + 0xC00);
 				ff8fx::copy<(8)>(p->pos, hp);
 				const int32_t sp = CrtRand() % 200 + 0x8C;
-				const int32_t *d = (const int32_t *)HIT_DIR;
+				const int32_t *d = (const int32_t *)game_addr(HIT_DIR);
 				const int32_t r0 = CrtRand() % 200;
 				p->vel[0] = (int16_t)(r0 + (mul32(d[0], sp) >> 12) - 0x64);
 				const int32_t r1 = CrtRand() % 200;
@@ -492,9 +492,9 @@
 	static uint32_t __cdecl SlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		HitRec *r = (HitRec *)(HIT_REC + 0x9C * n->e);
+		HitRec *r = (HitRec *)(game_addr(HIT_REC) + 0x9C * n->e);
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)SLASH_REF, r->dir, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)game_addr(SLASH_REF), r->dir, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[0] = r->pos[0];
@@ -516,7 +516,7 @@
 		GteSetRotMatrix(&m3);
 		GteSetTransVector(&m3);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = MODEL_SLASH;
+		*(uint32_t *)h = game_addr(MODEL_SLASH);
 		*(uint32_t *)(h + 0x1C) = 0x30;
 		if (n->c >= 2)
 		{
@@ -527,7 +527,7 @@
 			*(int32_t *)(h + 0xC) = mul32(n->c - 2, 682);
 		}
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
-		*(uint32_t *)h = MODEL_STREAK;
+		*(uint32_t *)h = game_addr(MODEL_STREAK);
 		*(uint32_t *)(h + 0x1C) |= 3;
 		for (int32_t k = 0; k < r->count; k++)
 		{
@@ -568,9 +568,9 @@
 	static void ParticleDraws()
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_FLASH;
+		*(uint32_t *)h = game_addr(SEQ_FLASH);
 		*(int16_t *)(h + 0x24) = 0;
-		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0xC)
+		for (uint32_t a = game_addr(POOL_A); a < game_addr(POOL_A_END); a += 0xC)
 		{
 			FlashP *p = (FlashP *)a;
 			if (p->life < 0) continue;
@@ -581,8 +581,8 @@
 			p->life++;
 			if (*(const int16_t *)(h + 0x28) < 0) p->life = -1;
 		}
-		*(uint32_t *)h = SEQ_DEBRIS;
-		for (uint32_t a = POOL_C; a < POOL_C_END; a += 0x14)
+		*(uint32_t *)h = game_addr(SEQ_DEBRIS);
+		for (uint32_t a = game_addr(POOL_C); a < game_addr(POOL_C_END); a += 0x14)
 		{
 			DebrisP *p = (DebrisP *)a;
 			if (p->life < 0) continue;
@@ -604,14 +604,14 @@
 			p->vel[1] = (int16_t)(p->vel[1] - (int16_t)(p->vel[1] >> 3));
 			p->vel[2] = (int16_t)(p->vel[2] - (int16_t)(p->vel[2] >> 3));
 		}
-		*(uint32_t *)h = us(SEQ_SPARK);
+		*(uint32_t *)h = game_addr(SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 4;
-		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x10)
+		for (uint32_t a = game_addr(POOL_B); a < game_addr(POOL_B_END); a += 0x10)
 		{
 			SparkP *p = (SparkP *)a;
 			if (p->life < 0) continue;
 			*(int16_t *)(h + 4) = p->life;
-			*(uint32_t *)(h + 0x1C) = var<uint32_t>(SPARK_FRAMES + 4 * p->frame);
+			*(uint32_t *)(h + 0x1C) = var<uint32_t>(game_addr(SPARK_FRAMES) + 4 * p->frame);
 			TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 4));
 			PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 			if (UpdateFlags() & 0x201) continue;
@@ -674,7 +674,7 @@
 		*(uint32_t *)h = seq;
 		GteSetLightMatrix(&w->cam);
 		GteSetBackColorFromTrans(&w->cam);
-		for (uint32_t a = SLOTS; a < SLOTS_END; a += 0x20)
+		for (uint32_t a = game_addr(SLOTS); a < game_addr(SLOTS_END); a += 0x20)
 		{
 			SlotRec *p = (SlotRec *)a;
 			if (p->alive != kind) continue;
@@ -741,13 +741,13 @@
 		return TASK_END;
 	}
 
-	struct SlotModelDef { uint32_t orig, model, ref; int32_t mode, fade_from, fade_mul, ticks; bool sep_y; };
+	struct SlotModelDef { game::Id orig, model, ref; int32_t mode, fade_from, fade_mul, ticks; bool sep_y; };
 
 	static void SlotModelDraw(const SlotModelDef &d, const Node24 *n, const SlotRec *r, int32_t sx, int32_t sy, int32_t fade)
 	{
 		int32_t v[3] = { r->w18, r->w1A, r->w1C };
 		int32_t axis[3];
-		const int32_t angle = RotationBetweenVectors((const int32_t *)us(d.ref), v, axis);
+		const int32_t angle = RotationBetweenVectors((const int32_t *)game_addr(d.ref), v, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
 		m.t[1] = r->pos[1];
@@ -762,7 +762,7 @@
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = us(d.model);
+		*(uint32_t *)h = game_addr(d.model);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= d.fade_from)
@@ -805,7 +805,7 @@
 		Node24 *t = AddSlotTask(orig);
 		t->w1A = kind;
 		SlotRec *r = Slot(t->e);
-		ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
+		ff8fx::copy<(8)>(r->pos, (const void *)game_addr(HIT_POS));
 		r->w18 = dx;
 		r->w1A = dy;
 		r->w1C = dz;
@@ -814,14 +814,14 @@
 	static void HitPointRecord(Node24 *t)
 	{
 		SlotRec *r = Slot(t->e);
-		ff8fx::copy<(8)>(r->pos, (const void *)HIT_POS);
-		r->w18 = var<int16_t>(HIT_DIR);
-		r->w1A = var<int16_t>(HIT_DIR + 4);
-		r->w1C = var<int16_t>(HIT_DIR + 8);
+		ff8fx::copy<(8)>(r->pos, (const void *)game_addr(HIT_POS));
+		r->w18 = var<int16_t>(game_addr(HIT_DIR));
+		r->w1A = var<int16_t>(game_addr(HIT_DIR) + 4);
+		r->w1C = var<int16_t>(game_addr(HIT_DIR) + 8);
 	}
 
-	inline int32_t ComputeCosine(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
-	struct DustDef { uint32_t orig; bool delayed; int16_t last; int32_t count, scale_n, scale0, r_n, r0, sp_n, sp0; };
+	inline int32_t ComputeCosine(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(angle); }
+	struct DustDef { game::Id orig; bool delayed; int16_t last; int32_t count, scale_n, scale0, r_n, r0, sp_n, sp0; };
 #pragma pack(push, 1)
 	struct DustWork
 	{
@@ -903,7 +903,7 @@
 		uint8_t *h = AllocHeader(0xB4);
 		int32_t alive = 0;
 		DustBegin(w, h, n);
-		for (uint32_t a = SLOTS; a < SLOTS_END; a += 0x20)
+		for (uint32_t a = game_addr(SLOTS); a < game_addr(SLOTS_END); a += 0x20)
 		{
 			SlotRec *p = (SlotRec *)a;
 			if (p->alive != 4) continue;
@@ -939,13 +939,13 @@
 		}
 		int32_t v = mul32(ComputeSin(shl32(n->c, 10) / d.div + 0x400), d.amp) >> 12;
 		if (!(n->c & 1)) v = -v;
-		var<int16_t>(us(0x1D97712)) = (int16_t)v;
+		var<int16_t>(game_addr(game::BATTLE_CAMERA_SHAKE_OFFSET_Y)) = (int16_t)v;
 		if (DrawOnly()) return 0;
 		n->c++;
 		return n->c >= d.ticks ? TASK_END : 0;
 	}
 
-	struct BoneEmitDef { int16_t last; int32_t bone, bone2, scale_n, scale0, sp_n, sp0; uint32_t seq; };
+	struct BoneEmitDef { int16_t last; int32_t bone, bone2, scale_n, scale0, sp_n, sp0; game::Id seq; };
 	static void BoneDir(EmitWork *w, int32_t bone, int32_t *dir)
 	{
 		GetEffectSpawnPosition(Target(), bone, 0, w->pos);
@@ -985,7 +985,7 @@
 				p->w14 = (int16_t)(mul32(w->dir[2], sp) >> 12);
 			}
 		}
-		const int32_t alive = EmitterDraw(n, w, 2, us(d.seq));
+		const int32_t alive = EmitterDraw(n, w, 2, game_addr(d.seq));
 		FieldFree(0x50);
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -993,7 +993,7 @@
 	}
 
 	enum { NM_GROUND, NM_CASTER, NM_CASTER_OFS, NM_YANGLE };
-	struct NodeModelDef { uint32_t orig, model; int rot; int32_t fade_from, fade_mul, rate_div, ticks; bool slot, sep_y; };
+	struct NodeModelDef { game::Id orig, model; int rot; int32_t fade_from, fade_mul, rate_div, ticks; bool slot, sep_y; };
 
 	static void NodeModelDraw(const NodeModelDef &d, const Node24 *n, int32_t scale, int32_t sy, int32_t fade)
 	{
@@ -1036,7 +1036,7 @@
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = us(d.model);
+		*(uint32_t *)h = game_addr(d.model);
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0x33;
 		if (n->c >= d.fade_from)

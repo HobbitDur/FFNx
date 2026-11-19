@@ -25,18 +25,18 @@ namespace maelstrom207
 	using namespace eng;
 	using namespace magc;
 
-	inline uint32_t &TexBase() { return var<uint32_t>(us(0x25102C8)); }
-	inline CastContext *&Ctx() { return var<CastContext *>(us(0x2517A0C)); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(us(0x2517A24)); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)us(0x2517A28); }
-	inline TaskQueue *QMain() { return (TaskQueue *)us(0x2517A38); }
-	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(us(0x2517A58)); }
-	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(us(0x2517A80)); }
-	inline uint32_t OTBase() { return var<uint32_t>(us(0x1D8E04C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(game_addr(game::MAG_207_Maelstrom_MagicBufferBase)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(game_addr(game::MAG_207_Maelstrom_CastContext)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(game_addr(game::MAG_207_Maelstrom_PacketCursor)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)game_addr(game::MAG_207_Maelstrom_ParticlesQueue); }
+	inline TaskQueue *QMain() { return (TaskQueue *)game_addr(game::MAG_207_Maelstrom_MainQueue); }
+	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(game_addr(game::MAG_207_Maelstrom_WarpFrame)); }
+	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(game_addr(game::MAG_207_Maelstrom_ModuleMatrix)); }
+	inline uint32_t OTBase() { return var<uint32_t>(game_addr(game::g_Battle_FrameRenderListBase)); }
 
-	static const uint32_t ORIG_MasterTask = 0x6A3B70;
-	static const uint32_t ORIG_MainTask = 0x6A3D90;
-	static const uint32_t ORIG_ParticleTask = 0x6A5650;
+	static constexpr game::Id ORIG_MasterTask = game::MAG_207_Maelstrom_MasterTask;
+	static constexpr game::Id ORIG_MainTask = game::MAG_207_Maelstrom_MainTask;
+	static constexpr game::Id ORIG_ParticleTask = game::MAG_207_Maelstrom_ParticleTask;
 	static const uint32_t MAIN = 0x800;
 	static const uint32_t MORPH = 0xCE8;
 	static const uint32_t VBUF = 0xEE0;
@@ -44,35 +44,35 @@ namespace maelstrom207
 	static const uint32_t MORPH_BYTES = VBUF - MORPH;
 	static const uint32_t ARENA_A = 0x1A2C;
 	static const uint32_t ARENA_B = 0x11A2C;
-	static uint8_t *MESH() { return (uint8_t *)us(0x25102CC); }
-	static const uint16_t *SQRT_TABLE() { return (const uint16_t *)us(0x11B3164); }
-	static const int16_t *LENS_TABLE() { return (const int16_t *)us(0x11B3364); }
-	static const uint32_t MODEL_Main = 0x11AE3F4;
-	static const uint32_t KINDS = 0x11B5370;
-	static const uint32_t SEQ_Particle = 0x11AC414;
-	static const void *SOUND_Maelstrom() { return (const void *)us(0x11AC274); }
+	static uint8_t *MESH() { return (uint8_t *)game_addr(game::MAG_207_Maelstrom_DataCopy); }
+	static const uint16_t *SQRT_TABLE() { return (const uint16_t *)game_addr(game::unk_11B3164); }
+	static const int16_t *LENS_TABLE() { return (const int16_t *)game_addr(game::unk_11B3364); }
+	static constexpr game::Id MODEL_Main = game::MAG_207_Maelstrom_ModelMain;
+	static constexpr game::Id KINDS = game::a00900901;
+	static constexpr game::Id SEQ_Particle = game::MAG_207_Maelstrom_SeqParticle;
+	static const void *SOUND_Maelstrom() { return (const void *)game_addr(game::MAG_207_Maelstrom_SoundMaelstrom); }
 	static const uint32_t COPY_X = 0x240, COPY_Y = 0x100;
 
-	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(a); }
-	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(us(0x7016B0))(data, layout, size); }
-	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x701310))(angles, out); }
-	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(us(0x7015B0))(angles, out); }
-	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(us(0x701390))(model, f0, f1, t, out); }
-	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x701DD0))(h, ot, mode, cursor); }
-	inline uint32_t RenderPrimSetCopy(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x6A45E0))(h, ot, mode, cursor); }
-	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(us(0x56C270))(a, b); }
-	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(us(0x56C220))(a, b); }
-	inline void OrthonormalizeCamera(const void *cam, Mat4x3 *out) { fn<void (__cdecl *)(const void *, Mat4x3 *)>(us(0x67AAE0))(cam, out); }
-	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(us(0x460850))(); }
-	inline void GteWriteData2(int reg, uint32_t value) { fn<void (__cdecl *)(int, uint32_t)>(us(0x45DB90))(reg, value); }
-	inline void GteSetRGBC(const void *rgbc) { fn<void (__cdecl *)(const void *)>(us(0x45E110))(rgbc); }
-	inline void GteDPCS() { fn<void (__cdecl *)()>(us(0x45F270))(); }
-	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
-	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x45DD60))(r, g, b); }
-	inline void InsertPrimAltViewport(uint32_t ot, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(ot, packet); }
-	inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(us(0x45B640))(env); }
-	inline void ClearImage(const int16_t *rect, int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(const int16_t *, int32_t, int32_t, int32_t)>(us(0x45BEE0))(rect, r, g, b); }
-	inline void RequestDrawOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(us(0x45B5E0))(x, y); }
+	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(game_addr(game::computeCosine))(a); }
+	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(game_addr(game::Effect_DecodeModelPrimLayout))(data, layout, size); }
+	inline void RotationFromAngles(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::Effect_RotationFromAnglesZXY))(angles, out); }
+	inline void RotationFromAnglesB(const int16_t *angles, Mat4x3 *out) { fn<void (__cdecl *)(const int16_t *, Mat4x3 *)>(game_addr(game::MAG_063_RotationFromAnglesYXZ))(angles, out); }
+	inline void BlendVertexFrames(uint32_t model, int32_t f0, int32_t f1, int32_t t, uint32_t out) { fn<void (__cdecl *)(uint32_t, int32_t, int32_t, int32_t, uint32_t)>(game_addr(game::Effect_BlendVertexFrames))(model, f0, f1, t, out); }
+	inline uint32_t RenderPrimSet(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_063_RenderPrimSet))(h, ot, mode, cursor); }
+	inline uint32_t RenderPrimSetCopy(void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(game_addr(game::MAG_207_Maelstrom_RenderPrimSetCopy))(h, ot, mode, cursor); }
+	inline void MatrixMultiply(const Mat4x3 *a, Mat4x3 *b) { fn<void (__cdecl *)(const Mat4x3 *, Mat4x3 *)>(game_addr(game::GTE_MatrixMultiply))(a, b); }
+	inline void MatrixMultiply3(Mat4x3 *a, const Mat4x3 *b) { fn<void (__cdecl *)(Mat4x3 *, const Mat4x3 *)>(game_addr(game::MatrixMultiply3x3))(a, b); }
+	inline void OrthonormalizeCamera(const void *cam, Mat4x3 *out) { fn<void (__cdecl *)(const void *, Mat4x3 *)>(game_addr(game::MAG_069_OrthonormalizeCameraMatrix))(cam, out); }
+	inline void GteMVMVA_RotV0() { fn<void (__cdecl *)()>(game_addr(game::GTE_MVMVA_RotV0))(); }
+	inline void GteWriteData2(int reg, uint32_t value) { fn<void (__cdecl *)(int, uint32_t)>(game_addr(game::GTE_WriteDataRegAt))(reg, value); }
+	inline void GteSetRGBC(const void *rgbc) { fn<void (__cdecl *)(const void *)>(game_addr(game::GTE_LoadRGBC))(rgbc); }
+	inline void GteDPCS() { fn<void (__cdecl *)()>(game_addr(game::GTE_DPCS))(); }
+	inline void GteStoreRGB2(void *dst) { fn<void (__cdecl *)(void *)>(game_addr(game::GTE_StoreRGB2))(dst); }
+	inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_SetFarColor))(r, g, b); }
+	inline void InsertPrimAltViewport(uint32_t ot, void *packet) { fn<void (__cdecl *)(uint32_t, void *)>(game_addr(game::SSIGPU_InsertPrimAltViewport))(ot, packet); }
+	inline void GetDrawEnv(void *env) { fn<void (__cdecl *)(void *)>(game_addr(game::GPU_GetDrawEnv))(env); }
+	inline void ClearImage(const int16_t *rect, int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(const int16_t *, int32_t, int32_t, int32_t)>(game_addr(game::isDravingOverlayImage))(rect, r, g, b); }
+	inline void RequestDrawOffset(int32_t x, int32_t y) { fn<void (__cdecl *)(int32_t, int32_t)>(game_addr(game::Gpu_RequestNextPassDrawOffset))(x, y); }
 
 #pragma pack(push, 1)
 	struct MasterNode
@@ -714,7 +714,7 @@ namespace maelstrom207
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, (int32_t)0xFFFFFC00);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = us(SEQ_Particle);
+		*(uint32_t *)h = game_addr(SEQ_Particle);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -750,7 +750,7 @@ namespace maelstrom207
 		{
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, w->avg);
-			arg.kinds = us(KINDS);
+			arg.kinds = game_addr(KINDS);
 			arg.depth = -0x80;
 			arg.scroll = (int16_t)(w->counter << 5);
 			arg.morph = TexBase() + MORPH;
@@ -778,7 +778,7 @@ namespace maelstrom207
 		{
 			for (int i = 0; i < 4; i++)
 			{
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), us(ORIG_ParticleTask));
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), game_addr(ORIG_ParticleTask));
 				if (!p) break;
 				p->counter = 0;
 				const int32_t r1 = CrtRand();
@@ -837,9 +837,9 @@ namespace maelstrom207
 				m->started = 1;
 				InitTaskQueuePool(QMain(), (void *)(TexBase() + MAIN), 0x4E8, 1);
 				InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x20, 0x40);
-				MainNode *w = (MainNode *)AddTaskToQueue(QMain(), us(ORIG_MainTask));
+				MainNode *w = (MainNode *)AddTaskToQueue(QMain(), game_addr(ORIG_MainTask));
 				Memset32(&w->counter, 0, 0x137);
-				DecodeModelPrimLayout(us(MODEL_Main), w->layout, 0x4B8);
+				DecodeModelPrimLayout(game_addr(MODEL_Main), w->layout, 0x4B8);
 				w->count = (int16_t)Ctx()->actions[0].target_count;
 				w->avg[2] = 0;
 				w->avg[1] = 0;
@@ -863,7 +863,7 @@ namespace maelstrom207
 		int a0;
 		if (m->started)
 		{
-			OrthonormalizeCamera((const void *)us(0x1D97778), &ModuleMatrix());
+			OrthonormalizeCamera((const void *)game_addr(game::unk_1D97778), &ModuleMatrix());
 			a0 = ExecuteTaskQueue(QMain());
 			ExecuteTaskQueue(QParticles());
 		}

@@ -37,26 +37,26 @@ namespace corona252
 	{
 		c.name = "252 Corona (Mobile Type 8)";
 		c.effect_id = 252;
-		c.vm_table = us(0x185D600);
-		c.bone_table = us(0x185D270);
-		c.prim_table = us(0x185D2B8);
-		c.prim_size = us(0x185D3A8);
-		c.spr_table = us(0x185D3BC);
-		c.ptype_table = us(0x185D3E8);
-		c.pop_table = us(0x185D3FC);
-		c.draw_table = us(0x185D45C);
-		c.attr_16A = us(0x185D5C6);
-		c.attr_184 = us(0x185D5E0);
-		c.attr_186 = us(0x185D5E2);
-		c.attr_194 = us(0x185D5F0);
-		c.attr_19C = us(0x185D5F8);
-		c.desc = us(0x185D1C0);
-		c.ptr_block = us(0x185D248);
-		c.queue = us(0x2796630);
-		c.file00 = us(0x2796628);
-		c.file01 = us(0x279662C);
-		c.tick = us(0x9A2EE0);
-		c.load_cb = us(0x9A7A70);
+		c.vm_table = game_addr(game::funcs_9ABAAC);
+		c.bone_table = game_addr(game::funcs_9A8687);
+		c.prim_table = game_addr(game::funcs_9A4B34);
+		c.prim_size = game_addr(game::unk_185D3A8);
+		c.spr_table = game_addr(game::unk_185D3BC);
+		c.ptype_table = game_addr(game::unk_185D3E8);
+		c.pop_table = game_addr(game::funcs_9A6077);
+		c.draw_table = game_addr(game::unk_185D45C);
+		c.attr_16A = game_addr(game::unk_185D5C6);
+		c.attr_184 = game_addr(game::unk_185D5E0);
+		c.attr_186 = game_addr(game::unk_185D5E2);
+		c.attr_194 = game_addr(game::unk_185D5F0);
+		c.attr_19C = game_addr(game::unk_185D5F8);
+		c.desc = game_addr(game::unk_185D1C0);
+		c.ptr_block = game_addr(game::unk_185D248);
+		c.queue = game_addr(game::unk_2796630);
+		c.file00 = game_addr(game::unk_2796628);
+		c.file01 = game_addr(game::unk_279662C);
+		c.tick = game_addr(game::MAG_252_sub_9A2EE0);
+		c.load_cb = game_addr(game::MAG_252_sub_9A7A70);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
@@ -89,7 +89,7 @@ namespace corona252
 		corona252::describe(corona252::g_c);
 		init_clone(corona252::g_c, nullptr, 0);
 		corona252::apply_slots(corona252::g_c);
-		register_port(0x9A2EE0, (void *)corona252::SequenceTask, "MAG252 Corona (Mobile Type 8) SequenceTick", 252);
+		register_port(game::MAG_252_sub_9A2EE0, (void *)corona252::SequenceTask, "MAG252 Corona (Mobile Type 8) SequenceTick", 252);
 	}
 }
 

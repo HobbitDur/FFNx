@@ -30,26 +30,26 @@ namespace ifrit
 	{
 		c.name = "201 Ifrit";
 		c.effect_id = 201;
-		c.vm_table = us(0x1874F10);
-		c.bone_table = us(0x1874B80);
-		c.prim_table = us(0x1874BC8);
-		c.prim_size = us(0x1874CB8);
-		c.spr_table = us(0x1874CCC);
-		c.ptype_table = us(0x1874CF8);
-		c.pop_table = us(0x1874D0C);
-		c.draw_table = us(0x1874D6C);
-		c.attr_16A = us(0x1874ED6);
-		c.attr_184 = us(0x1874EF0);
-		c.attr_186 = us(0x1874EF2);
-		c.attr_194 = us(0x1874F00);
-		c.attr_19C = us(0x1874F08);
-		c.desc = us(0x1874894);
-		c.ptr_block = us(0x1874B58);
-		c.queue = us(0x2796E18);
-		c.file00 = us(0x2796E4C);
-		c.file01 = us(0x2796E48);
-		c.tick = us(0xB25DF0);
-		c.load_cb = us(0xB2BB40);
+		c.vm_table = game_addr(game::GF_201Ifrit_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_201Ifrit_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_B27DD4);
+		c.prim_size = game_addr(game::unk_1874CB8);
+		c.spr_table = game_addr(game::unk_1874CCC);
+		c.ptype_table = game_addr(game::unk_1874CF8);
+		c.pop_table = game_addr(game::funcs_B2A007);
+		c.draw_table = game_addr(game::GF_201Ifrit_DrawHandlerTable);
+		c.attr_16A = game_addr(game::GF_201Ifrit_VmOpcodeAttribTable);
+		c.attr_184 = game_addr(game::GF_201Ifrit_VmFieldDescTable);
+		c.attr_186 = game_addr(game::unk_1874EF2);
+		c.attr_194 = game_addr(game::unk_1874F00);
+		c.attr_19C = game_addr(game::unk_1874F08);
+		c.desc = game_addr(game::unk_1874894);
+		c.ptr_block = game_addr(game::unk_1874B58);
+		c.queue = game_addr(game::unk_2796E18);
+		c.file00 = game_addr(game::unk_2796E4C);
+		c.file01 = game_addr(game::unk_2796E48);
+		c.tick = game_addr(game::GF_Ifrit_seqBDlink);
+		c.load_cb = game_addr(game::MAG_201_LoadCb_ClearBusy);
 		c.lit_dispatcher = true;
 		c.bone_count = 18;
 	}
@@ -66,7 +66,7 @@ namespace ifrit
 		using namespace gfc;
 		ifrit::describe(ifrit::g_ifrit);
 		init_clone(ifrit::g_ifrit, nullptr, 0);
-		register_port(0xB25DF0, (void *)ifrit::SequenceTask, "GFC201 Ifrit SequenceTick", 201);
+		register_port(game::GF_Ifrit_seqBDlink, (void *)ifrit::SequenceTask, "GFC201 Ifrit SequenceTick", 201);
 	}
 }
 

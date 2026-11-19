@@ -37,33 +37,33 @@ namespace laser254
 	{
 		c.name = "254 Homing Laser (attack 281)";
 		c.effect_id = 254;
-		c.vm_table = us(0x185C298);
-		c.bone_table = us(0x185BF08);
-		c.prim_table = us(0x185BF50);
-		c.prim_size = us(0x185C040);
-		c.spr_table = us(0x185C054);
-		c.ptype_table = us(0x185C080);
-		c.pop_table = us(0x185C094);
-		c.draw_table = us(0x185C0F4);
-		c.attr_16A = us(0x185C25E);
-		c.attr_184 = us(0x185C278);
-		c.attr_186 = us(0x185C27A);
-		c.attr_194 = us(0x185C288);
-		c.attr_19C = us(0x185C290);
-		c.desc = us(0x185BDF0);
-		c.ptr_block = us(0x185BEE0);
-		c.queue = us(0x27965B8);
-		c.file00 = us(0x27965C8);
-		c.file01 = us(0x27965CC);
-		c.tick = us(0x98D820);
-		c.load_cb = us(0x9936B0);
+		c.vm_table = game_addr(game::funcs_9977CC);
+		c.bone_table = game_addr(game::funcs_9942C7);
+		c.prim_table = game_addr(game::funcs_990704);
+		c.prim_size = game_addr(game::unk_185C040);
+		c.spr_table = game_addr(game::unk_185C054);
+		c.ptype_table = game_addr(game::unk_185C080);
+		c.pop_table = game_addr(game::funcs_991CB7);
+		c.draw_table = game_addr(game::unk_185C0F4);
+		c.attr_16A = game_addr(game::unk_185C25E);
+		c.attr_184 = game_addr(game::unk_185C278);
+		c.attr_186 = game_addr(game::unk_185C27A);
+		c.attr_194 = game_addr(game::unk_185C288);
+		c.attr_19C = game_addr(game::unk_185C290);
+		c.desc = game_addr(game::unk_185BDF0);
+		c.ptr_block = game_addr(game::unk_185BEE0);
+		c.queue = game_addr(game::unk_27965B8);
+		c.file00 = game_addr(game::unk_27965C8);
+		c.file01 = game_addr(game::unk_27965CC);
+		c.tick = game_addr(game::MAG_254_sub_98D820);
+		c.load_cb = game_addr(game::MAG_254_sub_9936B0);
 		c.lit_dispatcher = false;
 		c.bone_count = 18;
 	}
 
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
-		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
+		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(game_addr(game::GfCinematic_ModelJointMatrix))(hdr, joint, scale, m);
 	}
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
@@ -105,7 +105,7 @@ namespace laser254
 		laser254::describe(laser254::g_c);
 		init_clone(laser254::g_c, nullptr, 0);
 		laser254::apply_slots(laser254::g_c);
-		register_port(0x98D820, (void *)laser254::SequenceTask, "MAG254 Homing Laser (attack 281) SequenceTick", 254);
+		register_port(game::MAG_254_sub_98D820, (void *)laser254::SequenceTask, "MAG254 Homing Laser (attack 281) SequenceTick", 254);
 	}
 }
 

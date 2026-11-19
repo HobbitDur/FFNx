@@ -26,12 +26,12 @@ namespace part_lev_a
 {
 	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag)
 	{
-		return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C8C0))(v, sxy, p, flag);
+		return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(game_addr(game::GTE_RotTransPersDiv8))(v, sxy, p, flag);
 	}
 
 	static inline void xl_OffscreenRender_B65810()
 	{
-		x::f<int32_t (__cdecl *)()>(us(0xB65810))();
+		x::f<int32_t (__cdecl *)()>(game_addr(game::GfCinematic_RenderPartyModelsOffscreen))();
 	}
 
 	static inline int32_t Div3(int32_t v)
@@ -523,7 +523,7 @@ namespace part_lev_b
 {
 	static int32_t xl_NormalClip_56CB30(int32_t a, int32_t b, int32_t c)
 	{
-		return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CB30))(a, b, c);
+		return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(game_addr(game::GTE_NormalClip3))(a, b, c);
 	}
 
 	static void MorphTableBuild_B5A760()
@@ -1052,26 +1052,26 @@ namespace leviathan
 	{
 		c.name = "006 Leviathan";
 		c.effect_id = 6;
-		c.vm_table = us(0x1877864);
-		c.bone_table = us(0x18774D4);
-		c.prim_table = us(0x187751C);
-		c.prim_size = us(0x187760C);
-		c.spr_table = us(0x1877620);
-		c.ptype_table = us(0x187764C);
-		c.pop_table = us(0x1877660);
-		c.draw_table = us(0x18776C0);
-		c.attr_16A = us(0x187782A);
-		c.attr_184 = us(0x1877844);
-		c.attr_186 = us(0x1877846);
-		c.attr_194 = us(0x1877854);
-		c.attr_19C = us(0x187785C);
-		c.desc = us(0x187726C);
-		c.ptr_block = us(0x18774AC);
-		c.queue = us(0x2796EF8);
-		c.file00 = us(0x2796F0C);
-		c.file01 = us(0x2796F08);
-		c.tick = us(0xB586F0);
-		c.load_cb = us(0xB60530);
+		c.vm_table = game_addr(game::GF_006Leviathan_VmOpcodeTable);
+		c.bone_table = game_addr(game::GF_006Leviathan_BoneHandlerTable);
+		c.prim_table = game_addr(game::funcs_B5C6B4);
+		c.prim_size = game_addr(game::unk_187760C);
+		c.spr_table = game_addr(game::unk_1877620);
+		c.ptype_table = game_addr(game::unk_187764C);
+		c.pop_table = game_addr(game::funcs_B5E9F7);
+		c.draw_table = game_addr(game::GF_006Leviathan_DrawHandlerTable);
+		c.attr_16A = game_addr(game::unk_187782A);
+		c.attr_184 = game_addr(game::unk_1877844);
+		c.attr_186 = game_addr(game::unk_1877846);
+		c.attr_194 = game_addr(game::unk_1877854);
+		c.attr_19C = game_addr(game::unk_187785C);
+		c.desc = game_addr(game::unk_187726C);
+		c.ptr_block = game_addr(game::unk_18774AC);
+		c.queue = game_addr(game::unk_2796EF8);
+		c.file00 = game_addr(game::unk_2796F0C);
+		c.file01 = game_addr(game::unk_2796F08);
+		c.tick = game_addr(game::GF_006Leviathan_SequenceTick);
+		c.load_cb = game_addr(game::MAG_006_sub_B60530);
 		c.lit_dispatcher = true;
 		c.bone_count = 18;
 	}
@@ -1091,7 +1091,7 @@ namespace leviathan
 		apply_lev_a(leviathan::g_c);
 		apply_lev_b(leviathan::g_c);
 		apply_shared_misc(leviathan::g_c);
-		register_port(0xB586F0, (void *)leviathan::SequenceTask, "GFC006 Leviathan SequenceTick", 6);
+		register_port(game::GF_006Leviathan_SequenceTick, (void *)leviathan::SequenceTask, "GFC006 Leviathan SequenceTick", 6);
 	}
 }
 
