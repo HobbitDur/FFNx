@@ -147,21 +147,15 @@ namespace megalixir
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag059_megalixir_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace megalixir
 {
-
 	uint32_t __cdecl ml_7F2930(uint32_t a1)
 	{
 		g_mod = &MOD_059;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -521,7 +515,6 @@ namespace megalixir
 		case 1:
 			ml_7F79B0();
 			ml_7F5060();
-			FX_HELD(held_note_system(sys);)
 			ml_7F4F20();
 			ml_7F38A0();
 			sys = U32(us(0x2608040), 0);
@@ -1989,10 +1982,6 @@ namespace megalixir
 			act::register_module_port(59, p->addr, p->port, p->name);
 		for (const act::megalixir::ModPort *p = act::megalixir::PORTS; p->addr; p++)
 			act::register_module_port(59, p->addr, p->port, p->name);
-		FX_HELD(register_mag059_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag059_megalixir_held.inc"
-#endif

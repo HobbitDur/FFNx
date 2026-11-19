@@ -16,10 +16,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag234_fart_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -172,7 +168,6 @@ namespace fart
 
 	static void __cdecl dh_30_WobbleEntity()
 	{
-		FX_HELD(held_entity_begin(PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)));)
 		if (U32(CUR(), 0xBC) == 0)
 		{
 			uint8_t *prm = PTR(CUR(), 0xB8);
@@ -207,7 +202,6 @@ namespace fart
 		{
 			SyncEntityModelCopy(blk);
 			weapon = PTR(ent, 0x78);
-			FX_HELD(held_local_skeletons(hdr, weapon);)
 			x::ComposeAffine(NODEMAT(), ent + 0x40, WS() + 0xE0);
 			if (weapon) x::ComputeBonesWorldMatrices(weapon, WS() + 0xE0);
 			x::ComputeBonesWorldMatrices(hdr, WS() + 0xE0);
@@ -227,7 +221,6 @@ namespace fart
 		}
 		DrawWobbleModel(model, desc);
 		if (weapon) DrawWobbleModel(PTR(weapon, 4), desc);
-		FX_HELD(held_entity_end();)
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
@@ -244,10 +237,6 @@ namespace fart
 		init_clone(fart::g_c, nullptr, 0);
 		fart::g_c.draw[30] = fart::dh_30_WobbleEntity;
 		register_port(0xA48F60, (void *)fart::SequenceTask, "MAG234 Fart SequenceTick", 234);
-		FX_HELD(register_mag234_fart_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag234_fart_held.inc"
-#endif

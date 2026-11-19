@@ -211,10 +211,6 @@ namespace renzo161
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag161_renzokuken_elvoret_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo161
@@ -588,7 +584,6 @@ namespace renzo161
 		{
 			TrailSplines(cnt, (const uint8_t *)us(PTS_A), (const uint8_t *)us(PTS_B), (uint8_t *)us(SPL_A), (uint8_t *)us(SPL_B));
 			TrailHitPoint((const uint8_t *)us(SPL_B), (uint8_t *)us(HIT_POS), (int32_t *)us(HIT_DIR));
-			FX_HELD(held_note_trail(n);)
 			TrailDraw((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B), w);
 		}
 		FieldFree(0x40);
@@ -689,7 +684,6 @@ namespace renzo161
 	{
 		Node24 *n = (Node24 *)tn;
 		HitRec *r = (HitRec *)(us(HIT_REC) + 0x9C * n->e);
-		FX_HELD(held_note_slash(n, r);)
 		int32_t axis[3];
 		const int32_t angle = RotationBetweenVectors((const int32_t *)us(SLASH_REF), r->dir, axis);
 		Mat4x3 m;
@@ -765,7 +759,6 @@ namespace renzo161
 	static uint32_t __cdecl FinalTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_final(n);)
 		int16_t a[3] = { 0, 0, 0 };
 		Mat4x3 m;
 		BuildRotationMatrixFromAngles(a, &m);
@@ -803,7 +796,6 @@ namespace renzo161
 
 	static void ParticleDraws()
 	{
-		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_FLASH);
 		*(int16_t *)(h + 0x24) = 0;
@@ -915,7 +907,6 @@ namespace renzo161
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
-		FX_HELD(held_note_master();)
 		const int alive = ExecuteTaskQueue(QMain());
 		ParticleDraws();
 		r->counter++;
@@ -934,10 +925,6 @@ namespace renzo161
 		register_port(renzo161::ORIG_Final, (void *)renzo161::FinalTask, "161 Final", 161);
 		register_port(renzo161::ORIG_HitSpark, (void *)renzo161::HitSparkTask, "161 HitSpark", 161);
 		register_port(renzo161::ORIG_Sparkle, (void *)renzo161::SparkleTask, "161 Sparkle", 161);
-		FX_HELD(register_mag161_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag161_renzokuken_elvoret_held.inc"
-#endif

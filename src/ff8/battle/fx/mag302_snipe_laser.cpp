@@ -358,10 +358,6 @@ namespace snipe302
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag302_snipe_laser_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace snipe302
@@ -369,7 +365,6 @@ namespace snipe302
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
-		FX_HELD(held_note_sprite(SPR_GLOW, n, g->pos, nullptr, g->counter);)
 		SpriteDraw(g->pos, g->counter, us(SEQ_Glow), 0xAF0, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
@@ -378,7 +373,6 @@ namespace snipe302
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_sprite(SPR_SPARK, n, s->pos, s->vel, s->counter);)
 		SpriteDraw(s->pos, s->counter, us(SEQ_Spark), 0xC00, -0x300);
 		s->counter++;
 		if (s->counter >= 0x10) return TASK_END;
@@ -401,7 +395,6 @@ namespace snipe302
 		ComposeAffineTransform(&Camera(), &h->frame, &arg.m);
 		arg.depth = 0;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(PLAY_HIT, n, (prim::Layout *)h->layout);)
 		return prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -437,7 +430,6 @@ namespace snipe302
 			ComposeAffineTransform(&Camera(), &d.M2, &ray.m);
 			ray.depth = 0;
 			ray.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play(PLAY_RAY, n, (prim::Layout *)b->ray);)
 			prim::play((prim::Layout *)b->ray, PrimCallback, (int)&ray, 0);
 			if ((uint32_t)(c - 15) < 0x28)
 			{
@@ -466,7 +458,6 @@ namespace snipe302
 						DecodeModelPrimLayout(us(MODEL_Hit), h->layout, 0x7C);
 					}
 				}
-				FX_HELD(held_note_beam(n);)
 				BeamRender(&d.M2, d.len, BeamWidth(ez.width), ez.fade);
 			}
 		}
@@ -478,7 +469,6 @@ namespace snipe302
 				ComposeAffineTransform(&Camera(), &f.R, &arg.m);
 				arg.depth = -0x80;
 				arg.morph = TexBase() + MORPH;
-				FX_HELD(held_note_play(PLAY_IMPACT, n, (prim::Layout *)b->impact);)
 				prim::play((prim::Layout *)b->impact, PrimCallback, (int)&arg, 0);
 			}
 			if ((uint32_t)(c - 0x24) < 2)
@@ -508,7 +498,6 @@ namespace snipe302
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -571,10 +560,6 @@ namespace snipe302
 		register_port(snipe302::ORIG_HitTask, (void *)snipe302::HitTask, "302 HitTask", 302);
 		register_port(snipe302::ORIG_SparkTask, (void *)snipe302::SparkTask, "302 SparkTask", 302);
 		register_port(snipe302::ORIG_GlowTask, (void *)snipe302::GlowTask, "302 GlowTask", 302);
-		FX_HELD(register_mag302_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag302_snipe_laser_held.inc"
-#endif

@@ -223,10 +223,6 @@ namespace holywar310
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag310_holy_war_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace holywar310
@@ -239,7 +235,6 @@ namespace holywar310
 		PrimArg arg;
 		arg.pos[3] = 0;
 		arg.scaled = PrimScaled();
-		FX_HELD(held_note_play(p);)
 		if ((uint32_t)(int32_t)p->counter < (uint32_t)ORBIT_TICKS)
 		{
 			for (int j = 0; j < 2; j++)
@@ -314,7 +309,6 @@ namespace holywar310
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -372,10 +366,6 @@ namespace holywar310
 	{
 		register_port(holywar310::ORIG_RootTask, (void *)holywar310::RootTask, "310 RootTask", 310);
 		register_port(holywar310::ORIG_PlayTask, (void *)holywar310::PlayTask, "310 PlayTask", 310);
-		FX_HELD(register_mag310_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag310_holy_war_held.inc"
-#endif

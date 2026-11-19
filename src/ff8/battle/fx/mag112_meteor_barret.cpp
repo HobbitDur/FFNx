@@ -177,10 +177,6 @@ namespace meteor112
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag112_meteor_barret_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace meteor112
@@ -216,7 +212,6 @@ namespace meteor112
 	{
 		const int32_t k = d - n;
 		if (k <= 0) return cursor;
-		FX_HELD(held_note_tile(r, g, b, n, d);)
 		uint8_t *p = (uint8_t *)cursor;
 		W16(p, 8) = 0;
 		W16(p, 0x10) = 0;
@@ -353,7 +348,6 @@ namespace meteor112
 
 	static void SmokeDraw(const SmokeNode *s)
 	{
-		FX_HELD(held_note_smoke(s);)
 		TransformCameraByShadowRotation(s->pos, s->size, -((int32_t)s->size >> 2));
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint32_t *)h = s->seq;
@@ -373,7 +367,6 @@ namespace meteor112
 
 	static void SparkDraw(const SparkNode *s)
 	{
-		FX_HELD(held_note_spark(s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		TransformCameraByShadowRotation(s->pos, s->size, -((int32_t)s->depth >> 2));
 		*(uint32_t *)h = s->seq;
@@ -401,7 +394,6 @@ namespace meteor112
 
 	static void DebrisDraw(const DebrisNode *d)
 	{
-		FX_HELD(held_note_debris(d);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		Mat4x3 m;
 		BuildRotationMatrixFromAngles(d->rot, &m);
@@ -454,7 +446,6 @@ namespace meteor112
 
 	static void PlayLayout(DirectorNode *d, int site, PlayArg *arg)
 	{
-		FX_HELD(held_note_layout(d, site, arg);)
 		prim::play((prim::Layout *)((uint8_t *)d + site), PartCallback, (int)arg, 0);
 	}
 
@@ -507,7 +498,6 @@ namespace meteor112
 		L.delta[0] = (int16_t)(L.spawn[0] - d->ground[0]);
 		L.delta[1] = (int16_t)(L.spawn[1] - d->ground[1]);
 		L.delta[2] = (int16_t)(L.spawn[2] - d->ground[2]);
-		FX_HELD(held_note_column(d, k, L.spawn);)
 		YawMatrix(k << 6, &L.m);
 		GteSetRotMatrix(&L.m);
 		L.m.t[2] = 0;
@@ -580,7 +570,6 @@ namespace meteor112
 			p[6] = 0x80;
 			p[5] = 0x80;
 			p[4] = 0x80;
-			FX_HELD(held_note_flat();)
 			uint32_t *q = (uint32_t *)PacketCursor();
 			PacketCursor() += 8;
 			q[0] = 0x01000000;
@@ -916,7 +905,6 @@ namespace meteor112
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1E88;
@@ -988,10 +976,6 @@ namespace meteor112
 		register_port(meteor112::ORIG_DebrisTask, (void *)meteor112::DebrisTask, "112 DebrisTask", 112);
 		register_port(meteor112::ORIG_SparkTask, (void *)meteor112::SparkTask, "112 SparkTask", 112);
 		register_port(meteor112::ORIG_TexRestoreTask, (void *)meteor112::TexRestoreTask, "112 TexRestoreTask", 112);
-		FX_HELD(register_mag112_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag112_meteor_barret_held.inc"
-#endif

@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag_eden_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -66,7 +62,6 @@ namespace part_eden_a
 
 	static uint32_t FadeColour(uint32_t col, int32_t t, int32_t fv, bool frac)
 	{
-		FX_HELD(uint32_t hc; if (held_fade_colour(col, t, fv, frac, &hc)) return hc;)
 		return xl_ColourScale_B66A20(col, mul32(t, fv));
 	}
 
@@ -92,7 +87,6 @@ namespace part_eden_a
 	static void FlatGridFadeIn_AE5AD0(uint8_t *blk, uint8_t *desc)
 	{
 		uint8_t *F = PTR(blk, 4);
-		FX_HELD(if (!held_active()))
 		{
 			int32_t n = S16(CUR(), 0x98);
 			if (n >= 0x10) n = 0x10;
@@ -485,7 +479,6 @@ namespace part_eden_a
 	static void __cdecl dh_60_PlaceModelOnCurlPath()
 	{
 		uint8_t *E = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B));
-		FX_HELD(held_entity60_save(E);)
 
 		U8(E, 1) |= 0x10;
 		S32(WS(), 0x84) = S16(PTR(CUR(), 0xB8), 2);
@@ -597,7 +590,6 @@ namespace part_eden_a
 		v = S16(E, 0x20);
 		U16(CUR(), 0x98) = (uint16_t)v;
 		S32(CUR(), 0x64) = shl32(v, 16);
-		FX_HELD(held_entity60_restore();)
 	}
 }
 
@@ -1186,7 +1178,6 @@ namespace part_eden_c
 	static inline uint32_t xl_ScaleColour_B66A20(uint32_t colour, int32_t scale) { return x::f<uint32_t (__cdecl *)(uint32_t, int32_t)>(us(0xB66A20))(colour, scale); }
 	static inline void xl_RequestScreenFeedback(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e)
 	{
-		FX_HELD(if (held_predicting() || held_active()) return;)
 		x::f<void (__cdecl *)(int32_t, int32_t, int32_t, int32_t, int32_t)>(us(0x47CF50))(a, b, c, d, e);
 	}
 
@@ -1198,7 +1189,6 @@ namespace part_eden_c
 
 	static void __cdecl dh_53_PixelParticleEmitter()
 	{
-		FX_HELD(if (held_active()) { dh_53_PixelParticleEmitterHeld(); return; })
 		if (U32(CUR(), 0xBC) == 0)
 		{
 			uint8_t *desc = PTR(CUR(), 0xB8);
@@ -1329,14 +1319,12 @@ namespace part_eden_c
 
 	static void __cdecl dh_54_DrawEnvClipWindow()
 	{
-		FX_HELD(if (!held_active()))
 		if (PTR(CUR(), 0xBC) == nullptr)
 			PTR(CUR(), 0xBC) = blob::ArenaAlloc(0x100);
 		uint32_t idx = (uint32_t)(uint8_t)(FRAMEPARITY() - 1) & 1;
 		uint8_t *desc = PTR(CUR(), 0xB8);
 		uint8_t *src = DRAWENVS() + idx * 92;
 		uint8_t *env = PTR(CTX(), 0x74);
-		FX_HELD(if (held_active()) env = held_local_env();)
 		for (int k = 0; k < 7; k++) U32(env, 4 * k) = U32(src, 4 * k);
 		int32_t pp = S8(RT(), 0x41);
 		uint8_t *buf = PTR(CUR(), 0xBC);
@@ -1345,7 +1333,6 @@ namespace part_eden_c
 		U16(env, 0xA) = U16(desc, 4);
 		U16(env, 2) = U16(desc, 4);
 		uint8_t *pkt;
-		FX_HELD(if (held_active()) pkt = held_packet_block(); else)
 		pkt = buf + shl32(pp, 7);
 		U16(env, 4) = U16(desc, 6);
 		U16(env, 6) = 0xE0;
@@ -1394,7 +1381,6 @@ namespace part_eden_c
 		uint8_t *bone = CUR();
 		if (U32(bone, 0xBC) == 0)
 		{
-			FX_HELD(if (held_active()) return;)
 			uint8_t *a = blob::ArenaAlloc(0x1B8);
 			PTR(CUR(), 0xBC) = a;
 			uint8_t *d = PTR(CUR(), 0xB8);
@@ -1409,7 +1395,6 @@ namespace part_eden_c
 		}
 		uint8_t *desc = PTR(bone, 0xB8);
 		uint8_t *pool = PTR(bone, 0xBC);
-		FX_HELD(held_scratch55_save();)
 		{
 			int16_t amp = S16(bone, 0x98);
 			uint8_t *s = PTR(CTX(), 0x74);
@@ -1451,7 +1436,6 @@ namespace part_eden_c
 		for (int k = 0; k < 3; k++)
 		{
 			uint16_t ph;
-			FX_HELD(if (held_active()) ph = held_phase55(pool, desc, k); else)
 			{
 				U16(pool, 2 * k) = (uint16_t)(U16(pool, 2 * k) + U16(desc, 6 + 2 * k));
 				ph = U16(pool, 2 * k);
@@ -1551,14 +1535,12 @@ namespace part_eden_c
 		if (U16(desc, 6) != 0) ScanBar(S32(WS(), 0x80), 1, x0, U32(WS(), 0x6C) | 0x2C70B0B0);
 		if (U16(desc, 8) != 0) ScanBar(S32(WS(), 0x84), 1, x0, U32(WS(), 0x6C) | 0x2E70C070);
 		if (U16(desc, 0xA) != 0) ScanBar(S32(WS(), 0x88), 1, x0, U32(WS(), 0x6C) | 0x2EF0F0F0);
-		FX_HELD(held_scratch_restore();)
 	}
 
 	static void __cdecl dh_56_LineRingTunnel()
 	{
 		if (U32(CUR(), 0xBC) == 0)
 		{
-			FX_HELD(if (held_active()) return;)
 			uint8_t *d = PTR(CUR(), 0xB8);
 			uint8_t *a = blob::ArenaAlloc(0x4C);
 			PTR(CUR(), 0xBC) = a;
@@ -1584,10 +1566,8 @@ namespace part_eden_c
 		uint8_t *pool = PTR(WS(), 0x84);
 		S32(WS(), 0x70) = S16(CUR(), 0x8E);
 		U32(WS(), 0x74) = (uint32_t)U16(CUR(), 0x96) & 0x7FFF;
-		FX_HELD(if (held_skip56()) return;)
 		PTR(WS(), 0x64) = PTR(CTX(), 0x74);
 		PTR(WS(), 0x60) = PTR(WS(), 0x64);
-		FX_HELD(held_scratch56_save(desc);)
 		int32_t mask = (int32_t)U16(desc, 8);
 		int32_t lx = S16(CUR(), 0x94);
 		int32_t q = S32(WS(), 0x74) / S32(WS(), 0x70);
@@ -1771,18 +1751,15 @@ namespace part_eden_c
 			} while (r < (int32_t)U16(desc, 6));
 		}
 		PTR(CTX(), 0x7C) = pkt;
-		FX_HELD(held_scratch_restore();)
 	}
 
 	static void __cdecl dh_58_RequestScreenFeedback()
 	{
-		FX_HELD(if (held_active()) return;)
 		xl_RequestScreenFeedback(1, 0xFF, 0xFF, 0xFF, 0x7F);
 	}
 
 	static void __cdecl dh_64_PlaceModelLerpBulge()
 	{
-		FX_HELD(if (held_active()) return;)
 		uint8_t *bone = CUR();
 		uint8_t *desc = PTR(bone, 0xB8);
 		uint8_t *e = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(bone, 0x1B));
@@ -1814,7 +1791,6 @@ namespace part_eden_c
 
 	static void __cdecl dh_65_BattleModelSyncTransform()
 	{
-		FX_HELD(if (held_active()) return;)
 		S32(WS(), 0xF0) = S16(PTR(CUR(), 0xB8), 0);
 		uint8_t *e = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B));
 		U8(e, 1) |= 0x10;
@@ -1858,8 +1834,8 @@ namespace part_eden_d
 	static inline void xl_Apply3DTransform(const void *m, const void *v, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56C3D0))(m, v, out); }
 	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
 	static inline int32_t xl_NormalClip(uint32_t s0, uint32_t s1, uint32_t s2) { return x::f<int32_t (__cdecl *)(uint32_t, uint32_t, uint32_t)>(us(0x56CB30))(s0, s1, s2); }
-	static inline void xl_QueueBlitCommand(const void *rect, int32_t xw, int32_t yw) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(const void *, int32_t, int32_t)>(us(0x505EB0))(rect, xw, yw); }
-	static inline int32_t xl_SdStreamingVolumeTranslation(int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return 0;) return x::f<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x46BD40))(a, b); }
+	static inline void xl_QueueBlitCommand(const void *rect, int32_t xw, int32_t yw) { x::f<void (__cdecl *)(const void *, int32_t, int32_t)>(us(0x505EB0))(rect, xw, yw); }
+	static inline int32_t xl_SdStreamingVolumeTranslation(int32_t a, int32_t b) { return x::f<int32_t (__cdecl *)(int32_t, int32_t)>(us(0x46BD40))(a, b); }
 
 	static inline uint8_t *ZEROVEC() { return (uint8_t *)us(0x27971E4); }
 	static inline uint16_t GTE_SZ3_LO() { return MEM<uint16_t>(us(0x1CA8A5C)); }
@@ -2242,7 +2218,6 @@ namespace part_eden_d
 
 	static void __cdecl dh_72_BattleModelPivotAttach()
 	{
-		FX_HELD(if (held_active()) { dh_72_Held(); return; })
 		BattleModelPivotAttach();
 	}
 
@@ -2433,10 +2408,6 @@ namespace eden
 		apply_shared_ribbon(eden::g_c);
 		apply_shared_misc(eden::g_c);
 		register_port(0xAE3470, (void *)eden::SequenceTask, "GFC206 Eden SequenceTick", 206);
-		FX_HELD(register_gfc_eden_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag_eden_held.inc"
-#endif

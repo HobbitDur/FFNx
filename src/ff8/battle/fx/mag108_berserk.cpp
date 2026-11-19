@@ -674,10 +674,6 @@ namespace berserk108
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag108_berserk_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace berserk108
@@ -685,7 +681,6 @@ namespace berserk108
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(p);)
 		ParticleDraw(p);
 		if (p->seq == us(SEQ_Ember))
 		{
@@ -719,7 +714,6 @@ namespace berserk108
 			s->count = count;
 		}
 		SwirlBasis(&f);
-		FX_HELD(held_note_swirl(s);)
 		PacketCursor() = SwirlDraw(&s->count, s->trail, -0x28, shl32(s->counter, 5), RenderOT(0x44), 2, PacketCursor());
 		s->counter++;
 		if (s->counter > 8 && s->count < 2) return TASK_END;
@@ -745,13 +739,11 @@ namespace berserk108
 		int32_t e = m->counter - 0x11;
 		if ((uint32_t)e < 6)
 		{
-			FX_HELD(held_note_flash(m, e);)
 			FlashDraw(m->pos, e);
 		}
 		e = m->counter - 0x11;
 		if ((uint32_t)e < 0xF)
 		{
-			FX_HELD(held_note_glow(m, e);)
 			GlowDraw(m->pos, GlowScale(e), GlowFade(e));
 		}
 		e = m->counter - 0x11;
@@ -806,11 +798,9 @@ namespace berserk108
 			*(uint32_t *)&arg.pos[2] = *(const uint32_t *)&m->spawn[2];
 			arg.flags = us(PART_Flags);
 			arg.morph = TexBase() + 0x52CC;
-			FX_HELD(held_note_play(m, &arg);)
 			prim::play((prim::Layout *)m->burst, BurstPart, (int)&arg, 0);
 		}
 		int32_t alive;
-		FX_HELD(held_note_rays(m);)
 		PacketCursor() = RayDraw(0x20, m->rays, m->pos, &alive, RenderOT(0x44), 2, PacketCursor());
 		if (m->counter == 0)
 		{
@@ -827,7 +817,6 @@ namespace berserk108
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x554C;
@@ -900,10 +889,6 @@ namespace berserk108
 		register_port(berserk108::ORIG_MainTask, (void *)berserk108::MainTask, "B108 MainTask", 108);
 		register_port(berserk108::ORIG_SwirlTask, (void *)berserk108::SwirlTask, "B108 SwirlTask", 108);
 		register_port(berserk108::ORIG_ParticleTask, (void *)berserk108::ParticleTask, "B108 ParticleTask", 108);
-		FX_HELD(register_mag108_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag108_berserk_held.inc"
-#endif

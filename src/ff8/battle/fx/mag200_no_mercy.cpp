@@ -52,11 +52,13 @@ namespace mercy200
 		ORIG_Restore = 0x63E6F0;
 
 	static const uint32_t ANIM_DATA = 0xE2B518, CAMERA_SCRIPT = 0xE33D8C;
-	static const void *const SOUND_A = (const void *)0xE33D30, *const SOUND_B = (const void *)0xE33D34;
+	static const void *SOUND_A() { return (const void *)us(0xE33D30); }
+	static const void *SOUND_B() { return (const void *)us(0xE33D34); }
 	static const uint32_t REF_DIR = 0xE33D40;
 	static const uint32_t SHARD_COLOURS = 0xE33D50;
-	static const void *const SEQ_Flame = (const void *)0xE3382C, *const SEQ_FlameGlow = (const void *)0xE339D8,
-		*const SEQ_Ember = (const void *)0xE33B84;
+	static const void *SEQ_Flame() { return (const void *)us(0xE3382C); }
+	static const void *SEQ_FlameGlow() { return (const void *)us(0xE339D8); }
+	static const void *SEQ_Ember() { return (const void *)us(0xE33B84); }
 	static const uint32_t SEQ_SPARKBURST = 0xE2DB40, SEQ_TSPARK = 0xE2DC84, SEQ_TBURST = 0xE2DFE4;
 	static const uint32_t MODEL_RING = 0xE316B4, MODEL_FLASH = 0xE2E15C, MODEL_SHARD = 0xE2F8DC, MODEL_SLASH_A = 0xE328BC,
 		MODEL_SLASH_B = 0xE33074, MODEL_FRAME = 0xE2FFB4, MODEL_WAVERING = 0xE3239C, MODEL_WAVETRAIL = 0xE3260C,
@@ -212,10 +214,6 @@ namespace mercy200
 	static inline int16_t RandMask(int32_t mask) { return (int16_t)(CrtRand() % (mask + 1)); }
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag200_no_mercy_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -1046,7 +1044,6 @@ namespace mercy200
 			SplineCurve(cnt, (const int16_t *)us(PTS_BASE), 0x20, (int16_t *)us(SPL_BASE));
 			SplineCurve(cnt, (const int16_t *)us(PTS_TIP), 0x20, (int16_t *)us(SPL_TIP));
 			TrailDirections((const uint8_t *)us(SPL_BASE), (const uint8_t *)us(SPL_TIP));
-			FX_HELD(held_note_trail(n);)
 			TrailDraw((const uint8_t *)us(SPL_BASE), (const uint8_t *)us(SPL_TIP), w);
 		}
 		FieldFree(0x40);
@@ -1060,7 +1057,7 @@ namespace mercy200
 		const int16_t *pos = &p->w10;
 		TransformCameraByShadowRotation(pos, p->w1C, -(p->w1C >> 4));
 		uint8_t *h = AllocHeader(0xB4);
-		*(const void **)h = SEQ_Flame;
+		*(const void **)h = SEQ_Flame();
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1080,7 +1077,7 @@ namespace mercy200
 		int32_t q = (int32_t)(((int64_t)shl32(y, 12) * 0x10624DD3) >> 32) >> 7;
 		q += (int32_t)((uint32_t)q >> 31);
 		uint8_t level = (uint8_t)((q * 160) / 4096 + 0xA0);
-		*(const void **)h = SEQ_FlameGlow;
+		*(const void **)h = SEQ_FlameGlow();
 		*(uint16_t *)(h + 0x24) = 0xC;
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
 		h[0x1E] = level;
@@ -1099,7 +1096,6 @@ namespace mercy200
 			p->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Flame), p);)
 		FlameDraw(p);
 		if (DrawOnly()) return 0;
 		if (p->c == 0)
@@ -1171,7 +1167,6 @@ namespace mercy200
 			p->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Spark), p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
 		SparkUpdate(p);
@@ -1183,7 +1178,7 @@ namespace mercy200
 		TransformCameraByShadowRotation(&p->w10, p->w1C, -(p->w1C >> 3));
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint16_t *)(h + 4) = (uint16_t)p->c;
-		*(const void **)h = SEQ_Ember;
+		*(const void **)h = SEQ_Ember();
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -1208,7 +1203,6 @@ namespace mercy200
 			p->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Ember), p);)
 		EmberDraw(p);
 		if (DrawOnly()) return 0;
 		EmberUpdate(p);
@@ -1411,7 +1405,6 @@ namespace mercy200
 	static uint32_t __cdecl CasterRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_CasterRing), n);)
 		CasterRingDraw(n, shl32(n->c, 3), CasterRingFaded(n->c), CasterRingFade(n->c));
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1441,7 +1434,6 @@ namespace mercy200
 	static uint32_t __cdecl TipFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_TipFlash), n);)
 		TipFlashDraw(n, n->w18, n->w1C, n->c >= 0xA, mul32(n->c - 0xA, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1475,7 +1467,6 @@ namespace mercy200
 	{
 		Node24 *n = (Node24 *)tn;
 		if (n->e == 0 && n->c >= 0x1E && n->c <= 0x23) SlashPoint();
-		FX_HELD(held_note_node(us(ORIG_Slash), n);)
 		SlashDraw(n, (const int16_t *)us(POINT), n->w18, n->w20, n->w1C, n->c < 0xC, 0x1000 - mul32(n->c, 341));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1502,7 +1493,6 @@ namespace mercy200
 	static uint32_t __cdecl FrameModelTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_FrameModel), n);)
 		FrameModelDraw((const Mat4x3 *)us(CAM_FRAME), n, n->w1C, n->c >= 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1551,7 +1541,6 @@ namespace mercy200
 			n->w16--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_WaveRing), n);)
 		WaveRingDraw(n, n->w18, Wave(n->e)->pt[n->w20], mul32(n->w14 * 3, 0x100));
 		if (DrawOnly()) return 0;
 		int16_t step = n->w22;
@@ -1582,7 +1571,6 @@ namespace mercy200
 	static uint32_t __cdecl ImpactFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_ImpactFlash), n);)
 		ImpactFlashDraw(n, n->w1C, n->c >= 6, shl32(n->c - 6, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1607,7 +1595,6 @@ namespace mercy200
 	static uint32_t __cdecl TargetRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_TargetRing), n);)
 		TargetRingDraw(n, n->w18, n->w1C, n->c >= 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1A;
@@ -1671,7 +1658,6 @@ namespace mercy200
 		w->v[1] = 0x1000;
 		w->ang[1] = 0;
 		w->ang[0] = 0;
-		FX_HELD(held_note_pool(us(ORIG_TipShards), n, (const uint8_t *)h);)
 		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -1759,7 +1745,6 @@ namespace mercy200
 		SpriteFrame(w);
 		*(uint32_t *)h = us(SEQ_SPARKBURST);
 		int32_t count = 0;
-		FX_HELD(held_note_pool(us(ORIG_SparkBurst), n, h);)
 		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -1847,7 +1832,6 @@ namespace mercy200
 		w->m1.t[1] = 0;
 		w->m1.t[2] = 0;
 		ComposeAffineTransform(&Camera(), &w->m1, &w->m1);
-		FX_HELD(held_note_pool(us(ORIG_WaveTrail), n, h);)
 		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -1908,7 +1892,6 @@ namespace mercy200
 		SpriteFrame(w);
 		*(uint32_t *)h = us(SEQ_TSPARK);
 		int32_t count = 0;
-		FX_HELD(held_note_pool(us(ORIG_TargetSparks), n, h);)
 		const int32_t pull = -n->w18;
 		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
@@ -1982,7 +1965,6 @@ namespace mercy200
 		int32_t count = 0;
 		SpriteFrame(w);
 		*(uint32_t *)h = us(SEQ_TBURST);
-		FX_HELD(held_note_pool(us(ORIG_TargetBurst), n, h);)
 		const int32_t pull = -n->w18;
 		for (uint32_t a = us(POOL); a < us(POOL_END); a += 0x18)
 		{
@@ -2238,7 +2220,6 @@ namespace mercy200
 			if (fl & 1) return 0;
 			if (PauseQuery() < 0) return 0;
 		}
-		FX_HELD(held_note_director(n);)
 		if (n->c == 0)
 		{
 			CameraScriptStart(us(CAMERA_SCRIPT), us(FRAME), Caster(), QMain(), 0);
@@ -2249,7 +2230,7 @@ namespace mercy200
 		{
 			if (c == 6)
 			{
-				BdPlaySE(SOUND_A, 0, 0x80);
+				BdPlaySE(SOUND_A(), 0, 0x80);
 				TargetsSequence5();
 			}
 			else if (c == 3)
@@ -2267,7 +2248,7 @@ namespace mercy200
 		{
 			switch (c)
 			{
-			case 0x23: BdPlaySE(SOUND_B, 0, 0x80); break;
+			case 0x23: BdPlaySE(SOUND_B(), 0, 0x80); break;
 			case 0x15: Sequence(1); AddTrail(); break;
 			case 0x1F: CharacterLoad(0x232, TexBase() + 0x1C000); break;
 			case 0x2D:
@@ -2333,7 +2314,6 @@ namespace mercy200
 		RootNode *r = (RootNode *)tn;
 		if (r->c & 1) PacketCursor() = TexBase() + 0xE000;
 		else PacketCursor() = TexBase();
-		FX_HELD(held_note_root();)
 		const int alive = ExecuteTaskQueue(QMain());
 		if (!alive)
 		{
@@ -2379,10 +2359,6 @@ namespace mercy200
 		register_port(ORIG_TargetBurst, (void *)TargetBurstTask, "200 TargetBurst", 200);
 		register_port(ORIG_TargetRing, (void *)TargetRingTask, "200 TargetRing", 200);
 		register_port(ORIG_Restore, (void *)RestoreTask, "200 Restore", 200);
-		FX_HELD(register_mag200_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag200_no_mercy_held.inc"
-#endif

@@ -279,10 +279,6 @@ namespace needles178
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag178_10000_needles_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace needles178
@@ -296,7 +292,6 @@ namespace needles178
 		*(int32_t *)(s + 0x28) = -0x1000;
 		if (!DrawOnly() && t->counter >= 0 && t->counter <= 0x27) SpawnNeedles(s);
 		FieldFree(0x50);
-		FX_HELD(held_note_needles(t);)
 		uint8_t *b = NeedleBlock();
 		int moved = 0;
 		for (Needle *n = Needles(); (uint32_t)n < us(NEEDLES_END); n++)
@@ -324,7 +319,6 @@ namespace needles178
 			sp->pos[2] = (int16_t)n->m.t[2];
 		}
 		FieldFree(0xDC);
-		FX_HELD(held_note_sparks();)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
 		for (Spark *sp = Sparks(); (uint32_t)sp < us(SPARKS_END); sp++)
@@ -369,7 +363,6 @@ namespace needles178
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		RootNode *r = (RootNode *)nd;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA1);
 		if (!(r->counter & 1)) PacketCursor() = us(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
@@ -383,10 +376,6 @@ namespace needles178
 		register_port(needles178::ORIG_RootTask, (void *)needles178::RootTask, "N178 RootTask", 178);
 		register_port(needles178::ORIG_Director, (void *)needles178::DirectorTask, "N178 Director", 178);
 		register_port(needles178::ORIG_NeedleTask, (void *)needles178::NeedleTask, "N178 NeedleTask", 178);
-		FX_HELD(register_mag178_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag178_10000_needles_held.inc"
-#endif

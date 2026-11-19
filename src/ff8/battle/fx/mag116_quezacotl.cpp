@@ -18,10 +18,6 @@
 
 #include "fx_port.h"
 
-#ifdef FF8_FX_HELD
-#include "mag116_quezacotl_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace q116
@@ -57,7 +53,6 @@ namespace q116
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (node->parity)
 		{
 			PacketCursor() = (uint32_t)(ModelBuffer() + 0x2E50);
@@ -164,7 +159,6 @@ namespace q116
 		DebrisNode *p = (DebrisNode *)n;
 		DebrisDraw(p->pos, p->rot);
 		if (Pause()) return 0;
-		FX_HELD(held_note_debris(p);)
 		DebrisUpdate(p);
 		p->age++;
 		return p->age < 30 ? 0 : TASK_END;
@@ -950,7 +944,6 @@ namespace q116
 			pts[i].sy += (int16_t)(mul32(rv[1], amp) >> 18);
 			rv[2] = Rand() - 0x4000;
 			pts[i].otz += (int16_t)(mul32(rv[2], amp) >> 18);
-			FX_HELD(held_note_arc_jitter(i, rv);)
 		}
 		ArcDraw(pts, g_dir_arc);
 		FieldFree(0x100);
@@ -959,7 +952,6 @@ namespace q116
 	static uint32_t __cdecl ArcTask(TaskNode *n)
 	{
 		ArcNode *arc = (ArcNode *)n;
-		FX_HELD(held_note_arc(arc);)
 		ArcBuildDraw(arc);
 		if (Pause()) return 0;
 		const int16_t *profile = (const int16_t *)(ModelBuffer() + 0x3C25C);
@@ -1029,7 +1021,6 @@ namespace q116
 
 	static int Play(prim::Layout *l, uint32_t cb, void *arg)
 	{
-		FX_HELD(held_note_play(l, cb, arg);)
 		return prim::play(l, (prim::Callback)cb, (int)arg, Pause());
 	}
 
@@ -1041,8 +1032,6 @@ namespace q116
 		uint8_t *model = nd + 0x28;
 		prim::Layout *L = (prim::Layout *)(nd + 0xD4);
 		uint8_t *MB = ModelBuffer();
-
-		FX_HELD(held_creature_begin();)
 
 		int16_t c = W16(0x0C);
 		if (c <= 351)
@@ -1078,7 +1067,6 @@ namespace q116
 			F16(0x18) = 0x1C0; F16(0x1A) = 0x180; F16(0x1C) = 0x80; F16(0x1E) = 0x80;
 			g_fr[0x10] = g_fr[0x11] = g_fr[0x12] = 0x80; g_fr[0x13] = 0;
 			if (!Pause()) cx::AdvanceAnim(model);
-			FX_HELD(held_note_materialise((int32_t)v3, v4, D32(0x14));)
 			cx::DrawMaterialise(model, v4, FP(0x18), 0x3F54, D32(0x14) >> 6, D32(0x14) >> 5, FP(0x10));
 			if (!Pause()) D32(0x14) += (int32_t)v3;
 		}
@@ -1098,7 +1086,6 @@ namespace q116
 				G16(us(CAM_EYE) + 4) += G16(us(BASE_Y));
 				cx::AdvanceAnim(model);
 			}
-			FX_HELD(held_note_orbit();)
 			var<uint32_t>(us(0x1D8E054)) = cx::DrawModel(model, MB + 0x8D0, var<uint32_t>(us(0x1D8E054)), var<uint32_t>(us(0x1D969A8)));
 		}
 
@@ -1125,7 +1112,6 @@ namespace q116
 			F32(0x84) = 0; F16(0x88) = 0;
 			F32(0x78) = 500; F32(0x7C) = 0; F32(0x80) = G32(us(BASE_Y3));
 			cx::RotMatrixY(-2048, FP(0x64));
-			FX_HELD(held_note_uncomposed(FP(0x64));)
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
 			Play(L, us(CB_PrimMatrix), FP(0x64));
 		}
@@ -1282,7 +1268,6 @@ namespace q116
 			F32(0x84) = 0; F16(0x88) = 0;
 			F32(0x80) = G16(us(CAM_AT) + 4);
 			cx::RotMatrixXY(-0x80, yaw, FP(0x64));
-			FX_HELD(held_note_uncomposed(FP(0x64));)
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
 			Play(L, us(CB_PrimMatrix), FP(0x64));
 		}
@@ -1297,7 +1282,6 @@ namespace q116
 			F32(0x78) = F16(0x28);
 			F32(0x80) = F16(0x2C);
 			cx::RotMatrixXY(-0x80, -(int32_t)W16(0x36), FP(0x64));
-			FX_HELD(held_note_uncomposed(FP(0x64));)
 			ComposeAffineTransform(&Camera(), (Mat4x3 *)FP(0x64), (Mat4x3 *)FP(0x64));
 			Play(L, us(CB_PrimMatrix), FP(0x64));
 		}
@@ -1588,10 +1572,6 @@ namespace q116
 		register_port(q116::ORIG_BoltTask, (void *)q116::BoltTask, "Q116 BoltTask", 116);
 		register_port(q116::ORIG_FlashTask, (void *)q116::FlashTask, "Q116 FlashTask", 116);
 		register_port(q116::ORIG_ArcTask, (void *)q116::ArcTask, "Q116 ArcTask", 116);
-		FX_HELD(register_mag116_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag116_quezacotl_held.inc"
-#endif

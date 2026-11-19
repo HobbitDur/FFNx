@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag_alexander_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -41,7 +37,6 @@ namespace part_alexander
 
 	static void __cdecl dh_35_RenderToTexture()
 	{
-		FX_HELD(if (!held_active()))
 		if (PTR(CUR(), 0xBC) == nullptr)
 		{
 			uint8_t *b = blob::ArenaAlloc(0x100);
@@ -61,7 +56,6 @@ namespace part_alexander
 		U32(env, 0x14) = U32(src, 0x14);
 		U32(env, 0x18) = U32(src, 0x18);
 		uint8_t *prim;
-		FX_HELD(if (held_active()) prim = held_env_prims(); else)
 		prim = PTR(CUR(), 0xBC) + shl32(S8(RT(), 0x41), 7);
 		uint16_t vx = U16(WS(), 0x60);
 		U16(env, 8) = vx;
@@ -570,10 +564,6 @@ namespace alexander
 		apply_shared_ribbon(alexander::g_c);
 		apply_shared_misc(alexander::g_c);
 		register_port(0xB00310, (void *)alexander::SequenceTask, "GFC204 Alexander SequenceTick", 204);
-		FX_HELD(register_gfc_alexander_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag_alexander_held.inc"
-#endif

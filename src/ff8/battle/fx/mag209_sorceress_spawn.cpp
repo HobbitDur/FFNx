@@ -103,10 +103,6 @@ namespace s209
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag209_sorceress_spawn_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace s209
@@ -116,7 +112,6 @@ namespace s209
 		Node24 *n = (Node24 *)tn;
 		uint32_t arena = var<uint32_t>(us(0x24F7A5C));
 		var<uint32_t>(us(0x24F7A60)) = (*(const uint8_t *)&n->c & 1) ? arena + 0x10000 : arena;
-		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		if (!left)
 		{
@@ -434,11 +429,9 @@ namespace s209
 	static uint32_t __cdecl ScreenTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_gte();)
 		if (n->c < 0x64)
 		{
 			ScreenDraw(n->c);
-			FX_HELD(held_note_screen(n);)
 		}
 		if (Paused()) return 0;
 		if (n->c == 0) ShowStage();
@@ -483,9 +476,7 @@ namespace s209
 	static uint32_t __cdecl PrimATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_gte();)
 		PrimADraw(n, n->s1C);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t c = n->c;
 		if (c < 0x10)
@@ -521,9 +512,7 @@ namespace s209
 	static uint32_t __cdecl PrimBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_gte();)
 		PrimBDraw(n, n->a18, n->s1C, n->s20);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		const int32_t end = PrimBEnd(n);
 		n->a18 = (int16_t)(n->a18 + n->s1A);
@@ -579,9 +568,7 @@ namespace s209
 	static uint32_t __cdecl PrimCTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_gte();)
 		PrimCDraw(n, n->c);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x6E ? TASK_END : 0;
@@ -612,9 +599,7 @@ namespace s209
 	static uint32_t __cdecl PrimDTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_gte();)
 		PrimDDraw(n, n->a18, n->s1C);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->a18 = (int16_t)(n->a18 + n->s1A);
@@ -647,9 +632,7 @@ namespace s209
 	static uint32_t __cdecl PrimETask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_gte();)
 		PrimEDraw(n, n->a18, n->s1C);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t a = n->s1A, v = n->s1E;
 		n->a18 = (int16_t)(n->a18 + a);
@@ -836,10 +819,6 @@ namespace s209
 		register_port(s209::ORIG_PrimCTask, (void *)s209::PrimCTask, "209 PrimCTask", 209);
 		register_port(s209::ORIG_PrimDTask, (void *)s209::PrimDTask, "209 PrimDTask", 209);
 		register_port(s209::ORIG_PrimETask, (void *)s209::PrimETask, "209 PrimETask", 209);
-		FX_HELD(register_mag209_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag209_sorceress_spawn_held.inc"
-#endif

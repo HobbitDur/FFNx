@@ -27,10 +27,6 @@ namespace tiamat266
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag266_tiamat_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -102,10 +98,6 @@ namespace tiamat266
 		init_clone(tiamat266::g_c, nullptr, 0);
 		tiamat266::apply_slots(tiamat266::g_c);
 		register_port(0x91FC50, (void *)tiamat266::SequenceTask, "MAG266 Tiamat death SequenceTick", 266);
-		FX_HELD(register_mag266_tiamat_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag266_tiamat_death_held.inc"
-#endif

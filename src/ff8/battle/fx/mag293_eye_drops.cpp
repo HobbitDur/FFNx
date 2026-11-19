@@ -166,10 +166,6 @@ namespace eyedrops293
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag293_eye_drops_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace eyedrops293
@@ -181,7 +177,6 @@ namespace eyedrops293
 		ff8fx::copy<(sizeof(arg.anchor))>(arg.anchor, p->anchor);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + NODE_BYTES;
-		FX_HELD(held_note_play((prim::Layout *)p->layout, p->anchor);)
 		if (prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) == 0)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
@@ -193,7 +188,6 @@ namespace eyedrops293
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -230,10 +224,6 @@ namespace eyedrops293
 	{
 		register_port(eyedrops293::ORIG_RootTask, (void *)eyedrops293::RootTask, "293 RootTask", 293);
 		register_port(eyedrops293::ORIG_PlayTask, (void *)eyedrops293::PlayTask, "293 PlayTask", 293);
-		FX_HELD(register_mag293_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag293_eye_drops_held.inc"
-#endif

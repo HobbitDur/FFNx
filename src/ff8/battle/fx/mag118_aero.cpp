@@ -287,10 +287,6 @@ namespace aero118
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag118_aero_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace aero118
@@ -299,7 +295,6 @@ namespace aero118
 	{
 		LeafNode *f = (LeafNode *)n;
 		if (!LeafMove(f)) return TASK_END;
-		FX_HELD(held_note_leaf(f);)
 		LeafDraw(f);
 		return 0;
 	}
@@ -323,10 +318,8 @@ namespace aero118
 			arg.scaled = 1;
 			arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)(int32_t)*(const int16_t *)(t->entity + 0x26)) >> 5;
 			arg.morph = TexBase() + 0x22A4;
-			FX_HELD(held_note_play(t->whirl, &arg);)
 			alive = prim::play((prim::Layout *)t->whirl, WindPart, (int)&arg, 0);
 			GetDefaultEffectPosition(t->entity, arg.pos);
-			FX_HELD(held_note_play(t->gust, &arg);)
 			alive |= prim::play((prim::Layout *)t->gust, WindPart, (int)&arg, 0);
 		}
 		if ((uint16_t)t->counter < 0x14)
@@ -368,7 +361,6 @@ namespace aero118
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x2584;
@@ -424,10 +416,6 @@ namespace aero118
 		register_port(aero118::ORIG_RootTask, (void *)aero118::RootTask, "A118 RootTask", 118);
 		register_port(aero118::ORIG_TargetTask, (void *)aero118::TargetTask, "A118 TargetTask", 118);
 		register_port(aero118::ORIG_LeafTask, (void *)aero118::LeafTask, "A118 LeafTask", 118);
-		FX_HELD(register_mag118_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag118_aero_held.inc"
-#endif

@@ -225,21 +225,15 @@ namespace curse
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag047_curse_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace curse
 {
-
 	uint32_t __cdecl cu_82A970(uint32_t a1)
 	{
 		g_mod = &MOD_047;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -1150,7 +1144,6 @@ namespace curse
 	uint32_t __cdecl cu_82DCD0(uint32_t a1)
 	{
 		const uint32_t r = a_73C280(a1);
-		FX_HELD(held_note_play(a1);)
 		if (r == 0)
 		{
 			U8(a1, 0x26) |= 1;
@@ -1162,7 +1155,6 @@ namespace curse
 	uint32_t __cdecl cu_82DDD0(uint32_t a1)
 	{
 		const uint32_t r = a_73C280(a1);
-		FX_HELD(held_note_play(a1);)
 		if (r == 0)
 		{
 			U8(a1, 0x26) |= 1;
@@ -1174,7 +1166,6 @@ namespace curse
 	uint32_t __cdecl cu_82DF30(uint32_t a1)
 	{
 		const uint32_t r = a_73C280(a1);
-		FX_HELD(held_note_play(a1);)
 		if (r == 0)
 		{
 			U8(a1, 0x26) |= 1;
@@ -1246,7 +1237,6 @@ namespace curse
 		case 1:
 			cu_8317B0();
 			cu_82EE60();
-			FX_HELD(held_note_system(sys);)
 			a_740700();
 			cu_82EB60();
 			sys = U32(us(0x264EAEC), 0);
@@ -2096,7 +2086,6 @@ namespace curse
 		U32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xFF00;
 		a_73C280(node);
-		FX_HELD(held_note_play(node);)
 		next_state(node);
 		return 0;
 	}
@@ -2113,7 +2102,6 @@ namespace curse
 		U32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xFF00;
 		a_73C280(node);
-		FX_HELD(held_note_play(node);)
 		next_state(node);
 		return 0;
 	}
@@ -2154,7 +2142,6 @@ namespace curse
 		U32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xFF80;
 		a_73C280(node);
-		FX_HELD(held_note_play(node);)
 		next_state(node);
 		return 0;
 	}
@@ -2414,10 +2401,6 @@ namespace curse
 			act::register_module_port(47, p->addr, p->port, p->name);
 		for (const act::curse::ModPort *p = act::curse::PORTS; p->addr; p++)
 			act::register_module_port(47, p->addr, p->port, p->name);
-		FX_HELD(register_mag047_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag047_curse_held.inc"
-#endif

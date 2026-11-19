@@ -427,17 +427,12 @@ namespace aqua72
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag072_aqua_breath_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace aqua72
 {
-
 	uint32_t __cdecl ab_7D2230(uint32_t a1)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(DIR_PTR)), 0x54);
@@ -556,7 +551,6 @@ namespace aqua72
 		U16(node, 0x54) = (uint16_t)a;
 		ab_7D4B30(us(ORB_TEMPLATE), U32(node, 0x4C), a, b);
 		U16(node, 0x5E) = (uint16_t)((uint8_t)(U8(node, 0x5E) + 8) & 0x7F);
-		FX_HELD(held_note_orb(node);)
 		ab_7D29A0(node);
 		if ((U8(node, 0x26) & 4) == 0)
 			g_pad_residue = 0;
@@ -729,7 +723,6 @@ namespace aqua72
 			U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + U16(node, 0x7A));
 			U16(node, 0x20) = (uint16_t)(U16(node, 0x20) + U16(node, 0x7C));
 			U32(node, 0x4C) = MEM<uint32_t>(tbl);
-			FX_HELD(held_note_drop(node, (int)((tbl - us(DROP_SPRITES)) / 4));)
 			ab_7D50D0(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -856,7 +849,6 @@ namespace aqua72
 		{
 			U32(node, 0x1C) = U32(vel, -0x20);
 			U32(node, 0x20) = U32(vel, -0x1C);
-			FX_HELD(held_note_drop(node, 2 - n);)
 			ab_7D50D0(node);
 			if ((U8(node, 0x26) & 4) == 0)
 				g_pad_residue = (uint16_t)((MEM<uint32_t>(us(FALLOC_PTR)) + 0xCC) >> 16);
@@ -948,7 +940,6 @@ namespace aqua72
 			U32(node, 0x1C) = U32(vel, -0x20);
 			U32(node, 0x20) = U32(vel, -0x1C);
 			U32(node, 0x4C) = MEM<uint32_t>(tbl);
-			FX_HELD(held_note_drop(node, (int)((tbl - us(RAIN_SPRITES)) / 4));)
 			ab_7D50D0(node);
 			if ((U8(node, 0x26) & 4) == 0)
 				g_pad_residue = (uint16_t)((MEM<uint32_t>(us(FALLOC_PTR)) + 0xCC) >> 16);
@@ -972,7 +963,6 @@ namespace aqua72
 	uint32_t __cdecl ab_7D1FD0(uint32_t a1)
 	{
 		g_mod = &MOD_072;
-		FX_HELD(held_note_tick();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -2071,10 +2061,6 @@ namespace aqua72
 			act::register_module_port(72, p->addr, p->port, p->name);
 		for (const act::aqua72::ModPort *p = act::aqua72::PORTS; p->addr; p++)
 			act::register_module_port(72, p->addr, p->port, p->name);
-		FX_HELD(register_mag072_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag072_aqua_breath_quistis_held.inc"
-#endif

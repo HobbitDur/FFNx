@@ -182,21 +182,15 @@ namespace lasereye
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag030_counter_laser_eye_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace lasereye
 {
-
 	uint32_t __cdecl cl_873740(uint32_t a1)
 	{
 		g_mod = &MOD_030;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -493,7 +487,6 @@ namespace lasereye
 
 	uint32_t __cdecl cl_878CC0(uint32_t a1, uint32_t a2)
 	{
-		FX_HELD(if (held_laser_draw(a1, a2)) return 0;)
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
 		alignas(4) uint8_t mtx[0x20];
@@ -663,7 +656,6 @@ namespace lasereye
 
 	uint32_t __cdecl cl_878F80(uint32_t a1)
 	{
-		FX_HELD(held_note_spark(a1);)
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
 		const uint32_t hdr = x::Field_Alloc(0xB4);
@@ -980,7 +972,6 @@ namespace lasereye
 		case 1:
 			cl_878870();
 			cl_875EC0();
-			FX_HELD(held_note_system(sys);)
 			cl_875D80();
 			cl_874700();
 			sys = U32(us(0x26D6A38), 0);
@@ -2455,10 +2446,6 @@ namespace lasereye
 			act::register_module_port(30, p->addr, p->port, p->name);
 		for (const act::lasereye::ModPort *p = act::lasereye::PORTS; p->addr; p++)
 			act::register_module_port(30, p->addr, p->port, p->name);
-		FX_HELD(register_mag030_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag030_counter_laser_eye_held.inc"
-#endif

@@ -150,21 +150,15 @@ namespace stare
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag045_stare_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace stare
 {
-
 	uint32_t __cdecl st_8366E0(uint32_t a1)
 	{
 		g_mod = &MOD_045;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -365,7 +359,6 @@ namespace stare
 		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		FX_HELD(held_note_play(node);)
 		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
 	}
 
@@ -1430,10 +1423,6 @@ namespace stare
 			act::register_module_port(45, p->addr, p->port, p->name);
 		for (const act::stare::ModPort *p = act::stare::PORTS; p->addr; p++)
 			act::register_module_port(45, p->addr, p->port, p->name);
-		FX_HELD(register_mag045_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag045_stare_held.inc"
-#endif

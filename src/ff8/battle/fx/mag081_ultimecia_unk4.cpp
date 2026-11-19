@@ -394,21 +394,15 @@ namespace u081
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag081_ultimecia_unk4_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace u081
 {
-
 	uint32_t __cdecl ud_7A5300(uint32_t a1)
 	{
 		g_mod = &MOD_081;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -652,7 +646,6 @@ namespace u081
 		case 1:
 			ud_7AB1F0();
 			ud_7A88A0();
-			FX_HELD(held_note_system(sys);)
 			ud_7A8760();
 			ud_7A6540();
 			sys = U32(us(0x25D492C), 0);
@@ -2338,10 +2331,6 @@ namespace u081
 			act::register_module_port(81, p->addr, p->port, p->name);
 		for (const act::u081::ModPort *p = act::u081::PORTS; p->addr; p++)
 			act::register_module_port(81, p->addr, p->port, p->name);
-		FX_HELD(register_mag081_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag081_ultimecia_unk4_held.inc"
-#endif

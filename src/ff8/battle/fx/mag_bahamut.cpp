@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag_bahamut_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -442,7 +438,6 @@ namespace part_bahamut
 	{
 		if (PTR(CUR(), 0xBC) == nullptr)
 		{
-			FX_HELD(if (held_active()) return;)
 			uint8_t *arg = PTR(CUR(), 0xB8);
 			int32_t n = S16(arg, 2);
 			uint8_t *m = blob::ArenaAlloc(add32(shl32(n, 3), 0x20));
@@ -680,10 +675,6 @@ namespace bahamut
 		apply_shared_ribbon(bahamut::g_c);
 		apply_shared_misc(bahamut::g_c);
 		register_port(0xB19010, (void *)bahamut::SequenceTask, "GFC202 Bahamut SequenceTick", 202);
-		FX_HELD(register_gfc_bahamut_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag_bahamut_held.inc"
-#endif

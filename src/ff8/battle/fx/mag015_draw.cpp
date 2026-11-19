@@ -168,21 +168,15 @@ namespace draw
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag015_draw_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace draw
 {
-
 	uint32_t __cdecl dw_8B0A50(uint32_t a1)
 	{
 		g_mod = &MOD_015;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -508,7 +502,6 @@ namespace draw
 		case 1:
 			dw_8B5A20();
 			dw_8B30D0();
-			FX_HELD(held_note_system(sys);)
 			dw_8B2F90();
 			dw_8B1910();
 			sys = U32(us(0x273AE78), 0);
@@ -2160,7 +2153,6 @@ namespace draw
 		states[2] = us(0x8B6630);
 		callp(states[S8(node, 0x29)], node);
 		dw_8B5E00(node);
-		FX_HELD(held_note_ribbon(node);)
 		dw_8B5D70(node);
 		U16(node, 0x126) = (uint16_t)((U16(node, 0x126) + 0x180) & 0xFFF);
 		dw_8B5F30(node);
@@ -2236,7 +2228,6 @@ namespace draw
 		U32(node, 0x1C) = U32(owner, 0x1C);
 		U32(node, 0x20) = U32(owner, 0x20);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_spark(node);)
 		dw_8B64B0(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2356,10 +2347,6 @@ namespace draw
 			act::register_module_port(15, p->addr, p->port, p->name);
 		for (const act::draw::ModPort *p = act::draw::PORTS; p->addr; p++)
 			act::register_module_port(15, p->addr, p->port, p->name);
-		FX_HELD(register_mag015_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag015_draw_held.inc"
-#endif

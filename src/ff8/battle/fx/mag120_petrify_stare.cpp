@@ -163,10 +163,6 @@ namespace petrify120
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag120_petrify_stare_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace petrify120
@@ -187,7 +183,6 @@ namespace petrify120
 		arg.pos[3] = 0;
 		arg.depth = SizeDepth(Caster());
 		arg.morph = TexBase() + 0x658;
-		FX_HELD(held_note_play((prim::Layout *)t->stare, &arg);)
 		prim::play((prim::Layout *)t->stare, PartCallback, (int)&arg, 0);
 		if (t->counter == 4) ScreenFadeTask(0, 1, 0, 0x80);
 		if ((uint32_t)((int32_t)t->counter - 0xE) < 0x64)
@@ -196,7 +191,6 @@ namespace petrify120
 			ff8fx::copy<(8)>(arg.pos, t->stone);
 			arg.depth = SizeDepth(t->entity);
 			arg.morph = TexBase() + 0x658;
-			FX_HELD(held_note_play((prim::Layout *)t->rock, &arg);)
 			prim::play((prim::Layout *)t->rock, PartCallback, (int)&arg, 0);
 		}
 		if (t->counter == 0)
@@ -214,7 +208,6 @@ namespace petrify120
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x660;
@@ -263,10 +256,6 @@ namespace petrify120
 	{
 		register_port(petrify120::ORIG_RootTask, (void *)petrify120::RootTask, "P120 RootTask", 120);
 		register_port(petrify120::ORIG_TargetTask, (void *)petrify120::TargetTask, "P120 TargetTask", 120);
-		FX_HELD(register_mag120_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag120_petrify_stare_held.inc"
-#endif

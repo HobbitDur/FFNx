@@ -29,10 +29,6 @@ namespace icestrike228
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag228_ice_strike_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -71,8 +67,8 @@ namespace icestrike228
 	static const uint32_t EFFECT_LIGHT = 0x1D99AB0;
 
 	template<typename F> static inline F fx(uint32_t a) { return (F)a; }
-	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
-	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
+	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
+	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
 	{
 		return x::f<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m);
@@ -99,7 +95,6 @@ namespace icestrike228
 		const bool weapon = (U8(RT(), 0x4B) & 0x80) != 0;
 		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting()) held_next_pose(hdr, weapon ? hdr + 0xC : ent + 0x6C);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
@@ -144,26 +139,19 @@ namespace icestrike228
 		case 3:
 		{
 			uint32_t e0 = CamWord32(0), e1 = CamWord32(1), a0 = CamWord32(2);
-			FX_HELD(guard(&CamWord32(4), 4);)
 			CamWord32(4) = e0;
 			uint32_t a1 = CamWord32(3);
-			FX_HELD(guard(&CamWord32(5), 4);)
 			CamWord32(5) = e1;
 			uint16_t h = (uint16_t)PROJH();
-			FX_HELD(guard(&CamWord32(7), 4);)
 			CamWord32(7) = a1;
-			FX_HELD(guard(&CamWord32(6), 4);)
 			CamWord32(6) = a0;
 			uint16_t w = Word1D977A2();
-			FX_HELD(guard(&Word1D977A0(), 2);)
 			Word1D977A0() = h;
-			FX_HELD(guard(&Word1D9771C(), 2);)
 			Word1D9771C() = w;
 			break;
 		}
 		case 4:
 		{
-			FX_HELD(guard((void *)us(EFFECT_LIGHT), 0x20);)
 			blob::CopyMatrix((void *)us(EFFECT_LIGHT), BBMAT());
 			uint8_t *b = CUR();
 			MEM<int32_t>(us(EFFECT_LIGHT) + 0x14) = S16(b, 0x94);
@@ -184,18 +172,12 @@ namespace icestrike228
 			if (!(U8(SEQ(), 9) & 0x20))
 			{
 				uint8_t *b = CUR();
-				FX_HELD(guard(&CamWord32(0), 4);)
 				CamWord32(0) = U32(b, 0x94);
-				FX_HELD(guard(CAMEYE() + 2, 2);)
 				CAMEYE()[2] = S16(b, 0x98);
-				FX_HELD(guard(&PROJH(), 2);)
 				PROJH() = S16(b, 0x8C);
-				FX_HELD(guard(&Word1D977A2(), 2);)
 				Word1D977A2() = U16(b, 0x8E);
 				uint8_t *t = blob::GetBone(S16(STREAM(), 2));
-				FX_HELD(guard(&CamWord32(2), 4);)
 				CamWord32(2) = U32(t, 0x94);
-				FX_HELD(guard(CAMAT() + 2, 2);)
 				CAMAT()[2] = S16(t, 0x98);
 			}
 			break;
@@ -224,10 +206,6 @@ namespace icestrike228
 		init_clone(icestrike228::g_c, nullptr, 0);
 		icestrike228::apply_slots(icestrike228::g_c);
 		register_port(0xA85C30, (void *)icestrike228::SequenceTask, "MAG228 Ice Strike SequenceTick", 228);
-		FX_HELD(register_mag228_ice_strike_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag228_ice_strike_held.inc"
-#endif

@@ -173,10 +173,6 @@ namespace echoscreen295
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag295_echo_screen_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace echoscreen295
@@ -188,7 +184,6 @@ namespace echoscreen295
 		ff8fx::copy<(sizeof(arg.anchor))>(arg.anchor, p->anchor);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + NODE_BYTES;
-		FX_HELD(held_note_play((prim::Layout *)p->layout, p->anchor);)
 		if (prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) == 0)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
@@ -200,7 +195,6 @@ namespace echoscreen295
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -238,10 +232,6 @@ namespace echoscreen295
 	{
 		register_port(echoscreen295::ORIG_RootTask, (void *)echoscreen295::RootTask, "295 RootTask", 295);
 		register_port(echoscreen295::ORIG_PlayTask, (void *)echoscreen295::PlayTask, "295 PlayTask", 295);
-		FX_HELD(register_mag295_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag295_echo_screen_held.inc"
-#endif

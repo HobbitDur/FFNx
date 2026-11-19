@@ -142,21 +142,15 @@ namespace meltingbubble
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag043_melting_bubble_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace meltingbubble
 {
-
 	uint32_t __cdecl bu_839A60(uint32_t a1)
 	{
 		g_mod = &MOD_043;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -1766,7 +1760,6 @@ namespace meltingbubble
 		case 1:
 			bu_83EAC0();
 			bu_83C100();
-			FX_HELD(held_note_system(sys);)
 			bu_83BFC0();
 			bu_83A940();
 			sys = MEM<uint32_t>(us(ACTOR_STATE));
@@ -1894,10 +1887,6 @@ namespace meltingbubble
 			act::register_module_port(43, p->addr, p->port, p->name);
 		for (const act::meltingbubble::ModPort *p = act::meltingbubble::PORTS; p->addr; p++)
 			act::register_module_port(43, p->addr, p->port, p->name);
-		FX_HELD(register_mag043_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag043_melting_bubble_held.inc"
-#endif

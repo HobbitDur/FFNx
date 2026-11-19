@@ -159,10 +159,6 @@ namespace flame194
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag194_flame_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace flame194
@@ -489,7 +485,6 @@ namespace flame194
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_FlashTask), n);)
 		MuzzleModel(n, us(MODEL_Flash), n->counter >= 2, FlashFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -502,7 +497,6 @@ namespace flame194
 	static uint32_t __cdecl SpinTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_SpinTask), n);)
 		MuzzleModel(n, us(MODEL_Spin), n->counter >= 2, SpinFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A, step = n->f1E;
@@ -517,9 +511,7 @@ namespace flame194
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_SmokeTask), n);)
 		const int16_t next = SmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -528,9 +520,7 @@ namespace flame194
 	static uint32_t __cdecl GroundSmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_GroundSmokeTask), n);)
 		const int16_t next = GroundSmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -595,7 +585,6 @@ namespace flame194
 	static uint32_t __cdecl HeadTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_HeadTask), n);)
 		HeadDraw(FlightRec(n->f0E)->pts[n->f18], n->f1C);
 		if (UpdateFlags() & 0x201) return 0;
 		FlightStep(n);
@@ -609,7 +598,6 @@ namespace flame194
 		Particle *arr = PartArray(n->f0E);
 		*(volatile uint32_t *)&n_ = (uint32_t)arr;
 		Flight *t = FlightRec(n->f0E);
-		FX_HELD(held_note_node(us(ORIG_TrailTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
@@ -618,20 +606,17 @@ namespace flame194
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			TrailDraw(e, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			e->size = (int16_t)(e->size + (int16_t)(e->size >> 5));
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
 		FlightStep(n);
@@ -656,7 +641,6 @@ namespace flame194
 		Node *n = (Node *)n_;
 		Particle *arr = PartArray(n->f0E);
 		Flight *t = FlightRec(n->f0E);
-		FX_HELD(held_note_node(us(ORIG_EmberTask), n);)
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		uint8_t *q = (uint8_t *)FieldAlloc(0x44);
 		EmberSetup(q);
@@ -670,7 +654,6 @@ namespace flame194
 		{
 			if (e->id != id) continue;
 			const int32_t frame = e->frame;
-			FX_HELD(held_note_part(e);)
 			EmberLoad(e->pos);
 			const uint32_t colour = EMBER_COLOURS()[frame];
 			if (!(UpdateFlags() & 0x201))
@@ -679,7 +662,6 @@ namespace flame194
 				if (frame + 1 >= 8)
 				{
 					e->id = 0;
-					FX_HELD(held_note_part_next(e);)
 				}
 				else
 				{
@@ -697,7 +679,6 @@ namespace flame194
 				prims++;
 			}
 		}
-		FX_HELD(held_note_alive(prims);)
 		FieldFree(0x44);
 		PacketCursor() = (uint32_t)pk;
 		FieldFree(0x50);
@@ -760,7 +741,6 @@ namespace flame194
 	static uint32_t __cdecl BurstTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_BurstTask), n);)
 		BurstDraw(n, n->counter >= 1, BurstFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -773,7 +753,6 @@ namespace flame194
 	static uint32_t __cdecl RingTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_RingTask), n);)
 		RingDraw(n, n->counter >= 2, RingFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -789,7 +768,6 @@ namespace flame194
 	static uint32_t __cdecl PillarTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_PillarTask), n);)
 		PillarDraw(n, mul32(n->counter, -12), n->counter >= 8, PillarFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -825,7 +803,6 @@ namespace flame194
 				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(mul32(ComputeCos(a), r) >> 12));
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_FireTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
@@ -834,19 +811,16 @@ namespace flame194
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			FireDraw(e, s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -1011,7 +985,6 @@ namespace flame194
 		const int32_t end = EndTick();
 		const int32_t count = c >= end ? end - c + 5 : 5;
 		*(volatile int32_t *)&n_ = count;
-		FX_HELD(held_note_ghosts(c, slot, count, colour);)
 		for (int32_t k = 0; k < count; k++)
 		{
 			const Ghost *s = GhostSlot(slot);
@@ -1085,7 +1058,6 @@ namespace flame194
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (*(const uint8_t *)&r->counter & 1) ? TexBase() + ARENA_ODD : TexBase();
 		const int shots = ExecuteTaskQueue(QShots());
 		const int aux = ExecuteTaskQueue(QAux());
@@ -1123,10 +1095,6 @@ namespace flame194
 		register_port(flame194::ORIG_RingTask, (void *)flame194::RingTask, "194 RingTask", 194);
 		register_port(flame194::ORIG_PillarTask, (void *)flame194::PillarTask, "194 PillarTask", 194);
 		register_port(flame194::ORIG_FireTask, (void *)flame194::FireTask, "194 FireTask", 194);
-		FX_HELD(register_mag194_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag194_flame_shot_held.inc"
-#endif

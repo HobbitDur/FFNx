@@ -812,10 +812,6 @@ namespace break117
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag117_break_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace break117
@@ -823,7 +819,6 @@ namespace break117
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *d = (DebrisNode *)n;
-		FX_HELD(held_note_node(us(ORIG_DebrisTask), d);)
 		DebrisDraw(d);
 		DebrisMove(d);
 		d->counter++;
@@ -833,7 +828,6 @@ namespace break117
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *p = (SparkNode *)n;
-		FX_HELD(held_note_node(us(ORIG_SparkTask), p);)
 		SparkDraw(p);
 		p->frame++;
 		if (p->frame >= 0xE) return TASK_END;
@@ -853,7 +847,6 @@ namespace break117
 		arg.scale[0] = scale;
 		arg.scaled = 1;
 		arg.morph = TexBase() + BUF_Morph;
-		FX_HELD(held_note_play(t, &arg);)
 		prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
 		uint8_t *e = t->entity;
 		if ((uint32_t)(t->counter - 0x14) < 0x40)
@@ -880,7 +873,6 @@ namespace break117
 			const uint32_t level = StoneLevel(stone);
 			const uint32_t unused[2] = { 0, 0x01000100 };
 			t->entity[0] |= 4;
-			FX_HELD(held_note_stone(t, stone);)
 			DrawStoneTarget(t->entity, (int32_t)level, unused, STONE_TPage, STONE_Clut);
 		}
 		if (t->counter == 0)
@@ -943,7 +935,6 @@ namespace break117
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x5EF0;
@@ -1016,10 +1007,6 @@ namespace break117
 		register_port(break117::ORIG_TargetTask, (void *)break117::TargetTask, "B117 TargetTask", 117);
 		register_port(break117::ORIG_DebrisTask, (void *)break117::DebrisTask, "B117 DebrisTask", 117);
 		register_port(break117::ORIG_SparkTask, (void *)break117::SparkTask, "B117 SparkTask", 117);
-		FX_HELD(register_mag117_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag117_break_held.inc"
-#endif

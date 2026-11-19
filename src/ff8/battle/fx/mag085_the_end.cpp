@@ -505,21 +505,15 @@ namespace theend
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag085_the_end_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace theend
 {
-
 	uint32_t __cdecl te_784630(uint32_t a1)
 	{
 		g_mod = &MOD_085;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -560,11 +554,9 @@ namespace theend
 		static const uint32_t queues[8] = { us(0x25C19E8), us(0x25BC478), us(0x25C21B8), us(0x25C1748), us(0x25BC580), us(0x25BC898), us(0x25C0F40), us(0x25C19D8) };
 		for (int i = 0; i < 8; i++)
 		{
-			FX_HELD(if (i == 7) held_note_tints(queues[i]);)
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
-		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -887,9 +879,7 @@ namespace theend
 		S32(a1, 0x54) = 0x1000;
 		S32(a1, 0x50) = 0x1000;
 		U16(a1, 0x88) = 0x400;
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		a_73C280(a1);
-		FX_HELD(held_note_draw(HK_SHADOW, a1);)
 		te_785620();
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -1738,9 +1728,7 @@ namespace theend
 			U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 			return 0;
 		}
-		FX_HELD(held_note_draw(HK_SHADOW, a1);)
 		te_785620();
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		if (a_73C280(a1) == 0)
 		{
 			U8(a1, 0x26) |= 1;
@@ -1831,7 +1819,6 @@ namespace theend
 		U16(a1, 0x62) = U16(a1, 0x2C6);
 		if (a_73B7E0(6) == 0)
 		{
-			FX_HELD(held_note_draw(HK_PLAY, a1);)
 			if (a_73C280(a1) != 0)
 				return 0;
 		}
@@ -2115,7 +2102,6 @@ namespace theend
 	{
 		if (U8(a1, 0x26) & 4)
 			return 0;
-		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::UnpackRotationMatrix(us(0x1D97778), M);
@@ -2242,7 +2228,6 @@ namespace theend
 		S32(a1, 0x58) = 0x1000;
 		S32(a1, 0x54) = 0x1000;
 		S32(a1, 0x50) = 0x1000;
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		a_73C280(a1);
 		U8(a1, 0x29) = (uint8_t)(U8(a1, 0x29) + 1);
 		return 0;
@@ -2258,7 +2243,6 @@ namespace theend
 			U8(node, 0x29) = (uint8_t)(st + 1);
 			return node;
 		}
-		FX_HELD(held_note_draw(HK_PLAY, node);)
 		const uint32_t r = a_73C280(node);
 		if (r == 0)
 		{
@@ -2333,7 +2317,6 @@ namespace theend
 		case 1:
 			te_78C3E0();
 			te_789A90();
-			FX_HELD(held_note_system(sys);)
 			te_789950();
 			te_789790();
 			sys = U32(us(0x25C21DC), 0);
@@ -3132,7 +3115,6 @@ namespace theend
 	{
 		if (U8(a1, 0x26) & 4)
 			return 0;
-		FX_HELD(held_note_draw(HK_GROUND, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::MAG_022_sub_8DD770(M);
@@ -3462,7 +3444,6 @@ namespace theend
 
 	uint32_t __cdecl te_78D2E0(uint32_t a1)
 	{
-		FX_HELD(held_note_draw(HK_GLOW, a1);)
 		const uint32_t pk = MEM<uint32_t>(us(0x1D8E054));
 		U8(pk, 0x24) = 0;
 		U8(pk, 0xC) = 0;
@@ -3542,7 +3523,6 @@ namespace theend
 
 	uint32_t __cdecl te_78D4D0(uint32_t a1, uint32_t a2)
 	{
-		FX_HELD(held_note_draw(HK_BARS, a1);)
 		(void)a1;
 		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x14;
 		uint32_t pk = MEM<uint32_t>(us(0x1D8E054));
@@ -3819,10 +3799,6 @@ namespace theend
 			act::register_module_port(85, p->addr, p->port, p->name);
 		for (const act::theend::ModPort *p = act::theend::PORTS; p->addr; p++)
 			act::register_module_port(85, p->addr, p->port, p->name);
-		FX_HELD(register_mag085_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag085_the_end_held.inc"
-#endif

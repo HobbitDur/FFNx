@@ -235,10 +235,6 @@ namespace cast
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "fx_cast_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace cast
@@ -326,11 +322,9 @@ namespace cast
 			s->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Sparkle), s);)
 		int16_t v[4];
 		SparklePoint(s, v);
 		SpriteDraw(v, s->size, s->frame);
-		FX_HELD(held_note_drawn(s);)
 		if (Paused()) return 0;
 		const int16_t c = s->counter;
 		if (c >= 1 && c <= 0xC)
@@ -356,9 +350,7 @@ namespace cast
 	static uint32_t __cdecl TrailTask(TaskNode *n)
 	{
 		TrailNode *t = (TrailNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_Trail), t);)
 		SpriteDraw(t->pos, t->size, (int16_t)(9 - t->left));
-		FX_HELD(held_note_drawn(t);)
 		if (Paused()) return 0;
 		return TrailStep(t);
 	}
@@ -366,12 +358,10 @@ namespace cast
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_Glow), g);)
 		ModelMatrix(0, g->pos, g->scale, 0x1000);
 		uint8_t *h = AllocHeader(0x58);
 		GlowHeader(h, g);
 		RenderModel(h);
-		FX_HELD(held_note_drawn(g);)
 		if (Paused()) return 0;
 		return GlowStep(g);
 	}
@@ -385,12 +375,10 @@ namespace cast
 			r->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Ring), r);)
 		ModelMatrix(r->angle, r->pos, r->scale_xz, r->scale_y);
 		uint8_t *h = AllocHeader(0x58);
 		RingHeader(h, r);
 		RenderModel(h);
-		FX_HELD(held_note_drawn(r);)
 		if (Paused()) return 0;
 		return RingStep(r);
 	}
@@ -403,10 +391,6 @@ namespace cast
 		register_port(cast::ORIG_Trail, (void *)cast::TrailTask, "cast 5751A0 CastGlow_SparkleTrail", 0);
 		register_port(cast::ORIG_Glow, (void *)cast::GlowTask, "cast 575250 CastGlow_Glow", 0);
 		register_port(cast::ORIG_Ring, (void *)cast::RingTask, "cast 5753A0 CastGlow_Ring", 0);
-		FX_HELD(register_fx_cast_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "fx_cast_held.inc"
-#endif

@@ -490,10 +490,6 @@ namespace oil137
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag137_oil_blast_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace oil137
@@ -512,7 +508,6 @@ namespace oil137
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		SprayNode *s = (SprayNode *)n;
-		FX_HELD(held_note_spray(n);)
 		SprayDraw(s->pos, s->scale, s->frame);
 		s->vel[0] = (int16_t)(s->vel[0] + s->accel[0]);
 		s->vel[1] = (int16_t)(s->vel[1] + s->accel[1]);
@@ -549,7 +544,6 @@ namespace oil137
 	static uint32_t __cdecl ChunkTask(TaskNode *n)
 	{
 		ChunkNode *c = (ChunkNode *)n;
-		FX_HELD(held_note_chunk(n);)
 		ChunkDraw(c->angle, c->frame > 0x1A, shl32(0x1E - c->frame, 0xA), c->pos);
 		c->vel[1] = (int16_t)(c->vel[1] + 0x10);
 		const int16_t vy = c->vel[1];
@@ -584,10 +578,8 @@ namespace oil137
 			BlockAt(&arg, w->puddle1);
 			arg.mode = 0;
 			arg.morph = TexBase() + VERTS;
-			FX_HELD(held_note_play(PLAY_PUDDLE1, n, (prim::Layout *)w->lay1);)
 			Play(w->lay1, &arg);
 			BlockAt(&arg, w->puddle2);
-			FX_HELD(held_note_play(PLAY_PUDDLE2, n, (prim::Layout *)w->lay2);)
 			Play(w->lay2, &arg);
 		}
 		const int32_t kb = w->counter - 0x15;
@@ -602,7 +594,6 @@ namespace oil137
 			SpoutBlock(&arg, w->spout);
 			arg.mode = 0;
 			arg.morph = TexBase() + VERTS;
-			FX_HELD(held_note_play(PLAY_SPOUT, n, (prim::Layout *)w->layS);)
 			Play(w->layS, &arg);
 		}
 		const int32_t k = w->counter - 0x15;
@@ -619,7 +610,6 @@ namespace oil137
 			int16_t Q[4];
 			Q[3] = 0;
 			MeshAt(w, shl32(k & 0xFFFFF, 9), &M, Q);
-			FX_HELD(held_note_mesh(n);)
 			MeshRender(&M, (uint16_t)((k & 3) << 5));
 			for (int i = 2; i; i--)
 			{
@@ -667,7 +657,6 @@ namespace oil137
 			arg.morph = TexBase() + VERTS;
 			arg.depth = -0x100;
 			arg.mode = 1;
-			FX_HELD(held_note_play(PLAY_BLAST, n, (prim::Layout *)w->layB);)
 			Play(w->layB, &arg);
 		}
 		if (w->counter == 0xA) BdPlaySE(SOUND_Blast(), 0, 0x80);
@@ -692,7 +681,6 @@ namespace oil137
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -728,10 +716,6 @@ namespace oil137
 		register_port(oil137::ORIG_BlastTask, (void *)oil137::BlastTask, "137 BlastTask", 137);
 		register_port(oil137::ORIG_ChunkTask, (void *)oil137::ChunkTask, "137 ChunkTask", 137);
 		register_port(oil137::ORIG_SprayTask, (void *)oil137::SprayTask, "137 SprayTask", 137);
-		FX_HELD(register_mag137_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag137_oil_blast_held.inc"
-#endif

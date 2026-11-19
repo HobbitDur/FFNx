@@ -27,10 +27,6 @@ namespace adel211
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag211_adel_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -94,7 +90,6 @@ namespace adel211
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
 	{
-		FX_HELD(PalShiftRestore();)
 		return SequenceTick(g_c);
 	}
 }
@@ -107,10 +102,6 @@ namespace adel211
 		init_clone(adel211::g_c, nullptr, 0);
 		adel211::apply_slots(adel211::g_c);
 		register_port(0xACA790, (void *)adel211::SequenceTask, "MAG211 Adel Death SequenceTick", 211);
-		FX_HELD(register_mag211_adel_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag211_adel_death_held.inc"
-#endif

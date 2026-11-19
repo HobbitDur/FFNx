@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag223_meteor_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -78,7 +74,7 @@ namespace meteor
 	static const uint32_t RECTRING = 0x27978E8;
 	static const uint32_t RECTRING_IDX = 0x2798BF4;
 
-	static inline void xl_QueueVramReadback(const void *rect, uint32_t dst) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(const void *, uint32_t)>(us(0x505E70))(rect, dst); }
+	static inline void xl_QueueVramReadback(const void *rect, uint32_t dst) { x::f<void (__cdecl *)(const void *, uint32_t)>(us(0x505E70))(rect, dst); }
 	static inline void xl_TexWindow_B66670(int32_t id) { x::f<int32_t (__cdecl *)(int32_t)>(us(0xB66670))(id); }
 	static inline int32_t xl_RotTransPers_56C8C0(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C8C0))(v, sxy, p, flag); }
 
@@ -121,7 +117,6 @@ namespace meteor
 		uint8_t *src = s + 2;
 		int32_t n = shl32(mul32(S16(s, 8), S16(s, 6)), 1);
 		uint8_t *blk = blob::ArenaAlloc(n);
-		FX_HELD(guard(CUR() + 0xC4, 4);)
 		PTR(CUR(), 0xC4) = blk;
 		uint32_t dst = U32(CUR(), 0xC4);
 		STREAM() = STREAM() + 10;
@@ -132,7 +127,6 @@ namespace meteor
 	{
 		if (!(U8(RT(), 0x4B) & 0x80))
 		{
-			FX_HELD(if (held_predicting()) return;)
 			x::f<VoidFn>(us(0xA99730))();
 			return;
 		}
@@ -152,7 +146,6 @@ namespace meteor
 		uint8_t *r = PTR(w, 0xF0);
 		int32_t n = shl32(mul32(S16(r, 6), S16(r, 4)), 1);
 		bool copy = true;
-		FX_HELD(if (held_predicting()) copy = false;)
 		if (copy)
 		{
 			if ((int32_t)src < (int32_t)dst)
@@ -187,7 +180,6 @@ namespace meteor
 
 	static void __cdecl dh_28_SpreadActionResults()
 	{
-		FX_HELD(if (g_held.active) return;)
 		uint8_t *b = CUR();
 		if (U32(b, 0xBC) == 0)
 		{
@@ -652,10 +644,6 @@ namespace meteor
 		meteor::apply_prim6(meteor::g_meteor);
 		meteor::apply_meteor_ports(meteor::g_meteor);
 		register_port(0xA8FF00, (void *)meteor::SequenceTask, "MAG223 Meteor SequenceTick", 223);
-		FX_HELD(register_mag223_meteor_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag223_meteor_held.inc"
-#endif

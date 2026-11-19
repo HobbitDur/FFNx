@@ -31,10 +31,6 @@ namespace megiddo
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag312_megiddo_flame_held.h"
-#endif
-
 namespace ff8fx
 {
 	void register_mag312_megiddo_flame()
@@ -43,10 +39,6 @@ namespace ff8fx
 			"312 Arc", "312 Sheet", "312 Ribbon", "312 Column", "312 ColumnFlash", "312 Pillar", "312 Flame", "312 Sparks", "312 Debris",
 			"312 KnockDown", "312 Throw", "312 Ring2" };
 		megiddo::Megiddo<megiddo::D312>::Register(names);
-		FX_HELD(register_mag312_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag312_megiddo_flame_held.inc"
-#endif

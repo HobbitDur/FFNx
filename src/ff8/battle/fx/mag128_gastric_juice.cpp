@@ -635,10 +635,6 @@ namespace gastric128
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag128_gastric_juice_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gastric128
@@ -646,7 +642,6 @@ namespace gastric128
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(us(ORIG_SprayTask), p);)
 		ParticleDraw(p, us(SEQ_Spray));
 		SprayStep(p);
 		p->counter++;
@@ -656,7 +651,6 @@ namespace gastric128
 	static uint32_t __cdecl DripTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(us(ORIG_DripTask), p);)
 		ParticleDraw(p, us(SEQ_Drip));
 		DripStep(p);
 		p->counter++;
@@ -666,7 +660,6 @@ namespace gastric128
 	static uint32_t __cdecl SplashTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(us(ORIG_SplashTask), p);)
 		ParticleDraw(p, us(SEQ_Splash));
 		p->counter++;
 		return p->counter < 0x10 ? 0 : TASK_END;
@@ -724,7 +717,6 @@ namespace gastric128
 				q = q->next;
 			} while (q);
 		}
-		FX_HELD(held_note_stream(s);)
 		StreamDraw(s->head, s->count);
 		Point *q = s->head;
 		do
@@ -757,7 +749,6 @@ namespace gastric128
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, t->pos);
 			arg.morph = TexBase() + 0x14E8;
-			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
 		}
 		const uint32_t e = (uint32_t)((int32_t)t->counter - 0x1D);
@@ -765,7 +756,6 @@ namespace gastric128
 		{
 			t->entity[0] |= 4;
 			const int32_t sinv = MeltSin((int32_t)e);
-			FX_HELD(held_note_melt(t->entity, (int32_t)e);)
 			DrawMeltingTarget(t->entity, sinv);
 		}
 		else *(uint16_t *)t->entity &= 0xFFFB;
@@ -833,7 +823,6 @@ namespace gastric128
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x46E8;
@@ -895,10 +884,6 @@ namespace gastric128
 		register_port(gastric128::ORIG_SprayTask, (void *)gastric128::SprayTask, "128 SprayTask", 128);
 		register_port(gastric128::ORIG_DripTask, (void *)gastric128::DripTask, "128 DripTask", 128);
 		register_port(gastric128::ORIG_SplashTask, (void *)gastric128::SplashTask, "128 SplashTask", 128);
-		FX_HELD(register_mag128_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag128_gastric_juice_held.inc"
-#endif

@@ -405,10 +405,6 @@ namespace magicsummon283
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag283_magic_summon_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace magicsummon283
@@ -541,7 +537,6 @@ namespace magicsummon283
 		if ((uint32_t)(int32_t)m->counter < 0x3C)
 		{
 			SetBlock(&arg, m, m->anchor, (int16_t)((m->counter & 0xF) << 3));
-			FX_HELD(held_note_play(m, PLAY_A, &arg);)
 			prim::play((prim::Layout *)m->layoutA, PrimCallback, (int)&arg, 0);
 		}
 		const int32_t e = m->counter - 0x18;
@@ -559,7 +554,6 @@ namespace magicsummon283
 				int16_t sxy[2];
 				if (WarpCentre(m->pos, sxy))
 				{
-					FX_HELD(held_note_warp(m, e);)
 					m->radius = (int16_t)DrawWarped(m->ent, sxy[0], sxy[1], m->radius, step, fade);
 				}
 			}
@@ -569,7 +563,6 @@ namespace magicsummon283
 				*(uint32_t *)(m->ent + 0x2C) = m->colour;
 			}
 			SetBlock(&arg, m, m->pos, 0);
-			FX_HELD(held_note_play(m, PLAY_B, &arg);)
 			prim::play((prim::Layout *)m->layoutB, PrimCallback, (int)&arg, 0);
 		}
 		if (m->counter == 0xA) BdPlaySE(SOUND_Summon(), 0, 0x80);
@@ -580,7 +573,6 @@ namespace magicsummon283
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *mn = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (mn->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -623,10 +615,6 @@ namespace magicsummon283
 	{
 		register_port(magicsummon283::ORIG_MasterTask, (void *)magicsummon283::MasterTask, "283 MasterTask", 283);
 		register_port(magicsummon283::ORIG_MainTask, (void *)magicsummon283::MainTask, "283 MainTask", 283);
-		FX_HELD(register_mag283_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag283_magic_summon_held.inc"
-#endif

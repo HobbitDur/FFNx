@@ -27,10 +27,6 @@ namespace sorceress208
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag208_final_sorceress_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -92,7 +88,6 @@ namespace sorceress208
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
 	{
-		FX_HELD(PalShiftRestore();)
 		return SequenceTick(g_c);
 	}
 }
@@ -105,10 +100,6 @@ namespace sorceress208
 		init_clone(sorceress208::g_c, nullptr, 0);
 		sorceress208::apply_slots(sorceress208::g_c);
 		register_port(0xAD7F70, (void *)sorceress208::SequenceTask, "MAG208 Final Sorceress Death SequenceTick", 208);
-		FX_HELD(register_mag208_final_sorceress_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag208_final_sorceress_death_held.inc"
-#endif

@@ -67,10 +67,6 @@ namespace life
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag035_life_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -91,7 +87,6 @@ namespace life
 			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
 		else
 			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
-		FX_HELD(held_note_master(node);)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
@@ -389,7 +384,6 @@ namespace life
 		states[1] = us(0x865200);
 		states[2] = us(0x865260);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_sprite(us(ORIG_Fall), node);)
 		DrawFall(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -418,7 +412,6 @@ namespace life
 		states[2] = us(0x8653D0);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
-		FX_HELD(held_note_sprite(us(ORIG_Ring), node);)
 		DrawScaled(node, U16(node, 0x68));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -455,7 +448,6 @@ namespace life
 		states[2] = us(0x865480);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
-		FX_HELD(held_note_sprite(us(ORIG_Sparkle), node);)
 		DrawScaled(node, U16(node, 0x68));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -504,10 +496,6 @@ namespace life
 			act::register_module_port(35, p->addr, p->port, p->name);
 		for (const act::life::ModPort *p = act::life::PORTS; p->addr; p++)
 			act::register_module_port(35, p->addr, p->port, p->name);
-		FX_HELD(register_mag035_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag035_life_held.inc"
-#endif

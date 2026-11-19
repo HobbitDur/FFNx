@@ -555,10 +555,6 @@ namespace oil136
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag136_oil_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace oil136
@@ -578,7 +574,6 @@ namespace oil136
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		SprayNode *s = (SprayNode *)n;
-		FX_HELD(held_note_sprite(SPR_SPRAY, n);)
 		SprayDraw(s->pos, s->scale, s->frame, s->angle);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
@@ -602,7 +597,6 @@ namespace oil136
 	static uint32_t __cdecl SplatTask(TaskNode *n)
 	{
 		SplatNode *s = (SplatNode *)n;
-		FX_HELD(held_note_sprite(SPR_SPLAT, n);)
 		SplatDraw(s->pos, s->frame);
 		s->frame++;
 		return s->frame < 0x10 ? 0 : TASK_END;
@@ -616,7 +610,6 @@ namespace oil136
 		arg.depth = 0;
 		arg.mode = 2;
 		arg.morph = TexBase() + VERTS;
-		FX_HELD(held_note_play(PLAY_STREAM, n, (prim::Layout *)d->layout, d->pos);)
 		if (prim::play((prim::Layout *)d->layout, PrimCallback, (int)&arg, 0) == 0) return TASK_END;
 		d->pos[0] = (int16_t)(d->pos[0] + d->vel[0]);
 		d->pos[1] = (int16_t)(d->pos[1] + d->vel[1]);
@@ -632,7 +625,6 @@ namespace oil136
 		arg.depth = 0;
 		arg.mode = d->landed != 0 ? 1 : 2;
 		arg.morph = TexBase() + VERTS;
-		FX_HELD(held_note_play(PLAY_FALL, n, (prim::Layout *)d->layout, d->pos);)
 		if (prim::play((prim::Layout *)d->layout, PrimCallback, (int)&arg, 0) == 0 && d->landed == 1) return TASK_END;
 		if (d->landed == 0)
 		{
@@ -644,7 +636,6 @@ namespace oil136
 			{
 				d->pos[1] = 0;
 				d->landed = 1;
-				FX_HELD(held_note_landing(n);)
 				DecodeModelPrimLayout(us(MODEL_Splash), d->layout, 0xA8);
 			}
 		}
@@ -739,7 +730,6 @@ namespace oil136
 			arg.depth = -0x80;
 			arg.mode = 0;
 			arg.morph = TexBase() + VERTS;
-			FX_HELD(held_note_play(PLAY_MOUTH, n, (prim::Layout *)w->mouth, P);)
 			Play(w->mouth, &arg);
 		}
 		const int32_t k = w->counter - 0x1E;
@@ -784,7 +774,6 @@ namespace oil136
 				M.t[0] = P[0];
 				M.t[1] = P[1];
 				M.t[2] = P[2];
-				FX_HELD(held_note_mesh(n);)
 				MeshRender(&M, (uint16_t)((k & 7) << 4), TexBase() + VERTS);
 			}
 		}
@@ -796,7 +785,6 @@ namespace oil136
 			arg.depth = -0x80;
 			arg.mode = 1;
 			arg.morph = TexBase() + VERTS;
-			FX_HELD(held_note_play(PLAY_HIT, n, (prim::Layout *)w->hit, w->pos);)
 			Play(w->hit, &arg);
 			if ((uint32_t)h < 0x10 && !(h & 1))
 			{
@@ -835,7 +823,6 @@ namespace oil136
 			arg.depth = 0;
 			arg.mode = 1;
 			arg.morph = TexBase() + VERTS;
-			FX_HELD(held_note_play(PLAY_POOL, n, (prim::Layout *)w->pool, w->pos);)
 			Play(w->pool, &arg);
 		}
 		if (w->counter == 0x1E) BdPlaySE(SOUND_Shot(), 0, 0x80);
@@ -870,7 +857,6 @@ namespace oil136
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -910,10 +896,6 @@ namespace oil136
 		register_port(oil136::ORIG_StreamTask, (void *)oil136::StreamTask, "136 StreamTask", 136);
 		register_port(oil136::ORIG_SplatTask, (void *)oil136::SplatTask, "136 SplatTask", 136);
 		register_port(oil136::ORIG_FallTask, (void *)oil136::FallTask, "136 FallTask", 136);
-		FX_HELD(register_mag136_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag136_oil_shot_held.inc"
-#endif

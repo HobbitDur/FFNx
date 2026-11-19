@@ -48,10 +48,6 @@ namespace renzo336
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag336_renzokuken_ultima_weapon_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo336
@@ -119,10 +115,6 @@ namespace renzo336
 		register_port(renzo336::ORIG_Dust, (void *)renzo336::DustTask, "336 Dust", 336);
 		register_port(renzo336::ORIG_GroundModel, (void *)renzo336::GroundModelTask, "336 GroundModel", 336);
 		register_port(renzo336::ORIG_Shake, (void *)renzo336::ShakeTask, "336 Shake", 336);
-		FX_HELD(register_mag336_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag336_renzokuken_ultima_weapon_held.inc"
-#endif

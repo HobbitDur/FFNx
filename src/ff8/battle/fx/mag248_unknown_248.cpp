@@ -27,10 +27,6 @@ namespace eff248
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag248_unknown_248_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -107,10 +103,6 @@ namespace eff248
 		init_clone(eff248::g_c, nullptr, 0);
 		eff248::apply_slots(eff248::g_c);
 		register_port(0x9C0F40, (void *)eff248::SequenceTask, "MAG248 effect 248 SequenceTick", 248);
-		FX_HELD(register_mag248_unknown_248_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag248_unknown_248_held.inc"
-#endif

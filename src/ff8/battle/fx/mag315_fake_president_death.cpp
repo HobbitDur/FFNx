@@ -121,10 +121,6 @@ namespace fp315
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag315_fake_president_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace fp315
@@ -246,7 +242,6 @@ namespace fp315
 		GteSetBkFromTranslation(w + 8);
 		int32_t count = 0;
 		const int32_t mask = S16(n, 0x1A);
-		FX_HELD(held_note_parts(us(ORIG_Drops), n, w, h, mask);)
 		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(S32(e, 0) & mask)) continue;
@@ -311,7 +306,6 @@ namespace fp315
 		GteSetLightMatrix(w + 8);
 		GteSetBkFromTranslation(w + 8);
 		int32_t count = 0;
-		FX_HELD(held_note_parts(fn, n, w, h, owner);)
 		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & owner)) continue;
@@ -368,7 +362,6 @@ namespace fp315
 		U32(w, 8) = U32(n, 0x10);
 		U32(w, 0xC) = U32(n, 0x14);
 		int32_t count = 0;
-		FX_HELD(held_note_parts(us(ORIG_Sparks), n, w, h, 0x20);)
 		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 0x20)) continue;
@@ -612,7 +605,6 @@ namespace fp315
 		const int32_t slot = S16(n, 0xE);
 		if (S16(n, 0xC) < 0x41)
 		{
-			FX_HELD(held_note_draw(us(ORIG_Melt), n);)
 			MeltDraw(n, CasterStrength(S16(n, 0xC)), 0x2BC, 0xA);
 		}
 		if (DrawOnly()) return 0;
@@ -635,7 +627,6 @@ namespace fp315
 			const uint32_t entity = Ent(slot);
 			S16(entity, 0x1C) = S16(n, 0x10);
 			S16(entity, 0x20) = S16(n, 0x14);
-			FX_HELD(held_note_draw(us(ORIG_Rise), n);)
 			MeltDraw(n, RiseStrength(S16(n, 0xC)), 0x384, 0xB);
 		}
 		if (DrawOnly()) return 0;
@@ -695,7 +686,6 @@ namespace fp315
 	static uint32_t __cdecl SplashTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_draw(us(ORIG_Splash), n);)
 		SplashDraw(n, SplashCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
@@ -735,7 +725,6 @@ namespace fp315
 	{
 		const uint32_t n = (uint32_t)nd;
 		const int32_t c = S16(n, 0xC);
-		FX_HELD(held_note_draw(us(ORIG_Puddle), n);)
 		PuddleDraw(n, shl32(c, 2), PuddleCue(c));
 		if (DrawOnly()) return 0;
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) + S16(n, 0x1E));
@@ -773,7 +762,6 @@ namespace fp315
 			S16(n, 0xE) = (int16_t)(delay - 1);
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Column), n);)
 		ColumnDraw(n, ColumnCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x22);
@@ -805,7 +793,6 @@ namespace fp315
 	static uint32_t __cdecl RingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_draw(us(ORIG_Ring), n);)
 		RingDraw(n, RingFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
@@ -1039,7 +1026,6 @@ namespace fp315
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_root();)
 		if (U8(n, 0xC) & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
 		const int running = ExecuteTaskQueue(FxQueue());
@@ -1080,10 +1066,6 @@ namespace fp315
 		register_port(fp315::ORIG_Ring, (void *)fp315::RingTask, "315 Ring", 315);
 		register_port(fp315::ORIG_CasterTint, (void *)fp315::CasterTintTask, "315 CasterTint", 315);
 		register_port(fp315::ORIG_NextTint, (void *)fp315::NextTintTask, "315 NextTint", 315);
-		FX_HELD(register_mag315_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag315_fake_president_death_held.inc"
-#endif

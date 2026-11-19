@@ -405,10 +405,6 @@ namespace suicide180
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag180_suicide_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace suicide180
@@ -418,7 +414,6 @@ namespace suicide180
 		EffectNode *t = (EffectNode *)n;
 		if (t->counter < 0x18)
 		{
-			FX_HELD(held_note_glow(t);)
 			DrawGlow(Caster(), GlowLevel(t->counter));
 		}
 		if (DrawOnly()) return 0;
@@ -431,7 +426,6 @@ namespace suicide180
 	static uint32_t __cdecl ExplosionTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_pool(us(ORIG_Explosion), t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *m = (uint8_t *)FieldAlloc(0x88);
 		ExplosionHeader(h);
@@ -495,7 +489,6 @@ namespace suicide180
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_ring(us(ORIG_Ring), t);)
 		DrawRing(t, us(MODEL_Ring), 8, shl32(t->counter - 8, 9));
 		if (DrawOnly()) return 0;
 		RingUpdate(t);
@@ -505,7 +498,6 @@ namespace suicide180
 	static uint32_t __cdecl Ring2Task(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_ring(us(ORIG_Ring2), t);)
 		DrawRing(t, us(MODEL_Ring2), 0xA, shl32(t->counter - 0xA, 9));
 		if (DrawOnly()) return 0;
 		Ring2Update(t);
@@ -523,7 +515,6 @@ namespace suicide180
 	static uint32_t __cdecl SparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_pool(us(ORIG_Sparks), t);)
 		uint8_t *h = SpriteHeader(us(SEQ_Spark));
 		int alive = 0;
 		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
@@ -582,7 +573,6 @@ namespace suicide180
 	static uint32_t __cdecl SmokeTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_pool(us(ORIG_Smoke), t);)
 		uint8_t *h = SpriteHeader(us(SEQ_Smoke));
 		int alive = 0;
 		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
@@ -620,7 +610,6 @@ namespace suicide180
 	static uint32_t __cdecl FuseSparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_pool(us(ORIG_FuseSparks), t);)
 		uint8_t *h = SpriteHeader(us(SEQ_Spark));
 		*(int32_t *)(h + 0x14) = 0x1000;
 		int alive = 0;
@@ -731,7 +720,6 @@ namespace suicide180
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
 		const int a = ExecuteTaskQueue(EffectQueue());
@@ -751,10 +739,6 @@ namespace suicide180
 		register_port(suicide180::ORIG_Sparks, (void *)suicide180::SparksTask, "S180 Sparks", 180);
 		register_port(suicide180::ORIG_Smoke, (void *)suicide180::SmokeTask, "S180 Smoke", 180);
 		register_port(suicide180::ORIG_FuseSparks, (void *)suicide180::FuseSparksTask, "S180 FuseSparks", 180);
-		FX_HELD(register_mag180_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag180_suicide_held.inc"
-#endif

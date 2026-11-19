@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag_ifrit_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -71,10 +67,6 @@ namespace ifrit
 		ifrit::describe(ifrit::g_ifrit);
 		init_clone(ifrit::g_ifrit, nullptr, 0);
 		register_port(0xB25DF0, (void *)ifrit::SequenceTask, "GFC201 Ifrit SequenceTick", 201);
-		FX_HELD(register_gfc_ifrit_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag_ifrit_held.inc"
-#endif

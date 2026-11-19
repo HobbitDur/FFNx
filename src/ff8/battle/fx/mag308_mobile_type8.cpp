@@ -160,10 +160,6 @@ namespace mobile308
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag308_mobile_type8_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace mobile308
@@ -524,7 +520,6 @@ namespace mobile308
 		arg.scale[0] = L->scale;
 		arg.scaled = 1;
 		arg.depth = L->depth;
-		FX_HELD(held_note_play(L, &arg);)
 		return prim::play((prim::Layout *)L->layout, PartCallback, (int)&arg, 0) != 0 ? 0 : TASK_END;
 	}
 
@@ -565,7 +560,6 @@ namespace mobile308
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		const int32_t frames = *(const int16_t *)(var<uint32_t>(us(SPRITES) + s->seq * 4) + 8);
-		FX_HELD(held_note_sprite(s);)
 		SpriteDraw(s);
 		const int8_t vx = s->vel[0], vy = s->vel[1];
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(vx << 2));
@@ -660,7 +654,6 @@ namespace mobile308
 		q[6] = *(const uint8_t *)(ip + 2);
 		F<uint32_t>(q, 0) = 0x5000000;
 		q[7] = 0x2A;
-		FX_HELD(held_note_quad(ip);)
 		InsertPrimAltViewport(OT(0x20), q);
 		return ip + 3;
 	}
@@ -987,7 +980,6 @@ namespace mobile308
 		}
 		if ((uint16_t)m->counter < 0x56)
 		{
-			FX_HELD(held_note_entities(m);)
 			for (int k = 0; k < 3; k++)
 			{
 				EntityDraw(Caster() + k * 0x9C, m->pose[k]);
@@ -997,7 +989,6 @@ namespace mobile308
 		const uint32_t t = (uint32_t)(m->counter - 0x46);
 		if (t < 0x10)
 		{
-			FX_HELD(held_note_tile((int32_t)((t & 0xFFFFF) << 8));)
 			PacketCursor() = Tile(0xFF, 0xFF, 0xFF, (int32_t)((t & 0xFFFFF) << 8), PacketCursor());
 			if (t == 0xF)
 			{
@@ -1009,12 +1000,10 @@ namespace mobile308
 		const uint32_t t2 = (uint32_t)(m->counter - 0x56);
 		if (t2 >= 0x3E8)
 		{
-			FX_HELD(held_note_parts(m);)
 			Particles(m);
 		}
 		else if (t2 < 0x10)
 		{
-			FX_HELD(held_note_tile((int32_t)(0x1000 - ((t2 & 0xFFFFF) << 8)));)
 			PacketCursor() = Tile(0xFF, 0xFF, 0xFF, (int32_t)(0x1000 - ((t2 & 0xFFFFF) << 8)), PacketCursor());
 		}
 		if (m->counter == 0)
@@ -1051,7 +1040,6 @@ namespace mobile308
 			PacketCursor() = TexBase() + ARENA_B;
 			r->parity = 1;
 		}
-		FX_HELD(held_note_root();)
 		if (r->counter == 1 && !r->started)
 		{
 			r->started = 1;
@@ -1101,10 +1089,6 @@ namespace mobile308
 		register_port(mobile308::ORIG_ScriptTask, (void *)mobile308::ScriptTask, "308 ScriptTask", 308);
 		register_port(mobile308::ORIG_LayoutTask, (void *)mobile308::LayoutTask, "308 LayoutTask", 308);
 		register_port(mobile308::ORIG_SpriteTask, (void *)mobile308::SpriteTask, "308 SpriteTask", 308);
-		FX_HELD(register_mag308_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag308_mobile_type8_held.inc"
-#endif

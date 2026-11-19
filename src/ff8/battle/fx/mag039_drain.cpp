@@ -144,21 +144,15 @@ namespace drain
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag039_drain_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace drain
 {
-
 	uint32_t __cdecl r_851510(uint32_t a1)
 	{
 		g_mod = &MOD_039;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -321,7 +315,6 @@ namespace drain
 				U32(node, 0x34) = entry;
 				U16(node, 0x38) = (uint16_t)(idx + 1);
 			}
-			FX_HELD(held_note_flash(U32(node, 0x34));)
 			FlashDraw(U32(node, 0x34));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -731,7 +724,6 @@ namespace drain
 		case 1:
 			a_743190();
 			r_853DB0();
-			FX_HELD(held_note_system(sys);)
 			r_853C70();
 			r_8525F0();
 			sys = U32(us(0x269E760), 0);
@@ -1882,10 +1874,6 @@ namespace drain
 			act::register_module_port(39, p->addr, p->port, p->name);
 		for (const act::drain::ModPort *p = act::drain::PORTS; p->addr; p++)
 			act::register_module_port(39, p->addr, p->port, p->name);
-		FX_HELD(register_mag039_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag039_drain_held.inc"
-#endif

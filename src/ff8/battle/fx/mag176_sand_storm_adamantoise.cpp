@@ -274,10 +274,6 @@ namespace sandstorm176
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag176_sand_storm_adamantoise_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace sandstorm176
@@ -447,7 +443,6 @@ namespace sandstorm176
 			PacketSel() = us(PACKETS_A);
 			HeadSel() = us(HEAD_A);
 		}
-		FX_HELD(held_note_funnel(f, x, z);)
 		FunnelDraw(RingSel(), PacketSel(), angle, alpha);
 		if (DrawOnly()) return 0;
 		S16(f, 0xC) = (int16_t)(S16(f, 0xC) + 1);
@@ -477,7 +472,6 @@ namespace sandstorm176
 		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U32(e, 0) & (uint32_t)(int32_t)S16(t, 0xE))) continue;
-			FX_HELD(held_note_sand(t, h, e);)
 			SandDraw(h, e);
 			if (DrawOnly()) continue;
 			S16(e, 4) = (int16_t)(S16(e, 4) + 1);
@@ -615,7 +609,6 @@ namespace sandstorm176
 		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U32(e, 0) & (uint32_t)(int32_t)S16(t, 0xE))) continue;
-			FX_HELD(held_note_sand(t, h, e);)
 			SandDraw(h, e);
 			if (DrawOnly()) continue;
 			S16(e, 4) = (int16_t)(S16(e, 4) + 1);
@@ -742,7 +735,6 @@ namespace sandstorm176
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		const uint32_t r = (uint32_t)n;
-		FX_HELD(held_note_root();)
 		Parity() = U8(r, 0xC) & 1;
 		PacketCursor() = Parity() ? ArenaBase() + ARENA_HALF : ArenaBase();
 		const int a = ExecuteTaskQueue((TaskQueue *)us(Q_FX));
@@ -759,10 +751,6 @@ namespace sandstorm176
 		register_port(sandstorm176::ORIG_Sand, (void *)sandstorm176::SandTask, "176 SandTask", 176);
 		register_port(sandstorm176::ORIG_Lift, (void *)sandstorm176::LiftTask, "176 LiftTask", 176);
 		register_port(sandstorm176::ORIG_Landing, (void *)sandstorm176::LandingTask, "176 LandingTask", 176);
-		FX_HELD(register_mag176_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag176_sand_storm_adamantoise_held.inc"
-#endif

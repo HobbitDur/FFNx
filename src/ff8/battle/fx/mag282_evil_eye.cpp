@@ -166,10 +166,6 @@ namespace evileye282
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag282_evil_eye_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace evileye282
@@ -264,7 +260,6 @@ namespace evileye282
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->pos[1] = (int16_t)(s->pos[1] - 0xA);
 		s->counter++;
@@ -276,7 +271,6 @@ namespace evileye282
 		HitNode *h = (HitNode *)n;
 		PrimArg arg;
 		HitArg(h, &arg);
-		FX_HELD(held_note_hit(h);)
 		const int left = prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0);
 		if (!left) return TASK_END;
 		if (left < 0x1C && !(left & 3))
@@ -305,7 +299,6 @@ namespace evileye282
 		{
 			PrimArg arg;
 			EyeArg(&arg);
-			FX_HELD(held_note_eye(m);)
 			prim::play((prim::Layout *)m->eye, PrimCallback, (int)&arg, 0);
 		}
 		if (c == 3) ScreenFadeTask(0, 1, 0, 0x60);
@@ -336,7 +329,6 @@ namespace evileye282
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *mn = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (mn->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -382,10 +374,6 @@ namespace evileye282
 		register_port(evileye282::ORIG_MainTask, (void *)evileye282::MainTask, "282 MainTask", 282);
 		register_port(evileye282::ORIG_HitTask, (void *)evileye282::HitTask, "282 HitTask", 282);
 		register_port(evileye282::ORIG_SparkTask, (void *)evileye282::SparkTask, "282 SparkTask", 282);
-		FX_HELD(register_mag282_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag282_evil_eye_held.inc"
-#endif

@@ -27,10 +27,6 @@ namespace apocalypse221
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag221_apocalypse_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -78,7 +74,7 @@ namespace apocalypse221
 	}
 	static inline void xl_NormalColor_56CA30(const void *n, const void *col, void *out) { x::f<void (__cdecl *)(const void *, const void *, void *)>(us(0x56CA30))(n, col, out); }
 	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
 	static inline int32_t div3(int32_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
@@ -136,7 +132,6 @@ namespace apocalypse221
 	static void __cdecl dh_69_EntityTint()
 	{
 		EntityTint_AA6770();
-		FX_HELD(TintNote();)
 	}
 
 	static void GridSheet(bool rowtab)
@@ -390,10 +385,8 @@ namespace apocalypse221
 				xl_InsertPrimAutoDepth(U32(RT(), 0x4C) + (uint32_t)((div3(z) >> 2) & ~3), pk);
 				continue;
 			}
-			FX_HELD(if (held_active()) U32(pk, 4) = PieceColour_186D510(PieceHeldAge(p) % 0x18); else)
 			U32(pk, 4) = PieceColour_186D510(S16(p, 2) % 0x18);
 			uint8_t *q = p;
-			FX_HELD(uint8_t held_q[0x24]; if (held_active()) q = PieceHeld(p, held_q); else)
 			PieceStep_AAC5A0(q);
 			uint8_t *m = ws + 0xC0;
 			U16(ws, 0xB0) = (uint16_t)((uint32_t)U8(q, 0x18) << 4);
@@ -437,7 +430,6 @@ namespace apocalypse221
 	static void __cdecl dh_50_ObjectShatter()
 	{
 		uint8_t *w = WS();
-		FX_HELD(if (held_active() && U32(CUR(), 0xBC) == 0) return;)
 		if (U32(CUR(), 0xBC) == 0)
 		{
 			const uint8_t *desc = PTR(CUR(), 0xB8);
@@ -515,7 +507,6 @@ namespace apocalypse221
 		S32(w, 0x7C) = S16(desc, 8);
 		S32(w, 0x80) = S16(desc, 0xA);
 		S32(w, 0x90) = S16(blk, 0x12);
-		FX_HELD(if (!held_active()))
 		PieceRelease_AABFF0(blk, S16(ref, 0x98));
 		DrawPieces_AAC130(blk, PTR(CUR(), 0xC0));
 	}
@@ -627,7 +618,6 @@ namespace apocalypse221
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
 	{
-		FX_HELD(TintRestore();)
 		return SequenceTick(g_c);
 	}
 }
@@ -640,10 +630,6 @@ namespace apocalypse221
 		init_clone(apocalypse221::g_c, nullptr, 0);
 		apocalypse221::apply_slots(apocalypse221::g_c);
 		register_port(0xAA5BD0, (void *)apocalypse221::SequenceTask, "MAG221 Apocalypse SequenceTick", 221);
-		FX_HELD(register_mag221_apocalypse_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag221_apocalypse_held.inc"
-#endif

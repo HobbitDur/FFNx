@@ -420,10 +420,6 @@ namespace lv271
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag271_lv_up_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace lv271
@@ -458,7 +454,6 @@ namespace lv271
 		arg.scaled = 1;
 		arg.scroll = p->counter;
 		arg.pad1E = 0;
-		FX_HELD(held_note_play(p);)
 		if (prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) == 0)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
@@ -471,7 +466,6 @@ namespace lv271
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -527,10 +521,6 @@ namespace lv271
 	{
 		register_port(lv271::ORIG_RootTask, (void *)lv271::RootTask, "271 RootTask", 271);
 		register_port(lv271::ORIG_PlayTask, (void *)lv271::PlayTask, "271 PlayTask", 271);
-		FX_HELD(register_mag271_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag271_lv_up_held.inc"
-#endif

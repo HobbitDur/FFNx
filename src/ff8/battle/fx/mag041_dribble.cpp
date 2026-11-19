@@ -187,10 +187,6 @@ namespace dribble
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag041_dribble_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -200,7 +196,6 @@ namespace dribble
 	uint32_t __cdecl db_8466F0(uint32_t a1)
 	{
 		g_mod = &MOD_041;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -1890,7 +1885,6 @@ namespace dribble
 		case 1:
 			db_84B800();
 			db_848EB0();
-			FX_HELD(held_note_system(sys);)
 			db_848D70();
 			db_8476F0();
 			sys = MEM<uint32_t>(us(ACTOR_STATE));
@@ -1949,7 +1943,6 @@ namespace dribble
 			const int16_t pz = (int16_t)(MEM<uint16_t>(us(BLK) + 0x80) - MEM<uint16_t>(us(BLK) + 0x78));
 			S16(ent, 0x20) = pz;
 			S32(ent, 0x5C) = pz;
-			FX_HELD(held_note_ball(node);)
 			db_84BA60(us(BLK));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -2526,7 +2519,6 @@ namespace dribble
 		{
 			U32(node, 0x1C) = U32(node, 0x58 + 8 * i);
 			U32(node, 0x20) = U32(node, 0x5C + 8 * i);
-			FX_HELD(held_note_dust(node, i);)
 			db_84CB00(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -2688,10 +2680,6 @@ namespace dribble
 			act::register_module_port(41, p->addr, p->port, p->name);
 		for (const act::dribble::ModPort *p = act::dribble::PORTS; p->addr; p++)
 			act::register_module_port(41, p->addr, p->port, p->name);
-		FX_HELD(register_mag041_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag041_dribble_held.inc"
-#endif

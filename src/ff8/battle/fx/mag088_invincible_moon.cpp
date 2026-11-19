@@ -487,21 +487,15 @@ namespace moon88
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag088_invincible_moon_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace moon88
 {
-
 	uint32_t __cdecl im_768690(uint32_t a1)
 	{
 		g_mod = &MOD_088;
-		FX_HELD(held_note_master();)
 
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		MEM<uint32_t>(G(G_258FB68)) = us(0x2793E58);
@@ -537,7 +531,6 @@ namespace moon88
 			const uint32_t n = x::ExecuteTaskQueue(G(queues[i]));
 			U16(a1, 0x5E) = (uint16_t)(U16(a1, 0x5E) + (uint16_t)n);
 		}
-		FX_HELD(held_note_end();)
 		const uint8_t status = U8(a1, 0x26);
 		U16(a1, 0x5C) = (uint16_t)(U16(a1, 0x5C) + 1);
 		U16(a1, 0x24) = (uint16_t)(U16(a1, 0x24) + 1);
@@ -987,7 +980,6 @@ namespace moon88
 		S32(node, 0x54) = 0x1000;
 		S32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xF800;
-		FX_HELD(held_note_draw(HK_PLAY, node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -1818,7 +1810,6 @@ namespace moon88
 		const uint32_t node = a1;
 		if (a_73B7E0(5) == 0)
 		{
-			FX_HELD(held_note_draw(HK_PLAY, node);)
 			if (a_73C280(node) != 0)
 				return 0;
 		}
@@ -1890,7 +1881,6 @@ namespace moon88
 		case 1:
 			im_771410();
 			im_76EAC0();
-			FX_HELD(held_note_system(sys);)
 			im_76E980();
 			im_76D300();
 			sys = U32(us(0x25ACD3C), 0);
@@ -3261,7 +3251,6 @@ namespace moon88
 		U16(hdr, 0x2A) = 0x100;
 		U16(hdr, 0x28) = 0x100;
 		U32(hdr, 0x14) = 0xF0;
-		FX_HELD(held_note_draw(HK_MOON, a1);)
 		MEM<uint32_t>(us(PACKET_CURSOR)) = im_76A650(hdr, MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 2, MEM<uint32_t>(us(PACKET_CURSOR)));
 		x::Field_Free(0x68);
 		return 0;
@@ -3334,7 +3323,6 @@ namespace moon88
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			FX_HELD(held_note_draw(HK_DOUBLE, node);)
 			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -3492,7 +3480,6 @@ namespace moon88
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + U16(node, 0x126));
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			FX_HELD(held_note_draw(HK_ANGELO, node);)
 			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
@@ -3579,7 +3566,6 @@ namespace moon88
 		const uint32_t node = a1;
 		if ((U8(node, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_RING, node);)
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
 		x::UnpackRotationMatrix(us(0x1D97778), mat);
@@ -3765,7 +3751,6 @@ namespace moon88
 		S32(node, 0x58) = 0x1000;
 		S32(node, 0x54) = 0x1000;
 		S32(node, 0x50) = 0x1000;
-		FX_HELD(held_note_draw(HK_PLAY, node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -3773,7 +3758,6 @@ namespace moon88
 
 	uint32_t __cdecl im_772D10(uint32_t a1)
 	{
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
 		{
@@ -3825,7 +3809,6 @@ namespace moon88
 		const uint32_t node = a1;
 		if ((U8(node, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_HALO, node);)
 		uint32_t mbuf[8] = {};
 		const uint32_t m = P(mbuf);
 		x::MAG_022_sub_8DD770(m);
@@ -3980,7 +3963,6 @@ namespace moon88
 			if (MEM<uint32_t>(us(FLASH_PAUSE)) == 0)
 				U16(node, 0x3A) = (uint16_t)(idx + 1);
 		}
-		FX_HELD(held_note_draw(HK_FLASH, node);)
 		const uint32_t ot = MEM<uint32_t>(us(0x1D8E04C)) + 0x1C;
 		uint32_t pkt = MEM<uint32_t>(us(PACKET_CURSOR));
 		x::sub_45BFC0(pkt, 0, 0, x::sub_45C690(0, 2, 0x280, 0) & 0xFFFF, 0);
@@ -4371,10 +4353,6 @@ namespace moon88
 			act::register_module_port(88, p->addr, p->port, p->name);
 		for (const act::moon88::ModPort *p = act::moon88::PORTS; p->addr; p++)
 			act::register_module_port(88, p->addr, p->port, p->name);
-		FX_HELD(register_mag088_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag088_invincible_moon_held.inc"
-#endif

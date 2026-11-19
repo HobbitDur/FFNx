@@ -212,10 +212,6 @@ namespace d325
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag325_diablos_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace d325
@@ -225,7 +221,6 @@ namespace d325
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (node->parity)
 		{
 			PacketCursor() = (uint32_t)(ModelBuffer() + MB_ARENA_A);
@@ -653,8 +648,6 @@ namespace d325
 		uint8_t *MB = ModelBuffer();
 		uint8_t *e1 = E1(t), *e2 = E2(t);
 
-		FX_HELD(held_note_timeline(t);)
-
 		int32_t c = t->counter;
 
 		{
@@ -668,7 +661,6 @@ namespace d325
 					Flash() = 0x1000;
 					PrimCtx ctx;
 					CtxA(ctx, FadeA(v));
-					FX_HELD(held_note_play_a(ctx);)
 					Play(t->prim_a, ctx);
 				}
 			}
@@ -678,7 +670,6 @@ namespace d325
 			uint32_t e = (uint32_t)(c - 0x1F);
 			if (e < 0x3C)
 			{
-				FX_HELD(held_note_grow(e);)
 				DrawGrowing(GrowDiag(e), e < 0x1E ? -0x4000 : -0x2000);
 			}
 		}
@@ -697,7 +688,6 @@ namespace d325
 					t->morph_b[1] = (uint32_t)(MB + 0x3704C);
 					t->morph_b[2] = (uint32_t)(MB + 0x3505C);
 				}
-				FX_HELD(held_note_morph(e);)
 				x::MorphPair(0, -0x2000, (int16_t)FarZ(), (uint32_t)(ModelBuffer() + 0x4C244), t->flip, 2, tt, t->morph_b, 2, tt);
 			}
 		}
@@ -723,7 +713,6 @@ namespace d325
 				}
 				else if (e < 0x46) model = t->flip[e % 9];
 				else model = t->flip[0];
-				FX_HELD(held_note_flip(0, -0x2000, (int16_t)FarZ(), model);)
 				x::DrawPrimAt(0, -0x2000, (int16_t)FarZ(), model);
 			}
 		}
@@ -752,7 +741,6 @@ namespace d325
 				}
 				else if (e == 8 && !Pause()) x::SetAnim(e1, 4);
 				uint32_t model = t->flip[e % 13];
-				FX_HELD(held_note_flip(0x5A, -0x2258, FarZ() - 0xA0, model);)
 				x::DrawPrimAt(0x5A, -0x2258, FarZ() - 0xA0, model);
 			}
 		}
@@ -765,11 +753,9 @@ namespace d325
 				if (e == 0) x::Decode((uint32_t)(ModelBuffer() + 0x51D40), t->prim_c, 0x1E8);
 				PrimCtx ctx;
 				CtxC(ctx);
-				FX_HELD(held_note_play_c(ctx);)
 				int r = Play(t->prim_c, ctx);
 				if (r == 0)
 				{
-					FX_HELD(held_note_restart_c(t);)
 					x::Decode((uint32_t)(ModelBuffer() + 0x51D40), t->prim_c, 0x1E8);
 				}
 			}
@@ -782,7 +768,6 @@ namespace d325
 				if (e == 0) x::Decode((uint32_t)(ModelBuffer() + 0x4EF8C), t->prim_b, 0x3C8);
 				PrimCtx ctx;
 				CtxB298(ctx);
-				FX_HELD(held_note_play_b(ctx, false);)
 				Play(t->prim_b, ctx);
 			}
 		}
@@ -798,7 +783,6 @@ namespace d325
 				}
 				else if (e >= 0x20)
 				{
-					FX_HELD(held_note_sink((int32_t)e - 0x20);)
 					DrawSinking((int32_t)e - 0x20, 0);
 				}
 			}
@@ -823,7 +807,6 @@ namespace d325
 					x::DrawEntityScaled(t->targets[k].entity, scale);
 					t->targets[k].entity[0] |= 4;
 				}
-				FX_HELD(held_note_well(e);)
 				x::DrawWell(CenterX(), depth - 0x1000, CenterZ(), (int32_t)(e << 4));
 			}
 		}
@@ -832,7 +815,6 @@ namespace d325
 			uint32_t e = (uint32_t)((int32_t)t->counter - 0x192);
 			if (e < 0xC)
 			{
-				FX_HELD(held_note_tile((int32_t)e);)
 				PacketCursor() = x::FlashTile((int32_t)e, 0xFF, 0xFF, 0xFF, 4, 8, PacketCursor());
 			}
 		}
@@ -844,7 +826,6 @@ namespace d325
 				if (e == 0) x::Decode((uint32_t)(ModelBuffer() + 0x3B4E4), t->prim_b, 0x468);
 				PrimCtx ctx;
 				CtxB406(ctx, (int16_t)(e * 4));
-				FX_HELD(held_note_play_b(ctx, true);)
 				Play(t->prim_b, ctx);
 			}
 		}
@@ -878,7 +859,6 @@ namespace d325
 				if (e < 0x4B) kind = 1;
 				else if (e >= 0xB0 && e < 0xEC) kind = 2;
 				else if (e <= 0x114 || (e >= 0x16C && e < 0x17A)) kind = 3;
-				FX_HELD(held_note_e1(e1, kind);)
 				if (kind == 1) x::DrawStylised(e1, -0x2000, 0x80, 2, ModelBuffer() + MB_MORPH);
 				else if (kind == 2) x::DrawStylised(e1, -0x22BC, 0x80, 0, ModelBuffer() + MB_MORPH);
 				else if (kind == 3) FrameCursor() = x::DrawModel(e1, ModelBuffer() + MB_MORPH, FrameCursor(), ModelDrawMode());
@@ -896,7 +876,6 @@ namespace d325
 					x::SetAnim(e2, 0);
 				}
 				if (!Pause()) x::AdvanceAnim(e2);
-				FX_HELD(held_note_e2();)
 				FrameCursor() = x::DrawModel(e2, ModelBuffer() + MB_MORPH, FrameCursor(), ModelDrawMode());
 			}
 		}
@@ -922,11 +901,9 @@ namespace d325
 			if (bolts)
 			{
 				x::BoltDraw();
-				FX_HELD(held_note_particles(2);)
 			}
 			else if (m == 3)
 			{
-				FX_HELD(held_note_particles(3);)
 				x::PuffDraw();
 			}
 		}
@@ -1323,7 +1300,6 @@ namespace d325
 		RisingNode *p = (RisingNode *)n;
 		PrimCtx c;
 		CtxRising(c, p->pos, p->shade);
-		FX_HELD(held_note_rising(p);)
 		if (!Play(p->layout, c)) return TASK_END;
 		if (!Pause()) p->pos[1] += 0x18;
 		return 0;
@@ -1358,10 +1334,6 @@ namespace d325
 		register_port(d325::ORIG_TimelineTask, (void *)d325::TimelineTask, "D325 TimelineTask", 325);
 		register_port(d325::ORIG_RisingTask, (void *)d325::RisingTask, "D325 RisingTask", 325);
 		register_port(d325::ORIG_BurstTask, (void *)d325::BurstTask, "D325 BurstTask", 325);
-		FX_HELD(register_mag325_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag325_diablos_held.inc"
-#endif

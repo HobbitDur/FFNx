@@ -27,10 +27,6 @@ namespace breath238
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag238_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -113,10 +109,6 @@ namespace breath238
 		init_clone(breath238::g_c, nullptr, 0);
 		breath238::apply_slots(breath238::g_c);
 		register_port(0xA20430, (void *)breath238::SequenceTask, "MAG238 Breath (Ruby Dragon) SequenceTick", 238);
-		FX_HELD(register_mag238_breath_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag238_breath_held.inc"
-#endif

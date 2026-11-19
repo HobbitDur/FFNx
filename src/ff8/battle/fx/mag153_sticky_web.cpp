@@ -147,10 +147,6 @@ namespace web153
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag153_sticky_web_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace web153
@@ -524,7 +520,6 @@ namespace web153
 	static uint32_t __cdecl Particles1Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_Particles1Task), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Particle);
@@ -532,7 +527,6 @@ namespace web153
 		for (Particle *e = Parts(); e < Parts() + 100; e++)
 		{
 			if (!(*(const uint8_t *)&e->type & 1)) continue;
-			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
 			{
@@ -546,7 +540,6 @@ namespace web153
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -586,7 +579,6 @@ namespace web153
 	static uint32_t __cdecl Particles2Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_Particles2Task), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Particle);
@@ -594,7 +586,6 @@ namespace web153
 		for (Particle *e = Parts(); e < Parts() + 100; e++)
 		{
 			if (!(*(const uint8_t *)&e->type & 2)) continue;
-			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
 			{
@@ -607,7 +598,6 @@ namespace web153
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -638,7 +628,6 @@ namespace web153
 	static uint32_t __cdecl BurstTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_BurstTask), n);)
 		BurstDraw(n, n->counter, BurstFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -651,7 +640,6 @@ namespace web153
 	static uint32_t __cdecl WebTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_WebTask), n);)
 		WebDraw(n, n->counter, Anchor()[1], WebFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -661,7 +649,6 @@ namespace web153
 	static uint32_t __cdecl ThreadTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_ThreadTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x40);
 		int16_t *v = (int16_t *)(h + 0x20);
 		v[1] = 0;
@@ -705,7 +692,6 @@ namespace web153
 			DrawStrips(h, (const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B));
 		}
 		FieldFree(0x40);
-		FX_HELD(held_note_thread(i);)
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter < 0x19)
 		{
@@ -770,7 +756,6 @@ namespace web153
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		Cursor() = us(ARENA_A);
 		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = us(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
@@ -788,10 +773,6 @@ namespace web153
 		register_port(web153::ORIG_Particles1Task, (void *)web153::Particles1Task, "W153 Particles1Task", 153);
 		register_port(web153::ORIG_Particles2Task, (void *)web153::Particles2Task, "W153 Particles2Task", 153);
 		register_port(web153::ORIG_BurstTask, (void *)web153::BurstTask, "W153 BurstTask", 153);
-		FX_HELD(register_mag153_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag153_sticky_web_held.inc"
-#endif

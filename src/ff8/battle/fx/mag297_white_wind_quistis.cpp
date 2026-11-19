@@ -214,10 +214,6 @@ namespace whitewind297
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag297_white_wind_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace whitewind297
@@ -232,10 +228,8 @@ namespace whitewind297
 		Billboard(&arg.m);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play((prim::Layout *)t->layout, PLAY_TARGET, t->pos);)
 		if (prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0) == 0xA)
 		{
-			FX_HELD(held_note_play_end();)
 			ApplyResult(t->entity);
 			return TASK_END;
 		}
@@ -260,7 +254,6 @@ namespace whitewind297
 			Billboard(&arg.m);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play((prim::Layout *)s->lay_caster, PLAY_CASTER, s->caster);)
 			prim::play((prim::Layout *)s->lay_caster, PrimCallback, (int)&arg, 0);
 		}
 		if ((uint32_t)((int32_t)s->counter - 7) < 0x16)
@@ -294,7 +287,6 @@ namespace whitewind297
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play((prim::Layout *)s->lay_sweep, PLAY_SWEEP, s->sweep);)
 			prim::play((prim::Layout *)s->lay_sweep, PrimCallback, (int)&arg, 0);
 		}
 		if (s->counter == 1) BdPlaySE(SOUND_Wind(), 0, 0x80);
@@ -322,7 +314,6 @@ namespace whitewind297
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -359,10 +350,6 @@ namespace whitewind297
 		register_port(whitewind297::ORIG_RootTask, (void *)whitewind297::RootTask, "297 RootTask", 297);
 		register_port(whitewind297::ORIG_SceneTask, (void *)whitewind297::SceneTask, "297 SceneTask", 297);
 		register_port(whitewind297::ORIG_TargetTask, (void *)whitewind297::TargetTask, "297 TargetTask", 297);
-		FX_HELD(register_mag297_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag297_white_wind_quistis_held.inc"
-#endif

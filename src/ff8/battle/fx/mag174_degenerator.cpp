@@ -130,10 +130,6 @@ namespace degen174
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag174_degenerator_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace degen174
@@ -520,7 +516,6 @@ namespace degen174
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		U32(h, 0) = us(SEQ_Sparkle);
 		U16(h, 0x24) = 0;
-		FX_HELD(held_note_sparkles(n, h);)
 		int32_t alive = 0;
 		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
 		{
@@ -608,7 +603,6 @@ namespace degen174
 		const int32_t j = S16(n, 0xC) % 5;
 		U32(us(GHOSTS) + 0x404 * (uint32_t)j, 0) = 1;
 		BoneSave(Ent(CasterSlot()) + 0x60, us(GHOSTS) + 0x404 * (uint32_t)j + 4);
-		FX_HELD(held_note_afterimages(n);)
 		AfterimagesDraw(S16(n, 0xC));
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -618,7 +612,6 @@ namespace degen174
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_root();)
 		if (U8(n, 0xC) & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
 		const int alive = ExecuteTaskQueue(QEffects());
@@ -715,7 +708,6 @@ namespace degen174
 
 	static uint32_t __cdecl Controller(TaskNode *nd)
 	{
-		FX_HELD(held_note_controller(nd);)
 		if (DrawOnly()) return 0;
 		const uint32_t n = (uint32_t)nd;
 		if (S16(n, 0xC) == 0xA)
@@ -901,7 +893,6 @@ namespace degen174
 	static uint32_t __cdecl CoreTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_draw(us(ORIG_Core), n);)
 		HandModelDraw(n, us(MODEL_Core), CoreCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x1C) = (int16_t)(S16(n, 0x1C) - S16(n, 0x1E));
@@ -918,7 +909,6 @@ namespace degen174
 	static uint32_t __cdecl PulseTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_draw(us(ORIG_Pulse), n);)
 		HandModelDraw(n, us(MODEL_Pulse), PulseCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
@@ -955,7 +945,6 @@ namespace degen174
 	static uint32_t __cdecl FlickerTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_draw(us(ORIG_Flicker), n);)
 		if (U8(n, 0xC) & 1) FlickerDraw();
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -991,7 +980,6 @@ namespace degen174
 	static uint32_t __cdecl ScreenRingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_draw(us(ORIG_ScreenRing), n);)
 		ScreenRingDraw(n, ScreenRingCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
@@ -1032,7 +1020,6 @@ namespace degen174
 	static uint32_t __cdecl TargetRingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_draw(us(ORIG_TargetRing), n);)
 		TargetRingDraw(n, TargetRingCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
@@ -1081,7 +1068,6 @@ namespace degen174
 	static uint32_t __cdecl VortexTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_draw(us(ORIG_Vortex), n);)
 		const int32_t c = S16(n, 0xC);
 		VortexDraw(n, VortexColours()[c % 12], VortexCue(c));
 		if (DrawOnly()) return 0;
@@ -1245,7 +1231,6 @@ namespace degen174
 		const uint32_t n = (uint32_t)nd;
 		if (S16(n, 0xC) < 0x1E)
 		{
-			FX_HELD(held_note_draw(us(ORIG_Swallow), n);)
 			SwallowDraw(n, SwallowFactor(S16(n, 0xC)));
 		}
 		if (DrawOnly()) return 0;
@@ -1335,7 +1320,6 @@ namespace degen174
 		const uint32_t h = (uint32_t)FieldAlloc(0xB4);
 		U32(h, 0) = us(SEQ_Debris);
 		U16(h, 0x24) = 0;
-		FX_HELD(held_note_debris(n, h);)
 		int32_t alive = 0;
 		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
 		{
@@ -1388,10 +1372,6 @@ namespace degen174
 		register_port(degen174::ORIG_FadeOut, (void *)degen174::FadeOutTask, "174 FadeOut", 174);
 		register_port(degen174::ORIG_TargetRing, (void *)degen174::TargetRingTask, "174 TargetRing", 174);
 		register_port(degen174::ORIG_Pull, (void *)degen174::PullTask, "174 Pull", 174);
-		FX_HELD(register_mag174_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag174_degenerator_held.inc"
-#endif

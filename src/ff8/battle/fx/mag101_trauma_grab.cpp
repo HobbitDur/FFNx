@@ -163,10 +163,6 @@ namespace grab101
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag101_trauma_grab_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace grab101
@@ -208,7 +204,6 @@ namespace grab101
 			arg.pos[3] = 0;
 			arg.depth = -0x80;
 			arg.morph = TexBase() + 0x2D0;
-			FX_HELD(held_note_play((prim::Layout *)g->layout, &arg);)
 			prim::play((prim::Layout *)g->layout, PartCallback, (int)&arg, 0);
 		}
 		if (g->counter == 0) BdPlaySE(SOUND_Grab(), 0, 0x80);
@@ -257,7 +252,6 @@ namespace grab101
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x450;
@@ -301,10 +295,6 @@ namespace grab101
 	{
 		register_port(grab101::ORIG_RootTask, (void *)grab101::RootTask, "101 RootTask", 101);
 		register_port(grab101::ORIG_GrabTask, (void *)grab101::GrabTask, "101 GrabTask", 101);
-		FX_HELD(register_mag101_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag101_trauma_grab_held.inc"
-#endif

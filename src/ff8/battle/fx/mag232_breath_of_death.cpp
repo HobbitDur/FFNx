@@ -57,10 +57,6 @@ namespace death232
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag232_breath_of_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -216,7 +212,6 @@ namespace death232
 		S32(WS(), 0xD4) = shl32(S16(CUR(), 0x8C), 4);
 		S32(WS(), 0xD8) = shl32(S16(CUR(), 0x8E), 4);
 		S32(WS(), 0xDC) = shl32(S16(CUR(), 0x90), 4);
-		FX_HELD(held_scale_fraction(CUR(), WS() + 0xD4);)
 		uint8_t *d = WS() + 0xE0;
 		for (int i = 0; i < 8; i++) U32(d, i * 4) = U32(m, i * 4);
 		x::ScaleMatrix(d, WS() + 0xD4);
@@ -279,9 +274,7 @@ namespace death232
 		U32(desc, 4) = U32(CTX(), 0x74);
 		uint32_t cursor = U32(CTX(), 0x7C);
 		uint32_t ot = U32(RT(), 0x4C);
-		FX_HELD(held_render_begin();)
 		U32(CTX(), 0x7C) = x::RenderGeometry(m + 0x30, desc, ot, 4, cursor);
-		FX_HELD(held_render_end();)
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
@@ -302,10 +295,6 @@ namespace death232
 		death232::g_c.prim[58] = death232::pr_58_TintedFT4Abr;
 		death232::g_c.draw[44] = death232::dh_44_AnimatedEntityCopy;
 		register_port(0xA5C950, (void *)death232::SequenceTask, "MAG232 Breath of Death SequenceTick", 232);
-		FX_HELD(register_mag232_breath_of_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag232_breath_of_death_held.inc"
-#endif

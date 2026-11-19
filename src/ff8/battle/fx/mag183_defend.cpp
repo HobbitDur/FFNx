@@ -171,10 +171,6 @@ namespace defend183
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag183_defend_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace defend183
@@ -182,7 +178,6 @@ namespace defend183
 	static uint32_t __cdecl ShieldATask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_shield(us(ORIG_ShieldA), t);)
 		DrawShield(t, ShieldAState(t->counter, t->scale));
 		if (DrawOnly()) return 0;
 		t->scale = (int16_t)(t->scale - t->step);
@@ -193,7 +188,6 @@ namespace defend183
 	static uint32_t __cdecl ShieldBTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_shield(us(ORIG_ShieldB), t);)
 		DrawShield(t, ShieldBState(t->counter, t->scale));
 		if (DrawOnly()) return 0;
 		t->counter++;
@@ -240,7 +234,6 @@ namespace defend183
 		RootNode *r = (RootNode *)n;
 		PacketCursor() = us(ARENA1);
 		if (!(r->counter & 1)) PacketCursor() = us(ARENA0);
-		FX_HELD(held_note_root();)
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;
@@ -253,10 +246,6 @@ namespace defend183
 		register_port(defend183::ORIG_Director, (void *)defend183::DirectorTask, "D183 Director", 183);
 		register_port(defend183::ORIG_ShieldA, (void *)defend183::ShieldATask, "D183 ShieldA", 183);
 		register_port(defend183::ORIG_ShieldB, (void *)defend183::ShieldBTask, "D183 ShieldB", 183);
-		FX_HELD(register_mag183_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag183_defend_held.inc"
-#endif

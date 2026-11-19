@@ -423,21 +423,15 @@ namespace angelo91
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag091_angelo_rush_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace angelo91
 {
-
 	uint32_t __cdecl ru_759510(uint32_t a1)
 	{
 		g_mod = &MOD_091;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -478,11 +472,9 @@ namespace angelo91
 		static const uint32_t queues[8] = { us(0x259DB90), us(0x2599010), us(0x259E8C0), us(0x259D8F0), us(0x2599118), us(0x259BE30), us(0x259D630), us(0x259DB80) };
 		for (int i = 0; i < 8; i++)
 		{
-			FX_HELD(if (i == 7) held_note_flash(queues[i]);)
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
-		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -682,7 +674,6 @@ namespace angelo91
 		case 1:
 			ru_75E850();
 			ru_75BF00();
-			FX_HELD(held_note_system(sys);)
 			ru_75BDC0();
 			a_735440();
 			sys = U32(us(0x259EEA0), 0);
@@ -1921,7 +1912,6 @@ namespace angelo91
 			U16(node, 0x4E) = 0;
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			FX_HELD(held_note_draw(HK_ANGELO, node);)
 			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, us(0x259DD08), MEM<uint32_t>(PACKET_CURSOR));
 		}
 		const uint8_t anim = U8(node, 0x9C), frame = U8(node, 0xA2);
@@ -2026,7 +2016,6 @@ namespace angelo91
 	{
 		if (U8(a1, 0x26) & 4)
 			return 0;
-		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::UnpackRotationMatrix(us(0x1D97778), M);
@@ -2835,7 +2824,6 @@ namespace angelo91
 		const uint32_t node = a1;
 		if ((U8(node, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_RING, node);)
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
 		x::UnpackRotationMatrix(us(0x1D97778), mat);
@@ -2994,7 +2982,6 @@ namespace angelo91
 		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		FX_HELD(held_note_play(node);)
 		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
 	}
 
@@ -3376,10 +3363,6 @@ namespace angelo91
 			act::register_module_port(91, p->addr, p->port, p->name);
 		for (const act::angelo91::ModPort *p = act::angelo91::PORTS; p->addr; p++)
 			act::register_module_port(91, p->addr, p->port, p->name);
-		FX_HELD(register_mag091_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag091_angelo_rush_held.inc"
-#endif

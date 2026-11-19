@@ -378,7 +378,6 @@
 		{
 			TrailSplines(cnt, (const uint8_t *)PTS_A, (const uint8_t *)PTS_B, (uint8_t *)SPL_A, (uint8_t *)SPL_B);
 			TrailHitPoint((const uint8_t *)SPL_B, (uint8_t *)HIT_POS, (int32_t *)HIT_DIR);
-			FX_HELD(held_note_trail(n);)
 			TrailDraw((const uint8_t *)SPL_A, (const uint8_t *)SPL_B, w);
 		}
 		FieldFree(0x40);
@@ -494,7 +493,6 @@
 	{
 		Node24 *n = (Node24 *)tn;
 		HitRec *r = (HitRec *)(HIT_REC + 0x9C * n->e);
-		FX_HELD(held_note_slash(n, r);)
 		int32_t axis[3];
 		const int32_t angle = RotationBetweenVectors((const int32_t *)SLASH_REF, r->dir, axis);
 		Mat4x3 m;
@@ -569,7 +567,6 @@
 
 	static void ParticleDraws()
 	{
-		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = SEQ_FLASH;
 		*(int16_t *)(h + 0x24) = 0;
@@ -636,7 +633,6 @@
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + PARITY;
 		else PacketCursor() = TexBase();
-		FX_HELD(held_note_master();)
 		const int alive = ExecuteTaskQueue(QMain());
 		ParticleDraws();
 		r->counter++;
@@ -671,7 +667,6 @@
 
 	static int32_t EmitterDraw(const Node24 *n, EmitWork *w, int32_t kind, uint32_t seq, int16_t gravity = 0)
 	{
-		FX_HELD(held_note_emitter(n, kind, seq);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(int16_t *)(h + 0x24) = 0;
 		int32_t alive = 0;
@@ -784,7 +779,6 @@
 
 	static uint32_t SlotModelTask(const SlotModelDef &d, int kind, Node24 *n)
 	{
-		FX_HELD(held_note_slotmodel(kind, n);)
 		(void)kind;
 		SlotModelDraw(d, n, Slot(n->e), SlotModelSX(d, n), SlotModelSY(d, n), SlotModelFade(d, n->c));
 		if (DrawOnly()) return 0;
@@ -906,7 +900,6 @@
 				p->w14 = (int16_t)(mul32(w->u[2], sp) >> 12);
 			}
 		}
-		FX_HELD(held_note_dust(n);)
 		uint8_t *h = AllocHeader(0xB4);
 		int32_t alive = 0;
 		DustBegin(w, h, n);
@@ -1058,7 +1051,6 @@
 
 	static uint32_t NodeModelTask(const NodeModelDef &d, int kind, Node24 *n)
 	{
-		FX_HELD(held_note_nodemodel(kind, n);)
 		(void)kind;
 		NodeModelDraw(d, n, n->w1C, d.sep_y ? n->w20 : n->w1C, NodeModelFade(d, n->c));
 		if (DrawOnly()) return 0;

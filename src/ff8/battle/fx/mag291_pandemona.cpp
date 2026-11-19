@@ -112,13 +112,8 @@ namespace p291
 		inline int TrailPush(int max, int count, void *entries, void *a, void *b, int c0, int c1, int c2) { return fn<int (__cdecl *)(int, int, void *, void *, void *, int, int, int)>(us(0x6D99D0))(max, count, entries, a, b, c0, c1, c2); }
 		inline uint32_t TrailDraw(int32_t *count, void *entries, int d, uint32_t ot, int mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t *, void *, int, uint32_t, int, uint32_t)>(us(0x6F1290))(count, entries, d, ot, mode, cursor); }
 	}
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag291_pandemona_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -129,7 +124,6 @@ namespace p291
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		uint8_t *nd = (uint8_t *)n;
-		FX_HELD(held_note_master();)
 		if (At<uint32_t>(nd, 0x10))
 		{
 			PacketCursor() = (uint32_t)(MB() + 0x71D4);
@@ -244,7 +238,6 @@ namespace p291
 	{
 		uint8_t *nd, *fr;
 		int32_t c;
-		FX_HELD(int num = 0, den = 1; bool held = false, interp = false;)
 	};
 
 	inline uint8_t *E(uint8_t *nd) { return nd + 0x154; }
@@ -254,7 +247,6 @@ namespace p291
 	static void Play(const Pass &p, uint8_t *ctx)
 	{
 		prim::Layout *l = (prim::Layout *)(p.nd + 0x1F0);
-		FX_HELD(if (held_play(p, l, ctx)) return;)
 		prim::play(l, (prim::Callback)us(CB_Prim), (int)ctx, Pause());
 	}
 
@@ -262,7 +254,6 @@ namespace p291
 	{
 		uint8_t *fr = p.fr;
 		int32_t scroll = (int32_t)shl32(v, 3);
-		FX_HELD(held_lerp(p, (uint32_t)(v + 1) < 0x1E, scroll, (int32_t)shl32(v + 1, 3));)
 		F32(fr, 0x58) = 0;
 		F32(fr, 0x5C) = 0;
 		F32(fr, 0x60) = Center();
@@ -281,16 +272,15 @@ namespace p291
 		int32_t e = (int32_t)((uint32_t)shl32(v, 12) / 14u);
 		int32_t y = Center() + 0x7D0;
 		int32_t a[3][12] = {
-			{ y, us(0x13A0E58), us(0x13A4280), shl32(v, 6), 0, 0, 0, e, e + 0x1000, 0, shl32(v, 5), 0x1000 - (e >> 1) },
-			{ y, us(0x13A4F88), us(0x13A5EF0), shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, shl32(v, 5), 0x1000 - (e >> 2) },
-			{ y, us(0x13A6508), us(0x13A7BF0), shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, v * 40, 0x1000 - (e >> 2) } };
+			{ y, (int32_t)us(0x13A0E58), (int32_t)us(0x13A4280), shl32(v, 6), 0, 0, 0, e, e + 0x1000, 0, shl32(v, 5), 0x1000 - (e >> 1) },
+			{ y, (int32_t)us(0x13A4F88), (int32_t)us(0x13A5EF0), shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, shl32(v, 5), 0x1000 - (e >> 2) },
+			{ y, (int32_t)us(0x13A6508), (int32_t)us(0x13A7BF0), shl32(v, 6), 0, 0, 0, e * 2, e + 0x1000, 1, v * 40, 0x1000 - (e >> 2) } };
 		ff8fx::copy<(sizeof(a))>(r.t, a);
 	}
 	static void DrawB(const Pass &p, int32_t v)
 	{
 		ParB r;
 		GenB(v, r);
-		FX_HELD(held_par_b(p, v, r);)
 		for (int k = 0; k < 3; k++) w::Tornado(r.t[k]);
 	}
 
@@ -300,9 +290,9 @@ namespace p291
 		int32_t e = (int32_t)((uint32_t)shl32(v, 12) / 60u);
 		int32_t y = Center();
 		int32_t a[3][12] = {
-			{ y, us(0x13A0E58), us(0x13A4280), shl32(v, 6), e, shl32(v, 7), e >> 2, shl32(v + 0x20, 7), 0x2000, 0, shl32(v, 5), 0 },
-			{ y, us(0x13A4F88), us(0x13A5EF0), shl32(v, 6), e, shl32(v + 2, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, shl32(v, 5), 0 },
-			{ y, us(0x13A6508), us(0x13A7BF0), shl32(v, 6), e, shl32(v + 4, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, v * 40, 0 } };
+			{ y, (int32_t)us(0x13A0E58), (int32_t)us(0x13A4280), shl32(v, 6), e, shl32(v, 7), e >> 2, shl32(v + 0x20, 7), 0x2000, 0, shl32(v, 5), 0 },
+			{ y, (int32_t)us(0x13A4F88), (int32_t)us(0x13A5EF0), shl32(v, 6), e, shl32(v + 2, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, shl32(v, 5), 0 },
+			{ y, (int32_t)us(0x13A6508), (int32_t)us(0x13A7BF0), shl32(v, 6), e, shl32(v + 4, 7), e >> 1, shl32(v + 0x10, 8), 0x2000, 1, v * 40, 0 } };
 		ff8fx::copy<(sizeof(a))>(r.t, a);
 		r.e = e;
 		r.ang2 = v * 100;
@@ -313,7 +303,6 @@ namespace p291
 	{
 		ParC r;
 		GenC(v, r);
-		FX_HELD(held_par_c(p, v, r);)
 		for (int k = 0; k < 3; k++) w::Tornado(r.t[k]);
 		uint8_t *ws = (uint8_t *)FieldAlloc(0x8C);
 		w::Morph(us(0x139FFE8), us(0x13A0790), r.e);
@@ -368,13 +357,13 @@ namespace p291
 		if (v35 > 0x1000) return;
 		r.on = 1;
 		int32_t y = Center();
-		int32_t a0[12] = { y, us(0x13A0E58), us(0x13A4280), shl32(v, 6), 0x1000, 0, 0, 0x2E00, 0x2000, 0, shl32(v, 5), v35 };
+		int32_t a0[12] = { y, (int32_t)us(0x13A0E58), (int32_t)us(0x13A4280), shl32(v, 6), 0x1000, 0, 0, 0x2E00, 0x2000, 0, shl32(v, 5), v35 };
 		ff8fx::copy<(sizeof(a0))>(r.t[0], a0);
 		int32_t v36 = (uint32_t)v < 0x18 ? 0 : (int32_t)((uint32_t)shl32(v - 0x18, 12) / 30u);
 		if (v36 > 0x1000) return;
 		r.more = 1;
-		int32_t a1[12] = { y, us(0x13A4F88), us(0x13A5EF0), shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, shl32(v, 5), v36 };
-		int32_t a2[12] = { y, us(0x13A6508), us(0x13A7BF0), shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, v * 40, v36 };
+		int32_t a1[12] = { y, (int32_t)us(0x13A4F88), (int32_t)us(0x13A5EF0), shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, shl32(v, 5), v36 };
+		int32_t a2[12] = { y, (int32_t)us(0x13A6508), (int32_t)us(0x13A7BF0), shl32(v, 6), 0x1000, 0, 0, (int32_t)0xFFFF8800, 0x2000, 1, v * 40, v36 };
 		ff8fx::copy<(sizeof(a1))>(r.t[1], a1);
 		ff8fx::copy<(sizeof(a2))>(r.t[2], a2);
 		r.v36 = v36;
@@ -384,7 +373,6 @@ namespace p291
 	{
 		ParD r;
 		GenD(v, r);
-		FX_HELD(held_par_d(p, v, r);)
 		if (!r.on) return;
 		w::Tornado(r.t[0]);
 		if (!r.more) return;
@@ -457,7 +445,6 @@ namespace p291
 		F32(fr, 0x5C) = F16(fr, bo + 2);
 		F32(fr, 0x60) = F16(fr, bo + 4);
 		w::Billboard(fr + 0x44);
-		FX_HELD(held_lerp(p, next_in, scroll, scroll1);)
 		F16(fr, 0x66) = (int16_t)scroll;
 		F32(fr, 0x6C) = (int32_t)(MB() + 0x31D4);
 		F32(fr, 0x68) = (int32_t)table;
@@ -479,7 +466,6 @@ namespace p291
 		ComposeAffineTransform(&Camera(), (Mat4x3 *)(fr + 0x44), (Mat4x3 *)(fr + 0x44));
 		int32_t s = shl32(v, 5);
 		F32(fr, 0x2C) = s;
-		FX_HELD(held_lerp(p, (uint32_t)(p.c + 1 - 224) < 0x1E, s, shl32(v + 1, 5));)
 		F16(fr, 0x66) = (int16_t)s;
 		F32(fr, 0x68) = us(0x13EF430);
 		F16(fr, 0x64) = -128;
@@ -532,10 +518,10 @@ namespace p291
 		if (f > 0x2000) f = 0x2000;
 		int32_t g = v * 93 + 0x1000, s = shl32(v, 5), b = shl32(v + 4, 9);
 		int32_t a[4][10] = {
-			{ 0, us(0x13A8508), shl32(v, 6), 0x1400, q, b, 0x2000, 2, s, f },
-			{ 0, us(0x13AB5C0), shl32(v, 6), shl32(v, 7), q, b, 0x2000, 0, s, g },
-			{ 0, us(0x13AC1B8), shl32(-v, 6), shl32(v, 7), q, b, 0x2000, 1, s, g },
-			{ 0, us(0x13ACDB0), shl32(v, 6), shl32(v, 7), q, b, 0x2000, 2, s, g } };
+			{ 0, (int32_t)us(0x13A8508), shl32(v, 6), 0x1400, q, b, 0x2000, 2, s, f },
+			{ 0, (int32_t)us(0x13AB5C0), shl32(v, 6), shl32(v, 7), q, b, 0x2000, 0, s, g },
+			{ 0, (int32_t)us(0x13AC1B8), shl32(-v, 6), shl32(v, 7), q, b, 0x2000, 1, s, g },
+			{ 0, (int32_t)us(0x13ACDB0), shl32(v, 6), shl32(v, 7), q, b, 0x2000, 2, s, g } };
 		ff8fx::copy<(sizeof(a))>(p.r, a);
 	}
 	static void DrawJ(const Pass &p, int32_t v)
@@ -555,7 +541,6 @@ namespace p291
 		Play(p, fr + 0x44);
 		ParJ r;
 		GenJ(v, r);
-		FX_HELD(held_par_j(p, v, r);)
 		for (int k = 0; k < 4; k++) w::Ribbon(fr + 0x70, r.r[k]);
 	}
 
@@ -570,10 +555,10 @@ namespace p291
 		int32_t f = (uint32_t)v <= 0x18 ? 0x2000 : shl32(v - 8, 9);
 		int32_t s = shl32(v, 5);
 		int32_t a[4][10] = {
-			{ 0, us(0x13A8508), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, us(0x13AB5C0), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, us(0x13AC1B8), shl32(-v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
-			{ 0, us(0x13ACDB0), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f } };
+			{ 0, (int32_t)us(0x13A8508), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, (int32_t)us(0x13AB5C0), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, (int32_t)us(0x13AC1B8), shl32(-v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f },
+			{ 0, (int32_t)us(0x13ACDB0), shl32(v, 6), shl32(v, 7), 0x400, 0x5800, 0x2000, 2, s, f } };
 		ff8fx::copy<(sizeof(a))>(p.r, a);
 		for (int k = 0; k < 4; k++)
 		{
@@ -595,7 +580,6 @@ namespace p291
 		uint8_t *fr = p.fr;
 		ParK r;
 		GenK(v, r);
-		FX_HELD(held_par_k(p, v, r);)
 		w::RotX(0x400, fr + 0x90);
 		F32(fr, 0xA4) = 0;
 		F32(fr, 0xA8) = 0;
@@ -1145,7 +1129,6 @@ namespace p291
 		uint8_t *fr = g_fr;
 		int32_t c = At<int16_t>(nd, 0xC);
 
-		FX_HELD(held_note_timeline(nd, c);)
 		Pass p = { nd, fr, c };
 
 		if (c < 8) Flash() = (2800 * c) >> 3;
@@ -1698,7 +1681,6 @@ namespace p291
 			g_trail_pts[5] = y2;
 			At<int32_t>(nd, 0x20) = w::TrailPush(0x1E, At<int32_t>(nd, 0x20), nd + 0x24, g_trail_pts + 4, g_trail_pts, 0x10, 0x58, (3 - (age & 3)) << 5);
 		}
-		FX_HELD(held_note_trail(nd);)
 		uint8_t mat[0x20];
 		TrailMatrix(mat, At<int16_t>(nd, 0x16), At<int16_t>(nd, 0x1A));
 		PacketCursor() = w::TrailDraw(&At<int32_t>(nd, 0x20), nd + 0x24, -4, RenderOT(), 2, PacketCursor());
@@ -1735,10 +1717,6 @@ namespace p291
 		register_port(p291::ORIG_SwirlFlipTask, (void *)p291::SwirlFlipTask, "P291 SwirlFlipTask", 291);
 		register_port(p291::ORIG_RiseFlipTask, (void *)p291::RiseFlipTask, "P291 RiseFlipTask", 291);
 		register_port(p291::ORIG_TrailTask, (void *)p291::TrailTask, "P291 TrailTask", 291);
-		FX_HELD(register_mag291_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag291_pandemona_held.inc"
-#endif

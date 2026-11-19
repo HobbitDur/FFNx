@@ -179,10 +179,6 @@ namespace g218
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag218_gilgamesh_kills_seifer_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace g218
@@ -247,10 +243,8 @@ namespace g218
 
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
-		FX_HELD(held_note_master();)
 		int a = ExecuteTaskQueue(&Q1());
 		int b = ExecuteTaskQueue(&Q2());
-		FX_HELD(held_note_tick_end();)
 		((Node24 *)tn)->c++;
 		return (a | b) ? 0 : TASK_END;
 	}
@@ -285,7 +279,6 @@ namespace g218
 		Node24 *n = (Node24 *)tn;
 		int32_t v = FadeTileLevel(n->c);
 		Tile(v, v, v, 0);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x18 ? TASK_END : 0;
@@ -295,7 +288,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		Tile(0x70, 0x80, 0xF0, 0x1000);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x14 ? TASK_END : 0;
@@ -344,7 +336,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		SpinnerDraw(n, n->a18, n->s1C);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		n->c++;
@@ -444,7 +435,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		FlareDraw(n, n->c, FlareA(n->c), FlareB(n->c), FlareDZ(n->c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x18 ? TASK_END : 0;
@@ -484,7 +474,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		RingDraw(n, n->a18, RingScale(n->c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		n->c++;
@@ -538,7 +527,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		GroundWaveDraw(n, mul32(n->c, 24), GroundWaveIR0(n->c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x12 ? TASK_END : 0;
@@ -583,7 +571,6 @@ namespace g218
 		Node24 *n = (Node24 *)tn;
 		GetEffectSpawnPosition(Entity(TargetSlot()), 0xF0, 0x1000, &n->p10);
 		SlashDraw(&n->p10, (const int16_t *)us(0x24FD358), -mul32(n->c, 24));
-		FX_HELD(MemoExtra((const int16_t *)us(0x24FD358), 3); MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x16 ? TASK_END : 0;
@@ -609,12 +596,10 @@ namespace g218
 		if (Flags() & 2) return TASK_END;
 		Mat4x3 m;
 		SwordLocal(&m);
-		FX_HELD(Mat4x3 local = m;)
 		ComposeAffineTransform(&Frame(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		if (n->c > 0 && !(Flags() & 4)) PrimModel(us(0xE254D8), 0x33, false, 0, OT(), 3);
-		FX_HELD(MemoMat(&local, n->c > 0 && !(Flags() & 4)); MemoNode(n);)
 		if (!Paused()) n->c++;
 		return 0;
 	}
@@ -654,7 +639,6 @@ namespace g218
 	{
 		if (ReadAnimation(E + 0x60, E + 0x6C) == 1 && !(E[0] & 1))
 			PreReadAnimation(E + 0x60, E + 0x6C, E[0x6C]);
-		FX_HELD(held_note_advanced(E);)
 	}
 
 	static uint32_t g_vertex_scratch_override = 0;
@@ -692,7 +676,6 @@ namespace g218
 			DrawModel(E1(), &Frame());
 			DrawModel(E2(), &Frame());
 			fl = *(uint16_t *)E2();
-			FX_HELD(ModelMemoTake(n);)
 		}
 		if (Paused()) return 0;
 		if (!(fl & 8))
@@ -829,7 +812,6 @@ namespace g218
 				GteStoreRGB2((void *)us(0x24F3580));
 			}
 		}
-		FX_HELD(MemoNode(n);)
 		n->c++;
 		if (n->c < 0x20E) return 0;
 		Flags() |= 1;
@@ -887,7 +869,6 @@ namespace g218
 		int16_t A[4], C[4];
 		GlowPoints(A, C);
 		GlowDraw(n, A, C, var<int16_t>(us(0x24F3598)), shl32(-n->c, 5));
-		FX_HELD(MemoExtra(A, 3); MemoExtra2(C, 3, var<int16_t>(us(0x24F3598))); MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x28 ? TASK_END : 0;
@@ -964,7 +945,6 @@ namespace g218
 			RecB *p = (RecB *)(pool + 0x18 * i);
 			if (!(p->mask & 1)) continue;
 			DustOne(h, s, p);
-			FX_HELD(PoolMemoB(i, p);)
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
@@ -978,7 +958,6 @@ namespace g218
 			p->vz = (int16_t)(p->vz - (int16_t)(p->vz >> 3));
 			live++;
 		}
-		FX_HELD(MemoNode(n);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (Paused()) return 0;
@@ -1048,7 +1027,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		RingPrim(n, us(0xE1EF08), 0, n->s1C, n->s1C, n->c >= 6, shl32(n->c - 6, 9));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1061,7 +1039,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		RingPrim(n, us(0xE1C918), n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 341));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		int16_t v = n->s1E;
@@ -1078,7 +1055,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		RingPrim(n, us(0xE1E260), n->a18, n->s1C, n->s20, n->c >= 10, mul32(n->c - 10, 682));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		int16_t v = n->s1E;
@@ -1102,7 +1078,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		var<int16_t>(us(0x1D97712)) = ShakeValue(n->c, n->e);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 8 ? TASK_END : 0;
@@ -1224,7 +1199,6 @@ namespace g218
 			((Node24 *)AddTaskToQueue(&Q1(), us(ORIG_ShardDustTask)))->c = 0;
 			((Node24 *)AddTaskToQueue(&Q1(), us(ORIG_ShardChipTask)))->c = 0;
 		}
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x15 ? TASK_END : 0;
@@ -1414,7 +1388,6 @@ namespace g218
 		}
 		Shard *sh = SH(n->e);
 		ShardDraw(n, sh);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		sh->x = (int16_t)(sh->x + sh->vx);
 		sh->y = (int16_t)(sh->y + sh->vy);
@@ -1473,7 +1446,6 @@ namespace g218
 			RecB *p = (RecB *)(pool + 0x18 * i);
 			if (!(p->mask & 1)) continue;
 			ShardDustOne(h, p);
-			FX_HELD(PoolMemoB(i, p);)
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
@@ -1483,7 +1455,6 @@ namespace g218
 			p->age++;
 			live++;
 		}
-		FX_HELD(MemoNode(n);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (Paused()) return 0;
@@ -1561,7 +1532,6 @@ namespace g218
 			RecA *p = (RecA *)(pool + 0x20 * i);
 			if (!(p->mask & 1)) continue;
 			ChipOne(h, s, p);
-			FX_HELD(PoolMemoA(i, p);)
 			if (Paused()) continue;
 			p->age++;
 			p->x = (int16_t)(p->x + p->vx);
@@ -1573,7 +1543,6 @@ namespace g218
 			p->ax = (int16_t)(p->ax + p->sx);
 			p->az = (int16_t)(p->az + p->sz);
 		}
-		FX_HELD(MemoNode(n);)
 		FieldFree(0x58);
 		FieldFree(0x68);
 		if (Paused()) return 0;
@@ -1619,7 +1588,6 @@ namespace g218
 	{
 		Node24 *n = (Node24 *)tn;
 		FlashDraw(mul32(-3 - n->c, 28), n->c >= 6, shl32(n->c - 6, 10));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0xA ? TASK_END : 0;
@@ -1812,13 +1780,9 @@ namespace g218
 		register_port(ORIG_ShardChipTask, (void *)ShardChipTask, "G218 ShardChipTask", 218);
 		register_port(ORIG_FlashTask, (void *)FlashTask, "G218 FlashTask", 218);
 		register_port(ORIG_ModelDrawTask, (void *)ModelDrawTask, "G218 ModelDrawTask", 218);
-		FX_HELD(register_mag218_held();)
 	}
 }
 
 	void register_mag218_gilgamesh_kills_seifer() { g218::RegisterPorts(); }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag218_gilgamesh_kills_seifer_held.inc"
-#endif

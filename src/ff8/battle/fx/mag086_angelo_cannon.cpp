@@ -408,21 +408,15 @@ namespace cannon86
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag086_angelo_cannon_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace cannon86
 {
-
 	uint32_t __cdecl ac_77F3E0(uint32_t a1)
 	{
 		g_mod = &MOD_086;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -459,7 +453,6 @@ namespace cannon86
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
-		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -663,7 +656,6 @@ namespace cannon86
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + vy);
 		if ((st & 4) == 0)
 		{
-			FX_HELD(held_note_draw(HK_ANGELO, node);)
 			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(CREATURE_ARG), MEM<uint32_t>(us(PACKET_CURSOR)));
 			if ((U8(node, 0x26) & 4) == 0)
 			{
@@ -796,7 +788,6 @@ namespace cannon86
 	{
 		if (U8(a1, 0x26) & 4)
 			return 0;
-		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::UnpackRotationMatrix(us(0x1D97778), M);
@@ -1605,7 +1596,6 @@ namespace cannon86
 		const uint32_t node = a1;
 		if ((U8(node, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_RING, node);)
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
 		x::UnpackRotationMatrix(us(0x1D97778), mat);
@@ -1765,7 +1755,6 @@ namespace cannon86
 	{
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_GLOW, a1);)
 		alignas(4) uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::MAG_022_sub_8DD770(M);
@@ -1886,7 +1875,6 @@ namespace cannon86
 		S32(node, 0x54) = 0x1000;
 		S32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xFF00;
-		FX_HELD(held_note_draw(HK_PLAY, node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -2014,7 +2002,6 @@ namespace cannon86
 
 	uint32_t __cdecl ac_783B70(uint32_t a1)
 	{
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
 		{
@@ -2061,7 +2048,6 @@ namespace cannon86
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xFE00;
-		FX_HELD(held_note_draw(HK_PLAY, node);)
 		a_73C280(node);
 		next_state(node);
 		return 0;
@@ -2069,7 +2055,6 @@ namespace cannon86
 
 	uint32_t __cdecl ac_783D40(uint32_t a1)
 	{
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
 		{
@@ -2173,7 +2158,6 @@ namespace cannon86
 		U32(node, 0x58) = 0x1000;
 		U32(node, 0x54) = 0x1000;
 		U32(node, 0x50) = 0x1000;
-		FX_HELD(held_note_draw(HK_PLAY, node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -2181,7 +2165,6 @@ namespace cannon86
 
 	uint32_t __cdecl ac_784040(uint32_t a1)
 	{
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
 		{
@@ -2411,10 +2394,6 @@ namespace cannon86
 			act::register_module_port(86, p->addr, p->port, p->name);
 		for (const act::cannon86::ModPort *p = act::cannon86::PORTS; p->addr; p++)
 			act::register_module_port(86, p->addr, p->port, p->name);
-		FX_HELD(register_mag086_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag086_angelo_cannon_held.inc"
-#endif

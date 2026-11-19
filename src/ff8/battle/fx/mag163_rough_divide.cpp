@@ -246,10 +246,6 @@ namespace rough163
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag163_rough_divide_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace rough163
@@ -600,7 +596,6 @@ namespace rough163
 		{
 			TrailSplines(cnt, (const uint8_t *)us(PTS_A), (const uint8_t *)us(PTS_B), (uint8_t *)us(SPL_A), (uint8_t *)us(SPL_B));
 			TrailHitPoint((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B));
-			FX_HELD(held_note_trail(n);)
 			TrailDraw((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B), w);
 		}
 		FieldFree(0x40);
@@ -649,7 +644,6 @@ namespace rough163
 		Node24 *n = (Node24 *)tn;
 		int16_t q[4];
 		GetEffectSpawnPosition(Caster(), 0xF1, 0, q);
-		FX_HELD(held_note_glow(n, q);)
 		GlowDraw(n, n->w20, n->c, shl32(n->c - 7, 9), q);
 		if (DrawOnly()) return 0;
 		n->w20 = (int16_t)(n->w20 + n->w22);
@@ -738,7 +732,6 @@ namespace rough163
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x64 - 0x32));
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_Sparkle), (const Node24 *)tn);)
 		return SpritePoolEnd(tn, SpritePool(w, 1, false));
 	}
 
@@ -762,7 +755,6 @@ namespace rough163
 				p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(CrtRand() % 0x50 - 0x28));
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_HitSpark), (const Node24 *)tn);)
 		return SpritePoolEnd(tn, SpritePool(w, 2, false));
 	}
 
@@ -793,7 +785,6 @@ namespace rough163
 				p->vel[2] = (int16_t)(mul32(ComputeCos(a), r) >> 12);
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_Burst), n);)
 		return SpritePoolEnd(tn, SpritePool(w, 4, true));
 	}
 
@@ -861,7 +852,6 @@ namespace rough163
 				p->w1C = (int16_t)v[2];
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_Shard), (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)(h + 8) = 0;
 		int32_t count = 0;
@@ -947,7 +937,6 @@ namespace rough163
 				p->w1E = (int16_t)(CrtRand() % 0x3C + 0x14);
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_Chip), (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		w->cam = Camera();
 		*(uint32_t *)h = us(MODEL_CHIP);
@@ -1014,7 +1003,6 @@ namespace rough163
 				p->w1E = (int16_t)(CrtRand() % 0x82 + 0x3C);
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_Debris), (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		int32_t count = 0;
 		*(uint32_t *)(h + 8) = 0;
@@ -1104,13 +1092,11 @@ namespace rough163
 				p->w16 = (int16_t)(CrtRand() % 0x46 + 0x32);
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_Pillar), n);)
 		uint8_t *hs = AllocHeader(0xB4);
 		*(uint32_t *)hs = us(SEQ_PILLAR);
 		*(int16_t *)(hs + 0x24) = 8;
 		int32_t count = 0;
 		uint8_t *hm = (uint8_t *)FieldAlloc(0x58);
-		FX_HELD(held_note_header2(hm, 0x58);)
 		*(uint32_t *)(hm + 8) = 0;
 		w->cam = Camera();
 		*(uint32_t *)hm = us(MODEL_PILLAR);
@@ -1186,7 +1172,6 @@ namespace rough163
 				p->w10 = (int16_t)(shl32(len, 12) / 700);
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_Blade), (const Node24 *)tn);)
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)h = us(MODEL_BLADE);
 		*(uint32_t *)(h + 8) = 0;
@@ -1336,7 +1321,6 @@ namespace rough163
 		}
 		if (count >= 2)
 		{
-			FX_HELD(held_note_streak(n, w);)
 			StreakBuild(w, count, n->w1C, (uint8_t *)us(STREAK_VTX));
 			StreakDraw(w, count, n->c, shl32(n->c - 0x20, 9), (const uint8_t *)us(STREAK_VTX));
 		}
@@ -1386,7 +1370,6 @@ namespace rough163
 	static uint32_t __cdecl FlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Flash), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
 		ModelRender(us(MODEL_FLASH), n->c, 1, mul32(n->c - 1, 682));
 		if (DrawOnly()) return 0;
@@ -1401,7 +1384,6 @@ namespace rough163
 	static uint32_t __cdecl RingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Ring), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
 		ModelRender(us(MODEL_RING), n->c, 0xC, shl32(n->c - 0xC, 9));
 		if (DrawOnly()) return 0;
@@ -1421,7 +1403,6 @@ namespace rough163
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Shock), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
 		ModelRender(us(MODEL_SHOCK), n->c, 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
@@ -1436,7 +1417,6 @@ namespace rough163
 	static uint32_t __cdecl FlareTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Flare), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w1C);
 		ModelRender(us(MODEL_FLARE), n->c, 8, shl32(n->c - 8, 9));
 		if (DrawOnly()) return 0;
@@ -1482,7 +1462,6 @@ namespace rough163
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Wave), n);)
 		ModelMatrix(n, n->w18, n->w1C, n->w20);
 		WaveRender(n->c, mul32(n->w22, n->c), n->c < 4 ? shl32(4 - n->c, 0xA) : shl32(n->c - 0xA, 9));
 		if (DrawOnly()) return 0;
@@ -1495,7 +1474,6 @@ namespace rough163
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x10000;
 		else PacketCursor() = TexBase();
-		FX_HELD(held_note_master();)
 		const int alive = ExecuteTaskQueue(QMain());
 		if (!alive)
 		{
@@ -1537,10 +1515,6 @@ namespace rough163
 		register_port(rough163::ORIG_Flare, (void *)rough163::FlareTask, "163 Flare", 163);
 		register_port(rough163::ORIG_Wave, (void *)rough163::WaveTask, "163 Wave", 163);
 		register_port(rough163::ORIG_Debris, (void *)rough163::DebrisTask, "163 Debris", 163);
-		FX_HELD(register_mag163_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag163_rough_divide_held.inc"
-#endif

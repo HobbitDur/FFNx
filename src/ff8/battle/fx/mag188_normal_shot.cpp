@@ -120,10 +120,6 @@ namespace shot188
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag188_normal_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace shot188
@@ -315,7 +311,6 @@ namespace shot188
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_FlashTask), n);)
 		MuzzleModel(n, us(MODEL_Flash), n->counter == 1, 0xC00);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -325,7 +320,6 @@ namespace shot188
 	static uint32_t __cdecl Flash2Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_Flash2Task), n);)
 		MuzzleModel(n, us(MODEL_Flash2), n->counter >= 1, Flash2Fade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -338,9 +332,7 @@ namespace shot188
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_SmokeTask), n);)
 		const int16_t next = SmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -349,9 +341,7 @@ namespace shot188
 	static uint32_t __cdecl GroundSmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_GroundSmokeTask), n);)
 		const int16_t next = GroundSmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -361,7 +351,6 @@ namespace shot188
 	{
 		Node *n = (Node *)n_;
 		Particle *arr = Sparks(n);
-		FX_HELD(held_note_node(us(ORIG_ImpactTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 0x10) ImpactFlashDraw(n, h);
 		*(int16_t *)(h + 0x24) = 8;
@@ -371,20 +360,17 @@ namespace shot188
 		for (Particle *e = arr; e < arr + 150; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_spark(e);)
 			SparkDraw(e, n->pos[3], h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_spark_next(e);)
 				continue;
 			}
 			SparkMove(e);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
@@ -521,7 +507,6 @@ namespace shot188
 		const int32_t end = EndTick();
 		const int32_t count = c >= end ? end - c + 5 : 5;
 		*(volatile int32_t *)&n_ = count;
-		FX_HELD(held_note_ghosts(c, slot, count, colour);)
 		for (int32_t k = 0; k < count; k++)
 		{
 			const Ghost *s = GhostSlot(slot);
@@ -586,7 +571,6 @@ namespace shot188
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (*(const uint8_t *)&r->counter & 1) ? TexBase() + ARENA_ODD : TexBase();
 		const int shots = ExecuteTaskQueue(QShots());
 		const int aux = ExecuteTaskQueue(QAux());
@@ -610,10 +594,6 @@ namespace shot188
 		register_port(shot188::ORIG_SmokeTask, (void *)shot188::SmokeTask, "188 SmokeTask", 188);
 		register_port(shot188::ORIG_GroundSmokeTask, (void *)shot188::GroundSmokeTask, "188 GroundSmokeTask", 188);
 		register_port(shot188::ORIG_ImpactTask, (void *)shot188::ImpactTask, "188 ImpactTask", 188);
-		FX_HELD(register_mag188_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag188_normal_shot_held.inc"
-#endif

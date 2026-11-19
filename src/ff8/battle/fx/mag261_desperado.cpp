@@ -27,10 +27,6 @@ namespace desperado261
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag261_desperado_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -80,8 +76,8 @@ namespace desperado261
 
 	template<typename F> static inline F fx(uint32_t a) { return (F)a; }
 	static inline uint8_t *A(uint32_t a) { return (uint8_t *)a; }
-	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
-	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
+	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
+	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m) { return fx<uint8_t *(__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(hdr, joint, scale, m); }
 	static inline void xl_SplineSetup(int32_t n, const void *pts, void *work) { fx<void (__cdecl *)(int32_t, const void *, void *)>(us(0x571620))(n, pts, work); }
 	static inline void xl_SplineEval(int32_t n, const void *work, void *out, int32_t t) { fx<void (__cdecl *)(int32_t, const void *, void *, int32_t)>(us(0x571690))(n, work, out, t); }
@@ -93,7 +89,7 @@ namespace desperado261
 	static inline void xl_GteLoadRGBC(const void *c) { fx<void (__cdecl *)(const void *)>(us(0x45E110))(c); }
 	static inline void xl_GteDPCS() { fx<void (__cdecl *)()>(us(0x45F270))(); }
 	static inline void xl_GteStoreRGB2(void *dst) { fx<void (__cdecl *)(void *)>(us(0x45E360))(dst); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { fx<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
@@ -110,7 +106,6 @@ namespace desperado261
 	{
 		uint8_t *ent = SlotEntity();
 		uint8_t *hdr = (U8(RT(), 0x4B) & 0x80) ? PTR(ent, 0x78) : ent + 0x60;
-		FX_HELD(if (!held_pose_next(hdr)))
 		x::BuildBoneMatricesFromPose(hdr);
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
@@ -128,7 +123,6 @@ namespace desperado261
 	{
 		uint8_t *ent = SlotEntity();
 		uint8_t *hdr = ent + 0x60;
-		FX_HELD(if (!held_pose_next(hdr)))
 		x::BuildBoneMatricesFromPose(hdr);
 		const int32_t n = U8(PTR(PTR(hdr, 4), 0), 0);
 		int32_t j = blob::Rand74(n);
@@ -295,7 +289,6 @@ namespace desperado261
 
 	static void __cdecl dh_71_JointTrail()
 	{
-		FX_HELD(if (held_active()) { held_dh71(); return; })
 		uint8_t *b = CUR();
 		if (PTR(b, 0xBC) == nullptr)
 		{
@@ -309,12 +302,10 @@ namespace desperado261
 		uint8_t *data = PTR(b, 0xB8);
 		uint8_t *blk = PTR(b, 0xBC);
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(b, 0x1B));
-		FX_HELD(held_note_dh71(b, ent, false);)
 		if (S16(b, 0x96) != 0) return;
 		x::ComputeBonesWorldMatrices(ent + 0x60, ent + 0x40);
 		TrailSample(data, blk);
 		x::BuildBoneMatricesFromPose(ent + 0x60);
-		FX_HELD(held_note_dh71(b, ent, true);)
 	}
 
 	static VoidFn g_save_vm[0x200], g_save_big[256], g_save_draw[256];
@@ -339,7 +330,6 @@ namespace desperado261
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
 	{
-		FX_HELD(held_tick261();)
 		return SequenceTick(g_c);
 	}
 }
@@ -352,10 +342,6 @@ namespace desperado261
 		init_clone(desperado261::g_c, nullptr, 0);
 		desperado261::apply_slots(desperado261::g_c);
 		register_port(0x959F40, (void *)desperado261::SequenceTask, "MAG261 Desperado SequenceTick", 261);
-		FX_HELD(register_mag261_desperado_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag261_desperado_held.inc"
-#endif

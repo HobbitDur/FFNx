@@ -389,21 +389,15 @@ namespace revive
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag061_revive_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace revive
 {
-
 	uint32_t __cdecl rv_7E5A10(uint32_t a1)
 	{
 		g_mod = &MOD_061;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -632,7 +626,6 @@ namespace revive
 		case 1:
 			rv_7EAD20();
 			rv_7E83D0();
-			FX_HELD(held_note_system(sys);)
 			rv_7E8290();
 			a_735440();
 			sys = U32(us(0x260406C), 0);
@@ -1975,10 +1968,6 @@ namespace revive
 			act::register_module_port(61, p->addr, p->port, p->name);
 		for (const act::revive::ModPort *p = act::revive::PORTS; p->addr; p++)
 			act::register_module_port(61, p->addr, p->port, p->name);
-		FX_HELD(register_mag061_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag061_revive_held.inc"
-#endif

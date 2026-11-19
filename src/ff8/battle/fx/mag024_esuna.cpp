@@ -270,21 +270,15 @@ namespace esuna
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag024_esuna_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace esuna
 {
-
 	uint32_t __cdecl e_88D0A0(uint32_t a1)
 	{
 		g_mod = &MOD_024;
-		FX_HELD(held_note_master();)
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
@@ -751,7 +745,6 @@ namespace esuna
 		case 1:
 			a_743190();
 			a_736C00();
-			FX_HELD(held_note_system(sys);)
 			e_8902A0();
 			e_88E030();
 			sys = MEM<uint32_t>(us(ACTOR_STATE));
@@ -1770,10 +1763,6 @@ namespace esuna
 			act::register_module_port(24, p->addr, p->port, p->name);
 		for (const act::esuna::ModPort *p = act::esuna::PORTS; p->addr; p++)
 			act::register_module_port(24, p->addr, p->port, p->name);
-		FX_HELD(register_mag024_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag024_esuna_held.inc"
-#endif

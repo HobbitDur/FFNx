@@ -50,7 +50,8 @@ namespace circle162
 		ORIG_Master = 0x5FD090;
 
 	static const uint32_t ANIM_DATA = 0xDA0100;
-	static const void *const SOUND_A = (const void *)0xDA8C68, *const SOUND_B = (const void *)0xDA8C6C;
+	static const void *SOUND_A() { return (const void *)us(0xDA8C68); }
+	static const void *SOUND_B() { return (const void *)us(0xDA8C6C); }
 	static const uint32_t MODEL_SWIPE = 0xDA6700, MODEL_SHOCK = 0xDA4488, MODEL_GLOW = 0xDA3A58, MODEL_SHARD = 0xDA3E48,
 		MODEL_BURST = 0xDA4118, MODEL_RAIN = 0xDA4308, MODEL_SHELL = 0xDA7198, MODEL_CIRCLE = 0xDA2348;
 	static const uint32_t SEQ_DUST = 0xDA1D74, SEQ_ORBIT = 0xDA1F20, SEQ_EMBER = 0xDA19B4, SEQ_SPARK = 0xDA219C, SEQ_SWIRL = 0xDA1B60;
@@ -202,10 +203,6 @@ namespace circle162
 	static bool g_slot28_known = false;
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag162_fated_circle_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -435,8 +432,8 @@ namespace circle162
 		}
 		if (n->c == 0x96) ApplyActionResultToTargets(Context()->actions->targets, Context()->actions->target_count);
 		if (n->c >= 0xA2 && n->c > 4) SetScreenFlash((uint32_t)shl32(0xAA - n->c, 8), 0);
-		if (n->c == 1) BdPlaySE(SOUND_A, 0x8000, 0x80);
-		if (n->c == 0x39) BdPlaySE(SOUND_B, 0x8000, 0x80);
+		if (n->c == 1) BdPlaySE(SOUND_A(), 0x8000, 0x80);
+		if (n->c == 0x39) BdPlaySE(SOUND_B(), 0x8000, 0x80);
 		n->c++;
 		if (n->c <= 0xAA) return 0;
 		SetScreenFlash(0, 0);
@@ -567,7 +564,6 @@ namespace circle162
 		{
 			TrailSplines(cnt, (const uint8_t *)us(PTS_A), (const uint8_t *)us(PTS_B), (uint8_t *)us(SPL_A), (uint8_t *)us(SPL_B));
 			TrailHitPoint((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B));
-			FX_HELD(held_note_trail(n);)
 			g_slot28 = TrailDraw((const uint8_t *)us(SPL_A), (const uint8_t *)us(SPL_B), w) ? (uint32_t)&w->flag : (uint32_t)us(TRAIL_LAST_QUAD_V3);
 		}
 		g_slot28_known = true;
@@ -621,7 +617,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_node(us(ORIG_Swipe), n);)
 		SwipeDraw(n, n->w18, n->c, mul32(n->c - 3, 409));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1A;
@@ -669,7 +664,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_node(us(ORIG_Shock), n);)
 		ShockDraw(n, n->w1C, n->c, shl32(n->c - 4, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
@@ -699,7 +693,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_node(us(ORIG_Glow), n);)
 		GlowDraw(n, n->w1C, n->c, shl32(n->c - 0x1C, 9));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
@@ -720,7 +713,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(us(ORIG_Dust), n);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_DUST);
 		*(int16_t *)(h + 0x24) = 0;
@@ -819,7 +811,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(us(ORIG_Shard), n);)
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)h = us(MODEL_SHARD);
 		h[0xA] = 0;
@@ -906,7 +897,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(us(ORIG_Orbit), n);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_ORBIT);
 		*(int16_t *)(h + 0x24) = 0;
@@ -1005,7 +995,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(us(ORIG_Burst), n);)
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)h = us(MODEL_BURST);
 		h[0xA] = 0;
@@ -1109,7 +1098,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(us(ORIG_Rain), n);)
 		uint8_t *h = AllocHeader(0x58);
 		RainWork w;
 		*(uint32_t *)h = us(MODEL_RAIN);
@@ -1186,7 +1174,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(us(ORIG_Ember), n);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_EMBER);
 		*(int16_t *)(h + 0x24) = 0;
@@ -1246,7 +1233,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_pool(us(ORIG_Spark), n);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_SPARK);
 		*(int16_t *)(h + 0x24) = 8;
@@ -1322,7 +1308,6 @@ namespace circle162
 
 	static uint32_t SwirlBody(Node24 *n, uint32_t residue)
 	{
-		FX_HELD(held_note_swirl(n, residue);)
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_SWIRL);
 		*(int16_t *)(h + 0x24) = 8;
@@ -1430,7 +1415,6 @@ namespace circle162
 	static uint32_t __cdecl ShellTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Shell), n);)
 		const int32_t c = n->c;
 		ShellDraw(n, n->w1C, c, ShellFade(c), mul32(c - 8, 56), (int16_t *)us(MORPH_VTX));
 		g_slot28 = (uint32_t)(int32_t)n->w1C;
@@ -1469,7 +1453,6 @@ namespace circle162
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Dome), n);)
 		DomeDraw(n, n->w1C, n->c, shl32(n->c - 0xE, 9));
 		g_slot28 = (uint32_t)(int32_t)n->w1C;
 		g_slot28_known = true;
@@ -1661,7 +1644,6 @@ namespace circle162
 	{
 		Node24 *n = (Node24 *)tn;
 		g_slot28_known = false;
-		FX_HELD(held_note_node(us(ORIG_Circle), n);)
 		const int32_t c = n->c;
 		CircleDraw(n, n->w1C, c, mul32(c, 10), shl32(c - 0x20, 9), nullptr);
 		if (DrawOnly()) return 0;
@@ -1840,7 +1822,6 @@ namespace circle162
 			n->w1A--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Pillar), n);)
 		PillarDraw(n, (int16_t)(n->c << 1));
 		if (DrawOnly()) return 0;
 		const int16_t vy = n->w16;
@@ -1900,7 +1881,6 @@ namespace circle162
 			n->w1A--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Ring), n);)
 		RingDraw(n, n->c, mul32(0x14 - n->c, 384));
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1991,7 +1971,6 @@ namespace circle162
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
-		FX_HELD(held_note_master();)
 		const int alive = ExecuteTaskQueue(QMain());
 		r->counter++;
 		return alive ? 0 : TASK_END;
@@ -2020,10 +1999,6 @@ namespace circle162
 		register_port(circle162::ORIG_Ember, (void *)circle162::EmberTask, "162 Ember", 162);
 		register_port(circle162::ORIG_Spark, (void *)circle162::SparkTask, "162 Spark", 162);
 		register_port(circle162::ORIG_Swirl, (void *)circle162::SwirlTask, "162 Swirl", 162);
-		FX_HELD(register_mag162_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag162_fated_circle_held.inc"
-#endif

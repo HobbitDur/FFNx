@@ -375,10 +375,6 @@ namespace double004
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag004_double_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace double004
@@ -387,7 +383,6 @@ namespace double004
 	{
 		ModelNode *n = (ModelNode *)t;
 		BigRunePhase(n);
-		FX_HELD(held_note(REC_BIG, n);)
 		DrawModel(n);
 		if (n->h.flags & 2)
 		{
@@ -420,7 +415,6 @@ namespace double004
 	{
 		ModelNode *n = (ModelNode *)t;
 		MorphPhase(n);
-		FX_HELD(held_note(REC_MORPH, n);)
 		MorphVertices((const uint8_t *)us(MORPH_A), (const uint8_t *)us(MORPH_B), (uint8_t *)us(MODEL_Morph), n->morph);
 		DrawModel(n);
 		n->h.counter++;
@@ -464,7 +458,6 @@ namespace double004
 		p->ax = (int16_t)(CrtRand() & 0xFFF);
 		const int32_t r = CrtRand() % 7;
 		p->frame = (int16_t)((uint8_t)(r + (uint8_t)p->frame + 1) & 7);
-		FX_HELD(held_note(REC_SPRITE, p);)
 		DrawSpriteTurned(p);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
@@ -601,7 +594,6 @@ namespace double004
 		ColumnPhase(n);
 		ColumnFlash(n);
 		ColumnMotion(n);
-		FX_HELD(held_note(REC_COLUMN, n);)
 		ColumnDraw(n);
 		n->h.counter++;
 		if ((n->h.flags & 1) && n->h.children == 0)
@@ -682,7 +674,6 @@ namespace double004
 		GlowPhase(p);
 		GlowPulse(p);
 		GlowPlace(p);
-		FX_HELD(held_note(REC_GLOW, p);)
 		DrawGroundGlow(p, us(SEQ_Glow), (const uint32_t *)p->rgb);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
@@ -727,7 +718,6 @@ namespace double004
 		SpriteNode *p = (SpriteNode *)t;
 		MoteUpdate(p);
 		MotePlace(p);
-		FX_HELD(held_note(REC_MOTE, p);)
 		DrawSpriteFacing(p);
 		p->frame++;
 		if (p->frame > p->last) p->frame = 0;
@@ -824,7 +814,6 @@ namespace double004
 			if (n->h.counter == 3) SpawnColumn(n);
 			SpawnMote(n);
 		}
-		FX_HELD(held_note(REC_RUNE, n);)
 		DrawModel(n);
 		n->h.counter++;
 		if ((n->h.flags & 1) && n->h.children == 0)
@@ -976,7 +965,6 @@ namespace double004
 	{
 		FlashNode *f = (FlashNode *)t;
 		FlashPhase(f);
-		FX_HELD(held_note(REC_FLASH, f);)
 		FlashDraw(f);
 		f->h.counter++;
 		if ((f->h.flags & 1) && f->h.children == 0)
@@ -1075,7 +1063,6 @@ namespace double004
 		RootNode *r = (RootNode *)t;
 		if (r->tick & 1) PacketCursor() = var<uint32_t>(us(ARENA_A));
 		else PacketCursor() = var<uint32_t>(us(ARENA_B));
-		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);
 		r->alive = (int16_t)ExecuteTaskQueue(QEmitters());
@@ -1107,10 +1094,6 @@ namespace double004
 		register_port(double004::ORIG_Morph, (void *)double004::MorphTask, "004 Morph", 4);
 		register_port(double004::ORIG_Sprite, (void *)double004::SpriteTask, "004 Sprite", 4);
 		register_port(double004::ORIG_Flash, (void *)double004::FlashTask, "004 Flash", 4);
-		FX_HELD(register_mag004_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag004_double_held.inc"
-#endif

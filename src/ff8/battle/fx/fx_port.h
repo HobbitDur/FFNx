@@ -19,22 +19,18 @@
 #pragma once
 
 #include <stdint.h>
+#include <algorithm>
 
 #include "fx_address.h"
 
 // From patch.h, which cannot be included here (windows.h macros clash with the ports)
 void memcpy_code(uint32_t offset, const void *data, uint32_t size);
-void memset_code(uint32_t offset, uint32_t val, uint32_t size);
-
-#ifdef FF8_FX_HELD
-#define FX_HELD(...) __VA_ARGS__
-#else
-#define FX_HELD(...)
-#endif
 
 namespace ff8fx
 {
 	template<uint32_t N> struct Bytes { uint8_t b[N]; };
+	inline void copy_bytes(void *dst, const void *src, uint32_t size) { std::copy_n((const uint8_t *)src, size, (uint8_t *)dst); }
+	inline void fill_bytes(void *dst, uint8_t value, uint32_t size) { std::fill_n((uint8_t *)dst, size, value); }
 	template<uint32_t N> inline void copy(void *dst, const void *src) { *(Bytes<N> *)dst = *(const Bytes<N> *)src; }
 	template<uint32_t N> inline void fill(void *dst, int value)
 	{

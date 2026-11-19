@@ -115,10 +115,6 @@ namespace gravija214
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag214_omega_gravija_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gravija214
@@ -700,7 +696,6 @@ namespace gravija214
 	{
 		ParticleNode *p = (ParticleNode *)n;
 		const MainNode *w = (const MainNode *)(TexBase() + MAIN);
-		FX_HELD(held_note_particle(n);)
 		ParticleDraw(p, w->amp, w->avg);
 		p->angle = (int16_t)(p->angle + 8);
 		p->counter++;
@@ -719,13 +714,11 @@ namespace gravija214
 			ff8fx::copy<(8)>(arg.pos, w->avg);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_main(K_PLAY, n);)
 			prim::play((prim::Layout *)w->layout, PrimCallback, (int)&arg, 0);
 		}
 		int32_t b = (int32_t)w->counter - 0x12;
 		if ((uint32_t)b < 0x38)
 		{
-			FX_HELD(held_note_main(K_WARP, n);)
 			int32_t z;
 			if (WarpBox(w, WarpFrame(), &z))
 			{
@@ -785,7 +778,6 @@ namespace gravija214
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -846,10 +838,6 @@ namespace gravija214
 		register_port(gravija214::ORIG_MasterTask, (void *)gravija214::MasterTask, "214 MasterTask", 214);
 		register_port(gravija214::ORIG_MainTask, (void *)gravija214::MainTask, "214 MainTask", 214);
 		register_port(gravija214::ORIG_ParticleTask, (void *)gravija214::ParticleTask, "214 ParticleTask", 214);
-		FX_HELD(register_mag214_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag214_omega_gravija_held.inc"
-#endif

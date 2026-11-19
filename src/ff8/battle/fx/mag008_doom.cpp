@@ -271,10 +271,6 @@ namespace doom
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag008_doom_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -1090,7 +1086,6 @@ namespace doom
 	uint32_t __cdecl dm_8C8840(uint32_t a1)
 	{
 		const uint32_t r = a_73C280(a1);
-		FX_HELD(held_note_play(a1);)
 		if (r == 0)
 		{
 			U8(a1, 0x26) |= 1;
@@ -1162,7 +1157,6 @@ namespace doom
 		case 1:
 			dm_8CC120();
 			dm_8C97D0();
-			FX_HELD(held_note_system(sys);)
 			dm_8C9690();
 			dm_8C94D0();
 			sys = U32(us(0x275F9DC), 0);
@@ -2125,7 +2119,6 @@ namespace doom
 	{
 		uint32_t tab[3] = { us(0x8CDE40), us(0x8CDE60), us(0x8CDEB0) };
 		callp(tab[S8(a1, 0x29)], a1);
-		FX_HELD(held_note_sparkle(a1);)
 		uint32_t v = a1 + 0x8E;
 		for (int32_t n = 4; n != 0; n--)
 		{
@@ -2295,7 +2288,6 @@ namespace doom
 	uint32_t __cdecl dm_8C4B30(uint32_t a1)
 	{
 		g_mod = &MOD_008;
-		FX_HELD(held_note_master();)
 
 		const uint32_t node = a1;
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -2326,7 +2318,6 @@ namespace doom
 			us(0x2758968), us(0x275ABE0), us(0x275DF38), us(0x275E488) };
 		for (int i = 0; i < 9; i++)
 		{
-			FX_HELD(if (i == 8) held_note_tints();)
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
@@ -2463,7 +2454,6 @@ namespace doom
 		U16(node, 0x60) = 0xF00;
 		U16(node, 0x88) = 0xFFF0;
 		a_73C280(node);
-		FX_HELD(held_note_play(node);)
 		next_state(node);
 		return 0;
 	}
@@ -2599,7 +2589,6 @@ namespace doom
 	uint32_t __cdecl dm_8C7FF0(uint32_t a1)
 	{
 		const uint32_t r = a_73C280(a1);
-		FX_HELD(held_note_play(a1);)
 		if ((uint16_t)r == 0x13)
 		{
 			const uint32_t t = dm_8C5860(a1, us(0x8C8050), U32(MEM<uint32_t>(us(0x275F23C)), 0x128), 0x8C, 1, 0);
@@ -2625,7 +2614,6 @@ namespace doom
 		dm_8C8120(node + 0x1C, (uint32_t)U8(node, 0x2D));
 		dm_8C8350(node + 0x1C, (uint32_t)U16(node, 0x454));
 		a_73C280(node);
-		FX_HELD(held_note_play(node);)
 		next_state(node);
 		return 0;
 	}
@@ -2753,8 +2741,6 @@ namespace doom
 		}
 		dm_8C8350(node + 0x1C, (uint32_t)U16(node, 0x454));
 		a_73C280(node);
-		FX_HELD(held_note_play(node);)
-		FX_HELD(held_note_rings(node);)
 		return dm_8C84A0();
 	}
 
@@ -2887,7 +2873,6 @@ namespace doom
 		U32(node, 0x50) = 0x1000;
 		U16(node, 0x88) = 0xFE00;
 		a_73C280(node);
-		FX_HELD(held_note_play(node);)
 		next_state(node);
 		return 0;
 	}
@@ -2895,16 +2880,13 @@ namespace doom
 	uint32_t __cdecl dm_8C8870(uint32_t a1)
 	{
 		const uint32_t r = a_73C280(a1);
-		FX_HELD(held_note_play(a1);)
 		if (r == 0)
 			next_state(a1);
-		FX_HELD(held_note_rings(a1);)
 		return dm_8C84A0();
 	}
 
 	uint32_t __cdecl dm_8C8890(uint32_t a1)
 	{
-		FX_HELD(held_note_rings(a1);)
 		const uint32_t r = dm_8C84A0();
 		if (r == 0)
 		{
@@ -2932,7 +2914,6 @@ namespace doom
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			FX_HELD(held_note_reaper(node);)
 			dm_8CC450(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -3359,7 +3340,6 @@ namespace doom
 		const uint32_t states[5] = { us(0x8CE130), us(0x8CE1B0), us(0x8CE1E0), us(0x8CE200), us(0x8CE230) };
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x46) = (uint16_t)((U16(node, 0x46) + 0x80) & 0xFFF);
-		FX_HELD(held_note_puff(node);)
 		dm_8CE040(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -3600,10 +3580,6 @@ namespace doom
 			act::register_module_port(8, p->addr, p->port, p->name);
 		for (const act::doom::ModPort *p = act::doom::PORTS; p->addr; p++)
 			act::register_module_port(8, p->addr, p->port, p->name);
-		FX_HELD(register_mag008_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag008_doom_held.inc"
-#endif

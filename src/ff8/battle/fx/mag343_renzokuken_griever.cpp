@@ -48,10 +48,6 @@ namespace renzo343
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag343_renzokuken_griever_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo343
@@ -117,7 +113,6 @@ namespace renzo343
 	static uint32_t __cdecl FinalTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_final(n);)
 		FinalDraw(n, n->w1C, FinalFade(n->c));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
@@ -133,10 +128,6 @@ namespace renzo343
 		renzo343::RegisterCommon();
 		register_port(renzo343::ORIG_Emitter, (void *)renzo343::EmitterTask, "343 Emitter", 343);
 		register_port(renzo343::ORIG_Final, (void *)renzo343::FinalTask, "343 Final", 343);
-		FX_HELD(register_mag343_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag343_renzokuken_griever_held.inc"
-#endif

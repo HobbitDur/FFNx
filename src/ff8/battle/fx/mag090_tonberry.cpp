@@ -18,10 +18,6 @@
 
 #include "act_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag090_tonberry_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -135,7 +131,6 @@ namespace act
 	uint32_t __cdecl t_7624D0(uint32_t a1)
 	{
 		set_mod_by_code(U32(a1, 8));
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -2412,10 +2407,6 @@ namespace tonberry
 		act::register_module(90);
 		for (const act::tonberry::ModPort *p = act::tonberry::PORTS; p->addr; p++)
 			act::register_module_port(90, p->addr, p->port, p->name);
-		FX_HELD(register_mag090_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag090_tonberry_held.inc"
-#endif

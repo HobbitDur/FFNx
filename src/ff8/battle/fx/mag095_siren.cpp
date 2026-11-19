@@ -18,10 +18,6 @@
 
 #include "act_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag095_siren_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -4881,10 +4877,6 @@ namespace siren
 		act::register_module(95);
 		for (const act::siren::ModPort *p = act::siren::PORTS; p->addr; p++)
 			act::register_module_port(95, p->addr, p->port, p->name);
-		FX_HELD(register_mag095_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag095_siren_held.inc"
-#endif

@@ -197,10 +197,6 @@ namespace megapulse287
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag287_mega_pulse_cannon_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace megapulse287
@@ -445,7 +441,6 @@ namespace megapulse287
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
@@ -474,7 +469,6 @@ namespace megapulse287
 	static uint32_t __cdecl RockTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		FX_HELD(held_note_rock(k);)
 		RockDraw(k);
 		k->vy = (int16_t)(k->vy + 0xA);
 		k->angles[0] = (int16_t)(k->angles[0] + k->spin);
@@ -498,7 +492,6 @@ namespace megapulse287
 		arg.morph = TexBase() + BUF_Morph;
 		arg.depth = -0x80;
 		arg.scroll = 0;
-		FX_HELD(held_note_spot(p, &arg);)
 		return prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -624,7 +617,6 @@ namespace megapulse287
 	{
 		ArcNode *a = (ArcNode *)n;
 		const uint32_t b = ArcPoints(a, SharedRand);
-		FX_HELD(held_note_arc(a, b, ArcResidue());)
 		ArcDraw(b, ArcResidue());
 		FieldFree(0x80);
 		if (a->counter >= 0xA)
@@ -751,13 +743,11 @@ namespace megapulse287
 			arg.depth = -0x80;
 			arg.second = 0;
 			arg.scroll = (uint8_t)((c & 3) << 5);
-			FX_HELD(held_note_main(m, REC_CANNON, &arg);)
 			prim::play((prim::Layout *)m->cannon, PrimCallback, (int)&arg, 0);
 			M.t[1] = *(const int16_t *)(Caster() + 0x24);
 			ComposeAffineTransform(&Camera(), &M, &arg.m);
 			arg.second = 1;
 			arg.scroll = (uint8_t)((-c & 3) << 5);
-			FX_HELD(held_note_main(m, REC_BEAM, &arg);)
 			prim::play((prim::Layout *)m->beam, PrimCallback, (int)&arg, 0);
 		}
 		const int32_t e = m->counter - 0x28;
@@ -787,7 +777,6 @@ namespace megapulse287
 
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
-		FX_HELD(held_note_master();)
 		MasterNode *mn = (MasterNode *)n;
 		if (mn->arena)
 		{
@@ -852,10 +841,6 @@ namespace megapulse287
 		register_port(megapulse287::ORIG_SpotTask, (void *)megapulse287::SpotTask, "287 SpotTask", 287);
 		register_port(megapulse287::ORIG_RockTask, (void *)megapulse287::RockTask, "287 RockTask", 287);
 		register_port(megapulse287::ORIG_SparkTask, (void *)megapulse287::SparkTask, "287 SparkTask", 287);
-		FX_HELD(megapulse287::register_mag287_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag287_mega_pulse_cannon_held.inc"
-#endif

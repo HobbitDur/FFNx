@@ -313,10 +313,6 @@ namespace bio022
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag022_bio_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace bio022
@@ -649,7 +645,6 @@ namespace bio022
 		MeshNode *m = (MeshNode *)n;
 		PoolPhase(m);
 		PoolUpdatePos(m);
-		FX_HELD(held_note_draw(us(ORIG_Pool), m);)
 		Morph(m->src, m->dst, m->mesh, m->t);
 		if (m->lit == 0) DrawMesh(m);
 		else DrawMeshPuddle(m);
@@ -659,7 +654,6 @@ namespace bio022
 	static void BlobShow(MeshNode *m)
 	{
 		EmitterNode *e = (EmitterNode *)m->h.emitter;
-		FX_HELD(held_note_draw(us(ORIG_Blob), m);)
 		Morph(m->src, m->dst, m->mesh, m->t);
 		if (e->big == 1) DrawMeshPuddle(m);
 		else DrawMesh(m);
@@ -887,7 +881,6 @@ namespace bio022
 		case 1: SplashMove(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Splash), p);)
 		DrawSprite(p, (int16_t)p->scale[0]);
 		return Finish(&p->h);
 	}
@@ -927,7 +920,6 @@ namespace bio022
 		case 1: BubblePop(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Bubble), p);)
 		DrawOrientedSprite(p);
 		return Finish(&p->h);
 	}
@@ -976,7 +968,6 @@ namespace bio022
 		default: break;
 		}
 		BelowGround(p);
-		FX_HELD(held_note_draw(us(ORIG_Droplet), p);)
 		DrawSprite(p, (int16_t)p->scale[0]);
 		return Finish(&p->h);
 	}
@@ -1046,7 +1037,6 @@ namespace bio022
 		default: break;
 		}
 		BelowGround(p);
-		FX_HELD(held_note_draw(us(ORIG_MistA), p);)
 		DrawSprite(p, (int16_t)p->scale[0]);
 		return Finish(&p->h);
 	}
@@ -1097,7 +1087,6 @@ namespace bio022
 		default: break;
 		}
 		BelowGround(p);
-		FX_HELD(held_note_draw(us(ORIG_MistB), p);)
 		DrawSprite(p, (int16_t)p->scale[0]);
 		return Finish(&p->h);
 	}
@@ -1392,7 +1381,6 @@ namespace bio022
 				f->colour = w;
 				f->idx = idx;
 			}
-			FX_HELD(held_note_draw(us(ORIG_Flash), f);)
 			FlashDraw(f);
 		}
 		return Finish(&f->h);
@@ -1706,7 +1694,6 @@ namespace bio022
 		mc.wobble_phase = (int16_t)((uint16_t)(mc.wobble_phase + 0xA0) & 0xFFF);
 		if (o->flags & 8)
 		{
-			FX_HELD(held_note_draw(us(ORIG_Overlay), o);)
 			DrawOverlay(&mc);
 		}
 		return Finish(o);
@@ -1847,7 +1834,6 @@ namespace bio022
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->tick & 1) PacketCursor() = ArenaA();
 		else PacketCursor() = ArenaB();
 		UpdateTargetPosFromBones(r);
@@ -1886,10 +1872,6 @@ namespace bio022
 		register_port(bio022::ORIG_MistSpawnerB, (void *)bio022::MistSpawnerBTask, "B022 MistSpawnerBTask", 22);
 		register_port(bio022::ORIG_MistB, (void *)bio022::MistBTask, "B022 MistBTask", 22);
 		register_port(bio022::ORIG_Overlay, (void *)bio022::OverlayTask, "B022 OverlayTask", 22);
-		FX_HELD(register_mag022_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag022_bio_held.inc"
-#endif

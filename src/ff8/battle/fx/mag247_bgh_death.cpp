@@ -27,10 +27,6 @@ namespace bghdeath247
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag247_bgh_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -78,10 +74,6 @@ namespace bghdeath247
 		bghdeath247::describe(bghdeath247::g_c);
 		init_clone(bghdeath247::g_c, nullptr, 0);
 		register_port(0x9C9F00, (void *)bghdeath247::SequenceTask, "MAG247 BGH251F2 Death SequenceTick", 247);
-		FX_HELD(register_mag247_bgh_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag247_bgh_death_held.inc"
-#endif

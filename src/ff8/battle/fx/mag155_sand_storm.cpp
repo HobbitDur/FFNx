@@ -250,10 +250,6 @@ namespace sandstorm155
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag155_sand_storm_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace sandstorm155
@@ -283,7 +279,6 @@ namespace sandstorm155
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		WaveNode *w = (WaveNode *)n;
-		FX_HELD(held_note_wave(w);)
 		WaveVertices(w->angle, w->radius, 0);
 		if (DrawOnly()) return 0;
 		w->angle = (int16_t)(w->angle + w->spin);
@@ -298,7 +293,6 @@ namespace sandstorm155
 		int32_t fade;
 		uint32_t flags;
 		FunnelFade(f->counter, &fade, &flags);
-		FX_HELD(held_note_funnel(f);)
 		FunnelDraw(f->angle, f->height, (int16_t)PosX(), (int16_t)PosZ(), us(VERTS), fade, flags);
 		if (DrawOnly()) return 0;
 		const int16_t c = f->counter;
@@ -372,7 +366,6 @@ namespace sandstorm155
 		for (Dust *d = (Dust *)us(POOL_A); d < (Dust *)us(POOL_A) + 100; d++)
 		{
 			if (!(d->used & 1)) continue;
-			FX_HELD(held_note_dust(0, h, d);)
 			DustDrawA(h, d);
 			if (DrawOnly()) continue;
 			d->frame++;
@@ -428,7 +421,6 @@ namespace sandstorm155
 		for (Dust *d = (Dust *)us(POOL_B); d < (Dust *)us(POOL_B) + 100; d++)
 		{
 			if (!(d->used & 1)) continue;
-			FX_HELD(held_note_dust(1, h, d);)
 			DustDrawB(h, d);
 			if (DrawOnly()) continue;
 			d->frame++;
@@ -531,7 +523,6 @@ namespace sandstorm155
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (r->counter & 1) ? us(ARENA_B) : us(ARENA_A);
 		const int a = ExecuteTaskQueue(QEffect());
 		r->counter++;
@@ -547,10 +538,6 @@ namespace sandstorm155
 		register_port(sandstorm155::ORIG_Funnel, (void *)sandstorm155::FunnelTask, "155 FunnelTask", 155);
 		register_port(sandstorm155::ORIG_DustA, (void *)sandstorm155::DustATask, "155 DustATask", 155);
 		register_port(sandstorm155::ORIG_DustB, (void *)sandstorm155::DustBTask, "155 DustBTask", 155);
-		FX_HELD(register_mag155_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag155_sand_storm_held.inc"
-#endif

@@ -191,10 +191,6 @@ namespace blizzard144
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag144_blizzard_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace blizzard144
@@ -202,7 +198,6 @@ namespace blizzard144
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = (uint32_t)(TexBase() + 0xC000);
 		else PacketCursor() = (uint32_t)TexBase();
 		int alive = ExecuteTaskQueue(&Queues().second);
@@ -434,7 +429,6 @@ namespace blizzard144
 	static uint32_t __cdecl ShockwaveTask(TaskNode *n)
 	{
 		ShockwaveNode *p = (ShockwaveNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_ShockwaveTask), p);)
 		ShockwaveMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		ShockwaveHeader(h, p->counter);
@@ -469,7 +463,6 @@ namespace blizzard144
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *p = (DebrisNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_DebrisTask), p);)
 		DebrisDraw(p);
 		if (DrawOnly()) return 0;
 		DebrisUpdate(p);
@@ -498,7 +491,6 @@ namespace blizzard144
 	static uint32_t __cdecl FallingIceTask(TaskNode *n)
 	{
 		FallingIceNode *p = (FallingIceNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_FallingIceTask), p);)
 		FallingIceDraw(p);
 		if (DrawOnly()) return 0;
 		FallingIceUpdate(p);
@@ -529,7 +521,6 @@ namespace blizzard144
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_MistPuffTask), p);)
 		TransformCameraByShadowRotation(p->pos, p->scale, -(p->scale >> 5));
 		uint8_t *h = AllocHeader(0xB4);
 		MistHeader(h, p->frame);
@@ -770,7 +761,6 @@ namespace blizzard144
 	static uint32_t __cdecl CrystalTask(TaskNode *n)
 	{
 		CrystalNode *p = (CrystalNode *)n;
-		FX_HELD(held_note_crystal(p);)
 		Mat4x3 m = {};
 		CrystalMatrix(p, &m);
 		CrystalHeader *h = (CrystalHeader *)FieldAlloc(0xD0);
@@ -794,10 +784,6 @@ namespace blizzard144
 		register_port(blizzard144::ORIG_FallingIceTask, (void *)blizzard144::FallingIceTask, "B144 FallingIceTask", 144);
 		register_port(blizzard144::ORIG_MistPuffTask, (void *)blizzard144::MistPuffTask, "B144 MistPuffTask", 144);
 		register_port(blizzard144::ORIG_CrystalTask, (void *)blizzard144::CrystalTask, "B144 CrystalTask", 144);
-		FX_HELD(register_mag144_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag144_blizzard_held.inc"
-#endif

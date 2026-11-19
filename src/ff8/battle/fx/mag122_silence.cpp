@@ -172,10 +172,6 @@ namespace silence122
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag122_silence_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace silence122
@@ -191,7 +187,6 @@ namespace silence122
 			if (t->counter == 0) BdPlaySE3D(SOUND_Silence(), 1, arg.pos);
 			arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)(int32_t)*(const int16_t *)(t->entity + 0x26)) >> 5;
 			arg.morph = TexBase() + 0xE04;
-			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->mute, MutePart, (int)&arg, 0);
 		}
 		if (t->counter == 0x32) ApplyActionResultToTarget(Ctx()->actions[t->action].targets);
@@ -207,7 +202,6 @@ namespace silence122
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1124;
@@ -251,10 +245,6 @@ namespace silence122
 	{
 		register_port(silence122::ORIG_RootTask, (void *)silence122::RootTask, "S122 RootTask", 122);
 		register_port(silence122::ORIG_TargetTask, (void *)silence122::TargetTask, "S122 TargetTask", 122);
-		FX_HELD(register_mag122_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag122_silence_held.inc"
-#endif

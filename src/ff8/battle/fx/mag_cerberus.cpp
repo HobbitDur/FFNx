@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag_cerberus_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -422,10 +418,6 @@ namespace cerberus
 		apply_shared_ribbon(cerberus::g_c);
 		apply_shared_misc(cerberus::g_c);
 		register_port(0xB0C820, (void *)cerberus::SequenceTask, "GFC203 Cerberus SequenceTick", 203);
-		FX_HELD(register_gfc_cerberus_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag_cerberus_held.inc"
-#endif

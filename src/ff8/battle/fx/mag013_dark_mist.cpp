@@ -337,10 +337,6 @@ namespace mist013
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag013_dark_mist_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace mist013
@@ -400,7 +396,6 @@ namespace mist013
 		case 1: MistAMove(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(us(ORIG_MistA), p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
@@ -482,7 +477,6 @@ namespace mist013
 		case 1: MistBMove(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(us(ORIG_MistB), p);)
 		DrawSpriteColoured(p);
 		return Finish(&p->h);
 	}
@@ -529,7 +523,6 @@ namespace mist013
 		case 1: PuffPlay(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(us(ORIG_PuffC), p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
@@ -543,7 +536,6 @@ namespace mist013
 		case 1: PuffPlay(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(us(ORIG_PuffD), p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
@@ -638,7 +630,6 @@ namespace mist013
 		case 1: StreamMove(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Stream), p);)
 		DrawSprite(p);
 		return Finish(&p->h);
 	}
@@ -725,7 +716,6 @@ namespace mist013
 		default: break;
 		}
 		CloudUpdate(c, entity);
-		FX_HELD(held_note_draw(us(ORIG_Cloud), c);)
 		DrawModel(c);
 		return Finish(&c->h);
 	}
@@ -790,13 +780,11 @@ namespace mist013
 		w->scale[0] = 0x1000;
 		w->scale[1] = 0x1000;
 		w->scale[2] = 0x1000;
-		FX_HELD(held_note_draw(us(ORIG_Swirl), w);)
 		DrawModel(w);
 		w->fade = w->fade_b;
 		w->scale[0] = 0x2000;
 		w->scale[1] = 0x2000;
 		w->scale[2] = 0xC00;
-		FX_HELD(held_note_draw(us(ORIG_Swirl), w);)
 		DrawModel(w);
 		return Finish(&w->h);
 	}
@@ -1098,7 +1086,6 @@ namespace mist013
 		mc.wobble_phase = (int16_t)((uint16_t)(mc.wobble_phase + 0xA0) & 0xFFF);
 		if (o->flags & 8)
 		{
-			FX_HELD(held_note_draw(us(ORIG_Overlay), o);)
 			DrawOverlay(&mc);
 		}
 		return Finish(o);
@@ -1213,7 +1200,6 @@ namespace mist013
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->tick & 1) PacketCursor() = ArenaA();
 		else PacketCursor() = ArenaB();
 		UpdateTargetPosFromBones(r);
@@ -1249,10 +1235,6 @@ namespace mist013
 		register_port(mist013::ORIG_SpawnerE, (void *)mist013::SpawnerETask, "M013 SpawnerETask", 13);
 		register_port(mist013::ORIG_Stream, (void *)mist013::StreamTask, "M013 StreamTask", 13);
 		register_port(mist013::ORIG_Overlay, (void *)mist013::OverlayTask, "M013 OverlayTask", 13);
-		FX_HELD(register_mag013_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag013_dark_mist_held.inc"
-#endif

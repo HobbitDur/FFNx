@@ -267,10 +267,6 @@ namespace holy175
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag175_holy_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace holy175
@@ -278,7 +274,6 @@ namespace holy175
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
 		int left = ExecuteTaskQueue(&Tasks());
@@ -592,7 +587,6 @@ namespace holy175
 		FieldFree(0x54);
 		SetScreenOffset(ofx, ofy);
 		uint8_t *env = (uint8_t *)(us(STAGE_EnvRestore) + 0x18 * DisplayBuffer());
-		FX_HELD(env = held_env_packet(env);)
 		InsertPrimAltViewport(OTBase() + 0x4484, env);
 		pk = (uint8_t *)FrameArena();
 		BuildDrawAreaPacket(pk, rect);
@@ -752,7 +746,6 @@ namespace holy175
 		ShatterNode *p = (ShatterNode *)n;
 		if (p->counter < 0x32 && GridActive())
 		{
-			FX_HELD(held_note_shatter(p);)
 			if (p->counter < 10) StageCapture();
 			int32_t c = p->counter;
 			GridDraw(c, DisplayBuffer(), GridColour(c));
@@ -789,7 +782,6 @@ namespace holy175
 		for (Sparkle *e = (Sparkle *)us(SPARKLES); e < (Sparkle *)us(SPARKLES_End); e++)
 		{
 			if (!(e->active & 1)) continue;
-			FX_HELD(held_note_item(us(ORIG_SparkleTask), e, h);)
 			SparkleDraw(h, s, e);
 			if (DrawOnly()) continue;
 			e->frame++;
@@ -857,7 +849,6 @@ namespace holy175
 	static uint32_t __cdecl OrbitCtrlTask(TaskNode *n)
 	{
 		OrbitCtrlNode *p = (OrbitCtrlNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_OrbitCtrlTask), p, sizeof(*p));)
 		OrbitCtrlMatrix(p, OrbitMatrix(p->index));
 		if (DrawOnly()) return 0;
 		if (p->counter == 0)
@@ -941,7 +932,6 @@ namespace holy175
 	static uint32_t __cdecl OrbitTask(TaskNode *n)
 	{
 		OrbitNode *p = (OrbitNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_OrbitTask), p, sizeof(*p));)
 		OrbitDraw(p, OrbitMatrix(p->index));
 		if (DrawOnly()) return 0;
 		OrbitUpdate(p);
@@ -952,7 +942,6 @@ namespace holy175
 	static void MoteDraw(uint8_t *h, uint8_t *m, const Mote *e)
 	{
 		int32_t level = e->age * 21;
-		FX_HELD(level = held_ramp(level, 21);)
 		if (level > 0x80) level = 0x80;
 		uint32_t colour = (((uint32_t)level << 8 | (uint32_t)level) << 8) | (uint32_t)level;
 		*(int32_t *)(m + 0x34) = 0;
@@ -993,7 +982,6 @@ namespace holy175
 		for (Mote *e = (Mote *)us(MOTES); e < (Mote *)us(MOTES_End); e++)
 		{
 			if (!(e->active & 1)) continue;
-			FX_HELD(held_note_item(us(ORIG_MoteTask), e, h);)
 			MoteDraw(h, m, e);
 			if (DrawOnly()) continue;
 			e->age++;
@@ -1075,7 +1063,6 @@ namespace holy175
 		if (p->counter < 8)
 		{
 			int32_t fade = (8 - p->counter) << 9;
-			FX_HELD(fade = held_ramp(fade, -0x200);)
 			ModelFade(h, fade);
 		}
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
@@ -1085,7 +1072,6 @@ namespace holy175
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_RingTask), p, sizeof(*p));)
 		RingDraw(p);
 		if (DrawOnly()) return 0;
 		p->angle = (int16_t)(p->angle + p->spin);
@@ -1104,7 +1090,6 @@ namespace holy175
 		*(uint32_t *)(h + 0x24) = *(const uint32_t *)(us(WAVE_Textures) + 4 * (*(const uint8_t *)&p->w22 & 0xF));
 		int32_t c = p->counter;
 		int32_t scroll = p->w20 * c;
-		FX_HELD(scroll = held_ramp(scroll, p->w20);)
 		*(uint32_t *)h = us(MODEL_Wave);
 		*(uint32_t *)(h + 0x20) = 0x33;
 		*(int32_t *)(h + 0x14) = scroll;
@@ -1114,7 +1099,6 @@ namespace holy175
 		if (c < 0x38)
 		{
 			int32_t fade = 0x1000 - c * 73;
-			FX_HELD(fade = held_ramp(fade, -73);)
 			*(uint32_t *)(h + 0x20) = 0xF3;
 			*(int32_t *)(h + 0xC) = fade;
 		}
@@ -1125,7 +1109,6 @@ namespace holy175
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_WaveTask), p, sizeof(*p));)
 		WaveDraw(p);
 		if (DrawOnly()) return 0;
 		p->w22++;
@@ -1141,7 +1124,6 @@ namespace holy175
 		if (p->counter >= 8)
 		{
 			int32_t fade = (p->counter - 8) << 9;
-			FX_HELD(fade = held_ramp(fade, 0x200);)
 			ModelFade(h, fade);
 		}
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
@@ -1158,7 +1140,6 @@ namespace holy175
 	static uint32_t __cdecl ExpandTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_ExpandTask), p, sizeof(*p));)
 		ExpandDraw(p);
 		if (DrawOnly()) return 0;
 		ExpandUpdate(p);
@@ -1175,13 +1156,11 @@ namespace holy175
 		if (c < 8)
 		{
 			int32_t fade = (8 - c) << 9;
-			FX_HELD(fade = held_ramp(fade, -0x200);)
 			ModelFade(h, fade);
 		}
 		else if (c >= 0x10)
 		{
 			int32_t fade = (c - 0x10) * 409;
-			FX_HELD(fade = held_ramp(fade, 409);)
 			ModelFade(h, fade);
 		}
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
@@ -1205,7 +1184,6 @@ namespace holy175
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_PillarTask), p, sizeof(*p));)
 		PillarDraw(p);
 		if (DrawOnly()) return 0;
 		PillarUpdate(p);
@@ -1259,13 +1237,11 @@ namespace holy175
 		if (c < 2)
 		{
 			level = c << 6;
-			FX_HELD(level = held_ramp(level, 0x40);)
 			lit = true;
 		}
 		else if (c >= 0x10)
 		{
 			level = (0x18 - c) << 4;
-			FX_HELD(level = held_ramp(level, -0x10);)
 			lit = true;
 		}
 		if (lit)
@@ -1274,7 +1250,6 @@ namespace holy175
 			*(uint32_t *)(h + 0x1C) = (((uint32_t)level << 8) | (uint32_t)level) << 8;
 		}
 		int32_t d[3] = { -0x200 - c * 300, -0x100 - c * 30, c * 25 - 0xE00 };
-		FX_HELD(d[0] = held_ramp(d[0], -300); d[1] = held_ramp(d[1], -30); d[2] = held_ramp(d[2], 25);)
 		NormalizeVector(d, d);
 		for (uint32_t k = 0; k < 8; k++)
 		{
@@ -1299,7 +1274,6 @@ namespace holy175
 	static uint32_t __cdecl BeamTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_BeamTask), p, sizeof(*p));)
 		BeamDraw(p);
 		if (DrawOnly()) return 0;
 		p->counter++;
@@ -1331,7 +1305,6 @@ namespace holy175
 	static uint32_t __cdecl DiskTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_DiskTask), p, sizeof(*p));)
 		DiskDraw(p);
 		if (DrawOnly()) return 0;
 		DiskUpdate(p);
@@ -1350,13 +1323,11 @@ namespace holy175
 		if (c < 4)
 		{
 			int32_t fade = (4 - c) << 10;
-			FX_HELD(fade = held_ramp(fade, -0x400);)
 			ModelFade(h, fade);
 		}
 		else if (c >= 0x12)
 		{
 			int32_t fade = (c - 0x12) * 682;
-			FX_HELD(fade = held_ramp(fade, 682);)
 			ModelFade(h, fade);
 		}
 		FrameArena() = RenderPrimModel(h, RenderOT(), 0xE, FrameArena());
@@ -1374,7 +1345,6 @@ namespace holy175
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_FlashTask), p, sizeof(*p));)
 		FlashDraw(p);
 		if (DrawOnly()) return 0;
 		FlashUpdate(p);
@@ -1582,10 +1552,6 @@ namespace holy175
 		register_port(holy175::ORIG_BeamTask, (void *)holy175::BeamTask, "H175 BeamTask", 175);
 		register_port(holy175::ORIG_DiskTask, (void *)holy175::DiskTask, "H175 DiskTask", 175);
 		register_port(holy175::ORIG_FlashTask, (void *)holy175::FlashTask, "H175 FlashTask", 175);
-		FX_HELD(register_mag175_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag175_holy_held.inc"
-#endif

@@ -166,10 +166,6 @@ namespace float115
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag115_float_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace float115
@@ -195,7 +191,6 @@ namespace float115
 		arg.m.t[0] = sp[0];
 		arg.m.t[2] = sp[2];
 		arg.m.t[1] = *(const int16_t *)(t->entity + 0x24);
-		FX_HELD(held_note_play(t, t->glyph, &arg);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		arg.morph = TexBase() + 0x1038;
 		arg.depth = 0;
@@ -207,7 +202,6 @@ namespace float115
 			arg.m.t[0] = sp[0];
 			arg.m.t[1] = sp[1];
 			arg.m.t[2] = sp[2];
-			FX_HELD(held_note_play(t, t->upper, &arg);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = UpperDepth(&arg.m, t->entity);
 			GteSetTransVector(&arg.m);
@@ -222,7 +216,6 @@ namespace float115
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1158;
@@ -268,10 +261,6 @@ namespace float115
 	{
 		register_port(float115::ORIG_RootTask, (void *)float115::RootTask, "F115 RootTask", 115);
 		register_port(float115::ORIG_TargetTask, (void *)float115::TargetTask, "F115 TargetTask", 115);
-		FX_HELD(register_mag115_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag115_float_held.inc"
-#endif

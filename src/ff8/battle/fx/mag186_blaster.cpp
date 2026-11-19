@@ -77,10 +77,6 @@ namespace blaster186
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag186_blaster_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace blaster186
@@ -135,7 +131,6 @@ namespace blaster186
 	static uint32_t __cdecl BeamTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_node(REC_BEAM, n);)
 		BeamDraw(n);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -164,7 +159,6 @@ namespace blaster186
 	static uint32_t __cdecl BeamRingTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_node(REC_RING, n);)
 		BeamRingDraw(n, S16(n, 0xC) >= S16(n, 0x20) ? RingFade(n, S16(n, 0xC)) : 0);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -241,7 +235,6 @@ namespace blaster186
 	static uint32_t __cdecl BoltTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_node(REC_BOLT, n);)
 		BoltDraw(n, S16(n, 0xC) >= S16(n, 0x20) ? BoltFade(n, S16(n, 0xC)) : 0);
 		if (DrawOnly()) return 0;
 		S16(n, 0x1A) = (int16_t)(S16(n, 0x1A) + 1);
@@ -281,7 +274,6 @@ namespace blaster186
 	static uint32_t __cdecl SparksTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_parts(REC_SPARKS, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		U32(h, 0) = us(SEQ_Spark);
 		U16(h, 0x24) = 0;
@@ -289,7 +281,6 @@ namespace blaster186
 		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 1)) continue;
-			FX_HELD(held_note_particle(p);)
 			SparkDraw(h, p);
 			if (DrawOnly()) continue;
 			S16(p, P_FRAME) = (int16_t)(S16(p, P_FRAME) + 1);
@@ -357,7 +348,6 @@ namespace blaster186
 	static uint32_t __cdecl GlowTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_node(REC_GLOW, n);)
 		GlowDraw(n, GlowColour(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -399,7 +389,6 @@ namespace blaster186
 	static uint32_t __cdecl WaveTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_node(REC_WAVE, n);)
 		WaveDraw(n, WaveFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
@@ -448,7 +437,6 @@ namespace blaster186
 	static uint32_t __cdecl SplashesTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_parts(REC_SPLASHES, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		uint32_t w = P(FieldAlloc(0x48));
 		int alive = 0;
@@ -456,7 +444,6 @@ namespace blaster186
 		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 2)) continue;
-			FX_HELD(held_note_particle(p);)
 			SplashDraw(h, w, p);
 			if (DrawOnly()) continue;
 			S16(p, P_FRAME) = (int16_t)(S16(p, P_FRAME) + 1);
@@ -523,7 +510,6 @@ namespace blaster186
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		if (v < 0) return TASK_END;
-		FX_HELD(held_note_node(REC_FADE, n);)
 		FadeDraw(v);
 		return 0;
 	}
@@ -612,7 +598,6 @@ namespace blaster186
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? TexBase() + 0xC000 : TexBase();
 		const int running = ExecuteTaskQueue(EffectQueue());
 		if (!running)
@@ -649,13 +634,9 @@ namespace blaster186
 		register_port(ORIG_Glow, (void *)GlowTask, "186 GlowTask", 186);
 		register_port(ORIG_Wave, (void *)WaveTask, "186 WaveTask", 186);
 		register_port(ORIG_Splashes, (void *)SplashesTask, "186 SplashesTask", 186);
-		FX_HELD(register_mag186_held();)
 	}
 }
 
 	void register_mag186_blaster() { blaster186::register_mag186_blaster_ports(); }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag186_blaster_held.inc"
-#endif

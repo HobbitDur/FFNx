@@ -191,21 +191,15 @@ namespace laser_eye_quistis
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag071_laser_eye_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace laser_eye_quistis
 {
-
 	uint32_t __cdecl cl_7D62A0(uint32_t a1)
 	{
 		g_mod = &MOD_071;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -556,7 +550,6 @@ namespace laser_eye_quistis
 
 	uint32_t __cdecl cl_7DB9B0(uint32_t a1, uint32_t a2)
 	{
-		FX_HELD(if (held_laser_draw(a1, a2)) return 0;)
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
 		alignas(4) uint8_t mtx[0x20];
@@ -726,7 +719,6 @@ namespace laser_eye_quistis
 
 	uint32_t __cdecl cl_7DBC70(uint32_t a1)
 	{
-		FX_HELD(held_note_spark(a1);)
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
 		const uint32_t hdr = x::Field_Alloc(0xB4);
@@ -1043,7 +1035,6 @@ namespace laser_eye_quistis
 		case 1:
 			cl_7DB3B0();
 			cl_7D8A00();
-			FX_HELD(held_note_system(sys);)
 			cl_7D88C0();
 			cl_7D7240();
 			sys = U32(us(0x25FCDD4), 0);
@@ -2523,10 +2514,6 @@ namespace laser_eye_quistis
 			act::register_module_port(71, p->addr, p->port, p->name);
 		for (const act::laser_eye_quistis::ModPort *p = act::laser_eye_quistis::PORTS; p->addr; p++)
 			act::register_module_port(71, p->addr, p->port, p->name);
-		FX_HELD(register_mag071_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag071_laser_eye_quistis_held.inc"
-#endif

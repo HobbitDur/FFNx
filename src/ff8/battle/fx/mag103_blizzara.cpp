@@ -145,10 +145,6 @@ namespace blizzara103
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag103_blizzara_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace blizzara103
@@ -156,7 +152,6 @@ namespace blizzara103
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		FX_HELD(held_note_root();)
 		if (d->arena)
 		{
 			PacketCursor() = (uint32_t)(TexBase() + 0x196D4);
@@ -391,7 +386,6 @@ namespace blizzara103
 		if (b->counter >= 0x14 && b->counter <= 0x1E)
 		{
 			int32_t t = b->counter - 0x14;
-			FX_HELD(held_note_block(b, false);)
 			uint8_t *h = (uint8_t *)FieldAlloc(0x64);
 			int16_t sy;
 			if (t < 3)
@@ -476,7 +470,6 @@ namespace blizzara103
 				}
 			}
 			UpdateShards(b->shards, b->verts, prims, uvs);
-			FX_HELD(held_note_block(b, true);)
 			uint8_t *h = (uint8_t *)FieldAlloc(0x64);
 			BlockMatrix(b, 0x1000);
 			BlockHeader(h, b, b->counter, 0x660C0);
@@ -623,7 +616,6 @@ namespace blizzara103
 	static uint32_t __cdecl PillarTask(TaskNode *n)
 	{
 		PillarNode *p = (PillarNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_PillarTask), p);)
 		uint8_t *h = AllocHeader(0x58);
 		*(int32_t *)(h + 0xC) = 0;
 		*(int32_t *)(h + 0xC) = PillarFade(p->counter);
@@ -673,7 +665,6 @@ namespace blizzara103
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		BurstNode *u = (BurstNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_BurstTask), u);)
 		uint8_t *h = AllocHeader(0x58);
 		*(int32_t *)(h + 0xC) = 0;
 		*(int32_t *)(h + 0xC) = BurstFade(u->counter);
@@ -717,7 +708,6 @@ namespace blizzara103
 	static uint32_t __cdecl ChunkTask(TaskNode *n)
 	{
 		ChunkNode *c = (ChunkNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_ChunkTask), c);)
 		ChunkDraw(c);
 		c->counter++;
 		if (c->counter >= 0x10) return TASK_END;
@@ -747,7 +737,6 @@ namespace blizzara103
 	static uint32_t __cdecl MistTask(TaskNode *n)
 	{
 		MistNode *m = (MistNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_MistTask), m);)
 		MistDraw(m);
 		m->counter++;
 		if (m->counter >= 0x10) return TASK_END;
@@ -764,10 +753,6 @@ namespace blizzara103
 		register_port(blizzara103::ORIG_BurstTask, (void *)blizzara103::BurstTask, "B103 BurstTask", 103);
 		register_port(blizzara103::ORIG_ChunkTask, (void *)blizzara103::ChunkTask, "B103 ChunkTask", 103);
 		register_port(blizzara103::ORIG_MistTask, (void *)blizzara103::MistTask, "B103 MistTask", 103);
-		FX_HELD(register_mag103_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag103_blizzara_held.inc"
-#endif

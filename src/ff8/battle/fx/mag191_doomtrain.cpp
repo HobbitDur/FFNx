@@ -208,15 +208,10 @@ namespace d191
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag191_doomtrain_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace d191
 {
-
 	inline CamTrack *TrackLook() { return (CamTrack *)us(0x24FBFB0); }
 	inline CamTrack *TrackEye() { return (CamTrack *)us(0x24FD3A8); }
 	inline CamTrack *&TrackCur() { return var<CamTrack *>(us(0x24FD2D8)); }
@@ -505,14 +500,12 @@ namespace d191
 	{
 		CamNode *n = (CamNode *)tn;
 		uint32_t r = CsRun(n, nullptr);
-		FX_HELD(held_note_camscript(n, r);)
 		return r;
 	}
 
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		n->c++;
 		return left ? 0 : TASK_END;
@@ -858,7 +851,6 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigPrimADraw(RigW(n->e), n);
-		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= n->f16 ? TASK_END : 0;
@@ -874,7 +866,6 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigPrimBDraw(RigW(n->e), n);
-		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= n->f16 ? TASK_END : 0;
@@ -890,7 +881,6 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigRockDraw(RigW(n->e), n, n->f18);
-		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		int16_t c = n->c;
 		int32_t k = c;
@@ -937,7 +927,6 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigFlashDraw(RigW(n->e), n, n->c, false, 0);
-		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= 8 ? TASK_END : 0;
@@ -958,7 +947,6 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		RigSpriteDraw(RigW(n->e), n, n->c);
-		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= n->f16 ? TASK_END : 0;
@@ -1051,7 +1039,6 @@ namespace d191
 	{
 		Node24 *n = (Node24 *)tn;
 		SkyDraw(n->f18, n->f10, n->f14, n->f1A, n->f1C, n->f1E, n->f20, SkyFade(n->c));
-		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->f10 = (int16_t)(n->f10 + n->f12);
 		n->f14 = (int16_t)(n->f14 + n->f16);
@@ -1139,7 +1126,6 @@ namespace d191
 			Rec *r = R(us(POOL_A), i);
 			if (!(r->mask & (uint32_t)(int32_t)n->e)) continue;
 			LitSprite(h, r->pos, r->size, r->age, ir);
-			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0) r->age = 0;
@@ -1318,7 +1304,6 @@ namespace d191
 			int32_t fr = r->age;
 			GteLoadV0(r->pos);
 			GteMVMVA_LightV0Bk();
-			FX_HELD(held_note_rec_f(i, n, r);)
 			uint32_t color = RAIN_COLOR()[fr];
 			if (!P1())
 			{
@@ -1541,7 +1526,6 @@ namespace d191
 			}
 			if (k == 0) goto compose;
 			DrawModel(E, &Frame());
-			FX_HELD(CreatureMemoTake();)
 			{
 				int32_t v[3] = { 0x800, 0x800, 0x800 };
 				Scale3DMatrix(&Camera(), v);
@@ -1615,7 +1599,6 @@ namespace d191
 		if (k == 0) goto compose;
 	draw:
 		DrawModel(E, &Frame());
-		FX_HELD(CreatureMemoTake();)
 	compose:
 		ComposeAffineTransform(&CreatureMat(), (const Mat4x3 *)(*(uint8_t **)*(uint8_t **)(E + 0x64) + 0x50), &BoneWorld());
 		if (P1()) return 0;
@@ -1652,7 +1635,6 @@ namespace d191
 		{
 			Rec *a = R(us(POOL_A), i), *b = R(us(POOL_B), i);
 			if (!(*(uint8_t *)a & 1)) continue;
-			FX_HELD(held_note_rec_a(i, n, a); held_note_rec_b(i, n, b);)
 			WheelTrailPair(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), a, b, a->age, b->age);
 			if (P1()) continue;
 			a->age++;
@@ -1762,7 +1744,6 @@ namespace d191
 			Rec *r = R(us(POOL_A), i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			LitSprite(h, r->pos, r->size, r->age, false);
-			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0) r->age = 0;
@@ -1835,13 +1816,11 @@ namespace d191
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x48);
 		PuffWallSetup(h, s, &Frame(), n->c, false, 0);
-		FX_HELD(MemoNode(n);)
 		for (int i = 0; i < 170; i++)
 		{
 			Rec *r = R(us(POOL_A), i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			LitSprite(h, r->pos, r->size, r->age, false);
-			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0) r->age = 0;
@@ -1925,7 +1904,6 @@ namespace d191
 			GteSetTransVector(&m);
 			PrimModel(us(0xE3A744), 2, 0x33);
 		}
-		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->c++;
 		return n->c >= 0x16 ? TASK_END : 0;
@@ -1993,8 +1971,7 @@ namespace d191
 	static uint32_t __cdecl GlowTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(int32_t fade =) GlowDraw(&Frame(), &BoneWorld(), n, -1);
-		FX_HELD(held_note_glow(n, fade);)
+		GlowDraw(&Frame(), &BoneWorld(), n, -1);
 		if (P1()) return 0;
 		var<int32_t>(us(0x24FC284)) += var<int32_t>(us(0x24FC288));
 		int32_t r = CrtRand() % 0x40;
@@ -2022,7 +1999,6 @@ namespace d191
 			Rec *r = R(us(POOL_A), i);
 			if (!(*(uint8_t *)r & 4)) continue;
 			LitSprite(h, r->pos, r->size, r->age, false);
-			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2163,7 +2139,6 @@ namespace d191
 			Rec *r = R(us(POOL_C), i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), r->pos, r->size, r->age, 4);
-			FX_HELD(held_note_rec_c(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2228,7 +2203,6 @@ namespace d191
 			Rec *r = R(us(POOL_C), i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), r->pos, r->size, r->age, 2);
-			FX_HELD(held_note_rec_c(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0) r->mask = 0;
@@ -2276,7 +2250,6 @@ namespace d191
 			Rec *r = R(us(POOL_C), i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), r->pos, r->size, r->age, 4);
-			FX_HELD(held_note_rec_c(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2335,7 +2308,6 @@ namespace d191
 			Rec *r = R(us(POOL_D), i);
 			if (!(*(uint8_t *)r & 1)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x40), (int32_t *)(s + 0x30), r->pos, r->size, (int16_t)(r->age << 1), shift);
-			FX_HELD(held_note_rec_d(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2553,7 +2525,6 @@ namespace d191
 		}
 		int32_t c = n->c, d = n->f16 - 8;
 		DebrisDraw(&Frame(), &BoneWorld(), n, n->f1C, n->f20, c >= d, shl32(c - d, 9), shl32(c, 12) / 12);
-		FX_HELD(MemoNode(n);)
 		if (P1()) return 0;
 		n->f1C = (int16_t)(n->f1C - n->f1E);
 		int16_t v = n->f22;
@@ -2633,7 +2604,6 @@ namespace d191
 		*(uint32_t *)h = us(0xE3460C);
 		*(uint16_t *)(h + 0x24) = 0x208;
 		int32_t count = 0;
-		FX_HELD(MemoNode(n);)
 		if (n->c < 5)
 		{
 			int16_t sz = n->f1C;
@@ -2650,7 +2620,6 @@ namespace d191
 			Rec *r = R(us(POOL_E), i);
 			if (r->mask != (uint32_t)(int32_t)n->e) continue;
 			ShardDraw(h, s, r->pos, r->size, r->vel, r->age);
-			FX_HELD(held_note_rec_e(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2851,7 +2820,6 @@ namespace d191
 			Rec *r = R(us(POOL_A), i);
 			if (!(r->mask & (uint32_t)(int32_t)n->e)) continue;
 			OffsetSprite(h, (int32_t *)(s + 0x38), (int32_t *)(s + 0x28), r->pos, r->size, r->age, 3);
-			FX_HELD(held_note_rec_a(i, n, r);)
 			if (P1()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2911,10 +2879,6 @@ namespace d191
 		register_port(ORIG_ExplosionTask, (void *)ExplosionTask, "D191 ExplosionTask", 191);
 		register_port(ORIG_KnockTask, (void *)KnockTask, "D191 KnockTask", 191);
 		register_port(ORIG_LandDustTask, (void *)LandDustTask, "D191 LandDustTask", 191);
-		FX_HELD(register_mag191_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag191_doomtrain_held.inc"
-#endif

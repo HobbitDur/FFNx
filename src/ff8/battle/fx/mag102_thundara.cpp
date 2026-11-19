@@ -142,10 +142,6 @@ namespace thundara102
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag102_thundara_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace thundara102
@@ -158,7 +154,6 @@ namespace thundara102
 			r->started = 1;
 			return 0;
 		}
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase();
@@ -235,7 +230,6 @@ namespace thundara102
 	static uint32_t TiltedGlow(const int16_t *pos, int32_t tilt, int32_t frame, int32_t duration, uint32_t ot, int mode, uint32_t cursor)
 	{
 		int32_t t = shl32(frame, 12) / duration;
-		FX_HELD(t = held_frame_arg(t, frame, 12, duration);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		int32_t s = ComputeSin(t >> 2);
 		Mat4x3 m = {};
@@ -262,7 +256,6 @@ namespace thundara102
 	static uint32_t Column(const int16_t *pos, int32_t height, int32_t frame, int32_t duration, uint32_t ot, int mode, uint32_t cursor)
 	{
 		int32_t t = shl32(frame, 10) / duration;
-		FX_HELD(t = held_frame_arg(t, frame, 10, duration);)
 		int32_t s = ComputeSin(t);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		int32_t w = (s >> 2) + 0x200;
@@ -286,7 +279,6 @@ namespace thundara102
 	static uint32_t FlashBall(const int16_t *pos, int32_t height, int32_t frame, int32_t duration, uint32_t ot, int mode, uint32_t cursor)
 	{
 		int32_t t = shl32(frame, 10) / duration;
-		FX_HELD(t = held_frame_arg(t, frame, 10, duration);)
 		int32_t s = ComputeSin(t);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		Mat4x3 m = {};
@@ -377,7 +369,6 @@ namespace thundara102
 			int32_t x = shl32(k, 10);
 			int32_t q = (int32_t)(((int64_t)x * 0x66666667) >> 32) >> 2;
 			q += (int32_t)((uint32_t)q >> 31);
-			FX_HELD(q = held_frame_arg(q, k, 10, 10);)
 			*(uint32_t *)h = us(SEQ_Fade);
 			uint8_t level = (uint8_t)(0x80 - (uint8_t)(ComputeSin(q) >> 7));
 			*(uint16_t *)(h + 0x24) = 4;
@@ -443,7 +434,6 @@ namespace thundara102
 				s->dlevel = (int16_t)(-10 - (CrtRand() & 7));
 			}
 		}
-		FX_HELD(held_note_draw(us(ORIG_BoltTask), p, sizeof(BoltNode));)
 		if (p->counter == 0xC) PacketCursor() = ScreenFlashQuad(FLASH_Colour(), PacketCursor());
 		if (p->counter > 0xA)
 		{
@@ -496,7 +486,6 @@ namespace thundara102
 		SparkNode *p = (SparkNode *)n;
 		if (p->counter >= (int16_t)(uint16_t)p->delay)
 		{
-			FX_HELD(held_note_draw(us(ORIG_SparkTask), p, sizeof(SparkNode));)
 			SparkDraw(p);
 			SparkUpdate(p);
 		}
@@ -518,7 +507,6 @@ namespace thundara102
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		FlashNode *p = (FlashNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_FlashTask), p, sizeof(FlashNode));)
 		FlashDraw(p);
 		p->counter++;
 		return p->counter < 8 ? 0 : TASK_END;
@@ -531,10 +519,6 @@ namespace thundara102
 		register_port(thundara102::ORIG_BoltTask, (void *)thundara102::BoltTask, "T102 BoltTask", 102);
 		register_port(thundara102::ORIG_SparkTask, (void *)thundara102::SparkTask, "T102 SparkTask", 102);
 		register_port(thundara102::ORIG_FlashTask, (void *)thundara102::FlashTask, "T102 FlashTask", 102);
-		FX_HELD(register_mag102_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag102_thundara_held.inc"
-#endif

@@ -392,21 +392,15 @@ namespace recover
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag016_recover_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace recover
 {
-
 	uint32_t __cdecl rc_8AB290(uint32_t a1)
 	{
 		g_mod = &MOD_016;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -635,7 +629,6 @@ namespace recover
 		case 1:
 			rc_8B05A0();
 			rc_8ADC50();
-			FX_HELD(held_note_system(sys);)
 			rc_8ADB10();
 			a_735440();
 			sys = U32(us(0x2732BEC), 0);
@@ -2017,10 +2010,6 @@ namespace recover
 			act::register_module_port(16, p->addr, p->port, p->name);
 		for (const act::recover::ModPort *p = act::recover::PORTS; p->addr; p++)
 			act::register_module_port(16, p->addr, p->port, p->name);
-		FX_HELD(register_mag016_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag016_recover_held.inc"
-#endif

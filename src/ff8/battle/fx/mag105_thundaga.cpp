@@ -203,10 +203,6 @@ namespace thundaga105
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag105_thundaga_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace thundaga105
@@ -426,7 +422,6 @@ namespace thundaga105
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = (uint32_t)(TexBase() + 0x8C1C);
@@ -473,7 +468,6 @@ namespace thundaga105
 		if (r->state == 1)
 		{
 			debris = DebrisUpdate();
-			FX_HELD(held_note_debris();)
 			PacketCursor() = DebrisDraw(DebrisSlots(), RenderOT44(), 2, PacketCursor());
 		}
 		else debris = 1;
@@ -799,7 +793,6 @@ namespace thundaga105
 			*(int16_t *)(h + 0x68) = 0;
 			*(int16_t *)(h + 0x6A) = 0x80;
 			uint16_t frame = (uint16_t)l->frame;
-			FX_HELD(frame = held_part_frame(frame);)
 			*(uint16_t *)(h + 0x5A) = frame;
 			if (frame > 4) *(uint16_t *)(h + 0x5A) = 4;
 			*(uint16_t *)(h + 0x5A) = (uint16_t)((h[0x5A] & 3) << 5);
@@ -981,7 +974,6 @@ namespace thundaga105
 		arg.scale[0] = p->scale;
 		arg.morph = TexBase() + 0x2254;
 		arg.quad_parts = BOLT_QuadParts();
-		FX_HELD(held_note_bolt(p, &arg);)
 		prim::play((prim::Layout *)p->layout, BoltPart, (int)&arg, 0);
 		TargetFlash(p->entity, (const uint8_t *)&p->colour, p->counter, 2);
 		TargetFlash(p->entity, (const uint8_t *)&p->colour, p->counter, 0x1E);
@@ -1015,7 +1007,6 @@ namespace thundaga105
 			GteSetTransVector(&m);
 			for (int k = 0; k < 14; k++) ShardSpawn(arg.pos, (uint8_t *)SHARD_MESH[k][0], (const uint8_t *)SHARD_MESH[k][1], all);
 			SetScreenFlash(0, 0);
-			FX_HELD(held_note_capture(arg.pos, all);)
 			CapturePrims prims = { PRIM_Env(), PRIM_Area(), PRIM_Offset(), RECT_Offset(), Arena2() };
 			CaptureDraw(arg.pos, all, prims);
 		}
@@ -1108,7 +1099,6 @@ namespace thundaga105
 	static uint32_t __cdecl ShardTask(TaskNode *n)
 	{
 		ShardNode *p = (ShardNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_ShardTask), p, sizeof(ShardNode));)
 		ShardDraw(p);
 		p->life--;
 		if (p->life == 0)
@@ -1150,7 +1140,6 @@ namespace thundaga105
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_SparkTask), p, sizeof(SpriteNode));)
 		SpriteDraw(p);
 		SparkUpdate(p);
 		return p->counter < p->end ? 0 : TASK_END;
@@ -1159,7 +1148,6 @@ namespace thundaga105
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_FlashTask), p, sizeof(SpriteNode));)
 		SpriteDraw(p);
 		p->counter++;
 		return p->counter < p->end ? 0 : TASK_END;
@@ -1174,10 +1162,6 @@ namespace thundaga105
 		register_port(thundaga105::ORIG_ShardTask, (void *)thundaga105::ShardTask, "T105 ShardTask", 105);
 		register_port(thundaga105::ORIG_SparkTask, (void *)thundaga105::SparkTask, "T105 SparkTask", 105);
 		register_port(thundaga105::ORIG_FlashTask, (void *)thundaga105::FlashTask, "T105 FlashTask", 105);
-		FX_HELD(register_mag105_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag105_thundaga_held.inc"
-#endif

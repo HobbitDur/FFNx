@@ -118,10 +118,6 @@ namespace cura
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag025_cura_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -132,7 +128,6 @@ namespace cura
 	{
 		if (U8(node, 0x26) & 4)
 			return;
-		FX_HELD(held_note_sprite(node);)
 		const uint32_t h = x::Field_Alloc(0xB4);
 		cx::TransformCameraByShadowRotation(node + 0x1C, 0x1000, (uint32_t)(int32_t)S16(node, 0x54));
 		U32(h, 0) = U32(node, 0x4C);
@@ -146,7 +141,6 @@ namespace cura
 	{
 		if (U8(node, 0x26) & 4)
 			return;
-		FX_HELD(held_note_ground(node, seq, colour);)
 		Mat4x3 m = {};
 		x::MAG_022_sub_8DD770(P(&m));
 		x::sub_8DD7E0(P(&m), 0x400);
@@ -169,7 +163,6 @@ namespace cura
 	{
 		if (U8(node, 0x26) & 4)
 			return;
-		FX_HELD(held_note_spin(node, seq, colour, angle, scale);)
 		const int32_t s = (int16_t)scale;
 		int32_t sv[3] = { s, s, s };
 		Mat4x3 m = {};
@@ -783,7 +776,6 @@ namespace cura
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		g_mod = &MOD_025;
-		FX_HELD(held_note_master();)
 		const uint32_t node = a1;
 		uint32_t states[5];
 		states[0] = us(0x889F00);
@@ -1105,9 +1097,7 @@ namespace cura
 		x::scale3DMatrix(m, node + 0x30);
 		x::ComposeAffineTransform(us(0x1D97778), m, m);
 		FrameLinks(fr);
-		FX_HELD(held_note_play(node, fr);)
 		const int left = prim::play((prim::Layout *)(node + 0x60), DrawCallback, (int)(fr + FR_BLOCK), 0);
-		FX_HELD(held_note_played(node);)
 		if (left == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -1194,9 +1184,7 @@ namespace cura
 		x::scale3DMatrix(m, node + 0x30);
 		x::ComposeAffineTransform(us(0x1D97778), m, m);
 		FrameLinks(fr);
-		FX_HELD(held_note_play(node, fr);)
 		const int left = prim::play((prim::Layout *)(node + 0x60), DrawCallback, (int)(fr + FR_BLOCK), 0);
-		FX_HELD(held_note_played(node);)
 		if (left == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -1408,9 +1396,7 @@ namespace cura
 			U16(node, 0x20) = (uint16_t)(c / 4096 + S32(P(anchor), 4));
 			U16(us(OVL_STATE), 0xB6) = U16(node, 0x1E);
 			OverlayParams(us(OVL_STATE), node + 0x1C, 0x280, 0x1C0, 0x140, 0xF4, 0x80, 0x40);
-			FX_HELD(held_note_overlay(node);)
 			DrawOverlay(us(OVL_STATE));
-			FX_HELD(held_note_overlay_end();)
 		}
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1532,10 +1518,6 @@ namespace cura
 			act::register_module_port(25, p->addr, p->port, p->name);
 		for (const act::cura::ModPort *p = act::cura::PORTS; p->addr; p++)
 			act::register_module_port(25, p->addr, p->port, p->name);
-		FX_HELD(register_mag025_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag025_cura_held.inc"
-#endif

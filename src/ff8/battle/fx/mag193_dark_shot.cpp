@@ -158,10 +158,6 @@ namespace dark193
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag193_dark_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace dark193
@@ -649,9 +645,7 @@ namespace dark193
 
 	static uint32_t SmokeStep(Node *n, uint32_t orig, uint32_t seq)
 	{
-		FX_HELD(held_note_node(orig, n);)
 		const int16_t next = SmokeDraw(n, seq);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -662,7 +656,6 @@ namespace dark193
 	static uint32_t __cdecl Flash2Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_Flash2Task), n);)
 		MuzzleModel(n, n->f18, us(MODEL_Flash2), n->counter >= 1, Flash2Fade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -675,7 +668,6 @@ namespace dark193
 	static uint32_t __cdecl BlastTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_BlastTask), n);)
 		MuzzleModel(n, 0, us(MODEL_Blast), n->counter >= 1, BlastFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -688,9 +680,7 @@ namespace dark193
 	static uint32_t __cdecl GroundSmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_GroundSmokeTask), n);)
 		const int16_t next = GroundSmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -701,7 +691,6 @@ namespace dark193
 		Node *n = (Node *)n_;
 		Particle *arr = PartArray(n->f0E);
 		*(volatile uint32_t *)&n_ = (uint32_t)arr;
-		FX_HELD(held_note_node(us(ORIG_ImpactTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 7) ImpactFlashDraw(n, h);
 		SparkHeader(h);
@@ -710,20 +699,17 @@ namespace dark193
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_spark(e);)
 			SparkDraw(e, n->pos[3], h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_spark_next(e);)
 				continue;
 			}
 			SparkMove(e);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
@@ -782,26 +768,22 @@ namespace dark193
 				e->pos[2] = (int16_t)(e->pos[2] + (CrtRand() % 1000 - 500));
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_TargetSparkTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		TargetSparkBegin(s, h);
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_spark(e);)
 			TargetSparkDraw(e, n->pos[3], s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_spark_next(e);)
 				continue;
 			}
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -812,7 +794,6 @@ namespace dark193
 	static uint32_t __cdecl ModelTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_ModelTask), n);)
 		TargetModelDraw(n, n->counter >= 4, ModelFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -946,7 +927,6 @@ namespace dark193
 		const int32_t end = EndTick();
 		const int32_t count = c >= end ? end - c + 5 : 5;
 		*(volatile int32_t *)&n_ = count;
-		FX_HELD(held_note_ghosts(c, slot, count, colour);)
 		for (int32_t k = 0; k < count; k++)
 		{
 			const Ghost *s = GhostSlot(slot);
@@ -1020,7 +1000,6 @@ namespace dark193
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (*(const uint8_t *)&r->counter & 1) ? TexBase() + ARENA_ODD : TexBase();
 		const int shots = ExecuteTaskQueue(QShots());
 		const int aux = ExecuteTaskQueue(QAux());
@@ -1054,10 +1033,6 @@ namespace dark193
 		register_port(dark193::ORIG_ImpactTask, (void *)dark193::ImpactTask, "193 ImpactTask", 193);
 		register_port(dark193::ORIG_TargetSparkTask, (void *)dark193::TargetSparkTask, "193 TargetSparkTask", 193);
 		register_port(dark193::ORIG_ModelTask, (void *)dark193::ModelTask, "193 ModelTask", 193);
-		FX_HELD(register_mag193_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag193_dark_shot_held.inc"
-#endif

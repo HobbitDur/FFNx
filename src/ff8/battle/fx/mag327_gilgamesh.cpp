@@ -188,19 +188,13 @@ namespace g327
 	static_assert(sizeof(Node24) == 0x24, "queue node is 0x24 bytes");
 	static_assert(sizeof(RecA) == 0x20, "pool A record is 0x20 bytes");
 	static_assert(sizeof(RecB) == 0x18, "pool B record is 0x18 bytes");
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag327_gilgamesh_held.h"
-#endif
 
 namespace ff8fx
 {
 namespace g327
 {
-
 	static const int POOL_N = 200;
 	inline RecA *RA(int i) { return (RecA *)(PoolA() + 0x20 * i); }
 	inline RecB *RB(int i) { return (RecB *)(PoolB() + 0x18 * i); }
@@ -323,7 +317,6 @@ namespace g327
 
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
-		FX_HELD(held_note_master();)
 		int a = ExecuteTaskQueue(&Q1());
 		int b = ExecuteTaskQueue(&Q2());
 		((Node24 *)tn)->c++;
@@ -729,7 +722,6 @@ namespace g327
 		Node24 *n = (Node24 *)tn;
 		int32_t v = FadeTileLevel(n->c);
 		Tile(v, v, v, 0);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x18 ? TASK_END : 0;
@@ -810,7 +802,6 @@ namespace g327
 	static uint32_t ScreenPrimTick(Node24 *n, uint32_t orig)
 	{
 		ScreenPrimDraw(n, ScreenPrimModel(n, orig), n->s1C);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t c = n->c;
 		if (c < 6)
@@ -947,7 +938,6 @@ namespace g327
 		}
 		if (c <= 0x28)
 		{
-			FX_HELD(MemoNode(n);)
 			CutMatrix(n, CutAngle0(c, n->a18), CutAngle1(c, n->a18), A[2], n->s20, (Mat4x3 *)(us(0x2200B94) + 60 * slot), A);
 		}
 		if (Paused()) return 0;
@@ -1021,7 +1011,6 @@ namespace g327
 			uint8_t *h = (uint8_t *)FieldAlloc(0x1D8);
 			SliceDraw(h, n, ent, (const Mat4x3 *)(us(0x2200B94) + 60 * (int32_t)n->e), n->c, -1);
 			FieldFree(0x1D8);
-			FX_HELD(MemoNode(n);)
 		}
 		if (Paused()) return 0;
 		n->c++;
@@ -1091,7 +1080,6 @@ namespace g327
 			uint8_t *h = (uint8_t *)FieldAlloc(0x1D8);
 			PartyClipDraw(h, n->s20);
 			FieldFree(0x1D8);
-			FX_HELD(MemoNode(n);)
 		}
 		if (Paused()) return 0;
 		int16_t v = n->s22;
@@ -1189,7 +1177,6 @@ namespace g327
 		int32_t f = 0;
 		bool fade = b ? MasaFadeB(n->c, &f) : MasaFadeA(n->c, &f);
 		MasaPrimDraw(n, b, n->s1C, fade, f);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1250,7 +1237,6 @@ namespace g327
 		{
 			RecA *r = (RecA *)(pool + 0x20 * i);
 			if (!(mask & r->mask)) continue;
-			FX_HELD(MemoA(i, n);)
 			LitSpriteMAC(h, s, &r->x, r->size, r->age, 3, true, r->w1C);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1326,7 +1312,6 @@ namespace g327
 		{
 			RecB *r = (RecB *)(pool + 0x18 * i);
 			if (!(mask & r->mask)) continue;
-			FX_HELD(MemoB(i, n);)
 			LitSpriteMAC(h, s, &r->x, r->size, r->age, 3, false, 0);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1443,7 +1428,6 @@ namespace g327
 		{
 			RecB *r = (RecB *)(pool + 0x18 * i);
 			if (!(mask & r->mask)) continue;
-			FX_HELD(MemoB(i, n);)
 			LitSpriteMAC(h, s, &r->x, r->size, r->age, 3, false, 0);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1507,7 +1491,6 @@ namespace g327
 		{
 			RecB *r = (RecB *)(pool + 0x18 * i);
 			if (!(r->mask & mask)) continue;
-			FX_HELD(MemoB(i, n);)
 			LitSprite(h, &r->x, r->size, r->age);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1614,7 +1597,6 @@ namespace g327
 		{
 			RecA *r = (RecA *)(pool + 0x20 * i);
 			if (!(mask & r->mask)) continue;
-			FX_HELD(MemoA(i, n);)
 			ExcaStreakOne(h, s, &r->w18, &r->x, r->size);
 			if (r->age >= 6) r->size = StreakSize(r->age, r->w0E);
 			Cursor() = InitEffectSequenceFromData(h, OT(), 2, Cursor());
@@ -1660,7 +1642,6 @@ namespace g327
 		int32_t f = 0;
 		bool fade = MasaFadeB(n->c, &f);
 		ExcaPillarDraw(n, n->a18, n->s1C, n->s20, fade, f);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1684,7 +1665,6 @@ namespace g327
 	{
 		Node24 *n = (Node24 *)tn;
 		RingDraw(n);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x44 ? TASK_END : 0;
@@ -1704,7 +1684,6 @@ namespace g327
 	static uint32_t RingSpinTick(Node24 *n, bool b)
 	{
 		RingSpinDraw(n, b, n->a18);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
 		n->c++;
@@ -1791,7 +1770,6 @@ namespace g327
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		FlareDraw(n, n->s20, FlareDepth(c), FlareColour(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s22;
 		n->s20 = (int16_t)(n->s20 + v);
@@ -1815,7 +1793,6 @@ namespace g327
 		int32_t f = 0;
 		bool fade = RiserFade(n->c, &f);
 		RiserDraw(n, n->p12, n->s1C, fade, f);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t s = n->s1C, v = n->s22;
 		n->p12 = (int16_t)(n->p12 + v);
@@ -1867,7 +1844,6 @@ namespace g327
 		{
 			RecB *p = (RecB *)(pool + 0x18 * i);
 			if (!(p->mask & 1)) continue;
-			FX_HELD(MemoB(i, n);)
 			LitSprite(h, &p->x, p->size, p->age);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0) p->mask = 0;
@@ -1927,7 +1903,6 @@ namespace g327
 		{
 			RecA *p = (RecA *)(pool + 0x20 * i);
 			if (!(p->mask & 0x10)) continue;
-			FX_HELD(MemoA(i, n);)
 			LitSprite(h, &p->x, p->size, p->age);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -1986,7 +1961,6 @@ namespace g327
 		int32_t f = 0;
 		bool fade = RisingRingFade(n->c, &f);
 		RisingRingDraw(n, n->a18, n->s20, fade, f);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s22;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
@@ -2048,7 +2022,6 @@ namespace g327
 		{
 			RecA *p = (RecA *)(pool + 0x20 * i);
 			if (!(p->mask & 1)) continue;
-			FX_HELD(MemoA(i, n);)
 			GteLoadV0(&p->x);
 			GteRTPS();
 			int16_t age = p->age;
@@ -2106,7 +2079,6 @@ namespace g327
 		int32_t f = 0;
 		bool fade = SpinnerFade(n->c, &f);
 		SpinnerDraw(n, n->a18, n->s1C, fade, f);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->a18 = (int16_t)(n->a18 + n->a1A);
@@ -2225,11 +2197,9 @@ namespace g327
 		*(uint32_t *)(e + 0xC) = *(const uint32_t *)(s + 0x28);
 		*(uint32_t *)(e + 0x10) = *(const uint32_t *)(s + 0x2C);
 		int32_t cnt = TrailGather((const uint8_t *)us(TRAIL_RING), idx, (uint8_t *)us(TRAIL_PTS_A), (uint8_t *)us(TRAIL_PTS_B));
-		FX_HELD(held_note_trail(cnt);)
 		if (cnt > 1)
 		{
 			TrailSplines(cnt, (const uint8_t *)us(TRAIL_PTS_A), (const uint8_t *)us(TRAIL_PTS_B), (uint8_t *)us(TRAIL_SPL_A), (uint8_t *)us(TRAIL_SPL_B));
-			FX_HELD(held_note_trail_splines();)
 			TrailDraw((const uint8_t *)us(TRAIL_SPL_A), (const uint8_t *)us(TRAIL_SPL_B), s);
 		}
 		FieldFree(0x40);
@@ -2318,13 +2288,11 @@ namespace g327
 		*(uint32_t *)h = us(0xCC8E64);
 		SwordTipFrame(s, n);
 		*(int16_t *)(s + 2) = 0;
-		FX_HELD(held_note_tip(n, s);)
 		int32_t mask = n->s1C;
 		for (int i = 0; i < POOL_N; i++)
 		{
 			RecA *p = (RecA *)(pool + 0x20 * i);
 			if (!(mask & p->mask)) continue;
-			FX_HELD(MemoA(i, n);)
 			ShardDrawOne(h, s, p->w18, p->w1C, &p->x, p->size);
 			if (p->age >= 8) p->size = (int16_t)(shl32(mul32(0x10 - p->age, p->w0E), 9) >> 12);
 			Cursor() = RenderPrimModel(h, OT(), 2, Cursor());
@@ -2401,13 +2369,11 @@ namespace g327
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t count = 0;
 		SwordPuffSetup(h, s, n);
-		FX_HELD(held_note_tip(n, s);)
 		int32_t mask = n->s1C;
 		for (int i = 0; i < POOL_N; i++)
 		{
 			RecB *p = (RecB *)(pool + 0x18 * i);
 			if (!(mask & p->mask)) continue;
-			FX_HELD(MemoB(i, n);)
 			LitSpriteMAC(h, s, &p->x, p->size, p->age, 2, false, 0);
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
@@ -2464,7 +2430,6 @@ namespace g327
 	{
 		if (ReadAnimation(E + 0x60, E + 0x6C) == 1 && !(E[0] & 1))
 			PreReadAnimation(E + 0x60, E + 0x6C, E[0x6C]);
-		FX_HELD(held_note_advanced(E);)
 	}
 
 	static void DrawModel(uint8_t *E, const Mat4x3 *frame, int32_t shift)
@@ -2548,7 +2513,6 @@ namespace g327
 		for (int i = 0; i < 4; i++)
 		{
 			ClipDraw(h, Sword(i), &Frame());
-			FX_HELD(ModelMemoTake(Sword(i), n, DK_CLIP, 0);)
 		}
 		FieldFree(0x1A8);
 		if (Paused()) return 0;
@@ -2584,7 +2548,6 @@ namespace g327
 					*(uint32_t *)(E + 0x28) = var<uint32_t>(us(0x21FF518));
 				}
 				DrawModel(E, &Frame(), 4);
-				FX_HELD(ModelMemoTake(E, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
@@ -2625,7 +2588,6 @@ namespace g327
 			*(int32_t *)(h + 0x44) = c - 25;
 			MaterialDraw(h, GIL1());
 			FieldFree(0xB0);
-			FX_HELD(ModelMemoTake(GIL1(), n, DK_MATERIAL, c - 25);)
 		}
 		else if (c - 45 < 60)
 		{
@@ -2642,7 +2604,6 @@ namespace g327
 		if (!(GIL1()[0] & 4))
 		{
 			DrawModel(GIL1(), &Frame(), 4);
-			FX_HELD(ModelMemoTake(GIL1(), n, DK_NORMAL4, 0);)
 		}
 		if (Paused()) return 0;
 		if (!(GIL1()[0] & 8)) AdvanceModel(GIL1());
@@ -2676,7 +2637,6 @@ namespace g327
 		if (!(GIL2()[0] & 4))
 		{
 			DrawModel(GIL2(), &Frame(), 3);
-			FX_HELD(ModelMemoTake(GIL2(), n, DK_NORMAL3, 0);)
 			for (int j = 0; j < 4; j++)
 			{
 				uint8_t *A = Arm(j);
@@ -2685,7 +2645,6 @@ namespace g327
 				*(int32_t *)(A + 0x5C) += 0x50;
 				*(uint32_t *)(A + 0x28) = var<uint32_t>(us(0x2200F28));
 				DrawModel(A, &Frame(), 4);
-				FX_HELD(ModelMemoTake(A, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
@@ -2723,7 +2682,6 @@ namespace g327
 		if (!(GIL3()[0] & 4))
 		{
 			DrawModel(GIL3(), &Frame(), 4);
-			FX_HELD(ModelMemoTake(GIL3(), n, DK_NORMAL4, 0);)
 			for (int i = 0; i < 4; i++)
 			{
 				uint8_t *E = Sword(i);
@@ -2731,7 +2689,6 @@ namespace g327
 				ff8fx::copy<(sizeof(Mat4x3))>(E + 0x40, (const void *)us(0x2201000));
 				*(uint32_t *)(E + 0x28) = var<uint32_t>(us(0x2200FE8));
 				DrawModel(E, &Frame(), 4);
-				FX_HELD(ModelMemoTake(E, n, DK_NORMAL4, 0);)
 			}
 		}
 		if (Paused()) return 0;
@@ -2796,10 +2753,6 @@ namespace g327
 		register_port(ORIG_Exca_SmokeTask, (void *)ExcaSmokeTask, "G327 ExcaSmokeTask", 327);
 		register_port(ORIG_Exca_StreakTask, (void *)ExcaStreakTask, "G327 ExcaStreakTask", 327);
 		register_port(ORIG_Exca_PillarTask, (void *)ExcaPillarTask, "G327 ExcaPillarTask", 327);
-		FX_HELD(register_mag327_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag327_gilgamesh_held.inc"
-#endif

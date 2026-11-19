@@ -97,10 +97,6 @@ namespace firaga143
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag143_firaga_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace firaga143
@@ -108,7 +104,6 @@ namespace firaga143
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = (uint32_t)(TexBase() + 0x10000);
 		else PacketCursor() = (uint32_t)TexBase();
 		int alive = ExecuteTaskQueue(&Queues().second);
@@ -294,7 +289,6 @@ namespace firaga143
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_AreaFlameTask), p);)
 		AreaFlameDraw(p);
 		if (DrawOnly()) return 0;
 		p->frame++;
@@ -347,7 +341,6 @@ namespace firaga143
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_BurstTask), p);)
 		BurstMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		BurstHeader(h, p->counter);
@@ -386,7 +379,6 @@ namespace firaga143
 	static uint32_t __cdecl FlameSwirlTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_FlameSwirlTask), p);)
 		FlameSwirlMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		FlameSwirlHeader(h, p->counter);
@@ -418,7 +410,6 @@ namespace firaga143
 	static uint32_t __cdecl FireballTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_FireballTask), p);)
 		FireballDraw(p);
 		if (DrawOnly()) return 0;
 		int16_t alive = Anchor(p->action)[3];
@@ -475,7 +466,6 @@ namespace firaga143
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *p = (SparkNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_SparkTask), p);)
 		SparkMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		SparkHeader(h, p->counter);
@@ -496,10 +486,6 @@ namespace firaga143
 		register_port(firaga143::ORIG_FlameSwirlTask, (void *)firaga143::FlameSwirlTask, "F143 FlameSwirlTask", 143);
 		register_port(firaga143::ORIG_FireballTask, (void *)firaga143::FireballTask, "F143 FireballTask", 143);
 		register_port(firaga143::ORIG_SparkTask, (void *)firaga143::SparkTask, "F143 SparkTask", 143);
-		FX_HELD(register_mag143_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag143_firaga_held.inc"
-#endif

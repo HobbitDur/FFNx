@@ -84,15 +84,10 @@ namespace poisongas171
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag171_poison_gas_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace poisongas171
 {
-
 	static void GasScroll(uint32_t hdr, uint32_t o, const int32_t *off, int n, int32_t h)
 	{
 		const int32_t s = S32(hdr, 0x84);
@@ -255,7 +250,6 @@ namespace poisongas171
 		U32(hdr, 0x8C) = 0xE2000000;
 		S32(hdr, 0x84) = S32(hdr, 0x30) % (int32_t)S16(hdr, 0x3A);
 		const uint32_t anim = entity + 0x60;
-		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0x90));
@@ -308,7 +302,6 @@ namespace poisongas171
 		const int16_t c = S16(n, 0xC);
 		if (c < 0x18)
 		{
-			FX_HELD(held_note_node(REC_TINT, n);)
 			TintDraw(TintGrey(c), shl32(c, 2));
 		}
 		if (DrawOnly()) return 0;
@@ -347,7 +340,6 @@ namespace poisongas171
 	static uint32_t __cdecl CloudTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_node(REC_CLOUD, n);)
 		CloudDraw(n, CloudFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x10) = (int16_t)(S16(n, 0x10) + S16(n, 0x16));
@@ -373,7 +365,6 @@ namespace poisongas171
 		for (uint32_t p = lo; p < hi; p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0xE))) continue;
-			FX_HELD(held_note_particle(p);)
 			PartDraw(h, p, half ? (int16_t)(S16(p, P_FRAME) >> 1) : S16(p, P_FRAME));
 			if (DrawOnly()) continue;
 			S16(p, P_FRAME) = (int16_t)(S16(p, P_FRAME) + 1);
@@ -445,7 +436,6 @@ namespace poisongas171
 
 	static uint32_t PuffTaskImpl(uint32_t n, bool puff)
 	{
-		FX_HELD(held_note_parts(puff ? REC_PUFF : REC_WISP, n);)
 		const int alive = puff ? PartsDraw(n, us(PARTS_B), us(PARTS_END), us(SEQ_Puff), true, true) : PartsDraw(n, us(PARTS_A), us(PARTS_B), us(SEQ_Puff), false, true);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
@@ -464,7 +454,6 @@ namespace poisongas171
 	static uint32_t __cdecl EmitterTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_parts(REC_EMITTER, n);)
 		const int alive = PartsDraw(n, us(PARTS_B), us(PARTS_END), us(SEQ_Emitter), false, false);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
@@ -552,7 +541,6 @@ namespace poisongas171
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? TexBase() + 0xC000 : TexBase();
 		const int running = ExecuteTaskQueue(EffectQueue());
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -568,13 +556,9 @@ namespace poisongas171
 		register_port(ORIG_Wisp, (void *)WispTask, "171 WispTask", 171);
 		register_port(ORIG_Cloud, (void *)CloudTask, "171 CloudTask", 171);
 		register_port(ORIG_Emitter, (void *)EmitterTask, "171 EmitterTask", 171);
-		FX_HELD(register_mag171_held();)
 	}
 }
 
 	void register_mag171_poison_gas() { poisongas171::register_mag171_poison_gas_ports(); }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag171_poison_gas_held.inc"
-#endif

@@ -20,10 +20,6 @@
 #include "../../../patch.h"
 #include "../../../log.h"
 
-#ifdef FF8_FX_HELD
-#include "fx_primplayer_held.h"
-#endif
-
 namespace ff8fx::prim
 {
 	static_assert(sizeof(Record) == 44, "prim record");
@@ -224,7 +220,6 @@ namespace ff8fx::prim
 		int32_t total = rd32(hdr + 4);
 		if (l->frame >= total) return 0;
 		int32_t count = rd32(hdr);
-		FX_HELD(held_note_drawn(l, paused != 0);)
 		uint8_t *st = l->state;
 		for (int32_t i = 0; i < count; i++)
 		{
@@ -262,7 +257,7 @@ namespace ff8fx::prim
 		int32_t nframe = frame0;
 		if (check)
 		{
-			memcpy_code(uint32_t(g_state_native), l->state, size);
+			copy_bytes(g_state_native, l->state, size);
 			if (frame0 < total)
 			{
 				uint8_t *st = g_state_native;
@@ -302,6 +297,3 @@ namespace ff8fx::prim
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "fx_primplayer_held.inc"
-#endif

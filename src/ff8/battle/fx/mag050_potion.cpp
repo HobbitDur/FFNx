@@ -731,10 +731,6 @@ namespace potion050
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag050_potion_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace potion050
@@ -755,7 +751,6 @@ namespace potion050
 		case 1: Integrate(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_particle(p);)
 		DrawSprite(p);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
@@ -782,7 +777,6 @@ namespace potion050
 		case 1: Integrate(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_particle(p);)
 		DrawSprite(p);
 		p->h.counter++;
 		if ((p->h.flags & 1) && p->h.children == 0)
@@ -820,7 +814,6 @@ namespace potion050
 			SpawnMotes(r);
 			SpawnGlints(r);
 		}
-		FX_HELD(held_note_ring(r);)
 		if (r->h.flags & 8)
 		{
 			Overlay().offset[1] = r->h.pos[1];
@@ -939,7 +932,6 @@ namespace potion050
 			PacketCursor() = var<uint32_t>(us(ARENA_B));
 			PacketLimit() = var<uint32_t>(us(LIMIT_B));
 		}
-		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);
 		r->alive = 0;
@@ -964,10 +956,6 @@ namespace potion050
 		register_port(potion050::ORIG_Ring, (void *)potion050::RingTask, "050 Ring", 50);
 		register_port(potion050::ORIG_Mote, (void *)potion050::MoteTask, "050 Mote", 50);
 		register_port(potion050::ORIG_Sparkle, (void *)potion050::SparkleTask, "050 Sparkle", 50);
-		FX_HELD(register_mag050_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag050_potion_held.inc"
-#endif

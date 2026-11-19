@@ -30,10 +30,6 @@ namespace terra219
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag219_terra_break_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -84,7 +80,6 @@ namespace terra219
 		const bool weapon = (U8(RT(), 0x4B) & 0x80) != 0;
 		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting()) held_next_pose(hdr, weapon ? hdr + 0xC : ent + 0x6C);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
@@ -385,7 +380,6 @@ namespace terra219
 		uint8_t *ws = WS();
 		if (U8(RT(), 0x45) == 0)
 		{
-			FX_HELD(TbNoteStep(s);)
 			U8(s, 7) = (uint8_t)(U8(s, 7) - 1);
 			S16(s, 2) = (int16_t)(S16(s, 2) + (int16_t)(S8(s, 9) << 4));
 			U8(s, 0x12) = (uint8_t)(U8(s, 0x12) + U8(s, 0x13));
@@ -394,7 +388,6 @@ namespace terra219
 		}
 		int16_t ang[3] = { (int16_t)(S8(s, 0x12) << 4), (int16_t)(S8(s, 0x1A) << 4), (int16_t)(S8(s, 0x22) << 4) };
 		int16_t pos[3] = { S16(s, 0), S16(s, 2), S16(s, 4) };
-		FX_HELD(if (g_held.active) TbHeldShard(s, ang, pos);)
 		S16(ws, 0xC0) = ang[0];
 		S16(ws, 0xC2) = ang[1];
 		S16(ws, 0xC4) = ang[2];
@@ -475,7 +468,6 @@ namespace terra219
 					else
 					{
 						int8_t life = S8(pool, 7);
-						FX_HELD(if (g_held.active) life = TbHeldLife(pool);)
 						if (life < 0) continue;
 						U32(pk, 4) = AT<uint32_t>(PTR(WS(), 0x98), 4 * life) | 0x26000000;
 						U8(pk, 0x16) |= 0x20;
@@ -519,7 +511,6 @@ namespace terra219
 					else
 					{
 						int8_t life = S8(pool, 7);
-						FX_HELD(if (g_held.active) life = TbHeldLife(pool);)
 						if (life < 0) continue;
 						U8(pk, 0x16) |= 0x20;
 						U32(pk, 4) = AT<uint32_t>(PTR(WS(), 0x98), 4 * life) | 0x2E000000;
@@ -573,11 +564,9 @@ namespace terra219
 		S32(WS(), 0x90) = S16(ref, 0x98);
 		S32(WS(), 0x94) = S16(ref, 0x90);
 		uint8_t *pool = PTR(CUR(), 0xBC);
-		FX_HELD(if (!g_held.active) TbNoteBegin(pool);)
 		static uint8_t *const ENT[3] = { (uint8_t *)us(0x1D98990), (uint8_t *)us(0x1D989BC), (uint8_t *)us(0x1D989E8) };
 		for (int k = 0; k < 3; k++)
 		{
-			FX_HELD(if (g_held.active) { pool = TbHeldDraw(ENT[k], pool); continue; })
 			Launch_AC2890(ENT[k], pool);
 			pool = Draw_AC2EA0(ENT[k], pool);
 		}
@@ -624,10 +613,6 @@ namespace terra219
 		init_clone(terra219::g_c, nullptr, 0);
 		terra219::apply_slots(terra219::g_c);
 		register_port(0xABDA90, (void *)terra219::SequenceTask, "MAG219 Terra Break SequenceTick", 219);
-		FX_HELD(register_mag219_terra_break_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag219_terra_break_held.inc"
-#endif

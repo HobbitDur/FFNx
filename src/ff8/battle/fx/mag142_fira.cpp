@@ -111,10 +111,6 @@ namespace fira142
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag142_fira_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace fira142
@@ -122,7 +118,6 @@ namespace fira142
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = (uint32_t)(TexBase() + 0x10000);
 		else PacketCursor() = (uint32_t)TexBase();
 		int alive = ExecuteTaskQueue(&Queues().second);
@@ -336,7 +331,6 @@ namespace fira142
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_SparkTask), p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
 		SparkUpdate(p);
@@ -373,7 +367,6 @@ namespace fira142
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_EmberTask), p);)
 		EmberDraw(p);
 		if (DrawOnly()) return 0;
 		EmberUpdate(p);
@@ -419,7 +412,6 @@ namespace fira142
 	static uint32_t __cdecl ShockRingTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_ShockRingTask), p);)
 		ShockRingMatrix(p);
 		uint8_t *h = AllocHeader(0xB4);
 		ShockRingHeader(h, p->counter);
@@ -478,7 +470,6 @@ namespace fira142
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_FlameColumnTask), p);)
 		FlameColumnMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		FlameColumnHeader(h, p->counter);
@@ -523,7 +514,6 @@ namespace fira142
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		ModelNode *p = (ModelNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_BurstTask), p);)
 		BurstMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		BurstHeader(h, p->counter);
@@ -605,7 +595,6 @@ namespace fira142
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_TrailTask), p);)
 		TrailMatrix(p);
 		uint8_t *h = AllocHeader(0x58);
 		TrailHeader(h, p->counter);
@@ -629,10 +618,6 @@ namespace fira142
 		register_port(fira142::ORIG_BurstTask, (void *)fira142::BurstTask, "F142 BurstTask", 142);
 		register_port(fira142::ORIG_ProjectileTask, (void *)fira142::ProjectileTask, "F142 ProjectileTask", 142);
 		register_port(fira142::ORIG_TrailTask, (void *)fira142::TrailTask, "F142 TrailTask", 142);
-		FX_HELD(register_mag142_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag142_fira_held.inc"
-#endif

@@ -62,13 +62,8 @@ namespace wildcannon156
 	inline int32_t ComputeCos(int32_t angle) { return fn<int32_t (__cdecl *)(int32_t)>(us(0x56D100))(angle); }
 
 	enum { P_MASK = 0, P_FRAME = 4, P_SIZE = 6, P_POS = 8, P_VEL = 0x10 };
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag156_wild_cannon_blow_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -115,7 +110,6 @@ namespace wildcannon156
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? TexBase() + 0xC000 : TexBase();
 		const int running = ExecuteTaskQueue(ShotQueue());
 		if (!running)
@@ -153,7 +147,6 @@ namespace wildcannon156
 	static uint32_t __cdecl FlashTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_FLASH, n);)
 		FlashDraw(n, S16(n, 0xC) >= 4 ? shl32(S16(n, 0xC) - 4, 9) : -1);
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
@@ -183,7 +176,6 @@ namespace wildcannon156
 	static uint32_t __cdecl RingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_RING, n);)
 		RingDraw(n, S16(n, 0xC) >= 0 ? shl32(S16(n, 0xC), 10) : -1);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -209,7 +201,6 @@ namespace wildcannon156
 	static uint32_t __cdecl ImpactRingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_IRING, n);)
 		ImpactRingDraw(n, S16(n, 0xC) >= 3 ? mul32(S16(n, 0xC) - 3, 0x199) : -1);
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
@@ -238,7 +229,6 @@ namespace wildcannon156
 	static uint32_t __cdecl ImpactTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_IMPACT, n);)
 		const int16_t c = S16(n, 0xC);
 		ImpactDraw(n, c >= 8 ? shl32(c - 8, 9) : -1);
 		if (DrawOnly()) return 0;
@@ -267,7 +257,6 @@ namespace wildcannon156
 	static uint32_t __cdecl BallTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_BALL, n);)
 		BallDraw(n, (const void *)Point(S16(n, 0xE), S16(n, 0x18)));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1A);
@@ -309,7 +298,6 @@ namespace wildcannon156
 		for (uint32_t p = us(PARTS_C); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
-			FX_HELD(held_note_particle(p);)
 			int16_t w[3];
 			BurstPoint(i, (const int16_t *)(p + P_POS), w);
 			if (!ParticleDraw(h, p, w, 4)) continue;
@@ -328,7 +316,6 @@ namespace wildcannon156
 	static uint32_t __cdecl BurstTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_parts(REC_BURST, n);)
 		const int alive = BurstParticles(n);
 		if (DrawOnly()) return 0;
 		if (S16(n, 0xC) < 2)
@@ -363,7 +350,6 @@ namespace wildcannon156
 		for (uint32_t p = lo; p < hi; p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
-			FX_HELD(held_note_particle(p);)
 			if (!ParticleDraw(h, p, (const void *)(p + P_POS), pull_shift)) continue;
 			S16(p, P_SIZE) = (int16_t)(S16(p, P_SIZE) + (int16_t)(S16(p, P_SIZE) >> 5));
 			alive++;
@@ -381,7 +367,6 @@ namespace wildcannon156
 
 	static uint32_t TrailTaskImpl(uint32_t n, bool jitter)
 	{
-		FX_HELD(held_note_parts(jitter ? REC_TRAIL2 : REC_TRAIL, n);)
 		const uint32_t lo = jitter ? us(PARTS_B) : us(PARTS_A), hi = jitter ? us(PARTS_C) : us(PARTS_B);
 		const int alive = TrailParticles(n, lo, hi, jitter ? us(SEQ_Trail2) : us(SEQ_Trail), 0, 4);
 		if (DrawOnly()) return 0;
@@ -422,7 +407,6 @@ namespace wildcannon156
 		for (uint32_t p = us(PARTS_C); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
-			FX_HELD(held_note_particle(p);)
 			if (!ParticleDraw(h, p, (const void *)(p + P_POS), 4)) continue;
 			alive++;
 		}
@@ -433,7 +417,6 @@ namespace wildcannon156
 	static uint32_t __cdecl EmitterTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_parts(REC_EMITTER, n);)
 		const int alive = EmitterParticles(n);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
@@ -617,13 +600,9 @@ namespace wildcannon156
 		register_port(ORIG_Impact, (void *)ImpactTask, "156 ImpactTask", 156);
 		register_port(ORIG_ImpactRing, (void *)ImpactRingTask, "156 ImpactRingTask", 156);
 		register_port(ORIG_Emitter, (void *)EmitterTask, "156 EmitterTask", 156);
-		FX_HELD(register_mag156_held();)
 	}
 }
 
 	void register_mag156_wild_cannon_blow() { wildcannon156::register_mag156_wild_cannon_blow_ports(); }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag156_wild_cannon_blow_held.inc"
-#endif

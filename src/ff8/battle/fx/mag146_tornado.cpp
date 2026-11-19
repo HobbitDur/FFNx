@@ -156,10 +156,6 @@ namespace tornado146
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag146_tornado_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace tornado146
@@ -167,7 +163,6 @@ namespace tornado146
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		uint32_t p = (uint32_t)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_ODD);
 		Parity() = U8(p, 0xC) & 1;
 		if (Parity() == 0) PacketCursor() = us(ARENA_EVEN);
@@ -363,7 +358,6 @@ namespace tornado146
 			AverageTargetPos((uint32_t)ad->targets, ad->target_count, d + 0x10);
 			S16(d, 0x12) = 0;
 			S16(d, 0x22) = 0;
-			FX_HELD(held_note_capture(d);)
 			Capture(d + 0x10, CAPTURE_PACKETS);
 			uint32_t h = Alloc(0xC8);
 			U32(h, 0x30) = us(MESH_Crater);
@@ -796,7 +790,6 @@ namespace tornado146
 	static uint32_t __cdecl PieceTask(TaskNode *n)
 	{
 		uint32_t p = (uint32_t)n;
-		FX_HELD(held_note_draw(us(ORIG_Piece), p);)
 		PieceDraw(p);
 		if (DrawOnly()) return 0;
 		return PieceUpdate(p);
@@ -1072,7 +1065,6 @@ namespace tornado146
 		StageGroundFlags() &= 0xFD;
 		if (S16(g, 0xC) < 0x44)
 		{
-			FX_HELD(held_note_draw(us(ORIG_Ground), g);)
 			GroundTaskDraw(g, GroundFactor(S16(g, 0xC)));
 		}
 		if (DrawOnly()) return 0;
@@ -1251,7 +1243,6 @@ namespace tornado146
 		SetRotW((uint32_t)&m);
 		SetTransW((uint32_t)&m);
 		int32_t c = S16(f, 0xC);
-		FX_HELD(held_note_draw(us(ORIG_Funnel), f);)
 		FunnelDraw(us(RINGS), us(FUNNEL_Packets), c * 100, FunnelAlpha(c));
 		if (DrawOnly()) return 0;
 		S16(f, 0xC) = (int16_t)(S16(f, 0xC) + 1);
@@ -1289,7 +1280,6 @@ namespace tornado146
 		for (uint32_t e = us(SPARKS); e < us(SPARKS_End); e += 0x10)
 		{
 			if (S32(e, 0) < 0) continue;
-			FX_HELD(held_note_item(us(ORIG_Sparks), e, h);)
 			SparkDraw(h, e);
 			if (DrawOnly()) continue;
 			SparkUpdate(e);
@@ -1362,7 +1352,6 @@ namespace tornado146
 			U32(h, 4) = us(MORPH_Target);
 			U32(h, 0x1C) = 0x20C0;
 		}
-		FX_HELD(held_note_item(us(ORIG_Morph), p, h);)
 		PacketCursor() = PrimModel(h, OT44(), 2, PacketCursor());
 		FieldFree(0x58);
 		if (DrawOnly()) return 0;
@@ -1541,7 +1530,6 @@ namespace tornado146
 		{
 			uint32_t life = life0 + 8 * i, pos = pos0 + 16 * i;
 			if (S16(life, 6) < 0) continue;
-			FX_HELD(held_note_debris(life, pos, h);)
 			DebrisDraw(h, life, pos);
 			if (DrawOnly()) continue;
 			DebrisUpdate(life, pos);
@@ -1594,10 +1582,6 @@ namespace tornado146
 		register_port(tornado146::ORIG_Lift, (void *)tornado146::LiftTask, "146 LiftTask", 146);
 		register_port(tornado146::ORIG_Debris, (void *)tornado146::DebrisTask, "146 DebrisTask", 146);
 		register_port(tornado146::ORIG_TexRestore, (void *)tornado146::TexRestoreTask, "146 TexRestoreTask", 146);
-		FX_HELD(register_mag146_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag146_tornado_held.inc"
-#endif

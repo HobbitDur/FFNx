@@ -215,10 +215,6 @@ namespace aura111
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag111_aura_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace aura111
@@ -226,7 +222,6 @@ namespace aura111
 	static uint32_t __cdecl FlameTask(TaskNode *n)
 	{
 		FlameNode *f = (FlameNode *)n;
-		FX_HELD(held_note_flame(f);)
 		uint8_t *h = AllocHeader(0x58);
 		FlameHeader(h, f);
 		FlameDraw(f, h);
@@ -270,7 +265,6 @@ namespace aura111
 			arg.m.t[0] = pos[0];
 			arg.m.t[2] = pos[2];
 			arg.m.t[1] = *(const int16_t *)(t->entity + 0x24);
-			FX_HELD(held_note_play(t, &arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.flags = us(PART_Flags);
 			arg.morph = TexBase() + 0xE20;
@@ -305,7 +299,6 @@ namespace aura111
 			int16_t pos[4];
 			GetEffectSpawnPosition(t->entity, 0xF1, 0, pos);
 			pos[1] = (int16_t)(*(const int16_t *)(t->entity + 0x24) - 0x258);
-			FX_HELD(held_note_glow(pos, e);)
 			GlowDraw(pos, e);
 		}
 		if (t->counter == 0)
@@ -323,7 +316,6 @@ namespace aura111
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0xE28;
@@ -392,10 +384,6 @@ namespace aura111
 		register_port(aura111::ORIG_RootTask, (void *)aura111::RootTask, "A111 RootTask", 111);
 		register_port(aura111::ORIG_TargetTask, (void *)aura111::TargetTask, "A111 TargetTask", 111);
 		register_port(aura111::ORIG_FlameTask, (void *)aura111::FlameTask, "A111 FlameTask", 111);
-		FX_HELD(register_mag111_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag111_aura_held.inc"
-#endif

@@ -270,21 +270,15 @@ namespace remedy
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag067_remedy_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace remedy
 {
-
 	uint32_t __cdecl rm_7DEB50(uint32_t a1)
 	{
 		g_mod = &MOD_067;
-		FX_HELD(held_note_master();)
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
@@ -751,7 +745,6 @@ namespace remedy
 		case 1:
 			a_743190();
 			a_736C00();
-			FX_HELD(held_note_system(sys);)
 			rm_7E1D50();
 			rm_7DFAE0();
 			sys = MEM<uint32_t>(us(ACTOR_STATE));
@@ -1770,10 +1763,6 @@ namespace remedy
 			act::register_module_port(67, p->addr, p->port, p->name);
 		for (const act::remedy::ModPort *p = act::remedy::PORTS; p->addr; p++)
 			act::register_module_port(67, p->addr, p->port, p->name);
-		FX_HELD(register_mag067_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag067_remedy_held.inc"
-#endif

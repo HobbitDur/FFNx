@@ -27,15 +27,10 @@ namespace elvoret018
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag018_elvoret_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
 {
-
 namespace elvoret018
 {
 	static void describe(Clone &c)
@@ -858,7 +853,6 @@ namespace elvoret018
 
 	static void DrawPieces_B4E300()
 	{
-		FX_HELD(if (held_active()) { DrawPiecesHeld(); return; })
 		uint8_t *st = PTR(WS(), 0x84);
 		uint8_t *pk = PTR(CTX(), 0x7C);
 		uint8_t *p = st + 0x20;
@@ -942,7 +936,6 @@ namespace elvoret018
 
 	static void Dots_B4DB80()
 	{
-		FX_HELD(if (held_active()) { DotsHeld(); return; })
 		uint8_t *d = PTR(WS(), 0x8C);
 		uint8_t *desc = PTR(WS(), 0x90);
 		uint8_t *pk = PTR(CTX(), 0xD8);
@@ -985,7 +978,6 @@ namespace elvoret018
 
 	static void __cdecl dh_22_EntityDisintegrate()
 	{
-		FX_HELD(if (held_active()) { dh_22_EntityDisintegrateHeld(); return; } NoteLightN();)
 		if (U32(CUR(), 0xBC) == 0)
 		{
 			uint8_t *desc = PTR(CUR(), 0xB8);
@@ -1014,7 +1006,7 @@ namespace elvoret018
 			const int32_t nb = add32(npoly, 4) & ~3;
 			PTR(CUR(), 0xC4) = blob::ArenaAlloc(nb);
 			uint8_t *sb = PTR(CUR(), 0xC4);
-			if (nb > 0) memset_code(uint32_t(sb), 0, 4 * (size_t)((uint32_t)(nb + 3) >> 2));
+			if (nb > 0) fill_bytes(sb, 0, 4 * (size_t)((uint32_t)(nb + 3) >> 2));
 			uint8_t *p = st + 0x20;
 			for (int32_t k = (int32_t)U16(st, 2) + 1; k > 0; k--, p += 0x44) U32(p, 0) = 0;
 			if (U16(desc, 8) == 5)
@@ -1115,10 +1107,6 @@ namespace elvoret018
 		init_clone(elvoret018::g_c, nullptr, 0);
 		elvoret018::apply_slots(elvoret018::g_c);
 		register_port(0xB4ABA0, (void *)elvoret018::SequenceTask, "MAG018 Elvoret Death SequenceTick", 18);
-		FX_HELD(register_mag018_elvoret_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag018_elvoret_death_held.inc"
-#endif

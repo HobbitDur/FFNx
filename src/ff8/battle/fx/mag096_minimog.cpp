@@ -18,10 +18,6 @@
 
 #include "act_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag096_minimog_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -105,7 +101,6 @@ namespace act
 	uint32_t __cdecl m_731F70(uint32_t a1)
 	{
 		set_mod_by_code(U32(a1, 8));
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -833,10 +828,6 @@ namespace minimog
 		act::register_module(96);
 		for (const act::minimog::ModPort *p = act::minimog::PORTS; p->addr; p++)
 			act::register_module_port(96, p->addr, p->port, p->name);
-		FX_HELD(register_mag096_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag096_minimog_held.inc"
-#endif

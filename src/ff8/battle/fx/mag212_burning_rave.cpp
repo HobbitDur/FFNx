@@ -62,7 +62,8 @@ namespace rave212
 	static const uint32_t LAYOUT_Ground = 0x11883AC, LAYOUT_Bone = 0x1187F2C, LAYOUT_Front = 0x1184ACC, LAYOUT_Burn = 0x118BA10;
 	static const uint32_t KIND_Ground = 0x1154F40, KIND_Bone = 0xFE0FB4, KIND_Front = 0xFE0FC0, KIND_Burn = 0x11AC25C, KIND_BurnB = 0x11AC268;
 	static const uint8_t *PIECE_Table() { return (const uint8_t *)us(0x11AC200); }
-	static const int16_t *const FIST_A = (const int16_t *)0x11AC240, *const FIST_B = (const int16_t *)0x11AC248;
+	static const int16_t *FIST_A() { return (const int16_t *)us(0x11AC240); }
+	static const int16_t *FIST_B() { return (const int16_t *)us(0x11AC248); }
 	static const void *SOUND_A() { return (const void *)us(0x1181070); }
 	static const void *SOUND_B() { return (const void *)us(0x1181074); }
 
@@ -206,10 +207,6 @@ namespace rave212
 	static_assert(sizeof(PlayArg) == 0x38 && sizeof(RockNode) == 0x24 && sizeof(SpriteNode) == 0x18 && sizeof(GhostCtx) == 0x54, "Burning Rave blocks");
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag212_burning_rave_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -445,7 +442,6 @@ namespace rave212
 
 	static void GhostDraw(uint8_t *entity, uint8_t *g)
 	{
-		FX_HELD(held_note_ghosts(entity, g);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x74);
 		GhostCtx *c = (GhostCtx *)(h + 0x20);
 		c->verts = var<uint32_t>(us(0x1D98B3C));
@@ -555,7 +551,6 @@ namespace rave212
 
 	static void DrawEntity(uint8_t *e, const int16_t *angles, const int16_t *off)
 	{
-		FX_HELD(held_note_entity(e, angles, off);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
 		Mat4x3 *m = (Mat4x3 *)h;
 		FramePackets() = DrawShadow(e, OTBase() - 0xBC, 4, FramePackets());
@@ -600,7 +595,6 @@ namespace rave212
 
 	static void CaptureStage(const int16_t *a, const int16_t *b)
 	{
-		FX_HELD(held_note_capture(a, b);)
 		const int32_t b0 = -(int32_t)b[0];
 		const int32_t b3 = b[3];
 		const int32_t w = b3 + b0;
@@ -705,7 +699,6 @@ namespace rave212
 
 	static void RockDraw(const RockNode *k, uint32_t model)
 	{
-		FX_HELD(held_note_rock(k, model);)
 		RockDrawAt(k->pos, (int32_t)(int8_t)k->rx << 4, (int32_t)(int8_t)k->ry << 4, k->scale, model);
 	}
 
@@ -775,7 +768,6 @@ namespace rave212
 
 	static void SpriteDraw(const SpriteNode *s, uint32_t seq, int32_t depth)
 	{
-		FX_HELD(held_note_sprite(s, seq, depth);)
 		TransformCameraByShadowRotation(s->pos, s->size, depth);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint32_t *)h = seq;
@@ -1028,7 +1020,6 @@ namespace rave212
 
 	static void Play(DirectorNode *d, int site, uint8_t *layout, PlayArg *arg)
 	{
-		FX_HELD(held_note_layout(d, site, layout, arg);)
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		prim::play((prim::Layout *)layout, PartCallback, (int)arg, 0);
 	}
@@ -1099,7 +1090,6 @@ namespace rave212
 	}
 	static void DrawGlow(int32_t b)
 	{
-		FX_HELD(held_note_glow(b);)
 		GlowArgs g;
 		GlowParams(b, &g);
 		uint8_t *skel = **(uint8_t ***)(Caster() + 0x64);
@@ -1163,7 +1153,6 @@ namespace rave212
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		FX_HELD(held_note_director(d);)
 		const int16_t c = ++d->counter;
 		if (c == 0xB6) return TASK_END;
 		if (c == 0xAE)
@@ -1220,13 +1209,13 @@ namespace rave212
 			{
 				GetEffectSpawnPosition(Caster(), 0xD, 0, s1);
 				GetEffectSpawnPosition(Caster(), 8, 0, s2);
-				FistPoint(FIST_A, s3);
+				FistPoint(FIST_A(), s3);
 			}
 			else
 			{
 				GetEffectSpawnPosition(Caster(), 0xE, 0, s1);
 				GetEffectSpawnPosition(Caster(), 0xA, 0, s2);
-				FistPoint(FIST_B, s3);
+				FistPoint(FIST_B(), s3);
 			}
 			s3[1] = (int16_t)(s3[1] - 0x64);
 			const int32_t vy = -4 - (CrtRand() & 3);
@@ -1489,7 +1478,6 @@ namespace rave212
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root(r);)
 		if (r->parity)
 		{
 			PacketCursor() = TexBase() + 0xAAE0;
@@ -1561,10 +1549,6 @@ namespace rave212
 		register_port(rave212::ORIG_SparkTask, (void *)rave212::SparkTask, "212 SparkTask", 212);
 		register_port(rave212::ORIG_EmberTask, (void *)rave212::EmberTask, "212 EmberTask", 212);
 		register_port(rave212::ORIG_FlameTask, (void *)rave212::FlameTask, "212 FlameTask", 212);
-		FX_HELD(register_mag212_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag212_burning_rave_held.inc"
-#endif

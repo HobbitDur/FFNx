@@ -456,17 +456,12 @@ namespace mguard_quistis
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag073_mighty_guard_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace mguard_quistis
 {
-
 	uint32_t __cdecl mq_7CC040(uint32_t a1)
 	{
 		if (U8(a1, 0x28) != 0)
@@ -739,7 +734,6 @@ namespace mguard_quistis
 	uint32_t __cdecl mq_7CBEE0(uint32_t a1)
 	{
 		g_mod = &MOD_073;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -980,7 +974,6 @@ namespace mguard_quistis
 		case 1:
 			mq_7D1B80();
 			mq_7CF230();
-			FX_HELD(held_note_system(sys);)
 			mq_7CF0F0();
 			mq_7CCE80();
 			sys = U32(us(0x25F4F64), 0);
@@ -2498,10 +2491,6 @@ namespace mguard_quistis
 			act::register_module_port(73, p->addr, p->port, p->name);
 		for (const act::mguard_quistis::ModPort *p = act::mguard_quistis::PORTS; p->addr; p++)
 			act::register_module_port(73, p->addr, p->port, p->name);
-		FX_HELD(register_mag073_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag073_mighty_guard_quistis_held.inc"
-#endif

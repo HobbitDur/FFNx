@@ -157,10 +157,6 @@ namespace ultrasonic152
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag152_ultrasonic_waves_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace ultrasonic152
@@ -510,7 +506,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
 		int alive = ExecuteTaskQueue(QEffects());
@@ -627,7 +622,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl WaveTask(TaskNode *n)
 	{
 		WaveNode *p = (WaveNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_WaveTask), p);)
 		const int16_t next = WaveDraw(p, shl32(0xC - p->counter, 5));
 		if (DrawOnly()) return 0;
 		p->counter++;
@@ -683,7 +677,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_RingTask), p);)
 		RingDraw(p, RingColours()[p->counter % 10], shl32(p->counter - 0x10, 10));
 		if (DrawOnly()) return 0;
 		RingUpdate(p);
@@ -723,7 +716,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstA(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		FX_HELD(held_note_burst(us(ORIG_BurstA), b);)
 		const int alive = BurstDraw(Parts(), us(SEQ_BurstA), 8, 1);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 8)
@@ -748,7 +740,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstB(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		FX_HELD(held_note_burst(us(ORIG_BurstB), b);)
 		const int alive = BurstDraw(Parts(), us(SEQ_BurstB), 0, 2);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 0xD)
@@ -772,7 +763,6 @@ namespace ultrasonic152
 	static uint32_t __cdecl BurstC(TaskNode *n)
 	{
 		BurstNode *b = (BurstNode *)n;
-		FX_HELD(held_note_burst(us(ORIG_BurstC), b);)
 		const int alive = BurstDraw(Parts(), us(SEQ_BurstC), 0, 4);
 		if (DrawOnly()) return 0;
 		if (b->counter >= 0 && b->counter <= 0xD)
@@ -804,10 +794,6 @@ namespace ultrasonic152
 		register_port(ultrasonic152::ORIG_BurstA, (void *)ultrasonic152::BurstA, "U152 BurstA", 152);
 		register_port(ultrasonic152::ORIG_BurstB, (void *)ultrasonic152::BurstB, "U152 BurstB", 152);
 		register_port(ultrasonic152::ORIG_BurstC, (void *)ultrasonic152::BurstC, "U152 BurstC", 152);
-		FX_HELD(register_mag152_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag152_ultrasonic_waves_held.inc"
-#endif

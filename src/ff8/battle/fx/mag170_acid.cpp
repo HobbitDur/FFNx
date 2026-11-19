@@ -387,19 +387,13 @@ namespace acid170
 		else U32(h, 0x20) += 4;
 		return cursor;
 	}
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag170_acid_held.h"
-#endif
 
 namespace ff8fx
 {
 namespace acid170
 {
-
 	static uint32_t FlatPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
@@ -542,7 +536,6 @@ namespace acid170
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
-		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0x8C));
@@ -605,7 +598,6 @@ namespace acid170
 		Node *n = (Node *)tn;
 		if (n->counter < 0x22)
 		{
-			FX_HELD(held_note_draw(us(ORIG_Melt), n);)
 			MeltDraw(n, MeltAmount(n->counter));
 		}
 		if (DrawOnly()) return 0;
@@ -672,7 +664,6 @@ namespace acid170
 	static uint32_t __cdecl MeshTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Mesh), n);)
 		MeshDraw(n, us(MESH_VERTS) + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
 		if (DrawOnly()) return 0;
 		if (n->counter < 8)
@@ -718,7 +709,6 @@ namespace acid170
 			n->idx--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Puddle), n);)
 		PuddleDraw(n, PuddleFade(n->counter));
 		if (DrawOnly()) return 0;
 		n->a1c = (int16_t)(n->a1c + n->a1e);
@@ -749,7 +739,6 @@ namespace acid170
 	static uint32_t __cdecl BlobTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Blob), n);)
 		const int16_t *pos[4];
 		for (int i = 0; i < 4; i++) pos[i] = StreamOf(n->idx)->curve[0] + (n->a18 - i) * 4;
 		BlobDraw(n, pos);
@@ -771,7 +760,6 @@ namespace acid170
 	static uint32_t __cdecl DripTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Drips), n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
 		U32(h, 0) = us(SEQ_Drip);
@@ -860,7 +848,6 @@ namespace acid170
 	static uint32_t __cdecl SplashTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Splash), n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
 		U32(h, 0) = us(SEQ_Blob);
@@ -1013,7 +1000,6 @@ namespace acid170
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? TexBase() + 0x8000 : TexBase();
 		const int running = ExecuteTaskQueue(EffectQueue());
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -1031,13 +1017,9 @@ namespace acid170
 		register_port(ORIG_Puddle, (void *)PuddleTask, "170 PuddleTask", 170);
 		register_port(ORIG_Melt, (void *)MeltTask, "170 MeltTask", 170);
 		register_port(ORIG_Splash, (void *)SplashTask, "170 SplashTask", 170);
-		FX_HELD(register_mag170_held();)
 	}
 }
 
 	void register_mag170_acid() { acid170::register_mag170_acid_ports(); }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag170_acid_held.inc"
-#endif

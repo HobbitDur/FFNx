@@ -59,10 +59,6 @@ namespace griever344
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag344_griever_368_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace griever344
@@ -91,7 +87,6 @@ namespace griever344
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_A);
 		if (!(r->counter & 1)) PacketCursor() = us(ARENA_B);
 		const int left = ExecuteTaskQueue(QCue());
@@ -104,10 +99,6 @@ namespace griever344
 	{
 		register_port(griever344::ORIG_RootTask, (void *)griever344::RootTask, "344 RootTask", 344);
 		register_port(griever344::ORIG_CueTask, (void *)griever344::CueTask, "344 CueTask", 344);
-		FX_HELD(register_mag344_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag344_griever_368_held.inc"
-#endif

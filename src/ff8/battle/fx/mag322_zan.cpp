@@ -358,10 +358,6 @@ namespace zan322
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag322_zan_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace zan322
@@ -369,7 +365,6 @@ namespace zan322
 	static uint32_t __cdecl DustTask(TaskNode *n)
 	{
 		DustNode *d = (DustNode *)n;
-		FX_HELD(held_note_dust(n);)
 		DustDraw(d->pos, d->height, d->counter);
 		d->counter++;
 		return d->counter < 0xC ? 0 : TASK_END;
@@ -378,7 +373,6 @@ namespace zan322
 	static uint32_t __cdecl StreakTask(TaskNode *n)
 	{
 		StreakNode *s = (StreakNode *)n;
-		FX_HELD(held_note_streak(n);)
 		StreakDraw(s->pos, s->v0, s->counter);
 		s->counter++;
 		if (s->counter >= 8) return TASK_END;
@@ -398,14 +392,12 @@ namespace zan322
 		ff8fx::copy<(8)>(arg.pos, h->pos);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_hit(n);)
 		return prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
 	static uint32_t __cdecl TrailTask(TaskNode *n)
 	{
 		TrailNode *t = (TrailNode *)n;
-		FX_HELD(held_note_trail(n);)
 		TrailDraw(t, (int32_t)t->counter * 0x400 / 8);
 		t->counter++;
 		return t->counter < 8 ? 0 : TASK_END;
@@ -470,7 +462,6 @@ namespace zan322
 		}
 		if ((uint32_t)k < 0x3A)
 		{
-			FX_HELD(held_note_blade(n);)
 			int16_t cur[4] = {};
 			PathPoint(m, seg, t, cur);
 			if (m->cur[0] != cur[0] || m->cur[2] != cur[2]) ff8fx::copy<(8)>(m->prev, m->cur);
@@ -561,7 +552,6 @@ namespace zan322
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *ms = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (ms->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -602,7 +592,6 @@ namespace zan322
 		if (ms->counter > 0x3B)
 		{
 			if (StreamPreload(0) == 0) return 0;
-			FX_HELD(held_note_end();)
 			return TASK_END;
 		}
 		ms->counter++;
@@ -618,10 +607,6 @@ namespace zan322
 		register_port(zan322::ORIG_HitTask, (void *)zan322::HitTask, "322 HitTask", 322);
 		register_port(zan322::ORIG_StreakTask, (void *)zan322::StreakTask, "322 StreakTask", 322);
 		register_port(zan322::ORIG_DustTask, (void *)zan322::DustTask, "322 DustTask", 322);
-		FX_HELD(register_mag322_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag322_zan_held.inc"
-#endif

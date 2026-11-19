@@ -389,10 +389,6 @@ namespace gas168
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag168_sleeping_gas_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gas168
@@ -403,7 +399,6 @@ namespace gas168
 		const int32_t i = g->cloud;
 		WaveStep(CloudRec(i), CloudOffsets(i));
 		WaveBuild(CloudRec(g->cloud), CloudOffsets(g->cloud), CloudVerts(g->cloud), P(g));
-		FX_HELD(held_note_gas(g);)
 		GasMatrix(g);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		GasHeader(h, g, CloudVerts(g->cloud));
@@ -417,7 +412,6 @@ namespace gas168
 	static uint32_t __cdecl SparkTargetTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(us(ORIG_SparkTarget), s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
 		*(uint32_t *)h = us(SEQ_Sparkle);
@@ -486,7 +480,6 @@ namespace gas168
 	static uint32_t __cdecl SparkCasterTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(us(ORIG_SparkCaster), s);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t active = 0;
 		*(uint32_t *)h = us(SEQ_Sparkle);
@@ -623,7 +616,6 @@ namespace gas168
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x14000;
 		else PacketCursor() = TexBase();
 		const int a = ExecuteTaskQueue(EffectQueue());
@@ -639,10 +631,6 @@ namespace gas168
 		register_port(gas168::ORIG_Gas, (void *)gas168::GasTask, "G168 GasTask", 168);
 		register_port(gas168::ORIG_SparkTarget, (void *)gas168::SparkTargetTask, "G168 SparkTargetTask", 168);
 		register_port(gas168::ORIG_SparkCaster, (void *)gas168::SparkCasterTask, "G168 SparkCasterTask", 168);
-		FX_HELD(register_mag168_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag168_sleeping_gas_held.inc"
-#endif

@@ -19,10 +19,6 @@
 #include "act_engine.h"
 #include "../../../log.h"
 
-#ifdef FF8_FX_HELD
-#include "act_engine_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -1076,7 +1072,6 @@ namespace act
 		void *p = port_of(cb);
 		uint32_t f = p ? P(p) : cb;
 		int r = ff8fx::prim::play((ff8fx::prim::Layout *)layout, (ff8fx::prim::Callback)f, (int)arg, (int)paused);
-		FX_HELD(held_note_prim_play(layout, f, arg);)
 		return (uint32_t)r;
 	}
 
@@ -2115,7 +2110,6 @@ namespace act
 	uint32_t __cdecl a_739F40(uint32_t a1)
 	{
 		set_mod_by_code(U32(a1, 8));
-		FX_HELD(held_note_master();)
 
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		MEM<uint32_t>(G(G_258FB68)) = us(0x2793E58);
@@ -2484,7 +2478,6 @@ namespace act
 
 	uint32_t __cdecl a_73AE10(void)
 	{
-		FX_HELD(held_note_camera(1);)
 		uint32_t c = e2_cam();
 		uint32_t done = 0;
 		U16(c, 0xE2) = (uint16_t)(U16(c, 0xE2) + 1);
@@ -2677,7 +2670,6 @@ namespace act
 
 	uint32_t __cdecl a_73B4B0(void)
 	{
-		FX_HELD(held_note_camera(2);)
 		uint32_t c = e2_cam();
 		a_73B520(c, c + 0x5E);
 		c = e2_cam();
@@ -5220,6 +5212,3 @@ namespace act
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "act_engine_held.inc"
-#endif

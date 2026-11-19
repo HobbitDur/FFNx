@@ -29,10 +29,6 @@ namespace eff331
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag331_unknown_331_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -80,7 +76,6 @@ namespace eff331
 		const bool weapon = (U8(RT(), 0x4B) & 0x80) != 0;
 		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting()) held_next_pose(hdr, weapon ? hdr + 0xC : ent + 0x6C);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
@@ -132,10 +127,6 @@ namespace eff331
 		init_clone(eff331::g_c, nullptr, 0);
 		eff331::apply_slots(eff331::g_c);
 		register_port(0x8E0610, (void *)eff331::SequenceTask, "MAG331 effect 331 (attack 313) SequenceTick", 331);
-		FX_HELD(register_mag331_unknown_331_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag331_unknown_331_held.inc"
-#endif

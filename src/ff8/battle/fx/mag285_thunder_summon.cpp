@@ -214,10 +214,6 @@ namespace thunder285
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag285_thunder_summon_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace thunder285
@@ -344,7 +340,6 @@ namespace thunder285
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->counter++;
 		return s->counter < 7 ? 0 : TASK_END;
@@ -401,11 +396,9 @@ namespace thunder285
 		{
 			PrimArg arg;
 			BoltArg(&arg);
-			FX_HELD(held_note_play(m, PLAY_BOLT, &arg);)
 			prim::play((prim::Layout *)m->bolt, PrimCallback, (int)&arg, 0);
 			if (c - 0x30 == 0x22)
 			{
-				FX_HELD(held_note_tile();)
 				PacketCursor() = Tile(0x80, 0x80, 0x80, 0x1000, PacketCursor());
 			}
 		}
@@ -413,7 +406,6 @@ namespace thunder285
 		{
 			PrimArg arg;
 			GroundArg(c, &arg);
-			FX_HELD(held_note_play(m, PLAY_GROUND, &arg);)
 			prim::play((prim::Layout *)m->ground, PrimCallback, (int)&arg, 0);
 		}
 		if (m->counter == 0) BdPlaySE(SOUND_Start(), 0, 0x80);
@@ -461,7 +453,6 @@ namespace thunder285
 				const uint32_t mz = var<uint32_t>(us(0x2507D5C));
 				LookAt()[2] = (int16_t)mz;
 				Eye()[2] = (int16_t)(mz + 0x1518);
-				FX_HELD(held_note_tile();)
 				PacketCursor() = Tile(0x80, 0x80, 0x80, 0x1000, PacketCursor());
 				LookAt()[0] = 0;
 				LookAt()[1] = (int16_t)0xFC93;
@@ -491,7 +482,6 @@ namespace thunder285
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *mn = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (mn->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -549,10 +539,6 @@ namespace thunder285
 		register_port(thunder285::ORIG_MasterTask, (void *)thunder285::MasterTask, "285 MasterTask", 285);
 		register_port(thunder285::ORIG_MainTask, (void *)thunder285::MainTask, "285 MainTask", 285);
 		register_port(thunder285::ORIG_SparkTask, (void *)thunder285::SparkTask, "285 SparkTask", 285);
-		FX_HELD(register_mag285_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag285_thunder_summon_held.inc"
-#endif

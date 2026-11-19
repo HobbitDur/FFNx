@@ -209,13 +209,8 @@ namespace breath129
 	static_assert(sizeof(MasterNode) == 0x14 && sizeof(MainNode) == 0x330 && sizeof(TargetNode) == 0x1E8, "Breath nodes");
 	static_assert(sizeof(SpriteNode) == 0x18 && sizeof(BoltSeg) == 28 && sizeof(BranchNode) == 0x20, "Breath nodes");
 	static_assert(sizeof(ArcNode) == 0x80 && sizeof(ArcSeg) == 16 && sizeof(PrimArg) == 0x28 && sizeof(Sampler) == 0x34, "Breath nodes");
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag129_breath_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -739,7 +734,6 @@ namespace breath129
 				s->intensity += s->decay;
 				if (s->intensity <= 0) s->intensity = 0;
 			}
-		FX_HELD(if (b->count >= 2) held_note_branch(b, slot);)
 		if (b->count >= 2) slot = BranchDraw(b->head, ((MainNode *)(TexBase() + 0x1690))->angle2, b->count, slot);
 		g_branch_slot = slot;
 		BoltSeg *s = b->head;
@@ -956,7 +950,6 @@ namespace breath129
 	static uint32_t __cdecl ArcTask(TaskNode *n)
 	{
 		ArcNode *arc = (ArcNode *)n;
-		FX_HELD(held_note_arc(arc);)
 		int32_t length;
 		ArcSeg *pts = ArcCurve(arc, arc->progress, &length);
 		for (int i = 1; i < 15; i++)
@@ -969,7 +962,6 @@ namespace breath129
 			pts[i].sy += (int16_t)(mul32(rv[1], amp) >> 20);
 			rv[2] = CrtRand() - 0x4000;
 			pts[i].otz += (int16_t)(mul32(rv[2], amp) >> 20);
-			FX_HELD(held_note_arc_jitter(i, rv);)
 		}
 		const int16_t dir0[2] = { (int16_t)(uint32_t)pts, (int16_t)((uint32_t)pts >> 16) };
 		ArcDraw(pts, dir0);
@@ -1247,7 +1239,6 @@ namespace breath129
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(p);)
 		SpriteDraw(p);
 		p->counter++;
 		return (int16_t)p->counter < 9 ? 0 : TASK_END;
@@ -1265,7 +1256,6 @@ namespace breath129
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		arg.morph = Verts();
 		arg.depth = 0;
-		FX_HELD(held_note_play((prim::Layout *)t->layout, PLAY_TARGET, t);)
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		if (t->counter <= 8 && !(t->counter & 1))
 		{
@@ -1312,12 +1302,9 @@ namespace breath129
 			ComposeAffineTransform(&Camera(), &a1.m, &a1.m);
 			a1.morph = Verts();
 			a1.depth = -0x80;
-			FX_HELD(held_note_play((prim::Layout *)m->mouth1, PLAY_MOUTH, nullptr);)
 			prim::play((prim::Layout *)m->mouth1, PrimCallback, (int)&a1, 0);
-			FX_HELD(held_note_play((prim::Layout *)m->mouth2, PLAY_MOUTH, nullptr);)
 			if (prim::play((prim::Layout *)m->mouth2, PrimCallback, (int)&a1, 0) == 0)
 			{
-				FX_HELD(held_note_restart((prim::Layout *)m->mouth2);)
 				DecodeModelPrimLayout(us(MODEL_Mouth2), m->mouth2, 0x68);
 			}
 			if (c1c <= 0x20)
@@ -1330,7 +1317,6 @@ namespace breath129
 				ComposeAffineTransform(&Camera(), &a2.m, &a2.m);
 				a2.morph = Verts();
 				a2.depth = 0;
-				FX_HELD(held_note_play((prim::Layout *)m->mouth3, PLAY_MOUTH3, nullptr);)
 				prim::play((prim::Layout *)m->mouth3, PrimCallback, (int)&a2, 0);
 			}
 		}
@@ -1345,7 +1331,6 @@ namespace breath129
 			const int16_t x = (int16_t)(from[0] + ((((int32_t)to[0] - from[0]) * m->walk) >> 12));
 			const int16_t y = (int16_t)(from[1] + ((((int32_t)to[1] - from[1]) * m->walk) >> 12));
 			const int16_t z = (int16_t)(from[2] + ((((int32_t)to[2] - from[2]) * m->walk) >> 12));
-			FX_HELD(held_note_mesh(m, c1e);)
 			if ((uint32_t)c1e >= 5)
 			{
 				m->walk = (int16_t)(m->walk + m->step);
@@ -1396,7 +1381,6 @@ namespace breath129
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *r = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (r->arena)
 		{
 			PacketCursor() = (uint32_t)(TexBase() + 0x3B70);
@@ -1484,10 +1468,6 @@ namespace breath129
 		register_port(breath129::ORIG_SpriteTask, (void *)breath129::SpriteTask, "129 SpriteTask", 129);
 		register_port(breath129::ORIG_BranchTask, (void *)breath129::BranchTask, "129 BranchTask", 129);
 		register_port(breath129::ORIG_ArcTask, (void *)breath129::ArcTask, "129 ArcTask", 129);
-		FX_HELD(register_mag129_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag129_breath_held.inc"
-#endif

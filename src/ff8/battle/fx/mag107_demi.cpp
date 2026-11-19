@@ -770,10 +770,6 @@ namespace demi107
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag107_demi_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace demi107
@@ -781,7 +777,6 @@ namespace demi107
 	static uint32_t __cdecl MoteTask(TaskNode *n)
 	{
 		MoteNode *p = (MoteNode *)n;
-		FX_HELD(held_note_node(us(ORIG_MoteTask), p);)
 		MoteDraw(p);
 		MoteUpdate(p);
 		if (p->radius <= 0) return TASK_END;
@@ -793,7 +788,6 @@ namespace demi107
 	static uint32_t __cdecl OrbTask(TaskNode *n)
 	{
 		OrbNode *o = (OrbNode *)n;
-		FX_HELD(held_note_node(us(ORIG_OrbTask), o);)
 		OrbDraw(o, o->owner->size);
 		o->angle = (int16_t)(o->angle + 8);
 		if (o->owner->size < 0x200) return TASK_END;
@@ -805,7 +799,6 @@ namespace demi107
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *p = (SparkNode *)n;
-		FX_HELD(held_note_node(us(ORIG_SparkTask), p);)
 		SparkDraw(p);
 		p->frame++;
 		return p->frame < p->end ? 0 : TASK_END;
@@ -834,13 +827,11 @@ namespace demi107
 		int32_t e = t->counter - 0x14;
 		if ((uint32_t)e < 6)
 		{
-			FX_HELD(held_note_burst(t, us(SEQ_Burst), e);)
 			BurstDraw(t, us(SEQ_Burst), e);
 		}
 		e = t->counter - 0x17;
 		if ((uint32_t)e < 6)
 		{
-			FX_HELD(held_note_burst(t, us(SEQ_Ring), e);)
 			BurstDraw(t, us(SEQ_Ring), e);
 		}
 		if (t->counter == 0x17) ScreenFadeTask(0, 1, 1, 0x80);
@@ -860,7 +851,6 @@ namespace demi107
 			sxy[1] = (int16_t)(sxy[1] >> 3);
 			if ((uint16_t)otz != 0)
 			{
-				FX_HELD(held_note_silhouette(t, step);)
 				t->radius = (int16_t)DrawSilhouette(t->entity, sxy[0], sxy[1], t->radius, step);
 				HideTarget(t->entity);
 			}
@@ -875,7 +865,6 @@ namespace demi107
 			arg.owner = t;
 			arg.flags = us(PART_Flags);
 			arg.morph = TexBase() + 0x1DC8;
-			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->vortex, VortexPart, (int)&arg, 0);
 		}
 		if (t->counter == 0)
@@ -893,7 +882,6 @@ namespace demi107
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		bool may_end = true;
 		if (r->arena)
 		{
@@ -972,10 +960,6 @@ namespace demi107
 		register_port(demi107::ORIG_MoteTask, (void *)demi107::MoteTask, "D107 MoteTask", 107);
 		register_port(demi107::ORIG_OrbTask, (void *)demi107::OrbTask, "D107 OrbTask", 107);
 		register_port(demi107::ORIG_SparkTask, (void *)demi107::SparkTask, "D107 SparkTask", 107);
-		FX_HELD(register_mag107_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag107_demi_held.inc"
-#endif

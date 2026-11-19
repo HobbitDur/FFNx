@@ -141,15 +141,10 @@ namespace gastric169
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag169_gastric_juice_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gastric169
 {
-
 	static bool CornerNear(uint32_t hdr, int32_t off)
 	{
 		S16(hdr, off + 2) = (int16_t)(S16(hdr, off + 2) - U16(hdr, 0xAC));
@@ -345,7 +340,6 @@ namespace gastric169
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
-		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0xBC));
@@ -407,7 +401,6 @@ namespace gastric169
 		Node *n = (Node *)tn;
 		if (n->counter < 0x16)
 		{
-			FX_HELD(held_note_draw(us(ORIG_Tint), n);)
 			TintDraw(n, TintFade(n->counter));
 		}
 		if (DrawOnly()) return 0;
@@ -723,7 +716,6 @@ namespace gastric169
 	static uint32_t __cdecl MeshTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Mesh), n);)
 		MeshDraw(n, us(MESH_VERTS) + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
 		if (DrawOnly()) return 0;
 		n->counter++;
@@ -757,7 +749,6 @@ namespace gastric169
 	static uint32_t __cdecl PuddleTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Puddle), n);)
 		PuddleDraw(n, PuddleFade(n->counter));
 		if (DrawOnly()) return 0;
 		n->a1c = (int16_t)(n->a1c + n->a1e);
@@ -786,7 +777,6 @@ namespace gastric169
 	static uint32_t __cdecl BlobTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Blob), n);)
 		BlobDraw(n, StreamOf(n->idx)->curve[0] + n->a18 * 4, us(SEQ_Blob));
 		if (DrawOnly()) return 0;
 		const int16_t v = n->a1a;
@@ -806,7 +796,6 @@ namespace gastric169
 	static uint32_t __cdecl DripTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Drips), n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
 		U32(h, 0) = us(SEQ_Drip);
@@ -893,7 +882,6 @@ namespace gastric169
 	static uint32_t __cdecl SplashTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_draw(us(ORIG_Splash), n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
 		U32(h, 0) = us(SEQ_Splash);
@@ -1057,7 +1045,6 @@ namespace gastric169
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		RootNode *r = (RootNode *)tn;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
 		const int a = ExecuteTaskQueue(EffectQueue());
@@ -1077,10 +1064,6 @@ namespace gastric169
 		register_port(gastric169::ORIG_Drips, (void *)gastric169::DripTask, "G169 DripTask", 169);
 		register_port(gastric169::ORIG_Puddle, (void *)gastric169::PuddleTask, "G169 PuddleTask", 169);
 		register_port(gastric169::ORIG_Splash, (void *)gastric169::SplashTask, "G169 SplashTask", 169);
-		FX_HELD(register_mag169_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag169_gastric_juice_held.inc"
-#endif

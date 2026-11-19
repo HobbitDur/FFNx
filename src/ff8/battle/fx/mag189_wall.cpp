@@ -172,10 +172,6 @@ namespace wall189
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag189_wall_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace wall189
@@ -558,7 +554,6 @@ namespace wall189
 	static uint32_t __cdecl DebrisTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_DebrisTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		uint8_t *w = (uint8_t *)FieldAlloc(0x88);
 		ff8fx::copy<(0x20)>(w + 0x28, &Camera());
@@ -570,7 +565,6 @@ namespace wall189
 		for (Debris *p = Pieces(); p < Pieces() + DEBRIS_COUNT; p++)
 		{
 			if (!(*(const uint8_t *)&p->flag & 1)) continue;
-			FX_HELD(held_note_part(p);)
 			DebrisDraw(h, w, p);
 			if (!(UpdateFlags() & 0x201))
 			{
@@ -586,7 +580,6 @@ namespace wall189
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(p);)
 		}
 		FieldFree(0x88);
 		FieldFree(0x58);
@@ -628,7 +621,6 @@ namespace wall189
 	static uint32_t __cdecl DustTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_DustTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Dust);
@@ -636,7 +628,6 @@ namespace wall189
 		for (Dust *p = Dusts(); p < Dusts() + DUST_COUNT; p++)
 		{
 			if (!(*(const uint8_t *)&p->flag & 1)) continue;
-			FX_HELD(held_note_part(p);)
 			DustDraw(h, p->frame, p->pos, p->angle);
 			if (!(UpdateFlags() & 0x201))
 			{
@@ -651,7 +642,6 @@ namespace wall189
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(p);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -697,7 +687,6 @@ namespace wall189
 			n->delay--;
 			return 0;
 		}
-		FX_HELD(held_begin(us(ORIG_ShardTask), n);)
 		ShardDraw(n, n->counter, ShardFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter < SHARD_GROW) n->scale_y = (int16_t)(n->scale_y + n->step);
@@ -708,7 +697,6 @@ namespace wall189
 	static uint32_t __cdecl WallTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_WallTask), n);)
 		WallDraw(n, n->counter, WallPlane(n->counter), WallFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t c = n->counter;
@@ -807,7 +795,6 @@ namespace wall189
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		Cursor() = us(ARENA_ODD);
 		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = us(ARENA_EVEN);
 		const int a = ExecuteTaskQueue(QEffects());
@@ -831,10 +818,6 @@ namespace wall189
 		register_port(wall189::ORIG_ShardTask, (void *)wall189::ShardTask, "189 ShardTask", 189);
 		register_port(wall189::ORIG_DustTask, (void *)wall189::DustTask, "189 DustTask", 189);
 		register_port(wall189::ORIG_DebrisTask, (void *)wall189::DebrisTask, "189 DebrisTask", 189);
-		FX_HELD(register_mag189_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag189_wall_held.inc"
-#endif

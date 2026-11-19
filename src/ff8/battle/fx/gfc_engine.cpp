@@ -23,10 +23,6 @@ namespace ff8fx
 {
 namespace gfc
 {
-#ifdef GFC_DEBUG_HOOK
-	void (*g_dbg_hook)(int kind, uint32_t id) = nullptr;
-	void (*g_dbg_taint)(void *dst, const void *src, int n) = nullptr;
-#endif
 	Clone *g_clone = nullptr;
 	Generic g_generic;
 
@@ -116,7 +112,6 @@ namespace part_core
 	{
 		uint8_t *bone = CUR();
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * U8(bone, 0x1B));
-		FX_HELD(if (held_predicting()) held_entity_next_root(ent);)
 		int32_t px = S32(bone, 0x5C) >> 16;
 		uint8_t *rec = PTR(PTR(ent, 0x64), 0);
 		int32_t mask = S16(PTR(bone, 0xA0), 0);
@@ -222,9 +217,6 @@ namespace part_core
 				S16(CUR(), 0x8E) = (int16_t)(S32(CUR(), 0x54) >> 16);
 				S16(CUR(), 0x90) = (int16_t)(S32(CUR(), 0x58) >> 16);
 				C().bone[U8(CUR(), 0x18)]();
-#ifdef GFC_DEBUG_HOOK
-				if (g_dbg_hook) g_dbg_hook(2, U8(CUR(), 0x18));
-#endif
 			}
 			rt = RT();
 			U8(rt, 0x44) = (uint8_t)(U8(rt, 0x44) + 1);
@@ -278,16 +270,10 @@ namespace part_core
 				U32(WS(), 4) = U32(CTX(), 0x7C);
 				U32(CTX(), 0x7C) = U32(CTX(), 0xD8);
 				C().draw[U8(CUR(), 0x1C)]();
-#ifdef GFC_DEBUG_HOOK
-				if (g_dbg_hook) g_dbg_hook(1, U8(CUR(), 0x1C));
-#endif
 				U32(CTX(), 0xD8) = U32(CTX(), 0x7C);
 				U32(CTX(), 0x7C) = U32(WS(), 4);
 			}
 			else C().draw[U8(CUR(), 0x1C)]();
-#ifdef GFC_DEBUG_HOOK
-			if (g_dbg_hook) g_dbg_hook(1, U8(CUR(), 0x1C));
-#endif
 			U32(WS(), 0) = U32(WS(), 0) + 1;
 			id = DRAWORDER()[U32(WS(), 0)];
 			if (id == 0xFF) break;
@@ -422,7 +408,6 @@ namespace part_core
 	uint32_t SequenceTick(Clone &c)
 	{
 		g_clone = &c;
-		FX_HELD(held_note_tick();)
 		BindContext();
 		S16(CTX(), 0x32) = (int16_t)(S16(CTX(), 0x32) + 1);
 		U8(RT(), 0x41) = U8(CTX(), 0x32) & 1;
@@ -459,7 +444,6 @@ namespace part_core
 		BuildMatricesAndDraw();
 		x::ParseCamera2(PROJH());
 		PKTCUR() = U32(CTX(), 0x7C);
-		FX_HELD(held_note_scratch();)
 		ReleaseContext();
 		return (~(uint32_t)U16(SEQ(), 0xA) >> 14) & 2;
 	}
@@ -603,7 +587,6 @@ namespace part_vm_a
 		{
 			if (!(U8(keep, 0) & 4))
 			{
-				FX_HELD(guard(ent, 2);)
 				U16(ent, 0) &= 0xFFFB;
 			}
 			keep += 2;
@@ -617,7 +600,6 @@ namespace part_vm_a
 		if (count <= 0) return;
 		do
 		{
-			FX_HELD(guard(ent, 2);)
 			U16(ent, 0) |= 4;
 			ent += 0x9C;
 		} while (--count);
@@ -793,7 +775,6 @@ namespace part_vm_a
 		uint8_t *ready = CTX() + 0xA3;
 		if (U8(RT(), 0x4B) & 0x80)
 		{
-			FX_HELD(guard(&Byte1D96DC4(), 1);)
 			Byte1D96DC4() = 0;
 		}
 		x::TransSummonStream(src, ready);
@@ -899,7 +880,6 @@ namespace part_vm_a
 		if (store)
 		{
 			id += U8(ctx, 0xA2);
-			FX_HELD(guard_ext(&RESFILE()[id], 4);)
 			RESFILE()[id] = (uint8_t *)dst;
 			id += (uint32_t)(int32_t)S16(ctx, 0xA0);
 		}
@@ -1264,11 +1244,8 @@ namespace part_vm_a
 	static void __cdecl op_047_CameraShakeFromOutPos()
 	{
 		uint8_t *b = CUR();
-		FX_HELD(guard(&CamShake()[0], 2);)
 		CamShake()[0] = U16(b, 0x94);
-		FX_HELD(guard(&CamShake()[1], 2);)
 		CamShake()[1] = U16(b, 0x96);
-		FX_HELD(guard(&CamShake()[2], 2);)
 		CamShake()[2] = U16(b, 0x98);
 		STREAM() += 2;
 	}
@@ -1305,20 +1282,14 @@ namespace part_vm_a
 		case 3:
 		{
 			uint32_t e0 = CamWord32(0), e1 = CamWord32(1), a0 = CamWord32(2);
-			FX_HELD(guard(&CamWord32(4), 4);)
 			CamWord32(4) = e0;
 			uint32_t a1 = CamWord32(3);
-			FX_HELD(guard(&CamWord32(5), 4);)
 			CamWord32(5) = e1;
 			uint16_t h = (uint16_t)PROJH();
-			FX_HELD(guard(&CamWord32(7), 4);)
 			CamWord32(7) = a1;
-			FX_HELD(guard(&CamWord32(6), 4);)
 			CamWord32(6) = a0;
 			uint16_t w = Word1D977A2();
-			FX_HELD(guard(&Word1D977A0(), 2);)
 			Word1D977A0() = h;
-			FX_HELD(guard(&Word1D9771C(), 2);)
 			Word1D9771C() = w;
 			break;
 		}
@@ -1336,18 +1307,12 @@ namespace part_vm_a
 			if (!(U8(SEQ(), 9) & 0x20))
 			{
 				uint8_t *b = CUR();
-				FX_HELD(guard(&CamWord32(0), 4);)
 				CamWord32(0) = U32(b, 0x94);
-				FX_HELD(guard(CAMEYE() + 2, 2);)
 				CAMEYE()[2] = S16(b, 0x98);
-				FX_HELD(guard(&PROJH(), 2);)
 				PROJH() = S16(b, 0x8C);
-				FX_HELD(guard(&Word1D977A2(), 2);)
 				Word1D977A2() = U16(b, 0x8E);
 				uint8_t *t = blob::GetBone(S16(STREAM(), 2));
-				FX_HELD(guard(&CamWord32(2), 4);)
 				CamWord32(2) = U32(t, 0x94);
-				FX_HELD(guard(CAMAT() + 2, 2);)
 				CAMAT()[2] = S16(t, 0x98);
 			}
 			break;
@@ -1379,7 +1344,6 @@ namespace part_vm_a
 		U16(b, 2) = 0;
 		U8(cmd, 1) = 0;
 		U32(b, 0x78) = 0x808080;
-		FX_HELD(guard(PTR(sec, 0), 0x10 + U8(PTR(sec, 0), 0) * 0x30);)
 		x::PreReadAnimation(hdr, cmd, U8(b, 9));
 		return b;
 	}
@@ -1457,7 +1421,6 @@ namespace part_vm_b
 	static void __cdecl op_02D_SetCameraFlag()
 	{
 		uint8_t *s = STREAM();
-		FX_HELD(guard((void *)us(0x1D97705), 1);)
 		MEM<uint8_t>(us(0x1D97705)) |= 0x80;
 		STREAM() = s + 2;
 	}
@@ -1472,20 +1435,17 @@ namespace part_vm_b
 		uint32_t sub = (uint32_t)U16(RT(), 0x4A) >> 12;
 		if (sub == 0)
 		{
-			FX_HELD(guard(e, 2);)
 			U16(e, 0) |= (uint16_t)w;
 		}
 		else if (sub == 1)
 		{
 			if ((w & sw) == 0)
 			{
-				FX_HELD(guard(e, 2);)
 				U16(e, 0) &= (uint16_t)~w;
 			}
 		}
 		else if (sub == 8)
 		{
-			FX_HELD(guard(e, 2);)
 			U16(e, 0) &= (uint16_t)~w;
 		}
 		STREAM() += 4;
@@ -1511,7 +1471,6 @@ namespace part_vm_b
 		uint8_t *p = (uint8_t *)us(0x1D98991);
 		for (int i = 0; i < 4; i++, p += 0x2C)
 		{
-			FX_HELD(guard(p, 1);)
 			if (clr) *p &= 0xFD;
 			else *p |= 2;
 		}
@@ -1526,12 +1485,10 @@ namespace part_vm_b
 		uint32_t k = (uint32_t)U16(RT(), 0x4A) >> 9;
 		if (k == 1)
 		{
-			FX_HELD(guard_bone(bone, off, 2);)
 			U16(bone, off) = U16(s, 4);
 		}
 		else
 		{
-			FX_HELD(guard_bone(bone, off, 1);)
 			U8(bone, off) = U8(s, 4);
 		}
 		STREAM() += 6;
@@ -1594,9 +1551,7 @@ namespace part_vm_b
 		else
 		{
 			uint8_t *p = PTR(CTX(), 0xC0);
-			FX_HELD(guard(p + 0xB, 1);)
 			U8(p, 0xB) = (uint8_t)(U8(STREAM(), 2) + 1);
-			FX_HELD(guard(p + 9, 1);)
 			U8(p, 9) = U8(STREAM(), 4);
 			STREAM() += 6;
 		}
@@ -1606,7 +1561,6 @@ namespace part_vm_b
 	{
 		uint8_t *e = Entity();
 		int32_t w = S16(STREAM(), 2);
-		FX_HELD(guard(e + 0x7C, 4);)
 		if (U8(RT(), 0x4B) & 0x80) U32(e, 0x7C) &= ~(uint32_t)w;
 		else U32(e, 0x7C) |= (uint32_t)w;
 		STREAM() += 4;
@@ -2002,25 +1956,21 @@ namespace part_vm_b
 	static void __cdecl op_048_OverrideEntityTransform()
 	{
 		uint8_t *e = Entity();
-		FX_HELD(guard(e + 1, 1);)
 		U8(e, 1) |= 0x10;
 		uint32_t k = ((uint32_t)U16(RT(), 0x4A) >> 9) & 0xF;
 		if (k == 0)
 		{
 			uint8_t *p = CUR() + 0x94;
-			FX_HELD(guard(e + 0x1C, 6);)
 			U32(e, 0x1C) = U32(p, 0);
 			U16(e, 0x20) = U16(p, 4);
 			if (U8(RT(), 0x4B) & 0x80)
 			{
-				FX_HELD(guard(e + 0x24, 2);)
 				U16(e, 0x24) = U16(p, 2);
 			}
 		}
 		else if (k == 1)
 		{
 			uint8_t *p = CUR() + 0x8C;
-			FX_HELD(guard(e + 0xC, 6);)
 			U32(e, 0xC) = U32(p, 0);
 			U16(e, 0x10) = U16(p, 4);
 		}
@@ -2033,7 +1983,6 @@ namespace part_vm_b
 		uint8_t *bone = CUR();
 		if (i > 0)
 		{
-			FX_HELD(guard_bone(bone, 0x50 + 4 * i, 4);)
 			S32(bone, 0x50 + 4 * i) = neg32(S32(bone, 0x50 + 4 * i));
 			if (i < 6)
 			{
@@ -2055,7 +2004,6 @@ namespace part_vm_b
 		uint8_t *bone = CUR();
 		if (i < 0)
 		{
-			FX_HELD(guard_bone(bone, 0x50 + 4 * i, 4);)
 			S32(bone, 0x50 + 4 * i) = neg32(S32(bone, 0x50 + 4 * i));
 			if (i < 6)
 			{
@@ -2075,7 +2023,6 @@ namespace part_vm_b
 	{
 		int32_t i = S16(STREAM(), 2);
 		uint8_t *bone = CUR();
-		FX_HELD(guard_bone(bone, 0x50 + 4 * i, 4);)
 		S32(bone, 0x50 + 4 * i) = neg32(S32(bone, 0x50 + 4 * i));
 		CallBoneHandler();
 		h_B2C440();
@@ -2174,7 +2121,6 @@ namespace part_vm_b
 	{
 		uint8_t *e = Entity();
 		int32_t joint = S16(STREAM(), 2);
-		FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 		blob::Blob_B66B80(e + 0x60, joint, 0x1000, e + 0x40);
 		if (U8(RT(), 0x4B) & 0x80)
 		{
@@ -2213,7 +2159,6 @@ namespace part_vm_b
 			do
 			{
 				uint8_t *e = PTR(scene, 0x60 + 4 * (int32_t)S8(scene, 0x48 + i));
-				FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 				blob::Blob_B66B80(e + 0x60, joint, 0x1000, e + 0x40);
 				uint8_t *ws = WS();
 				int32_t fx = S32(ws, 0xF0), fy = S32(ws, 0xF4), fz = S32(ws, 0xF8);
@@ -2249,7 +2194,6 @@ namespace part_vm_b
 		int32_t size = S16(e, 0x26);
 		if (ops & 0x200)
 		{
-			FX_HELD(if (held_predicting()) held_entity_next_pose(e);)
 			blob::Blob_B66B80(e + 0x60, 0, 0x1000, e + 0x40);
 			int32_t f4 = S32(WS(), 0xF4);
 			int32_t a = sub32(f4, S16(e, 0x36));
@@ -2417,7 +2361,6 @@ namespace part_vm_c
 
 	static uint32_t xl_Render_5088A0(void *a, uint32_t ot, int32_t mode, uint32_t cursor)
 	{
-		FX_HELD(if (held_predicting()) return cursor;)
 		return x::Render_5088A0(a, ot, mode, cursor);
 	}
 
@@ -2843,12 +2786,10 @@ namespace part_vm_c
 		uint8_t *e = PTR(scene, slot * 4 + 0x60);
 		if (clear)
 		{
-			FX_HELD(guard(e, 2);)
 			U16(e, 0) &= 0xFFDF;
 			STREAM() += 2;
 			return;
 		}
-		FX_HELD(guard(e, 1);)
 		U8(e, 0) |= 0x20;
 		uint32_t r = xl_Render_5088A0(e, U32(RT(), 0x4C), 4, U32(CTX(), 0x7C));
 		U32(CTX(), 0x7C) = r;
@@ -3001,7 +2942,6 @@ namespace part_vm_c
 		uint32_t slot = U8(CUR(), 0x1B);
 		uint8_t *e = PTR(SCENE(), slot * 4 + 0x60);
 		uint32_t c = U32(WS(), 0xFC);
-		FX_HELD(guard(e + 0x28, 4);)
 		U32(e, 0x28) = c;
 		STREAM() += 2;
 	}
@@ -3019,9 +2959,7 @@ namespace part_vm_c
 		uint32_t p = us(FADELAYERS) + 0x2C;
 		for (int i = 4; i != 0; i--)
 		{
-			FX_HELD(guard((void *)(p - 0x26), 2);)
 			MEM<uint16_t>(p - 0x26) = (uint16_t)k;
-			FX_HELD(guard((void *)p, 4);)
 			MEM<uint32_t>(p) = c;
 			p += 0x2C;
 		}
@@ -3372,7 +3310,6 @@ namespace part_vm_d
 	{
 		uint8_t *aux = AUXMAT(S16(STREAM(), 2));
 		uint8_t *r = WS() + 0x20;
-		FX_HELD(guard_outside_block(aux, 32);)
 		x::RotMatrixFromAngles(CUR() + 0x8C, r);
 		x::MulMatrix3(CAMALT(), r, aux);
 		x::SetRotMatrix(CAMALT());
@@ -3502,7 +3439,6 @@ namespace part_vm_d
 			base = w;
 		}
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting() && (U8(RT(), 0x4B) & 4)) held_entity_next_pose(hdr - 0x60);)
 		uint8_t *jm = xl_B66B80(hdr, joint, scale, base);
 		switch ((uint32_t)U16(RT(), 0x4A) >> 12)
 		{
@@ -3593,7 +3529,6 @@ namespace part_vm_d
 		int32_t slot = S16(s, 2);
 		uint8_t *L = (uint8_t *)(0x27977A4u + (uint32_t)mul32(slot, 0x50));
 		uint8_t *m = WS() + 0x20;
-		FX_HELD(guard_outside_block(L, 0x4C);)
 		int32_t id = S16(s, 4);
 		if (id != -1)
 		{
@@ -3673,7 +3608,6 @@ namespace part_vm_d
 
 	static void __cdecl op_0C6_SetFogColorAndNear()
 	{
-		FX_HELD(guard_fog_state();)
 		uint8_t *c = CUR();
 		int32_t b = S16(c, 0x90), g = S16(c, 0x8E), r = S16(c, 0x8C);
 		x::GteSetBackColor3(r, g, b);
@@ -3685,7 +3619,6 @@ namespace part_vm_d
 
 	static void __cdecl op_11B_SetFogColorAndFar()
 	{
-		FX_HELD(guard_fog_state();)
 		uint8_t *c = CUR();
 		int32_t b = S16(c, 0x90), g = S16(c, 0x8E), r = S16(c, 0x8C);
 		x::GteSetBackColor3(r, g, b);
@@ -3916,7 +3849,6 @@ namespace part_draw_mesh
 
 	static void __cdecl dh_21_ScrollTextureUpload()
 	{
-		FX_HELD(if (held_active()) return;)
 		uint8_t *arg = PTR(CUR(), 0xB8);
 		blob::ReadAltTexture(S16(arg, 0));
 		U32(WS(), 0x64) = U32(WS(), 0xFC);
@@ -4149,7 +4081,6 @@ namespace part_draw_mesh
 
 		if ((U32(w, 0x48) | U32(w, 0x44) | U32(w, 0x40)) != 0)
 		{
-			FX_HELD(guard(&FLT_1877DA8(), 4);)
 			FLT_1877DA8() = (float)(DEPTH_SCALE_NUM / (double)S32(w, 0xC0));
 			uint32_t *depth = DEPTHARR();
 			uint8_t *mesh = PTR(w, 0x68);
@@ -4162,7 +4093,6 @@ namespace part_draw_mesh
 			uint8_t *ir0 = PTR(w, 0x88);
 			int32_t bias = S32(w, 0x94);
 			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);
-			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
 				int32_t vx = S16(v, 0);
@@ -4207,7 +4137,6 @@ namespace part_draw_mesh
 			int32_t bias = S32(w, 0x94);
 			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);
 			uint32_t *depth = DEPTHARR();
-			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
 				int32_t loc8 = S32(v, 0);
@@ -4247,7 +4176,6 @@ namespace part_draw_mesh
 		}
 		else
 		{
-			FX_HELD(guard(&FLT_1877DA8(), 4);)
 			U32(&FLT_1877DA8(), 0) = 0x3F800000u;
 			uint8_t *ir0 = PTR(w, 0x88);
 			uint8_t *mesh = PTR(w, 0x68);
@@ -4257,7 +4185,6 @@ namespace part_draw_mesh
 			int32_t bias = S32(w, 0x94);
 			int32_t mode = (int32_t)(U32(w, 0x90) & 0x60);
 			uint32_t *depth = DEPTHARR();
-			FX_HELD(guard(depth, (n > 0 ? n : 1) * 4);)
 			do
 			{
 				int32_t loc8 = S32(v, 0);
@@ -4490,7 +4417,6 @@ namespace part_draw_mesh
 		}
 		if (frozen)
 		{
-			FX_HELD(if (!held_model_pose(blk, hdr, cmd)))
 			x::BuildBoneMatricesFromPose(hdr);
 			x::ComputeBonesWorldMatrices(hdr, WS() + 0xE0);
 		}
@@ -5708,7 +5634,6 @@ namespace part_draw_sprite
 				else
 				{
 					if (U32(p, 0x30) == 0) goto next;
-					FX_HELD(if (held_active()) { held_particle_draw(p); goto next; })
 					C().ptype[S8(p, 0x37)]();
 				}
 				if (U32(p, 0x30) == 0) goto next;
@@ -6064,7 +5989,6 @@ namespace part_shared_ribbon
 
 	static void __cdecl dh_37_RibbonTrail()
 	{
-		FX_HELD(held_ribbon_entry();)
 		uint8_t *cur = CUR();
 		uint8_t *ring = PTR(cur, 0xBC);
 		uint8_t *edi;
@@ -6249,9 +6173,7 @@ namespace part_shared_ribbon
 		S32(WS(), 0xF4) = U16(edi, 0xC);
 		S32(WS(), 0xF8) = U16(edi, 2);
 
-		FX_HELD(held_ribbon_save(edi);)
 		Ribbon_B1B220_BuildColourRamp(colA, colB, PTR(WS(), 0x84), arg4);
-		FX_HELD(held_ribbon_v0();)
 		Ribbon_B1ADD0_SetupParentXform();
 
 		uint8_t *pkt = PTR(CTX(), 0x7C);
@@ -6331,7 +6253,6 @@ namespace part_shared_ribbon
 			S32(WS(), 0x7C) = add32(S32(WS(), 0x7C), 1);
 		}
 		PTR(CTX(), 0x7C) = pkt;
-		FX_HELD(held_ribbon_restore();)
 	}
 }
 	void apply_shared_ribbon(Clone &c)
@@ -6347,14 +6268,13 @@ namespace gfc
 {
 namespace part_shared_misc
 {
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
-	static inline void xl_SetDrawStp(void *p, int32_t pbw) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, int32_t)>(us(0x45C9F0))(p, pbw); }
-	static inline void xl_SetDrawMove(void *p, const void *rect, int32_t xx, int32_t yy) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, const void *, int32_t, int32_t)>(us(0x45C060))(p, rect, xx, yy); }
-	static inline void xl_QueueChainTransformation(void *entity, int32_t id) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(entity, id); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_SetDrawStp(void *p, int32_t pbw) { x::f<void (__cdecl *)(void *, int32_t)>(us(0x45C9F0))(p, pbw); }
+	static inline void xl_SetDrawMove(void *p, const void *rect, int32_t xx, int32_t yy) { x::f<void (__cdecl *)(void *, const void *, int32_t, int32_t)>(us(0x45C060))(p, rect, xx, yy); }
+	static inline void xl_QueueChainTransformation(void *entity, int32_t id) { x::f<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(entity, id); }
 	static inline uint8_t *xl_ChainMinEntity(void *entity) { return x::f<uint8_t *(__cdecl *)(void *)>(us(0x501FF0))(entity); }
 	static inline int32_t xl_OffscreenStageRender(void *desc, const void *pos, const void *angles)
 	{
-		FX_HELD(if (held_predicting()) return 0;)
 		return x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(us(0xB65D10))(desc, pos, angles);
 	}
 
@@ -6386,7 +6306,6 @@ namespace part_shared_misc
 
 	static void __cdecl dh_16_ScrollTextureU()
 	{
-		FX_HELD(if (held_active()) return;)
 		uint8_t *arg = PTR(CUR(), 0xB8);
 		blob::ReadAltTexture(S16(arg, 0));
 		U32(WS(), 0x64) = U32(WS(), 0xFC);
@@ -6501,14 +6420,12 @@ namespace part_shared_misc
 		S32(WS(), 0x90) = S16(arg, 0);
 		S32(WS(), 0x94) = S16(arg, 2);
 		uint8_t *b = CUR();
-		FX_HELD(if (held_capture_skip(b)) return;)
 		if (U32(b, 0xC4) == 0)
 		{
 			U32(b, 0xC4) = 0xFFFFFFFF;
 			U32(WS(), 0xF0) = U32(WS(), 0x90);
 			U32(WS(), 0xF4) = U32(WS(), 0x94);
 			CaptureScreenStrips();
-			FX_HELD(held_note_capture(b);)
 			return;
 		}
 		uint32_t c = U32(b, 0xCC);
@@ -6562,7 +6479,6 @@ namespace part_shared_misc
 
 	static void __cdecl dh_39_Starfield()
 	{
-		FX_HELD(if (held_active()) { dh_39_StarfieldHeld(); return; })
 		if (U32(CUR(), 0xBC) == 0)
 		{
 			uint8_t *prm = PTR(CUR(), 0xB8);
@@ -6639,7 +6555,6 @@ namespace part_shared_misc
 		uint8_t *pkt = PTR(CTX(), 0x7C);
 		uint8_t *e = PTR(WS(), 0x60);
 		n = S16(blk, 2);
-		FX_HELD(held_star_begin(blk);)
 		if (n > 0)
 		{
 			e += 0xC;
@@ -6685,7 +6600,6 @@ namespace part_shared_misc
 					if (ot == 0) ot = (uint32_t)((int32_t)S16(sc, 4) & ~3) + U32(RT(), 0x4C);
 					xl_InsertPrimAutoDepth(ot, pkt);
 					pkt += 0xC;
-					FX_HELD(held_star_drawn(i);)
 				}
 				sc += 8;
 				e += 0x10;
@@ -6988,7 +6902,6 @@ namespace part_shared_misc
 		U16(WS(), 0xD4) = U16(STREAM(), 6);
 		U16(WS(), 0xD6) = U16(STREAM(), 8);
 		uint8_t *d = PTR(CTX(), 0x74);
-		FX_HELD(guard(d, 0x18);)
 		U32(d, 0) = 0;
 		U32(d, 4) = 0;
 		U32(d, 0) = U32(CTX(), 0x74) + 0xEC;
@@ -7092,6 +7005,3 @@ namespace part_shared_misc
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "gfc_engine_held.inc"
-#endif

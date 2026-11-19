@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag231_disease_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -324,7 +320,6 @@ namespace disease231
 	{
 		uint8_t *bone = CUR();
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(bone, 0x1B));
-		FX_HELD(held_entity_begin(ent);)
 		uint8_t *model = PTR(ent, 0x64);
 		S32(WS(), 0x60) = S16(bone, 0x94);
 		S32(WS(), 0x64) = S16(CUR(), 0x96);
@@ -480,7 +475,6 @@ namespace disease231
 			DrawGlowPrims(PTR(CUR(), 0xBC), PTR(CUR(), 0xC0), drawn++);
 		}
 		U32(CTX(), 0x7C) = xl_Render_5088A0(ent, FRAMERL() + 0x4064, 0x1F, U32(CTX(), 0x7C));
-		FX_HELD(held_entity_end();)
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
@@ -499,10 +493,6 @@ namespace disease231
 		disease231::g_c.prim[58] = disease231::pr_58_TintedFT4Abr;
 		disease231::g_c.draw[32] = disease231::dh_32_EntityGlow;
 		register_port(0xA66B10, (void *)disease231::SequenceTask, "MAG231 Disease Breath SequenceTick", 231);
-		FX_HELD(register_mag231_disease_breath_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag231_disease_breath_held.inc"
-#endif

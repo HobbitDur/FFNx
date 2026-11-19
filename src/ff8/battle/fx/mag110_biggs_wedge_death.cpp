@@ -479,10 +479,6 @@ namespace bw110
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag110_biggs_wedge_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace bw110
@@ -490,7 +486,6 @@ namespace bw110
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note(K_SPARK, p, sizeof(SpriteNode));)
 		SpriteDraw(p, us(SEQ_Spark));
 		return SpriteMove(p, 0xD);
 	}
@@ -498,7 +493,6 @@ namespace bw110
 	static uint32_t __cdecl HitTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note(K_HIT, p, sizeof(SpriteNode));)
 		SpriteDraw(p, us(SEQ_Hit));
 		return SpriteMove(p, 8);
 	}
@@ -506,7 +500,6 @@ namespace bw110
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *d = (DebrisNode *)n;
-		FX_HELD(held_note(K_DEBRIS, d, sizeof(DebrisNode));)
 		const bool scaled = d->counter >= 0x16;
 		DebrisDraw(d, scaled, scaled ? DebrisScale(d->counter) : 0);
 		return DebrisMove(d);
@@ -515,7 +508,6 @@ namespace bw110
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *g = (RingNode *)n;
-		FX_HELD(held_note(K_RING, g, sizeof(RingNode));)
 		RingDraw(g, g->sn);
 		g->e = (int16_t)(g->e + 0x80);
 		return g->e < 0x1000 ? 0 : TASK_END;
@@ -616,7 +608,6 @@ namespace bw110
 		Mat4x3 m1;
 		if (c < 0x46)
 		{
-			FX_HELD(held_note_stream(s);)
 			uint8_t *h = AllocHeader(0x5C);
 			if (c == 0) BdPlaySE3D(SOUND_Wind(), 0, SOUND_Pos());
 			StreamWobble(s->a, s->b, (uint8_t *)us(STREAM_VERTS));
@@ -640,7 +631,6 @@ namespace bw110
 			int16_t aim[3];
 			if (s->cur == 1) StreamAimKept((const int16_t *)(s->ent[s->next] + 0x1C), s->kept, aim);
 			else StreamAim((const int16_t *)(s->ent[s->cur] + 0x1C), (const int16_t *)(s->ent[s->next] + 0x1C), s->t, aim);
-			FX_HELD(held_note_aim(s, aim);)
 			StreamDraw(h, s, c, nullptr, aim, &m1, us(STREAM_VERTS));
 		}
 		if (c - 5 < 0x3C)
@@ -708,7 +698,6 @@ namespace bw110
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1E9C;
@@ -784,10 +773,6 @@ namespace bw110
 		register_port(bw110::ORIG_DebrisTask, (void *)bw110::DebrisTask, "110 DebrisTask", 110);
 		register_port(bw110::ORIG_RingTask, (void *)bw110::RingTask, "110 RingTask", 110);
 		register_port(bw110::ORIG_SparkTask, (void *)bw110::SparkTask, "110 SparkTask", 110);
-		FX_HELD(register_mag110_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag110_biggs_wedge_death_held.inc"
-#endif

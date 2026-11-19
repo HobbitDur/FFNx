@@ -150,10 +150,6 @@ namespace minipulse286
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag286_mini_pulse_cannon_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace minipulse286
@@ -257,7 +253,6 @@ namespace minipulse286
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
@@ -325,7 +320,6 @@ namespace minipulse286
 			arg.morph = TexBase() + MORPH;
 			arg.depth = -0x20;
 			arg.scroll = 0;
-			FX_HELD(held_note_main(m, PLAY_MUZZLE, &arg);)
 			prim::play((prim::Layout *)m->muzzle, PrimCallback, (int)&arg, 0);
 			int32_t v[3];
 			BeamVector(m, c, P, v);
@@ -334,7 +328,6 @@ namespace minipulse286
 			Scale3DMatrix(&M, sv);
 			ComposeAffineTransform(&Camera(), &M, &arg.m);
 			arg.scroll = (int16_t)((c & 3) << 5);
-			FX_HELD(held_note_main(m, PLAY_BEAM, &arg);)
 			prim::play((prim::Layout *)m->beam, PrimCallback, (int)&arg, 0);
 		}
 		if ((uint32_t)(m->counter - 0x31) < 0x14)
@@ -342,14 +335,12 @@ namespace minipulse286
 			BonePoint(MUZZLE(), P);
 			ImpactFrame(m, P, &M);
 			ComposeAffineTransform(&Camera(), &M, &arg.m);
-			FX_HELD(held_note_main(m, PLAY_IMPACT, &arg);)
 			prim::play((prim::Layout *)m->impact, PrimCallback, (int)&arg, 0);
 			M.t[1] = *(const int16_t *)(m->ent + 0x24);
 			ComposeAffineTransform(&Camera(), &M, &arg.m);
 			arg.morph = TexBase() + MORPH;
 			arg.depth = -0x80;
 			arg.scroll = 0;
-			FX_HELD(held_note_main(m, PLAY_GROUND, &arg);)
 			prim::play((prim::Layout *)m->ground, PrimCallback, (int)&arg, 0);
 		}
 		if (m->counter == 0x18) BdPlaySE(SOUND_Shot(), 0, 0x80);
@@ -361,7 +352,6 @@ namespace minipulse286
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *mn = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (mn->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -408,10 +398,6 @@ namespace minipulse286
 		register_port(minipulse286::ORIG_MasterTask, (void *)minipulse286::MasterTask, "286 MasterTask", 286);
 		register_port(minipulse286::ORIG_MainTask, (void *)minipulse286::MainTask, "286 MainTask", 286);
 		register_port(minipulse286::ORIG_SparkTask, (void *)minipulse286::SparkTask, "286 SparkTask", 286);
-		FX_HELD(register_mag286_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag286_mini_pulse_cannon_held.inc"
-#endif

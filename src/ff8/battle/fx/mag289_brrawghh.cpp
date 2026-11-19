@@ -549,10 +549,6 @@ namespace brr289
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag289_brrawghh_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace brr289
@@ -571,7 +567,6 @@ namespace brr289
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(n);)
 		SpriteDraw(s->seq, s->pos, s->scale, s->frame);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
@@ -588,7 +583,6 @@ namespace brr289
 		BlockAt(&arg, s->pos);
 		arg.morph = TexBase() + VERTS;
 		arg.depth = -0x80;
-		FX_HELD(held_note_play(SPLASH, n, (prim::Layout *)s->layout);)
 		return prim::play((prim::Layout *)s->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -630,7 +624,6 @@ namespace brr289
 			{
 				int32_t x[6];
 				TubeArgs(c, k, x);
-				FX_HELD(held_note_tube(n, k, B, P);)
 				TubeDraw(&CM, TubeMesh(k), x[0], x[1], x[2], x[3], x[4], x[5], TexBase() + VERTS);
 			}
 		}
@@ -666,7 +659,6 @@ namespace brr289
 			BlockAt(&arg, w->pos);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = -0x80;
-			FX_HELD(held_note_play(TARGET, n, (prim::Layout *)w->layout);)
 			Play(w->layout, &arg);
 		}
 		if (c == 0) BdPlaySE(SOUND_Roar(), 0, 0x80);
@@ -730,7 +722,6 @@ namespace brr289
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -762,10 +753,6 @@ namespace brr289
 		register_port(brr289::ORIG_MainTask, (void *)brr289::MainTask, "289 MainTask", 289);
 		register_port(brr289::ORIG_SpriteTask, (void *)brr289::SpriteTask, "289 SpriteTask", 289);
 		register_port(brr289::ORIG_SplashTask, (void *)brr289::SplashTask, "289 SplashTask", 289);
-		FX_HELD(register_mag289_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag289_brrawghh_held.inc"
-#endif

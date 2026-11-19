@@ -310,10 +310,6 @@ namespace bomber217
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag217_energy_bomber_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace bomber217
@@ -321,7 +317,6 @@ namespace bomber217
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(n);)
 		SparkDraw(s->pos, s->counter);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
 		s->vel[1] = (int16_t)(s->vel[1] + s->drag[1]);
@@ -343,11 +338,9 @@ namespace bomber217
 			int16_t P[4];
 			P[3] = PointPad(c);
 			BallPoint(m, c, P, true);
-			FX_HELD(held_note_ball(m, P);)
 			Play(m->layout_ball, P);
 			if (m->count > 0)
 			{
-				FX_HELD(held_note_trail(m);)
 				uint8_t *h = (uint8_t *)FieldAlloc(0x78);
 				for (int32_t i = m->index; i < m->count; i++) TrailDraw(h, m->trail[i], i);
 				FieldFree(0x78);
@@ -390,7 +383,6 @@ namespace bomber217
 					s = (SparkNode *)AddTaskToQueue(QSparks(), us(ORIG_SparkTask));
 				}
 			}
-			FX_HELD(held_note_burst(m);)
 			Play(m->layout_burst, m->target);
 		}
 		if (m->counter == 0) BdPlaySE(SOUND_Start(), 0, 0x80);
@@ -411,7 +403,6 @@ namespace bomber217
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *rt = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (rt->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -440,7 +431,6 @@ namespace bomber217
 		}
 		if (rt->started && main == 0)
 		{
-			FX_HELD(held_note_end();)
 			return TASK_END;
 		}
 		rt->counter++;
@@ -453,10 +443,6 @@ namespace bomber217
 		register_port(bomber217::ORIG_RootTask, (void *)bomber217::RootTask, "217 RootTask", 217);
 		register_port(bomber217::ORIG_MainTask, (void *)bomber217::MainTask, "217 MainTask", 217);
 		register_port(bomber217::ORIG_SparkTask, (void *)bomber217::SparkTask, "217 SparkTask", 217);
-		FX_HELD(register_mag217_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag217_energy_bomber_held.inc"
-#endif

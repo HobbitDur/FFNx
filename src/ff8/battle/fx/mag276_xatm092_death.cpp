@@ -128,15 +128,10 @@ namespace xatm276
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag276_xatm092_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace xatm276
 {
-
 	static inline void CopyVertex(uint32_t s, int32_t off, uint32_t verts, uint16_t index)
 	{
 		const uint32_t v = verts + (uint32_t)(index & 0xFFF) * 8;
@@ -879,7 +874,6 @@ namespace xatm276
 			S16(q, 2) = (int16_t)(S16(q, 2) + (mul32(SharedRand() - 0x4000, e) >> 18));
 			S16(q, 4) = (int16_t)(S16(q, 4) + (mul32(SharedRand() - 0x4000, e) >> 18));
 		}
-		FX_HELD(held_note_arc(n, b, ArcResidue());)
 		ArcDraw(b, ArcResidue());
 		FieldFree(0x80);
 		if (S16(n, 0xC) >= 0xA)
@@ -945,7 +939,6 @@ namespace xatm276
 	static uint32_t __cdecl SmokeTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
-		FX_HELD(held_note_sprite(SPR_SMOKE, n);)
 		DrawMoving(n, us(SEQ_Smoke));
 		const int16_t vy = S16(n, 0x16);
 		S16(n, 0xE) = (int16_t)(S16(n, 0xE) + vy);
@@ -958,7 +951,6 @@ namespace xatm276
 	static uint32_t __cdecl FallTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
-		FX_HELD(held_note_sprite(SPR_FALL, n);)
 		DrawMoving(n, us(SEQ_Fall));
 		const int16_t vy = S16(n, 0x16);
 		S16(n, 0xE) = (int16_t)(S16(n, 0xE) + vy);
@@ -984,7 +976,6 @@ namespace xatm276
 	static uint32_t __cdecl SparkTask(TaskNode *t)
 	{
 		const uint32_t n = (uint32_t)t;
-		FX_HELD(held_note_sprite(SPR_SPARK, n);)
 		DrawSpark(n);
 		if (S16(n, 0xC) == 5)
 		{
@@ -1164,7 +1155,6 @@ namespace xatm276
 		a.scaled = PrimScaled();
 		a.depth = -0x80;
 		a.morph = Buffer() + BUF_MORPH;
-		FX_HELD(held_note_prim(n, &a);)
 		prim::play((prim::Layout *)(n + 0x18), PrimCallback, (int)&a, 0);
 		S16(n, 0xC)++;
 		return S16(n, 0xC) < 0x10 ? 0 : TASK_END;
@@ -1375,7 +1365,6 @@ namespace xatm276
 	{
 		const uint32_t n = (uint32_t)t;
 		if (S16(n, 0xC) >= 0x90) return TASK_END;
-		FX_HELD(held_note_director(n);)
 		GteSetRotMatrix(&Camera());
 		GteSetTransVector(&Camera());
 		DrawDebris(n);
@@ -1430,7 +1419,6 @@ namespace xatm276
 			PacketCursor() = Buffer() + BUF_ARENA1;
 			U32(n, 0x10) = 1;
 		}
-		FX_HELD(held_note_root();)
 		if (S16(n, 0xC) == 1 && U8(n, 0xF) == 0)
 		{
 			U8(n, 0xF) = 1;
@@ -1465,10 +1453,6 @@ namespace xatm276
 		register_port(xatm276::ORIG_SparkTask, (void *)xatm276::SparkTask, "276 SparkTask", 276);
 		register_port(xatm276::ORIG_FallTask, (void *)xatm276::FallTask, "276 FallTask", 276);
 		register_port(xatm276::ORIG_ArcTask, (void *)xatm276::ArcTask, "276 ArcTask", 276);
-		FX_HELD(register_mag276_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag276_xatm092_death_held.inc"
-#endif

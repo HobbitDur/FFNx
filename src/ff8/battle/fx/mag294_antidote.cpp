@@ -142,10 +142,6 @@ namespace antidote294
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag294_antidote_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace antidote294
@@ -157,7 +153,6 @@ namespace antidote294
 		ff8fx::copy<(sizeof(arg.anchor))>(arg.anchor, p->anchor);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + NODE_BYTES;
-		FX_HELD(held_note_play((prim::Layout *)p->layout, p->anchor);)
 		if (prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) == 0)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
@@ -169,7 +164,6 @@ namespace antidote294
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -207,10 +201,6 @@ namespace antidote294
 	{
 		register_port(antidote294::ORIG_RootTask, (void *)antidote294::RootTask, "294 RootTask", 294);
 		register_port(antidote294::ORIG_PlayTask, (void *)antidote294::PlayTask, "294 PlayTask", 294);
-		FX_HELD(register_mag294_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag294_antidote_held.inc"
-#endif

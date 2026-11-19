@@ -27,10 +27,6 @@ namespace mad_cow_special
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag258_mad_cow_special_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -80,7 +76,6 @@ namespace mad_cow_special
 		uint8_t *ent = SlotEntity();
 		uint8_t *hdr = (U8(RT(), 0x4B) & 0x80) ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting()) held_next_pose(hdr, hdr == ent + 0x60 ? ent + 0x6C : hdr + 0xC);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
@@ -137,10 +132,6 @@ namespace mad_cow_special
 		init_clone(mad_cow_special::g_c, nullptr, 0);
 		mad_cow_special::apply_slots(mad_cow_special::g_c);
 		register_port(0x965070, (void *)mad_cow_special::SequenceTask, "MAG258 Mad Cow Special SequenceTick", 258);
-		FX_HELD(register_mag258_mad_cow_special_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag258_mad_cow_special_held.inc"
-#endif

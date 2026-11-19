@@ -163,10 +163,6 @@ namespace hyper198
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag198_hyper_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace hyper198
@@ -1143,7 +1139,6 @@ namespace hyper198
 	static uint32_t __cdecl MuzzleFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_MuzzleFlashTask), n);)
 		MuzzleFlashDraw(n, n->counter >= 8, FadeFrom8(n->counter), FlashScroll(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -1156,7 +1151,6 @@ namespace hyper198
 	static uint32_t __cdecl MuzzleConeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_MuzzleConeTask), n);)
 		MuzzleConeDraw(n, n->counter >= 2, FadeFrom2(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -1172,7 +1166,6 @@ namespace hyper198
 	static uint32_t __cdecl BeamTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_BeamTask), n);)
 		BeamDraw(n, n->counter >= 8, FadeFrom8(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t shrink = n->f1E;
@@ -1186,7 +1179,6 @@ namespace hyper198
 	static uint32_t __cdecl GroundRingTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_GroundRingTask), n);)
 		GroundRingDraw(n, n->counter >= 4, RingFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -1226,27 +1218,23 @@ namespace hyper198
 				e2->pos[2] = (int16_t)(e2->pos[2] + (CrtRand() % 0x32 - 0x19));
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_BoneSmokeTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		SparkBegin(s, h, us(SEQ_BoneSmoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			SparkDraw(e, BoneSmokePull(e), s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			e->size = (int16_t)(e->size + (int16_t)(e->size >> 4));
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -1294,21 +1282,18 @@ namespace hyper198
 				e->vel[2] = (int16_t)(mul32(sp, v[2]) >> 12);
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_SprayTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		SparkBegin(s, h, us(SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			SparkDraw(e, n->pos[3], s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			e->pos[0] = (int16_t)(e->pos[0] + e->vel[0]);
@@ -1316,7 +1301,6 @@ namespace hyper198
 			e->pos[2] = (int16_t)(e->pos[2] + e->vel[2]);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -1371,27 +1355,23 @@ namespace hyper198
 				e->vel[2] = (int16_t)(mul32(sp, v[2]) >> 12);
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_ImpactSparkTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		SparkBegin(s, h, us(SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			SparkDraw(e, n->pos[3], s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			MoveDecay(e);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -1433,27 +1413,23 @@ namespace hyper198
 				e->vel[2] = (int16_t)(mul32(sp, v[2]) >> 12);
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_ImpactSmokeTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		SparkBegin(s, h, us(SEQ_Smoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			SmokeDraw(e, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			MoveDecay(e);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -1606,7 +1582,6 @@ namespace hyper198
 		const int32_t end = EndTick();
 		const int32_t count = c >= end ? end - c + 5 : 5;
 		*(volatile int32_t *)&n_ = count;
-		FX_HELD(held_note_ghosts(c, slot, count, colour);)
 		for (int32_t k = 0; k < count; k++)
 		{
 			const Ghost *s = GhostSlot(slot);
@@ -1671,7 +1646,6 @@ namespace hyper198
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (*(const uint8_t *)&r->counter & 1) ? TexBase() + ARENA_ODD : TexBase();
 		const int shots = ExecuteTaskQueue(QShots());
 		const int aux = ExecuteTaskQueue(QAux());
@@ -1698,10 +1672,6 @@ namespace hyper198
 		register_port(hyper198::ORIG_ImpactSparkTask, (void *)hyper198::ImpactSparkTask, "198 ImpactSparkTask", 198);
 		register_port(hyper198::ORIG_ImpactSmokeTask, (void *)hyper198::ImpactSmokeTask, "198 ImpactSmokeTask", 198);
 		register_port(hyper198::ORIG_GroundRingTask, (void *)hyper198::GroundRingTask, "198 GroundRingTask", 198);
-		FX_HELD(register_mag198_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag198_hyper_shot_held.inc"
-#endif

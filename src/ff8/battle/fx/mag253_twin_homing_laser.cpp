@@ -27,10 +27,6 @@ namespace twinlaser253
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag253_twin_homing_laser_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -78,7 +74,6 @@ namespace twinlaser253
 		const bool weapon = (U8(RT(), 0x4B) & 0x80) != 0;
 		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting()) held_next_pose(hdr, weapon ? hdr + 0xC : ent + 0x6C);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
@@ -111,10 +106,6 @@ namespace twinlaser253
 		init_clone(twinlaser253::g_c, nullptr, 0);
 		twinlaser253::apply_slots(twinlaser253::g_c);
 		register_port(0x998380, (void *)twinlaser253::SequenceTask, "MAG253 Twin Homing Laser SequenceTick", 253);
-		FX_HELD(register_mag253_twin_homing_laser_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag253_twin_homing_laser_held.inc"
-#endif

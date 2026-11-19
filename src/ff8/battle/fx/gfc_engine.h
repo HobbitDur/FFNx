@@ -121,26 +121,12 @@ namespace gfc
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "gfc_engine_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
 {
-#ifdef GFC_DEBUG_HOOK
-	extern void (*g_dbg_taint)(void *dst, const void *src, int n);
-#define GFC_TAINT(d, s, n) do { if (g_dbg_taint) g_dbg_taint((void *)(d), (const void *)(s), (n)); } while (0)
-#else
 #define GFC_TAINT(d, s, n) do { } while (0)
-#endif
-#ifdef GFC_DEBUG_HOOK
-	extern void (*g_dbg_hook)(int kind, uint32_t id);
-	inline void call_vm(uint32_t op) { C().vm[op & 0x1FF](); if (g_dbg_hook) g_dbg_hook(0, op & 0x1FF); }
-#else
 	inline void call_vm(uint32_t op) { C().vm[op & 0x1FF](); }
-#endif
 
 	uint32_t SequenceTick(Clone &c);
 	void BindContext();
@@ -197,37 +183,37 @@ namespace gfc
 		inline void InsertPrimDepthKeys(uint32_t ot, void *prim, int32_t a, int32_t b, int32_t c, int32_t d) { f<void (__cdecl *)(uint32_t, void *, int32_t, int32_t, int32_t, int32_t)>(us(0x45C870))(ot, prim, a, b, c, d); }
 		inline void InsertPrimAltViewport(uint32_t ot, void *prim) { f<void (__cdecl *)(uint32_t, void *)>(us(0x45C8E0))(ot, prim); }
 		inline void ClearOT(uint32_t ot, int32_t n) { f<void (__cdecl *)(uint32_t, int32_t)>(us(0x45D530))(ot, n); }
-		inline void BuildBoneMatricesFromPose(void *hdr) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *)>(us(0x508C90))(hdr); }
-		inline int32_t ReadAnimation(void *hdr, void *cmd) { FX_HELD(if (held_predicting()) return 0;) return f<int32_t (__cdecl *)(void *, void *)>(us(0x508F90))(hdr, cmd); }
-		inline int32_t PreReadAnimation(void *hdr, void *cmd, int32_t anim) { FX_HELD(if (held_predicting()) return 0;) return f<int32_t (__cdecl *)(void *, void *, int32_t)>(us(0x509440))(hdr, cmd, anim); }
-		inline void ComputeBonesWorldMatrices(void *hdr, void *root) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *, void *)>(us(0x5095B0))(hdr, root); }
-		inline uint32_t RenderGeometry(void *a, void *b, uint32_t ot, int32_t mode, uint32_t cursor) { FX_HELD(if (held_predicting()) return cursor;) return f<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(a, b, ot, mode, cursor); }
-		inline uint32_t Render_5088A0(void *a, uint32_t ot, int32_t mode, uint32_t cursor) { FX_HELD(if (held_predicting()) return cursor;) return f<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(a, ot, mode, cursor); }
+		inline void BuildBoneMatricesFromPose(void *hdr) { f<void (__cdecl *)(void *)>(us(0x508C90))(hdr); }
+		inline int32_t ReadAnimation(void *hdr, void *cmd) { return f<int32_t (__cdecl *)(void *, void *)>(us(0x508F90))(hdr, cmd); }
+		inline int32_t PreReadAnimation(void *hdr, void *cmd, int32_t anim) { return f<int32_t (__cdecl *)(void *, void *, int32_t)>(us(0x509440))(hdr, cmd, anim); }
+		inline void ComputeBonesWorldMatrices(void *hdr, void *root) { f<void (__cdecl *)(void *, void *)>(us(0x5095B0))(hdr, root); }
+		inline uint32_t RenderGeometry(void *a, void *b, uint32_t ot, int32_t mode, uint32_t cursor) { return f<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(us(0x5099D0))(a, b, ot, mode, cursor); }
+		inline uint32_t Render_5088A0(void *a, uint32_t ot, int32_t mode, uint32_t cursor) { return f<uint32_t (__cdecl *)(void *, uint32_t, int32_t, uint32_t)>(us(0x5088A0))(a, ot, mode, cursor); }
 		inline int32_t Rand() { return f<int32_t (__cdecl *)()>(us(0x55CBD2))(); }
 		inline void *FieldAlloc(int32_t n) { return f<void *(__cdecl *)(int32_t)>(us(0x5082B0))(n); }
 		inline void FieldFree(int32_t n) { f<void (__cdecl *)(int32_t)>(us(0x5082D0))(n); }
 
-		inline void PlaySE(void *snd, int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *, int32_t, int32_t)>(us(0x501330))(snd, a, b); }
-		inline void TransSummonStream(void *a, void *b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *, void *)>(us(0x501860))(a, b); }
-		inline void PlaySummonStream(int32_t a, int32_t b, int32_t c) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x5018C0))(a, b, c); }
-		inline void Snd_46B3A0(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x46B3A0))(a); }
-		inline void Snd_46B3E0(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x46B3E0))(a); }
-		inline void Snd_46B450(int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, int32_t)>(us(0x46B450))(a, b); }
-		inline void MusicSetVolumeTrans(int32_t a, int32_t b, int32_t c) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x46BBC0))(a, b, c); }
-		inline void Music_47E3C0(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x47E3C0))(a); }
-		inline void PreLoadBattleFile(int32_t id, void *dst, int32_t a, uint32_t cb) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, void *, int32_t, uint32_t)>(us(0x48D0A0))(id, dst, a, cb); }
-		inline void Snd_4A2940(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x4A2940))(a); }
-		inline uint32_t ClaimVoiceSlot(const void *snd, int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return 0;) return f<uint32_t (__cdecl *)(const void *, int32_t, int32_t)>(us(0x4A29A0))(snd, a, b); }
-		inline void Battle_4A8480(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x4A8480))(a); }
-		inline void Battle_501E40(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x501E40))(a); }
-		inline void Battle_501F30(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x501F30))(a); }
-		inline void Camera_504270(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x504270))(a); }
-		inline void QueueVramUpload(const void *rect, const void *data) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(const void *, const void *)>(us(0x505DF0))(rect, data); }
-		inline void ApplyActionResultToTarget(int32_t a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t)>(us(0x506690))(a); }
-		inline void ApplyActionResultToTargets(int32_t a, int32_t b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(int32_t, int32_t)>(us(0x506BA0))(a, b); }
-		inline void Battle_508630(void *a, void *b) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *, void *)>(us(0x508630))(a, b); }
-		inline void PlayCameraAnimation(void *a) { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)(void *)>(us(0x5099A0))(a); }
-		inline void CameraArmReturn() { FX_HELD(if (held_predicting()) return;) f<void (__cdecl *)()>(us(0x50A730))(); }
+		inline void PlaySE(void *snd, int32_t a, int32_t b) { f<void (__cdecl *)(void *, int32_t, int32_t)>(us(0x501330))(snd, a, b); }
+		inline void TransSummonStream(void *a, void *b) { f<void (__cdecl *)(void *, void *)>(us(0x501860))(a, b); }
+		inline void PlaySummonStream(int32_t a, int32_t b, int32_t c) { f<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x5018C0))(a, b, c); }
+		inline void Snd_46B3A0(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x46B3A0))(a); }
+		inline void Snd_46B3E0(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x46B3E0))(a); }
+		inline void Snd_46B450(int32_t a, int32_t b) { f<void (__cdecl *)(int32_t, int32_t)>(us(0x46B450))(a, b); }
+		inline void MusicSetVolumeTrans(int32_t a, int32_t b, int32_t c) { f<void (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x46BBC0))(a, b, c); }
+		inline void Music_47E3C0(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x47E3C0))(a); }
+		inline void PreLoadBattleFile(int32_t id, void *dst, int32_t a, uint32_t cb) { f<void (__cdecl *)(int32_t, void *, int32_t, uint32_t)>(us(0x48D0A0))(id, dst, a, cb); }
+		inline void Snd_4A2940(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x4A2940))(a); }
+		inline uint32_t ClaimVoiceSlot(const void *snd, int32_t a, int32_t b) { return f<uint32_t (__cdecl *)(const void *, int32_t, int32_t)>(us(0x4A29A0))(snd, a, b); }
+		inline void Battle_4A8480(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x4A8480))(a); }
+		inline void Battle_501E40(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x501E40))(a); }
+		inline void Battle_501F30(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x501F30))(a); }
+		inline void Camera_504270(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x504270))(a); }
+		inline void QueueVramUpload(const void *rect, const void *data) { f<void (__cdecl *)(const void *, const void *)>(us(0x505DF0))(rect, data); }
+		inline void ApplyActionResultToTarget(int32_t a) { f<void (__cdecl *)(int32_t)>(us(0x506690))(a); }
+		inline void ApplyActionResultToTargets(int32_t a, int32_t b) { f<void (__cdecl *)(int32_t, int32_t)>(us(0x506BA0))(a, b); }
+		inline void Battle_508630(void *a, void *b) { f<void (__cdecl *)(void *, void *)>(us(0x508630))(a, b); }
+		inline void PlayCameraAnimation(void *a) { f<void (__cdecl *)(void *)>(us(0x5099A0))(a); }
+		inline void CameraArmReturn() { f<void (__cdecl *)()>(us(0x50A730))(); }
 	}
 
 	inline void pad_after_rot_mul(void *m, const void *angles) { U16(m, 0x12) = S16(angles, 2) < 0 ? 0xFFFF : 0; }
@@ -247,7 +233,6 @@ namespace gfc
 		inline void CopyMatrix(void *dst, const void *src) { f<void (__cdecl *)(void *, const void *)>(us(0xB656A0))(dst, src); }
 		inline uint8_t *ArenaAlloc(int32_t n)
 		{
-			FX_HELD(guard(PTR(CTX(), 0x74), (n + 3) & ~3);)
 			return f<uint8_t *(__cdecl *)(int32_t)>(us(0xB656E0))(n);
 		}
 		inline void ArenaFree_B65710() { f<int32_t (__cdecl *)()>(us(0xB65710))(); }
@@ -259,14 +244,13 @@ namespace gfc
 		inline uint8_t *VramRectRing() { return f<uint8_t *(__cdecl *)()>(us(0xB663A0))(); }
 		inline int32_t AltTextureUpload(const void *rect, const void *data)
 		{
-			FX_HELD(if (held_predicting()) return held_alt_texture_budget();)
 			return f<int32_t (__cdecl *)(const void *, const void *)>(us(0xB663C0))(rect, data);
 		}
 		inline void ReadAltTexture(int32_t id) { f<int32_t (__cdecl *)(int32_t)>(us(0xB664A0))(id); }
 		inline void ReadClut_B66560(int32_t id) { f<int32_t (__cdecl *)(int32_t)>(us(0xB66560))(id); }
 		inline void TexInfo_B665C0(int32_t id) { f<int32_t (__cdecl *)(int32_t)>(us(0xB665C0))(id); }
 		inline int32_t ClutWord_B66640(int32_t id) { return f<int32_t (__cdecl *)(int32_t)>(us(0xB66640))(id); }
-		inline void ClutTint_B666F0(int32_t r, int32_t g, int32_t b) { FX_HELD(if (held_predicting()) return;) f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(us(0xB666F0))(r, g, b); }
+		inline void ClutTint_B666F0(int32_t r, int32_t g, int32_t b) { f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(us(0xB666F0))(r, g, b); }
 		inline void Blob_B66A90() { f<int32_t (__cdecl *)()>(us(0xB66A90))(); }
 		inline int32_t Blob_B66B30(int32_t a, int32_t b, int32_t c, int32_t d) { return f<int32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t)>(us(0xB66B30))(a, b, c, d); }
 		inline void Blob_B66B80(void *a, int32_t b, int32_t c, void *d) { f<int32_t (__cdecl *)(void *, int32_t, int32_t, void *)>(us(0xB66B80))(a, b, c, d); }

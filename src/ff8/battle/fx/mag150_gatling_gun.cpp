@@ -99,10 +99,6 @@ namespace gg150
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag150_gatling_gun_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gg150
@@ -249,7 +245,6 @@ namespace gg150
 	static uint32_t __cdecl MuzzleTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_MuzzleTask), n);)
 		MuzzleDraw(n, n->counter >= 0, MuzzleFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -259,7 +254,6 @@ namespace gg150
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_SmokeTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Smoke);
@@ -267,7 +261,6 @@ namespace gg150
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
 			if (!(*(const uint8_t *)&e->id & 1)) continue;
-			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
 			{
@@ -279,7 +272,6 @@ namespace gg150
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -348,7 +340,6 @@ namespace gg150
 	static uint32_t __cdecl ImpactTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_ImpactTask), n);)
 		ImpactDraw(n, n->counter >= 0, ImpactFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -361,7 +352,6 @@ namespace gg150
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_FlashTask), n);)
 		FlashDraw(n, n->counter);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -371,7 +361,6 @@ namespace gg150
 	static uint32_t __cdecl DustTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_DustTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Smoke);
@@ -380,7 +369,6 @@ namespace gg150
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
 			if (!(e->id & (int32_t)n->f0E)) continue;
-			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
 			{
@@ -392,7 +380,6 @@ namespace gg150
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -465,7 +452,6 @@ namespace gg150
 	static uint32_t __cdecl SparkTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_SparkTask), n);)
 		SparkDraw(n, n->counter >= 1, SparkFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -478,7 +464,6 @@ namespace gg150
 	static uint32_t __cdecl SparksTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_SparksTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Sparks);
@@ -486,7 +471,6 @@ namespace gg150
 		for (Particle *e = PartsB(); e < PartsB() + 100; e++)
 		{
 			if (!(e->id & (int32_t)n->f0E)) continue;
-			FX_HELD(held_note_part(e);)
 			*(int32_t *)(h + 8) = e->f16;
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
@@ -499,7 +483,6 @@ namespace gg150
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -597,7 +580,6 @@ namespace gg150
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		Cursor() = us(ARENA_A);
 		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = us(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
@@ -619,10 +601,6 @@ namespace gg150
 		register_port(gg150::ORIG_HitTask, (void *)gg150::HitTask, "G150 HitTask", 150);
 		register_port(gg150::ORIG_SparkTask, (void *)gg150::SparkTask, "G150 SparkTask", 150);
 		register_port(gg150::ORIG_SparksTask, (void *)gg150::SparksTask, "G150 SparksTask", 150);
-		FX_HELD(register_mag150_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag150_gatling_gun_held.inc"
-#endif

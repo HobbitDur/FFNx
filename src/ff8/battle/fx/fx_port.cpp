@@ -17,9 +17,6 @@
 // Native battle effects: registry
 
 #include "fx_port.h"
-#ifdef FF8_FX_HELD
-#include "fx_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -448,6 +445,5 @@ namespace ff8fx
 		register_gfc_eden();
 		register_mag191_doomtrain();
 		register_mag327_gilgamesh();
-		FX_HELD(register_all_held();)
 	}
 }

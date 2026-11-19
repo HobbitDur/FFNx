@@ -360,10 +360,6 @@ namespace beam134
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag134_beam_laser_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace beam134
@@ -371,7 +367,6 @@ namespace beam134
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
-		FX_HELD(held_note_sprite(SPR_GLOW, n, g->pos, g->counter);)
 		SpriteDraw(g->pos, g->counter, us(SEQ_Glow), 0x1000, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
@@ -380,7 +375,6 @@ namespace beam134
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_sprite(SPR_SPARK, n, s->pos, s->counter);)
 		SpriteDraw(s->pos, s->counter, us(SEQ_Spark), 0xC00, -0x300);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
@@ -396,7 +390,6 @@ namespace beam134
 		ComposeAffineTransform(&Camera(), &h->frame, &arg.m);
 		arg.depth = 0;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(PLAY_HIT, n, (prim::Layout *)h->layout, nullptr);)
 		return prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -418,7 +411,6 @@ namespace beam134
 				v[1] = k ? (int16_t)(0 - s) : s;
 				v[2] = co;
 				PointFrame(&f.M, f.P, v, &arg);
-				FX_HELD(held_note_play(PLAY_CHARGE0 + k, n, (prim::Layout *)b->charge[k], &f);)
 				prim::play((prim::Layout *)b->charge[k], PrimCallback, (int)&arg, 0);
 			}
 		}
@@ -428,7 +420,6 @@ namespace beam134
 			v[1] = 0;
 			v[2] = -500;
 			PointFrame(&f.M, f.P, v, &arg);
-			FX_HELD(held_note_play(PLAY_MUZZLE, n, (prim::Layout *)b->muzzle, &f);)
 			prim::play((prim::Layout *)b->muzzle, PrimCallback, (int)&arg, 0);
 			const Ease ez = BeamEase(c, *(const int16_t *)(b->ent + 0x26));
 			int16_t T[4] = { f.T[0], (int16_t)(f.T[1] + ez.lift), f.T[2], f.T[3] };
@@ -444,7 +435,6 @@ namespace beam134
 			ComposeAffineTransform(&Camera(), &d.M2, &ray.m);
 			ray.depth = 0;
 			ray.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play(PLAY_RAY, n, (prim::Layout *)b->ray, &f);)
 			prim::play((prim::Layout *)b->ray, PrimCallback, (int)&ray, 0);
 			if ((uint32_t)(c - 14) < 0x14)
 			{
@@ -474,7 +464,6 @@ namespace beam134
 						g->counter = 0;
 					}
 				}
-				FX_HELD(held_note_beam(n);)
 				BeamRender(&d.M2, d.len, BeamWidth(ez.width), ez.fade);
 			}
 		}
@@ -500,7 +489,6 @@ namespace beam134
 			ComposeAffineTransform(&Camera(), &f.R, &arg.m);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play(PLAY_IMPACT, n, (prim::Layout *)b->impact, &f);)
 			prim::play((prim::Layout *)b->impact, PrimCallback, (int)&arg, 0);
 		}
 		if (b->counter == 2) BdPlaySE(SOUND_Beam(), 0, 0x80);
@@ -513,7 +501,6 @@ namespace beam134
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -586,10 +573,6 @@ namespace beam134
 		register_port(beam134::ORIG_HitTask, (void *)beam134::HitTask, "134 HitTask", 134);
 		register_port(beam134::ORIG_SparkTask, (void *)beam134::SparkTask, "134 SparkTask", 134);
 		register_port(beam134::ORIG_GlowTask, (void *)beam134::GlowTask, "134 GlowTask", 134);
-		FX_HELD(register_mag134_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag134_beam_laser_held.inc"
-#endif

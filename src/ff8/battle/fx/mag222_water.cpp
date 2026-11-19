@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag222_water_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -90,10 +86,6 @@ namespace water
 		apply_shared_misc(water::g_water);
 		water::apply_draw38(water::g_water);
 		register_port(0xA9B870, (void *)water::SequenceTask, "MAG222 Water SequenceTick", 222);
-		FX_HELD(register_mag222_water_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag222_water_held.inc"
-#endif

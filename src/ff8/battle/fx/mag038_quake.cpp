@@ -140,10 +140,6 @@ namespace quake038
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag038_quake_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace quake038
@@ -618,7 +614,6 @@ namespace quake038
 		uint8_t step = U8(slot, 0x40);
 		if (step > 0xC) return cur;
 		U8(slot, 0x40) = (uint8_t)(step + 1);
-		FX_HELD(held_note_wall(m, step);)
 		int16_t w[16];
 		bool drawn;
 		cur = CrackWallDraw(e, cur, pA, pB, step, w, &drawn);
@@ -694,7 +689,6 @@ namespace quake038
 			v[5] = (int16_t)(v[5] + h);
 			v[9] = (int16_t)(v[9] + h);
 		}
-		FX_HELD(held_note_edge(id, k, a, b, n, st, (int16_t)h);)
 		if (st > 4) cur = RaisedEdge(e, k, a, b, n, v, (int16_t)h, ot, cur);
 		if (st == 3 || st == 4) cur = CrackEdge(e, k, v, CrackTick(), cur, st == 4);
 		FieldFree(0x18);
@@ -856,7 +850,6 @@ namespace quake038
 		S32((uint32_t)tmp, 8) = -1;
 		GteSetRotMatrixCtrl(&Camera());
 		GteSetTransVectorCtrl(&Camera());
-		FX_HELD(held_note_ground();)
 		int32_t id = 0;
 		int32_t nverts = 0;
 		for (int32_t i = 0; i < nobjects; i++)
@@ -1060,7 +1053,6 @@ namespace quake038
 	static uint32_t __cdecl RootTask(TaskNode *node)
 	{
 		uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0x5C) & 1) ? Arena0() : Arena1();
 		UpdateTargetPosFromBones(n);
 		switch (PhaseOf(n))
@@ -1666,7 +1658,6 @@ namespace quake038
 		case 1: DebrisMove(n, true); break;
 		default: break;
 		}
-		FX_HELD(held_note_debris(n);)
 		DebrisDraw(n);
 		return EndCheck(n);
 	}
@@ -1674,7 +1665,6 @@ namespace quake038
 	static void SpriteDraw(uint32_t n)
 	{
 		if (U8(n, 0x26) & 4) return;
-		FX_HELD(held_note_sprite(n);)
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation((const void *)(n + 0x1C), 0x1000, S16(n, 0x54));
 		U32((uint32_t)h, 0) = U32(n, 0x4C);
@@ -1834,10 +1824,6 @@ namespace quake038
 		register_port(quake038::ORIG_Rock, (void *)quake038::RockTask, "Q038 RockTask", 38);
 		register_port(quake038::ORIG_Dust, (void *)quake038::DustTask, "Q038 DustTask", 38);
 		register_port(quake038::ORIG_Chip, (void *)quake038::ChipTask, "Q038 ChipTask", 38);
-		FX_HELD(register_mag038_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag038_quake_held.inc"
-#endif

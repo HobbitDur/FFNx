@@ -27,10 +27,6 @@ namespace gas236
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag236_gas_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -84,10 +80,6 @@ namespace gas236
 		gas236::g_c.prim[48] = gas236::pr_48_TintedFT3Abr;
 		gas236::g_c.draw[31] = gas236::dh_31_MeshHeightCut;
 		register_port(0xA348B0, (void *)gas236::SequenceTask, "MAG236 Gas SequenceTick", 236);
-		FX_HELD(register_mag236_gas_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag236_gas_held.inc"
-#endif

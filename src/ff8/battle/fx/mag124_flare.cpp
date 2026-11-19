@@ -576,10 +576,6 @@ namespace flare124
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag124_flare_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace flare124
@@ -591,7 +587,6 @@ namespace flare124
 		if (mode == -2) return TASK_END;
 		if (mode >= 0)
 		{
-			FX_HELD(held_note_particle(p, mode);)
 			ParticleDraw(p, mode);
 		}
 		ParticleMove(p);
@@ -646,19 +641,16 @@ namespace flare124
 		arg.scale[0] = scale;
 		*(uint32_t *)&arg.pos[0] = *(const uint32_t *)&t->pos[0];
 		arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)size) >> 3;
-		FX_HELD(held_note_play(t, t->burst, &arg);)
 		int alive = prim::play((prim::Layout *)t->burst, PrimPart, (int)&arg, 0);
 		arg.pos[2] = t->pos[2];
 		arg.pos[0] = t->pos[0];
 		arg.pos[1] = *(const int16_t *)(t->entity + 0x24);
 		arg.depth = 0;
-		FX_HELD(held_note_play(t, t->ring, &arg);)
 		alive |= prim::play((prim::Layout *)t->ring, PrimPart, (int)&arg, 0);
 		const int32_t e = (int32_t)t->counter - 0x28;
 		if (e == 0x28) ShowTarget(t->entity);
 		else if ((uint32_t)e < 0x28)
 		{
-			FX_HELD(held_note_silhouette(t, e);)
 			GteSetRotMatrix(&Camera());
 			GteSetTransVector(&Camera());
 			GteLoadV0(t->pos);
@@ -724,7 +716,6 @@ namespace flare124
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x30BC;
@@ -802,10 +793,6 @@ namespace flare124
 		register_port(flare124::ORIG_RootTask, (void *)flare124::RootTask, "F124 RootTask", 124);
 		register_port(flare124::ORIG_TargetTask, (void *)flare124::TargetTask, "F124 TargetTask", 124);
 		register_port(flare124::ORIG_ParticleTask, (void *)flare124::ParticleTask, "F124 ParticleTask", 124);
-		FX_HELD(register_mag124_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag124_flare_held.inc"
-#endif

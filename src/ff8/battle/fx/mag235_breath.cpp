@@ -16,10 +16,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag235_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -200,7 +196,6 @@ namespace breath
 	{
 		uint8_t *bone = CUR();
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(bone, 0x1B));
-		FX_HELD(held_entity_begin(ent);)
 		uint8_t *model = PTR(ent, 0x64);
 		S32(WS(), 0x60) = S16(bone, 0x94);
 		S32(WS(), 0x64) = S16(CUR(), 0x96);
@@ -315,7 +310,6 @@ namespace breath
 		U32(blk, 0x44) = U32(CTX(), 0x74) + 4 * (int32_t)S16(dist, 0);
 		SyncEntityModelCopy(PTR(CUR(), 0xBC));
 		uint8_t *hdr = blk + 0x10;
-		FX_HELD(if (!held_entity_pose(hdr, ent)))
 		x::BuildBoneMatricesFromPose(hdr);
 		xl_EntityBounds_5086F0(ent);
 		x::ComposeAffine(NODEMAT(), ent + 0x40, WS() + 0xE0);
@@ -357,7 +351,6 @@ namespace breath
 			DrawGlowPrims(PTR(CUR(), 0xBC), PTR(CUR(), 0xC0), drawn++);
 		}
 		U32(CTX(), 0x7C) = xl_Render_5088A0(ent, FRAMERL() + 0x4064, 0x1F, U32(CTX(), 0x7C));
-		FX_HELD(held_entity_end();)
 	}
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
@@ -379,10 +372,6 @@ namespace breath
 		init_clone(breath::g_c, nullptr, 0);
 		breath::g_c.draw[32] = breath::dh_32_EntityGlow;
 		register_port(0xA3E9E0, (void *)breath::SequenceTask, "MAG235 Breath SequenceTick", 235);
-		FX_HELD(register_mag235_breath_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag235_breath_held.inc"
-#endif

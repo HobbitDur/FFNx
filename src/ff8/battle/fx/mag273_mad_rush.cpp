@@ -158,10 +158,6 @@ namespace madrush273
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag273_mad_rush_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace madrush273
@@ -169,7 +165,6 @@ namespace madrush273
 	static uint32_t __cdecl DustTask(TaskNode *n)
 	{
 		DustNode *d = (DustNode *)n;
-		FX_HELD(held_note_dust(d);)
 		DustDraw(d);
 		d->counter++;
 		if (d->counter >= DUST_FRAMES) return TASK_END;
@@ -188,7 +183,6 @@ namespace madrush273
 		PrimArg arg;
 		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, p->anchor);
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(p);)
 		const int left = prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0);
 		const int32_t c = p->counter - 0x14;
 		if ((uint32_t)c < 10u)
@@ -218,7 +212,6 @@ namespace madrush273
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -269,10 +262,6 @@ namespace madrush273
 		register_port(madrush273::ORIG_RootTask, (void *)madrush273::RootTask, "273 RootTask", 273);
 		register_port(madrush273::ORIG_PlayTask, (void *)madrush273::PlayTask, "273 PlayTask", 273);
 		register_port(madrush273::ORIG_DustTask, (void *)madrush273::DustTask, "273 DustTask", 273);
-		FX_HELD(register_mag273_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag273_mad_rush_held.inc"
-#endif

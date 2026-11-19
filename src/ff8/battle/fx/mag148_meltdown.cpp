@@ -94,10 +94,6 @@ namespace melt148
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag148_meltdown_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace melt148
@@ -105,7 +101,6 @@ namespace melt148
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_ODD);
 		if (!(U8(node, 0xC) & 1)) PacketCursor() = us(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(EffectQueue());
@@ -428,7 +423,6 @@ namespace melt148
 	{
 		uint32_t node = P(n);
 		const int16_t c = S16(node, 0xC);
-		FX_HELD(if (c < 0x22) held_note_draw(us(ORIG_Melt), node);)
 		MeltDraw(node, MeltStrength(c), c < 0x22);
 		if (DrawOnly()) return 0;
 		U16(node, 0xC) = (uint16_t)(U16(node, 0xC) + 1);
@@ -769,7 +763,6 @@ namespace melt148
 	static uint32_t __cdecl DiscTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		FX_HELD(held_note_draw(us(ORIG_Disc), node);)
 		DiscDraw(node);
 		if (DrawOnly()) return 0;
 		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) + U16(node, 0x1E));
@@ -823,7 +816,6 @@ namespace melt148
 	static uint32_t __cdecl CasterGlowTask(TaskNode *n)
 	{
 		uint32_t node = P(n);
-		FX_HELD(held_note_draw(us(ORIG_CasterGlow), node);)
 		CasterGlowDraw(node);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(node, 0xC);
@@ -885,7 +877,6 @@ namespace melt148
 		for (uint32_t e = us(POOL_A); e < us(POOL_A_END); e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
-			FX_HELD(held_note_particle(us(ORIG_ParticlesA), e, node, h);)
 			ParticleDraw(h, e);
 			if (DrawOnly()) continue;
 			ParticleAUpdate(e);
@@ -955,7 +946,6 @@ namespace melt148
 		for (uint32_t e = us(POOL_B); e < us(POOL_B_END); e += 0x14)
 		{
 			if (S16(e, 0) < 0) continue;
-			FX_HELD(held_note_particle(us(ORIG_ParticlesB), e, node, h);)
 			ParticleDraw(h, e);
 			if (DrawOnly()) continue;
 			ParticleBUpdate(e, S16(node, 0xC));
@@ -1003,10 +993,6 @@ namespace melt148
 		register_port(melt148::ORIG_CasterGlow, (void *)melt148::CasterGlowTask, "M148 CasterGlowTask", 148);
 		register_port(melt148::ORIG_ParticlesA, (void *)melt148::ParticlesATask, "M148 ParticlesATask", 148);
 		register_port(melt148::ORIG_ParticlesB, (void *)melt148::ParticlesBTask, "M148 ParticlesBTask", 148);
-		FX_HELD(register_mag148_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag148_meltdown_held.inc"
-#endif

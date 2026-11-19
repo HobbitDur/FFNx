@@ -31,10 +31,6 @@ namespace megiddo
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag166_megiddo_flame_held.h"
-#endif
-
 namespace ff8fx
 {
 	void register_mag166_megiddo_flame()
@@ -43,10 +39,6 @@ namespace ff8fx
 			"166 Arc", "166 Sheet", "166 Ribbon", "166 Column", "166 ColumnFlash", "166 Pillar", "166 Flame", "166 Sparks", "166 Debris",
 			"166 KnockDown", "166 Throw", "166 Ring2" };
 		megiddo::Megiddo<megiddo::D166>::Register(names);
-		FX_HELD(register_mag166_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag166_megiddo_flame_held.inc"
-#endif

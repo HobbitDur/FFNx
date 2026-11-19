@@ -156,10 +156,6 @@ namespace gu066
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag066_griever_ultimecia_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gu066
@@ -810,7 +806,6 @@ namespace gu066
 	static uint32_t __cdecl FadeTask(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_task(us(ORIG_FadeTask), n);)
 		const int16_t c = Counter(n);
 		const int32_t in = At<int16_t>(n, 0x10);
 		const int32_t level = At<int16_t>(n, 0x1C);
@@ -930,7 +925,6 @@ namespace gu066
 		At<int32_t>(w, 0x70) = 0;
 		At<int32_t>(w, 0x74) = -0x1000;
 		At<int32_t>(w, 0x78) = 0;
-		FX_HELD(held_note_pool(us(ORIG_SparkTask), n, w, us(POOL1));)
 		for (uint32_t e = us(POOL1); e < us(POOL1_END); e += 0x18)
 		{
 			if (At<int32_t>(e, 0) != 1) continue;
@@ -1025,7 +1019,6 @@ namespace gu066
 	static uint32_t __cdecl RingTask(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_task(us(ORIG_RingTask), n);)
 		RingDraw(n);
 		if (DrawOnly()) return 0;
 		const int16_t d = At<int16_t>(n, 0x1E);
@@ -1100,7 +1093,6 @@ namespace gu066
 		int32_t count = 0;
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
-		FX_HELD(held_note_pool(us(ORIG_PuffTask), n, w, us(POOL1));)
 		for (uint32_t e = us(POOL1); e < us(POOL1_END); e += 0x18)
 		{
 			if (At<int32_t>(e, 0) != tag) continue;
@@ -1167,7 +1159,6 @@ namespace gu066
 		int32_t count = 0;
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
-		FX_HELD(held_note_pool(us(ORIG_DustTask), n, w, us(POOL2));)
 		for (uint32_t e = us(POOL2); e < us(POOL2_END); e += 0x18)
 		{
 			if (At<int32_t>(e, 0) != tag) continue;
@@ -1221,7 +1212,6 @@ namespace gu066
 		int32_t count = 0;
 		const int32_t push = -(int32_t)Push();
 		const int32_t tag = At<int16_t>(n, 0xE);
-		FX_HELD(held_note_pool(us(ORIG_SmokeTask), n, w, us(POOL2));)
 		for (uint32_t e = us(POOL2); e < us(POOL2_END); e += 0x18)
 		{
 			if (At<int32_t>(e, 0) != tag) continue;
@@ -1610,7 +1600,6 @@ namespace gu066
 			At<int32_t>(h, 0x44) = c;
 			if (c != 0)
 				Caster()[0] |= 4;
-			FX_HELD(held_note_melt(n, h);)
 			MeltDraw(h, Caster());
 			FieldFree(0xB0);
 		}
@@ -1695,7 +1684,6 @@ namespace gu066
 		At<int32_t>(w, 0x4C) = 0x3000;
 		At<int16_t>(w, 4) = 0;
 		At<int16_t>(w, 0) = 0;
-		FX_HELD(held_note_pool(us(ORIG_GlowTask), n, w, us(POOL1));)
 		for (uint32_t e = us(POOL1); e < us(POOL1_END); e += 0x18)
 		{
 			if (!(At<uint8_t>(e, 0) & 2)) continue;
@@ -1745,7 +1733,6 @@ namespace gu066
 	static uint32_t __cdecl WaveTask(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_task(us(ORIG_WaveTask), n);)
 		WaveDraw(n);
 		if (DrawOnly()) return 0;
 		const int16_t c = Counter(n);
@@ -1814,7 +1801,6 @@ namespace gu066
 	static uint32_t __cdecl SwirlTask(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_task(us(ORIG_SwirlTask), n);)
 		SwirlDraw(n);
 		if (DrawOnly()) return 0;
 		At<int16_t>(n, 0x18) = (int16_t)(At<int16_t>(n, 0x18) + At<int16_t>(n, 0x1A));
@@ -1901,7 +1887,6 @@ namespace gu066
 	static uint32_t __cdecl FlareTask(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_task(us(ORIG_FlareTask), n);)
 		FlareDraw(n);
 		if (DrawOnly()) return 0;
 		const int16_t d = At<int16_t>(n, 0x1E);
@@ -1948,7 +1933,6 @@ namespace gu066
 		}
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		SpriteBegin(w, h, us(0xDE45D0));
-		FX_HELD(held_note_pool(us(ORIG_ShardSpin), n, w, us(POOL2));)
 		for (uint32_t e = us(POOL2); e < us(POOL2_END); e += 0x18)
 		{
 			if (!(At<uint8_t>(e, 0) & 1)) continue;
@@ -2022,7 +2006,6 @@ namespace gu066
 		At<int16_t>(w, 0) = 0;
 		At<int32_t>(w, 0x50) = 0x2800;
 		At<int32_t>(w, 0x4C) = 0x2800;
-		FX_HELD(held_note_pool(us(ORIG_SparkRain), n, w, us(POOL1));)
 		for (uint32_t e = us(POOL1); e < us(POOL1_END); e += 0x18)
 		{
 			if (!(At<uint8_t>(e, 0) & 1)) continue;
@@ -2097,7 +2080,6 @@ namespace gu066
 	static uint32_t __cdecl Billboard(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_task(us(ORIG_Billboard), n);)
 		BillboardDraw(n);
 		if (DrawOnly()) return 0;
 		const int16_t d = At<int16_t>(n, 0x1E);
@@ -2142,7 +2124,6 @@ namespace gu066
 	static uint32_t __cdecl Billboard2(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_task(us(ORIG_Billboard2), n);)
 		Billboard2Draw(n);
 		if (DrawOnly()) return 0;
 		const int16_t c = Counter(n);
@@ -2221,7 +2202,6 @@ namespace gu066
 		At<uint32_t>((uint32_t)h, 0) = us(0xDE477C);
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBackFromTrans((const void *)(w + 8));
-		FX_HELD(held_note_pool(us(ORIG_DustFall2), n, w, pool);)
 		uint32_t e = pool;
 		for (int k = 0; k < 400; k++, e += 0x18)
 		{
@@ -2273,7 +2253,6 @@ namespace gu066
 		At<uint32_t>((uint32_t)h, 0) = us(0xDE477C);
 		GteSetLightMatrix((const void *)(w + 8));
 		GteSetBackFromTrans((const void *)(w + 8));
-		FX_HELD(held_note_pool(us(ORIG_DustFall), n, w, pool);)
 		uint32_t e = pool;
 		for (int k = 0; k < 800; k++, e += 0x18)
 		{
@@ -2326,7 +2305,6 @@ namespace gu066
 			{
 				At<uint32_t>(h, 0x1C) = var<uint32_t>(us(0x1D989E4));
 				At<int16_t>(h, 0x24) = var<int16_t>(us(0x1D989BE));
-				FX_HELD(held_note_stage(n, h);)
 				FrameArena() = RenderGeometry(us(0x1D989C0), (void *)h, OT44(), 4, FrameArena());
 			}
 			FieldFree(0x2C);
@@ -2341,7 +2319,6 @@ namespace gu066
 	static uint32_t __cdecl RootTask(TaskNode *node)
 	{
 		const uint32_t n = (uint32_t)node;
-		FX_HELD(held_note_root(n);)
 		g_frame_pad = 0;
 		if (At<uint8_t>(n, 0xC) & 1)
 			PacketCursor() = TexBase() + 0x10000;
@@ -2531,10 +2508,6 @@ namespace gu066
 		register_port(gu066::ORIG_DustFall2, (void *)gu066::DustFall2, "G066 DustFall2", 66);
 		register_port(gu066::ORIG_DustFall, (void *)gu066::DustFall, "G066 DustFall", 66);
 		register_port(gu066::ORIG_StageTask, (void *)gu066::StageTask, "G066 StageTask", 66);
-		FX_HELD(register_mag066_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag066_griever_ultimecia_death_held.inc"
-#endif

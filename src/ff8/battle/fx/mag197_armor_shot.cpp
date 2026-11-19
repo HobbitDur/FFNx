@@ -159,10 +159,6 @@ namespace armor197
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag197_armor_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace armor197
@@ -385,7 +381,6 @@ namespace armor197
 		p[1] = (int16_t)((mul32(s->dir[1], n->f20) >> 12) + s->pos[1]);
 		p[2] = (int16_t)((mul32(s->dir[2], n->f20) >> 12) + s->pos[2]);
 		p[3] = (int16_t)(head_size < 0 ? CrtRand() % 0x300 + 0x800 : head_size);
-		FX_HELD(held_note_head(p[3]);)
 		TransformCameraByShadowRotation(p, p[3], -((int32_t)p[3] >> 3));
 		*(uint32_t *)h = us(MODEL_BeamHead);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
@@ -526,7 +521,6 @@ namespace armor197
 	static uint32_t __cdecl MuzzleFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_MuzzleFlashTask), n);)
 		MuzzleModel(n, n->f18, 0, us(MODEL_MuzzleFlash), n->counter >= 2, FadeFrom2(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -539,7 +533,6 @@ namespace armor197
 	static uint32_t __cdecl MuzzleConeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_MuzzleConeTask), n);)
 		MuzzleModel(n, 0, n->f18, us(MODEL_Cone), n->counter >= 6, FadeFrom6(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -552,7 +545,6 @@ namespace armor197
 	static uint32_t __cdecl GroundFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_GroundFlashTask), n);)
 		GroundFlashDraw(n, n->counter >= 2, FadeFrom2(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -589,27 +581,23 @@ namespace armor197
 				e2->pos[2] = (int16_t)(e2->pos[2] + (CrtRand() % 0x32 - 0x19));
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_BoneSmokeTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		SparkBegin(s, h, us(SEQ_BoneSmoke));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			SparkDraw(e, BoneSmokePull(e), s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			e->size = (int16_t)(e->size + (int16_t)(e->size >> 4));
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -620,7 +608,6 @@ namespace armor197
 	static uint32_t __cdecl BeamTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_BeamTask), n);)
 		BeamDraw(n, n->counter >= 4, FadeFrom4(n->counter), -1);
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter < 4) n->f20 = (int16_t)(n->f20 + n->f22);
@@ -637,7 +624,6 @@ namespace armor197
 			n->pos[3]--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_PathRingTask), n);)
 		PathRingDraw(n, n->counter >= 4, FadeFrom4(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -653,7 +639,6 @@ namespace armor197
 	static uint32_t __cdecl ImpactRingTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_ImpactRingTask), n);)
 		ImpactModelDraw(n, DIR_FRONT(), us(MODEL_ImpactRing), n->counter >= 2, IringFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -666,7 +651,6 @@ namespace armor197
 	static uint32_t __cdecl ImpactSpinTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_ImpactSpinTask), n);)
 		ImpactModelDraw(n, DIR_BACK(), us(MODEL_ImpactSpin), n->counter >= 6, Fade2AA(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -682,7 +666,6 @@ namespace armor197
 	static uint32_t __cdecl ArmorFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_ArmorFlashTask), n);)
 		ArmorFlashDraw(n, n->counter >= 6, Fade2AA(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -696,7 +679,6 @@ namespace armor197
 	{
 		Node *n = (Node *)n_;
 		Particle *arr = PartArray(n->f0E);
-		FX_HELD(held_note_node(us(ORIG_DebrisTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x98);
 		int32_t alive = 0;
@@ -705,20 +687,17 @@ namespace armor197
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			DebrisDraw(e, s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			DebrisMove(e);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0x98);
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -777,26 +756,22 @@ namespace armor197
 				e->pos[2] = (int16_t)(e->pos[2] + (CrtRand() % 1000 - 500));
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_TargetSparkTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		SparkBegin(s, h, us(SEQ_Spark));
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			SparkDraw(e, n->pos[3], s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -855,7 +830,6 @@ namespace armor197
 		Node *n = (Node *)n_;
 		*(volatile uint32_t *)&n_ = (uint32_t)PartArray(n->pos[3]);
 		const ArcRec *a = Arc(n->f0E);
-		FX_HELD(held_note_node(us(ORIG_ArcSparkTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		const int32_t id = n->pos[3] + 1;
 		ArcSparkBegin(h);
@@ -864,19 +838,16 @@ namespace armor197
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			ArcSparkDraw(e, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t speed = n->f1A;
@@ -1085,7 +1056,6 @@ namespace armor197
 		const int32_t end = EndTick();
 		const int32_t count = c >= end ? end - c + 5 : 5;
 		*(volatile int32_t *)&n_ = count;
-		FX_HELD(held_note_ghosts(c, slot, count, colour);)
 		for (int32_t k = 0; k < count; k++)
 		{
 			const Ghost *s = GhostSlot(slot);
@@ -1159,7 +1129,6 @@ namespace armor197
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (*(const uint8_t *)&r->counter & 1) ? TexBase() + ARENA_ODD : TexBase();
 		const int shots = ExecuteTaskQueue(QShots());
 		const int aux = ExecuteTaskQueue(QAux());
@@ -1198,10 +1167,6 @@ namespace armor197
 		register_port(armor197::ORIG_TargetSparkTask, (void *)armor197::TargetSparkTask, "197 TargetSparkTask", 197);
 		register_port(armor197::ORIG_ArcTask, (void *)armor197::ArcTask, "197 ArcTask", 197);
 		register_port(armor197::ORIG_ArcSparkTask, (void *)armor197::ArcSparkTask, "197 ArcSparkTask", 197);
-		FX_HELD(register_mag197_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag197_armor_shot_held.inc"
-#endif

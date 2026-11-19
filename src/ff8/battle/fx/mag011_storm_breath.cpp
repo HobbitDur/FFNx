@@ -536,10 +536,6 @@ namespace storm011
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag011_storm_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace storm011
@@ -547,7 +543,6 @@ namespace storm011
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note(K_SPARK, p, sizeof(SpriteNode));)
 		SpriteDraw(p, us(SEQ_Spark));
 		return SpriteMove(p, 0xD);
 	}
@@ -555,7 +550,6 @@ namespace storm011
 	static uint32_t __cdecl MistTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note(K_MIST, p, sizeof(SpriteNode));)
 		SpriteDraw(p, us(SEQ_Mist));
 		return SpriteMove(p, 0xC);
 	}
@@ -563,7 +557,6 @@ namespace storm011
 	static uint32_t __cdecl HitTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note(K_HIT, p, sizeof(SpriteNode));)
 		SpriteDraw(p, us(SEQ_Hit));
 		return SpriteMove(p, 8);
 	}
@@ -571,7 +564,6 @@ namespace storm011
 	static uint32_t __cdecl PuffTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note(K_PUFF, p, sizeof(SpriteNode));)
 		PuffDraw(p, PuffWeight(p->counter));
 		p->counter++;
 		return p->counter < 0xC ? 0 : TASK_END;
@@ -580,7 +572,6 @@ namespace storm011
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *d = (DebrisNode *)n;
-		FX_HELD(held_note(K_DEBRIS, d, sizeof(DebrisNode));)
 		const bool scaled = d->counter >= 0x16;
 		DebrisDraw(d, scaled, scaled ? DebrisScale(d->counter) : 0);
 		return DebrisMove(d);
@@ -589,7 +580,6 @@ namespace storm011
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *g = (RingNode *)n;
-		FX_HELD(held_note(K_RING, g, sizeof(RingNode));)
 		RingDraw(g, g->tn);
 		g->e = (int16_t)(g->e + 0x80);
 		return g->e < 0x1000 ? 0 : TASK_END;
@@ -642,13 +632,11 @@ namespace storm011
 		int32_t d[3];
 		if (phase < 0x32)
 		{
-			FX_HELD(held_note_stream(t);)
 			uint8_t *h = AllocHeader(0x5C);
 			StreamWobble(t->a, t->b, (uint8_t *)us(STREAM_VERTS));
 			int16_t p0[4], p1[4];
 			GetEffectSpawnPosition(t->ent[t->cur], 0xF1, 0, p0);
 			GetEffectSpawnPosition(t->ent[t->next], 0xF1, 0, p1);
-			FX_HELD(held_note_aim(p0, p1);)
 			int16_t aim[3];
 			StreamAim(p0, p1, t->t, aim);
 			if (phase >= 5) SweepStep(t);
@@ -668,7 +656,6 @@ namespace storm011
 			arg.m = &m3;
 			arg.flags = us(FLAGS_Mouth);
 			arg.morph = TexBase() + 0x24B8;
-			FX_HELD(held_note_play(K_MOUTH, t, &arg);)
 			prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
 			CrtRand();
 			int32_t angle = CrtRand();
@@ -707,7 +694,6 @@ namespace storm011
 			arg.m = &m2;
 			arg.flags = us(FLAGS_Cone);
 			arg.morph = TexBase() + 0x24B8;
-			FX_HELD(held_note_play(K_CONE, t, &arg);)
 			prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
 		}
 		if ((uint32_t)((int32_t)t->counter - 0x23) < 0x1E)
@@ -795,7 +781,6 @@ namespace storm011
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x26B8;
@@ -890,10 +875,6 @@ namespace storm011
 		register_port(storm011::ORIG_PuffTask, (void *)storm011::PuffTask, "S011 PuffTask", 11);
 		register_port(storm011::ORIG_MistTask, (void *)storm011::MistTask, "S011 MistTask", 11);
 		register_port(storm011::ORIG_HitTask, (void *)storm011::HitTask, "S011 HitTask", 11);
-		FX_HELD(register_mag011_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag011_storm_breath_held.inc"
-#endif

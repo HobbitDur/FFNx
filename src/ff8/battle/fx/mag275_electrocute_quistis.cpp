@@ -334,10 +334,6 @@ namespace elec275
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag275_electrocute_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace elec275
@@ -349,7 +345,6 @@ namespace elec275
 		{
 			int16_t w[4] = { 0, 0, 0, (int16_t)pad };
 			CrawlerPointWorld(model, p, w);
-			FX_HELD(held_note_crawler_point(w);)
 			CrawlerPointProject(p, w);
 			p = p->next;
 		} while (p);
@@ -584,7 +579,6 @@ namespace elec275
 		GetDefaultEffectPosition(Caster(), arg.pos);
 		arg.pos[1] = (int16_t)(arg.pos[1] + 0xC8);
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play((prim::Layout *)g->layout, &arg);)
 		return prim::play((prim::Layout *)g->layout, PartCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -609,7 +603,6 @@ namespace elec275
 			const int32_t sn = ComputeSin(shl32(s->frame, 8));
 			BlendColour(&SavedTints()[s->slot], TINT_Colour(), 0x1000 - sn, sn, e + 0x28);
 		}
-		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->frame++;
 		return s->frame < 8 ? 0 : TASK_END;
@@ -724,7 +717,6 @@ namespace elec275
 			}
 			q = q->next;
 		} while (q);
-		FX_HELD(held_note_arc(a);)
 		ArcProject(a->tail);
 		if (a->count >= 2) ArcRibbon(a->tail, a->count, a->style);
 		q = a->tail;
@@ -813,7 +805,6 @@ namespace elec275
 				q = q->next;
 			} while (q);
 		}
-		FX_HELD(held_note_crawler(c, slot, slot0);)
 		g_crawl_slot = slot;
 		g_crawl_pad = vpad;
 		if (c->count >= 2) g_crawl_slot = CrawlerDraw(c->model, c->tail, c->count, slot, vpad);
@@ -949,7 +940,6 @@ namespace elec275
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0xC474;
@@ -1018,10 +1008,6 @@ namespace elec275
 		register_port(elec275::ORIG_CrawlerTask, (void *)elec275::CrawlerTask, "275 CrawlerTask", 275);
 		register_port(elec275::ORIG_SparkTask, (void *)elec275::SparkTask, "275 SparkTask", 275);
 		register_port(elec275::ORIG_LayoutTask, (void *)elec275::LayoutTask, "275 LayoutTask", 275);
-		FX_HELD(register_mag275_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag275_electrocute_quistis_held.inc"
-#endif

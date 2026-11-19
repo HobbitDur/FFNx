@@ -49,10 +49,6 @@ namespace renzo334
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag334_renzokuken_bahamut_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo334
@@ -167,7 +163,6 @@ namespace renzo334
 				PoolRing(r, mid, var<int16_t>(us(PREV_HIT) + 8), var<int16_t>(us(PREV_HIT) + 0x10));
 			}
 		}
-		FX_HELD(held_note_ringpool(n);)
 		uint8_t *h = AllocHeader(0x58);
 		ff8fx::copy<(sizeof(Mat4x3))>(&w->cam, &Camera());
 		*(uint32_t *)h = us(MODEL_POOL_RING);
@@ -210,10 +205,6 @@ namespace renzo334
 		register_port(renzo334::ORIG_AngleModel, (void *)renzo334::AngleModelTask, "334 AngleModel", 334);
 		register_port(renzo334::ORIG_BoneEmitter, (void *)renzo334::BoneEmitterTask, "334 BoneEmitter", 334);
 		register_port(renzo334::ORIG_CasterModel, (void *)renzo334::CasterModelTask, "334 CasterModel", 334);
-		FX_HELD(register_mag334_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag334_renzokuken_bahamut_held.inc"
-#endif

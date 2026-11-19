@@ -222,10 +222,6 @@ namespace hero309
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag309_hero_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace hero309
@@ -238,7 +234,6 @@ namespace hero309
 		PrimArg arg;
 		arg.pos[3] = 0;
 		arg.scaled = PrimScaled();
-		FX_HELD(held_note_play(p);)
 		if ((uint32_t)(int32_t)p->counter < (uint32_t)ORBIT_TICKS)
 		{
 			for (int j = 0; j < 2; j++)
@@ -308,7 +303,6 @@ namespace hero309
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -357,10 +351,6 @@ namespace hero309
 	{
 		register_port(hero309::ORIG_RootTask, (void *)hero309::RootTask, "309 RootTask", 309);
 		register_port(hero309::ORIG_PlayTask, (void *)hero309::PlayTask, "309 PlayTask", 309);
-		FX_HELD(register_mag309_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag309_hero_held.inc"
-#endif

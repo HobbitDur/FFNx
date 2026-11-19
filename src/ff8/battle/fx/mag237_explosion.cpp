@@ -27,10 +27,6 @@ namespace explosion237
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag237_explosion_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -83,7 +79,6 @@ namespace explosion237
 			int32_t r = xl_ISqrt(add32(mul32(h, h), mul32(dz, dz)));
 			if (r != 0) r = shl32(r, 16) / S16(STREAM(), 8);
 			const int32_t w = S16(STREAM(), 2);
-			FX_HELD(guard_bone(CUR(), 0x50 + 4 * w, 4);)
 			S32(CUR(), 0x50 + 4 * w) = shl32(r, 8);
 		}
 		const int32_t w = S16(STREAM(), 2);
@@ -103,7 +98,6 @@ namespace explosion237
 		uint8_t *b = blob::GetBone(S16(STREAM(), 6));
 		const int32_t ang = blob::Blob_B66B30(S16(a, 0x94), S16(a, 0x98), S16(b, 0x94), S16(b, 0x98));
 		const int32_t off = shl32(S16(STREAM(), 2), 2);
-		FX_HELD(guard_bone(CUR(), 0x50 + off, 4);)
 		S32(CUR(), 0x50 + off) = shl32(ang, 16);
 		if (off >= 0xC) C().bone[U8(CUR(), 0x18)]();
 		else h_B2C440();
@@ -206,10 +200,6 @@ namespace explosion237
 		explosion237::g_c.draw[31] = explosion237::dh_31_MeshHeightCut;
 		explosion237::apply_slots(explosion237::g_c);
 		register_port(0xA2A2A0, (void *)explosion237::SequenceTask, "MAG237 Explosion SequenceTick", 237);
-		FX_HELD(register_mag237_explosion_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag237_explosion_held.inc"
-#endif

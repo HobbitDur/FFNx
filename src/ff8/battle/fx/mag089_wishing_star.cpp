@@ -236,10 +236,6 @@ namespace ws089
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag089_wishing_star_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace ws089
@@ -662,7 +658,6 @@ namespace ws089
 	static void FadeTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out)
 	{
 		const int32_t level = FadeLevel(t, in, hold, out);
-		FX_HELD(held_note_tile(t, r, g, b, in, hold, out);)
 		FrameArena() = Tile(r, g, b, level, FrameArena());
 	}
 
@@ -874,7 +869,6 @@ namespace ws089
 		a.morph = TexBase() + 0x1888C;
 		a.depth = depth;
 		a.cursor = *cursor;
-		FX_HELD(held_note_play(layout, x, y, z, depth, cursor == &FrameArena());)
 		const int left = prim::play((prim::Layout *)layout, PartCallback, (int)&a, 0);
 		*cursor = a.cursor;
 		return left;
@@ -1239,7 +1233,6 @@ namespace ws089
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		SmallNode *t = (SmallNode *)n;
-		FX_HELD(held_note_flash(t);)
 		FlashDraw(t);
 		t->frame = (int8_t)(t->frame + 1);
 		return t->frame < 0xC ? 0 : TASK_END;
@@ -1268,7 +1261,6 @@ namespace ws089
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		SmallNode *t = (SmallNode *)n;
-		FX_HELD(held_note_debris(t);)
 		DebrisDraw(t->pos, (int16_t)((int16_t)t->ang[0] << 4), (int16_t)((int16_t)t->ang[1] << 4));
 		if (--t->frame == 0) return TASK_END;
 		const int16_t vx = t->vel[0], vy = t->vel[1];
@@ -1367,7 +1359,6 @@ namespace ws089
 		DiveNode *d = (DiveNode *)n;
 		if (d->counter < 0xC)
 		{
-			FX_HELD(held_note_trail(d);)
 			TrailDraw(&d->m, &FrameArena());
 			const int16_t c = d->counter;
 			if (c > 3 && c < 8)
@@ -1432,7 +1423,6 @@ namespace ws089
 			SparkleBurst(&d->m, a.m.t, 0x18, 0x2000);
 			DamageWave();
 		}
-		FX_HELD(held_note_dive_play(d, &a.m);)
 		ComposeAffineTransform(&Camera(), &a.m, &a.m);
 		a.morph = TexBase() + 0x1888C;
 		a.depth = 0;
@@ -1449,7 +1439,6 @@ namespace ws089
 		DiveNode *d = (DiveNode *)n;
 		if (d->counter < 0xC)
 		{
-			FX_HELD(held_note_trail(d);)
 			TrailDraw(&d->m, &Cursor());
 			d->m.t[0] += -((d->m.m[0][2] - (d->m.m[0][2] >> 15)) >> 1);
 			d->m.t[1] += -((d->m.m[1][2] - (d->m.m[1][2] >> 15)) >> 1);
@@ -1513,7 +1502,6 @@ namespace ws089
 	{
 		if (BattleReadAnimation(c + 0x60, c + 0x6C) == 1)
 		{
-			FX_HELD(held_note_restart();)
 			PreBattleReadAnimation(c + 0x60, c + 0x6C, c[0x6C]);
 		}
 	}
@@ -1684,7 +1672,6 @@ namespace ws089
 	{
 		DirectorNode *d = (DirectorNode *)n;
 		uint8_t *angelo = d->angelo;
-		FX_HELD(held_note_director(d);)
 		int16_t c = d->counter;
 		if (c == 0x1E) QueueChainTransformation(Caster(), 2);
 		else if (c == 0x20) QueueChainTransformation(Caster(), 3);
@@ -1740,7 +1727,6 @@ namespace ws089
 		if (s < 0xF)
 		{
 			const int32_t g = (int32_t)(mulhi_u(s << 12, 0x88888889) >> 3);
-			FX_HELD(held_note_grow(g);)
 			GrowDraw(d, g);
 		}
 		s = (uint32_t)((int32_t)d->counter - 0x66);
@@ -1782,7 +1768,6 @@ namespace ws089
 			RinoaHeight(d, sdiv_pow2(g * 13500, 12), 0x3A98);
 			int16_t p[4];
 			GetEffectSpawnPosition(angelo, 0x13, 0, p);
-			FX_HELD(held_note_landing(lt, p, g);)
 			LandingDraw(lt, p, (int32_t)((lt & 0xFF) << 8), shl32((int32_t)(lt - 0xB) + 1, 10), g);
 		}
 		s = (uint32_t)((int32_t)d->counter - 0xB1);
@@ -1809,7 +1794,6 @@ namespace ws089
 		{
 			if (s == 0) DecodeModelPrimLayout(us(0x14A9FF0), d->layout2, 0xEC);
 			Play(d->layout2, d->centre[0], 0, d->centre[2], 0, &FrameArena());
-			FX_HELD(held_note_stars();)
 			FrameArena() = Stars(0, Centre()[0], 0, Centre()[2], 0x10000, FrameArena());
 		}
 		s = (uint32_t)((int32_t)d->counter - 0x24);
@@ -1821,7 +1805,6 @@ namespace ws089
 				FadeTile(0, 0xFF, 0xFF, 0xFF, 0, 1, 7);
 			}
 			else if (s < 8) FadeTile((int32_t)s, 0xFF, 0xFF, 0xFF, 0, 1, 7);
-			FX_HELD(held_note_shards();)
 			ShardsDraw();
 		}
 		if ((uint32_t)((int32_t)d->counter - 0x24) < 0xBE) ScreenFeedback();
@@ -1829,7 +1812,6 @@ namespace ws089
 		{
 			if (!(angelo[0] & 4))
 			{
-				FX_HELD(held_note_angelo(d);)
 				Cursor() = DrawCreatureModel(angelo, TexBase() + 0x1888C, Cursor(), CursorEnd());
 			}
 			if (!(angelo[0] & 8)) AnimStep(angelo);
@@ -1886,12 +1868,10 @@ namespace ws089
 		}
 		if (ModelsOn())
 		{
-			FX_HELD(held_note_particles(0);)
 			PModelsDraw();
 		}
 		if (SpritesOn())
 		{
-			FX_HELD(held_note_particles(1);)
 			SpritesDraw();
 		}
 		SpritesUpdate();
@@ -2057,7 +2037,6 @@ namespace ws089
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		const uint32_t tex = TexBase();
 		if (r->parity != 0)
 		{
@@ -2105,10 +2084,6 @@ namespace ws089
 		register_port(ws089::ORIG_DebrisTask, (void *)ws089::DebrisTask, "089 DebrisTask", 89);
 		register_port(ws089::ORIG_DiveTask, (void *)ws089::DiveTask, "089 DiveTask", 89);
 		register_port(ws089::ORIG_LastDiveTask, (void *)ws089::LastDiveTask, "089 LastDiveTask", 89);
-		FX_HELD(register_mag089_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag089_wishing_star_held.inc"
-#endif

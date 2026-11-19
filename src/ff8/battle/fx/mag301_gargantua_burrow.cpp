@@ -143,10 +143,6 @@ namespace burrow301
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag301_gargantua_burrow_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace burrow301
@@ -213,7 +209,6 @@ namespace burrow301
 
 	static void MarkAt(int32_t x, int32_t z, int32_t i)
 	{
-		FX_HELD(if (held_no_marks()) return;)
 		uint8_t *base = (uint8_t *)TexBase();
 		const int16_t index = (int16_t)i;
 		const uint8_t slot = base[0x4AC + index];
@@ -593,7 +588,6 @@ namespace burrow301
 
 	static void DrawMarks(MasterNode *m)
 	{
-		FX_HELD(held_note_marks(m);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint16_t>(h, 0x92) = 0;
 		F<uint16_t>(h, 0x90) = 0;
@@ -633,7 +627,6 @@ namespace burrow301
 	static uint32_t __cdecl RockTask(TaskNode *n)
 	{
 		RockNode *r = (RockNode *)n;
-		FX_HELD(held_note_rock(r);)
 		RockDraw(r->pos, (int16_t)(r->angle[0] << 4), (int16_t)(r->angle[1] << 4));
 		r->angle[0] = (int8_t)(r->angle[0] + r->spin[0]);
 		r->angle[1] = (int8_t)(r->angle[1] + r->spin[1]);
@@ -660,7 +653,6 @@ namespace burrow301
 	static uint32_t __cdecl DustTask(TaskNode *n)
 	{
 		DustNode *d = (DustNode *)n;
-		FX_HELD(held_note_dust(d);)
 		DustDraw(d->pos, d->counter);
 		d->pos[0] = (int16_t)(d->pos[0] + d->vel[0]);
 		d->pos[1] = (int16_t)(d->pos[1] + d->vel[1]);
@@ -762,10 +754,8 @@ namespace burrow301
 			ff8fx::copy<(sizeof(arg.pos))>(arg.pos, m->pos);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = 0x100;
-			FX_HELD(held_note_play(m, &arg);)
 			prim::play((prim::Layout *)m->layout, PrimCallback, (int)&arg, 0);
 			*(uint8_t *)Caster() |= 4;
-			FX_HELD(held_note_body(m);)
 			DrawBody(Caster(), c, GROUND, TexBase() + VERTS);
 			if ((uint32_t)c < 0x66)
 			{
@@ -797,7 +787,6 @@ namespace burrow301
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *rn = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (rn->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -854,10 +843,6 @@ namespace burrow301
 		register_port(burrow301::ORIG_MasterTask, (void *)burrow301::MasterTask, "301 MasterTask", 301);
 		register_port(burrow301::ORIG_RockTask, (void *)burrow301::RockTask, "301 RockTask", 301);
 		register_port(burrow301::ORIG_DustTask, (void *)burrow301::DustTask, "301 DustTask", 301);
-		FX_HELD(register_mag301_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag301_gargantua_burrow_held.inc"
-#endif

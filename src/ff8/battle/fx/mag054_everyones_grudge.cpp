@@ -146,17 +146,12 @@ namespace grudge
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag054_everyones_grudge_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace grudge
 {
-
 	uint32_t __cdecl eg_80CD90(void)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x261713C)), 0xCA8);
@@ -187,7 +182,6 @@ namespace grudge
 	uint32_t __cdecl eg_80CBE0(uint32_t a1)
 	{
 		g_mod = &MOD_054;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -529,7 +523,6 @@ namespace grudge
 		case 1:
 			eg_811C80();
 			eg_80F330();
-			FX_HELD(held_note_system(sys);)
 			eg_80F1F0();
 			eg_80DB70();
 			sys = U32(us(0x2617160), 0);
@@ -2000,10 +1993,6 @@ namespace grudge
 			act::register_module_port(54, p->addr, p->port, p->name);
 		for (const act::grudge::ModPort *p = act::grudge::PORTS; p->addr; p++)
 			act::register_module_port(54, p->addr, p->port, p->name);
-		FX_HELD(register_mag054_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag054_everyones_grudge_held.inc"
-#endif

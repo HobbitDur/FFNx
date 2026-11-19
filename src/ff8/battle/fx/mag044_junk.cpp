@@ -311,10 +311,6 @@ namespace junk044
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag044_junk_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace junk044
@@ -327,7 +323,6 @@ namespace junk044
 			PrimArg arg;
 			DebrisMatrix(d, d->angle, &arg);
 			arg.morph = TexBase() + 0x212D4;
-			FX_HELD(held_note_debris(d, &arg);)
 			if (prim::play((prim::Layout *)d->layout, PartCallback, (int)&arg, 0) == 0) return TASK_END;
 		}
 		d->angle = (int16_t)(d->angle + d->speed);
@@ -338,7 +333,6 @@ namespace junk044
 	static uint32_t __cdecl ItemTask(TaskNode *n)
 	{
 		ItemNode *it = (ItemNode *)n;
-		FX_HELD(held_note_item(it);)
 		DrawItem(it);
 		it->life--;
 		if (it->life == 0) return TASK_END;
@@ -400,7 +394,6 @@ namespace junk044
 	static uint32_t __cdecl SmokeTask(TaskNode *n)
 	{
 		SmokeNode *s = (SmokeNode *)n;
-		FX_HELD(held_note_smoke(s);)
 		DrawSmoke(s);
 		s->life--;
 		if (s->life == 0) return TASK_END;
@@ -507,7 +500,6 @@ namespace junk044
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x12D4;
@@ -575,10 +567,6 @@ namespace junk044
 		register_port(junk044::ORIG_SmokeTask, (void *)junk044::SmokeTask, "J044 SmokeTask", 44);
 		register_port(junk044::ORIG_ItemTask, (void *)junk044::ItemTask, "J044 ItemTask", 44);
 		register_port(junk044::ORIG_DebrisTask, (void *)junk044::DebrisTask, "J044 DebrisTask", 44);
-		FX_HELD(register_mag044_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag044_junk_held.inc"
-#endif

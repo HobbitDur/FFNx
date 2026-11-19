@@ -237,10 +237,6 @@ namespace shotgun281
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag281_shotgun_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace shotgun281
@@ -248,7 +244,6 @@ namespace shotgun281
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(n);)
 		SpriteDraw(s->pos, s->counter, s->seq);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
@@ -270,7 +265,6 @@ namespace shotgun281
 		ComposeAffineTransform(&Camera(), &BasisR(), &arg.m);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(PLAY_HIT, n, (prim::Layout *)h->layout);)
 		return prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -283,7 +277,6 @@ namespace shotgun281
 			BonePoint(MUZZLE(), BasisM().t);
 			PrimArg arg;
 			MainArg(&arg);
-			FX_HELD(held_note_play(PLAY_MUZZLE, n, (prim::Layout *)m->muzzle);)
 			prim::play((prim::Layout *)m->muzzle, PrimCallback, (int)&arg, 0);
 			if ((uint32_t)c >= 1 && (uint32_t)c <= 2)
 			{
@@ -359,7 +352,6 @@ namespace shotgun281
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -413,10 +405,6 @@ namespace shotgun281
 		register_port(shotgun281::ORIG_MainTask, (void *)shotgun281::MainTask, "281 MainTask", 281);
 		register_port(shotgun281::ORIG_HitTask, (void *)shotgun281::HitTask, "281 HitTask", 281);
 		register_port(shotgun281::ORIG_SparkTask, (void *)shotgun281::SparkTask, "281 SparkTask", 281);
-		FX_HELD(register_mag281_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag281_shotgun_held.inc"
-#endif

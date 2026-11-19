@@ -398,10 +398,6 @@ namespace laser277
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag277_funguar_laser_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace laser277
@@ -409,7 +405,6 @@ namespace laser277
 	static uint32_t __cdecl GlowTask(TaskNode *n)
 	{
 		GlowNode *g = (GlowNode *)n;
-		FX_HELD(held_note_sprite(SPR_GLOW, n, g->pos, nullptr, g->counter);)
 		SpriteDraw(g->pos, g->counter, us(SEQ_Glow), 0xAF0, -0x400);
 		g->counter++;
 		return g->counter < 0x10 ? 0 : TASK_END;
@@ -418,7 +413,6 @@ namespace laser277
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_sprite(SPR_SPARK, n, s->pos, s->vel, s->counter);)
 		SpriteDraw(s->pos, s->counter, us(SEQ_Spark), 0xC00, -0x300);
 		s->counter++;
 		if (s->counter >= 0x10) return TASK_END;
@@ -441,7 +435,6 @@ namespace laser277
 		ComposeAffineTransform(&Camera(), &h->frame, &arg.m);
 		arg.depth = 0;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(PLAY_HIT, n, (prim::Layout *)h->layout);)
 		return prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -459,7 +452,6 @@ namespace laser277
 			BuildOrthonormalBasis(f.v, &M);
 			int16_t v[4] = {};
 			PointFrame(&M, f.P, v, &arg);
-			FX_HELD(held_note_play(PLAY_MUZZLE, n, (prim::Layout *)b->muzzle);)
 			prim::play((prim::Layout *)b->muzzle, PrimCallback, (int)&arg, 0);
 			const Ease ez = BeamEase(c, *(const int16_t *)(b->ent + 0x26));
 			int16_t T[4] = { f.T[0], (int16_t)(f.T[1] + ez.lift), f.T[2], f.T[3] };
@@ -475,7 +467,6 @@ namespace laser277
 			ComposeAffineTransform(&Camera(), &d.M2, &ray.m);
 			ray.depth = 0;
 			ray.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play(PLAY_RAY, n, (prim::Layout *)b->ray);)
 			prim::play((prim::Layout *)b->ray, PrimCallback, (int)&ray, 0);
 			if ((uint32_t)(c - 15) < 0x28)
 			{
@@ -504,7 +495,6 @@ namespace laser277
 						DecodeModelPrimLayout(us(MODEL_Hit), h->layout, 0x7C);
 					}
 				}
-				FX_HELD(held_note_beam(n);)
 				BeamRender(&d.M2, d.len, BeamWidth(ez.width), ez.fade);
 			}
 		}
@@ -514,7 +504,6 @@ namespace laser277
 			ComposeAffineTransform(&Camera(), &f.R, &arg.m);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play(PLAY_IMPACT, n, (prim::Layout *)b->impact);)
 			prim::play((prim::Layout *)b->impact, PrimCallback, (int)&arg, 0);
 		}
 		if ((uint32_t)(c - 0x24) < 2)
@@ -543,7 +532,6 @@ namespace laser277
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -608,10 +596,6 @@ namespace laser277
 		register_port(laser277::ORIG_HitTask, (void *)laser277::HitTask, "277 HitTask", 277);
 		register_port(laser277::ORIG_SparkTask, (void *)laser277::SparkTask, "277 SparkTask", 277);
 		register_port(laser277::ORIG_GlowTask, (void *)laser277::GlowTask, "277 GlowTask", 277);
-		FX_HELD(register_mag277_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag277_funguar_laser_held.inc"
-#endif

@@ -153,10 +153,6 @@ namespace soft292
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag292_soft_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace soft292
@@ -168,7 +164,6 @@ namespace soft292
 		ff8fx::copy<(sizeof(arg.anchor))>(arg.anchor, p->anchor);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + NODE_BYTES;
-		FX_HELD(held_note_play((prim::Layout *)p->layout, p->anchor);)
 		if (prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) == 0)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
@@ -180,7 +175,6 @@ namespace soft292
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -218,10 +212,6 @@ namespace soft292
 	{
 		register_port(soft292::ORIG_RootTask, (void *)soft292::RootTask, "292 RootTask", 292);
 		register_port(soft292::ORIG_PlayTask, (void *)soft292::PlayTask, "292 PlayTask", 292);
-		FX_HELD(register_mag292_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag292_soft_held.inc"
-#endif

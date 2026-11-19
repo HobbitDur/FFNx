@@ -541,10 +541,6 @@ namespace scan068
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag068_scan_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace scan068
@@ -567,7 +563,6 @@ namespace scan068
 		{
 		case 0:
 			CameraSetup(n);
-			FX_HELD(held_note_camera(n);)
 			break;
 		case 1:
 			if (CameraBlend(Cam()) == 1)
@@ -576,7 +571,6 @@ namespace scan068
 				n->h.phase++;
 			}
 			CameraApply();
-			FX_HELD(held_note_camera(n);)
 			break;
 		default: break;
 		}
@@ -628,7 +622,6 @@ namespace scan068
 			n->h.phase++;
 			break;
 		case 1:
-			FX_HELD(held_note(REC_BRACKET, n);)
 			BracketLines(n);
 			if (HudActive() == 0)
 			{
@@ -662,7 +655,6 @@ namespace scan068
 			break;
 		case 1:
 			ff8fx::copy<(8)>(n->h.pos, n->h.parent->pos);
-			FX_HELD(held_note(REC_BRACKET_FOLLOW, n);)
 			BracketLines(n);
 			n->timer--;
 			if (n->timer < 0)
@@ -677,11 +669,9 @@ namespace scan068
 			n->size = (int16_t)(n->size + 0x400);
 			n->timer--;
 			if (n->timer < 0) n->h.phase++;
-			FX_HELD(held_note(REC_BRACKET, n);)
 			BracketLines(n);
 			break;
 		case 3:
-			FX_HELD(held_note(REC_BRACKET, n);)
 			BracketLines(n);
 			if (HudActive() == 0)
 			{
@@ -711,12 +701,10 @@ namespace scan068
 				n->timer = 0x18;
 				n->h.phase++;
 			}
-			FX_HELD(held_note(REC_RING1, n);)
 			Fan(&n->h, 0x30, 0x600, n->timer, out);
 			break;
 		case 2:
 		{
-			FX_HELD(held_note(REC_RING2, n);)
 			Fan(&n->h, 0x30, 0x600, n->timer, out);
 			const int16_t p[2] = { (int16_t)(out[0] + 0x18), (int16_t)(out[1] + 0x18) };
 			Line(out, p);
@@ -726,7 +714,6 @@ namespace scan068
 		}
 		case 3:
 		{
-			FX_HELD(held_note(REC_RING3, n);)
 			Fan(&n->h, 0x30, 0x600, n->timer, out);
 			const int16_t p[2] = { (int16_t)(out[0] + 0x18), (int16_t)(out[1] + 0x18) };
 			Line(out, p);
@@ -759,7 +746,6 @@ namespace scan068
 			for (int16_t i = 0; i < 4; i++) ((CtlNode *)AddEffectTask(QControls(), us(ORIG_Corner), 0x78, n))->index = i;
 			AddEffectTask(QModels(), us(ORIG_Morph), 0x6C, n);
 			AddEffectTask(QModels(), us(ORIG_Pair), 0x6C, n);
-			FX_HELD(held_note(REC_RETICLE, n);)
 			Fan(&n->h, 8, 0, 0x20, out);
 			CornerLines(&n->h);
 			n->h.phase++;
@@ -778,7 +764,6 @@ namespace scan068
 				n->h.pos[0] = path[0];
 				n->h.pos[1] = path[1];
 			}
-			FX_HELD(held_note(REC_RETICLE, n);)
 			Fan(&n->h, 8, 0, 0x20, out);
 			CornerLines(&n->h);
 			n->timer = 8;
@@ -788,7 +773,6 @@ namespace scan068
 			n->timer = (int16_t)(n->timer - 2);
 			if (n->timer > 0)
 			{
-				FX_HELD(held_note(REC_RETICLE_CLOSE, n);)
 				Fan(&n->h, n->timer, 0, 0x20, out);
 				CornerLines(&n->h);
 			}
@@ -864,7 +848,6 @@ namespace scan068
 	{
 		ModelNode *n = (ModelNode *)t;
 		PairPhase(n);
-		FX_HELD(held_note(REC_PAIR, n);)
 		PairDraw(n);
 		return TaskEnd(&n->h);
 	}
@@ -946,7 +929,6 @@ namespace scan068
 	{
 		ModelNode *n = (ModelNode *)t;
 		MorphPhase(n);
-		FX_HELD(held_note(REC_MORPH, n);)
 		MorphVertices((const uint8_t *)n->morph_a, (const uint8_t *)n->morph_b, (uint8_t *)n->model, n->blend);
 		DrawHudModel(n, false);
 		return TaskEnd(&n->h);
@@ -1044,7 +1026,6 @@ namespace scan068
 		ModelNode *n = (ModelNode *)t;
 		StatBarPhase(n);
 		StatBarPulse(n);
-		FX_HELD(held_note(REC_STATBAR, n);)
 		DrawHudModel(n, false);
 		return TaskEnd(&n->h);
 	}
@@ -1082,7 +1063,6 @@ namespace scan068
 			break;
 		default: break;
 		}
-		FX_HELD(held_note(REC_STATIC, n);)
 		DrawHudModel(n, false);
 		return TaskEnd(&n->h);
 	}
@@ -1125,7 +1105,6 @@ namespace scan068
 	{
 		ModelNode *n = (ModelNode *)t;
 		AltSpinnerPhase(n);
-		FX_HELD(held_note(REC_ALTSPINNER, n);)
 		DrawHudModel(n, true);
 		return TaskEnd(&n->h);
 	}
@@ -1167,7 +1146,6 @@ namespace scan068
 			break;
 		default: break;
 		}
-		FX_HELD(held_note(REC_SPRITE, n);)
 		DrawHudSprite(n, 0x400);
 		return TaskEnd(&n->h);
 	}
@@ -1285,7 +1263,6 @@ namespace scan068
 				Closing() = 1;
 				n->h.phase++;
 			}
-			FX_HELD(held_note_camera(n);)
 			break;
 		}
 		case 4:
@@ -1393,7 +1370,6 @@ namespace scan068
 		RootNode *r = (RootNode *)t;
 		if (r->tick & 1) PacketCursor() = var<uint32_t>(us(0x25FFC3C));
 		else PacketCursor() = var<uint32_t>(us(0x25FFC38));
-		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);
 		r->alive = (int16_t)ExecuteTaskQueue(QEmitters());
@@ -1424,10 +1400,6 @@ namespace scan068
 		register_port(ORIG_AltSpinner, (void *)AltSpinnerTask, "068 AltSpinner", 68);
 		register_port(ORIG_AltBoard, (void *)AltBoardTask, "068 AltBoard", 68);
 		register_port(ORIG_AltText, (void *)AltTextTask, "068 AltText", 68);
-		FX_HELD(register_mag068_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag068_scan_held.inc"
-#endif

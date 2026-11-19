@@ -76,13 +76,8 @@ namespace magc
 	inline void TransformVectorBy3x3Matrix(const Mat4x3 *m, const int32_t *in, int32_t *out) { fn<void (__cdecl *)(const Mat4x3 *, const int32_t *, int32_t *)>(us(0x56C600))(m, in, out); }
 	inline int32_t RotationBetweenVectors(const int32_t *a, const int32_t *b, int32_t *axis) { return fn<int32_t (__cdecl *)(const int32_t *, const int32_t *, int32_t *)>(us(0x571480))(a, b, axis); }
 	inline void *EffectSpriteSharedSequence(int id) { return fn<void *(__cdecl *)(int)>(us(0x5710B0))(id); }
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag_common_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -91,7 +86,6 @@ namespace magc
 	static inline uint8_t *AllocHeader(int size)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(size);
-		FX_HELD(held_header(h, size);)
 		return h;
 	}
 }

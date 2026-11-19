@@ -411,17 +411,12 @@ namespace psycho
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag023_psycho_blast_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace psycho
 {
-
 	uint32_t __cdecl pb_893320(uint32_t a1)
 	{
 		if (U8(a1, 0x28) != 0)
@@ -1295,7 +1290,6 @@ namespace psycho
 		case 1:
 			pb_899AC0();
 			pb_897170();
-			FX_HELD(held_note_system(sys);)
 			pb_897030();
 			pb_896E70();
 			sys = U32(us(0x27044D8), 0);
@@ -2180,7 +2174,6 @@ namespace psycho
 	uint32_t __cdecl pb_893190(uint32_t a1)
 	{
 		g_mod = &MOD_023;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -2347,7 +2340,6 @@ namespace psycho
 		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(a1, 0x80);
 		U16(L, 0x58) = U16(a1, 0x88);
-		FX_HELD(held_note_play(a1);)
 		return prim_play(a1 + 0x94, us(PRIM_CB), L, 0);
 	}
 
@@ -2656,7 +2648,6 @@ namespace psycho
 			for (int c = 0; c < 3; c++)
 				U16(p, 2 * c) = (uint16_t)(U16(p, 2 * c) + (uint16_t)(S16(v, 2 * c) / 16));
 		}
-		FX_HELD(held_note_debris(node);)
 		for (int k = 0; k < 4; k++)
 		{
 			const uint32_t p = node + 0x6C + 8 * k;
@@ -2804,10 +2795,6 @@ namespace psycho
 			act::register_module_port(23, p->addr, p->port, p->name);
 		for (const act::psycho::ModPort *p = act::psycho::PORTS; p->addr; p++)
 			act::register_module_port(23, p->addr, p->port, p->name);
-		FX_HELD(register_mag023_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag023_psycho_blast_held.inc"
-#endif

@@ -386,17 +386,12 @@ namespace norgpod
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag020_norg_pod_opening_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace norgpod
 {
-
 	uint32_t __cdecl np_89FD00(uint32_t a1)
 	{
 		g_mod = &MOD_020;
@@ -432,7 +427,6 @@ namespace norgpod
 			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
 			MEM<uint32_t>(us(0x27215AC)) = v2;
 		}
-		FX_HELD(held_note_master();)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
@@ -612,7 +606,6 @@ namespace norgpod
 	uint32_t __cdecl np_8A2D90(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		FX_HELD(held_note_lid(node);)
 		const uint32_t ent = ENT(U8(node, 0x2C));
 		uint32_t bones = U32(U32(ent, 0x64), 0) + 0x40;
 		const uint32_t blk = x::Field_Alloc(0x8C);
@@ -782,7 +775,6 @@ namespace norgpod
 	uint32_t __cdecl np_8A0230(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		FX_HELD(held_note_debris(node);)
 		if ((U8(node, 0x26) & 4) != 0)
 			return 0;
 		const uint32_t blk = x::Field_Alloc(0xD8);
@@ -857,7 +849,6 @@ namespace norgpod
 		callp(states[S8(node, 0x29)], node);
 		for (int k = 0; k < 2; k++)
 			chunk_move(node + 8 * k);
-		FX_HELD(held_note_chunk(node);)
 		for (int k = 0; k < 2; k++)
 		{
 			const uint32_t p = node + 0x54 + 8 * k;
@@ -1704,10 +1695,6 @@ namespace norgpod
 			act::register_module_port(20, p->addr, p->port, p->name);
 		for (const act::norgpod::ModPort *p = act::norgpod::PORTS; p->addr; p++)
 			act::register_module_port(20, p->addr, p->port, p->name);
-		FX_HELD(register_mag020_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag020_norg_pod_opening_held.inc"
-#endif

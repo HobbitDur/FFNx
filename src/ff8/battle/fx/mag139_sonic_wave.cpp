@@ -136,10 +136,6 @@ namespace sonic139
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag139_sonic_wave_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace sonic139
@@ -656,7 +652,6 @@ namespace sonic139
 		TargetBlock(p->pos, &arg);
 		arg.depth = 0;
 		arg.morph = TexBase() + VERTS;
-		FX_HELD(held_note_play(PLAY_TARGET, n, (prim::Layout *)p->layout);)
 		if (!prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0))
 		{
 			*(uint32_t *)(p->entity + 0x28) = p->colour;
@@ -692,14 +687,12 @@ namespace sonic139
 			MainBlock(pos, &arg);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + VERTS;
-			FX_HELD(held_note_play(PLAY_MAIN, n, (prim::Layout *)w->layout);)
 			prim::play((prim::Layout *)w->layout, PrimCallback, (int)&arg, 0);
 		}
 		const int32_t c = w->counter;
 		if ((uint32_t)c < 0x1E)
 		{
 			const int32_t t = (int32_t)((uint32_t)(c << 12) / 30);
-			FX_HELD(held_note_play(WARP_A, n, nullptr);)
 			int16_t z;
 			if (WarpAFrame(w, t, c == 0 ? StartResidue() : 0, WarpFrame(), &z))
 			{
@@ -715,7 +708,6 @@ namespace sonic139
 		const uint32_t b = (uint32_t)(c - 0x1E);
 		if (b < 0x28)
 		{
-			FX_HELD(held_note_play(WARP_B, n, nullptr);)
 			int32_t z;
 			if (WarpBFrame(w, WarpFrame(), &z))
 			{
@@ -759,7 +751,6 @@ namespace sonic139
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -821,10 +812,6 @@ namespace sonic139
 		register_port(sonic139::ORIG_MasterTask, (void *)sonic139::MasterTask, "139 MasterTask", 139);
 		register_port(sonic139::ORIG_MainTask, (void *)sonic139::MainTask, "139 MainTask", 139);
 		register_port(sonic139::ORIG_TargetTask, (void *)sonic139::TargetTask, "139 TargetTask", 139);
-		FX_HELD(register_mag139_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag139_sonic_wave_held.inc"
-#endif

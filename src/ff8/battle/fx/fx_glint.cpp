@@ -210,10 +210,6 @@ namespace glint
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "fx_glint_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace glint
@@ -244,7 +240,6 @@ namespace glint
 		g->rot[1] = (int16_t)((uint16_t)(g->spin + g->rot[1]) & 0xFFF);
 		if (!(g->h.flags & 4))
 		{
-			FX_HELD(held_note_draw(g, CursorPtr());)
 			Draw(g, ot, CursorPtr());
 		}
 		g->h.counter++;
@@ -260,10 +255,6 @@ namespace glint
 	void register_fx_glint()
 	{
 		register_port(glint::ORIG_Glint, (void *)glint::GlintTask, "shared 8DCC20 Effect_Glint_Tick", 1);
-		FX_HELD(register_fx_glint_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "fx_glint_held.inc"
-#endif

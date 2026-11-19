@@ -27,10 +27,6 @@ namespace megaflare257
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag257_mega_flare_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -162,10 +158,6 @@ namespace megaflare257
 		init_clone(megaflare257::g_c, nullptr, 0);
 		megaflare257::apply_slots(megaflare257::g_c);
 		register_port(0x96F900, (void *)megaflare257::SequenceTask, "MAG257 Mega Flare (Bahamut) SequenceTick", 257);
-		FX_HELD(register_mag257_mega_flare_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag257_mega_flare_held.inc"
-#endif

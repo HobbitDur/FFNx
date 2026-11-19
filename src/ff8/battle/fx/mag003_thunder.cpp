@@ -114,10 +114,6 @@ namespace thunder003
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag003_thunder_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace thunder003
@@ -125,7 +121,6 @@ namespace thunder003
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase();
@@ -255,7 +250,6 @@ namespace thunder003
 	{
 		BoltNode *p = (BoltNode *)n;
 		if (p->counter == 1) BdPlaySE3D(SOUND_Thunder(), 0x101, p->pos);
-		FX_HELD(held_note_draw(us(ORIG_BoltTask), p);)
 		BoltDraw(p);
 		if (p->counter == 5) ApplyActionResultToTarget(Ctx()->actions[p->action].targets);
 		p->counter++;
@@ -267,10 +261,6 @@ namespace thunder003
 	{
 		register_port(thunder003::ORIG_RootTask, (void *)thunder003::RootTask, "T003 RootTask", 3);
 		register_port(thunder003::ORIG_BoltTask, (void *)thunder003::BoltTask, "T003 BoltTask", 3);
-		FX_HELD(register_mag003_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag003_thunder_held.inc"
-#endif

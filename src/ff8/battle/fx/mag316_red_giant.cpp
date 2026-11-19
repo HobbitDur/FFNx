@@ -83,13 +83,8 @@ namespace redgiant316
 	};
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(Particle) == 0x10 && sizeof(MainNode) == 0x81C, "316 nodes");
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag316_red_giant_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -134,7 +129,6 @@ namespace redgiant316
 
 	static void SparkTri(uint8_t *h)
 	{
-		FX_HELD(if (held_drawing()) return;)
 		if (Rand15() >= 0x800) return;
 		F<int16_t>(h, 0x7C) = (int16_t)(((int32_t)F<int16_t>(h, 0x44) + F<int16_t>(h, 0x34) + F<int16_t>(h, 0x24)) / 3);
 		F<int16_t>(h, 0x7E) = (int16_t)(((int32_t)F<int16_t>(h, 0x46) + F<int16_t>(h, 0x36) + F<int16_t>(h, 0x26)) / 3);
@@ -144,7 +138,6 @@ namespace redgiant316
 
 	static void SparkQuad(uint8_t *h)
 	{
-		FX_HELD(if (held_drawing()) return;)
 		if (Rand15() >= 0x800) return;
 		F<int16_t>(h, 0x7C) = (int16_t)(((int32_t)F<int16_t>(h, 0x54) + F<int16_t>(h, 0x44) + F<int16_t>(h, 0x34) + F<int16_t>(h, 0x24)) / 4);
 		F<int16_t>(h, 0x7E) = (int16_t)(((int32_t)F<int16_t>(h, 0x56) + F<int16_t>(h, 0x46) + F<int16_t>(h, 0x36) + F<int16_t>(h, 0x26)) / 4);
@@ -458,7 +451,6 @@ namespace redgiant316
 		if (c < 8) Flash() = (uint32_t)(mul32(c, 1000) >> 3);
 		else if (c > 0x130) Flash() = (uint32_t)(mul32(0x138 - c, 1000) >> 3);
 		else Flash() = 0x3E8;
-		FX_HELD(held_note_main(m);)
 		if ((uint32_t)(c - 0x14) < 0x82)
 		{
 			SweepA(Caster(), LevelA(c), PAGE_MOVE, CLUT_MOVE, PacketCursor());
@@ -477,7 +469,6 @@ namespace redgiant316
 			Caster()[0x2F] = 0x32;
 		}
 		if (m->counter >= 0x3C) *Caster() |= 8;
-		FX_HELD(held_note_particles(m);)
 		Particles(m);
 		if (m->counter == 0x2D)
 		{
@@ -504,7 +495,6 @@ namespace redgiant316
 			r->parity = 1;
 		}
 		Flash() = 0;
-		FX_HELD(held_note_root();)
 		if (r->counter == 2 && !r->started)
 		{
 			r->started = 1;
@@ -529,10 +519,6 @@ namespace redgiant316
 	{
 		register_port(redgiant316::ORIG_RootTask, (void *)redgiant316::RootTask, "316 RootTask", 316);
 		register_port(redgiant316::ORIG_MainTask, (void *)redgiant316::MainTask, "316 MainTask", 316);
-		FX_HELD(register_mag316_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag316_red_giant_held.inc"
-#endif

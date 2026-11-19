@@ -414,10 +414,6 @@ namespace blood210
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag210_bloodfest_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace blood210
@@ -496,7 +492,6 @@ namespace blood210
 		int main_alive = 1, tasks_alive = 1;
 		if (ms->running)
 		{
-			FX_HELD(held_note_master();)
 			EffectCameraMatrix(&Camera(), OrthoView());
 			main_alive = ExecuteTaskQueue(QMain());
 			ExecuteTaskQueue(QFlames());
@@ -551,7 +546,6 @@ namespace blood210
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_FlameTask), p);)
 		FlameDraw(&p->f, p->frame, FLAME_LOOK, PacketCursor());
 		if (Pause() != 0) return 0;
 		if (p->frame == 0)
@@ -583,7 +577,6 @@ namespace blood210
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_SparkTask), p);)
 		FireSparkDraw(&p->s, p->life, SPARK_LOOK, PacketCursor());
 		if (Pause() != 0) return 0;
 		FireSparkMove(&p->s, &p->life, 4, 0x40);
@@ -599,7 +592,6 @@ namespace blood210
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_EmberTask), p);)
 		EmberDraw(&p->e, p->frame, us(SEQ_Ember), 3, PacketCursor());
 		if (Pause() != 0) return 0;
 		EmberRise(&p->e, 5, 6);
@@ -746,7 +738,6 @@ namespace blood210
 		arg->m.t[2] = z;
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		arg->morph = TexBase() + MORPH;
-		FX_HELD(held_note_layout(mn, site, layout, arg, x, z);)
 		prim::play((prim::Layout *)layout, PrimCallback, (int)arg, (int)Pause());
 	}
 
@@ -835,7 +826,6 @@ namespace blood210
 
 	static void GhostDraw(uint8_t *entity, uint8_t *g)
 	{
-		FX_HELD(held_note_ghosts(entity, g);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x74);
 		GhostCtx *c = (GhostCtx *)(h + 0x20);
 		c->verts = var<uint32_t>(us(0x1D98B3C));
@@ -932,7 +922,6 @@ namespace blood210
 
 	static void DrawEntity(uint8_t *e, const int16_t *angles, const int16_t *off)
 	{
-		FX_HELD(held_note_entity(e, angles, off);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
 		Mat4x3 *m = (Mat4x3 *)h;
 		ComposeZYXRotationMatrix(angles, m);
@@ -970,7 +959,6 @@ namespace blood210
 
 	static void CaptureStage(const int16_t *a, const int16_t *b)
 	{
-		FX_HELD(held_note_capture(a, b);)
 		const int32_t b0 = -(int32_t)b[0];
 		const int32_t b3 = b[3];
 		const int32_t nb2 = -(int32_t)b[2];
@@ -1179,7 +1167,6 @@ namespace blood210
 
 	static void ThreePart(const int16_t *c, int32_t a2, int32_t a3, int32_t a4, int32_t a5, int32_t a6)
 	{
-		FX_HELD(held_note_three(c, a2, a3, a4, a5, a6);)
 		Mat4x3 m;
 		if (a6 > 0)
 		{
@@ -1329,7 +1316,6 @@ namespace blood210
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *mn = (MainNode *)n;
-		FX_HELD(held_note_main(mn);)
 		FlashLevel() = FlashOf(mn->counter);
 		uint32_t i = (uint32_t)(mn->counter - 0x37);
 		if (i < 7)
@@ -1362,11 +1348,9 @@ namespace blood210
 		i = (uint32_t)(mn->counter - 0x41);
 		if (i < 8)
 		{
-			FX_HELD(held_note_bone((int32_t)i);)
 			uint8_t *h = (uint8_t *)FieldAlloc(0x80);
 			int16_t *sp = (int16_t *)(h + 0x78);
 			GetEffectSpawnPosition(Caster(), 0x25, 0, sp);
-			FX_HELD(held_note_bone_point(sp);)
 			Mat4x3 *m = (Mat4x3 *)(h + 0x58);
 			RotationY((int32_t)(i << 8), m);
 			m->m[1][1] = (int16_t)-sp[1];
@@ -1531,7 +1515,6 @@ namespace blood210
 		i = (uint32_t)(mn->counter - 0xE3);
 		if (i < 0x10)
 		{
-			FX_HELD(held_note_tile((int32_t)i);)
 			PacketCursor() = FadeTileInHoldOut((int32_t)i, 0xF0, 0xF0, 0xF0, 6, 4, 6, PacketCursor());
 		}
 		if (mn->counter == 0x21)
@@ -1674,7 +1657,6 @@ namespace blood210
 			t->dir_ab[1] = (int32_t)t->first_b[1] - t->first_a[1];
 			t->dir_ab[2] = (int32_t)t->first_b[2] - t->first_a[2];
 			NormalizeVector(t->dir_ab, t->dir_ab);
-			FX_HELD(held_note_trail(t);)
 			TrailDraw(t->spl_a, t->spl_b, w);
 		}
 		FieldFree(0x40);
@@ -1697,7 +1679,6 @@ namespace blood210
 		arg.depth = -0x80;
 		arg.kind = us(KIND_Plain);
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_task_layout(t, &arg);)
 		const int left = prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, (int)Pause());
 		return left ? 0 : TASK_END;
 	}
@@ -1724,7 +1705,6 @@ namespace blood210
 	static uint32_t __cdecl RockTask(TaskNode *n)
 	{
 		RockNode *k = (RockNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_RockTask), k);)
 		RockDraw(k);
 		if (Pause() != 0) return 0;
 		k->life--;
@@ -1749,7 +1729,6 @@ namespace blood210
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_SparkleTask), s);)
 		SparkleDraw(s->pos, s->frame);
 		if (Pause() != 0) return 0;
 		s->pos[1] = (int16_t)(s->pos[1] + s->vy);
@@ -1770,10 +1749,6 @@ namespace blood210
 		register_port(blood210::ORIG_LayoutTask, (void *)blood210::LayoutTask, "210 LayoutTask", 210);
 		register_port(blood210::ORIG_RockTask, (void *)blood210::RockTask, "210 RockTask", 210);
 		register_port(blood210::ORIG_SparkleTask, (void *)blood210::SparkleTask, "210 SparkleTask", 210);
-		FX_HELD(register_mag210_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag210_bloodfest_held.inc"
-#endif

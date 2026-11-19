@@ -178,10 +178,6 @@ namespace ultra184
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag184_ultra_waves_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace ultra184
@@ -531,7 +527,6 @@ namespace ultra184
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_ODD);
 		if (!(r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(QEffects());
@@ -728,7 +723,6 @@ namespace ultra184
 
 	static uint32_t __cdecl Controller(TaskNode *n)
 	{
-		FX_HELD(held_note_controller(n);)
 		if (DrawOnly()) return 0;
 		ControllerNode *c = (ControllerNode *)n;
 		if (c->counter == 0) GridInit();
@@ -867,7 +861,6 @@ namespace ultra184
 	static uint32_t __cdecl Emitter(TaskNode *n)
 	{
 		EmitterNode *e = (EmitterNode *)n;
-		FX_HELD(held_note_emitter(e);)
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
 		EmitterWork *w = (EmitterWork *)FieldAlloc(0x88);
 		int alive = 0;
@@ -902,7 +895,6 @@ namespace ultra184
 		WarpNode *w = (WarpNode *)n;
 		if (w->counter < WARP_TICKS)
 		{
-			FX_HELD(held_note_warp(w);)
 			WarpDraw(w->counter, us(PKT_Capture), us(OFFSET_XY), us(QUADS));
 		}
 		if (DrawOnly()) return 0;
@@ -920,10 +912,6 @@ namespace ultra184
 		register_port(ultra184::ORIG_Controller, (void *)ultra184::Controller, "U184 Controller", 184);
 		register_port(ultra184::ORIG_Emitter, (void *)ultra184::Emitter, "U184 Emitter", 184);
 		register_port(ultra184::ORIG_ScreenWarp, (void *)ultra184::ScreenWarp, "U184 ScreenWarp", 184);
-		FX_HELD(register_mag184_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag184_ultra_waves_quistis_held.inc"
-#endif

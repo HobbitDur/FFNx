@@ -187,10 +187,6 @@ namespace haste125
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag125_haste_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace haste125
@@ -210,14 +206,12 @@ namespace haste125
 		arg.m.t[0] = t->pos[0];
 		arg.m.t[2] = t->pos[2];
 		arg.m.t[1] = *(const int16_t *)(t->entity + 0x24);
-		FX_HELD(held_note_play(t->clock, &arg);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		int32_t left = prim::play((prim::Layout *)t->clock, ClockPart, (int)&arg, 0);
 		RotationY((int16_t)-*(const int16_t *)(t->entity + 0xE), &arg.m);
 		arg.m.t[0] = t->pos[0];
 		arg.m.t[2] = t->pos[2];
 		arg.m.t[1] = (int32_t)t->spawn[1] - (s >> 4) - (s >> 2);
-		FX_HELD(held_note_play(t->lower, &arg);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		left |= prim::play((prim::Layout *)t->lower, ClockPart, (int)&arg, 0);
 		if (t->counter == 0x30) ScreenFadeTask(0, 1, 1, 0x60);
@@ -233,7 +227,6 @@ namespace haste125
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1A70;
@@ -277,10 +270,6 @@ namespace haste125
 	{
 		register_port(haste125::ORIG_RootTask, (void *)haste125::RootTask, "H125 RootTask", 125);
 		register_port(haste125::ORIG_TargetTask, (void *)haste125::TargetTask, "H125 TargetTask", 125);
-		FX_HELD(register_mag125_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag125_haste_held.inc"
-#endif

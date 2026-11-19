@@ -214,13 +214,8 @@ namespace duel274
 	};
 #pragma pack(pop)
 	static_assert(sizeof(SparkNode) == 0x24 && sizeof(FlashNode) == 0x14 && sizeof(RockNode) == 0x2C, "Duel particle nodes");
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag274_duel_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -456,7 +451,6 @@ namespace duel274
 
 	static void GhostDraw(uint8_t *entity, uint8_t *g)
 	{
-		FX_HELD(held_note_ghosts(entity, g);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x74);
 		GhostCtx *c = (GhostCtx *)(h + 0x20);
 		c->verts = var<uint32_t>(us(0x1D98B3C));
@@ -898,7 +892,6 @@ namespace duel274
 
 	static void SparkDraw(SparkNode *s)
 	{
-		FX_HELD(held_note_spark(s);)
 		const uint8_t *e = SPARK_Table() + s->seq * 8;
 		const int16_t scale = *(const int16_t *)(e + 6);
 		const uint32_t a = ((uint32_t)(int32_t)s->seq & 0xFFFF0000u) | (uint16_t)scale;
@@ -1032,7 +1025,6 @@ namespace duel274
 
 	static void FlashDraw(FlashNode *f)
 	{
-		FX_HELD(held_note_flash(f);)
 		TransformCameraByShadowRotation(f->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint32_t *)h = us(SEQ_Flash);
@@ -1062,7 +1054,6 @@ namespace duel274
 
 	static void RockDraw(RockNode *k)
 	{
-		FX_HELD(held_note_rock(k);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		Mat4x3 m;
 		BuildRotationMatrixFromAngles(k->ang, &m);
@@ -1140,7 +1131,6 @@ namespace duel274
 
 	static void DrawEntity(uint8_t *e, const int16_t *angles, const int16_t *off, const int32_t *scale)
 	{
-		FX_HELD(held_note_entity(e, angles, off, scale);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
 		Mat4x3 *m = (Mat4x3 *)h;
 		FramePackets() = DrawShadow(e, OTBase() + 0x4040, 0x10, FramePackets());
@@ -1281,7 +1271,6 @@ namespace duel274
 	static int PlayLayout(MoveNode *m, int site, uint32_t layout, PlayArg *arg)
 	{
 		(void)m;
-		FX_HELD(held_note_layout(m, site, layout, arg);)
 		if (site == SITE_METEOR_A) ViewAt(&arg->m);
 		else ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		return prim::play((prim::Layout *)layout, PartCallback, (int)arg, 0);
@@ -1535,7 +1524,6 @@ namespace duel274
 			b.t[0] = to[0];
 			b.t[1] = to[1];
 			b.t[2] = to[2];
-			FX_HELD(held_note_wave(m, v, &b);)
 			ComposeAffineTransform(&Camera(), &b, &b);
 			GteSetRotMatrix(&b);
 			GteSetTransVector(&b);
@@ -1632,7 +1620,6 @@ namespace duel274
 		w->m[1][1] = (int16_t)(-2 * pos[1]);
 		w->t[0] = pos[0];
 		w->t[2] = pos[2];
-		FX_HELD(held_note_pillar(w, pos, counter);)
 		ComposeAffineTransform(&Camera(), w, w);
 		GteSetRotMatrix(w);
 		GteSetTransVector(w);
@@ -1689,7 +1676,6 @@ namespace duel274
 			{
 				Mat4x3 w;
 				const int32_t angle = (int32_t)shl32((int32_t)(((uint32_t)left & 0xFFFF0000u) | (uint16_t)m->counter), 7);
-				FX_HELD(held_pillar_angle(angle);)
 				RotationY(angle, &w);
 				GetEffectSpawnPosition(c, 0x13, 0, pos);
 				DrawPillar(&w, pos, m->counter);
@@ -1881,7 +1867,6 @@ namespace duel274
 			if (bars)
 			{
 				SetScreenFlash(0x800, 0);
-				FX_HELD(held_note_bars(m->level, NewMove() != 0);)
 				DrawBars(m->level);
 			}
 			m->wait++;
@@ -2013,7 +1998,6 @@ namespace duel274
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = U32((void *)TexBase(), 0x92C);
@@ -2058,10 +2042,6 @@ namespace duel274
 		register_port(duel274::ORIG_SparkTask, (void *)duel274::SparkTask, "274 SparkTask", 274);
 		register_port(duel274::ORIG_FlashTask, (void *)duel274::FlashTask, "274 FlashTask", 274);
 		register_port(duel274::ORIG_RockTask, (void *)duel274::RockTask, "274 RockTask", 274);
-		FX_HELD(register_mag274_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag274_duel_held.inc"
-#endif

@@ -106,10 +106,6 @@ namespace cg190
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag190_chain_gun_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace cg190
@@ -357,7 +353,6 @@ namespace cg190
 	static uint32_t __cdecl MuzzleTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_MuzzleTask), n);)
 		MuzzleDraw(n, n->counter >= 0, MuzzleFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -367,7 +362,6 @@ namespace cg190
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_SmokeTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Smoke);
@@ -375,7 +369,6 @@ namespace cg190
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
 			if (!(*(const uint8_t *)&e->id & 1)) continue;
-			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
 			{
@@ -387,7 +380,6 @@ namespace cg190
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -456,7 +448,6 @@ namespace cg190
 	static uint32_t __cdecl ImpactTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_ImpactTask), n);)
 		ImpactDraw(n, n->counter >= 0, ImpactFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -469,7 +460,6 @@ namespace cg190
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_FlashTask), n);)
 		FlashDraw(n, n->counter);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -479,7 +469,6 @@ namespace cg190
 	static uint32_t __cdecl DustTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_DustTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Smoke);
@@ -488,7 +477,6 @@ namespace cg190
 		for (Particle *e = PartsA(); e < PartsA() + 100; e++)
 		{
 			if (e->id != (int32_t)n->f0E) continue;
-			FX_HELD(held_note_part(e);)
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
 			{
@@ -500,7 +488,6 @@ namespace cg190
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -573,7 +560,6 @@ namespace cg190
 	static uint32_t __cdecl SparkTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_SparkTask), n);)
 		SparkDraw(n, n->counter >= 1, SparkFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -586,7 +572,6 @@ namespace cg190
 	static uint32_t __cdecl SparksTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_begin(us(ORIG_SparksTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(uint32_t *)h = us(SEQ_Sparks);
@@ -594,7 +579,6 @@ namespace cg190
 		for (Particle *e = PartsB(); e < PartsB() + 100; e++)
 		{
 			if (e->id != (int32_t)n->f0E) continue;
-			FX_HELD(held_note_part(e);)
 			*(int32_t *)(h + 8) = e->f16;
 			ParticleDraw(h, e->frame, e->pos, e->angle);
 			if (!(UpdateFlags() & 0x201))
@@ -607,7 +591,6 @@ namespace cg190
 					alive++;
 				}
 			}
-			FX_HELD(held_note_part_next(e);)
 		}
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
@@ -699,7 +682,6 @@ namespace cg190
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		Cursor() = us(ARENA_A);
 		if (!(*(const uint8_t *)&r->counter & 1)) Cursor() = us(ARENA_B);
 		const int a = ExecuteTaskQueue(QEffects());
@@ -721,10 +703,6 @@ namespace cg190
 		register_port(cg190::ORIG_HitTask, (void *)cg190::HitTask, "C190 HitTask", 190);
 		register_port(cg190::ORIG_SparkTask, (void *)cg190::SparkTask, "C190 SparkTask", 190);
 		register_port(cg190::ORIG_SparksTask, (void *)cg190::SparksTask, "C190 SparksTask", 190);
-		FX_HELD(register_mag190_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag190_chain_gun_held.inc"
-#endif

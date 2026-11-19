@@ -49,10 +49,6 @@ namespace renzo337
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag337_renzokuken_sorceress_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo337
@@ -127,10 +123,6 @@ namespace renzo337
 		register_port(renzo337::ORIG_Dust, (void *)renzo337::DustTask, "337 Dust", 337);
 		register_port(renzo337::ORIG_GroundModel, (void *)renzo337::GroundModelTask, "337 GroundModel", 337);
 		register_port(renzo337::ORIG_Shake, (void *)renzo337::ShakeTask, "337 Shake", 337);
-		FX_HELD(register_mag337_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag337_renzokuken_sorceress_held.inc"
-#endif

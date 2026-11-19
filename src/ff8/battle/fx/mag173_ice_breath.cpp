@@ -113,10 +113,6 @@ namespace ib173
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag173_ice_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace ib173
@@ -215,7 +211,6 @@ namespace ib173
 		U32(h, 0) = us(SEQ_Swirl);
 		S16(h, 0x24) = 0;
 		U32(w, 0xC) = U32(us(ANCHOR), 4);
-		FX_HELD(held_note_pool(us(ORIG_Swirl), n, h);)
 		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 1)) continue;
@@ -301,7 +296,6 @@ namespace ib173
 			S16(n, 0xE) = (int16_t)(delay - 1);
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Cone), n);)
 		ConeDraw(n, ConeCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		ConeMove(n);
@@ -337,7 +331,6 @@ namespace ib173
 	static uint32_t __cdecl GlowTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(us(ORIG_Glow), n);)
 		GlowDraw(n, us(ANCHOR), GlowCue(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		GlowMove(n);
@@ -351,7 +344,6 @@ namespace ib173
 		int32_t live = 0;
 		U32(h, 0) = us(SEQ_Puff);
 		S16(h, 0x24) = 4;
-		FX_HELD(held_note_pool(us(ORIG_Puffs), n, h);)
 		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 2)) continue;
@@ -420,7 +412,6 @@ namespace ib173
 		S16(w, 2) = 0;
 		S16(w, 4) = 0;
 		BuildRotationMatrixFromAngles((const int16_t *)w, (Mat4x3 *)(w + 8));
-		FX_HELD(held_note_pool(us(ORIG_Shards), n, h);)
 		for (uint32_t e = us(POOL); e < us(POOL_END); e += 0x18)
 		{
 			if (!(U8(e, 0) & 4)) continue;
@@ -691,7 +682,6 @@ namespace ib173
 		U32(h, 8) = 0;
 		ComposeAffineTransform(&Camera(), &m, (Mat4x3 *)(h + 0x6C));
 		const int16_t c = S16(n, 0xC);
-		FX_HELD(held_note_trail(n, h);)
 		if (c >= 0xA)
 		{
 			S32(h, 0x20) = c - 0xA;
@@ -917,7 +907,6 @@ namespace ib173
 		const uint32_t n = (uint32_t)nd;
 		uint8_t blk[0x28];
 		CrystalBlock(n, (uint32_t)blk);
-		FX_HELD(held_note_crystal(n);)
 		const int left = prim::play((prim::Layout *)(n + 0x1C), CrystalCallback, (int)(uint32_t)blk, PlayerPaused() ? 1 : 0);
 		return left ? 0 : TASK_END;
 	}
@@ -1071,7 +1060,6 @@ namespace ib173
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_root();)
 		if (U8(n, 0xC) & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
 		const int running = ExecuteTaskQueue(FxQueue());
@@ -1109,10 +1097,6 @@ namespace ib173
 		register_port(ib173::ORIG_Shards, (void *)ib173::ShardsTask, "173 IceShards", 173);
 		register_port(ib173::ORIG_Spawner, (void *)ib173::SpawnerTask, "173 CrystalSpawner", 173);
 		register_port(ib173::ORIG_Crystal, (void *)ib173::CrystalTask, "173 Crystal", 173);
-		FX_HELD(register_mag173_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag173_ice_breath_held.inc"
-#endif

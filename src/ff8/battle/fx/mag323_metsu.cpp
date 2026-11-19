@@ -331,10 +331,6 @@ namespace metsu323
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag323_metsu_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace metsu323
@@ -342,7 +338,6 @@ namespace metsu323
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(n);)
 		SpriteDraw(s->pos, s->counter);
 		s->counter++;
 		if (s->counter >= 0xA) return TASK_END;
@@ -362,14 +357,12 @@ namespace metsu323
 		ff8fx::copy<(8)>(arg.pos, h->pos);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_hit(n);)
 		return prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
 	static uint32_t __cdecl TrailTask(TaskNode *n)
 	{
 		TrailNode *t = (TrailNode *)n;
-		FX_HELD(held_note_trail(n);)
 		TrailDraw(t, (int32_t)t->counter * 0x400 / 8);
 		t->counter++;
 		return t->counter < 8 ? 0 : TASK_END;
@@ -450,7 +443,6 @@ namespace metsu323
 		if ((uint32_t)k < 0x41)
 		{
 			m->tilt = (int16_t)(m->tilt + 0x4D);
-			FX_HELD(held_note_blade(n);)
 			int16_t cur[4] = {};
 			PathPoint(m, seg, t, cur);
 			if (m->cur[0] != cur[0] || m->cur[1] != cur[1] || m->cur[2] != cur[2]) ff8fx::copy<(8)>(m->prev, m->cur);
@@ -524,7 +516,6 @@ namespace metsu323
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *ms = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (ms->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -587,7 +578,6 @@ namespace metsu323
 		else a0 = a1 = a2 = (int)n;
 		if (ms->started && a0 == 0 && a1 == 0 && a2 == 0)
 		{
-			FX_HELD(held_note_end();)
 			return TASK_END;
 		}
 		ms->counter++;
@@ -602,10 +592,6 @@ namespace metsu323
 		register_port(metsu323::ORIG_TrailTask, (void *)metsu323::TrailTask, "323 TrailTask", 323);
 		register_port(metsu323::ORIG_HitTask, (void *)metsu323::HitTask, "323 HitTask", 323);
 		register_port(metsu323::ORIG_SparkTask, (void *)metsu323::SparkTask, "323 SparkTask", 323);
-		FX_HELD(register_mag323_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag323_metsu_held.inc"
-#endif

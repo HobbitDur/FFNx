@@ -27,10 +27,6 @@ namespace gargantua269
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag269_gargantua_269_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -94,7 +90,6 @@ namespace gargantua269
 
 	static uint32_t __cdecl SequenceTask(TaskNode *)
 	{
-		FX_HELD(PalShiftRestore();)
 		return SequenceTick(g_c);
 	}
 }
@@ -107,10 +102,6 @@ namespace gargantua269
 		init_clone(gargantua269::g_c, nullptr, 0);
 		gargantua269::apply_slots(gargantua269::g_c);
 		register_port(0x8F7890, (void *)gargantua269::SequenceTask, "MAG269 Gargantua 269 SequenceTick", 269);
-		FX_HELD(register_mag269_gargantua_269_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag269_gargantua_269_held.inc"
-#endif

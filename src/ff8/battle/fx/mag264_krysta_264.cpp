@@ -27,10 +27,6 @@ namespace krysta264
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag264_krysta_264_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -102,10 +98,6 @@ namespace krysta264
 		init_clone(krysta264::g_c, nullptr, 0);
 		krysta264::apply_slots(krysta264::g_c);
 		register_port(0x938520, (void *)krysta264::SequenceTask, "MAG264 Krysta 264 SequenceTick", 264);
-		FX_HELD(register_mag264_krysta_264_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag264_krysta_264_held.inc"
-#endif

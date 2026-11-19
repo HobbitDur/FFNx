@@ -795,10 +795,6 @@ namespace cure001
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag001_cure_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace cure001
@@ -819,7 +815,6 @@ namespace cure001
 		case 1: Integrate(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_particle(p);)
 		FX_PART(PART_SPARKLES);
 		DrawSprite(p);
 		p->h.counter++;
@@ -847,7 +842,6 @@ namespace cure001
 		case 1: Integrate(p); break;
 		default: break;
 		}
-		FX_HELD(held_note_particle(p);)
 		FX_PART(PART_MOTES);
 		DrawSprite(p);
 		p->h.counter++;
@@ -887,7 +881,6 @@ namespace cure001
 			SpawnMotes(r);
 			SpawnGlints(r);
 		}
-		FX_HELD(held_note_ring(r);)
 		if (r->h.flags & 8)
 		{
 			const CureParams::Overlay &op = P().overlay;
@@ -1014,7 +1007,6 @@ namespace cure001
 			PacketCursor() = var<uint32_t>(us(ARENA_B));
 			PacketLimit() = var<uint32_t>(us(LIMIT_B));
 		}
-		FX_HELD(held_note_root(r);)
 		UpdateTargetPosFromBones(r);
 		RootPhase(r);
 		r->alive = 0;
@@ -1139,11 +1131,7 @@ namespace cure001
 		register_port(cure001::ORIG_Ring, (void *)cure001::RingTask, "001 Ring", 1);
 		register_port(cure001::ORIG_Mote, (void *)cure001::MoteTask, "001 Mote", 1);
 		register_port(cure001::ORIG_Sparkle, (void *)cure001::SparkleTask, "001 Sparkle", 1);
-		FX_HELD(register_mag001_held();)
 	}
 	FX_LAB_MODULE(register_mag001_cure);
 }
 
-#ifdef FF8_FX_HELD
-#include "mag001_cure_held.inc"
-#endif

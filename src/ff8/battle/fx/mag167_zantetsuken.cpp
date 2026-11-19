@@ -119,10 +119,6 @@ namespace z167
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag167_zantetsuken_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace z167
@@ -134,7 +130,6 @@ namespace z167
 		Node24 *n = (Node24 *)tn;
 		uint32_t arena = var<uint32_t>(us(0x23BF02C));
 		Cursor() = (*(const uint8_t *)&n->c & 1) ? arena + 0x8000 : arena;
-		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		n->c++;
 		return left ? 0 : TASK_END;
@@ -384,13 +379,11 @@ namespace z167
 			Rec *r = RecOf(i);
 			if (!(*(const uint8_t *)&r->alive & 1)) continue;
 			SparkDrawOne(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(n, i, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(r);
@@ -551,12 +544,10 @@ namespace z167
 			var<uint32_t>(us(HIST_B) + 8 * cnt + 4) = src[1];
 			if (--j < 0) j = 9;
 		}
-		FX_HELD(TrailMemo *m = held_trail_put(n);)
 		if (cnt > 1)
 		{
 			SplineRails(cnt, 32, 31);
 			TrailDraw(us(SPLINE_A), us(SPLINE_B), s);
-			FX_HELD(held_trail_drawn(m);)
 		}
 		FieldFree(0x40);
 		if (Paused()) return 0;
@@ -600,7 +591,6 @@ namespace z167
 	{
 		Node24 *n = (Node24 *)tn;
 		PrimDraw(n, us(0xD6FA7C), 0x8AC, n->s1C, n->s20);
-		FX_HELD(MemoNode(n);)
 		return PrimTask(n, 0xD);
 	}
 
@@ -608,7 +598,6 @@ namespace z167
 	{
 		Node24 *n = (Node24 *)tn;
 		PrimDraw(n, us(0xD7042C), 0, n->s1C, n->s1C);
-		FX_HELD(MemoNode(n);)
 		return PrimTask(n, 9);
 	}
 
@@ -697,7 +686,6 @@ namespace z167
 			uint8_t *h = (uint8_t *)FieldAlloc(0x1D0);
 			SliceDraw(h, n, ent, n->s1C, n->c >= 0x20 ? SliceFadeW(n->c) : -1);
 			FieldFree(0x1D0);
-			FX_HELD(MemoNode(n);)
 		}
 		if (Paused()) return 0;
 		int16_t cc = n->c;
@@ -723,10 +711,6 @@ namespace z167
 		register_port(z167::ORIG_PrimATask, (void *)z167::PrimATask, "167 PrimATask", 167);
 		register_port(z167::ORIG_PrimBTask, (void *)z167::PrimBTask, "167 PrimBTask", 167);
 		register_port(z167::ORIG_SliceTask, (void *)z167::SliceTask, "167 SliceTask", 167);
-		FX_HELD(register_mag167_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag167_zantetsuken_held.inc"
-#endif

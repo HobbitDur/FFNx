@@ -162,13 +162,8 @@ namespace o187
 #pragma pack(pop)
 	static_assert(sizeof(Node24) == 0x24, "sub-queue node is 0x24 bytes");
 	static_assert(sizeof(Rec) == 0x18, "sprite record is 0x18 bytes");
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag187_odin_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -200,7 +195,6 @@ namespace o187
 
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
-		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		((Node24 *)tn)->c++;
 		return left ? 0 : TASK_END;
@@ -456,7 +450,6 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		GridDraw(n, 0x100, 0x20, c, c * 2, GridAFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x36 ? TASK_END : 0;
@@ -467,7 +460,6 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		GridDraw(n, 0x200, 0x10, c * 2, c * 2, GridBFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x36 ? TASK_END : 0;
@@ -582,7 +574,6 @@ namespace o187
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 1)) continue;
 			DebrisDrawOne(h, &r->x, r->size);
-			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->y = (int16_t)(r->y + r->vy);
 			r->vy = (int16_t)(r->vy + (int16_t)(r->vy >> 5));
@@ -592,7 +583,6 @@ namespace o187
 				continue;
 			}
 			r->alive = 0;
-			FX_HELD(MemoDied(pm);)
 			int j = FreeRecord(PoolB());
 			if (j < 0) continue;
 			Rec *b = RecOf(PoolB(), j);
@@ -610,13 +600,11 @@ namespace o187
 			Rec *r = RecOf(PoolB(), i);
 			if (!(r->alive & 1)) continue;
 			SplashDrawOne(h, s, r);
-			FX_HELD(PoolMemo *pm = MemoRecord(1, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 			}
 			else count++;
 		}
@@ -710,7 +698,6 @@ namespace o187
 	{
 		Node24 *n = (Node24 *)tn;
 		GlowDraw(&Frame(), n, n->c);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1A ? TASK_END : 0;
@@ -750,7 +737,6 @@ namespace o187
 			return 0;
 		}
 		StreakDraw(n, n->p10);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->p10 = (int16_t)(n->p10 + n->s1E);
 		n->c++;
@@ -832,7 +818,6 @@ namespace o187
 			uint8_t *h = (uint8_t *)FieldAlloc(0x1D0);
 			SliceDraw(h, n, ent, n->s1C, c, true);
 			FieldFree(0x1D0);
-			FX_HELD(MemoNode(n);)
 		}
 		if (Paused()) return 0;
 		int16_t cc = n->c;
@@ -1066,7 +1051,6 @@ namespace o187
 	static void Draw(uint8_t *E)
 	{
 		DrawModel(E, &Frame(), var<uint32_t>(us(0xE41E98)));
-		FX_HELD(CreatureMemoTake();)
 	}
 
 	static uint32_t __cdecl CreatureTask(TaskNode *tn)
@@ -1222,7 +1206,6 @@ namespace o187
 	end:
 		if (Paused()) return 0;
 		n->c++;
-		FX_HELD(held_note_creature_next(n);)
 		if (n->c < 0xC6) return 0;
 		DoneFlags() |= 1;
 		return TASK_END;
@@ -1285,7 +1268,6 @@ namespace o187
 		int32_t otz = FlashDepth();
 		int32_t level = FlashLevel(n->c, n->e, n->s1C);
 		if (level >= 0) ScreenTile(level, level, level, otz);
-		FX_HELD(held_note_flash(n, level, otz);)
 		if (Paused()) return 0;
 		n->c++;
 		return level < 0 ? TASK_END : 0;
@@ -1348,7 +1330,6 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		MorphDraw(n, MorphArg(c), c >= 6, mul32(c - 6, 682), var<uint32_t>(us(0xE41E98)));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0xC ? TASK_END : 0;
@@ -1382,13 +1363,11 @@ namespace o187
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 2)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_DRAG4, r);
@@ -1463,7 +1442,6 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		RingDraw(&Frame(), n, n->s1C, n->s20, c >= 6, RingAFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s22;
 		n->s20 = (int16_t)(n->s20 + v);
@@ -1477,7 +1455,6 @@ namespace o187
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		RingDraw(&Frame(), n, n->s1C, n->s20, c >= 4, RingBFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1500,13 +1477,11 @@ namespace o187
 			Rec *r = RecOf(PoolB(), i);
 			if (!(r->alive & 2)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(1, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_XZ_DRAG8, r);
@@ -1563,19 +1538,16 @@ namespace o187
 		ComposeAffineTransform(&Frame(), (const Mat4x3 *)(s + 8), (Mat4x3 *)(s + 8));
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
-		FX_HELD(held_note_mist(n, s);)
 		for (int i = 0; i < 150; i++)
 		{
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 4)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_GROW5_DRAG8, r);
@@ -1667,13 +1639,11 @@ namespace o187
 			Rec *r = RecOf(PoolC(), i);
 			if (!(r->alive & mask)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(2, i, owner, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(kind, r);
@@ -1847,7 +1817,6 @@ namespace o187
 	{
 		if (var<uint8_t>(us(0x24FD50C)) & 1) return TASK_END;
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_blade(n);)
 		BladeDraw(&Frame(), &CreatureMat(), &BoneCopy(), BladeP0(), BladeP1(), n->c > 0);
 		if (Paused()) return 0;
 		uint8_t *sk = **(uint8_t ***)(us(0x24FD93C));
@@ -1942,12 +1911,10 @@ namespace o187
 			var<uint32_t>(us(HIST_B) + 8 * cnt + 4) = src[1];
 			if (--j < 0) j = 9;
 		}
-		FX_HELD(TrailMemo *m = held_trail_put(n);)
 		if (cnt > 1)
 		{
 			SplineRails(cnt, 32, 31);
 			TrailDraw(&Frame(), us(SPLINE_A), us(SPLINE_B), s);
-			FX_HELD(held_trail_drawn(m);)
 		}
 		FieldFree(0x40);
 		if (Paused()) return 0;
@@ -2004,7 +1971,6 @@ namespace o187
 		}
 		int32_t c = n->c;
 		SlashDraw(n, n->s1C, SlashFade(c, n->s20, n->p16, model ? 8 : 6), model);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t cc = n->c;
 		if (third ? cc < 6 : cc < 3)
@@ -2064,10 +2030,6 @@ namespace o187
 		register_port(o187::ORIG_SlashCTask, (void *)o187::SlashCTask, "O187 SlashCTask", 187);
 		register_port(o187::ORIG_SlashDTask, (void *)o187::SlashDTask, "O187 SlashDTask", 187);
 		register_port(o187::ORIG_HideTask, (void *)o187::HideTask, "O187 HideTask", 187);
-		FX_HELD(register_mag187_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag187_odin_held.inc"
-#endif

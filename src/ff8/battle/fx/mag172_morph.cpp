@@ -94,15 +94,10 @@ namespace morph172
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag172_morph_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace morph172
 {
-
 	static bool CornerNear(uint32_t hdr, int32_t off)
 	{
 		S16(hdr, off + 2) = (int16_t)(S16(hdr, off + 2) - U16(hdr, 0xAC));
@@ -298,7 +293,6 @@ namespace morph172
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
-		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0xBC));
@@ -354,7 +348,6 @@ namespace morph172
 		const uint32_t n = P(tn);
 		if (S16(n, 0xC) < 0x38)
 		{
-			FX_HELD(held_note_node(REC_TINT, n);)
 			TintDraw(n, TintFade(S16(n, 0xC)), TintColour(S16(n, 0xC)));
 		}
 		if (DrawOnly()) return 0;
@@ -413,7 +406,6 @@ namespace morph172
 
 	static uint32_t RingTaskImpl(uint32_t n, bool second)
 	{
-		FX_HELD(held_note_node(second ? REC_RING2 : REC_RING, n);)
 		RingDraw(n, second ? -3 : -2, second ? us(RING_VERTS_B) : us(RING_VERTS_A), RingFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
@@ -437,7 +429,6 @@ namespace morph172
 	static uint32_t __cdecl SparksTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_parts(REC_SPARKS, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
 		U32(h, 0) = us(SEQ_Spark);
@@ -446,7 +437,6 @@ namespace morph172
 		for (uint32_t p = us(SPARKS); p < us(SPARKS_END); p += 0x18)
 		{
 			if (!(U8(p, 0) & 1)) continue;
-			FX_HELD(held_note_particle(p);)
 			SparkDraw(h, p);
 			if (DrawOnly()) continue;
 			S16(p, 4) = (int16_t)(S16(p, 4) + 1);
@@ -534,7 +524,6 @@ namespace morph172
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? us(ARENA_B) : us(ARENA_A);
 		const int running = ExecuteTaskQueue(EffectQueue());
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -549,13 +538,9 @@ namespace morph172
 		register_port(ORIG_Ring2, (void *)Ring2Task, "172 Ring2Task", 172);
 		register_port(ORIG_Sparks, (void *)SparksTask, "172 SparksTask", 172);
 		register_port(ORIG_Tint, (void *)TintTask, "172 TintTask", 172);
-		FX_HELD(register_mag172_held();)
 	}
 }
 
 	void register_mag172_morph() { morph172::register_mag172_morph_ports(); }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag172_morph_held.inc"
-#endif

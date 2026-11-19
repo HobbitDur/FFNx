@@ -153,10 +153,6 @@ namespace canister195
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag195_canister_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace canister195
@@ -428,9 +424,7 @@ namespace canister195
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_SmokeTask), n);)
 		const int16_t next = SmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -439,7 +433,6 @@ namespace canister195
 	static uint32_t __cdecl GroundFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_GroundFlashTask), n);)
 		GroundFlashDraw(n, GroundFlashFaded(n->counter), GroundFlashFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -449,7 +442,6 @@ namespace canister195
 	static uint32_t __cdecl MuzzleConeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_MuzzleConeTask), n);)
 		ConeDraw(n, n->counter >= 2, ConeFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -465,7 +457,6 @@ namespace canister195
 	static uint32_t __cdecl MuzzleRingTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_MuzzleRingTask), n);)
 		RingDraw(n, n->counter >= 6, RingFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -502,7 +493,6 @@ namespace canister195
 				e->vel[1] = (int16_t)(-5 - CrtRand() % 10);
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_SteamTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int32_t alive = 0;
 		*(int16_t *)(h + 0x24) = 0;
@@ -511,20 +501,17 @@ namespace canister195
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			PartDraw(e, s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			e->pos[1] = (int16_t)(e->pos[1] + e->vel[1]);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -562,7 +549,6 @@ namespace canister195
 				e2->pos[2] = (int16_t)(e2->pos[2] + (CrtRand() % 0x32 - 0x19));
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_BoneSmokeTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(int16_t *)(h + 0x24) = 8;
 		PartLight(s);
@@ -571,20 +557,17 @@ namespace canister195
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_part(e);)
 			PartDraw(e, s, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_part_next(e);)
 				continue;
 			}
 			e->size = (int16_t)(e->size + (int16_t)(e->size >> 4));
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		FieldFree(0x48);
 		if (UpdateFlags() & 0x201) return 0;
@@ -601,9 +584,7 @@ namespace canister195
 			n->f22--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_ImpactTask), n);)
 		const int16_t next = ImpactDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 15)
 		{
@@ -633,9 +614,7 @@ namespace canister195
 	static uint32_t __cdecl ImpactSmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_ImpactSmokeTask), n);)
 		const int16_t next = ImpactSmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -644,7 +623,6 @@ namespace canister195
 	static uint32_t __cdecl ImpactFlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_ImpactFlashTask), n);)
 		ImpactModelDraw(n, 0, us(MODEL_ImpactFlash), n->counter >= 4, ImpactFlashFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -689,21 +667,18 @@ namespace canister195
 				e->sz = (int16_t)(CrtRand() % 0x140 + 0x50);
 			}
 		}
-		FX_HELD(held_note_node(us(ORIG_DebrisTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x58);
 		DebrisBegin(s, h);
 		int32_t alive = 0;
 		for (Debris *e = arr; e < arr + DEBRIS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_debris(e);)
 			DebrisDraw(e, s, h, e->counter >= 6, DebrisFade(e->counter));
 			if (UpdateFlags() & 0x201) continue;
 			e->counter++;
 			if (e->counter >= 14)
 			{
 				e->id = 0;
-				FX_HELD(held_note_debris_next(e);)
 				continue;
 			}
 			e->pos[0] = (int16_t)(e->pos[0] + e->vel[0]);
@@ -716,7 +691,6 @@ namespace canister195
 			e->az = (int16_t)(e->az + e->sz);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0x58);
 		FieldFree(0x68);
 		if (UpdateFlags() & 0x201) return 0;
@@ -733,7 +707,6 @@ namespace canister195
 			n->f22--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_ImpactConeTask), n);)
 		ImpactModelDraw(n, n->f18, us(MODEL_Cone), n->counter >= 0, ImpactConeFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t spin = n->f1A;
@@ -896,7 +869,6 @@ namespace canister195
 		const int32_t end = EndTick();
 		const int32_t count = c >= end ? end - c + 5 : 5;
 		*(volatile int32_t *)&n_ = count;
-		FX_HELD(held_note_ghosts(c, slot, count, colour);)
 		for (int32_t k = 0; k < count; k++)
 		{
 			const Ghost *s = GhostSlot(slot);
@@ -961,7 +933,6 @@ namespace canister195
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (*(const uint8_t *)&r->counter & 1) ? TexBase() + ARENA_ODD : TexBase();
 		const int shots = ExecuteTaskQueue(QShots());
 		const int aux = ExecuteTaskQueue(QAux());
@@ -991,10 +962,6 @@ namespace canister195
 		register_port(canister195::ORIG_ImpactFlashTask, (void *)canister195::ImpactFlashTask, "195 ImpactFlashTask", 195);
 		register_port(canister195::ORIG_DebrisTask, (void *)canister195::DebrisTask, "195 DebrisTask", 195);
 		register_port(canister195::ORIG_ImpactConeTask, (void *)canister195::ImpactConeTask, "195 ImpactConeTask", 195);
-		FX_HELD(register_mag195_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag195_canister_shot_held.inc"
-#endif

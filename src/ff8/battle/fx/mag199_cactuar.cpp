@@ -123,15 +123,10 @@ namespace c199
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag199_cactuar_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace c199
 {
-
 	static void SeedTableRand() { var<int32_t>(us(0xCF3A68)) = CrtRand(); }
 
 	static int32_t TableRand()
@@ -164,7 +159,6 @@ namespace c199
 
 	static uint32_t __cdecl SequenceTick(TaskNode *n)
 	{
-		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		((Node24 *)n)->c++;
 		return left ? 0 : TASK_END;
@@ -412,12 +406,9 @@ namespace c199
 		}
 		CreatureDraw(&Frame());
 
-		FX_HELD(held_note_creature();)
-
 		if (Paused()) return 0;
 		if (advance) AdvanceModelAnimLoop(E);
 		n->c++;
-		FX_HELD(held_note_creature_next(n, advance);)
 		if (n->c < 0x78) return 0;
 		RootQueueFlag() |= 1;
 		LinkTask(us(ORIG_EndTask));
@@ -473,7 +464,6 @@ namespace c199
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		RisePrimDraw(&Frame(), n, CreatureY(), c >= 6, 682 * (c - 6));
-		FX_HELD(held_note_prim(tn, c, 0);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 12 ? TASK_END : 0;
@@ -491,7 +481,6 @@ namespace c199
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		ShrinkPrimDraw(&Frame(), n, n->s, c < 4, shl32(4 - c, 10));
-		FX_HELD(held_note_prim(tn, c, n->s);)
 		if (Paused()) return 0;
 		c = n->c;
 		if (c < 16)
@@ -518,7 +507,6 @@ namespace c199
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		SpinPrimDraw(&Frame(), n, n->a, c < 8 || c >= 14, SpinFade(c));
-		FX_HELD(held_note_prim(tn, c, n->a);)
 		if (Paused()) return 0;
 		n->a = (int16_t)(n->a + n->b);
 		n->c++;
@@ -590,7 +578,6 @@ namespace c199
 		{
 			DustPuff *p = (DustPuff *)(pool + 0x1C * i);
 			if (!(p->alive & 1)) continue;
-			FX_HELD(held_note_dust(i, p->pos, p->age);)
 			DustDrawOne(h, p->pos, p->size, p->age);
 			if (Paused()) continue;
 			p->age++;
@@ -929,7 +916,6 @@ namespace c199
 			NeedleProject(scratch, p->rot, p->pos32, T);
 			int16_t age = p->age;
 			*(uint32_t *)(T + 0x10) = age < 4 ? NEEDLE_FADE_IN()[age] : *(uint32_t *)(T + 0x54);
-			FX_HELD(held_note_needle(i, p->pos, age);)
 			if (!Paused())
 			{
 				age = (int16_t)(age + 1);
@@ -949,7 +935,6 @@ namespace c199
 					if (f >= 6) p->alive = 0;
 				}
 			}
-			FX_HELD(held_note_needle_color(i, *(uint32_t *)(T + 0x10));)
 			if (NeedleEmit(T, cursor)) count++;
 		}
 		Cursor() = cursor;
@@ -959,7 +944,6 @@ namespace c199
 		n->c++;
 		return count ? 0 : TASK_END;
 	}
-
 }
 
 	void register_mag199_cactuar()
@@ -977,10 +961,6 @@ namespace c199
 		register_port(c199::ORIG_NeedleTask, (void *)c199::NeedleTask, "C199 NeedleTask", 199);
 		register_port(c199::ORIG_DamageTask, (void *)c199::DamageTask, "C199 DamageTask", 199);
 		register_port(c199::ORIG_EndTask, (void *)c199::EndTask, "C199 EndTask", 199);
-		FX_HELD(register_mag199_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag199_cactuar_held.inc"
-#endif

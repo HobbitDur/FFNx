@@ -354,10 +354,6 @@ namespace badbreath300
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag300_bad_breath_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace badbreath300
@@ -451,7 +447,6 @@ namespace badbreath300
 	{
 		SmokeNode *p = (SmokeNode *)n;
 		HitFlagWord() = (uint32_t)n;
-		FX_HELD(held_note_smoke(p);)
 		SmokeDraw(p);
 		p->pos[1] = (int16_t)(p->pos[1] - 0x10);
 		p->counter++;
@@ -475,7 +470,6 @@ namespace badbreath300
 		uint8_t *entity = Entity(t->slot);
 		PrimArg arg;
 		HitArg(t, &arg);
-		FX_HELD(held_note_hit(t, &arg);)
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		if (t->counter <= 8)
 		{
@@ -506,7 +500,6 @@ namespace badbreath300
 		const int32_t t = e->counter - 8;
 		if ((uint32_t)t < 0x32)
 		{
-			FX_HELD(held_note_breath(e);)
 			uint8_t *h = AllocHeader(0x5C);
 			PacketCursor() = FadeTile(t, 0x40, 0x40, 0, 0xE, 0x16, 0xE, PacketCursor());
 			Mat4x3 rot;
@@ -588,7 +581,6 @@ namespace badbreath300
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -670,10 +662,6 @@ namespace badbreath300
 		register_port(badbreath300::ORIG_BreathTask, (void *)badbreath300::BreathTask, "300 BreathTask", 300);
 		register_port(badbreath300::ORIG_HitTask, (void *)badbreath300::HitTask, "300 HitTask", 300);
 		register_port(badbreath300::ORIG_SmokeTask, (void *)badbreath300::SmokeTask, "300 SmokeTask", 300);
-		FX_HELD(register_mag300_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag300_bad_breath_quistis_held.inc"
-#endif

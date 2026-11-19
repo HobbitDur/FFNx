@@ -68,8 +68,10 @@ namespace lion165
 		ORIG_TargetSparks = 0x5EFCE0, ORIG_TargetRing = 0x5EFFF0, ORIG_Shake = 0x5F0130, ORIG_Restore = 0x5F01B0;
 
 	static const uint32_t ANIM_DATA = 0xD780C8, CAMERA_SCRIPT = 0xD88930;
-	static const void *const SOUND_A = (const void *)0xD886D4, *const SOUND_B = (const void *)0xD886D8,
-		*const SOUND_C = (const void *)0xD886DC, *const SOUND_D = (const void *)0xD886E0;
+	static const void *SOUND_A() { return (const void *)us(0xD886D4); }
+	static const void *SOUND_B() { return (const void *)us(0xD886D8); }
+	static const void *SOUND_C() { return (const void *)us(0xD886DC); }
+	static const void *SOUND_D() { return (const void *)us(0xD886E0); }
 	static const uint32_t REF_BACK = 0xD886E8;
 	static const uint32_t REF_RIGHT = 0xD886F8;
 	static const uint32_t REF_UP = 0xD88708;
@@ -283,10 +285,6 @@ namespace lion165
 	}
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag165_lion_heart_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -796,7 +794,6 @@ namespace lion165
 			SplineCurve(cnt, (const int16_t *)us(PTS_BASE), 0x20, (int16_t *)us(SPL_BASE));
 			SplineCurve(cnt, (const int16_t *)us(PTS_TIP), 0x20, (int16_t *)us(SPL_TIP));
 			TrailDirections((const uint8_t *)us(SPL_BASE), (const uint8_t *)us(SPL_TIP));
-			FX_HELD(held_note_trail(n);)
 			TrailDraw((const uint8_t *)us(SPL_BASE), (const uint8_t *)us(SPL_TIP), w);
 			g_trail_slot4 = 0x1E000;
 			g_trail_slot4_known = true;
@@ -1083,7 +1080,7 @@ namespace lion165
 		{
 			if (c == 0xA)
 			{
-				BdPlaySE(SOUND_A, 0, 0x80);
+				BdPlaySE(SOUND_A(), 0, 0x80);
 				AddRockTrio();
 			}
 			else if (c == 0) QueueChainTransformation(Caster(), 1);
@@ -1125,7 +1122,7 @@ namespace lion165
 		}
 		else if ((c -= 0xC) < 0x26)
 		{
-			if (c == 0x10) BdPlaySE(SOUND_B, 0, 0x80);
+			if (c == 0x10) BdPlaySE(SOUND_B(), 0, 0x80);
 			else if (c == 0) *(uint16_t *)Caster() &= 0xFFF7;
 			else
 			{
@@ -1145,7 +1142,7 @@ namespace lion165
 		}
 		else if ((c -= 0x3C) < 0x2A)
 		{
-			if (c == 1) BdPlaySE(SOUND_C, 0, 0x80);
+			if (c == 1) BdPlaySE(SOUND_C(), 0, 0x80);
 			else if (c == 0)
 			{
 				CharacterLoad(0x21E, TexBase());
@@ -1191,7 +1188,7 @@ namespace lion165
 		}
 		else if ((c -= 0x5A) < 0x25)
 		{
-			if (c == 0xA) BdPlaySE(SOUND_D, 0, 0x80);
+			if (c == 0xA) BdPlaySE(SOUND_D(), 0, 0x80);
 			else if (c == 0)
 			{
 				QueueChainTransformation(Caster(), 4);
@@ -1294,7 +1291,6 @@ namespace lion165
 	static uint32_t __cdecl GroundRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_GroundRing), n);)
 		GroundRingDraw(n, n->w20, shl32(n->c, 4), n->c, GroundRingFade(n->c));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w22;
@@ -1316,7 +1312,6 @@ namespace lion165
 	static uint32_t __cdecl TipFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_TipFlash), n);)
 		TipFlashDraw(n, n->w1C);
 		if (DrawOnly()) return 0;
 		const int16_t c = n->c;
@@ -1358,7 +1353,6 @@ namespace lion165
 	static uint32_t __cdecl TipRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_TipRing), n);)
 		TipRingDraw(n, n->w18, n->w1C, n->c, mul32(n->c - 4, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1401,7 +1395,6 @@ namespace lion165
 	static uint32_t __cdecl HitSlashATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_HitSlashA), n);)
 		HitSlashDraw(n, us(MODEL_SLASHA), n->w1C, n->c >= 4, mul32(n->c - 4, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1414,7 +1407,6 @@ namespace lion165
 	static uint32_t __cdecl HitSlashBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_HitSlashB), n);)
 		HitSlashDraw(n, us(MODEL_SLASHB), n->w1C, n->c >= 2, shl32(n->c - 2, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1436,7 +1428,6 @@ namespace lion165
 	static uint32_t __cdecl FlatRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_FlatRing), n);)
 		FlatRingDraw(n, n->w20, n->c, shl32(n->c - 2, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w22;
@@ -1502,7 +1493,6 @@ namespace lion165
 	static uint32_t __cdecl ScreenWaveTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_ScreenWave), n);)
 		ScreenWaveDraw(n, mul32(n->w20, n->c), ScreenWaveFade(n->c), ScreenWaveColour(n->c));
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1522,7 +1512,6 @@ namespace lion165
 	static uint32_t __cdecl TipFlash2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_TipFlash2), n);)
 		TipFlash2Draw(n, n->w18, n->w1C, n->c, TipFlash2Fade(n->c));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1584,7 +1573,6 @@ namespace lion165
 			return 0;
 		}
 		if (n->c == 0) SetTipPoint();
-		FX_HELD(held_note_node(us(ORIG_Streak), n);)
 		StreakDraw(n, (const int16_t *)us(TIP), n->w20, n->c, shl32(n->c - 0x20, 9));
 		if (DrawOnly()) return 0;
 		n->w20 = StreakWidth(n->c);
@@ -1604,7 +1592,6 @@ namespace lion165
 	static uint32_t __cdecl FinalRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_FinalRing), n);)
 		FinalRingDraw(n, n->w1C, n->c, mul32(n->c - 0xC, 682));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1638,7 +1625,6 @@ namespace lion165
 	{
 		Node24 *n = (Node24 *)tn;
 		var<int16_t>(us(TIP) + 6) = (int16_t)(mul32(n->w1C, 850) >> 12);
-		FX_HELD(held_note_node(ORIG_FinalFlash, n);)
 		FinalFlashDraw(n, n->w1C, n->c, shl32(n->c - 0x10, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1660,7 +1646,6 @@ namespace lion165
 	static uint32_t __cdecl TargetRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_TargetRing), n);)
 		TargetRingDraw(n, n->w1C, n->c, mul32(n->c - 6, 409));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1724,7 +1709,6 @@ namespace lion165
 		w->ang[2] = 0;
 		w->ang[1] = 0;
 		w->ang[0] = 0;
-		FX_HELD(held_note_pool(us(ORIG_RockBurst), n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -1808,7 +1792,6 @@ namespace lion165
 		*(uint32_t *)(h + 8) = 0;
 		w->ang[2] = 0;
 		w->ang[0] = 0;
-		FX_HELD(held_note_pool(us(ORIG_Debris), n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -1899,7 +1882,6 @@ namespace lion165
 		w->ang[0] = 0;
 		w->v[1] = 0x3000;
 		w->v[2] = 0;
-		FX_HELD(held_note_pool(us(ORIG_TipShards), n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2007,7 +1989,6 @@ namespace lion165
 		*(uint32_t *)h = us(MODEL_SHARD);
 		HitShardFrame(w, n, r, &Camera());
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_HitShards), n, h);)
 		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
@@ -2087,7 +2068,6 @@ namespace lion165
 		*(uint32_t *)h = us(MODEL_TIPROCK);
 		w->ang[1] = 0;
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_TipRocks), n, h);)
 		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
@@ -2188,7 +2168,6 @@ namespace lion165
 		int32_t count = 0;
 		FinalShardFrame(w, n, &Camera());
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_FinalShards), n, h);)
 		for (uint32_t a = us(POOL_B); a < us(FINAL_SHARDS_END); a += 0x20)
 		{
 			PoolE2 *p = (PoolE2 *)a;
@@ -2282,7 +2261,6 @@ namespace lion165
 		w->m1 = Camera();
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_BoneSparks), n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2337,7 +2315,6 @@ namespace lion165
 		*cam = Camera();
 		SpriteLight(cam);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_BladeSparks), n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2406,7 +2383,6 @@ namespace lion165
 		uint8_t *h = SequenceHeader(us(SEQ_SMOKE), 8);
 		TipSmokeFrame(w, n, &Camera());
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_TipSmoke), n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2439,7 +2415,6 @@ namespace lion165
 		const int32_t id = n->e;
 		int32_t count = 0;
 		(void)fn;
-		FX_HELD(held_note_pool(fn, n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2556,7 +2531,6 @@ namespace lion165
 		int32_t count = 0;
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_HitSparkB), n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2624,7 +2598,6 @@ namespace lion165
 		ComposeAffineTransform(&Camera(), &w->m1, &w->m1);
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_TargetSparks), n, h);)
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2696,7 +2669,6 @@ namespace lion165
 		w->m1.t[2] += Camera().t[2];
 		SpriteLight(&w->m1);
 		const int32_t id = n->e;
-		FX_HELD(held_note_pool(us(ORIG_FinalRingSparks), n, h);)
 		for (uint32_t a = base, k = 0; k < 0x1F4; k++, a += 0x18)
 		{
 			PoolE *p = (PoolE *)a;
@@ -2886,7 +2858,6 @@ namespace lion165
 			ClipHeader *h = (ClipHeader *)FieldAlloc(0x1A8);
 			SinkPlane(h);
 			*ent |= 4;
-			FX_HELD(held_note_sink(n, (const uint8_t *)h);)
 			DrawClipped(h, ent);
 			FieldFree(0x1A8);
 		}
@@ -2974,7 +2945,6 @@ namespace lion165
 		RootNode *r = (RootNode *)tn;
 		if (r->c & 1) PacketCursor() = PacketArena() + 0x8000;
 		else PacketCursor() = PacketArena();
-		FX_HELD(held_note_root();)
 		const int alive = ExecuteTaskQueue(QMain());
 		r->c++;
 		return alive ? 0 : TASK_END;
@@ -3020,10 +2990,6 @@ namespace lion165
 		register_port(ORIG_TargetRing, (void *)TargetRingTask, "165 TargetRing", 165);
 		register_port(ORIG_Shake, (void *)ShakeTask, "165 Shake", 165);
 		register_port(ORIG_Restore, (void *)RestoreTask, "165 Restore", 165);
-		FX_HELD(register_mag165_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag165_lion_heart_held.inc"
-#endif

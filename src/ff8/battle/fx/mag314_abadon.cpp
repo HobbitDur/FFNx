@@ -141,13 +141,8 @@ namespace abadon314
 #pragma pack(pop)
 	static_assert(sizeof(RootNode) == 0x14 && sizeof(PoseEntry) == 0x10 && sizeof(Particle) == 0x10 && sizeof(Shard) == 0x38, "314 nodes");
 	static_assert(sizeof(MainNode) == 0x4C28 && sizeof(ScriptNode) == 0x30, "314 nodes");
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag314_abadon_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -1011,7 +1006,6 @@ namespace abadon314
 		if (c < 8) Flash() = (uint32_t)(mul32(c, 1000) >> 3);
 		else if (c > 0xDA) Flash() = (uint32_t)(mul32(0xE2 - c, 1000) >> 3);
 		else Flash() = 0x3E8;
-		FX_HELD(held_note_main(m);)
 		if ((uint32_t)(m->counter - 0x10) < 0x32)
 		{
 			SweepA(Caster(), LevelA(m->counter), PAGE_MOVE, CLUT_MOVE, PacketCursor());
@@ -1031,15 +1025,12 @@ namespace abadon314
 			for (int k = 0; k < 29; k++) StartScript(Caster(), m->pose, (const int16_t *)us(SCRIPTS[k]));
 		if (m->counter >= 0x42)
 		{
-			FX_HELD(held_note_caster(m);)
 			CasterDraw(Caster(), m->pose, PAGE_MOVE, CLUT_MOVE);
 			*Caster() |= 4;
 		}
-		FX_HELD(held_note_tiles(m->counter);)
 		if ((uint32_t)m->counter < 5) PacketCursor() = FlashTile(m->counter, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
 		if ((uint32_t)(m->counter - 0xF) < 5) PacketCursor() = FlashTile(m->counter - 0xF, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
 		if ((uint32_t)(m->counter - 0x13) < 5) PacketCursor() = FlashTile(m->counter - 0x13, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
-		FX_HELD(held_note_parts(m);)
 		Particles(m);
 		ShardsDraw(m);
 		if (m->counter == 1) BdPlaySE(SOUND_Start(), 0, 0x80);
@@ -1096,7 +1087,6 @@ namespace abadon314
 			r->parity = 1;
 		}
 		Flash() = 0;
-		FX_HELD(held_note_root();)
 		if (r->counter == 1 && !r->started)
 		{
 			r->started = 1;
@@ -1149,10 +1139,6 @@ namespace abadon314
 		register_port(abadon314::ORIG_RootTask, (void *)abadon314::RootTask, "314 RootTask", 314);
 		register_port(abadon314::ORIG_MainTask, (void *)abadon314::MainTask, "314 MainTask", 314);
 		register_port(abadon314::ORIG_ScriptTask, (void *)abadon314::ScriptTask, "314 ScriptTask", 314);
-		FX_HELD(register_mag314_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag314_abadon_held.inc"
-#endif

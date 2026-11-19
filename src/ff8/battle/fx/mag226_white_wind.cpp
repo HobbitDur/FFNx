@@ -217,10 +217,6 @@ namespace whitewind226
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag226_white_wind_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace whitewind226
@@ -238,7 +234,6 @@ namespace whitewind226
 		Scale3DMatrix(&arg.m, v);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play((prim::Layout *)t->layout, PLAY_TARGET, t->pos, s);)
 		if (prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0) == 0)
 		{
 			ApplyResult(t->entity);
@@ -268,7 +263,6 @@ namespace whitewind226
 			Scale3DMatrix(&arg.m, v);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play((prim::Layout *)s->lay_caster, PLAY_CASTER, s->caster, sc);)
 			prim::play((prim::Layout *)s->lay_caster, PrimCallback, (int)&arg, 0);
 		}
 		if ((uint32_t)((int32_t)s->counter - 7) < 0x16)
@@ -302,7 +296,6 @@ namespace whitewind226
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = -0x80;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play((prim::Layout *)s->lay_sweep, PLAY_SWEEP, s->sweep, 0);)
 			prim::play((prim::Layout *)s->lay_sweep, PrimCallback, (int)&arg, 0);
 		}
 		if (s->counter == 1) BdPlaySE(SOUND_Wind(), 0, 0x80);
@@ -330,7 +323,6 @@ namespace whitewind226
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -367,10 +359,6 @@ namespace whitewind226
 		register_port(whitewind226::ORIG_RootTask, (void *)whitewind226::RootTask, "226 RootTask", 226);
 		register_port(whitewind226::ORIG_SceneTask, (void *)whitewind226::SceneTask, "226 SceneTask", 226);
 		register_port(whitewind226::ORIG_TargetTask, (void *)whitewind226::TargetTask, "226 TargetTask", 226);
-		FX_HELD(register_mag226_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag226_white_wind_held.inc"
-#endif

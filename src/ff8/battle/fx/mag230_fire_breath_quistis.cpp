@@ -29,10 +29,6 @@ namespace fire_breath_q
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag230_fire_breath_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -69,12 +65,10 @@ namespace fire_breath_q
 
 	static inline void BindEntityModelFromComData(uint8_t *entity, uint8_t *out, uint32_t data)
 	{
-		FX_HELD(if (held_predicting()) return;)
 		x::f<void (__cdecl *)(uint8_t *, uint8_t *, uint32_t)>(us(0x5022C0))(entity, out, data);
 	}
 	static inline void QueueChainTransformation(uint8_t *entity, int32_t id)
 	{
-		FX_HELD(if (held_predicting()) return;)
 		x::f<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id);
 	}
 
@@ -138,10 +132,6 @@ namespace fire_breath_q
 		init_clone(fire_breath_q::g_c, nullptr, 0);
 		fire_breath_q::apply_slots(fire_breath_q::g_c);
 		register_port(0xA711E0, (void *)fire_breath_q::SequenceTask, "MAG230 Fire Breath (Quistis) SequenceTick", 230);
-		FX_HELD(register_mag230_fire_breath_quistis_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag230_fire_breath_quistis_held.inc"
-#endif

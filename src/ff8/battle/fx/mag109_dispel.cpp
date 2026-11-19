@@ -192,10 +192,6 @@ namespace dispel109
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag109_dispel_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace dispel109
@@ -203,7 +199,6 @@ namespace dispel109
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(p);)
 		ParticleDraw(p);
 		p->counter++;
 		return p->counter < p->end ? 0 : TASK_END;
@@ -260,7 +255,6 @@ namespace dispel109
 			arg.scaled = 0;
 			arg.depth = (int32_t)0xFFFFFF00;
 			arg.morph = TexBase() + 0x10D8;
-			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->ring, RingPart, (int)&arg, 0);
 			if (t->counter == 0)
 			{
@@ -282,7 +276,6 @@ namespace dispel109
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x10E0;
@@ -350,10 +343,6 @@ namespace dispel109
 		register_port(dispel109::ORIG_RootTask, (void *)dispel109::RootTask, "D109 RootTask", 109);
 		register_port(dispel109::ORIG_TargetTask, (void *)dispel109::TargetTask, "D109 TargetTask", 109);
 		register_port(dispel109::ORIG_ParticleTask, (void *)dispel109::ParticleTask, "D109 ParticleTask", 109);
-		FX_HELD(register_mag109_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag109_dispel_held.inc"
-#endif

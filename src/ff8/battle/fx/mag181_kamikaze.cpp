@@ -374,10 +374,6 @@ namespace kamikaze181
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag181_kamikaze_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace kamikaze181
@@ -387,7 +383,6 @@ namespace kamikaze181
 		EffectNode *t = (EffectNode *)n;
 		if (t->counter < 0xF)
 		{
-			FX_HELD(held_note_glow(t);)
 			DrawGlow(Caster(), GlowLevel(t->counter));
 		}
 		if (DrawOnly()) return 0;
@@ -397,7 +392,6 @@ namespace kamikaze181
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_ring(us(ORIG_Ring), t);)
 		DrawRing(t, us(MODEL_Ring), 8, shl32(t->counter - 8, 9));
 		if (DrawOnly()) return 0;
 		RingUpdate(t);
@@ -407,7 +401,6 @@ namespace kamikaze181
 	static uint32_t __cdecl Ring2Task(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_ring(us(ORIG_Ring2), t);)
 		DrawRing(t, us(MODEL_Ring2), 0xA, shl32(t->counter - 0xA, 9));
 		if (DrawOnly()) return 0;
 		Ring2Update(t);
@@ -425,7 +418,6 @@ namespace kamikaze181
 	static uint32_t __cdecl SparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_pool(us(ORIG_Sparks), t);)
 		uint8_t *h = SpriteHeader(us(SEQ_Spark));
 		int alive = 0;
 		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
@@ -484,7 +476,6 @@ namespace kamikaze181
 	static uint32_t __cdecl SmokeTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_pool(us(ORIG_Smoke), t);)
 		uint8_t *h = SpriteHeader(us(SEQ_Smoke));
 		int alive = 0;
 		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
@@ -522,9 +513,7 @@ namespace kamikaze181
 	static uint32_t __cdecl FlareTask(TaskNode *n)
 	{
 		FlareNode *f = (FlareNode *)n;
-		FX_HELD(held_note_flare(f);)
 		const int16_t next = DrawFlare(f);
-		FX_HELD(held_note_flare_end(next);)
 		if (DrawOnly()) return 0;
 		f->pos[2] = (int16_t)(f->pos[2] + f->vel_z);
 		f->pos[0] = (int16_t)(f->pos[0] + f->vel_x);
@@ -618,7 +607,6 @@ namespace kamikaze181
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
 		const int a = ExecuteTaskQueue(EffectQueue());
@@ -637,10 +625,6 @@ namespace kamikaze181
 		register_port(kamikaze181::ORIG_Sparks, (void *)kamikaze181::SparksTask, "K181 Sparks", 181);
 		register_port(kamikaze181::ORIG_Smoke, (void *)kamikaze181::SmokeTask, "K181 Smoke", 181);
 		register_port(kamikaze181::ORIG_Flare, (void *)kamikaze181::FlareTask, "K181 Flare", 181);
-		FX_HELD(register_mag181_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag181_kamikaze_held.inc"
-#endif

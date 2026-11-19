@@ -201,10 +201,6 @@ namespace blizzaga104
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag104_blizzaga_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace blizzaga104
@@ -212,7 +208,6 @@ namespace blizzaga104
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		FX_HELD(held_note_root();)
 		bool may_end = true;
 		if (d->arena)
 		{
@@ -478,9 +473,7 @@ namespace blizzaga104
 		*(uint16_t *)(h + 0x78) = 0x7FFF;
 		*(uint16_t *)(h + 0x7A) = 0x8001;
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)h);
-		FX_HELD(if (!held_drawing()))
 		FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4040, 0x10, FrameCursor());
-		FX_HELD(held_note_frame(FrameCursor());)
 		uint8_t *anim = entity + 0x60;
 		ComputeBonesWorldMatrices(anim, h);
 		*(uint32_t *)(h + 0x24) = var<uint32_t>(us(0x1D98B3C));
@@ -984,7 +977,6 @@ namespace blizzaga104
 			bool blink = (uint32_t)t8 < 0x12 || (uint32_t)t8 >= 0x34;
 			if (!blink || !(t8 & 1)) TargetFlags(f->entity, 0, 0, 8);
 			int16_t uv[4] = { 0, 0, 0x40, 0x100 };
-			FX_HELD(held_note_frozen(f, FreezeLevel(f, t8));)
 			DrawFrozenEntity(f->entity, FreezeLevel(f, t8), f->band_hi, &f->band_lo, &f->band_hi, uv);
 		}
 		else
@@ -1040,7 +1032,6 @@ namespace blizzaga104
 				MorphVertices(h, (const uint8_t *)MORPH_TABLE()[idx], (const uint8_t *)MORPH_TABLE()[idx + 1], v & 0xFFF);
 			}
 			else if (t == 3) CopyDwords(f->verts, BLOCK_VERTS() + 8, *(uint32_t *)(Cursor(h, 0) + 4) * 2);
-			FX_HELD(held_note_block(f, t < 3 ? 1 : 0, &m);)
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
 			PacketCursor() = RenderBlock(h, RenderOT44(), 2, PacketCursor());
@@ -1113,7 +1104,6 @@ namespace blizzaga104
 			UpdateShards(f->shards, f->verts, prims);
 			uint8_t *h = (uint8_t *)FieldAlloc(0x64);
 			BlockHeader(h, f, c);
-			FX_HELD(held_note_block(f, 2, &m);)
 			GteSetRotMatrix(&m);
 			GteSetTransVector(&m);
 			PacketCursor() = RenderBlock(h, RenderOT44(), 2, PacketCursor());
@@ -1121,7 +1111,6 @@ namespace blizzaga104
 		}
 		if ((uint32_t)(c - 0x2E) < 0x19)
 		{
-			FX_HELD(held_note_part(us(ORIG_FreezeTask) + 1, f);)
 			uint8_t *h = AllocHeader(0x5C);
 			RingHeader(h, c);
 			RingDraw(f, h, RingScale(c));
@@ -1129,7 +1118,6 @@ namespace blizzaga104
 		}
 		if ((uint32_t)(c - 0x1F) < 0xA)
 		{
-			FX_HELD(held_note_part(us(ORIG_FreezeTask) + 2, f);)
 			uint8_t *h = AllocHeader(0x58);
 			FlashDraw(f, h, FlashScale(c), FlashFade(c));
 			FieldFree(0x58);
@@ -1379,7 +1367,6 @@ namespace blizzaga104
 				SpawnSparkle(s, &r->m);
 			}
 		}
-		FX_HELD(held_note_trail(us(ORIG_RibbonTask), r);)
 		RibbonDraw(r);
 		r->counter++;
 		if (r->counter > 8 && r->count < 2) return TASK_END;
@@ -1426,7 +1413,6 @@ namespace blizzaga104
 			b[3] = 0;
 			s->count = TrailPush(0x1E, s->count, s->trail, b, a, 0x10, 0x58, (uint8_t)((3 - (c & 3)) << 5));
 		}
-		FX_HELD(held_note_trail(us(ORIG_SpiralTask), s);)
 		SpiralDraw(s);
 		s->yaw = (int16_t)(s->yaw + s->yaw_vel);
 		int16_t fc = s->freeze->counter;
@@ -1476,7 +1462,6 @@ namespace blizzaga104
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_SparkleTask), s);)
 		SparkleDraw(s);
 		SparkleUpdate(s);
 		return s->counter < 0xA ? 0 : TASK_END;
@@ -1504,7 +1489,6 @@ namespace blizzaga104
 	static uint32_t __cdecl MistTask(TaskNode *n)
 	{
 		MistNode *m = (MistNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_MistTask), m);)
 		MistDraw(m);
 		m->counter++;
 		if (m->counter >= 0xA) return TASK_END;
@@ -1541,7 +1525,6 @@ namespace blizzaga104
 	static uint32_t __cdecl FlakeTask(TaskNode *n)
 	{
 		FlakeNode *fl = (FlakeNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_FlakeTask), fl);)
 		FlakeDraw(fl);
 		fl->counter++;
 		if (fl->counter >= 0xE) return TASK_END;
@@ -1559,10 +1542,6 @@ namespace blizzaga104
 		register_port(blizzaga104::ORIG_RibbonTask, (void *)blizzaga104::RibbonTask, "B104 RibbonTask", 104);
 		register_port(blizzaga104::ORIG_SparkleTask, (void *)blizzaga104::SparkleTask, "B104 SparkleTask", 104);
 		register_port(blizzaga104::ORIG_SpiralTask, (void *)blizzaga104::SpiralTask, "B104 SpiralTask", 104);
-		FX_HELD(register_mag104_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag104_blizzaga_held.inc"
-#endif

@@ -237,17 +237,12 @@ namespace lvdeath_quistis
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag074_lvdeath_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace lvdeath_quistis
 {
-
 	uint32_t __cdecl d_7C47C0(void)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x25F3EBC)), 0x870);
@@ -573,7 +568,6 @@ namespace lvdeath_quistis
 		S32(node, 0x88) = py;
 		if (!(f & 4))
 		{
-			FX_HELD(held_note_reaper(node);)
 			d_7C4C10(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -905,7 +899,6 @@ namespace lvdeath_quistis
 		states[2] = us(0x7CBA30);
 		callp(states[S8(node, 0x29)], node);
 		SparkMove(node);
-		FX_HELD(held_note_spark(node);)
 		SparkDraw(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1086,7 +1079,6 @@ namespace lvdeath_quistis
 	uint32_t __cdecl d_7C45E0(uint32_t a1)
 	{
 		g_mod = &MOD_074;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -1205,7 +1197,6 @@ namespace lvdeath_quistis
 		case 1:
 			d_7CAEF0();
 			d_7C85A0();
-			FX_HELD(held_note_system(sys);)
 			d_7C8460();
 			d_7C6080();
 			sys = U32(us(0x25F3F2C), 0);
@@ -2828,10 +2819,6 @@ namespace lvdeath_quistis
 			act::register_module_port(74, p->addr, p->port, p->name);
 		for (const act::lvdeath_quistis::ModPort *p = act::lvdeath_quistis::PORTS; p->addr; p++)
 			act::register_module_port(74, p->addr, p->port, p->name);
-		FX_HELD(register_mag074_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag074_lvdeath_quistis_held.inc"
-#endif

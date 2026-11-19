@@ -233,17 +233,12 @@ namespace lv5_death
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag345_lv5_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace lv5_death
 {
-
 	uint32_t __cdecl d_705DE0(void)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x255EA44)), 0x870);
@@ -562,7 +557,6 @@ namespace lv5_death
 		S32(node, 0x88) = py;
 		if (!(f & 4))
 		{
-			FX_HELD(held_note_reaper(node);)
 			d_7061F0(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -894,7 +888,6 @@ namespace lv5_death
 		states[2] = us(0x70D010);
 		callp(states[S8(node, 0x29)], node);
 		SparkMove(node);
-		FX_HELD(held_note_spark(node);)
 		SparkDraw(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1075,7 +1068,6 @@ namespace lv5_death
 	uint32_t __cdecl d_705C00(uint32_t a1)
 	{
 		g_mod = &MOD_345;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -1194,7 +1186,6 @@ namespace lv5_death
 		case 1:
 			d_70C4D0();
 			d_709B80();
-			FX_HELD(held_note_system(sys);)
 			d_709A40();
 			d_707660();
 			sys = U32(us(0x255EA94), 0);
@@ -2817,10 +2808,6 @@ namespace lv5_death
 			act::register_module_port(345, p->addr, p->port, p->name);
 		for (const act::lv5_death::ModPort *p = act::lv5_death::PORTS; p->addr; p++)
 			act::register_module_port(345, p->addr, p->port, p->name);
-		FX_HELD(register_mag345_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag345_lv5_death_held.inc"
-#endif

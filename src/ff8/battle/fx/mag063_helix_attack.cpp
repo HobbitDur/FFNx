@@ -314,10 +314,6 @@ namespace helix063
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag063_helix_attack_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace helix063
@@ -325,7 +321,6 @@ namespace helix063
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(p);)
 		ParticleDraw(p);
 		p->frame++;
 		if (p->frame >= 0xC) return TASK_END;
@@ -403,7 +398,6 @@ namespace helix063
 			arg.depth = (int16_t)0xFF80;
 			arg.objs = us(OBJS_Plain);
 			arg.morph = TexBase() + 0x21150;
-			FX_HELD(held_note_play((prim::Layout *)m->core, &arg);)
 			prim::play((prim::Layout *)m->core, PartCallback, (int)&arg, 0);
 		}
 		if ((uint16_t)m->counter < 0x30)
@@ -416,14 +410,12 @@ namespace helix063
 			arg.depth = (int16_t)0xFF80;
 			arg.objs = us(OBJS_Plain);
 			arg.morph = TexBase() + 0x21150;
-			FX_HELD(held_note_play((prim::Layout *)m->ring1, &arg);)
 			prim::play((prim::Layout *)m->ring1, PartCallback, (int)&arg, 0);
 			RotY(0, &arg.m);
 			arg.m.t[0] = pts.p2[0];
 			arg.m.t[1] = pts.p2[1];
 			arg.m.t[2] = pts.p2[2];
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-			FX_HELD(held_note_play((prim::Layout *)m->ring2, &arg);)
 			prim::play((prim::Layout *)m->ring2, PartCallback, (int)&arg, 0);
 		}
 		const int32_t k = m->counter - 0x10;
@@ -431,9 +423,7 @@ namespace helix063
 		{
 			const BeamCurve cv = Curve(k);
 			const int32_t scroll = shl32(k, 5);
-			FX_HELD(held_note_beam(m, &pts, pts.p1, scroll, -cv.tilt, cv.turn, cv.len, cv.fade);)
 			Beam(pts.p1, m->pos, scroll, -cv.tilt, cv.turn, cv.len, cv.fade);
-			FX_HELD(held_note_beam(m, &pts, pts.p2, scroll, cv.tilt, -cv.turn, cv.len, cv.fade);)
 			Beam(pts.p2, m->pos, scroll, cv.tilt, -cv.turn, cv.len, cv.fade);
 		}
 		const int32_t e = m->counter - 0x24;
@@ -441,16 +431,13 @@ namespace helix063
 		{
 			if ((uint32_t)(e - 1) < 4)
 			{
-				FX_HELD(held_note_tile(m, e - 1);)
 				FadeTile(e - 1, 0xFF, 0xFF, 0xFF, 0, 1, 3);
 			}
 			if ((uint32_t)e < 8)
 			{
 				const int32_t fade = (int32_t)((uint32_t)shl32(e, 12) >> 3);
 				const int32_t scroll = shl32(e, 5);
-				FX_HELD(held_note_beam(m, &pts, pts.p1, scroll, 0, 0, 0x1000, fade);)
 				Beam(pts.p1, m->pos, scroll, 0, 0, 0x1000, fade);
-				FX_HELD(held_note_beam(m, &pts, pts.p2, scroll, 0, 0, 0x1000, fade);)
 				Beam(pts.p2, m->pos, scroll, 0, 0, 0x1000, fade);
 			}
 			if ((uint32_t)e < 3) SpawnParticles(m);
@@ -468,7 +455,6 @@ namespace helix063
 			arg.objs = us(OBJS_Impact);
 			arg.scroll = (int16_t)shl32(e, 5);
 			arg.morph = TexBase() + 0x21150;
-			FX_HELD(held_note_play((prim::Layout *)m->impact, &arg);)
 			prim::play((prim::Layout *)m->impact, PartCallback, (int)&arg, 0);
 		}
 		if (m->counter == 0) BdPlaySE(SOUND_Start(), 0, 0x80);
@@ -485,7 +471,6 @@ namespace helix063
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1150;
@@ -527,10 +512,6 @@ namespace helix063
 		register_port(helix063::ORIG_RootTask, (void *)helix063::RootTask, "H063 RootTask", 63);
 		register_port(helix063::ORIG_MasterTask, (void *)helix063::MasterTask, "H063 MasterTask", 63);
 		register_port(helix063::ORIG_ParticleTask, (void *)helix063::ParticleTask, "H063 ParticleTask", 63);
-		FX_HELD(register_mag063_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag063_helix_attack_held.inc"
-#endif

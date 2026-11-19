@@ -218,10 +218,6 @@ namespace fullcure280
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag280_full_cure_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace fullcure280
@@ -239,7 +235,6 @@ namespace fullcure280
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		FX_HELD(held_note_sparkle(s);)
 		TransformCameraByShadowRotation(s->pos, 0x800, -0x200);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		*(uint32_t *)h = us(SEQUENCE);
@@ -254,7 +249,6 @@ namespace fullcure280
 	static uint32_t __cdecl TargetTask(TaskNode *n)
 	{
 		TargetNode *t = (TargetNode *)n;
-		FX_HELD(held_note_target(t);)
 		PrimArg arg;
 		ff8fx::copy<(6)>(arg.pos, t->anchor);
 		arg.counter = t->counter;
@@ -311,7 +305,6 @@ namespace fullcure280
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -355,10 +348,6 @@ namespace fullcure280
 		register_port(fullcure280::ORIG_ControlTask, (void *)fullcure280::ControlTask, "280 ControlTask", 280);
 		register_port(fullcure280::ORIG_TargetTask, (void *)fullcure280::TargetTask, "280 TargetTask", 280);
 		register_port(fullcure280::ORIG_SparkleTask, (void *)fullcure280::SparkleTask, "280 SparkleTask", 280);
-		FX_HELD(register_mag280_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag280_full_cure_held.inc"
-#endif

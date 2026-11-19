@@ -389,10 +389,6 @@ namespace breath157
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag157_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace breath157
@@ -400,7 +396,6 @@ namespace breath157
 	static uint32_t __cdecl SwirlTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_SWIRL, t);)
 		SwirlDraw(t);
 		if (DrawOnly()) return 0;
 		t->w18 = (int16_t)(t->w18 + t->w1A);
@@ -411,7 +406,6 @@ namespace breath157
 	static uint32_t __cdecl BurstTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_BURST, t);)
 		BurstDraw(t);
 		if (DrawOnly()) return 0;
 		const int16_t d = t->w1E;
@@ -424,7 +418,6 @@ namespace breath157
 	static uint32_t __cdecl PuffTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_PUFF, t);)
 		PuffDraw(t);
 		if (DrawOnly()) return 0;
 		int16_t *c = CloudPos(t->w0E);
@@ -436,7 +429,6 @@ namespace breath157
 	static uint32_t __cdecl CloudModelsTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_CLOUDMODELS, t);)
 		CloudModelsDraw(t);
 		if (DrawOnly()) return 0;
 		int16_t *c = CloudPos(t->w0E);
@@ -455,7 +447,6 @@ namespace breath157
 	static uint32_t __cdecl RingsTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_RINGS, t);)
 		RingsDraw(t);
 		if (DrawOnly()) return 0;
 		const int16_t a = t->w1A;
@@ -471,7 +462,6 @@ namespace breath157
 	static uint32_t __cdecl BreathParticlesTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_BREATHPARTS, t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
 		*(uint32_t *)h = us(SEQ_Breath);
@@ -517,7 +507,6 @@ namespace breath157
 	static uint32_t __cdecl PuffParticlesTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_PUFFPARTS, t);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
 		*(uint32_t *)h = us(SEQ_PuffPart);
@@ -562,7 +551,6 @@ namespace breath157
 	static uint32_t __cdecl SplatterTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_SPLATTER, t);)
 		uint8_t *h = SeqHeader(us(SEQ_Splatter));
 		int alive = 0;
 		for (Part *p = Parts(); (uint32_t)p < us(PARTS_END); p++)
@@ -739,7 +727,6 @@ namespace breath157
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		RootNode *r = (RootNode *)nd;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + ARENA_SIZE;
 		else PacketCursor() = TexBase();
 		const int a = ExecuteTaskQueue(EffectQueue());
@@ -777,10 +764,6 @@ namespace breath157
 		register_port(breath157::ORIG_CloudModels, (void *)breath157::CloudModelsTask, "B157 CloudModels", 157);
 		register_port(breath157::ORIG_Rings, (void *)breath157::RingsTask, "B157 Rings", 157);
 		register_port(breath157::ORIG_Splatter, (void *)breath157::SplatterTask, "B157 Splatter", 157);
-		FX_HELD(register_mag157_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag157_breath_held.inc"
-#endif

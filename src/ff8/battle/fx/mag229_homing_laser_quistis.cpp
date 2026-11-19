@@ -29,10 +29,6 @@ namespace homing_laser_q
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag229_homing_laser_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -69,12 +65,10 @@ namespace homing_laser_q
 
 	static inline void BindEntityModelFromComData(uint8_t *entity, uint8_t *out, uint32_t data)
 	{
-		FX_HELD(if (held_predicting()) return;)
 		x::f<void (__cdecl *)(uint8_t *, uint8_t *, uint32_t)>(us(0x5022C0))(entity, out, data);
 	}
 	static inline void QueueChainTransformation(uint8_t *entity, int32_t id)
 	{
-		FX_HELD(if (held_predicting()) return;)
 		x::f<void (__cdecl *)(uint8_t *, int32_t)>(us(0x505C00))(entity, id);
 	}
 	static inline uint8_t *xl_JointMatrix_B66B80(void *hdr, int32_t joint, int32_t scale, void *m)
@@ -101,7 +95,6 @@ namespace homing_laser_q
 		const bool weapon = (U8(RT(), 0x4B) & 0x80) != 0;
 		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting()) held_next_pose(hdr, weapon ? hdr + 0xC : ent + 0x6C);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
@@ -135,10 +128,6 @@ namespace homing_laser_q
 		init_clone(homing_laser_q::g_c, nullptr, 0);
 		homing_laser_q::apply_slots(homing_laser_q::g_c);
 		register_port(0xA7B090, (void *)homing_laser_q::SequenceTask, "MAG229 Homing Laser (Quistis) SequenceTick", 229);
-		FX_HELD(register_mag229_homing_laser_quistis_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag229_homing_laser_quistis_held.inc"
-#endif

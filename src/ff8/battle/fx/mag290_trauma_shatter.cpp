@@ -205,10 +205,6 @@ namespace shatter290
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag290_trauma_shatter_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace shatter290
@@ -1024,7 +1020,6 @@ namespace shatter290
 
 	static void DrawFragments(MasterNode *m)
 	{
-		FX_HELD(held_note_frags(m);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x68);
 		const Fragment *f = m->frags;
 		for (int32_t n = 0xC0; n != 0; n--, f++)
@@ -1171,7 +1166,6 @@ namespace shatter290
 
 	static void DrawMarks(MasterNode *m)
 	{
-		FX_HELD(held_note_marks(m);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint32_t>(h, 0) = us(SEQ_Mark);
 		F<uint16_t>(h, 0x92) = 0;
@@ -1213,7 +1207,6 @@ namespace shatter290
 	static uint32_t __cdecl SpriteTaskA(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(s, SPRITE_A);)
 		SpriteDraw(s->pos, s->counter, us(SEQ_A), 0x800);
 		return SpriteStep(s, 0xC);
 	}
@@ -1221,7 +1214,6 @@ namespace shatter290
 	static uint32_t __cdecl SpriteTaskB(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(s, SPRITE_B);)
 		SpriteDraw(s->pos, s->counter, us(SEQ_B), 0x1770);
 		return SpriteStep(s, 0xD);
 	}
@@ -1249,7 +1241,6 @@ namespace shatter290
 		arg.scale[0] = L->scale;
 		arg.scaled = 1;
 		arg.depth = -0x80;
-		FX_HELD(held_note_layout(L, &arg);)
 		return prim::play((prim::Layout *)L->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -1393,12 +1384,9 @@ namespace shatter290
 			arg.m.t[0] = pos[0];
 			arg.m.t[1] = pos[1] - 0x3E8;
 			arg.m.t[2] = pos[2];
-			FX_HELD(held_note_frame(&arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = -0x200;
-			FX_HELD(held_note_play(m, PLAY_A, &arg);)
 			prim::play((prim::Layout *)m->layoutA, PrimCallback, (int)&arg, 0);
-			FX_HELD(held_note_under(m, pos);)
 			SpriteDraw(pos, m->counter, us(SEQ_Under), 0x4000);
 		}
 		if ((uint32_t)(m->counter - 0x14) < 0x16)
@@ -1408,12 +1396,9 @@ namespace shatter290
 			arg.m.t[0] = pos[0];
 			arg.m.t[1] = 0;
 			arg.m.t[2] = pos[2];
-			FX_HELD(held_note_frame(&arg.m);)
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.depth = 0;
-			FX_HELD(held_note_play(m, PLAY_B, &arg);)
 			prim::play((prim::Layout *)m->layoutB, PrimCallback, (int)&arg, 0);
-			FX_HELD(held_note_play(m, PLAY_C, &arg);)
 			prim::play((prim::Layout *)m->layoutC, PrimCallback, (int)&arg, 0);
 		}
 		if (m->counter < 0x14)
@@ -1424,7 +1409,6 @@ namespace shatter290
 		}
 		if (m->counter >= 0)
 		{
-			FX_HELD(held_note_body(m);)
 			CasterDraw(Caster(), m->pose);
 			*(uint8_t *)Caster() |= 4;
 		}
@@ -1468,7 +1452,6 @@ namespace shatter290
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *rn = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (rn->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -1535,10 +1518,6 @@ namespace shatter290
 		register_port(shatter290::ORIG_LayoutTask, (void *)shatter290::LayoutTask, "290 LayoutTask", 290);
 		register_port(shatter290::ORIG_SpriteTaskA, (void *)shatter290::SpriteTaskA, "290 SpriteTaskA", 290);
 		register_port(shatter290::ORIG_SpriteTaskB, (void *)shatter290::SpriteTaskB, "290 SpriteTaskB", 290);
-		FX_HELD(register_mag290_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag290_trauma_shatter_held.inc"
-#endif

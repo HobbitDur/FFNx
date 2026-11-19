@@ -207,10 +207,6 @@ namespace ultima149
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag149_ultima_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace ultima149
@@ -498,7 +494,6 @@ namespace ultima149
 	static uint32_t __cdecl OrbitTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(us(ORIG_Orbit), n);)
 		int16_t *p;
 		uint8_t *h = OrbitBegin(n, &p);
 		int alive = 0;
@@ -548,7 +543,6 @@ namespace ultima149
 		if (e->frame >= 4)
 		{
 			int32_t fade = shl32(e->frame - 4, 10);
-			FX_HELD(fade = held_ramp(fade, e->frame, 0x400, -0x1000);)
 			*(int32_t *)(h + 0xC) = fade;
 			H32(h, 0x1C) |= 0xC0;
 		}
@@ -611,7 +605,6 @@ namespace ultima149
 	static uint32_t __cdecl StreaksTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(us(ORIG_Streaks), n);)
 		StreakWork *w;
 		uint8_t *h = StreakBegin(&w);
 		int alive = 0;
@@ -664,7 +657,6 @@ namespace ultima149
 		if (f < 6 || f >= 10)
 		{
 			int32_t fade = f < 6 ? 0x1000 - f * 0x2AA : (f - 10) * 0x2AA;
-			FX_HELD(fade = f < 6 ? held_ramp(fade, f, -0x2AA, 0x1000) : held_ramp(fade, f, 0x2AA, -0x1AA4);)
 			*(int32_t *)(h + 0xC) = fade;
 			H32(h, 0x1C) = 0xF3;
 		}
@@ -693,7 +685,6 @@ namespace ultima149
 	static uint32_t __cdecl ShardsTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(us(ORIG_Shards), n);)
 		ShardWork *w;
 		uint8_t *h = ShardBegin(n, &w);
 		int alive = 0;
@@ -763,7 +754,6 @@ namespace ultima149
 		{
 			H32(h, 0x1C) = 0xF3;
 			int32_t fade = shl32(n->counter - 0x5B, 10);
-			FX_HELD(fade = held_ramp(fade, n->counter, 0x400, -0x16C00);)
 			*(int32_t *)(h + 0xC) = fade;
 		}
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 0xD, PacketCursor());
@@ -783,7 +773,6 @@ namespace ultima149
 	static uint32_t __cdecl EnergyTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(us(ORIG_Energy), n);)
 		EnergyDraw(n);
 		if (DrawOnly()) return 0;
 		EnergyMove(n);
@@ -1012,14 +1001,12 @@ namespace ultima149
 		{
 			g->flags = 0xC0;
 			int32_t fade = shl32(n->counter - 0x36, 9);
-			FX_HELD(fade = held_ramp(fade, n->counter, 0x200, -0x6C00);)
 			g->fade = fade;
 		}
 		g->win_h = 0x80;
 		g->win_w = 0x40;
 		g->u_wrap = 0x40;
 		int32_t v = shl32(n->counter, 3);
-		FX_HELD(v = held_ramp(v, n->counter, 8, 0);)
 		g->vscroll = v;
 		g->v_wrap = 0x80;
 		g->uscroll = 0;
@@ -1030,7 +1017,6 @@ namespace ultima149
 	static uint32_t __cdecl RingTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(us(ORIG_Ring), n);)
 		RingDraw(n);
 		if (DrawOnly()) return 0;
 		int16_t ds = n->dscale;
@@ -1067,12 +1053,10 @@ namespace ultima149
 		if (c < 4 || c >= 0x20)
 		{
 			int32_t fade = c < 4 ? shl32(4 - c, 10) : shl32(c - 0x20, 9);
-			FX_HELD(fade = c < 4 ? held_ramp(fade, c, -0x400, 0x1000) : held_ramp(fade, c, 0x200, -0x4000);)
 			*(int32_t *)(h + 0xC) = fade;
 			H32(h, 0x1C) = 0x20F3;
 		}
 		int32_t t = Div40(shl32(c, 10));
-		FX_HELD(t = held_frame_arg(t, c, 10, 40);)
 		int32_t w = ComputeSin(t);
 		const int16_t *v0 = (const int16_t *)(us(MODEL_Core) + 8);
 		const int16_t *v1 = (const int16_t *)us(CORE_Shape1);
@@ -1091,7 +1075,6 @@ namespace ultima149
 	static uint32_t __cdecl CoreTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(us(ORIG_Core), n);)
 		CoreDraw(n);
 		if (DrawOnly()) return 0;
 		int16_t spin = n->rotvel;
@@ -1159,7 +1142,6 @@ namespace ultima149
 	static uint32_t __cdecl DustTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(us(ORIG_Dust), n);)
 		uint8_t *h = DustBegin();
 		int alive = 0;
 		Particle *e = ArrayB();
@@ -1212,7 +1194,6 @@ namespace ultima149
 	static uint32_t __cdecl SparksTask(TaskNode *nd)
 	{
 		PartNode *n = (PartNode *)nd;
-		FX_HELD(held_note_draw(us(ORIG_Sparks), n);)
 		uint8_t *h = SparkBegin();
 		int alive = 0;
 		Particle *e = ArrayA();
@@ -1264,7 +1245,6 @@ namespace ultima149
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		RootNode *r = (RootNode *)nd;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0xC000;
 		else PacketCursor() = TexBase();
 		int running = ExecuteTaskQueue(&FxQueue());
@@ -1303,10 +1283,6 @@ namespace ultima149
 		register_port(ultima149::ORIG_Sparks, (void *)ultima149::SparksTask, "U149 Sparks", 149);
 		register_port(ultima149::ORIG_SideFadeIn, (void *)ultima149::SideFadeInTask, "U149 SideFadeIn", 149);
 		register_port(ultima149::ORIG_SideFadeOut, (void *)ultima149::SideFadeOutTask, "U149 SideFadeOut", 149);
-		FX_HELD(register_mag149_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag149_ultima_held.inc"
-#endif

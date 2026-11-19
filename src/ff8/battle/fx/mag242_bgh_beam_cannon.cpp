@@ -29,10 +29,6 @@ namespace beam242
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag242_bgh_beam_cannon_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -96,10 +92,6 @@ namespace beam242
 		init_clone(beam242::g_c, nullptr, 0);
 		beam242::apply_slots(beam242::g_c);
 		register_port(0x9F8380, (void *)beam242::SequenceTask, "MAG242 Beam Cannon (BGH251F2) SequenceTick", 242);
-		FX_HELD(register_mag242_bgh_beam_cannon_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag242_bgh_beam_cannon_held.inc"
-#endif

@@ -16,10 +16,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag239_ochu_dance_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -72,10 +68,6 @@ namespace ochu_dance
 		init_clone(ochu_dance::g_c, nullptr, 0);
 		apply_breath_glow(ochu_dance::g_c);
 		register_port(0xA160A0, (void *)ochu_dance::SequenceTask, "MAG239 Ochu Dance SequenceTick", 239);
-		FX_HELD(register_mag239_ochu_dance_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag239_ochu_dance_held.inc"
-#endif

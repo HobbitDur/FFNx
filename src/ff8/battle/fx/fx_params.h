@@ -114,24 +114,5 @@ namespace fxp
 }
 }
 
-#ifdef FF8_FX_LAB
-namespace ff8fx { void fx_part(int id); }
-#define FX_PART(id) ff8fx::fx_part(id)
-namespace ff8fx
-{
-namespace fxp
-{
-	using RegisterFn = void (*)();
-	inline RegisterFn g_lab_modules[64];
-	inline int g_lab_module_count = 0;
-	struct LabModule
-	{
-		LabModule(RegisterFn f) { if (g_lab_module_count < 64) g_lab_modules[g_lab_module_count++] = f; }
-	};
-}
-}
-#define FX_LAB_MODULE(fn) static ff8fx::fxp::LabModule fx_lab_module_##fn(fn)
-#else
 #define FX_PART(id) ((void)0)
 #define FX_LAB_MODULE(fn) static_assert(true, "")
-#endif

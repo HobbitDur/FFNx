@@ -421,17 +421,12 @@ namespace raijin
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag060_raijin_attack_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace raijin
 {
-
 	uint32_t __cdecl rj_7EB710(uint32_t a1)
 	{
 		const uint32_t d = MEM<uint32_t>(us(DIR_PTR));
@@ -711,7 +706,6 @@ namespace raijin
 		U16(node, 0x1C) = (uint16_t)(U16(node, 0x1C) + (uint16_t)(vx / 16));
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + (uint16_t)(vy / 16));
 		U16(node, 0x20) = (uint16_t)(U16(node, 0x20) + (uint16_t)(vz / 16));
-		FX_HELD(held_note_debris(node);)
 		rj_7F1F30(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -833,7 +827,6 @@ namespace raijin
 	uint32_t __cdecl rj_7EB200(uint32_t a1)
 	{
 		g_mod = &MOD_060;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -1019,7 +1012,6 @@ namespace raijin
 		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(a1, 0x80);
 		U16(L, 0x58) = U16(a1, 0x88);
-		FX_HELD(held_note_play(a1);)
 		return prim_play(a1 + 0x94, us(PRIM_CB), L, 0);
 	}
 
@@ -1777,7 +1769,6 @@ namespace raijin
 		case 1:
 			rj_7F1970();
 			rj_7EF020();
-			FX_HELD(held_note_system(sys);)
 			rj_7EEEE0();
 			rj_7EED20();
 			sys = U32(us(0x2607058), 0);
@@ -2814,10 +2805,6 @@ namespace raijin
 			act::register_module_port(60, p->addr, p->port, p->name);
 		for (const act::raijin::ModPort *p = act::raijin::PORTS; p->addr; p++)
 			act::register_module_port(60, p->addr, p->port, p->name);
-		FX_HELD(register_mag060_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag060_raijin_attack_held.inc"
-#endif

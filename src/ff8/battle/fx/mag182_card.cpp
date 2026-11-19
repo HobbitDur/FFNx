@@ -246,10 +246,6 @@ namespace card182
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag182_card_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace card182
@@ -257,7 +253,6 @@ namespace card182
 	static uint32_t __cdecl SparklesTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_pool(us(ORIG_Sparkles), n);)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
 		for (Particle *p = SparkPool(); (uint32_t)p < us(SPARK_END); p++)
@@ -304,7 +299,6 @@ namespace card182
 	static uint32_t __cdecl RingTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_node(us(ORIG_Ring), n);)
 		RingDraw(n, n->w18, n->w1C, RingFade(n->c));
 		if (DrawOnly()) return 0;
 		const int16_t ra = n->w1A, rs = n->w1E;
@@ -324,7 +318,6 @@ namespace card182
 			n->w16--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Shard), n);)
 		ShardDraw(n, n->w18, n->w1C, n->w20);
 		if (DrawOnly()) return 0;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -342,7 +335,6 @@ namespace card182
 			if (!DrawOnly()) n->w18--;
 			return 0;
 		}
-		FX_HELD(held_note_pool(us(ORIG_Card), n);)
 		uint8_t *h = CardHeader();
 		int alive = 0;
 		if (n->c < 8) CardSpriteDraw(h, n->c, &n->x, n->w1C);
@@ -387,7 +379,6 @@ namespace card182
 	static uint32_t __cdecl CardModelTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		FX_HELD(held_note_node(us(ORIG_CardModel), n);)
 		CardModelDraw(n->c, n->w18, n->x, n->y, n->z, n->w1C, After(), CardModelFade(n->c));
 		if (DrawOnly()) return 0;
 		if (n->c >= 0x10) n->y = (int16_t)(n->y - n->w1E);
@@ -568,7 +559,6 @@ namespace card182
 		RootNode *r = (RootNode *)tn;
 		if (r->counter & 1) PacketCursor() = TexBase() + ARENA_HALF;
 		else PacketCursor() = TexBase();
-		FX_HELD(held_note_root();)
 		const int a = ExecuteTaskQueue(EffectQueue());
 		r->counter++;
 		return a ? 0 : TASK_END;
@@ -586,10 +576,6 @@ namespace card182
 		register_port(card182::ORIG_Card, (void *)card182::CardTask, "C182 Card", 182);
 		register_port(card182::ORIG_CardModel, (void *)card182::CardModelTask, "C182 CardModel", 182);
 		register_port(card182::ORIG_TargetFade, (void *)card182::TargetFadeTask, "C182 TargetFade", 182);
-		FX_HELD(register_mag182_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag182_card_held.inc"
-#endif

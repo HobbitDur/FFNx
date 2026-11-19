@@ -27,10 +27,6 @@ namespace ultima270
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag270_ultima_weapon_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -102,10 +98,6 @@ namespace ultima270
 		init_clone(ultima270::g_c, nullptr, 0);
 		ultima270::apply_slots(ultima270::g_c);
 		register_port(0x8EA2A0, (void *)ultima270::SequenceTask, "MAG270 Ultima Weapon Death SequenceTick", 270);
-		FX_HELD(register_mag270_ultima_weapon_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag270_ultima_weapon_death_held.inc"
-#endif

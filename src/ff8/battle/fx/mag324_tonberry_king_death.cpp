@@ -195,10 +195,6 @@ namespace tonk324
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag324_tonberry_king_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace tonk324
@@ -206,7 +202,6 @@ namespace tonk324
 	static uint32_t __cdecl SpinTask(TaskNode *n)
 	{
 		TaskBody *t = (TaskBody *)n;
-		FX_HELD(held_note_spin(n);)
 		const uint8_t *h = SpinDraw(t, BonePoint());
 		if (DrawOnly()) return 0;
 		t->counter++;
@@ -245,7 +240,6 @@ namespace tonk324
 			e[0x2B] = 2;
 			e[7] = 0;
 		}
-		FX_HELD(held_note_ghost(n);)
 		ModelDraw(e);
 		BonesIn(Caster() + 0x60, (const uint8_t *)us(CUR_BONES));
 		e = Caster();
@@ -326,7 +320,6 @@ namespace tonk324
 				c.vy = (int16_t)(-5 - CrtRand() % 0x19);
 			}
 		}
-		FX_HELD(held_note_sparks(n, 1);)
 		const int32_t live = SparkDraw(w, Cells(), 1, us(SEQ_SparkA), true);
 		FieldFree(0x48);
 		if (DrawOnly()) return 0;
@@ -359,7 +352,6 @@ namespace tonk324
 				c.pos[2] = (int16_t)(c.pos[2] + (CrtRand() % range - s));
 			}
 		}
-		FX_HELD(held_note_sparks(n, 2);)
 		const int32_t live = SparkDraw(w, Cells(), 2, us(SEQ_SparkB), false);
 		FieldFree(0x48);
 		if (DrawOnly()) return 0;
@@ -407,7 +399,6 @@ namespace tonk324
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_A);
 		if (!(*(const uint8_t *)&r->counter & 1)) PacketCursor() = us(ARENA_B);
 		const int a = ExecuteTaskQueue(QTasks());
@@ -425,10 +416,6 @@ namespace tonk324
 		register_port(tonk324::ORIG_TintTask, (void *)tonk324::TintTask, "324 TintTask", 324);
 		register_port(tonk324::ORIG_GhostTask, (void *)tonk324::GhostTask, "324 GhostTask", 324);
 		register_port(tonk324::ORIG_SpinTask, (void *)tonk324::SpinTask, "324 SpinTask", 324);
-		FX_HELD(register_mag324_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag324_tonberry_king_death_held.inc"
-#endif

@@ -21,7 +21,7 @@
 		x::f<int32_t (__cdecl *)(void *, void *, int32_t, int32_t, int32_t)>(us(0xB67040))(hdr, root, ot, y, level);
 	}
 	static inline int32_t xl_NormalClip(int32_t a, int32_t b, int32_t c) { return x::f<int32_t (__cdecl *)(int32_t, int32_t, int32_t)>(us(0x56CB30))(a, b, c); }
-	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
+	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim) { x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim); }
 	static inline int32_t melt_div3(int32_t v)
 	{
 		int32_t hi = (int32_t)(((int64_t)v * 0x55555556LL) >> 32);
@@ -189,7 +189,6 @@
 	{
 		uint8_t *blk = PTR(WS(), 0x84);
 		uint8_t *hdr = blk + 0x10;
-		FX_HELD(if (held_active()) MeltPoseHeld(hdr); else)
 		x::BuildBoneMatricesFromPose(hdr);
 		uint8_t *ent = MeltSlotEntity();
 		uint8_t *m = WS() + 0xE0;
@@ -308,7 +307,6 @@
 
 	static void __cdecl dh_52_EntityMelt()
 	{
-		FX_HELD(if (held_active()) { dh_52_EntityMeltHeld(); return; })
 		if (U32(CUR(), 0xBC) == 0)
 		{
 			uint8_t *desc = PTR(CUR(), 0xB8);
@@ -322,11 +320,10 @@
 			U16(st, 0) = np;
 			const int32_t n = (int32_t)(((uint32_t)np + 4) & 0xFFC);
 			PTR(CUR(), 0xC4) = blob::ArenaAlloc(n);
-			if (n > 0) memset_code(uint32_t(PTR(CUR(), 0xC4)), 0xFF, ((uint32_t)(n + 3) >> 2) * 4);
+			if (n > 0) fill_bytes(PTR(CUR(), 0xC4), 0xFF, ((uint32_t)(n + 3) >> 2) * 4);
 			PTR(st, 4) = desc + S16(desc, 0);
 			U8(ent, 0) |= 4;
 		}
-		FX_HELD(MeltNoteFlags();)
 		uint8_t *blk = MeltFrame_92E430();
 		xl_ModelShadow_B67040(blk + 0x10, MeltSlotEntity() + 0x40, -1, 0, S16(CUR(), 0x8C));
 	}
@@ -334,7 +331,6 @@
 	static void __cdecl dh_03_AnimatedModelWithShadow()
 	{
 		h_B269E0();
-		FX_HELD(held_note_mid03();)
 		h_B26AD0(PTR(CUR(), 0xBC));
 		uint8_t *blk = PTR(CUR(), 0xBC);
 		U32(blk, 0x44) = U32(CTX(), 0x74);
@@ -356,6 +352,5 @@
 		uint8_t *sp = PTR(hdr, 0x6C);
 		int32_t y = S16(sp, 2);
 		int32_t otspec = S16(sp, 0);
-		FX_HELD(if (held_shadow03(hdr, blk, otspec, y)) return;)
 		xl_ModelShadow_B67040(hdr, WS() + 0x80, otspec, y, 0x80);
 	}

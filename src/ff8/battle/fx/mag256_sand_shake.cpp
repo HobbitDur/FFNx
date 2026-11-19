@@ -27,10 +27,6 @@ namespace sand_shake
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag256_sand_shake_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -79,10 +75,6 @@ namespace sand_shake
 		init_clone(sand_shake::g_c, nullptr, 0);
 		apply_shared_misc(sand_shake::g_c);
 		register_port(0x979A70, (void *)sand_shake::SequenceTask, "MAG256 Sand Shake SequenceTick", 256);
-		FX_HELD(register_mag256_sand_shake_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag256_sand_shake_held.inc"
-#endif

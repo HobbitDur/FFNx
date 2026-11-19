@@ -206,15 +206,10 @@ namespace c278
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag278_carbuncle_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace c278
 {
-
 	static void PartyHide()
 	{
 		var<uint16_t>(us(0x1D972C0)) |= 4;
@@ -527,7 +522,6 @@ namespace c278
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *p = (SparkleNode *)n;
-		FX_HELD(held_note_sparkle(p);)
 		SparkleDraw(p->pos);
 		if (Pause()) return 0;
 		p->frame++;
@@ -537,7 +531,6 @@ namespace c278
 	static uint32_t __cdecl ShardTask(TaskNode *n)
 	{
 		ShardNode *p = (ShardNode *)n;
-		FX_HELD(held_note_shard(p);)
 		ShardDraw(p->pos, p->variant);
 		if (Pause()) return 0;
 		p->pos[0] += p->vel[0];
@@ -550,7 +543,6 @@ namespace c278
 	static uint32_t __cdecl OrbitTask(TaskNode *n)
 	{
 		OrbitNode *o = (OrbitNode *)n;
-		FX_HELD(held_note_orbit(o);)
 		int32_t fade, sx;
 		OrbitFade(o->counter, fade, sx);
 		OrbitDraw(o->parent->center, o->angle, o->tilt, fade, (int16_t)sx, &o->parent->view);
@@ -565,7 +557,6 @@ namespace c278
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *r = (RingNode *)n;
-		FX_HELD(held_note_ring(r);)
 		RingDraw(r->height, r->scale, r->counter, &r->parent->view);
 		if (Pause()) return 0;
 		if (r->counter >= 0x14) return TASK_END;
@@ -600,7 +591,6 @@ namespace c278
 			Rot2D(parent->center, out, b->angle);
 			b->y = parent->center[2];
 		}
-		FX_HELD(held_note_beam(b, out);)
 		BeamDraw(h, out, b->scale, b->counter, &parent->view);
 		if (Pause()) return 0;
 		if (b->counter >= 0xF) return TASK_END;
@@ -628,7 +618,6 @@ namespace c278
 	static uint32_t __cdecl RubyTask(TaskNode *n)
 	{
 		RubyNode *r = (RubyNode *)n;
-		FX_HELD(held_note_ruby(r);)
 		if (r->counter < 0x15)
 		{
 			PrimCtx ctx;
@@ -712,7 +701,6 @@ namespace c278
 	static uint32_t __cdecl CreatureTask(TaskNode *n)
 	{
 		CreatureNode *cn = (CreatureNode *)n;
-		FX_HELD(held_note_creature(cn);)
 		uint8_t *MB = ModelBuffer();
 
 		Flash() = (uint32_t)FlashAt(cn->counter);
@@ -721,14 +709,12 @@ namespace c278
 		if ((uint32_t)(c - 0x24) < 0xC8 && (c <= 0x91 || c >= 0xD7))
 		{
 			if (!Pause()) AdvanceModelAnim(E(cn));
-			FX_HELD(held_note_model(cn);)
 			FrameCursor() = DrawModel(E(cn), Scratch(), FrameCursor(), var<uint32_t>(us(0x1D969A8)));
 		}
 
 		c = cn->counter;
 		if (DomeDrawn(c))
 		{
-			FX_HELD(held_note_dome();)
 			DomeDraw(c, (int32_t)Flash(), DomeMorph(c));
 		}
 
@@ -738,7 +724,6 @@ namespace c278
 			if (e == 0) Decode(us(0x10C2608), cn->prim, 0x514);
 			PrimCtx ctx;
 			CtxStage110(ctx, cn);
-			FX_HELD(held_note_prim_stage(1);)
 			prim::play((prim::Layout *)cn->prim, (prim::Callback)us(CB_PrimObject), (int)&ctx, (int)Pause());
 		}
 		e = cn->counter - 0x91;
@@ -747,7 +732,6 @@ namespace c278
 			if (e == 0) Decode(us(0x10C5C8C), cn->prim, 0x3D8);
 			PrimCtx ctx;
 			CtxStage145(ctx);
-			FX_HELD(held_note_prim_stage(2);)
 			prim::play((prim::Layout *)cn->prim, (prim::Callback)us(CB_PrimObject), (int)&ctx, (int)Pause());
 		}
 
@@ -975,7 +959,6 @@ namespace c278
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		uint8_t *MB = ModelBuffer();
 		if (node->parity)
 		{
@@ -1079,10 +1062,6 @@ namespace c278
 		register_port(c278::ORIG_OrbitTask, (void *)c278::OrbitTask, "C278 OrbitTask", 278);
 		register_port(c278::ORIG_RingTask, (void *)c278::RingTask, "C278 RingTask", 278);
 		register_port(c278::ORIG_BeamTask, (void *)c278::BeamTask, "C278 BeamTask", 278);
-		FX_HELD(register_mag278_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag278_carbuncle_held.inc"
-#endif

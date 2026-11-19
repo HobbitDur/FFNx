@@ -664,10 +664,6 @@ namespace flare320
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag320_dark_flare_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace flare320
@@ -675,7 +671,6 @@ namespace flare320
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(n);)
 		SparkDraw(s->pos, s->scale, s->counter);
 		s->counter++;
 		if (s->counter >= 0x10) return TASK_END;
@@ -698,7 +693,6 @@ namespace flare320
 			MainFrame(m, m->S, &m->M);
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
 			SetArg(&arg, us(KINDS_1), us(DRAWS_1), -0x10);
-			FX_HELD(held_note_main(PLAY_1, n);)
 			prim::play((prim::Layout *)m->layout_1, PrimCallback, (int)&arg, 0);
 			if ((uint32_t)c >= 0xF)
 			{
@@ -743,7 +737,6 @@ namespace flare320
 			m->M.t[2] = L[2];
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
 			SetArg(&arg, us(KINDS_1), us(DRAWS_1), -0x10);
-			FX_HELD(held_note_main(PLAY_1L, n);)
 			prim::play((prim::Layout *)m->layout_1, PrimCallback, (int)&arg, 0);
 		}
 		if ((uint32_t)(c - 0x24) < 0x10)
@@ -753,7 +746,6 @@ namespace flare320
 			m->M.t[2] = m->S[2];
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
 			SetArg(&arg, us(KINDS_2), us(DRAWS_2), -0x10);
-			FX_HELD(held_note_main(PLAY_2, n);)
 			prim::play((prim::Layout *)m->layout_2, PrimCallback, (int)&arg, 0);
 		}
 		const int32_t e = c - 0x2D;
@@ -770,7 +762,6 @@ namespace flare320
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			SetArg(&arg, us(KINDS_3), us(DRAWS_3), -0x200);
 			arg.scroll = (int16_t)(e << 4);
-			FX_HELD(held_note_main(PLAY_3, n);)
 			prim::play((prim::Layout *)m->layout_3, PrimCallback, (int)&arg, 0);
 		}
 		if (c == 0) BdPlaySE(SOUND(), 0, 0x80);
@@ -829,7 +820,6 @@ namespace flare320
 			PacketCursor() = TexBase() + ARENA_B;
 			r->arena = 1;
 		}
-		FX_HELD(held_note_root();)
 		if (r->counter == 1)
 		{
 			if (!r->started)
@@ -873,10 +863,6 @@ namespace flare320
 		register_port(flare320::ORIG_RootTask, (void *)flare320::RootTask, "320 RootTask", 320);
 		register_port(flare320::ORIG_MainTask, (void *)flare320::MainTask, "320 MainTask", 320);
 		register_port(flare320::ORIG_SparkTask, (void *)flare320::SparkTask, "320 SparkTask", 320);
-		FX_HELD(register_mag320_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag320_dark_flare_held.inc"
-#endif

@@ -420,21 +420,15 @@ namespace raldo
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag019_raldo_throw_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace raldo
 {
-
 	uint32_t __cdecl rt_8A33F0(uint32_t a1)
 	{
 		g_mod = &MOD_019;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -613,7 +607,6 @@ namespace raldo
 		case 1:
 			rt_8A9320();
 			rt_8A69D0();
-			FX_HELD(held_note_system(sys);)
 			a_740700();
 			rt_8A4670();
 			sys = U32(us(0x2730494), 0);
@@ -2516,7 +2509,6 @@ namespace raldo
 			const int16_t pz = (int16_t)(MEM<uint16_t>(us(BLK) + 0x80) - MEM<uint16_t>(us(BLK) + 0x78));
 			S16(ent, 0x20) = pz;
 			S32(ent, 0x5C) = pz;
-			FX_HELD(held_note_ball(node);)
 			rt_8A94E0(us(BLK));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -2669,7 +2661,6 @@ namespace raldo
 		states[1] = us(0x8AA9D0);
 		states[2] = us(0x8AAA20);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_debris(node);)
 		for (int k = 0; k < 4; k++)
 		{
 			U32(node, 0x1C) = U32(node, 0x6C + 8 * k);
@@ -2690,7 +2681,6 @@ namespace raldo
 		states[1] = us(0x8AAB60);
 		states[2] = us(0x8AAB80);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_debris(node);)
 		for (int k = 0; k < 4; k++)
 		{
 			U32(node, 0x1C) = U32(node, 0x6C + 8 * k);
@@ -2990,10 +2980,6 @@ namespace raldo
 			act::register_module_port(19, p->addr, p->port, p->name);
 		for (const act::raldo::ModPort *p = act::raldo::PORTS; p->addr; p++)
 			act::register_module_port(19, p->addr, p->port, p->name);
-		FX_HELD(register_mag019_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag019_raldo_throw_held.inc"
-#endif

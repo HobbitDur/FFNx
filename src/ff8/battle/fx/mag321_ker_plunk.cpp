@@ -68,10 +68,6 @@ namespace kerplunk321
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag321_ker_plunk_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace kerplunk321
@@ -139,7 +135,6 @@ namespace kerplunk321
 			S16(n, 0xE) = (int16_t)(S16(n, 0xE) - 1);
 			return 0;
 		}
-		FX_HELD(held_note_node(REC_RING, n);)
 		PointRingDraw(n, RingFade(S16(n, 0xC), 0xC));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
@@ -158,7 +153,6 @@ namespace kerplunk321
 			S16(n, 0xE) = (int16_t)(S16(n, 0xE) - 1);
 			return 0;
 		}
-		FX_HELD(held_note_node(REC_TRING, n);)
 		TargetRingDraw(n, RingFade(S16(n, 0xC), 6));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x22);
@@ -216,14 +210,12 @@ namespace kerplunk321
 				S16(p, 0x12) = (int16_t)(-5 - CrtRand() % 0x2D);
 			}
 		}
-		FX_HELD(held_note_parts(REC_DUST, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
 		SeqSetup(h, w);
 		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 1)) continue;
-			FX_HELD(held_note_particle(p);)
 			SeqDraw(h, w, p);
 			if (DrawOnly()) continue;
 			if (S16(h, 0x28) < 0)
@@ -267,7 +259,6 @@ namespace kerplunk321
 				S16(p, 0x14) = (int16_t)(mul32(ComputeCos(a), sp) >> 12);
 			}
 		}
-		FX_HELD(held_note_parts(REC_BURST, n);)
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int alive = 0;
 		SeqSetup(h, w);
@@ -275,7 +266,6 @@ namespace kerplunk321
 		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(mask & U32(p, P_MASK))) continue;
-			FX_HELD(held_note_particle(p);)
 			SeqDraw(h, w, p);
 			if (DrawOnly()) continue;
 			if (S16(h, 0x28) < 0)
@@ -356,14 +346,12 @@ namespace kerplunk321
 				if (U8(p, 0x14) & 1) S16(p, 0x16) = (int16_t)-v;
 			}
 		}
-		FX_HELD(held_note_parts(REC_DEBRIS, n);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		int alive = 0;
 		DebrisSetup(h, w);
 		for (uint32_t p = us(PARTS); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U8(p, P_MASK) & 2)) continue;
-			FX_HELD(held_note_particle(p);)
 			const int16_t f = S16(p, P_FRAME);
 			DebrisDraw(h, w, p, DebrisScale(S16(p, P_SIZE), f));
 			if (DrawOnly()) continue;
@@ -401,7 +389,6 @@ namespace kerplunk321
 		const int16_t c = S16(n, 0xC);
 		const int slot = S16(n, 0xE);
 		const uint32_t e = P(Entity(slot)), s = Saved(slot);
-		FX_HELD(held_note_node(REC_LIFT, n);)
 		if (c == 0)
 		{
 			U16(s, 0) = (uint16_t)(U16(e, 0) & 0x1020);
@@ -521,7 +508,6 @@ namespace kerplunk321
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		const uint32_t n = P(tn);
-		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? us(ARENA_B) : us(ARENA_A);
 		const int running = ExecuteTaskQueue(EffectQueue());
 		if (!running)
@@ -555,13 +541,9 @@ namespace kerplunk321
 		register_port(ORIG_Lift, (void *)LiftTask, "321 LiftTask", 321);
 		register_port(ORIG_Burst, (void *)BurstTask, "321 BurstTask", 321);
 		register_port(ORIG_TargetRing, (void *)TargetRingTask, "321 TargetRingTask", 321);
-		FX_HELD(register_mag321_held();)
 	}
 }
 
 	void register_mag321_ker_plunk() { kerplunk321::register_mag321_ker_plunk_ports(); }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag321_ker_plunk_held.inc"
-#endif

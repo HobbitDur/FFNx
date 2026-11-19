@@ -377,21 +377,15 @@ namespace megaphoenix
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag007_mega_phoenix_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace megaphoenix
 {
-
 	uint32_t __cdecl mf_8CE4F0(uint32_t a1)
 	{
 		g_mod = &MOD_007;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -751,7 +745,6 @@ namespace megaphoenix
 		case 1:
 			mf_8D4150();
 			mf_8D1800();
-			FX_HELD(held_note_system(sys);)
 			mf_8D16C0();
 			mf_8CF460();
 			sys = U32(us(0x2760B60), 0);
@@ -2434,10 +2427,6 @@ namespace megaphoenix
 			act::register_module_port(7, p->addr, p->port, p->name);
 		for (const act::megaphoenix::ModPort *p = act::megaphoenix::PORTS; p->addr; p++)
 			act::register_module_port(7, p->addr, p->port, p->name);
-		FX_HELD(register_mag007_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag007_mega_phoenix_held.inc"
-#endif

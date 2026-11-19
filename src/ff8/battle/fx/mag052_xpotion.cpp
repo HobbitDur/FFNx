@@ -147,21 +147,15 @@ namespace xpotion
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag052_xpotion_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace xpotion
 {
-
 	uint32_t __cdecl xp_817540(uint32_t a1)
 	{
 		g_mod = &MOD_052;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -301,7 +295,6 @@ namespace xpotion
 				U32(node, 0x34) = entry;
 				U16(node, 0x38) = (uint16_t)(idx + 1);
 			}
-			FX_HELD(held_note_flash(U32(node, 0x34));)
 			FlashDraw(U32(node, 0x34));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -569,7 +562,6 @@ namespace xpotion
 		case 1:
 			xp_81C600();
 			xp_819CB0();
-			FX_HELD(held_note_system(sys);)
 			xp_819B70();
 			xp_8184F0();
 			sys = U32(us(0x2619F48), 0);
@@ -1977,10 +1969,6 @@ namespace xpotion
 			act::register_module_port(52, p->addr, p->port, p->name);
 		for (const act::xpotion::ModPort *p = act::xpotion::PORTS; p->addr; p++)
 			act::register_module_port(52, p->addr, p->port, p->name);
-		FX_HELD(register_mag052_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag052_xpotion_held.inc"
-#endif

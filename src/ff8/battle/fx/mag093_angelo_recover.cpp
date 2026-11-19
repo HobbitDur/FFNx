@@ -406,21 +406,15 @@ namespace angelo93
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag093_angelo_recover_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace angelo93
 {
-
 	uint32_t __cdecl ar_74E520(uint32_t a1)
 	{
 		g_mod = &MOD_093;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -464,7 +458,6 @@ namespace angelo93
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
-		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -670,7 +663,6 @@ namespace angelo93
 		case 1:
 			ar_754420();
 			ar_751AD0();
-			FX_HELD(held_note_system(sys);)
 			ar_751990();
 			ar_74F770();
 			sys = U32(us(0x2594D90), 0);
@@ -2184,7 +2176,6 @@ namespace angelo93
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + U16(node, 0x126));
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			FX_HELD(held_note_draw(HK_ANGELO, node);)
 			MEM<uint32_t>(PACKET_CURSOR) = a_746C10(node, us(0x25941B0), MEM<uint32_t>(PACKET_CURSOR));
 		}
 		const int32_t py = S16(node, 0x4E);
@@ -2284,7 +2275,6 @@ namespace angelo93
 
 	uint32_t __cdecl ar_754A60(uint32_t a1)
 	{
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		alignas(4) uint8_t blk[0x5C] = {};
 		const uint32_t L = P(blk);
 		const uint32_t node = a1;
@@ -2652,10 +2642,6 @@ namespace angelo93
 			act::register_module_port(93, p->addr, p->port, p->name);
 		for (const act::angelo93::ModPort *p = act::angelo93::PORTS; p->addr; p++)
 			act::register_module_port(93, p->addr, p->port, p->name);
-		FX_HELD(register_mag093_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag093_angelo_recover_held.inc"
-#endif

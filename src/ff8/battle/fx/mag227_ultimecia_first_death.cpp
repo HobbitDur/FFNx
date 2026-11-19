@@ -384,10 +384,6 @@ namespace ultimecia227
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag227_ultimecia_first_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace ultimecia227
@@ -395,7 +391,6 @@ namespace ultimecia227
 	static uint32_t __cdecl FeatherTask(TaskNode *n)
 	{
 		FeatherNode *f = (FeatherNode *)n;
-		FX_HELD(held_note_feather(n);)
 		int32_t t[3];
 		FeatherAt(CasterPoint(), t);
 		int16_t sx, sy;
@@ -417,7 +412,6 @@ namespace ultimecia227
 		arg.pos[3] = CallbackPad;
 		arg.depth = depth;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(m, which, arg.pos, depth);)
 		prim::play((prim::Layout *)layout, PrimCallback, (int)&arg, 0);
 	}
 
@@ -462,10 +456,8 @@ namespace ultimecia227
 			ff8fx::copy<(8)>(arg.pos, LayoutPoint());
 			arg.depth = 0;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play(m, 2, arg.pos, 0);)
 			prim::play((prim::Layout *)m->layout_c, PrimCallback, (int)&arg, 0);
 		}
-		FX_HELD(held_note_sparks();)
 		SparksDraw((const Spark *)(TexBase() + SPARKS));
 		SparksUpdate();
 		if (m->counter == 0) BdPlaySE(SOUND_Start(), 0, 0x80);
@@ -516,7 +508,6 @@ namespace ultimecia227
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *ms = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (ms->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -548,7 +539,6 @@ namespace ultimecia227
 		}
 		if (ms->started && main == 0)
 		{
-			FX_HELD(held_note_end();)
 			return TASK_END;
 		}
 		ms->counter++;
@@ -561,10 +551,6 @@ namespace ultimecia227
 		register_port(ultimecia227::ORIG_MasterTask, (void *)ultimecia227::MasterTask, "227 MasterTask", 227);
 		register_port(ultimecia227::ORIG_MainTask, (void *)ultimecia227::MainTask, "227 MainTask", 227);
 		register_port(ultimecia227::ORIG_FeatherTask, (void *)ultimecia227::FeatherTask, "227 FeatherTask", 227);
-		FX_HELD(register_mag227_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag227_ultimecia_first_death_held.inc"
-#endif

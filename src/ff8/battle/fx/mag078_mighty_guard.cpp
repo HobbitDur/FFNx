@@ -456,17 +456,12 @@ namespace mguard
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag078_mighty_guard_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace mguard
 {
-
 	uint32_t __cdecl mg_7BE560(uint32_t a1)
 	{
 		if (U8(a1, 0x28) != 0)
@@ -758,7 +753,6 @@ namespace mguard
 	uint32_t __cdecl mg_7BE400(uint32_t a1)
 	{
 		g_mod = &MOD_078;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -999,7 +993,6 @@ namespace mguard
 		case 1:
 			mg_7C40F0();
 			mg_7C1750();
-			FX_HELD(held_note_system(sys);)
 			mg_7C1610();
 			mg_7BF3A0();
 			sys = U32(us(0x25EC510), 0);
@@ -2727,10 +2720,6 @@ namespace mguard
 			act::register_module_port(78, p->addr, p->port, p->name);
 		for (const act::mguard::ModPort *p = act::mguard::PORTS; p->addr; p++)
 			act::register_module_port(78, p->addr, p->port, p->name);
-		FX_HELD(register_mag078_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag078_mighty_guard_held.inc"
-#endif

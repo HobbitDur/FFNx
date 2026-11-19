@@ -201,10 +201,6 @@ namespace raybomb010
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag010_ray_bomb_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace raybomb010
@@ -225,7 +221,6 @@ namespace raybomb010
 
 	static uint32_t ParticlePass()
 	{
-		FX_HELD(held_note_particles();)
 		uint8_t *h = AllocHeader(0xB4);
 		uint32_t count = 0;
 		*(uint32_t *)h = us(SEQ_Dust);
@@ -257,7 +252,6 @@ namespace raybomb010
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = TexBase() + 0x8000;
 		else PacketCursor() = TexBase();
 		uint32_t alive = (uint32_t)ExecuteTaskQueue(QEffect());
@@ -308,7 +302,6 @@ namespace raybomb010
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
 		DebrisHeader(h, p);
-		FX_HELD(held_fix_header(h);)
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -326,11 +319,9 @@ namespace raybomb010
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *p = (DebrisNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_Debris), p);)
 		DebrisDraw(p);
 		if (DrawOnly()) return 0;
 		DebrisUpdate(p);
-		FX_HELD(held_note_after(p);)
 		return p->counter >= p->life ? TASK_END : 0;
 	}
 
@@ -363,7 +354,6 @@ namespace raybomb010
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0x58);
 		RingHeader(h, p);
-		FX_HELD(held_fix_header(h);)
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -379,11 +369,9 @@ namespace raybomb010
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *p = (RingNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_Ring), p);)
 		RingDraw(p);
 		if (DrawOnly()) return 0;
 		RingUpdate(p);
-		FX_HELD(held_note_after(p);)
 		return p->counter >= 0x18 ? TASK_END : 0;
 	}
 
@@ -414,7 +402,6 @@ namespace raybomb010
 		GteSetTransVector(&m);
 		uint8_t *h = AllocHeader(0xB4);
 		PuffHeader(h, p);
-		FX_HELD(held_fix_header(h);)
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
 	}
@@ -428,11 +415,9 @@ namespace raybomb010
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Puff), p);)
 		PuffDraw(p);
 		if (DrawOnly()) return 0;
 		p->counter++;
-		FX_HELD(held_note_after(p);)
 		return p->counter >= p->life ? TASK_END : 0;
 	}
 
@@ -495,7 +480,6 @@ namespace raybomb010
 		const int32_t full = shl32(len, 12) / 1046;
 		int32_t stretch = full;
 		if (p->counter < 2) stretch = (full / 2) * p->counter;
-		FX_HELD(held_fix_stretch(&stretch, full);)
 		int32_t s[3] = { p->scale, p->scale, stretch };
 		Scale3DMatrix(&m1, s);
 		ComposeAffineTransform(&Camera(), &m1, &m1);
@@ -503,7 +487,6 @@ namespace raybomb010
 		GteSetTransVector(&m1);
 		uint8_t *h = AllocHeader(0x58);
 		BeamHeader(h, p);
-		FX_HELD(held_fix_header(h);)
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -519,7 +502,6 @@ namespace raybomb010
 	{
 		BeamNode *p = (BeamNode *)n;
 		int16_t end[4];
-		FX_HELD(held_note_draw(us(ORIG_Beam), p);)
 		BeamDraw(p, end);
 		if (DrawOnly()) return 0;
 		BeamSpin(p);
@@ -549,7 +531,6 @@ namespace raybomb010
 			}
 		}
 		p->counter++;
-		FX_HELD(held_note_after(p);)
 		return p->counter > 9 ? TASK_END : 0;
 	}
 
@@ -567,12 +548,10 @@ namespace raybomb010
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *p = (SparkNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_Spark), p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
 		p->pos[1] = (int16_t)(p->pos[1] + p->vy);
 		p->frame++;
-		FX_HELD(held_note_after(p);)
 		return p->frame >= p->life ? TASK_END : 0;
 	}
 
@@ -600,7 +579,6 @@ namespace raybomb010
 		TransformCameraByShadowRotation(Muzzle(), p->scale, -(p->scale >> 3));
 		uint8_t *h = AllocHeader(0x58);
 		FlashHeader(h, p);
-		FX_HELD(held_fix_header(h);)
 		PacketCursor() = RenderPrimModel(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -619,11 +597,9 @@ namespace raybomb010
 	static uint32_t __cdecl FlashTask(TaskNode *n)
 	{
 		FlashNode *p = (FlashNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_Flash), p);)
 		FlashDraw(p);
 		if (DrawOnly()) return 0;
 		FlashUpdate(p);
-		FX_HELD(held_note_after(p);)
 		return p->counter >= 0x24 ? TASK_END : 0;
 	}
 
@@ -648,7 +624,6 @@ namespace raybomb010
 		TransformCameraByShadowRotation(Muzzle(), p->scale, -(p->scale >> 4));
 		uint8_t *h = AllocHeader(0xB4);
 		ChargeHeader(h, p);
-		FX_HELD(held_fix_header(h);)
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0xB4);
 		*header = h;
@@ -664,14 +639,12 @@ namespace raybomb010
 			return 0;
 		}
 		uint8_t *h;
-		FX_HELD(held_note_draw(us(ORIG_Charge), p);)
 		ChargeDraw(p, &h);
 		if (DrawOnly()) return 0;
 		if (*(int16_t *)(h + 0x28) < 0) p->frame = 0;
 		else p->frame++;
 		p->scale = (int16_t)(p->scale + p->scale_step);
 		p->counter++;
-		FX_HELD(held_note_after(p);)
 		return p->counter >= 0x1E ? TASK_END : 0;
 	}
 
@@ -965,10 +938,6 @@ namespace raybomb010
 		register_port(raybomb010::ORIG_Charge, (void *)raybomb010::ChargeTask, "R010 Charge", 10);
 		register_port(raybomb010::ORIG_Bounce, (void *)raybomb010::BounceTask, "R010 Bounce", 10);
 		register_port(raybomb010::ORIG_Restore, (void *)raybomb010::RestoreTask, "R010 Restore", 10);
-		FX_HELD(register_mag010_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag010_ray_bomb_held.inc"
-#endif

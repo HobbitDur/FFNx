@@ -268,21 +268,15 @@ namespace treatment
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag057_treatment_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace treatment
 {
-
 	uint32_t __cdecl tr_7FD280(uint32_t a1)
 	{
 		g_mod = &MOD_057;
-		FX_HELD(held_note_master();)
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		const uint32_t node = a1;
@@ -749,7 +743,6 @@ namespace treatment
 		case 1:
 			a_743190();
 			a_736C00();
-			FX_HELD(held_note_system(sys);)
 			tr_800480();
 			tr_7FE210();
 			sys = MEM<uint32_t>(us(ACTOR_STATE));
@@ -1768,10 +1761,6 @@ namespace treatment
 			act::register_module_port(57, p->addr, p->port, p->name);
 		for (const act::treatment::ModPort *p = act::treatment::PORTS; p->addr; p++)
 			act::register_module_port(57, p->addr, p->port, p->name);
-		FX_HELD(register_mag057_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag057_treatment_held.inc"
-#endif

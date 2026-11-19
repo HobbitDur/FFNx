@@ -236,9 +236,6 @@ namespace beat216
 	static_assert(sizeof(PlayArg) == 0x30 && sizeof(RingNode) == 0x104 && sizeof(RockNode) == 0x24 && sizeof(SpriteNode) == 0x1C && sizeof(GhostCtx) == 0x54, "Different Beat blocks");
 }
 }
-#ifdef FF8_FX_HELD
-#include "mag216_different_beat_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -1151,7 +1148,6 @@ namespace beat216
 
 	static void GhostDraw(uint8_t *entity, uint8_t *g)
 	{
-		FX_HELD(held_note_ghosts(entity, g);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x74);
 		GhostCtx *c = (GhostCtx *)(h + 0x20);
 		c->verts = var<uint32_t>(us(0x1D98B3C));
@@ -1311,7 +1307,6 @@ namespace beat216
 
 	static void DrawEntity(uint8_t *e, const int16_t *angles, const int16_t *off, const int32_t *scale)
 	{
-		FX_HELD(held_note_entity(e, angles, off, scale);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
 		Mat4x3 *m = (Mat4x3 *)h;
 		FramePackets() = DrawShadow(e, OTBase() + 0x4040, 0x10, FramePackets());
@@ -1361,7 +1356,6 @@ namespace beat216
 
 	static void CaptureStage(const int16_t *pos, const int16_t *b)
 	{
-		FX_HELD(held_note_capture(pos, b);)
 		const int32_t b0 = -(int32_t)b[0];
 		const int32_t b3 = b[3];
 		const int32_t w = b3 + b0;
@@ -1452,7 +1446,6 @@ namespace beat216
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *k = (RingNode *)n;
-		FX_HELD(held_note_ring(k);)
 		PlayArg arg;
 		ScaledRotY(k->angle, k->scale, &arg.m);
 		arg.m.t[0] = k->pos[0];
@@ -1515,7 +1508,6 @@ namespace beat216
 	}
 	static uint32_t RockStep(RockNode *k)
 	{
-		FX_HELD(held_note_rock(k);)
 		RockDraw(k);
 		if (--k->life == 0) return 2;
 		RockMove(k);
@@ -1575,7 +1567,6 @@ namespace beat216
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(s, us(SEQ_Spark));)
 		SpriteDraw(s, us(SEQ_Spark));
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(s->vel[0] << 2));
 		s->pos[1] = (int16_t)(s->pos[1] + (int16_t)(s->vel[1] << 2));
@@ -1586,7 +1577,6 @@ namespace beat216
 	static uint32_t __cdecl EmberTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(s, us(SEQ_Ember));)
 		SpriteDraw(s, us(SEQ_Ember));
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(s->vel[0] << 2));
 		s->pos[1] = (int16_t)(s->pos[1] + (int16_t)(s->vel[1] << 2));
@@ -1644,7 +1634,6 @@ namespace beat216
 
 	static void Play(int site, uint8_t *layout, PlayArg *arg, const Mat4x3 *frame)
 	{
-		FX_HELD(held_note_play(site, layout, arg, frame);)
 		(void)frame;
 		prim::play((prim::Layout *)layout, Callback, (int)arg, 0);
 	}
@@ -1677,7 +1666,6 @@ namespace beat216
 		W32(h, 0x18) = -0x80;
 		U16(h, 0x22) = 0;
 		U16(h, 0x20) = 0;
-		FX_HELD(held_note_twist(p, scale, angle, last);)
 		PacketCursor() = RenderPrimSet(h, OTBase() + 0x44, 2, PacketCursor());
 		FieldFree(0x94);
 	}
@@ -1759,7 +1747,6 @@ namespace beat216
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		FX_HELD(held_note_director(d);)
 		uint8_t *z = Caster();
 		const int32_t c = d->counter;
 		Flash() = FlashLevel(c);
@@ -1943,7 +1930,6 @@ namespace beat216
 			}
 			else if ((uint32_t)s - 1 <= 1)
 			{
-				FX_HELD(held_note_tile(s - 1);)
 				PacketCursor() = FadeTile(s - 1, 0x80, 0x80, 0x80, 0, 1, 1, PacketCursor());
 			}
 			if ((uint32_t)s < 4)
@@ -2093,7 +2079,6 @@ namespace beat216
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root(r);)
 		if (r->parity)
 		{
 			PacketCursor() = TexBase() + 0x3198;
@@ -2172,10 +2157,6 @@ namespace beat216
 		register_port(beat216::ORIG_RockBTask, (void *)beat216::RockBTask, "216 RockBTask", 216);
 		register_port(beat216::ORIG_SparkTask, (void *)beat216::SparkTask, "216 SparkTask", 216);
 		register_port(beat216::ORIG_EmberTask, (void *)beat216::EmberTask, "216 EmberTask", 216);
-		FX_HELD(register_mag216_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag216_different_beat_held.inc"
-#endif

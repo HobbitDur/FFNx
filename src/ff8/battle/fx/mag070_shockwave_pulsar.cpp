@@ -192,10 +192,6 @@ namespace sp070
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag070_shockwave_pulsar_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace sp070
@@ -848,7 +844,6 @@ namespace sp070
 		const int32_t slot = SlotOf(e);
 		PrimArg arg;
 		TargetArg(arg, rec, e);
-		FX_HELD(held_note_play(K_LIFT, s, &arg, s->t.counter);)
 		prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		if (s->t.counter == 5)
 		{
@@ -909,7 +904,6 @@ namespace sp070
 		arg.pos[1] = s->pos[1];
 		arg.morph = TexBase() + 0x241C;
 		arg.depth = (int16_t)0xFF80;
-		FX_HELD(held_note_play(K_RING, s, &arg, 0);)
 		const int left = prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		return left != 0 ? 0 : TASK_END;
 	}
@@ -921,7 +915,6 @@ namespace sp070
 		uint8_t *e = rec->entity;
 		PrimArg arg;
 		TargetArg(arg, rec, e);
-		FX_HELD(held_note_play(K_RISE, s, &arg, s->t.counter);)
 		prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		const uint32_t i = (uint32_t)((int32_t)s->t.counter - 0xD);
 		const uint32_t len = (uint32_t)(int32_t)s->t.delay;
@@ -956,7 +949,6 @@ namespace sp070
 			vec[2] = 0;
 			vec[0] = 0;
 			vec[1] = (int16_t)((rec->y_min + rec->y_max) >> 1);
-			FX_HELD(held_note_model(K_RMODEL, rec, vec, 0x1000, s->t.counter, (int32_t)len);)
 			DrawTargetModel(e, rec->ang, vec, 0x1000);
 			*e |= 4;
 			s->t.counter++;
@@ -1000,7 +992,6 @@ namespace sp070
 			arg.scaled = 0;
 			arg.objs = us(OBJS_A);
 			arg.depth = (int16_t)0xFF80;
-			FX_HELD(held_note_play(K_CENTRE, m, &arg, m->counter);)
 			prim::play((prim::Layout *)m->layout, PrimPart, (int)&arg, 0);
 		}
 
@@ -1019,7 +1010,6 @@ namespace sp070
 				}
 				else if ((int32_t)w < 8) level = 0x1000;
 				else level = shl32(8 - (int32_t)w, 12);
-				FX_HELD(held_note_tile(level, m->counter);)
 				PacketCursor() = Tile(0xFF, 0xFF, 0xFF, level, PacketCursor());
 			}
 			bool behind = true;
@@ -1139,7 +1129,6 @@ namespace sp070
 				{
 					Target *rec = &m->targets[k];
 					vec[1] = (int16_t)((rec->y_max + rec->y_min) >> 1);
-					FX_HELD(held_note_model(K_MODEL, rec, vec, 0x800, m->counter, 0);)
 					DrawTargetModel(rec->entity, rec->ang, vec, 0x800);
 					*rec->entity |= 4;
 				}
@@ -1154,13 +1143,10 @@ namespace sp070
 			arg.pos[2] = (int16_t)(zoff + (int32_t)CentreZ());
 			arg.objs = us(OBJS_WAVE);
 			arg.depth = depth;
-			FX_HELD(held_note_play(K_WAVE, m, &arg, m->counter);)
 			prim::play((prim::Layout *)m->layout, PrimPart, (int)&arg, 0);
 		}
 
-		FX_HELD(held_note_sparks(m);)
 		SparksDraw((const Spark *)(TexBase() + 0x181C));
-		FX_HELD(held_note_shards(m);)
 		ShardsDraw((const Shard *)(TexBase() + 0x201C));
 		SparksUpdate();
 		ShardsUpdate();
@@ -1301,7 +1287,6 @@ namespace sp070
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->parity)
 		{
 			PacketCursor() = TexBase() + 0xAE9C;
@@ -1395,10 +1380,6 @@ namespace sp070
 		register_port(sp070::ORIG_LiftTask, (void *)sp070::LiftTask, "P070 LiftTask", 70);
 		register_port(sp070::ORIG_RiseTask, (void *)sp070::RiseTask, "P070 RiseTask", 70);
 		register_port(sp070::ORIG_RingTask, (void *)sp070::RingTask, "P070 RingTask", 70);
-		FX_HELD(register_mag070_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag070_shockwave_pulsar_held.inc"
-#endif

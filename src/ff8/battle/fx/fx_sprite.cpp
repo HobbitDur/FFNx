@@ -90,10 +90,6 @@ namespace sprite
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "fx_sprite_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace sprite
@@ -101,9 +97,7 @@ namespace sprite
 	static uint32_t Tick(TaskNode *n, bool shared)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_draw(shared ? us(ORIG_SharedSprite) : us(ORIG_Sprite), s);)
 		const int16_t next = Draw(s, shared ? SharedSequence() : s->seq, s->frame, shared);
-		FX_HELD(held_note_drawn(s);)
 		if (Paused()) return 0;
 		s->frame++;
 		return next < 0 ? TASK_END : 0;
@@ -118,10 +112,6 @@ namespace sprite
 	{
 		register_port(sprite::ORIG_Sprite, (void *)sprite::SpriteTask, "sprite 570BC0 BattleFx_TickSpriteEffect", 0);
 		register_port(sprite::ORIG_SharedSprite, (void *)sprite::SharedSpriteTask, "sprite 570AC0 BattleFx_TickSharedSpriteEffect", 0);
-		FX_HELD(register_fx_sprite_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "fx_sprite_held.inc"
-#endif

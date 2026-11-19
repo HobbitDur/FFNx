@@ -273,10 +273,6 @@ namespace reflect135
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag135_reflect_beam_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace reflect135
@@ -295,7 +291,6 @@ namespace reflect135
 	static uint32_t __cdecl BurstTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(SPR_BURST, n);)
 		SpriteDraw(s->pos, s->counter, us(SEQ_Burst), 0x1770, -0x400);
 		s->counter++;
 		return s->counter < 0x10 ? 0 : TASK_END;
@@ -304,7 +299,6 @@ namespace reflect135
 	static uint32_t __cdecl GlintTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(SPR_GLINT, n);)
 		SpriteDraw(s->pos, s->counter, us(SEQ_Glint), 0x800, -0x400);
 		s->counter++;
 		return s->counter < 7 ? 0 : TASK_END;
@@ -313,7 +307,6 @@ namespace reflect135
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(SPR_SPARK, n);)
 		SpriteDraw(s->pos, s->counter, us(SEQ_Spark), 0x800, -0x200);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
 		s->vel[1] = (int16_t)(s->vel[1] + s->drag[1]);
@@ -383,7 +376,6 @@ namespace reflect135
 					s->drag[2] = (int16_t)((0 - (int32_t)(int16_t)z) >> 4);
 				}
 			}
-			FX_HELD(held_note_play(PLAY_REFLECT, n, (prim::Layout *)r->layout);)
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, r->pos);
 			arg.depth = -0x80;
@@ -479,7 +471,6 @@ namespace reflect135
 			Mat4x3 m;
 			int16_t Q[4] = {};
 			ShotFrame(bone, Q, &m);
-			FX_HELD(held_note_play(PLAY_SHOT, n, (prim::Layout *)s->layout);)
 			Play(s->layout, Q, -0x80);
 			ShotBasis(&m, Q);
 			const int32_t a = ShotAngle(s->counter);
@@ -492,13 +483,11 @@ namespace reflect135
 				ff8fx::copy<(6)>(s->hitpos, E);
 				s->hitpos[3] = ShotResidue();
 			}
-			FX_HELD(held_note_shot_beam(n);)
 			ShotBeam(&m, ShotWidth(a), (int16_t)len);
 		}
 		else if (s->hit == 0) return TASK_END;
 		if (s->hit != 0)
 		{
-			FX_HELD(held_note_play(PLAY_SHOTHIT, n, (prim::Layout *)s->hitlayout);)
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, s->hitpos);
 			arg.depth = 0;
@@ -518,7 +507,6 @@ namespace reflect135
 		{
 			int16_t P[4] = {};
 			GetEffectSpawnPosition(Caster(), 0x1F, 0x1000, P);
-			FX_HELD(held_note_sweep(n);)
 			uint8_t *h = AllocHeader(0x58);
 			h[0xA] = 0;
 			h[9] = 0;
@@ -559,7 +547,6 @@ namespace reflect135
 				SegmentRender(h, w, P, X, SegSine(t));
 			}
 			FieldFree(0x58);
-			FX_HELD(held_note_play(PLAY_SWEEP, n, (prim::Layout *)w->layout);)
 			Play(w->layout, P, -0x80);
 		}
 		if (w->counter == 0) BdPlaySE(SOUND_Beam(), 0, 0x80);
@@ -630,7 +617,6 @@ namespace reflect135
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -676,10 +662,6 @@ namespace reflect135
 		register_port(reflect135::ORIG_BurstTask, (void *)reflect135::BurstTask, "135 BurstTask", 135);
 		register_port(reflect135::ORIG_GlintTask, (void *)reflect135::GlintTask, "135 GlintTask", 135);
 		register_port(reflect135::ORIG_SparkTask, (void *)reflect135::SparkTask, "135 SparkTask", 135);
-		FX_HELD(register_mag135_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag135_reflect_beam_held.inc"
-#endif

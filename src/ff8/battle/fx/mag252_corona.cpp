@@ -27,10 +27,6 @@ namespace corona252
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag252_corona_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -94,10 +90,6 @@ namespace corona252
 		init_clone(corona252::g_c, nullptr, 0);
 		corona252::apply_slots(corona252::g_c);
 		register_port(0x9A2EE0, (void *)corona252::SequenceTask, "MAG252 Corona (Mobile Type 8) SequenceTick", 252);
-		FX_HELD(register_mag252_corona_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag252_corona_held.inc"
-#endif

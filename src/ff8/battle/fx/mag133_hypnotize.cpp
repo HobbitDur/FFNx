@@ -312,10 +312,6 @@ namespace hypno133
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag133_hypnotize_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace hypno133
@@ -323,7 +319,6 @@ namespace hypno133
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(s);)
 		FX_PART(PART_SPRITES);
 		SpriteDraw(s);
 		s->counter++;
@@ -341,7 +336,6 @@ namespace hypno133
 		CameraAnchor(pos, &arg.m);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(PLAY_RING, n, (prim::Layout *)g->layout, &arg);)
 		return prim::play((prim::Layout *)g->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -354,7 +348,6 @@ namespace hypno133
 		CameraAnchor(p->pos, &arg.m);
 		arg.depth = P().targets.depth;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(PLAY_TARGET, n, (prim::Layout *)p->layout, &arg);)
 		return prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -377,7 +370,6 @@ namespace hypno133
 			MainFrame(pos, &arg);
 			arg.depth = 0;
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play(PLAY_MAIN, n, (prim::Layout *)t->layout, &arg);)
 			prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		}
 		if (t->counter == pp.timing.sound_tick) BdPlaySE(SOUND_Hypnotize(), 0, 0x80);
@@ -430,7 +422,6 @@ namespace hypno133
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -528,11 +519,7 @@ namespace hypno133
 		register_port(hypno133::ORIG_RingTask, (void *)hypno133::RingTask, "133 RingTask", 133);
 		register_port(hypno133::ORIG_TargetLayoutTask, (void *)hypno133::TargetLayoutTask, "133 TargetLayoutTask", 133);
 		register_port(hypno133::ORIG_SpriteTask, (void *)hypno133::SpriteTask, "133 SpriteTask", 133);
-		FX_HELD(register_mag133_held();)
 	}
 	FX_LAB_MODULE(register_mag133_hypnotize);
 }
 
-#ifdef FF8_FX_HELD
-#include "mag133_hypnotize_held.inc"
-#endif

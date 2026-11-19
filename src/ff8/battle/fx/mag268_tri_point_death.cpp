@@ -27,10 +27,6 @@ namespace tripoint268
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag268_tri_point_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -102,10 +98,6 @@ namespace tripoint268
 		init_clone(tripoint268::g_c, nullptr, 0);
 		tripoint268::apply_slots(tripoint268::g_c);
 		register_port(0x905070, (void *)tripoint268::SequenceTask, "MAG268 Tri-Point death SequenceTick", 268);
-		FX_HELD(register_mag268_tri_point_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag268_tri_point_death_held.inc"
-#endif

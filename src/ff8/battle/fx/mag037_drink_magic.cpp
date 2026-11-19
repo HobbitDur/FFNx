@@ -435,21 +435,15 @@ namespace drinkmagic
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag037_drink_magic_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace drinkmagic
 {
-
 	uint32_t __cdecl dk_856B40(uint32_t a1)
 	{
 		g_mod = &MOD_037;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -795,7 +789,6 @@ namespace drinkmagic
 		case 1:
 			dk_85BB10();
 			dk_8591C0();
-			FX_HELD(held_note_system(sys);)
 			dk_859080();
 			a_735440();
 			sys = U32(us(0x26A8DB0), 0);
@@ -2652,7 +2645,6 @@ namespace drinkmagic
 		states[2] = us(0x85F250);
 		callp(states[S8(node, 0x29)], node);
 		dk_85EA30(node);
-		FX_HELD(held_note_ribbon(node);)
 		dk_85BE30(node);
 		U16(node, 0x126) = (uint16_t)((U16(node, 0x126) + 0x180) & 0xFFF);
 		dk_85EB60(node);
@@ -2859,7 +2851,6 @@ namespace drinkmagic
 		U32(node, 0x1C) = U32(owner, 0x1C);
 		U32(node, 0x20) = U32(owner, 0x20);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_spark(node);)
 		dk_85F0D0(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -3101,7 +3092,6 @@ namespace drinkmagic
 		states[2] = us(0x85C100);
 		callp(states[S8(node, 0x29)], node);
 		dk_85BEC0(node);
-		FX_HELD(held_note_streak(node);)
 		dk_85BE30(node);
 		U16(node, 0x124) = (uint16_t)(U16(node, 0x124) + 1);
 		if (S16(node, 0x124) > 0xA)
@@ -3369,7 +3359,6 @@ namespace drinkmagic
 			U16(node, 0x54) = (uint16_t)a;
 			dk_85E4E0(us(ORB_TEMPLATE), U32(node, 0x4C), a, b);
 			U16(node, 0x5E) = (uint16_t)((uint8_t)(U8(node, 0x5E) + 8) & 0x7F);
-			FX_HELD(held_note_orb(node);)
 			dk_85C350(node);
 			alignas(4) uint8_t bounds[0xC];
 			dk_85C2C0(U32(node, 0x4C), P(bounds));
@@ -3519,10 +3508,6 @@ namespace drinkmagic
 			act::register_module_port(37, p->addr, p->port, p->name);
 		for (const act::drinkmagic::ModPort *p = act::drinkmagic::PORTS; p->addr; p++)
 			act::register_module_port(37, p->addr, p->port, p->name);
-		FX_HELD(register_mag037_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag037_drink_magic_held.inc"
-#endif

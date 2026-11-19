@@ -48,10 +48,6 @@ namespace renzo342
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag342_renzokuken_ultimecia_griever_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo342
@@ -201,7 +197,6 @@ namespace renzo342
 	static uint32_t FacingTask(int kind, Node24 *n)
 	{
 		const FacingDef &d = FACINGS[kind];
-		FX_HELD(held_note_facing(kind, n);)
 		FacingDraw(d, n, Slot(n->e), n->w1C, FacingFade(d, n, n->c));
 		if (DrawOnly()) return 0;
 		const int16_t rate = n->w1E;
@@ -222,10 +217,6 @@ namespace renzo342
 		register_port(renzo342::ORIG_HitEmitter, (void *)renzo342::HitEmitterTask, "342 HitEmitter", 342);
 		register_port(renzo342::ORIG_FacingA, (void *)renzo342::FacingATask, "342 FacingA", 342);
 		register_port(renzo342::ORIG_FacingB, (void *)renzo342::FacingBTask, "342 FacingB", 342);
-		FX_HELD(register_mag342_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag342_renzokuken_ultimecia_griever_held.inc"
-#endif

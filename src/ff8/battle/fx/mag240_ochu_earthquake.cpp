@@ -16,10 +16,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag240_ochu_earthquake_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -66,7 +62,6 @@ namespace ochu_quake
 	static inline void xl_GteLoadV012Block(const void *v) { x::f<void (__cdecl *)(const void *)>(us(0x45E020))(v); }
 	static inline void xl_InsertPrimAutoDepth(uint32_t ot, void *prim)
 	{
-		FX_HELD(if (held_predicting()) return;)
 		x::f<void (__cdecl *)(uint32_t, void *)>(us(0x45C7A0))(ot, prim);
 	}
 	static inline int32_t GteOTZ() { return MEM<int32_t>(us(0x1CA8A2C)); }
@@ -371,10 +366,6 @@ namespace ochu_quake
 		ochu_quake::PieceDraw()[9] = ochu_quake::pd_09_DrawPiecesGT3;
 		ochu_quake::PieceInit()[9] = ochu_quake::pi_09_PieceCentroids;
 		register_port(0xA0B9D0, (void *)ochu_quake::SequenceTask, "MAG240 Ochu Earthquake SequenceTick", 240);
-		FX_HELD(register_mag240_ochu_earthquake_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag240_ochu_earthquake_held.inc"
-#endif

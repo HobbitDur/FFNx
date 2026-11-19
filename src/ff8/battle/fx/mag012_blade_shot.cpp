@@ -609,10 +609,6 @@ namespace blade012
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag012_blade_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace blade012
@@ -620,7 +616,6 @@ namespace blade012
 	static uint32_t __cdecl PartTask(TaskNode *tn)
 	{
 		PartNode *p = (PartNode *)tn;
-		FX_HELD(held_note(K_PART, p, sizeof(PartNode));)
 		uint8_t *h = AllocHeader(0xB4);
 		PartDraw(p, h);
 		FieldFree(0xB4);
@@ -638,7 +633,6 @@ namespace blade012
 	static uint32_t __cdecl StreakTask(TaskNode *tn)
 	{
 		PartNode *p = (PartNode *)tn;
-		FX_HELD(held_note(K_STREAK, p, sizeof(PartNode));)
 		uint8_t *h = AllocHeader(0xB4);
 		StreakDraw(p, h);
 		FieldFree(0xB4);
@@ -656,7 +650,6 @@ namespace blade012
 	static uint32_t __cdecl TrailTask(TaskNode *tn)
 	{
 		TrailNode *t = (TrailNode *)tn;
-		FX_HELD(held_note(K_TRAIL, t, sizeof(TrailNode));)
 		uint8_t *h = AllocHeader(0x58);
 		TrailDraw(t, h, TrailAngle(t->counter));
 		FieldFree(0x58);
@@ -751,7 +744,6 @@ namespace blade012
 	static uint32_t __cdecl RootTask(TaskNode *tn)
 	{
 		RootNode *n = (RootNode *)tn;
-		FX_HELD(held_note_root(n);)
 		if (n->arena != 0)
 		{
 			PacketCursor() = us(ARENA_A);
@@ -767,7 +759,6 @@ namespace blade012
 		{
 			uint8_t *h = AllocHeader(0x58);
 			BladeOut(n);
-			FX_HELD(held_note_h(K_BLADE, n, h, 0x58, 0);)
 			BladeDraw(n, h);
 			FieldFree(0x58);
 			n->rot[2] = (int16_t)(n->rot[2] - 0x20);
@@ -781,7 +772,6 @@ namespace blade012
 			if (k == 0 && n->turned == 0) BladeTurn(n);
 			GetEffectSpawnPosition(Caster(), 7, 0, n->mot.end);
 			BladeBack(n);
-			FX_HELD(held_note_h(K_BLADE, n, h, 0x58, 0);)
 			BladeDraw(n, h);
 			FieldFree(0x58);
 		}
@@ -797,7 +787,6 @@ namespace blade012
 				GetEffectSpawnPosition(Target(), 0xF1, 0, n->hit);
 				ApplyActionResultToTarget(Ctx()->actions[0].targets);
 			}
-			FX_HELD(held_note_h(K_HIT, n, h, 0xB4, k);)
 			SeqDraw(n->hit, h, us(SEQ_Hit), (int16_t)k);
 			FieldFree(0xB4);
 		}
@@ -806,24 +795,19 @@ namespace blade012
 		{
 			uint8_t *h = AllocHeader(0xB4);
 			if (k == 0) ff8fx::copy<(8)>(n->hit, n->blade);
-			FX_HELD(held_note_h(K_FLASH, n, h, 0xB4, k);)
 			SeqDraw(n->hit, h, us(SEQ_Flash), (int16_t)k);
 			FieldFree(0xB4);
 		}
-		FX_HELD(held_note_k(K_RING, n, (int32_t)n->counter - 0x20);)
 		Ring(n, (int32_t)n->counter - 0x20);
-		FX_HELD(held_note_k(K_RING, n, (int32_t)n->counter - 0x22);)
 		Ring(n, (int32_t)n->counter - 0x22);
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < 0x14)
 		{
-			FX_HELD(held_note_k(K_WING_A, n, k);)
 			WingPair(n, RingScale(k), us(MODEL_WingA), us(KEYS_WingA0), us(KEYS_WingA1), 0x71);
 		}
 		k = (int32_t)n->counter - 0x20;
 		if ((uint32_t)k < 0x14)
 		{
-			FX_HELD(held_note_k(K_WING_B, n, k);)
 			WingPair(n, RingScale(k), us(MODEL_WingB), us(KEYS_WingB0), us(KEYS_WingB1), 0x11C);
 		}
 		k = (int32_t)n->counter - 0x20;
@@ -841,7 +825,6 @@ namespace blade012
 			pos[0] = n->blade[0];
 			pos[1] = (int16_t)(n->blade[1] + 0x64);
 			pos[2] = n->blade[2];
-			FX_HELD(held_note_h(K_CATCH, n, h, 0xB4, k);)
 			SeqDraw(pos, h, us(SEQ_Hit), (int16_t)k);
 			FieldFree(0xB4);
 			if (k == 0) BdPlaySE3D(SOUND_Catch(), 0, pos);
@@ -860,10 +843,6 @@ namespace blade012
 		register_port(blade012::ORIG_PartTask, (void *)blade012::PartTask, "B012 PartTask", 12);
 		register_port(blade012::ORIG_StreakTask, (void *)blade012::StreakTask, "B012 StreakTask", 12);
 		register_port(blade012::ORIG_TrailTask, (void *)blade012::TrailTask, "B012 TrailTask", 12);
-		FX_HELD(register_mag012_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag012_blade_shot_held.inc"
-#endif

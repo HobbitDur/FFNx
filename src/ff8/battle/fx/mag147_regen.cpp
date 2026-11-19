@@ -156,10 +156,6 @@ namespace regen147
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag147_regen_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace regen147
@@ -167,7 +163,6 @@ namespace regen147
 	static uint32_t __cdecl EnvelopeTask(TaskNode *n)
 	{
 		EnvelopeNode *e = (EnvelopeNode *)n;
-		FX_HELD(held_note_envelope(e);)
 		EnvelopeDraw(e, EnvelopeFade(e->counter, e->kind));
 		if (DrawOnly()) return 0;
 		EnvelopeUpdate(e);
@@ -261,7 +256,6 @@ namespace regen147
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_leaf(p);)
 		uint8_t *h = LeafDraw(p, LeafShade(p->counter));
 		TrailPart *trail = TrailOf(p->action, p->leaf);
 		for (int k = 0; k < 16; k++)
@@ -394,7 +388,6 @@ namespace regen147
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_ODD);
 		if (!(*(const uint8_t *)&r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
 		const int alive = ExecuteTaskQueue(EffectQueue());
@@ -409,10 +402,6 @@ namespace regen147
 		register_port(regen147::ORIG_Director, (void *)regen147::DirectorTask, "R147 Director", 147);
 		register_port(regen147::ORIG_Envelope, (void *)regen147::EnvelopeTask, "R147 Envelope", 147);
 		register_port(regen147::ORIG_Leaf, (void *)regen147::LeafTask, "R147 Leaf", 147);
-		FX_HELD(register_mag147_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag147_regen_held.inc"
-#endif

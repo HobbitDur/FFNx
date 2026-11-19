@@ -27,10 +27,6 @@ namespace bgh249
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag249_bgh_attack_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -78,10 +74,6 @@ namespace bgh249
 		bgh249::describe(bgh249::g_c);
 		init_clone(bgh249::g_c, nullptr, 0);
 		register_port(0x9B79F0, (void *)bgh249::SequenceTask, "MAG249 Attack (BGH251F2) SequenceTick", 249);
-		FX_HELD(register_mag249_bgh_attack_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag249_bgh_attack_held.inc"
-#endif

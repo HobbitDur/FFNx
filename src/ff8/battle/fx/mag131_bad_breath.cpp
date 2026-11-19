@@ -331,10 +331,6 @@ namespace badbreath131
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag131_bad_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace badbreath131
@@ -412,7 +408,6 @@ namespace badbreath131
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *p = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(p);)
 		SpriteDraw(p);
 		p->pos[1] = (int16_t)(p->pos[1] - 0x10);
 		p->counter++;
@@ -426,7 +421,6 @@ namespace badbreath131
 		PrimArg arg;
 		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, t->pos);
 		arg.morph = TexBase() + VERTS;
-		FX_HELD(held_note_target(t);)
 		prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, 0);
 		entity[1] |= 8;
 		const int32_t c = t->counter;
@@ -470,7 +464,6 @@ namespace badbreath131
 		const int32_t t = e->counter - 0xF;
 		if ((uint32_t)t < 0x32)
 		{
-			FX_HELD(held_note_emitter(e);)
 			uint8_t *h = AllocHeader(0x5C);
 			PacketCursor() = FadeTile(t, 0x40, 0x40, 0, 0xE, 0x16, 0xE, PacketCursor());
 			Mat4x3 rot;
@@ -550,7 +543,6 @@ namespace badbreath131
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + 0xF28;
@@ -620,10 +612,6 @@ namespace badbreath131
 		register_port(badbreath131::ORIG_EmitterTask, (void *)badbreath131::EmitterTask, "131 EmitterTask", 131);
 		register_port(badbreath131::ORIG_TargetTask, (void *)badbreath131::TargetTask, "131 TargetTask", 131);
 		register_port(badbreath131::ORIG_SpriteTask, (void *)badbreath131::SpriteTask, "131 SpriteTask", 131);
-		FX_HELD(register_mag131_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag131_bad_breath_held.inc"
-#endif

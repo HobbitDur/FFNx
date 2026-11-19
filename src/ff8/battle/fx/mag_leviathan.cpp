@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag_leviathan_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -35,7 +31,6 @@ namespace part_lev_a
 
 	static inline void xl_OffscreenRender_B65810()
 	{
-		FX_HELD(if (held_predicting()) return;)
 		x::f<int32_t (__cdecl *)()>(us(0xB65810))();
 	}
 
@@ -61,7 +56,6 @@ namespace part_lev_a
 
 	static void __cdecl dh_17_RippleTextureUpload()
 	{
-		FX_HELD(if (held_active()) return;)
 		uint8_t *arg = PTR(CUR(), 0xB8);
 		blob::ReadAltTexture(S16(arg, 0));
 		U32(WS(), 0x64) = U32(WS(), 0xFC);
@@ -471,7 +465,6 @@ namespace part_lev_a
 		U16(WS(), 0xD6) = U16(STREAM(), 6);
 		uint8_t *blk = PTR(CTX(), 0x74);
 		uint32_t size = 0xEC;
-		FX_HELD(guard(blk, 0x10);)
 		U32(blk, 0) = 0;
 		U32(blk, 4) = 0;
 		int32_t flags = S16(STREAM(), 2);
@@ -624,7 +617,6 @@ namespace part_lev_b
 						{
 							do
 							{
-								FX_HELD(held_note_vertex(v);)
 								int32_t a = S16(t, 0);
 								int32_t d = S16(t, 6) - a;
 								v += 6;
@@ -846,7 +838,6 @@ namespace part_lev_b
 
 	static void BuildPose(uint8_t *blk)
 	{
-		FX_HELD(if (held_mid24_pose(blk)) return;)
 		x::BuildBoneMatricesFromPose(blk + 0x10);
 	}
 
@@ -942,7 +933,6 @@ namespace part_lev_b
 		uint8_t *cur = CUR();
 		if (PTR(cur, 0xBC) == nullptr)
 		{
-			FX_HELD(if (held_active()) return;)
 			uint8_t *prm = PTR(cur, 0xB8);
 			uint8_t *nb = h_B26860(S16(prm, 0));
 			PTR(CUR(), 0xBC) = nb;
@@ -959,12 +949,10 @@ namespace part_lev_b
 		uint8_t *blk = PTR(cur, 0xBC);
 		uint8_t *hdr = blk + 0x10;
 		uint8_t *cmd = blk + 0x20;
-		FX_HELD(if (held_active()) HeldBegin(blk);)
 		if (!(U8(blk, 2) & 1))
 		{
 			if (U16(blk, 0) != 0)
 			{
-				FX_HELD(if (held_active()) held_pose20(hdr, cmd); else)
 				{
 					int32_t r = x::ReadAnimation(hdr, cmd);
 					U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);
@@ -990,7 +978,6 @@ namespace part_lev_b
 		uint32_t cursor = U32(CTX(), 0x7C);
 		uint32_t ot = U32(RT(), 0x4C);
 		U32(CTX(), 0x7C) = x::RenderGeometry(b30, b40, ot, 4, cursor);
-		FX_HELD(if (held_active()) HeldEnd();)
 	}
 
 	static void __cdecl dh_24_AnimModelAltTex()
@@ -998,7 +985,6 @@ namespace part_lev_b
 		uint8_t *cur = CUR();
 		if (PTR(cur, 0xBC) == nullptr)
 		{
-			FX_HELD(if (held_active()) return;)
 			uint8_t *prm = PTR(cur, 0xB8);
 			uint8_t *nb = h_B26860(S16(prm, 0));
 			PTR(CUR(), 0xBC) = nb;
@@ -1020,7 +1006,6 @@ namespace part_lev_b
 				cur = CUR();
 			}
 		}
-		FX_HELD(held_begin24(cur);)
 		uint8_t *mp = PTR(cur, 0xC4);
 		if (mp)
 		{
@@ -1043,7 +1028,6 @@ namespace part_lev_b
 		S32(WS(), 0xF4) = S16(prm, 4);
 		S32(WS(), 0xF8) = S16(prm, 2);
 		DrawModelScreenTextured_B5AD50();
-		FX_HELD(if (held_active()) held_end24(); else)
 		U16(blk, 0) = (uint16_t)(U16(blk, 0) + 1);
 	}
 }
@@ -1108,10 +1092,6 @@ namespace leviathan
 		apply_lev_b(leviathan::g_c);
 		apply_shared_misc(leviathan::g_c);
 		register_port(0xB586F0, (void *)leviathan::SequenceTask, "GFC006 Leviathan SequenceTick", 6);
-		FX_HELD(register_gfc_leviathan_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag_leviathan_held.inc"
-#endif

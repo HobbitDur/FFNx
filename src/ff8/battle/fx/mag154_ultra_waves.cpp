@@ -176,10 +176,6 @@ namespace ultra154
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag154_ultra_waves_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace ultra154
@@ -529,7 +525,6 @@ namespace ultra154
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_ODD);
 		if (!(r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(QEffects());
@@ -726,7 +721,6 @@ namespace ultra154
 
 	static uint32_t __cdecl Controller(TaskNode *n)
 	{
-		FX_HELD(held_note_controller(n);)
 		if (DrawOnly()) return 0;
 		ControllerNode *c = (ControllerNode *)n;
 		if (c->counter == 0) GridInit();
@@ -860,7 +854,6 @@ namespace ultra154
 	static uint32_t __cdecl Emitter(TaskNode *n)
 	{
 		EmitterNode *e = (EmitterNode *)n;
-		FX_HELD(held_note_emitter(e);)
 		RenderHeader *h = (RenderHeader *)FieldAlloc(0x6C);
 		EmitterWork *w = (EmitterWork *)FieldAlloc(0x88);
 		int alive = 0;
@@ -895,7 +888,6 @@ namespace ultra154
 		WarpNode *w = (WarpNode *)n;
 		if (w->counter < WARP_TICKS)
 		{
-			FX_HELD(held_note_warp(w);)
 			WarpDraw(w->counter, us(PKT_Capture), us(OFFSET_XY), us(QUADS));
 		}
 		if (DrawOnly()) return 0;
@@ -913,10 +905,6 @@ namespace ultra154
 		register_port(ultra154::ORIG_Controller, (void *)ultra154::Controller, "U154 Controller", 154);
 		register_port(ultra154::ORIG_Emitter, (void *)ultra154::Emitter, "U154 Emitter", 154);
 		register_port(ultra154::ORIG_ScreenWarp, (void *)ultra154::ScreenWarp, "U154 ScreenWarp", 154);
-		FX_HELD(register_mag154_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag154_ultra_waves_held.inc"
-#endif

@@ -236,10 +236,6 @@ namespace heartbreak
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag031_heartbreak_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -249,7 +245,6 @@ namespace heartbreak
 	uint32_t __cdecl hb_86CB50(uint32_t a1)
 	{
 		g_mod = &MOD_031;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -341,7 +336,6 @@ namespace heartbreak
 				U32(node, 0x34) = entry;
 				U16(node, 0x38) = (uint16_t)(idx + 1);
 			}
-			FX_HELD(held_note_flash(node);)
 			FlashDraw(U32(node, 0x34));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -614,7 +608,6 @@ namespace heartbreak
 		case 1:
 			hb_871E50();
 			hb_86F500();
-			FX_HELD(held_note_system(sys);)
 			hb_86F3C0();
 			hb_86DD40();
 			sys = U32(us(0x26D33E0), 0);
@@ -1916,7 +1909,6 @@ namespace heartbreak
 	{
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_spark(a1);)
 		const uint32_t hdr = x::Field_Alloc(0xB4);
 		gx::TransformCameraByShadowRotation(a1 + 0x1C, 0x1000, (uint32_t)(int32_t)S16(a1, 0x54));
 		U32(hdr, 0) = U32(a1, 0x4C);
@@ -2239,7 +2231,6 @@ namespace heartbreak
 		ff8fx::copy<(0x20)>(pl, fr);
 		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U32(L, 0x48) = us(BLEND_BUF);
-		FX_HELD(held_note_play(node, place);)
 		if (prim_play(node + 0x94, us(PRIM_CB), L, 0) == 0)
 		{
 			const uint32_t t = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_Spawner), 0x80, node);
@@ -2390,7 +2381,6 @@ namespace heartbreak
 		S32(L, 0x14) = S16(node, 0x1C);
 		S32(L, 0x18) = S16(node, 0x1E);
 		S32(L, 0x1C) = S16(node, 0x20);
-		FX_HELD(held_note_play(node, L);)
 		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U32(L, 0x48) = us(BLEND_BUF);
 		if (prim_play(node + 0x94, us(PRIM_CB), L, 0) == 0)
@@ -2495,7 +2485,6 @@ namespace heartbreak
 		U32(L, 0x48) = us(BLEND_BUF);
 		if ((U8(node, 0x26) & 1) == 0)
 		{
-			FX_HELD(held_note_play(node, 0);)
 			prim_play(node + 0x94, us(PRIM_CB), L, 0);
 		}
 		uint32_t p = x::Effect_AddTaskAndInitFromCtx(us(Q_PART), us(ORIG_SparkB), 0x80, node);
@@ -2590,7 +2579,6 @@ namespace heartbreak
 		S32(node, 0x4C) = S16(node, 0x20);
 		x::ComposeAffineTransform(us(0x1D97778), M, L);
 		U32(L, 0x48) = us(BLEND_BUF);
-		FX_HELD(held_note_play(node, M);)
 		prim_play(node + 0x94, us(PRIM_CB), L, 0);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		g_shadow[5] = U16(vec, 0) | (uint32_t)U16(vec, 2) << 16;
@@ -2607,7 +2595,6 @@ namespace heartbreak
 		const uint32_t L = P(fr);
 		x::ComposeAffineTransform(us(0x1D97778), node + 0x30, L);
 		U32(L, 0x48) = us(BLEND_BUF);
-		FX_HELD(held_note_play(node, node + 0x30);)
 		if (prim_play(node + 0x94, us(PRIM_CB), L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -2853,10 +2840,6 @@ namespace heartbreak
 			act::register_module_port(31, p->addr, p->port, p->name);
 		for (const act::heartbreak::ModPort *p = act::heartbreak::PORTS; p->addr; p++)
 			act::register_module_port(31, p->addr, p->port, p->name);
-		FX_HELD(register_mag031_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag031_heartbreak_held.inc"
-#endif

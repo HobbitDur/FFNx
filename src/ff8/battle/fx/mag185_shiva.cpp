@@ -148,10 +148,6 @@ namespace s185
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag185_shiva_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace s185
@@ -231,7 +227,6 @@ namespace s185
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_master();)
 		if (*(uint8_t *)&n->c & 1) Arena() = MB() + 0x10000;
 		else Arena() = MB() + 0x18000;
 		int left = ExecuteTaskQueue(&SubQueue());
@@ -435,7 +430,6 @@ namespace s185
 		Node24 *n = (Node24 *)tn;
 		int32_t arg = n->e >= 0x24 ? 0x24 : (int32_t)n->e;
 		RingGeometry(arg, RingVerts(), (uint8_t *)us(0x22BC128), (uint8_t *)us(0x22BC190));
-		FX_HELD(held_note_ring_timer(arg);)
 		if (n->c == 0)
 		{
 			int32_t r = CrtRand() % 0x1000;
@@ -486,7 +480,6 @@ namespace s185
 	{
 		Node24 *n = (Node24 *)tn;
 		int32_t count = 0;
-		FX_HELD(held_note_node(n);)
 		int16_t ang[4] = { 0, n->f18, 0, 0 };
 		Mat4x3 m, w;
 		NodeMatrix(&m, ang, true, n->f10, n->f12, n->f14, n->f1C, n->f20, n->f1C);
@@ -521,7 +514,6 @@ namespace s185
 		{
 			Rec *r = RecA0(i);
 			if (!(r->mask & (uint32_t)mask)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			SpriteAt(h, r->age, &r->x, r->size);
 			if (Paused()) continue;
 			r->age++;
@@ -584,7 +576,6 @@ namespace s185
 		{
 			Rec *r = RecA4(i);
 			if (!(r->mask & 0x100)) continue;
-			FX_HELD(held_note_rec_a4(i, n, r);)
 			SpriteAt(h, r->age, &r->x, r->size);
 			if (Paused()) continue;
 			r->age++;
@@ -642,7 +633,6 @@ namespace s185
 		{
 			Rec *r = RecA0(i);
 			if (!(r->mask & 0x200)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			SpriteAt(h, r->age, &r->x, r->size);
 			if (Paused()) continue;
 			r->age++;
@@ -711,7 +701,6 @@ namespace s185
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(n);)
 		IcicleDraw(&Frame(), n->f18, n->f10, n->f12, n->f14, n->f1C, n->f20, n->c >= 8, mul32(n->c - 8, 682));
 		if (Paused()) return 0;
 		int16_t v = n->f1A;
@@ -735,7 +724,6 @@ namespace s185
 	static uint32_t __cdecl ShatterTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(n);)
 		Mat4x3 m;
 		ShatterMatrix(n, &m);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xBC);
@@ -748,7 +736,6 @@ namespace s185
 		if (n->c >= 0x12)
 		{
 			*(int32_t *)(h + 0x20) -= 0x12;
-			FX_HELD(held_note_shatter_recs();)
 			Cursor() = ShatterFly(h, OT(), 2, Cursor());
 		}
 		else Cursor() = ShatterStatic(h, OT(), 2, Cursor());
@@ -845,7 +832,6 @@ namespace s185
 		*(uint32_t *)(h + 0x10) = 3;
 		*(uint32_t *)(h + 0x18) = 6;
 		*(uint32_t *)(h + 0x28) = records;
-		FX_HELD(if (memo) held_note_mount_recs();)
 		Cursor() = ShardFly(h, OT(), 2, Cursor());
 		int32_t left = *(int32_t *)(h + 0x24);
 		FieldFree(0xBC);
@@ -855,7 +841,6 @@ namespace s185
 	static uint32_t __cdecl MountTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(n);)
 		Mat4x3 m;
 		MountMatrix(n, n->c, n->f12, &m);
 		int32_t left = 0;
@@ -915,7 +900,6 @@ namespace s185
 	static uint32_t __cdecl GroundRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(n);)
 		int32_t fv = 0;
 		bool fade = GroundRingFade(n->c, &fv);
 		GroundRingDraw(&Frame(), n, shl32(n->c, 3), fade, fv);
@@ -1022,11 +1006,9 @@ namespace s185
 			if (!Paused() && c == 0) SetAnim(0);
 			var<int32_t>(us(0x22BD070)) = n->f20;
 			ShellPhase(E, &Frame(), var<uint32_t>(us(0xD324B0)), true);
-			FX_HELD(held_note_creature(true);)
 			if (!Paused())
 			{
 				n->f20 = (int16_t)(n->f20 + n->f22);
-				FX_HELD(held_note_shell_next(c, n);)
 			}
 		}
 		else if (c - 5 < 0x36)
@@ -1034,7 +1016,6 @@ namespace s185
 			var<int32_t>(us(0x22BD070)) = 0;
 			if (c - 5 >= 0x30) TextureBlit(E, 1, var<int32_t>(us(0xD3244C) + 4 * (c - 5)));
 			DrawModel(E, &Frame(), var<uint32_t>(us(0xD324B0)));
-			FX_HELD(held_note_creature(false);)
 		}
 		else
 		{
@@ -1108,17 +1089,14 @@ namespace s185
 			if (draw)
 			{
 				DrawModel(E, &Frame(), var<uint32_t>(us(0xD324B0)));
-				FX_HELD(held_note_creature(false);)
 				if (advance && !Paused())
 				{
 					AdvanceModelAnimLoop(E);
-					FX_HELD(held_note_creature_advanced();)
 				}
 			}
 		}
 		if (Paused()) return 0;
 		n->c++;
-		FX_HELD(held_note_creature_next(n);)
 		if (n->c < 0xC7) return 0;
 		DoneFlags() |= 1;
 		return TASK_END;
@@ -1136,7 +1114,6 @@ namespace s185
 		{
 			Rec *r = RecA0(i);
 			if (!(*(uint8_t *)&r->mask & 1)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			SpriteAt(h, r->age, &r->x, r->size);
 			if (Paused()) continue;
 			r->age++;
@@ -1198,7 +1175,6 @@ namespace s185
 			MidWorld()[1] = (int16_t)(MidWorld()[1] + (int16_t)RootT(1));
 			MidWorld()[2] = (int16_t)(MidWorld()[2] + (int16_t)RootT(2));
 		}
-		FX_HELD(held_note_node(n);)
 		HandGlowDraw(n->f1C, n->c >= 0x32, mul32(n->c - 0x32, 682));
 		if (Paused()) return 0;
 		int16_t c = n->c;
@@ -1258,7 +1234,6 @@ namespace s185
 		{
 			Rec *r = RecA0(i);
 			if (!(*(uint8_t *)&r->mask & 2)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			SpikeRingOne(h, s, r->vz, r->size, SpikeFade(r->age));
 			if (Paused()) continue;
 			r->age++;
@@ -1332,7 +1307,6 @@ namespace s185
 		{
 			Rec *r = RecA0(i);
 			if (!(*(uint8_t *)&r->mask & 4)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			ShardBurstOne(&Frame(), h, s, r->vy, r->vz, r->size, r->age);
 			if (Paused()) continue;
 			r->age++;
@@ -1422,7 +1396,6 @@ namespace s185
 		{
 			Rec *r = RecA0(i);
 			if (!(*(uint8_t *)&r->mask & 8)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			OrbitOne(h, s, r->x, r->y, r->z, r->size, r->age);
 			if (Paused()) continue;
 			int16_t age = (int16_t)(r->age + 1);
@@ -1538,7 +1511,6 @@ namespace s185
 	static uint32_t __cdecl GlowRingTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(n);)
 		GlowRingDraw(&Frame(), n, n->f18, n->f1C, n->f20, n->c >= 0x16, mul32(n->c - 0x16, 409));
 		if (Paused()) return 0;
 		n->f1C = (int16_t)(n->f1C + n->f1E);
@@ -1577,7 +1549,6 @@ namespace s185
 			n->f1E = (int16_t)w;
 			n->f1C = (int16_t)w;
 		}
-		FX_HELD(held_note_node(n);)
 		GlowIcicleDraw(&Frame(), n, n->f18, n->f1C, n->c >= 0xC, mul32(n->c - 0xC, 682));
 		if (Paused()) return 0;
 		int16_t v = n->f1A;
@@ -1624,13 +1595,11 @@ namespace s185
 		*(uint32_t *)h = us(0xD20E10);
 		int32_t count = 0;
 		*(uint16_t *)(h + 0x24) = 0x208;
-		FX_HELD(held_note_node(n);)
 		SnowfallSetup(&Frame(), n, n->f18, s);
 		for (int i = 0; i < 150; i++)
 		{
 			Rec *r = RecA0(i);
 			if (!(*(uint8_t *)&r->mask & 1)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			LitSprite(h, s, &r->x, r->size, r->age < 8 ? 8 : r->age, 0x28);
 			if (Paused()) continue;
 			r->age++;
@@ -1715,7 +1684,6 @@ namespace s185
 	static uint32_t __cdecl HaloTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(n);)
 		HaloDraw(&Frame(), n, n->f1C, n->f20, shl32(n->c, 4), n->c >= 0x16, shl32(n->c - 0x16, 9));
 		if (Paused()) return 0;
 		int16_t c = n->c;
@@ -1760,7 +1728,6 @@ namespace s185
 		{
 			Rec *r = RecA0(i);
 			if (!(*(uint8_t *)&r->mask & 2)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			LitSprite(h, s, &r->x, r->size, r->age, 0x28);
 			if (Paused()) continue;
 			r->age++;
@@ -1834,12 +1801,10 @@ namespace s185
 		*(uint32_t *)(h + 8) = 0;
 		*(uint32_t *)(h + 0x1C) = 0;
 		*(uint32_t *)(h + 0x28) = rec0;
-		FX_HELD(if (memo) held_note_block0_recs();)
 		Arena() = IceBlockRender(h, OT(), 2, Arena());
 		*(uint32_t *)h = us(0xD27E6C);
 		*(uint32_t *)(h + 0x1C) = 3;
 		*(uint32_t *)(h + 0x28) = rec1;
-		FX_HELD(if (memo) held_note_block1_recs();)
 		Arena() = IceBlockRender(h, OT(), 3, Arena());
 		FieldFree(0xBC);
 	}
@@ -1889,7 +1854,6 @@ namespace s185
 		*(uint32_t *)(h + 0x14) = 0x18;
 		*(uint32_t *)(h + 0x18) = 8;
 		*(uint32_t *)(h + 0x28) = rec0;
-		FX_HELD(if (memo) held_note_block0_recs();)
 		Cursor() = ShardFly(h, OT(), 2, Cursor());
 		*(uint32_t *)(h + 0x24) = 0;
 		FieldFree(0xBC);
@@ -1898,7 +1862,6 @@ namespace s185
 	static uint32_t __cdecl IceBlockTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(n);)
 		Mat4x3 m;
 		IceBlockMatrix(n, &m);
 		int16_t c = n->c;
@@ -1958,7 +1921,6 @@ namespace s185
 		{
 			Rec *r = RecA0(i);
 			if (!(*(uint8_t *)&r->mask & 4)) continue;
-			FX_HELD(held_note_rec_a0(i, n, r);)
 			DustOne(h, s, &r->x, r->size, r->age);
 			if (Paused()) continue;
 			r->age++;
@@ -2021,10 +1983,6 @@ namespace s185
 		register_port(s185::ORIG_BlizzardTask, (void *)s185::BlizzardTask, "S185 BlizzardTask", 185);
 		register_port(s185::ORIG_IceBlockTask, (void *)s185::IceBlockTask, "S185 IceBlockTask", 185);
 		register_port(s185::ORIG_DustTask, (void *)s185::DustTask, "S185 DustTask", 185);
-		FX_HELD(register_mag185_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag185_shiva_held.inc"
-#endif

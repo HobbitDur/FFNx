@@ -149,21 +149,15 @@ namespace fulllife
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag027_fulllife_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace fulllife
 {
-
 	uint32_t __cdecl fl_883240(uint32_t a1)
 	{
 		g_mod = &MOD_027;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -566,7 +560,6 @@ namespace fulllife
 		case 1:
 			fl_8882E0();
 			fl_885990();
-			FX_HELD(held_note_system(sys);)
 			fl_885850();
 			fl_8841D0();
 			sys = U32(us(0x26D9048), 0);
@@ -2003,10 +1996,6 @@ namespace fulllife
 			act::register_module_port(27, p->addr, p->port, p->name);
 		for (const act::fulllife::ModPort *p = act::fulllife::PORTS; p->addr; p++)
 			act::register_module_port(27, p->addr, p->port, p->name);
-		FX_HELD(register_mag027_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag027_fulllife_held.inc"
-#endif

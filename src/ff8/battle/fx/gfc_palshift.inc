@@ -19,7 +19,7 @@
 	static inline void xl_PaletteToHsv_B67710(const void *src, void *dst, int32_t n) { x::f<void (__cdecl *)(const void *, void *, int32_t)>(us(0xB67710))(src, dst, n); }
 	static inline void xl_HsvToPalette_B67810(const void *hsv, void *dst, int32_t n) { x::f<void (__cdecl *)(const void *, void *, int32_t)>(us(0xB67810))(hsv, dst, n); }
 
-	static inline void xl_QueueVramReadback(const void *rect, uint32_t dst) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(const void *, uint32_t)>(us(0x505E70))(rect, dst); }
+	static inline void xl_QueueVramReadback(const void *rect, uint32_t dst) { x::f<void (__cdecl *)(const void *, uint32_t)>(us(0x505E70))(rect, dst); }
 
 	static const uint32_t PS_RECTRING = 0x27978E8;
 	static const uint32_t PS_RECTRING_IDX = 0x2798BF4;
@@ -50,7 +50,6 @@
 		uint8_t *src = s + 2;
 		int32_t n = shl32(mul32(S16(s, 8), S16(s, 6)), 1);
 		uint8_t *blk = blob::ArenaAlloc(n);
-		FX_HELD(guard(CUR() + 0xC4, 4);)
 		PTR(CUR(), 0xC4) = blk;
 		uint32_t dst = U32(CUR(), 0xC4);
 		STREAM() = STREAM() + 10;
@@ -88,5 +87,4 @@
 			U32(ent, 0) = U32(w, 0);
 			U8(ent, 3) = 0;
 		}
-		FX_HELD(PalShiftNote();)
 	}

@@ -27,10 +27,6 @@ namespace laser254
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag254_homing_laser_281_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -78,7 +74,6 @@ namespace laser254
 		const bool weapon = (U8(RT(), 0x4B) & 0x80) != 0;
 		uint8_t *hdr = weapon ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting()) held_next_pose(hdr, weapon ? hdr + 0xC : ent + 0x6C);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
@@ -111,10 +106,6 @@ namespace laser254
 		init_clone(laser254::g_c, nullptr, 0);
 		laser254::apply_slots(laser254::g_c);
 		register_port(0x98D820, (void *)laser254::SequenceTask, "MAG254 Homing Laser (attack 281) SequenceTick", 254);
-		FX_HELD(register_mag254_homing_laser_281_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag254_homing_laser_281_held.inc"
-#endif

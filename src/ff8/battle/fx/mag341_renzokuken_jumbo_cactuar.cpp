@@ -48,10 +48,6 @@ namespace renzo341
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag341_renzokuken_jumbo_cactuar_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo341
@@ -115,10 +111,6 @@ namespace renzo341
 		register_port(renzo341::ORIG_Ring, (void *)renzo341::RingTask, "341 Ring", 341);
 		register_port(renzo341::ORIG_Dust, (void *)renzo341::DustTask, "341 Dust", 341);
 		register_port(renzo341::ORIG_Shake, (void *)renzo341::ShakeTask, "341 Shake", 341);
-		FX_HELD(register_mag341_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag341_renzokuken_jumbo_cactuar_held.inc"
-#endif

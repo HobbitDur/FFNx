@@ -153,10 +153,6 @@ namespace holywater296
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag296_holy_water_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace holywater296
@@ -168,7 +164,6 @@ namespace holywater296
 		ff8fx::copy<(sizeof(arg.anchor))>(arg.anchor, p->anchor);
 		arg.depth = -0x80;
 		arg.morph = TexBase() + NODE_BYTES;
-		FX_HELD(held_note_play((prim::Layout *)p->layout, p->anchor);)
 		if (prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) == 0)
 		{
 			ApplyActionResultToTarget(Ctx()->actions[0].targets);
@@ -180,7 +175,6 @@ namespace holywater296
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -219,10 +213,6 @@ namespace holywater296
 	{
 		register_port(holywater296::ORIG_RootTask, (void *)holywater296::RootTask, "296 RootTask", 296);
 		register_port(holywater296::ORIG_PlayTask, (void *)holywater296::PlayTask, "296 PlayTask", 296);
-		FX_HELD(register_mag296_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag296_holy_water_held.inc"
-#endif

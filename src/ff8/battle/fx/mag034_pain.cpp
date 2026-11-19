@@ -56,10 +56,6 @@ namespace pain
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag034_pain_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -69,7 +65,6 @@ namespace pain
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		g_mod = &MOD_034;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -363,10 +358,6 @@ namespace pain
 			act::register_module_port(34, p->addr, p->port, p->name);
 		for (const act::pain::ModPort *p = act::pain::PORTS; p->addr; p++)
 			act::register_module_port(34, p->addr, p->port, p->name);
-		FX_HELD(register_mag034_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag034_pain_held.inc"
-#endif

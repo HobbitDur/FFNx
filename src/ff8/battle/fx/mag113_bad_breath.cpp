@@ -461,10 +461,6 @@ namespace badbreath113
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag113_bad_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace badbreath113
@@ -472,7 +468,6 @@ namespace badbreath113
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(p);)
 		ParticleDraw(p);
 		p->counter++;
 		if (p->counter >= p->end) return TASK_END;
@@ -515,7 +510,6 @@ namespace badbreath113
 		if ((uint32_t)e < 0x1C)
 		{
 			const int32_t sinv = OverlaySin(e);
-			FX_HELD(held_note_overlay(entity, e);)
 			DrawOverlay(entity, sinv, e << 8);
 			*entity |= 4;
 			PrimArg arg;
@@ -523,7 +517,6 @@ namespace badbreath113
 			arg.pos[1] = *(const int16_t *)(entity + 0x24);
 			arg.flags = us(PART_Flags);
 			arg.morph = TexBase() + 0x11B8;
-			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->cloud, PartCallback, (int)&arg, 0);
 		}
 		else *(uint16_t *)entity &= 0xFFFB;
@@ -660,7 +653,6 @@ namespace badbreath113
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x14C8;
@@ -704,10 +696,6 @@ namespace badbreath113
 		register_port(badbreath113::ORIG_MainTask, (void *)badbreath113::MainTask, "113 MainTask", 113);
 		register_port(badbreath113::ORIG_ParticleTask, (void *)badbreath113::ParticleTask, "113 ParticleTask", 113);
 		register_port(badbreath113::ORIG_TargetTask, (void *)badbreath113::TargetTask, "113 TargetTask", 113);
-		FX_HELD(register_mag113_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag113_bad_breath_held.inc"
-#endif

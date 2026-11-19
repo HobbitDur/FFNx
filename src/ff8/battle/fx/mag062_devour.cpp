@@ -74,10 +74,6 @@ namespace devour
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag062_devour_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -119,7 +115,6 @@ namespace devour
 			MEM<uint32_t>(us(PACKET_CURSOR)) = v1;
 			MEM<uint32_t>(us(0x2601334)) = v2;
 		}
-		FX_HELD(held_note_master();)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = 0;
@@ -334,7 +329,6 @@ namespace devour
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
 		const uint32_t r = task_end(node, status);
-		FX_HELD(held_note_picture(node, state, r);)
 		return r;
 	}
 
@@ -612,10 +606,6 @@ namespace devour
 			act::register_module_port(62, p->addr, p->port, p->name);
 		for (const act::devour::ModPort *p = act::devour::PORTS; p->addr; p++)
 			act::register_module_port(62, p->addr, p->port, p->name);
-		FX_HELD(register_mag062_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag062_devour_held.inc"
-#endif

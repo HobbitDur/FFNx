@@ -348,10 +348,6 @@ namespace blind121
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag121_blind_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace blind121
@@ -374,7 +370,6 @@ namespace blind121
 		PrimArg arg;
 		ff8fx::copy<(8)>(arg.pos, t->pos);
 		arg.morph = TexBase() + 0x18B4;
-		FX_HELD(held_note_play(t, &arg);)
 		const int alive = prim::play((prim::Layout *)t->layout, BlindPart, (int)&arg, 0);
 		if (t->counter == 4)
 		{
@@ -392,7 +387,6 @@ namespace blind121
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1B34;
@@ -440,10 +434,6 @@ namespace blind121
 	{
 		register_port(blind121::ORIG_RootTask, (void *)blind121::RootTask, "B121 RootTask", 121);
 		register_port(blind121::ORIG_TargetTask, (void *)blind121::TargetTask, "B121 TargetTask", 121);
-		FX_HELD(register_mag121_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag121_blind_held.inc"
-#endif

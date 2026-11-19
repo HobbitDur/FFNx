@@ -166,21 +166,15 @@ namespace sigh
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag046_sigh_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace sigh
 {
-
 	uint32_t __cdecl sg_831CB0(uint32_t a1)
 	{
 		g_mod = &MOD_046;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -544,7 +538,6 @@ namespace sigh
 		case 1:
 			sg_835900();
 			sg_832FB0();
-			FX_HELD(held_note_system(sys);)
 			sg_832E70();
 			sg_832C70();
 			sys = U32(us(0x26527B0), 0);
@@ -1312,7 +1305,6 @@ namespace sigh
 		states[1] = us(0x8361C0);
 		states[2] = us(0x836280);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_puff(node);)
 		sg_8360F0(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1413,7 +1405,6 @@ namespace sigh
 			sg_835C70(0x300, 0x100, 0x20, 0x100, 0x2A0, 0x100, s2);
 			sg_835C20(U32(node, 0x74), MEM<uint32_t>(us(COLOR_TABLE_A) + (uint32_t)(int32_t)S16(node, 0x82) * 4));
 			sg_835C20(U32(node, 0x78), MEM<uint32_t>(us(COLOR_TABLE_B) + (uint32_t)(int32_t)S16(node, 0x82) * 4));
-			FX_HELD(held_note_sigh(node);)
 			uint32_t ang = node + 0x7C;
 			for (int k = 3; k != 0; k--, ang += 2)
 			{
@@ -1838,10 +1829,6 @@ namespace sigh
 			act::register_module_port(46, p->addr, p->port, p->name);
 		for (const act::sigh::ModPort *p = act::sigh::PORTS; p->addr; p++)
 			act::register_module_port(46, p->addr, p->port, p->name);
-		FX_HELD(register_mag046_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag046_sigh_held.inc"
-#endif

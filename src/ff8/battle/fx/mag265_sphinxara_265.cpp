@@ -27,10 +27,6 @@ namespace sphinxara265
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag265_sphinxara_265_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -100,10 +96,6 @@ namespace sphinxara265
 		init_clone(sphinxara265::g_c, nullptr, 0);
 		sphinxara265::apply_slots(sphinxara265::g_c);
 		register_port(0x92D240, (void *)sphinxara265::SequenceTask, "MAG265 Sphinxara 265 SequenceTick", 265);
-		FX_HELD(register_mag265_sphinxara_265_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag265_sphinxara_265_held.inc"
-#endif

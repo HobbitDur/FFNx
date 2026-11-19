@@ -134,21 +134,15 @@ namespace windblast
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag029_wind_blast_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace windblast
 {
-
 	uint32_t __cdecl wb_8795C0(uint32_t a1)
 	{
 		g_mod = &MOD_029;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -603,7 +597,6 @@ namespace windblast
 		case 1:
 			a_743190();
 			wb_87AF90();
-			FX_HELD(held_note_system(sys);)
 			wb_87AE50();
 			wb_87A440();
 			sys = U32(us(0x26D74F0), 0);
@@ -1438,10 +1431,6 @@ namespace windblast
 			act::register_module_port(29, p->addr, p->port, p->name);
 		for (const act::windblast::ModPort *p = act::windblast::PORTS; p->addr; p++)
 			act::register_module_port(29, p->addr, p->port, p->name);
-		FX_HELD(register_mag029_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag029_wind_blast_held.inc"
-#endif

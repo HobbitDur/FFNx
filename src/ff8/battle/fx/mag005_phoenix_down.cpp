@@ -65,10 +65,6 @@ namespace phoenixdown
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag005_phoenix_down_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -89,7 +85,6 @@ namespace phoenixdown
 			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
 		else
 			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_EVEN));
-		FX_HELD(held_note_master(node);)
 		x::Effect_UpdateTargetPosFromBones(node);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x5E) = (uint16_t)x::ExecuteTaskQueue(us(Q_EMITTER));
@@ -387,7 +382,6 @@ namespace phoenixdown
 		states[1] = us(0x8D4C80);
 		states[2] = us(0x8D4CE0);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_sprite(us(ORIG_Fall), node);)
 		DrawFall(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -416,7 +410,6 @@ namespace phoenixdown
 		states[2] = us(0x8D4E50);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
-		FX_HELD(held_note_sprite(us(ORIG_Ring), node);)
 		DrawScaled(node, U16(node, 0x68));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -453,7 +446,6 @@ namespace phoenixdown
 		states[2] = us(0x8D4F00);
 		callp(states[S8(node, 0x29)], node);
 		U16(node, 0x68) = (uint16_t)(U16(node, 0x68) + U16(node, 0x6A));
-		FX_HELD(held_note_sprite(us(ORIG_Sparkle), node);)
 		DrawScaled(node, U16(node, 0x68));
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -502,10 +494,6 @@ namespace phoenixdown
 			act::register_module_port(5, p->addr, p->port, p->name);
 		for (const act::phoenixdown::ModPort *p = act::phoenixdown::PORTS; p->addr; p++)
 			act::register_module_port(5, p->addr, p->port, p->name);
-		FX_HELD(register_mag005_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag005_phoenix_down_held.inc"
-#endif

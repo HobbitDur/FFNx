@@ -27,10 +27,6 @@ namespace catoblepas267
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag267_catoblepas_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -102,10 +98,6 @@ namespace catoblepas267
 		init_clone(catoblepas267::g_c, nullptr, 0);
 		catoblepas267::apply_slots(catoblepas267::g_c);
 		register_port(0x912660, (void *)catoblepas267::SequenceTask, "MAG267 Catoblepas death SequenceTick", 267);
-		FX_HELD(register_mag267_catoblepas_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag267_catoblepas_death_held.inc"
-#endif

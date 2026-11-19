@@ -271,7 +271,7 @@ namespace stop119
 	{
 		const Shard *s = P->shard;
 		ff8fx::copy<(8)>(P->pos, s->pos);
-		memcpy_code(uint32_t(P->v), s->v, 8 * nv);
+		copy_bytes(P->v, s->v, 8 * nv);
 		for (int k = 0; k < nv; k++)
 		{
 			P->v[k][0] = (int16_t)(P->v[k][0] + P->pos[0]);
@@ -651,10 +651,6 @@ namespace stop119
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag119_stop_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace stop119
@@ -679,14 +675,12 @@ namespace stop119
 			arg.local.t[1] = t->pos[1];
 			arg.pos[1] = t->pos[1];
 			arg.pos[3] = 0;
-			FX_HELD(held_note_play(t, &arg);)
 			ComposeAffineTransform(&Camera(), &arg.local, &arg.m);
 			arg.morph = TexBase() + 0xF0C;
 			prim::play((prim::Layout *)t->clock, ClockPart, (int)&arg, 0);
 			if (t->counter == 0x32) ScreenFadeTask(0, 1, 0, 0x80);
 			if (t->counter < 0x35) goto end;
 			ShardsUpdate((Shard *)(TexBase() + SHARDS), SHARD_COUNT);
-			FX_HELD(held_note_shards(t);)
 			GteSetRotMatrix(&Camera());
 			GteSetTransVector(&Camera());
 			ShardsDrawAll((uint8_t *)(TexBase() + SHARDS));
@@ -701,7 +695,6 @@ namespace stop119
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x866C;
@@ -742,10 +735,6 @@ namespace stop119
 	{
 		register_port(stop119::ORIG_RootTask, (void *)stop119::RootTask, "S119 RootTask", 119);
 		register_port(stop119::ORIG_TargetTask, (void *)stop119::TargetTask, "S119 TargetTask", 119);
-		FX_HELD(register_mag119_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag119_stop_held.inc"
-#endif

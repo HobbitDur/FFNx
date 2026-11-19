@@ -356,10 +356,6 @@ namespace cannonblow151
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag151_cannon_blow_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace cannonblow151
@@ -405,7 +401,6 @@ namespace cannonblow151
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (U8(n, 0xC) & 1) ? TexBase() + 0xC000 : TexBase();
 		const int running = ExecuteTaskQueue(ShotQueue());
 		if (!running)
@@ -443,7 +438,6 @@ namespace cannonblow151
 	static uint32_t __cdecl FlashTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_FLASH, n);)
 		FlashDraw(n, S16(n, 0xC) >= 4 ? shl32(S16(n, 0xC) - 4, 9) : -1);
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
@@ -473,7 +467,6 @@ namespace cannonblow151
 	static uint32_t __cdecl RingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_RING, n);)
 		RingDraw(n, S16(n, 0xC) >= 0 ? shl32(S16(n, 0xC), 10) : -1);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -499,7 +492,6 @@ namespace cannonblow151
 	static uint32_t __cdecl ImpactRingTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_IRING, n);)
 		ImpactRingDraw(n, S16(n, 0xC) >= 3 ? mul32(S16(n, 0xC) - 3, 0x199) : -1);
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1E);
@@ -551,7 +543,6 @@ namespace cannonblow151
 	static uint32_t __cdecl ImpactTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_IMPACT, n);)
 		const int16_t c = S16(n, 0xC);
 		ImpactDraw(n, c >= 8 ? shl32(c - 8, 9) : -1, mul32(c, 14));
 		if (DrawOnly()) return 0;
@@ -580,7 +571,6 @@ namespace cannonblow151
 	static uint32_t __cdecl BallTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_node(REC_BALL, n);)
 		BallDraw(n, (const void *)Point(S16(n, 0xE), S16(n, 0x18)));
 		if (DrawOnly()) return 0;
 		const int16_t d = S16(n, 0x1A);
@@ -613,7 +603,6 @@ namespace cannonblow151
 			S16(n, 0xE) = (int16_t)(wait - 1);
 			return 0;
 		}
-		FX_HELD(held_note_node(REC_DEBRIS, n);)
 		const uint32_t h = DebrisDraw(n);
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -652,7 +641,6 @@ namespace cannonblow151
 		for (uint32_t p = us(PARTS_B); p < us(PARTS_END); p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
-			FX_HELD(held_note_particle(p);)
 			int16_t w[3];
 			BurstPoint(i, (const int16_t *)(p + P_POS), w);
 			if (!ParticleDraw(h, p, w, 4)) continue;
@@ -671,7 +659,6 @@ namespace cannonblow151
 	static uint32_t __cdecl BurstTask(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_parts(REC_BURST, n);)
 		const int alive = BurstParticles(n);
 		if (DrawOnly()) return 0;
 		if (S16(n, 0xC) < 2)
@@ -706,7 +693,6 @@ namespace cannonblow151
 		for (uint32_t p = lo; p < hi; p += 0x18)
 		{
 			if (!(U32(p, P_MASK) & (uint32_t)(int32_t)S16(n, 0x18))) continue;
-			FX_HELD(held_note_particle(p);)
 			if (!ParticleDraw(h, p, (const void *)(p + P_POS), pull_shift)) continue;
 			S16(p, P_SIZE) = (int16_t)(S16(p, P_SIZE) + (int16_t)(S16(p, P_SIZE) >> 5));
 			alive++;
@@ -724,7 +710,6 @@ namespace cannonblow151
 
 	static uint32_t TrailTaskImpl(uint32_t n, bool jitter)
 	{
-		FX_HELD(held_note_parts(jitter ? REC_TRAIL2 : REC_TRAIL, n);)
 		const int alive = TrailParticles(n, us(PARTS_A), us(PARTS_B), jitter ? us(SEQ_Trail2) : us(SEQ_Trail), jitter ? 8 : 0, 4);
 		if (DrawOnly()) return 0;
 		TrailStep(n);
@@ -758,7 +743,6 @@ namespace cannonblow151
 	static uint32_t __cdecl Trail3Task(TaskNode *nd)
 	{
 		const uint32_t n = (uint32_t)nd;
-		FX_HELD(held_note_parts(REC_TRAIL3, n);)
 		const int alive = TrailParticles(n, us(PARTS_B), us(PARTS_END), us(SEQ_Burst), 0, 3);
 		if (DrawOnly()) return 0;
 		TrailStep(n);
@@ -930,13 +914,9 @@ namespace cannonblow151
 		register_port(ORIG_Impact, (void *)ImpactTask, "151 ImpactTask", 151);
 		register_port(ORIG_ImpactRing, (void *)ImpactRingTask, "151 ImpactRingTask", 151);
 		register_port(ORIG_Debris, (void *)DebrisTask, "151 DebrisTask", 151);
-		FX_HELD(register_mag151_held();)
 	}
 }
 
 	void register_mag151_cannon_blow() { cannonblow151::register_mag151_cannon_blow_ports(); }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag151_cannon_blow_held.inc"
-#endif

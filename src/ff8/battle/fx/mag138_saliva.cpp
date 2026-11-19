@@ -628,10 +628,6 @@ namespace saliva138
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag138_saliva_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace saliva138
@@ -651,7 +647,6 @@ namespace saliva138
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		SprayNode *s = (SprayNode *)n;
-		FX_HELD(held_note_sprite(SPR_SPRAY, n);)
 		SprayDraw(s->pos, s->scale, s->frame, s->angle);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
@@ -675,7 +670,6 @@ namespace saliva138
 	static uint32_t __cdecl SplatTask(TaskNode *n)
 	{
 		SplatNode *s = (SplatNode *)n;
-		FX_HELD(held_note_sprite(SPR_SPLAT, n);)
 		SplatDraw(s->pos, s->frame);
 		s->frame++;
 		return s->frame < 0xD ? 0 : TASK_END;
@@ -716,7 +710,6 @@ namespace saliva138
 				M.t[2] = P[2];
 				if (j == 1)
 				{
-					FX_HELD(held_note_mesh(n);)
 					MeshRender(&M, (uint16_t)((s->counter & 7) << 4), TexBase() + VERTS);
 				}
 				ff8fx::copy<(8)>(s->prev, P);
@@ -771,7 +764,6 @@ namespace saliva138
 		}
 		if (s->count >= 3)
 		{
-			FX_HELD(held_note_ribbon(n);)
 			StringDraw(s->head, s->count);
 		}
 		s->counter++;
@@ -818,9 +810,7 @@ namespace saliva138
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = -0x80;
-			FX_HELD(held_note_play(PLAY_A, n, (prim::Layout *)w->layA, M4);)
 			Play(w->layA, &arg);
-			FX_HELD(held_note_play(PLAY_B, n, (prim::Layout *)w->layB, M4);)
 			Play(w->layB, &arg);
 			if ((uint32_t)e < 3)
 			{
@@ -838,7 +828,6 @@ namespace saliva138
 			BlockAt(&arg, w->pos);
 			arg.morph = TexBase() + VERTS;
 			arg.depth = 0;
-			FX_HELD(held_note_play(PLAY_C, n, (prim::Layout *)w->layC, w->pos);)
 			Play(w->layC, &arg);
 			if ((uint32_t)h >= 4 && (uint32_t)h < 0xC && !(h & 1))
 			{
@@ -884,7 +873,6 @@ namespace saliva138
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -918,10 +906,6 @@ namespace saliva138
 		register_port(saliva138::ORIG_StringTask, (void *)saliva138::StringTask, "138 StringTask", 138);
 		register_port(saliva138::ORIG_SprayTask, (void *)saliva138::SprayTask, "138 SprayTask", 138);
 		register_port(saliva138::ORIG_SplatTask, (void *)saliva138::SplatTask, "138 SplatTask", 138);
-		FX_HELD(register_mag138_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag138_saliva_held.inc"
-#endif

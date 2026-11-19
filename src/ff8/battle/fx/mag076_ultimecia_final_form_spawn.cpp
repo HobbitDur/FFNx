@@ -142,15 +142,10 @@ namespace uff076
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag076_ultimecia_final_form_spawn_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace uff076
 {
-
 	static uint32_t ClipX(uint32_t xy, uint32_t bit) { const int16_t x = S16(xy, 0); return (x < 0 || x > 0xA00) ? bit : 0; }
 	static uint32_t ClipY(uint32_t xy, uint32_t bit) { const int16_t y = S16(xy, 2); return (y < 0 || y > 0x6C0) ? bit : 0; }
 
@@ -473,7 +468,6 @@ namespace uff076
 		int32_t fade = 0;
 		const uint32_t flags = BurstFade(S16(e, 4), &fade);
 		SetFade(h, flags, fade);
-		FX_HELD(held_fade(h);)
 		FrameCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, FrameCursor());
 	}
 
@@ -519,7 +513,6 @@ namespace uff076
 				S16(e, 0x1C) = (int16_t)S32(s, 0x50);
 			}
 		}
-		FX_HELD(held_note_task(us(ORIG_Burst), node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 0) = us(MODEL_Burst);
 		U32(h, 8) = 0;
@@ -568,7 +561,6 @@ namespace uff076
 		int32_t fade = 0;
 		const uint32_t flags = SpinFade(S16(e, 4), &fade);
 		SetFade(h, flags, fade);
-		FX_HELD(held_fade(h);)
 		FrameCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, FrameCursor());
 	}
 
@@ -600,7 +592,6 @@ namespace uff076
 				NormalizeSVector((const int16_t *)s, (int16_t *)(e + 0x18));
 			}
 		}
-		FX_HELD(held_note_task(us(ORIG_Spin), node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 0) = us(MODEL_Spin);
 		U32(h, 8) = 0;
@@ -650,7 +641,6 @@ namespace uff076
 		int32_t fade = 0;
 		const uint32_t flags = RiseFade(S16(e, 4), &fade);
 		SetFade(h, flags, fade);
-		FX_HELD(held_fade(h);)
 		PacketCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, PacketCursor());
 	}
 
@@ -692,7 +682,6 @@ namespace uff076
 				S16(e, 0x1C) = (int16_t)S32(s, 0x70);
 			}
 		}
-		FX_HELD(held_note_task(us(ORIG_Rise), node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 0) = us(MODEL_Rise);
 		U32(h, 8) = 0;
@@ -742,7 +731,6 @@ namespace uff076
 		int32_t fade = 0;
 		const uint32_t flags = Burst2Fade(S16(e, 4), &fade);
 		SetFade(h, flags, fade);
-		FX_HELD(held_fade(h);)
 		PacketCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, PacketCursor());
 	}
 
@@ -798,7 +786,6 @@ namespace uff076
 				NormalizeSVector((const int16_t *)s, (int16_t *)(e + 0x18));
 			}
 		}
-		FX_HELD(held_note_task(us(ORIG_Burst2), node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x58));
 		U32(h, 0) = us(MODEL_Spin);
 		U32(h, 8) = 0;
@@ -851,7 +838,6 @@ namespace uff076
 		int32_t fade = 0;
 		const uint32_t flags = DebrisFade(S16(e, 4), &fade);
 		SetFade(h, flags, fade);
-		FX_HELD(held_fade(h);)
 		FrameCursor() = PrimRender(h, RenderOT44(), 2, FrameCursor());
 	}
 
@@ -906,7 +892,6 @@ namespace uff076
 				if (sy & 1) S16(e, 0x1E) = (int16_t)-sy;
 			}
 		}
-		FX_HELD(held_note_task(us(ORIG_Debris), node, s, nullptr);)
 		const uint32_t h = P(FieldAlloc(0x5C));
 		U32(h, 0) = us(MODEL_Debris);
 		U32(h, 8) = 0;
@@ -952,7 +937,6 @@ namespace uff076
 		U32(h, 0) = us(MODEL_Halo);
 		U32(h, 8) = 0;
 		SetFade(h, FADE, HaloFade(n->counter));
-		FX_HELD(held_fade(h);)
 		PacketCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, PacketCursor());
 		PacketCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -974,7 +958,6 @@ namespace uff076
 		Node *n = (Node *)node;
 		int16_t pos[4] = { 0, 0, 0, 0 };
 		GetEffectSpawnPosition(Caster(), 0xF0, 0x800, pos);
-		FX_HELD(held_note_task(us(ORIG_Halo), node, 0, pos);)
 		HaloDraw(n, pos);
 		if (DrawOnly()) return 0;
 		HaloMove(n);
@@ -1003,7 +986,6 @@ namespace uff076
 		int32_t fade = 0;
 		const uint32_t flags = Flash1Fade(n->counter, &fade);
 		SetFade(h, flags, fade);
-		FX_HELD(held_fade(h);)
 		PacketCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1021,7 +1003,6 @@ namespace uff076
 		Node *n = (Node *)node;
 		int16_t pos[4] = { 0, 0, 0, 0 };
 		GetEffectSpawnPosition(Caster(), 0xF0, 0x800, pos);
-		FX_HELD(held_note_task(us(ORIG_Flash1), node, 0, pos);)
 		Flash1Draw(n, pos);
 		if (DrawOnly()) return 0;
 		Flash1Move(n);
@@ -1051,7 +1032,6 @@ namespace uff076
 		int32_t fade = 0;
 		const uint32_t flags = Flash2Fade(n->counter, &fade);
 		SetFade(h, flags, fade);
-		FX_HELD(held_fade(h);)
 		PacketCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1067,7 +1047,6 @@ namespace uff076
 	static uint32_t __cdecl Flash2Task(TaskNode *node)
 	{
 		Node *n = (Node *)node;
-		FX_HELD(held_note_task(us(ORIG_Flash2), node, 0, nullptr);)
 		Flash2Draw(n);
 		if (DrawOnly()) return 0;
 		Flash2Move(n);
@@ -1096,7 +1075,6 @@ namespace uff076
 		int32_t fade = 0;
 		const uint32_t flags = RingFade(n->counter, &fade);
 		SetFade(h, flags, fade);
-		FX_HELD(held_fade(h);)
 		PacketCursor() = RenderPrimModel((void *)h, RenderOT44(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -1117,7 +1095,6 @@ namespace uff076
 	static uint32_t __cdecl RingTask(TaskNode *node)
 	{
 		Node *n = (Node *)node;
-		FX_HELD(held_note_task(us(ORIG_Ring), node, 0, nullptr);)
 		RingDraw(n);
 		if (DrawOnly()) return 0;
 		RingMove(n);
@@ -1207,7 +1184,7 @@ namespace uff076
 			char name[0x100];
 			const char *dir = (const char *)us(WAV_DIR);
 			const size_t len = strlen(dir);
-			memcpy_code(uint32_t(name), dir, len + 1);
+			copy_bytes(name, dir, len + 1);
 			ff8fx::copy<(10)>(name + len, (const void *)us(WAV_NAME));
 			WavStreamPlay(0, name, 0x7F, 0x40, 0x64, 0);
 		}
@@ -1332,7 +1309,6 @@ namespace uff076
 	static uint32_t __cdecl RootTask(TaskNode *node)
 	{
 		RootNode *r = (RootNode *)node;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (r->counter & 1) ? TexBase() + 0xC000 : TexBase();
 		const int a = ExecuteTaskQueue(QMaster());
 		r->counter++;
@@ -1358,10 +1334,6 @@ namespace uff076
 		register_port(uff076::ORIG_Burst2, (void *)uff076::Burst2Task, "U076 Burst2", 76);
 		register_port(uff076::ORIG_Debris, (void *)uff076::DebrisTask, "U076 Debris", 76);
 		register_port(uff076::ORIG_TexRestore, (void *)uff076::TexRestoreTask, "U076 TexRestore", 76);
-		FX_HELD(register_mag076_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag076_ultimecia_final_form_spawn_held.inc"
-#endif

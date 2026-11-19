@@ -150,21 +150,15 @@ namespace confuse
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag036_confuse_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace confuse
 {
-
 	uint32_t __cdecl c_85F620(uint32_t a1)
 	{
 		g_mod = &MOD_036;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -310,7 +304,6 @@ namespace confuse
 				U32(node, 0x34) = entry;
 				U16(node, 0x38) = (uint16_t)(idx + 1);
 			}
-			FX_HELD(held_note_flash(U32(node, 0x34));)
 			FlashDraw(U32(node, 0x34));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -703,7 +696,6 @@ namespace confuse
 		case 1:
 			c_8647C0();
 			c_861E70();
-			FX_HELD(held_note_system(sys);)
 			c_861D30();
 			c_8606B0();
 			sys = U32(us(0x26A9BC0), 0);
@@ -2015,10 +2007,6 @@ namespace confuse
 			act::register_module_port(36, p->addr, p->port, p->name);
 		for (const act::confuse::ModPort *p = act::confuse::PORTS; p->addr; p++)
 			act::register_module_port(36, p->addr, p->port, p->name);
-		FX_HELD(register_mag036_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag036_confuse_held.inc"
-#endif

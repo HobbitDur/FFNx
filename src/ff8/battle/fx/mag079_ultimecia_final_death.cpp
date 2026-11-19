@@ -490,21 +490,15 @@ namespace udeath
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag079_ultimecia_final_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace udeath
 {
-
 	uint32_t __cdecl ud_7B4D80(uint32_t a1)
 	{
 		g_mod = &MOD_079;
-		FX_HELD(held_note_master();)
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
 		MEM<uint32_t>(us(0x25EB3AC)) = us(0x2793E58);
 		MEM<uint32_t>(us(0x25E5024)) = us(0x2793E58);
@@ -815,7 +809,6 @@ namespace udeath
 		U32(node, 0x20) = w20;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xF800);
 		U16(node, 0x88) = 0xFE00;
-		FX_HELD(held_note_play(node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -1658,7 +1651,6 @@ namespace udeath
 
 	uint32_t __cdecl ud_7B8080(uint32_t a1)
 	{
-		FX_HELD(held_note_play(a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
 		{
@@ -1681,7 +1673,6 @@ namespace udeath
 		U32(node, 0x1C) = MEM<uint32_t>(us(0x25DF3C0));
 		U32(node, 0x20) = w20;
 		U16(node, 0x88) = 0xFE00;
-		FX_HELD(held_note_play(node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -1694,7 +1685,6 @@ namespace udeath
 		const uint32_t w20 = MEM<uint32_t>(us(0x25DF3C4));
 		U32(node, 0x1C) = w1c;
 		U32(node, 0x20) = w20;
-		FX_HELD(held_note_play(node);)
 		const uint32_t r = a_73C280(node);
 		if (r == 0)
 		{
@@ -1719,7 +1709,6 @@ namespace udeath
 		U32(node, 0x20) = w20;
 		U16(node, 0x1E) = (uint16_t)(U16(node, 0x1E) + 0xF800);
 		U16(node, 0x88) = 0xFE00;
-		FX_HELD(held_note_play(node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -1727,7 +1716,6 @@ namespace udeath
 
 	uint32_t __cdecl ud_7B8290(uint32_t a1)
 	{
-		FX_HELD(held_note_play(a1);)
 		const uint32_t r = a_73C280(a1);
 		if (r == 0)
 		{
@@ -1800,7 +1788,6 @@ namespace udeath
 		case 1:
 			ud_7BBB60();
 			ud_7B91C0();
-			FX_HELD(held_note_system(sys);)
 			ud_7B9080();
 			ud_7B8EC0();
 			sys = U32(us(0x25EB3BC), 0);
@@ -2766,7 +2753,6 @@ namespace udeath
 		states[1] = us(0x7BC5A0);
 		states[2] = us(0x7BC5F0);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_spark(node);)
 		uint32_t c = node + 0x6C;
 		for (int i = 0; i < 2; i++)
 		{
@@ -2942,7 +2928,6 @@ namespace udeath
 		states[1] = us(0x7BCAC0);
 		states[2] = us(0x7BCAE0);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_debris(node);)
 		uint32_t c = node + 0x8E;
 		for (int i = 0; i < 2; i++)
 		{
@@ -3105,7 +3090,6 @@ namespace udeath
 		callp(states[S8(node, 0x29)], node);
 		U32(node, 0x1C) = U32(node, 0x6C);
 		U32(node, 0x20) = U32(node, 0x70);
-		FX_HELD(held_note_flake(node);)
 		ud_7BBEB0(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -3226,7 +3210,6 @@ namespace udeath
 			const uint32_t z0 = MEM<uint32_t>(us(0x25DF3C4)) - MEM<uint32_t>(us(0x25DF3BC));
 			U16(ent, 0x20) = (uint16_t)z0;
 			S32(ent, 0x5C) = (int32_t)(int16_t)z0;
-			FX_HELD(held_note_model(node);)
 			ud_7BD020(us(0x25DF348));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -3600,7 +3583,6 @@ namespace udeath
 		U32(node, 0x1C) = MEM<uint32_t>(us(0x25DF3C0));
 		U32(node, 0x20) = w20;
 		U16(node, 0x88) = 0xFE00;
-		FX_HELD(held_note_play(node);)
 		a_73C280(node);
 		U8(node, 0x29) = (uint8_t)(U8(node, 0x29) + 1);
 		return 0;
@@ -3613,7 +3595,6 @@ namespace udeath
 		const uint32_t w20 = MEM<uint32_t>(us(0x25DF3C4));
 		U32(node, 0x1C) = w1c;
 		U32(node, 0x20) = w20;
-		FX_HELD(held_note_play(node);)
 		const uint32_t r = a_73C280(node);
 		if (r == 0)
 		{
@@ -4024,10 +4005,6 @@ namespace udeath
 			act::register_module_port(79, p->addr, p->port, p->name);
 		for (const act::udeath::ModPort *p = act::udeath::PORTS; p->addr; p++)
 			act::register_module_port(79, p->addr, p->port, p->name);
-		FX_HELD(register_mag079_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag079_ultimecia_final_death_held.inc"
-#endif

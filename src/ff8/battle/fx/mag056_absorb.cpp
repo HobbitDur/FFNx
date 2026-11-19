@@ -142,21 +142,15 @@ namespace absorb
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag056_absorb_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace absorb
 {
-
 	uint32_t __cdecl ab_803340(uint32_t a1)
 	{
 		g_mod = &MOD_056;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -319,7 +313,6 @@ namespace absorb
 				U32(node, 0x34) = entry;
 				U16(node, 0x38) = (uint16_t)(idx + 1);
 			}
-			FX_HELD(held_note_flash(U32(node, 0x34));)
 			FlashDraw(U32(node, 0x34));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -729,7 +722,6 @@ namespace absorb
 		case 1:
 			a_743190();
 			ab_805BE0();
-			FX_HELD(held_note_system(sys);)
 			ab_805AA0();
 			ab_804420();
 			sys = U32(us(0x260F140), 0);
@@ -1880,10 +1872,6 @@ namespace absorb
 			act::register_module_port(56, p->addr, p->port, p->name);
 		for (const act::absorb::ModPort *p = act::absorb::PORTS; p->addr; p++)
 			act::register_module_port(56, p->addr, p->port, p->name);
-		FX_HELD(register_mag056_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag056_absorb_held.inc"
-#endif

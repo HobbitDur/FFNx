@@ -395,10 +395,6 @@ namespace bombglow179
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag179_bomb_glow_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace bombglow179
@@ -409,7 +405,6 @@ namespace bombglow179
 		if (t->counter < 0x1E)
 		{
 			const int32_t level = GlowLevel(t->counter);
-			FX_HELD(held_note_glow(t);)
 			const uint32_t h = (uint32_t)FieldAlloc(0xB0);
 			GlowColour(h, t->counter, level);
 			GlowBlock(h, GlowScroll(t->counter));
@@ -429,7 +424,6 @@ namespace bombglow179
 	static uint32_t __cdecl FuseSparksTask(TaskNode *n)
 	{
 		EffectNode *t = (EffectNode *)n;
-		FX_HELD(held_note_pool(t);)
 		uint8_t *h = SparkHeader();
 		int alive = 0;
 		for (Particle *p = Pool(); (uint32_t)p < us(POOL_END); p++)
@@ -499,7 +493,6 @@ namespace bombglow179
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->counter & 1) PacketCursor() = us(ARENA1);
 		else PacketCursor() = us(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
@@ -514,10 +507,6 @@ namespace bombglow179
 		register_port(bombglow179::ORIG_Director, (void *)bombglow179::DirectorTask, "B179 Director", 179);
 		register_port(bombglow179::ORIG_CasterGlow, (void *)bombglow179::CasterGlowTask, "B179 CasterGlow", 179);
 		register_port(bombglow179::ORIG_FuseSparks, (void *)bombglow179::FuseSparksTask, "B179 FuseSparks", 179);
-		FX_HELD(register_mag179_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag179_bomb_glow_held.inc"
-#endif

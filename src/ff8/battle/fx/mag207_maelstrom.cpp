@@ -119,10 +119,6 @@ namespace maelstrom207
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag207_maelstrom_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace maelstrom207
@@ -736,7 +732,6 @@ namespace maelstrom207
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(n);)
 		ParticleDraw(p->pos, p->counter);
 		p->vel[0] = (int16_t)(p->vel[0] + (int16_t)p->acc[0]);
 		p->vel[1] = (int16_t)(p->vel[1] + (int16_t)p->acc[1]);
@@ -759,13 +754,11 @@ namespace maelstrom207
 			arg.depth = -0x80;
 			arg.scroll = (int16_t)(w->counter << 5);
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_main(K_PLAY, n);)
 			prim::play((prim::Layout *)w->layout, PrimCallback, (int)&arg, 0);
 		}
 		const int32_t b = (int32_t)w->counter - 0x20;
 		if ((uint32_t)b < 0x30)
 		{
-			FX_HELD(held_note_main(K_WARP, n);)
 			int32_t z;
 			if (WarpBox(w, WarpFrame(), &z))
 			{
@@ -823,7 +816,6 @@ namespace maelstrom207
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -887,10 +879,6 @@ namespace maelstrom207
 		register_port(maelstrom207::ORIG_MasterTask, (void *)maelstrom207::MasterTask, "207 MasterTask", 207);
 		register_port(maelstrom207::ORIG_MainTask, (void *)maelstrom207::MainTask, "207 MainTask", 207);
 		register_port(maelstrom207::ORIG_ParticleTask, (void *)maelstrom207::ParticleTask, "207 ParticleTask", 207);
-		FX_HELD(register_mag207_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag207_maelstrom_held.inc"
-#endif

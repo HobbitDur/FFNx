@@ -27,10 +27,6 @@ namespace gatling241
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag241_bgh_gatling_gun_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -78,10 +74,6 @@ namespace gatling241
 		gatling241::describe(gatling241::g_c);
 		init_clone(gatling241::g_c, nullptr, 0);
 		register_port(0xA02480, (void *)gatling241::SequenceTask, "MAG241 Gatling Gun (BGH251F2) SequenceTick", 241);
-		FX_HELD(register_mag241_bgh_gatling_gun_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag241_bgh_gatling_gun_held.inc"
-#endif

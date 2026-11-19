@@ -84,7 +84,7 @@ namespace
 		}
 		Entry &e = g_ent[g_nent++];
 		e = { addr, size, g_used, kind, g_phase, name, q, node_size };
-		memcpy_code(uint32_t(g_snap + g_used), (const void *)addr, size);
+		copy_bytes(g_snap + g_used, (const void *)addr, size);
 		g_used += size;
 		return true;
 	}
@@ -160,20 +160,20 @@ namespace
 
 	void restore_snapshot()
 	{
-		for (int i = g_nent - 1; i >= 0; i--) memcpy_code(uint32_t((void *)g_ent[i].addr), g_snap + g_ent[i].off, g_ent[i].size);
+		for (int i = g_nent - 1; i >= 0; i--) copy_bytes((void *)g_ent[i].addr, g_snap + g_ent[i].off, g_ent[i].size);
 	}
 
 	void save_post()
 	{
-		for (int i = 0; i < g_nent; i++) memcpy_code(uint32_t(g_post + g_ent[i].off), (const void *)g_ent[i].addr, g_ent[i].size);
+		for (int i = 0; i < g_nent; i++) copy_bytes(g_post + g_ent[i].off, (const void *)g_ent[i].addr, g_ent[i].size);
 	}
 
 	inline const uint8_t *reference(const Entry &e) { return (e.phase == PH_B ? g_snap : g_post) + e.off; }
 
 	void put_back_A()
 	{
-		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase == PH_B) memcpy_code(uint32_t((void *)g_ent[i].addr), g_snap + g_ent[i].off, g_ent[i].size);
-		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase != PH_B) memcpy_code(uint32_t((void *)g_ent[i].addr), g_post + g_ent[i].off, g_ent[i].size);
+		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase == PH_B) copy_bytes((void *)g_ent[i].addr, g_snap + g_ent[i].off, g_ent[i].size);
+		for (int i = 0; i < g_nent; i++) if (g_ent[i].phase != PH_B) copy_bytes((void *)g_ent[i].addr, g_post + g_ent[i].off, g_ent[i].size);
 	}
 
 	inline unsigned int x87_cw()
@@ -260,7 +260,7 @@ namespace
 
 	void scan_copy()
 	{
-		for (int i = 0; i < g_nent; i++) memcpy_code(uint32_t(g_scan + g_ent[i].off), (const void *)g_ent[i].addr, g_ent[i].size);
+		for (int i = 0; i < g_nent; i++) copy_bytes(g_scan + g_ent[i].off, (const void *)g_ent[i].addr, g_ent[i].size);
 	}
 
 	uint32_t diff_to_wlog()
@@ -281,7 +281,7 @@ namespace
 				if (g_wlog_used + 8 + (b - a) > WLOG_SIZE) { g_wlog_overflow = true; return g_wlog_used - start; }
 				*(uint32_t *)(g_wlog + g_wlog_used) = g_ent[r].addr + a;
 				*(uint32_t *)(g_wlog + g_wlog_used + 4) = b - a;
-				memcpy_code(uint32_t(g_wlog + g_wlog_used + 8), cur + a, b - a);
+				copy_bytes(g_wlog + g_wlog_used + 8, cur + a, b - a);
 				g_wlog_used += 8 + (b - a);
 				i = b;
 			}
@@ -338,7 +338,7 @@ namespace
 			for (uint32_t o = c.w_off; o < c.w_off + c.w_len;)
 			{
 				uint32_t addr = *(uint32_t *)(g_wlog + o), len = *(uint32_t *)(g_wlog + o + 4);
-				memcpy_code(uint32_t((void *)addr), g_wlog + o + 8, len);
+				copy_bytes((void *)addr, g_wlog + o + 8, len);
 				o += 8 + len;
 			}
 			return c.ret;

@@ -201,10 +201,6 @@ namespace destruct298
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag298_bgh251f2_destruction_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace destruct298
@@ -1029,7 +1025,6 @@ namespace destruct298
 
 	static void DrawFragments(MasterNode *m)
 	{
-		FX_HELD(held_note_frags(m);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x68);
 		const Fragment *f = m->frags;
 		for (int32_t n = 0xC0; n != 0; n--, f++)
@@ -1178,7 +1173,6 @@ namespace destruct298
 
 	static void DrawMarks(MasterNode *m)
 	{
-		FX_HELD(held_note_marks(m);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint16_t>(h, 0x92) = 0;
 		F<uint16_t>(h, 0x90) = 0;
@@ -1214,7 +1208,6 @@ namespace destruct298
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		const int32_t frames = SpriteFrames(s);
-		FX_HELD(held_note_sprite(s);)
 		SpriteDraw(s);
 		const int8_t vx = s->vel[0];
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(vx * 4));
@@ -1242,7 +1235,6 @@ namespace destruct298
 		arg.scale[0] = L->scale;
 		arg.scaled = 1;
 		arg.depth = L->depth;
-		FX_HELD(held_note_layout(L, &arg);)
 		return prim::play((prim::Layout *)L->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -1462,7 +1454,6 @@ namespace destruct298
 		if (m->counter >= 0x73) return TASK_END;
 		if (m->counter >= 0)
 		{
-			FX_HELD(held_note_body(m);)
 			CasterDraw(Caster(), m->pose);
 			*(uint8_t *)Caster() |= 4;
 		}
@@ -1479,7 +1470,6 @@ namespace destruct298
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *rn = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (rn->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -1530,10 +1520,6 @@ namespace destruct298
 		register_port(destruct298::ORIG_ScriptTask, (void *)destruct298::ScriptTask, "298 ScriptTask", 298);
 		register_port(destruct298::ORIG_LayoutTask, (void *)destruct298::LayoutTask, "298 LayoutTask", 298);
 		register_port(destruct298::ORIG_SpriteTask, (void *)destruct298::SpriteTask, "298 SpriteTask", 298);
-		FX_HELD(register_mag298_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag298_bgh251f2_destruction_held.inc"
-#endif

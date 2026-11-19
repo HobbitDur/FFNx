@@ -130,10 +130,6 @@ namespace scatter192
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag192_scatter_shot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace scatter192
@@ -360,7 +356,6 @@ namespace scatter192
 	static uint32_t __cdecl FlashTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_FlashTask), n);)
 		MuzzleModel(n, n->f18, us(MODEL_Flash), n->counter == 1, 0xC00);
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
@@ -370,7 +365,6 @@ namespace scatter192
 	static uint32_t __cdecl Flash2Task(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_Flash2Task), n);)
 		MuzzleModel(n, n->f18, us(MODEL_Flash2), n->counter >= 1, Flash2Fade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -383,7 +377,6 @@ namespace scatter192
 	static uint32_t __cdecl BlastTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_BlastTask), n);)
 		MuzzleModel(n, 0, us(MODEL_Blast), n->counter >= 1, BlastFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -396,9 +389,7 @@ namespace scatter192
 	static uint32_t __cdecl SmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_SmokeTask), n);)
 		const int16_t next = SmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -407,9 +398,7 @@ namespace scatter192
 	static uint32_t __cdecl GroundSmokeTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_GroundSmokeTask), n);)
 		const int16_t next = GroundSmokeDraw(n);
-		FX_HELD(held_note_last(next < 0);)
 		if (UpdateFlags() & 0x201) return 0;
 		n->counter++;
 		return next < 0 ? TASK_END : 0;
@@ -425,7 +414,6 @@ namespace scatter192
 		}
 		Particle *arr = PartArray(n->f0E);
 		*(volatile uint32_t *)&n_ = (uint32_t)arr;
-		FX_HELD(held_note_node(us(ORIG_ImpactTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		if (n->counter < 0x10) ImpactFlashDraw(n, h);
 		*(int16_t *)(h + 0x24) = 8;
@@ -435,20 +423,17 @@ namespace scatter192
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != id) continue;
-			FX_HELD(held_note_spark(e);)
 			SparkDraw(e, n->pos[3], h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_spark_next(e);)
 				continue;
 			}
 			SparkMove(e);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
@@ -510,7 +495,6 @@ namespace scatter192
 	static uint32_t __cdecl MissRingTask(TaskNode *n_)
 	{
 		Node *n = (Node *)n_;
-		FX_HELD(held_note_node(us(ORIG_MissRingTask), n);)
 		RingDraw(n, n->counter >= 4, RingFade(n->counter));
 		if (UpdateFlags() & 0x201) return 0;
 		const int16_t step = n->f1E;
@@ -524,27 +508,23 @@ namespace scatter192
 	{
 		Node *n = (Node *)n_;
 		Particle *arr = PartArray(n->f0E);
-		FX_HELD(held_note_node(us(ORIG_MissDustTask), n);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		DustHeader(h);
 		int32_t alive = 0;
 		for (Particle *e = arr; e < arr + PARTS_N; e++)
 		{
 			if (e->id != (int32_t)n->f0E) continue;
-			FX_HELD(held_note_spark(e);)
 			DustDraw(e, h);
 			if (UpdateFlags() & 0x201) continue;
 			e->frame++;
 			if (*(const int16_t *)(h + 0x28) < 0)
 			{
 				e->id = 0;
-				FX_HELD(held_note_spark_next(e);)
 				continue;
 			}
 			DustMove(e);
 			alive++;
 		}
-		FX_HELD(held_note_alive(alive);)
 		FieldFree(0xB4);
 		if (UpdateFlags() & 0x201) return 0;
 		if (n->counter == 0)
@@ -731,7 +711,6 @@ namespace scatter192
 		const int32_t end = EndTick();
 		const int32_t count = c >= end ? end - c + 5 : 5;
 		*(volatile int32_t *)&n_ = count;
-		FX_HELD(held_note_ghosts(c, slot, count, colour);)
 		for (int32_t k = 0; k < count; k++)
 		{
 			const Ghost *s = GhostSlot(slot);
@@ -805,7 +784,6 @@ namespace scatter192
 	static uint32_t __cdecl RootTask(TaskNode *n_)
 	{
 		RootNode *r = (RootNode *)n_;
-		FX_HELD(held_note_root();)
 		PacketCursor() = (*(const uint8_t *)&r->counter & 1) ? TexBase() + ARENA_ODD : TexBase();
 		const int shots = ExecuteTaskQueue(QShots());
 		const int aux = ExecuteTaskQueue(QAux());
@@ -840,10 +818,6 @@ namespace scatter192
 		register_port(scatter192::ORIG_MissTask, (void *)scatter192::MissTask, "192 MissTask", 192);
 		register_port(scatter192::ORIG_MissRingTask, (void *)scatter192::MissRingTask, "192 MissRingTask", 192);
 		register_port(scatter192::ORIG_MissDustTask, (void *)scatter192::MissDustTask, "192 MissDustTask", 192);
-		FX_HELD(register_mag192_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag192_scatter_shot_held.inc"
-#endif

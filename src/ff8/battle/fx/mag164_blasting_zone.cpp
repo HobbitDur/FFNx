@@ -53,7 +53,8 @@ namespace blast164
 		ORIG_Wave2 = 0x5F55D0, ORIG_Smoke = 0x5F57C0, ORIG_Shake = 0x5F5A50, ORIG_Restore = 0x5F5AD0;
 
 	static const uint32_t ANIM_DATA = 0xD88AA0, CAMERA_SCRIPT = 0xD99C70;
-	static const void *const SOUND_A = (const void *)0xD99C10, *const SOUND_B = (const void *)0xD99C14;
+	static const void *SOUND_A() { return (const void *)us(0xD99C10); }
+	static const void *SOUND_B() { return (const void *)us(0xD99C14); }
 	static const uint32_t GLOW_REF = 0xD99C50;
 	static const uint32_t DOT_COLOURS = 0xD99C1C;
 	static const uint32_t SEQ_ORBIT = 0xD99748, SEQ_BURST = 0xD999AC, SEQ_SMOKE = 0xD9961C;
@@ -199,10 +200,6 @@ namespace blast164
 	static inline uint32_t EndAt(int16_t c, int16_t limit) { return c >= limit ? TASK_END : 0; }
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag164_blasting_zone_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -1099,7 +1096,6 @@ namespace blast164
 		GteSetIR0(ir0);
 		GteDPCS();
 		GteStoreRGB2(&Colour());
-		FX_HELD(held_note_director(n);)
 		if (UpdateFlags() & 0x201)
 		{
 			if (UpdateFlags() & 1) return 0;
@@ -1128,7 +1124,7 @@ namespace blast164
 			{
 				QueueChainTransformation(Caster(), 2);
 				SetTipPoint();
-				BdPlaySE(SOUND_A, 0, 0x80);
+				BdPlaySE(SOUND_A(), 0, 0x80);
 			}
 			else if (c == 1) AddFlareA();
 			else if (c == 0xC) AddFlareB();
@@ -1171,7 +1167,7 @@ namespace blast164
 		{
 			if (c == 0)
 			{
-				BdPlaySE(SOUND_B, 0, 0x80);
+				BdPlaySE(SOUND_B(), 0, 0x80);
 				AddCleared(us(ORIG_Starfield));
 				AddScreenFlash();
 				*Entity(TargetSlot()) |= 4;
@@ -1283,7 +1279,6 @@ namespace blast164
 	static uint32_t __cdecl FlareATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_FlareA), n);)
 		FlareADraw(n, n->w18, n->w1C, n->c, mul32(n->c - 8, 682));
 		if (DrawOnly()) return 0;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1321,7 +1316,6 @@ namespace blast164
 	static uint32_t __cdecl FlareBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_FlareB), n);)
 		FlareBDraw(n, n->w18, n->w1C, n->c, shl32(8 - n->c, 9));
 		if (DrawOnly()) return 0;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1349,7 +1343,6 @@ namespace blast164
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Ring), n);)
 		RingDraw(n, n->w18, n->w20, n->c, RingFade(n->c));
 		if (DrawOnly()) return 0;
 		n->w18 = (int16_t)(n->w18 + n->w1A);
@@ -1372,7 +1365,6 @@ namespace blast164
 	static uint32_t __cdecl PulseATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_PulseA), n);)
 		PulseDraw(n, n->w18, n->w1C, n->w20, n->c >= 6, shl32(n->c - 6, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1389,7 +1381,6 @@ namespace blast164
 	static uint32_t __cdecl PulseBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_PulseB), n);)
 		PulseDraw(n, n->w18, n->w1C, n->w20, n->c >= 4, shl32(n->c - 4, 9));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1448,7 +1439,6 @@ namespace blast164
 	static uint32_t __cdecl BallTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Ball), n);)
 		BallDraw(n, n->w1C, n->c, shl32(n->c - 0x14, 9));
 		if (DrawOnly()) return 0;
 		const int16_t c = n->c;
@@ -1470,7 +1460,6 @@ namespace blast164
 	static uint32_t __cdecl FrameModelTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_FrameModel), n);)
 		FrameModelDraw(n, n->w1C, n->c, mul32(n->c - 4, 682), CamFrame());
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1497,7 +1486,6 @@ namespace blast164
 	static uint32_t __cdecl DomeTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Dome), n);)
 		PacketCursor() = DomeDraw(n, n->w1C, n->w20, Colour(), 3, PacketCursor());
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1510,7 +1498,6 @@ namespace blast164
 	static uint32_t __cdecl Dome2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Dome2), n);)
 		FrameArena() = DomeDraw(n, n->w1C, n->w20, Colour(), 2, FrameArena());
 		if (DrawOnly()) return 0;
 		const int16_t c = n->c;
@@ -1564,7 +1551,6 @@ namespace blast164
 	static uint32_t __cdecl BeamTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Beam), n);)
 		BeamDraw(n, n->w18, n->w1A);
 		if (DrawOnly()) return 0;
 		n->w18 = (int16_t)(n->w18 + 4);
@@ -1594,7 +1580,6 @@ namespace blast164
 	static uint32_t __cdecl RockTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Rock), n);)
 		RockDraw(n, &n->w10);
 		if (DrawOnly()) return 0;
 		n->w10 = (int16_t)(n->w10 + n->w1E);
@@ -1620,7 +1605,6 @@ namespace blast164
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Debris), n);)
 		DebrisDraw(n, n->w18, n->w1C, n->w20, n->c, shl32(n->c - 0xC, 9));
 		if (DrawOnly()) return 0;
 		int16_t r = n->w1A;
@@ -1675,7 +1659,6 @@ namespace blast164
 	static uint32_t __cdecl ScreenFlashTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_ScreenFlash), n);)
 		ScreenFlashDraw(n->w12, n->w1C, shl32(0x50 - n->c, 5));
 		if (DrawOnly()) return 0;
 		const int16_t c = n->c;
@@ -1746,7 +1729,6 @@ namespace blast164
 			n->e--;
 			return 0;
 		}
-		FX_HELD(held_note_node(us(ORIG_Morph), n);)
 		MorphMatrix(n, n->w20, (Mat4x3 *)us(MORPH_MAT));
 		MorphVertices(n->c, (uint8_t *)us(MORPH_VTX));
 		PacketCursor() = MorphRender(n, (const uint8_t *)us(MORPH_VTX), Colour(), PacketCursor());
@@ -1770,7 +1752,6 @@ namespace blast164
 	static uint32_t __cdecl RingFlatTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_RingFlat), n);)
 		RingFlatDraw(n, us(MODEL_RINGFLAT), n->w18, n->w1C, n->c < 4, shl32(4 - n->c, 0xA));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1784,7 +1765,6 @@ namespace blast164
 	static uint32_t __cdecl RingFlat2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_RingFlat2), n);)
 		RingFlatDraw(n, us(MODEL_RINGFLAT2), n->w18, n->w1C, n->c >= 2, shl32(n->c - 2, 8));
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1833,7 +1813,6 @@ namespace blast164
 		int16_t pos[4];
 		int32_t dir[4];
 		WeaponBone(Caster(), 1, dir, pos);
-		FX_HELD(held_note_glow(n, dir, pos);)
 		BladeGlowDraw(n, dir, pos, Colour(), n->c, shl32(n->c - 0x39, 9));
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1866,7 +1845,6 @@ namespace blast164
 	static uint32_t __cdecl WaveTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Wave), n);)
 		WaveDraw(n, n->c, mul32(n->c, 24), mul32(n->c - 0xE, 341));
 		if (DrawOnly()) return 0;
 		n->c++;
@@ -1919,7 +1897,6 @@ namespace blast164
 	static uint32_t __cdecl Wave2Task(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_node(us(ORIG_Wave2), n);)
 		Wave2Draw(n, n->w1C, n->w20, n->c, shl32(n->c - 0x12, 9), CamFrame());
 		if (DrawOnly()) return 0;
 		const int16_t r = n->w1E;
@@ -1995,7 +1972,6 @@ namespace blast164
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_ORBIT);
 		*(int16_t *)(h + 0x24) = 0;
-		FX_HELD(held_note_pool(us(ORIG_OrbitSpark), n, h);)
 		PoolLight(&w->m1, w->pos, PointX(), var<int16_t>(us(POINT) + 2), PointZ(), &Camera());
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
 		{
@@ -2079,7 +2055,6 @@ namespace blast164
 		}
 		uint8_t *h = AllocHeader(0x7C);
 		SwirlHeader(h);
-		FX_HELD(held_note_pool(us(ORIG_Swirl), n, h);)
 		TransformCameraByShadowRotation((const void *)us(POINT), 0x1000, 0);
 		w->v[2] = 0x1000;
 		w->v[1] = 0x1000;
@@ -2168,7 +2143,6 @@ namespace blast164
 				p->a[6] = (int16_t)(mul32(v[2], s) >> 12);
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_MorphSpark), n, nullptr);)
 		MorphSparkSetup((const Mat4x3 *)us(MORPH_MAT));
 		uint32_t pk = FrameArena();
 		w->v[0] = (int32_t)RenderOT();
@@ -2231,7 +2205,6 @@ namespace blast164
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_BURST);
 		*(int16_t *)(h + 0x24) = 0;
-		FX_HELD(held_note_pool(us(ORIG_BurstSpark), n, h);)
 		int32_t count = 0;
 		PoolLight(&w->m1, w->ang, PointX(), 0, PointZ(), &Camera());
 		for (uint32_t a = us(POOL_A); a < us(POOL_A_END); a += 0x18)
@@ -2327,7 +2300,6 @@ namespace blast164
 		uint8_t *h = AllocHeader(0x58);
 		*(uint32_t *)h = us(MODEL_SHARD);
 		*(uint32_t *)(h + 8) = 0;
-		FX_HELD(held_note_pool(us(ORIG_Shard), n, h);)
 		ShardFrame(w, &Camera());
 		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x18)
 		{
@@ -2393,7 +2365,6 @@ namespace blast164
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_SMOKE);
 		*(int16_t *)(h + 0x24) = 8;
-		FX_HELD(held_note_pool(us(ORIG_Smoke), n, h);)
 		PoolLight(&w->m1, w->ang, PointX(), 0, PointZ(), CamFrame());
 		for (uint32_t a = us(POOL_B); a < us(POOL_B_END); a += 0x18)
 		{
@@ -2448,7 +2419,6 @@ namespace blast164
 				p->a[5] = (int16_t)(g | 0x6800);
 			}
 		}
-		FX_HELD(held_note_pool(us(ORIG_Starfield), n, nullptr);)
 		FrameArena() = StarfieldDraw(us(POOL_C), us(POOL_C_END), FrameArena());
 		FieldFree(0x48);
 		if (DrawOnly()) return 0;
@@ -2483,7 +2453,6 @@ namespace blast164
 		RootNode *r = (RootNode *)tn;
 		if (r->c & 1) PacketCursor() = TexBase() + 0x10000;
 		else PacketCursor() = TexBase();
-		FX_HELD(held_note_root();)
 		const int alive = ExecuteTaskQueue(QMain());
 		r->c++;
 		return alive ? 0 : TASK_END;
@@ -2524,10 +2493,6 @@ namespace blast164
 		register_port(ORIG_Smoke, (void *)SmokeTask, "164 Smoke", 164);
 		register_port(ORIG_Shake, (void *)ShakeTask, "164 Shake", 164);
 		register_port(ORIG_Restore, (void *)RestoreTask, "164 Restore", 164);
-		FX_HELD(register_mag164_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag164_blasting_zone_held.inc"
-#endif

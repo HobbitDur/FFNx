@@ -235,10 +235,6 @@ namespace magmabreath
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag048_magma_breath_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -248,7 +244,6 @@ namespace magmabreath
 	uint32_t __cdecl mb_824E40(uint32_t a1)
 	{
 		g_mod = &MOD_048;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -339,7 +334,6 @@ namespace magmabreath
 				U32(node, 0x34) = entry;
 				U16(node, 0x38) = (uint16_t)(idx + 1);
 			}
-			FX_HELD(held_note_flash(node);)
 			FlashDraw(U32(node, 0x34));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -2001,7 +1995,6 @@ namespace magmabreath
 		case 1:
 			mb_82A480();
 			mb_827790();
-			FX_HELD(held_note_system(sys);)
 			mb_827650();
 			mb_825FD0();
 			sys = MEM<uint32_t>(us(ACTOR_STATE));
@@ -2036,7 +2029,6 @@ namespace magmabreath
 			if (mode == 5)
 				mb_828BA0(node, desc);
 			bool scroll = U8(node, 0x1D6) == 0;
-			FX_HELD(if (scroll && held_defer_scroll(U32(node, 0x170))) scroll = false;)
 			if (scroll)
 				a_7340A0(U32(node, 0x170), (uint32_t)-8);
 		}
@@ -2228,10 +2220,6 @@ namespace magmabreath
 			act::register_module_port(48, p->addr, p->port, p->name);
 		for (const act::magmabreath::ModPort *p = act::magmabreath::PORTS; p->addr; p++)
 			act::register_module_port(48, p->addr, p->port, p->name);
-		FX_HELD(register_mag048_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag048_magma_breath_held.inc"
-#endif

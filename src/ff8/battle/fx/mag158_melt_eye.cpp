@@ -252,10 +252,6 @@ namespace melteye158
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag158_melt_eye_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace melteye158
@@ -263,7 +259,6 @@ namespace melteye158
 	static uint32_t __cdecl RingTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_RING, t);)
 		RingDraw(t);
 		if (DrawOnly()) return 0;
 		const int16_t d = t->w1E;
@@ -276,7 +271,6 @@ namespace melteye158
 	static uint32_t __cdecl SplashModelTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_SPLASHMODEL, t);)
 		SplashModelDraw(t);
 		if (DrawOnly()) return 0;
 		const int16_t a = t->w1A, g = t->w1E;
@@ -291,7 +285,6 @@ namespace melteye158
 	static uint32_t __cdecl SplashTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_SPLASH, t);)
 		const uint8_t *h = SplashDraw(t);
 		if (DrawOnly()) return 0;
 		t->counter++;
@@ -301,7 +294,6 @@ namespace melteye158
 	static uint32_t __cdecl TrailTask(TaskNode *nd)
 	{
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_TRAIL, t);)
 		int alive = 0;
 		const uint32_t mask = 1u << (t->w0E & 31);
 		uint8_t *h = TrailHeader(t);
@@ -324,7 +316,6 @@ namespace melteye158
 				*(uint32_t *)&sp->pos[2] = *(const uint32_t *)&p[2];
 			}
 		}
-		FX_HELD(held_note_table(us(SPARKS));)
 		for (Spark *sp = Sparks(); (uint32_t)sp < us(SPARKS_END); sp++)
 		{
 			if (!(sp->mask & mask)) continue;
@@ -349,8 +340,6 @@ namespace melteye158
 	{
 		const uint16_t pad_residue = 0;
 		EffectNode *t = (EffectNode *)nd;
-		FX_HELD(held_note(REC_DROPS, t);)
-		FX_HELD(held_note_table(us(DROPS));)
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		int alive = 0;
 		*(uint32_t *)h = us(SEQ_Drop);
@@ -545,7 +534,6 @@ namespace melteye158
 	static uint32_t __cdecl RootTask(TaskNode *nd)
 	{
 		RootNode *r = (RootNode *)nd;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA1);
 		if (!(r->counter & 1)) PacketCursor() = us(ARENA0);
 		const int a = ExecuteTaskQueue(EffectQueue());
@@ -564,10 +552,6 @@ namespace melteye158
 		register_port(melteye158::ORIG_Splash, (void *)melteye158::SplashTask, "M158 Splash", 158);
 		register_port(melteye158::ORIG_SplashModel, (void *)melteye158::SplashModelTask, "M158 SplashModel", 158);
 		register_port(melteye158::ORIG_Drops, (void *)melteye158::DropsTask, "M158 Drops", 158);
-		FX_HELD(register_mag158_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag158_melt_eye_held.inc"
-#endif

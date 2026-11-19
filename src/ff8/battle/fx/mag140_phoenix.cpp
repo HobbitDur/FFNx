@@ -151,15 +151,10 @@ namespace p140
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag140_phoenix_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace p140
 {
-
 	static void Flipbook(uint8_t *hdr, int16_t frame)
 	{
 		*(uint32_t *)hdr = us(0x11D0164);
@@ -602,7 +597,6 @@ namespace p140
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (node->parity)
 		{
 			PacketCursor() = (uint32_t)(ModelBuffer() + 0x3758);
@@ -756,7 +750,6 @@ namespace p140
 	static uint32_t __cdecl CreatureTask(TaskNode *n)
 	{
 		CreatureNode *cn = (CreatureNode *)n;
-		FX_HELD(held_note_creature(cn);)
 
 		int16_t c = cn->counter;
 		if (c < 8) Flash() = (uint32_t)(mul32(c, 2600) >> 3);
@@ -800,7 +793,6 @@ namespace p140
 				}
 			}
 		}
-		FX_HELD(held_note_trail_done(cn);)
 
 		{
 			uint8_t rgb[3];
@@ -811,17 +803,14 @@ namespace p140
 		if (e < 0x88)
 		{
 			if (!Pause()) AdvanceModelAnim(E(cn));
-			FX_HELD(held_note_model();)
 			if (e < 0x14)
 			{
 				Root(cn).t[1] = (int32_t)((0x14 - e) << 5);
-				FX_HELD(held_note_model_root(cn, true);)
 				DrawModelFade(E(cn), 0, ModelBuffer() + 0x878);
 			}
 			else
 			{
 				Root(cn).t[1] = 0;
-				FX_HELD(held_note_model_root(cn, false);)
 				FrameCursor() = DrawModel(E(cn), ModelBuffer() + 0x878, FrameCursor(), var<uint32_t>(us(0x1D969A8)));
 			}
 		}
@@ -1069,7 +1058,6 @@ namespace p140
 		EmberNode *p = (EmberNode *)n;
 		EmberDraw(p->pos, p->angle, (int32_t)p->age << 8);
 		if (Pause()) return 0;
-		FX_HELD(held_note_ember(p);)
 		int16_t spin = p->spin;
 		p->pos[1] -= 25;
 		p->angle += spin;
@@ -1093,7 +1081,6 @@ namespace p140
 		SparkNode *p = (SparkNode *)n;
 		SparkDraw(p->pos, p->age);
 		if (Pause()) return 0;
-		FX_HELD(held_note_spark(p);)
 		int16_t ax = p->acc[0];
 		p->vel[0] += ax;
 		int16_t vx = p->vel[0];
@@ -1118,10 +1105,6 @@ namespace p140
 		register_port(p140::ORIG_CreatureTask, (void *)p140::CreatureTask, "P140 CreatureTask", 140);
 		register_port(p140::ORIG_EmberTask, (void *)p140::EmberTask, "P140 EmberTask", 140);
 		register_port(p140::ORIG_SparkTask, (void *)p140::SparkTask, "P140 SparkTask", 140);
-		FX_HELD(register_mag140_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag140_phoenix_held.inc"
-#endif

@@ -507,21 +507,15 @@ namespace angelwing
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag084_angel_wing_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace angelwing
 {
-
 	uint32_t __cdecl te_78D940(uint32_t a1)
 	{
 		g_mod = &MOD_084;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -565,7 +559,6 @@ namespace angelwing
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
-		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -921,7 +914,6 @@ namespace angelwing
 
 	uint32_t __cdecl te_78EDB0(uint32_t a1)
 	{
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		alignas(4) uint8_t blk[0x5C] = {};
 		const uint32_t L = P(blk);
 		const uint32_t node = a1;
@@ -1896,7 +1888,6 @@ namespace angelwing
 		case 1:
 			te_796120();
 			te_793780();
-			FX_HELD(held_note_system(sys);)
 			te_793640();
 			te_791FC0();
 			sys = U32(us(0x25C9F3C), 0);
@@ -3244,7 +3235,6 @@ namespace angelwing
 		const uint16_t fl = U16(a1, 0x26);
 		if ((fl & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		if ((fl & 8) != 0)
 		{
 			alignas(4) uint8_t pt[8] = {};
@@ -3602,7 +3592,6 @@ namespace angelwing
 	{
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_GLOW, a1);)
 		alignas(4) uint8_t loc[0x20] = {};
 		const uint32_t M = P(loc);
 		x::UnpackRotationMatrix(us(0x1D97778), M);
@@ -3724,7 +3713,6 @@ namespace angelwing
 	{
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_MOON, a1);)
 		alignas(4) uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::MAG_022_sub_8DD770(M);
@@ -4038,10 +4026,6 @@ namespace angelwing
 			act::register_module_port(84, p->addr, p->port, p->name);
 		for (const act::angelwing::ModPort *p = act::angelwing::PORTS; p->addr; p++)
 			act::register_module_port(84, p->addr, p->port, p->name);
-		FX_HELD(register_mag084_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag084_angel_wing_held.inc"
-#endif

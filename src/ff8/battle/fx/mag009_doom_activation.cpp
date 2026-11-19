@@ -432,21 +432,15 @@ namespace doomact
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag009_doom_activation_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace doomact
 {
-
 	uint32_t __cdecl da_8C0500(uint32_t a1)
 	{
 		g_mod = &MOD_009;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -483,7 +477,6 @@ namespace doomact
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
-		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -673,7 +666,6 @@ namespace doomact
 		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		FX_HELD(held_note_draw(HK_PLAY, node);)
 		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
 	}
 
@@ -1577,7 +1569,6 @@ namespace doomact
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 8) != 0)
 		{
-			FX_HELD(held_note_draw(HK_BODY, node);)
 			da_8C3520(us(BODY_CTX));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -1886,7 +1877,6 @@ namespace doomact
 	{
 		if ((U8(a1, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_SPARK, a1);)
 		uint32_t hdr = x::Field_Alloc(0xD8);
 		uint32_t m = hdr + 0xB8;
 		x::UnpackRotationMatrix(us(0x1D97778), m);
@@ -2138,10 +2128,6 @@ namespace doomact
 			act::register_module_port(9, p->addr, p->port, p->name);
 		for (const act::doomact::ModPort *p = act::doomact::PORTS; p->addr; p++)
 			act::register_module_port(9, p->addr, p->port, p->name);
-		FX_HELD(register_mag009_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag009_doom_activation_held.inc"
-#endif

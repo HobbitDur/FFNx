@@ -92,10 +92,6 @@ namespace fire002
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag002_fire_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace fire002
@@ -103,7 +99,6 @@ namespace fire002
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_ODD);
 		if (!(r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(&Queues().second);
@@ -275,7 +270,6 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_FlameTask), p);)
 		FlameDraw(p);
 		if (DrawOnly()) return 0;
 		if (p->frame == 0)
@@ -347,7 +341,6 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_SparkTask), p);)
 		SparkDraw(p);
 		if (DrawOnly()) return 0;
 		SparkUpdate(p);
@@ -384,7 +377,6 @@ namespace fire002
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_EmberTask), p);)
 		EmberDraw(p);
 		if (DrawOnly()) return 0;
 		EmberUpdate(p);
@@ -400,10 +392,6 @@ namespace fire002
 		register_port(fire002::ORIG_FlameTask, (void *)fire002::FlameTask, "F002 FlameTask", 2);
 		register_port(fire002::ORIG_SparkTask, (void *)fire002::SparkTask, "F002 SparkTask", 2);
 		register_port(fire002::ORIG_EmberTask, (void *)fire002::EmberTask, "F002 EmberTask", 2);
-		FX_HELD(register_mag002_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag002_fire_held.inc"
-#endif

@@ -798,10 +798,6 @@ namespace mask303
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag303_remove_mask_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace mask303
@@ -809,7 +805,6 @@ namespace mask303
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note(SPRITE, n);)
 		SpriteDraw(s->pos, s->frame, us(SEQ_Sprite));
 		s->frame++;
 		return s->frame < 0xC ? 0 : TASK_END;
@@ -818,7 +813,6 @@ namespace mask303
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note(SPARK, n);)
 		SpriteDraw(s->pos, s->frame, us(SEQ_Spark));
 		s->frame++;
 		if (s->frame >= 0xA) return TASK_END;
@@ -836,7 +830,6 @@ namespace mask303
 		LayoutNode *L = (LayoutNode *)n;
 		if (L->life != 0)
 		{
-			FX_HELD(held_note(PIECE, n);)
 			PieceDraw(L->model, L->pos);
 			L->pos[1] = (int16_t)(L->pos[1] + L->vel[1]);
 			L->pos[0] = (int16_t)(L->pos[0] + L->vel[0]);
@@ -860,7 +853,6 @@ namespace mask303
 		}
 		PrimArg a;
 		PieceArg(L, &a);
-		FX_HELD(held_note(PIECE_PLAY, n);)
 		return prim::play((prim::Layout *)L->layout, PrimCallback, (int)&a, 0) != 0 ? 0 : TASK_END;
 	}
 
@@ -887,7 +879,6 @@ namespace mask303
 			*(uint16_t *)Unmasked() &= 0xFFFB;
 			*Caster() |= 4;
 		}
-		FX_HELD(held_note(SHARDS, n);)
 		ShardsDraw(m->shards);
 		const int32_t c = m->counter;
 		if ((uint32_t)c < 0x16)
@@ -902,7 +893,6 @@ namespace mask303
 			a.scaled = 0;
 			a.depth = -0x80;
 			a.morph = TexBase() + MORPH;
-			FX_HELD(held_note(MAIN_PLAY, n);)
 			prim::play((prim::Layout *)m->layout, PrimCallback, (int)&a, 0);
 			if ((uint32_t)c < 2)
 			{
@@ -923,7 +913,6 @@ namespace mask303
 		const uint32_t e = (uint32_t)(m->counter - 0x18);
 		if (e < 0x10)
 		{
-			FX_HELD(held_note(REDRAW, n);)
 			MainRedraw(m->counter, TexBase() + MORPH);
 			*Unmasked() |= 4;
 		}
@@ -965,7 +954,6 @@ namespace mask303
 			PacketCursor() = TexBase() + ARENA_B;
 			r->arena = 1;
 		}
-		FX_HELD(held_note_root();)
 		if (r->counter == 1 && !r->started)
 		{
 			r->started = 1;
@@ -1007,10 +995,6 @@ namespace mask303
 		register_port(mask303::ORIG_LayoutTask, (void *)mask303::LayoutTask, "303 LayoutTask", 303);
 		register_port(mask303::ORIG_SparkTask, (void *)mask303::SparkTask, "303 SparkTask", 303);
 		register_port(mask303::ORIG_SpriteTask, (void *)mask303::SpriteTask, "303 SpriteTask", 303);
-		FX_HELD(register_mag303_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag303_remove_mask_held.inc"
-#endif

@@ -450,10 +450,6 @@ namespace strong318
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag318_strong_counter_attack_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace strong318
@@ -461,7 +457,6 @@ namespace strong318
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(n);)
 		SpriteDraw(s->pos, s->vel0, s->counter);
 		s->counter++;
 		if (s->counter >= 0xC) return TASK_END;
@@ -528,7 +523,6 @@ namespace strong318
 			ComposeAffineTransform(&Camera(), &m->M2, &arg.m);
 			arg.morph = TexBase() + MORPH;
 			arg.depth = 0;
-			FX_HELD(held_note_main(PLAY_A, n);)
 			prim::play((prim::Layout *)m->layout_a, PrimCallback, (int)&arg, 0);
 		}
 		const int32_t e4 = m->counter - 4;
@@ -543,9 +537,7 @@ namespace strong318
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
 			arg.morph = TexBase() + MORPH;
 			arg.depth = -0x80;
-			FX_HELD(held_note_main(PLAY_B, n);)
 			prim::play((prim::Layout *)m->layout_b, PrimCallback, (int)&arg, 0);
-			FX_HELD(held_note_main(DRAW_SPIKE, n);)
 			SpikeDraw(&m->M, L, &arg);
 		}
 		if ((uint32_t)e4 < 0x11)
@@ -593,7 +585,6 @@ namespace strong318
 			ComposeAffineTransform(&Camera(), &m->M3, &arg.m);
 			arg.morph = TexBase() + MORPH;
 			arg.depth = -0x80;
-			FX_HELD(held_note_main(PLAY_C, n);)
 			prim::play((prim::Layout *)m->layout_c, PrimCallback, (int)&arg, 0);
 			if ((uint32_t)c13 < 4)
 			{
@@ -623,7 +614,6 @@ namespace strong318
 				}
 			}
 		}
-		FX_HELD(held_note_particles(n);)
 		ParticleWalk(m->parts);
 		if (m->counter == 8) BdPlaySE(SOUND(), 0, 0x80);
 		if (m->counter == 0x29) StreamLoad(0x168, TexBase() + STREAM_DEST, 0);
@@ -650,7 +640,6 @@ namespace strong318
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -705,10 +694,6 @@ namespace strong318
 		register_port(strong318::ORIG_MainTask, (void *)strong318::MainTask, "318 MainTask", 318);
 		register_port(strong318::ORIG_SpriteTask, (void *)strong318::SpriteTask, "318 SpriteTask", 318);
 		register_port(strong318::ORIG_BoneScaleTask, (void *)strong318::BoneScaleTask, "318 BoneScaleTask", 318);
-		FX_HELD(register_mag318_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag318_strong_counter_attack_held.inc"
-#endif

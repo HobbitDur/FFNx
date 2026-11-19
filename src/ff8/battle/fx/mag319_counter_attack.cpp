@@ -235,10 +235,6 @@ namespace counter319
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag319_counter_attack_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace counter319
@@ -246,7 +242,6 @@ namespace counter319
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		FX_HELD(held_note_sprite(n, s->pos, s->counter);)
 		SpriteDraw(s->pos, s->counter);
 		s->counter++;
 		return s->counter < 0xA ? 0 : TASK_END;
@@ -291,9 +286,7 @@ namespace counter319
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
 			arg.morph = TexBase() + MORPH;
 			arg.depth = -0x80;
-			FX_HELD(held_note_main(PLAY_A, n);)
 			prim::play((prim::Layout *)m->layout_a, PrimCallback, (int)&arg, 0);
-			FX_HELD(held_note_main(DRAW_SPIKE, n);)
 			SpikeDraw(&m->M, L, &arg);
 		}
 		const int32_t c7 = m->counter - 7;
@@ -305,7 +298,6 @@ namespace counter319
 			ComposeAffineTransform(&Camera(), &m->M2, &arg.m);
 			arg.morph = TexBase() + MORPH;
 			arg.depth = -0x80;
-			FX_HELD(held_note_main(PLAY_B, n);)
 			prim::play((prim::Layout *)m->layout_b, PrimCallback, (int)&arg, 0);
 			if ((uint32_t)c7 >= 8 && (uint32_t)c7 < 0xF && !(c7 & 1))
 			{
@@ -343,7 +335,6 @@ namespace counter319
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -395,10 +386,6 @@ namespace counter319
 		register_port(counter319::ORIG_RootTask, (void *)counter319::RootTask, "319 RootTask", 319);
 		register_port(counter319::ORIG_MainTask, (void *)counter319::MainTask, "319 MainTask", 319);
 		register_port(counter319::ORIG_SpriteTask, (void *)counter319::SpriteTask, "319 SpriteTask", 319);
-		FX_HELD(register_mag319_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag319_counter_attack_held.inc"
-#endif

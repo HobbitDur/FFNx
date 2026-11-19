@@ -49,10 +49,6 @@ namespace renzo340
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag340_renzokuken_ultimecia_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo340
@@ -215,10 +211,6 @@ namespace renzo340
 		register_port(renzo340::ORIG_AngleModel, (void *)renzo340::AngleModelTask, "340 AngleModel", 340);
 		register_port(renzo340::ORIG_BoneEmitter, (void *)renzo340::BoneEmitterTask, "340 BoneEmitter", 340);
 		register_port(renzo340::ORIG_NodeEmitter, (void *)renzo340::NodeEmitterTask, "340 NodeEmitter", 340);
-		FX_HELD(register_mag340_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag340_renzokuken_ultimecia_held.inc"
-#endif

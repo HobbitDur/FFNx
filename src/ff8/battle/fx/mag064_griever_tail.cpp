@@ -149,10 +149,6 @@ namespace gtail064
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag064_griever_tail_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gtail064
@@ -534,7 +530,6 @@ namespace gtail064
 		arg.pos[1] = *(const uint32_t *)&L->pos[2];
 		arg.scaled = 1;
 		arg.scroll = (int16_t)(L->counter << 6);
-		FX_HELD(held_note_play(L, &arg);)
 		if (prim::play((prim::Layout *)L->layout, PartCallback, (int)&arg, 0) == 0) return TASK_END;
 		L->counter++;
 		return 0;
@@ -556,7 +551,6 @@ namespace gtail064
 	{
 		SpriteNode *s = (SpriteNode *)n;
 		const int32_t frames = *(const int16_t *)(*(const uint8_t *const *)(us(SEQUENCES) + s->seq * 4) + 8);
-		FX_HELD(held_note_sprite(s);)
 		SpriteDraw(s);
 		const int8_t vx = s->vel[0];
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(vx * 4));
@@ -771,7 +765,6 @@ namespace gtail064
 			case 0x10A8: ip = SpawnSprite(ip, s->entity, s->pose); break;
 			case 0x10A9: ip = SpawnSprites(ip, s->entity, s->pose); break;
 			case 0x10B0:
-				FX_HELD(held_note_quad(ip);)
 				ip = ScriptQuad(ip);
 				break;
 			case 0x10F0:
@@ -831,13 +824,11 @@ namespace gtail064
 			const int32_t t = m->counter - TILES[i];
 			if ((uint32_t)t < 4)
 			{
-				FX_HELD(held_note_tile(t);)
 				PacketCursor() = FadeTile(t, 0xFF, 0xFF, 0xFF, 0, 1, 3, PacketCursor());
 			}
 		}
 		if (m->counter >= 0)
 		{
-			FX_HELD(held_note_caster(m);)
 			CasterDraw(Caster(), m->pose);
 			*Caster() |= 4;
 		}
@@ -850,7 +841,6 @@ namespace gtail064
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->parity)
 		{
 			PacketCursor() = TexBase() + 0x6F20;
@@ -896,10 +886,6 @@ namespace gtail064
 		register_port(gtail064::ORIG_ScriptTask, (void *)gtail064::ScriptTask, "T064 ScriptTask", 64);
 		register_port(gtail064::ORIG_LayoutTask, (void *)gtail064::LayoutTask, "T064 LayoutTask", 64);
 		register_port(gtail064::ORIG_SpriteTask, (void *)gtail064::SpriteTask, "T064 SpriteTask", 64);
-		FX_HELD(register_mag064_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag064_griever_tail_held.inc"
-#endif

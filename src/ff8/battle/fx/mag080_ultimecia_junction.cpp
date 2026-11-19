@@ -464,21 +464,15 @@ namespace ujunct
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag080_ultimecia_junction_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace ujunct
 {
-
 	uint32_t __cdecl ud_7AB6F0(uint32_t a1)
 	{
 		g_mod = &MOD_080;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -832,7 +826,6 @@ namespace ujunct
 		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		FX_HELD(held_note_play(node);)
 		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
 	}
 
@@ -1714,7 +1707,6 @@ namespace ujunct
 		callp(states[S8(node, 0x29)], node);
 		U32(node, 0x1C) = U32(node, 0x5C);
 		U32(node, 0x20) = U32(node, 0x60);
-		FX_HELD(held_note_flake(node);)
 		ud_7AE840(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1840,7 +1832,6 @@ namespace ujunct
 		U16(node, 0x1C) = (uint16_t)(U16(d, 0x10) + U16(O, 0));
 		U16(node, 0x1E) = (uint16_t)(U16(d, 0x12) + U16(O, 2));
 		U16(node, 0x20) = (uint16_t)(U16(d, 0x14) + U16(O, 4));
-		FX_HELD(held_note_particle(node);)
 		ud_7AE840(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1931,7 +1922,6 @@ namespace ujunct
 		states[8] = us(0x7B4A20);
 		states[9] = us(0x7B4A40);
 		callp(states[S8(node, 0x29)], node);
-		FX_HELD(held_note_bolts();)
 		ud_7AF4C0();
 		if ((U8(node, 0x26) & 8) != 0)
 		{
@@ -1944,7 +1934,6 @@ namespace ujunct
 			const uint16_t z0 = (uint16_t)(MEM<uint16_t>(us(0x25D49C4)) - MEM<uint16_t>(us(0x25D49BC)) + MEM<uint16_t>(us(0x25D4A00)));
 			U16(t, 0x20) = z0;
 			S32(t, 0x5C) = (int16_t)z0;
-			FX_HELD(held_note_copy(node);)
 			ud_7AFEC0(us(MODEL_BLOCK));
 		}
 		ud_7B06A0(node);
@@ -2815,7 +2804,6 @@ namespace ujunct
 		case 1:
 			ud_7B4330();
 			ud_7B19E0();
-			FX_HELD(held_note_system(sys);)
 			ud_7B18A0();
 			ud_7B16E0();
 			sys = U32(us(0x25DF308), 0);
@@ -4007,10 +3995,6 @@ namespace ujunct
 			act::register_module_port(80, p->addr, p->port, p->name);
 		for (const act::ujunct::ModPort *p = act::ujunct::PORTS; p->addr; p++)
 			act::register_module_port(80, p->addr, p->port, p->name);
-		FX_HELD(register_mag080_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag080_ultimecia_junction_held.inc"
-#endif

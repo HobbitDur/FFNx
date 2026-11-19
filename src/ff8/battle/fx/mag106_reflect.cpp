@@ -592,10 +592,6 @@ namespace reflect106
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag106_reflect_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace reflect106
@@ -603,7 +599,6 @@ namespace reflect106
 	static uint32_t __cdecl HexagonTask(TaskNode *n)
 	{
 		HexagonNode *x = (HexagonNode *)n;
-		FX_HELD(held_note_hexagon(x);)
 		int32_t fade, sx;
 		HexagonFade(x->counter, fade, sx);
 		HexagonDraw(x->parent->center, x->angle, x->tilt, fade, (int16_t)sx, &x->parent->view);
@@ -617,7 +612,6 @@ namespace reflect106
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *g = (RingNode *)n;
-		FX_HELD(held_note_ring(g);)
 		RingDraw(g->height, g->scale, RingFade(g->counter), &g->parent->view);
 		if (g->counter >= 0x14) return TASK_END;
 		g->speed = (int16_t)(g->speed + g->accel);
@@ -697,7 +691,6 @@ namespace reflect106
 		const int32_t e = b->frame - 5;
 		if ((uint32_t)e < 0x23)
 		{
-			FX_HELD(held_note_wall(b, e);)
 			uint8_t *h = WallDraw(WallScroll(shl32(b->frame, 3)), WallHeight(e), WallFade(e), &b->view);
 			if ((uint32_t)e < 0x12 && (uint32_t)e % 6u == 0)
 			{
@@ -772,7 +765,6 @@ namespace reflect106
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		FX_HELD(held_note_director();)
 		if (d->arena)
 		{
 			PacketCursor() = us(ARENA_0);
@@ -845,10 +837,6 @@ namespace reflect106
 		register_port(reflect106::ORIG_HexagonTask, (void *)reflect106::HexagonTask, "R106 HexagonTask", 106);
 		register_port(reflect106::ORIG_RingTask, (void *)reflect106::RingTask, "R106 RingTask", 106);
 		register_port(reflect106::ORIG_BeamTask, (void *)reflect106::BeamTask, "R106 BeamTask", 106);
-		FX_HELD(register_mag106_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag106_reflect_held.inc"
-#endif

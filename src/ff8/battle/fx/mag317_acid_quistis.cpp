@@ -656,10 +656,6 @@ namespace acid_quistis
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag317_acid_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace acid_quistis
@@ -667,7 +663,6 @@ namespace acid_quistis
 	static uint32_t __cdecl SprayTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(us(ORIG_SprayTask), p);)
 		ParticleDraw(p, us(SEQ_Spray));
 		SprayStep(p);
 		p->counter++;
@@ -677,7 +672,6 @@ namespace acid_quistis
 	static uint32_t __cdecl DripTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(us(ORIG_DripTask), p);)
 		ParticleDraw(p, us(SEQ_Drip));
 		DripStep(p);
 		p->counter++;
@@ -687,7 +681,6 @@ namespace acid_quistis
 	static uint32_t __cdecl SplashTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(us(ORIG_SplashTask), p);)
 		ParticleDraw(p, us(SEQ_Splash));
 		p->counter++;
 		return p->counter < 0x10 ? 0 : TASK_END;
@@ -745,7 +738,6 @@ namespace acid_quistis
 				q = q->next;
 			} while (q);
 		}
-		FX_HELD(held_note_stream(s);)
 		StreamDraw(s->head, s->count);
 		Point *q = s->head;
 		do
@@ -778,7 +770,6 @@ namespace acid_quistis
 			PrimArg arg;
 			ff8fx::copy<(8)>(arg.pos, t->pos);
 			arg.morph = TexBase() + MORPH;
-			FX_HELD(held_note_play(t, &arg);)
 			prim::play((prim::Layout *)t->layout, PartCallback, (int)&arg, 0);
 		}
 		const uint32_t e = (uint32_t)((int32_t)t->counter - 0x21);
@@ -786,7 +777,6 @@ namespace acid_quistis
 		{
 			t->entity[0] |= 4;
 			const int32_t sinv = MeltSin((int32_t)e);
-			FX_HELD(held_note_melt(t->entity, (int32_t)e);)
 			DrawMeltingTarget(t->entity, sinv);
 		}
 		else *(uint16_t *)t->entity &= 0xFFFB;
@@ -854,7 +844,6 @@ namespace acid_quistis
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x4708;
@@ -917,10 +906,6 @@ namespace acid_quistis
 		register_port(acid_quistis::ORIG_SprayTask, (void *)acid_quistis::SprayTask, "317 SprayTask", 317);
 		register_port(acid_quistis::ORIG_DripTask, (void *)acid_quistis::DripTask, "317 DripTask", 317);
 		register_port(acid_quistis::ORIG_SplashTask, (void *)acid_quistis::SplashTask, "317 SplashTask", 317);
-		FX_HELD(register_mag317_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag317_acid_quistis_held.inc"
-#endif

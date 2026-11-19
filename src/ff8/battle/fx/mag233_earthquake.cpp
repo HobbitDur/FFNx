@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag233_earthquake_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -62,7 +58,6 @@ namespace earthquake
 
 	static inline void xl_OffscreenStage_B65B00(void *blk, void *pos, void *angles)
 	{
-		FX_HELD(if (held_predicting()) return;)
 		x::f<int32_t (__cdecl *)(void *, void *, void *)>(us(0xB65B00))(blk, pos, angles);
 	}
 
@@ -78,7 +73,6 @@ namespace earthquake
 		U16(WS(), 0xD0) = U16(STREAM(), 2);
 		U16(WS(), 0xD2) = U16(STREAM(), 4);
 		uint8_t *blk = PTR(CTX(), 0x74);
-		FX_HELD(guard(blk, 0x10);)
 		U32(blk, 0) = 0;
 		U32(blk, 4) = 0;
 		U32(blk, 0) = U32(CTX(), 0x74) + 0xEC;
@@ -160,10 +154,6 @@ namespace earthquake
 		earthquake::g_eq.vm[0x06F] = earthquake::op_06F_OffscreenStageGround;
 		earthquake::g_eq.vm[0x070] = earthquake::op_070_RideWaterColumn;
 		register_port(0xA525B0, (void *)earthquake::SequenceTask, "MAG233 Earthquake SequenceTick", 233);
-		FX_HELD(register_mag233_earthquake_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag233_earthquake_held.inc"
-#endif

@@ -50,10 +50,6 @@ namespace renzo335
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag335_renzokuken_norg_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo335
@@ -144,10 +140,6 @@ namespace renzo335
 		renzo335::RegisterCommon();
 		register_port(renzo335::ORIG_BossEmitter, (void *)renzo335::BossEmitterTask, "335 BossEmitter", 335);
 		register_port(renzo335::ORIG_Ring, (void *)renzo335::RingTask, "335 Ring", 335);
-		FX_HELD(register_mag335_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag335_renzokuken_norg_held.inc"
-#endif

@@ -231,17 +231,12 @@ namespace death
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag014_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace death
 {
-
 	uint32_t __cdecl d_8B6C20(void)
 	{
 		x::MAG_007_sub_8DCC00(MEM<uint32_t>(us(0x2742824)), 0x870);
@@ -560,7 +555,6 @@ namespace death
 		S32(node, 0x88) = py;
 		if (!(f & 4))
 		{
-			FX_HELD(held_note_reaper(node);)
 			d_8B7030(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -892,7 +886,6 @@ namespace death
 		states[2] = us(0x8BDE70);
 		callp(states[S8(node, 0x29)], node);
 		SparkMove(node);
-		FX_HELD(held_note_spark(node);)
 		SparkDraw(node);
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -1073,7 +1066,6 @@ namespace death
 	uint32_t __cdecl d_8B6A40(uint32_t a1)
 	{
 		g_mod = &MOD_014;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -1192,7 +1184,6 @@ namespace death
 		case 1:
 			d_8BD330();
 			d_8BA9E0();
-			FX_HELD(held_note_system(sys);)
 			d_8BA8A0();
 			d_8B84C0();
 			sys = U32(us(0x2742874), 0);
@@ -2737,10 +2728,6 @@ namespace death
 			act::register_module_port(14, p->addr, p->port, p->name);
 		for (const act::death::ModPort *p = act::death::PORTS; p->addr; p++)
 			act::register_module_port(14, p->addr, p->port, p->name);
-		FX_HELD(register_mag014_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag014_death_held.inc"
-#endif

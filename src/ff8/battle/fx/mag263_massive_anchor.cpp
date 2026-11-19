@@ -27,10 +27,6 @@ namespace anchor263
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag263_massive_anchor_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -68,8 +64,8 @@ namespace anchor263
 	static const uint32_t COMDATA = 0x1877DAC;
 
 	template<typename F> static inline F fx(uint32_t a) { return (F)a; }
-	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
-	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { FX_HELD(if (held_predicting()) return;) fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
+	static inline void xl_BindEntityModelFromComData(void *ent, void *out, uint32_t data) { fx<void (__cdecl *)(void *, void *, uint32_t)>(us(0x5022C0))(ent, out, data); }
+	static inline void xl_QueueChainTransformation(void *ent, int32_t id) { fx<void (__cdecl *)(void *, int32_t)>(us(0x505C00))(ent, id); }
 
 	static inline uint8_t *SlotEntity() { return PTR(SCENE(), 0x60 + 4 * (int32_t)U8(CUR(), 0x1B)); }
 
@@ -84,7 +80,6 @@ namespace anchor263
 
 	static void __cdecl dh_70_PlaceWeaponAtBone()
 	{
-		FX_HELD(if (held_active()) return;)
 		uint8_t *w = PTR(SlotEntity(), 0x78);
 		S16(w, 0x1C) = S16(CUR(), 0x94);
 		S16(w, 0x1E) = S16(CUR(), 0x96);
@@ -111,10 +106,6 @@ namespace anchor263
 		init_clone(anchor263::g_c, nullptr, 0);
 		anchor263::apply_slots(anchor263::g_c);
 		register_port(0x945E80, (void *)anchor263::SequenceTask, "MAG263 Massive Anchor SequenceTick", 263);
-		FX_HELD(register_mag263_massive_anchor_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag263_massive_anchor_held.inc"
-#endif

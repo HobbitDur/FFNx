@@ -567,10 +567,6 @@ namespace zombie114
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag114_zombie_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace zombie114
@@ -589,14 +585,12 @@ namespace zombie114
 		arg.scale[1] = reach;
 		arg.depth = (int32_t)(0xFFFFF800u - (uint32_t)(int32_t)*(const int16_t *)(t->entity + 0x26)) >> 3;
 		arg.morph = TexBase() + 0x1530;
-		FX_HELD(held_note_play(t, &arg);)
 		prim::play((prim::Layout *)t->mist, MistPart, (int)&arg, 0);
 		const int32_t e = t->counter - 0x1E;
 		if ((uint32_t)e < 0x1E && !(Ctx()->flags & 2))
 		{
 			OverlayArg o;
 			OverlayParams(e, arg.scale[0], &o);
-			FX_HELD(held_note_overlay(t, &o, e, arg.scale[0]);)
 			DrawOverlay(t->entity, &o);
 		}
 		if (t->counter == 0)
@@ -618,7 +612,6 @@ namespace zombie114
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1600;
@@ -676,10 +669,6 @@ namespace zombie114
 	{
 		register_port(zombie114::ORIG_RootTask, (void *)zombie114::RootTask, "Z114 RootTask", 114);
 		register_port(zombie114::ORIG_TargetTask, (void *)zombie114::TargetTask, "Z114 TargetTask", 114);
-		FX_HELD(register_mag114_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag114_zombie_held.inc"
-#endif

@@ -201,10 +201,6 @@ namespace eerie130
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag130_eerie_sound_wave_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace eerie130
@@ -236,7 +232,6 @@ namespace eerie130
 		arg.m.t[2] = p->pos[2];
 		arg.m.m[2][2] = Stack().m22;
 		arg.m.pad = 0;
-		FX_HELD(held_note_play(PLAY_IMPACT, n, (prim::Layout *)p->layout, &arg.m);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		Stack().m22 = arg.m.m[2][2];
 		arg.depth = -0x80;
@@ -276,7 +271,6 @@ namespace eerie130
 		arg.m.t[0] = pos[0];
 		arg.m.t[1] = pos[1];
 		arg.m.t[2] = pos[2];
-		FX_HELD(held_note_play(PLAY_WAVE, n, (prim::Layout *)w->layout, &arg.m);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		Stack().m22 = arg.m.m[2][0];
 		arg.depth = 0;
@@ -297,7 +291,6 @@ namespace eerie130
 		arg.m.t[0] = pos[0];
 		arg.m.t[1] = pos[1];
 		arg.m.t[2] = pos[2];
-		FX_HELD(held_note_play(PLAY_EMITTER, n, (prim::Layout *)e->layout, &arg.m);)
 		ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 		Stack().m22 = arg.m.m[1][1];
 		arg.depth = -0x80;
@@ -331,7 +324,6 @@ namespace eerie130
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		Stack().m22 = 0;
 		if (m->arena)
 		{
@@ -397,10 +389,6 @@ namespace eerie130
 		register_port(eerie130::ORIG_EmitterTask, (void *)eerie130::EmitterTask, "130 EmitterTask", 130);
 		register_port(eerie130::ORIG_WaveTask, (void *)eerie130::WaveTask, "130 WaveTask", 130);
 		register_port(eerie130::ORIG_ImpactTask, (void *)eerie130::ImpactTask, "130 ImpactTask", 130);
-		FX_HELD(register_mag130_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag130_eerie_sound_wave_held.inc"
-#endif

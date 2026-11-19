@@ -148,10 +148,6 @@ namespace m338
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag338_moomba_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace m338
@@ -374,7 +370,6 @@ namespace m338
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (node->parity)
 		{
 			PacketCursor() = (uint32_t)(ModelBuffer() + MB_ARENA0);
@@ -493,7 +488,6 @@ namespace m338
 	static uint32_t __cdecl PrimTask(TaskNode *n)
 	{
 		PrimNode *p = (PrimNode *)n;
-		FX_HELD(held_note_prim(p);)
 		uint8_t ctx[0x28];
 		PrimCtx(p, ctx);
 		int r = prim::play((prim::Layout *)p->layout, (prim::Callback)us(CB_PrimObject), (int)ctx, 0);
@@ -505,12 +499,10 @@ namespace m338
 	static uint32_t __cdecl DebrisTask(TaskNode *n)
 	{
 		DebrisNode *d = (DebrisNode *)n;
-		FX_HELD(held_note_debris(d);)
 		DebrisDraw(d->pos, DebrisAngle(d->rot[0]), DebrisAngle(d->rot[1]), d->size);
 		d->life--;
 		if (d->life == 0)
 		{
-			FX_HELD(held_note_debris_ended();)
 			return TASK_END;
 		}
 		d->rot[0] = (uint8_t)(d->rot[0] + d->spin[0]);
@@ -533,8 +525,6 @@ namespace m338
 		CreatureNode *cn = (CreatureNode *)n;
 		uint8_t *e = cn->model;
 		Mat4x3 &root = Root(cn);
-
-		FX_HELD(held_note_creature(cn);)
 
 		{
 			int16_t c = cn->counter;
@@ -618,7 +608,6 @@ namespace m338
 				root.t[2] = mul32(a, 4000) / 1024 + W(6);
 				int32_t co = x::Cos((int32_t)q7);
 				int32_t fade = 0x1000 - x::Cos((0x1000 - co) >> 2);
-				FX_HELD(held_note_ring(root, (int32_t)(c << 8), fade);)
 				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(c << 8), fade, us(MODEL_Ring));
 			}
 		}
@@ -683,7 +672,6 @@ namespace m338
 				uint32_t q = ((ee << 12) / 12) >> 2;
 				int32_t s = ComputeSin((int32_t)q) >> 2;
 				int32_t fade = 0x1000 - ComputeSin(s);
-				FX_HELD(held_note_ring(root, (int32_t)(ee << 8), fade);)
 				DrawRing(root.t[0], root.t[1], root.t[2], (int32_t)(ee << 8), fade, us(MODEL_Ring));
 			}
 		}
@@ -691,9 +679,7 @@ namespace m338
 		if ((uint16_t)cn->counter < 0x44)
 		{
 			x::AdvanceAnim(e);
-			FX_HELD(held_note_model(cn);)
 			PacketCursor() = x::DrawModel(e, ModelBuffer() + MB_SCRATCH, PacketCursor(), PacketCursor2());
-			FX_HELD(held_note_built(cn);)
 		}
 
 		x::RotY(0, (void *)us(0x1D99AB0));
@@ -701,7 +687,6 @@ namespace m338
 		var<int32_t>(us(0x1D99AC8)) = root.t[1];
 		var<int32_t>(us(0x1D99ACC)) = root.t[2];
 
-		FX_HELD(held_note_sparks();)
 		SparksDraw(Sparks(ModelBuffer()));
 		SparksMove(Sparks(ModelBuffer()));
 
@@ -727,10 +712,6 @@ namespace m338
 		register_port(m338::ORIG_CreatureTask, (void *)m338::CreatureTask, "M338 CreatureTask", 338);
 		register_port(m338::ORIG_PrimTask, (void *)m338::PrimTask, "M338 PrimTask", 338);
 		register_port(m338::ORIG_DebrisTask, (void *)m338::DebrisTask, "M338 DebrisTask", 338);
-		FX_HELD(register_mag338_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag338_moomba_held.inc"
-#endif

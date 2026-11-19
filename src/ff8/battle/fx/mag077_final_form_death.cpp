@@ -27,10 +27,6 @@ namespace final_form_death
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag077_final_form_death_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -75,9 +71,9 @@ namespace final_form_death
 	static inline void xl_RotTrans(const void *v, void *out, void *flag) { x::f<void (__cdecl *)(const void *, void *, void *)>(us(0x56C850))(v, out, flag); }
 	static inline int32_t xl_RotTransPers(const void *v, void *sxy, void *p, void *flag) { return x::f<int32_t (__cdecl *)(const void *, void *, void *, void *)>(us(0x56C880))(v, sxy, p, flag); }
 	static inline void xl_ProjectVertexGroup_50FD40(uint8_t **stream, uint8_t **out) { x::f<void (__cdecl *)(uint8_t **, uint8_t **)>(us(0x50FD40))(stream, out); }
-	static inline void xl_PreUpdateEntityStatusFlag(void *ent, int32_t fl) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *, int32_t)>(us(0x509CD0))(ent, fl); }
-	static inline void xl_UpdateEntityAnimation(void *ent) { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)(void *)>(us(0x509C80))(ent); }
-	static inline void xl_LinkedToSummonGF() { FX_HELD(if (held_predicting()) return;) x::f<void (__cdecl *)()>(0x47DF60)(); }
+	static inline void xl_PreUpdateEntityStatusFlag(void *ent, int32_t fl) { x::f<void (__cdecl *)(void *, int32_t)>(us(0x509CD0))(ent, fl); }
+	static inline void xl_UpdateEntityAnimation(void *ent) { x::f<void (__cdecl *)(void *)>(us(0x509C80))(ent); }
+	static inline void xl_LinkedToSummonGF() { x::f<void (__cdecl *)()>(us(0x47DF60))(); }
 
 	static inline int32_t div3(int32_t v)
 	{
@@ -97,7 +93,6 @@ namespace final_form_death
 		uint8_t *ent = SlotEntity();
 		uint8_t *hdr = (U8(RT(), 0x4B) & 0x80) ? PTR(ent, 0x78) : ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(if (held_predicting()) held_next_pose(hdr, hdr == ent + 0x60 ? ent + 0x6C : hdr + 0xC);)
 		uint8_t *m = xl_JointMatrix_B66B80(hdr, S16(STREAM(), 2), 0x1000, ent + 0x40);
 		x::SetRotMatrix(m);
 		x::SetTransVector(m);
@@ -912,7 +907,6 @@ namespace final_form_death
 
 	static void DrawPieces_B34950()
 	{
-		FX_HELD(if (held_active()) { DrawPiecesHeld(); return; })
 		uint8_t *st = PTR(WS(), 0x84);
 		uint8_t *pk = PTR(CTX(), 0x7C);
 		uint8_t *p = st + 0x20;
@@ -996,7 +990,6 @@ namespace final_form_death
 
 	static void Dots_B341D0()
 	{
-		FX_HELD(if (held_active()) { DotsHeld(); return; })
 		uint8_t *d = PTR(WS(), 0x8C);
 		uint8_t *desc = PTR(WS(), 0x90);
 		uint8_t *pk = PTR(CTX(), 0xD8);
@@ -1039,7 +1032,6 @@ namespace final_form_death
 
 	static void __cdecl dh_22_EntityDisintegrate()
 	{
-		FX_HELD(if (held_active()) { dh_22_EntityDisintegrateHeld(); return; })
 		if (U32(CUR(), 0xBC) == 0)
 		{
 			uint8_t *desc = PTR(CUR(), 0xB8);
@@ -1068,7 +1060,7 @@ namespace final_form_death
 			const int32_t nb = add32(npoly, 4) & ~3;
 			PTR(CUR(), 0xC4) = blob::ArenaAlloc(nb);
 			uint8_t *sb = PTR(CUR(), 0xC4);
-			if (nb > 0) memset_code(uint32_t(sb), 0, 4 * (size_t)((uint32_t)(nb + 3) >> 2));
+			if (nb > 0) fill_bytes(sb, 0, 4 * (size_t)((uint32_t)(nb + 3) >> 2));
 			uint8_t *p = st + 0x20;
 			for (int32_t k = (int32_t)U16(st, 2) + 1; k > 0; k--, p += 0x44) U32(p, 0) = 0;
 			if (U16(desc, 8) == 5)
@@ -1188,10 +1180,6 @@ namespace final_form_death
 		init_clone(final_form_death::g_c, nullptr, 0);
 		final_form_death::apply_slots(final_form_death::g_c);
 		register_port(0xB30990, (void *)final_form_death::SequenceTask, "MAG077 Final Form Death SequenceTick", 77);
-		FX_HELD(register_mag077_final_form_death_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag077_final_form_death_held.inc"
-#endif

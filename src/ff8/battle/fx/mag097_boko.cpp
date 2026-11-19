@@ -16,10 +16,6 @@
 
 #include "act_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag097_boko_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -411,7 +407,6 @@ namespace act
 	uint32_t __cdecl b_729BD0(uint32_t a1)
 	{
 		set_mod_by_code(U32(a1, 8));
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -6148,10 +6143,6 @@ namespace boko
 		reg(98, PORTS_098);
 		reg(99, PORTS_099);
 		reg(100, PORTS_100);
-		FX_HELD(register_mag097_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag097_boko_held.inc"
-#endif

@@ -182,13 +182,8 @@ namespace o326
 #pragma pack(pop)
 	static_assert(sizeof(Node24) == 0x24, "sub-queue node is 0x24 bytes");
 	static_assert(sizeof(Rec) == 0x18, "sprite record is 0x18 bytes");
-
 }
 }
-
-#ifdef FF8_FX_HELD
-#include "mag326_odin_reverse_held.h"
-#endif
 
 namespace ff8fx
 {
@@ -220,7 +215,6 @@ namespace o326
 
 	static uint32_t __cdecl SequenceTick(TaskNode *tn)
 	{
-		FX_HELD(held_note_master();)
 		int left = ExecuteTaskQueue(&SubQueue());
 		((Node24 *)tn)->c++;
 		return left ? 0 : TASK_END;
@@ -544,7 +538,6 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		GridDraw(n, 0x100, 0x20, c, c * 2, GridAFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x36 ? TASK_END : 0;
@@ -555,7 +548,6 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		GridDraw(n, 0x200, 0x10, c * 2, c * 2, GridBFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x36 ? TASK_END : 0;
@@ -567,7 +559,6 @@ namespace o326
 		int32_t c = n->c;
 		int32_t u = GridCU(c);
 		GridDraw(n, 0x100, 0x20, u, -u, GridCFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x3C ? TASK_END : 0;
@@ -578,7 +569,6 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		GridDraw(n, 0x200, 0x10, c * 2, shl32(-c, 1), 0x40);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1E ? TASK_END : 0;
@@ -703,7 +693,6 @@ namespace o326
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 1)) continue;
 			DebrisDrawOne(h, &r->x, r->size);
-			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->y = (int16_t)(r->y + r->vy);
 			r->vy = (int16_t)(r->vy + (int16_t)(r->vy >> 5));
@@ -713,7 +702,6 @@ namespace o326
 				continue;
 			}
 			r->alive = 0;
-			FX_HELD(MemoDied(pm);)
 			int j = FreeRecord(PoolB());
 			if (j < 0) continue;
 			Rec *b = RecOf(PoolB(), j);
@@ -731,13 +719,11 @@ namespace o326
 			Rec *r = RecOf(PoolB(), i);
 			if (!(r->alive & 1)) continue;
 			SplashDrawOne(h, s, r);
-			FX_HELD(PoolMemo *pm = MemoRecord(1, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 			}
 			else count++;
 		}
@@ -832,7 +818,6 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		GlowDraw(&Frame(), n, n->c);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1A ? TASK_END : 0;
@@ -872,7 +857,6 @@ namespace o326
 			return 0;
 		}
 		StreakDraw(n, n->p10);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->p10 = (int16_t)(n->p10 + n->s1E);
 		n->c++;
@@ -905,7 +889,6 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		WallDraw(n, n->s20, n->p14);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->p14 = (int16_t)(n->p14 + n->s22);
 		n->s20 = (int16_t)(n->s20 + (int16_t)((int32_t)n->s1E / 4));
@@ -941,7 +924,6 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		ShockDraw(n, n->s1C);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1281,7 +1263,6 @@ namespace o326
 	static void Draw(uint8_t *E)
 	{
 		DrawModel(E, &Frame(), Scratch());
-		FX_HELD(held_note_creature(E);)
 	}
 
 	static uint32_t __cdecl CreatureTask(TaskNode *tn)
@@ -1302,7 +1283,6 @@ namespace o326
 			LinkTask(us(ORIG_BladeTask));
 			var<uint32_t>(us(0x24F12E4)) = 7;
 		}
-		FX_HELD(held_note_slice_clear();)
 		int32_t c = n->c;
 		if (c < 12)
 		{
@@ -1396,7 +1376,6 @@ namespace o326
 			else if (c < 1) goto draw;
 			SliceADraw(E, c * 8 - 8, &Frame(), Scratch());
 			n->s20 = 0x80;
-			FX_HELD(held_note_slice(false, c, 0x80, E);)
 			goto end;
 		}
 		if ((c -= 0x1A) < 0x36)
@@ -1417,7 +1396,6 @@ namespace o326
 				else CasterFlags(true);
 			}
 			SliceBDraw(E, c, n->s20, &Frame(), Scratch(), true, 0);
-			FX_HELD(held_note_slice(true, c, n->s20, E);)
 		}
 		goto end;
 
@@ -1434,7 +1412,6 @@ namespace o326
 	end:
 		if (Paused()) return 0;
 		n->c++;
-		FX_HELD(held_note_creature_next(n);)
 		if (n->c < 0x100) return 0;
 		DoneFlags() |= 1;
 		return TASK_END;
@@ -1497,7 +1474,6 @@ namespace o326
 		int32_t otz = FlashDepth();
 		int32_t level = FlashLevel(n->c, n->e, n->s1C);
 		if (level >= 0) ScreenTile(level, level, level, otz);
-		FX_HELD(held_note_flash(n, level, otz);)
 		if (Paused()) return 0;
 		n->c++;
 		return level < 0 ? TASK_END : 0;
@@ -1560,7 +1536,6 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		MorphDraw(n, MorphArg(c), c >= 6, mul32(c - 6, 682), Scratch());
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0xC ? TASK_END : 0;
@@ -1594,13 +1569,11 @@ namespace o326
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 2)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_DRAG4, r);
@@ -1675,7 +1648,6 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		RingDraw(&Frame(), n, n->s1C, n->s20, c >= 6, RingAFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s22;
 		n->s20 = (int16_t)(n->s20 + v);
@@ -1689,7 +1661,6 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int16_t c = n->c;
 		RingDraw(&Frame(), n, n->s1C, n->s20, c >= 4, RingBFade(c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t v = n->s1E;
 		n->s1C = (int16_t)(n->s1C + v);
@@ -1712,13 +1683,11 @@ namespace o326
 			Rec *r = RecOf(PoolB(), i);
 			if (!(r->alive & 2)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(1, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_XZ_DRAG8, r);
@@ -1775,19 +1744,16 @@ namespace o326
 		ComposeAffineTransform(&Frame(), (const Mat4x3 *)(s + 8), (Mat4x3 *)(s + 8));
 		GteSetLightMatrix(s + 8);
 		GteSetBackColorFromTrans(s + 8);
-		FX_HELD(held_note_mist(n, s);)
 		for (int i = 0; i < 150; i++)
 		{
 			Rec *r = RecOf(PoolA(), i);
 			if (!(r->alive & 4)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(0, i, n, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(INT_GROW5_DRAG8, r);
@@ -1879,13 +1845,11 @@ namespace o326
 			Rec *r = RecOf(PoolC(), i);
 			if (!(r->alive & mask)) continue;
 			LitSprite(h, &r->x, r->size, r->age);
-			FX_HELD(PoolMemo *pm = MemoRecord(2, i, owner, r);)
 			if (Paused()) continue;
 			r->age++;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			Integrate(kind, r);
@@ -2059,7 +2023,6 @@ namespace o326
 	{
 		if (!(var<uint8_t>(us(0x24F12E4)) & 4)) return TASK_END;
 		Node24 *n = (Node24 *)tn;
-		FX_HELD(held_note_blade(n);)
 		BladeDraw(&Frame(), &CreatureMat(), &BoneCopy(), BladeP0(), BladeP1(), n->c > 0);
 		if (Paused()) return 0;
 		uint8_t *sk = **(uint8_t ***)(us(0x24F12CC));
@@ -2154,12 +2117,10 @@ namespace o326
 			var<uint32_t>(us(HIST_B) + 8 * cnt + 4) = src[1];
 			if (--j < 0) j = 9;
 		}
-		FX_HELD(TrailMemo *m = held_trail_put(n);)
 		if (cnt > 1)
 		{
 			SplineRails(cnt, 32, 31);
 			TrailDraw(&Frame(), us(SPLINE_A), us(SPLINE_B), s);
-			FX_HELD(held_trail_drawn(m);)
 		}
 		FieldFree(0x40);
 		if (Paused()) return 0;
@@ -2228,7 +2189,6 @@ namespace o326
 		rec[0] = 1;
 		ff8fx::copy<(0x20)>(rec + 1, &Model2Mat());
 		Mat4x3 save = Model2Mat();
-		FX_HELD(held_note_ghost(n, k, save);)
 		GhostEchoes(E, k, &Frame(), Scratch());
 		Model2Mat() = save;
 		var<uint32_t>(us(0x24F0F10)) = 0x808080;
@@ -2272,7 +2232,6 @@ namespace o326
 	{
 		Node24 *n = (Node24 *)tn;
 		SwordDraw(&Frame(), &Model2Mat(), n->c > 0);
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1E ? TASK_END : 0;
@@ -2304,10 +2263,8 @@ namespace o326
 			DepthCue(w, 0x80, 0x80, 0x80, E + 0x28);
 		}
 		DrawModel(E, &Frame(), Scratch());
-		FX_HELD(held_note_fade(n, E);)
 		if (Paused()) return 0;
 		n->c++;
-		FX_HELD(held_note_fade_next(E, c);)
 		return n->c >= 0x1B ? TASK_END : 0;
 	}
 
@@ -2334,7 +2291,6 @@ namespace o326
 		uint8_t L[4];
 		TintColor(n->c, L);
 		ScreenTile(L[0], L[1], L[2], 0x1000);
-		FX_HELD(held_note_tint(n, L);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0x1B ? TASK_END : 0;
@@ -2414,7 +2370,6 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		BurstDraw(n, c, false, shl32(c, 4), BurstFade(false, c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0xC ? TASK_END : 0;
@@ -2425,7 +2380,6 @@ namespace o326
 		Node24 *n = (Node24 *)tn;
 		int32_t c = n->c;
 		BurstDraw(n, c, true, shl32(c, 4), BurstFade(true, c));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		n->c++;
 		return n->c >= 0xB ? TASK_END : 0;
@@ -2487,12 +2441,10 @@ namespace o326
 			Rec *r = RecOf(pool, i);
 			if (!(mask & r->alive)) continue;
 			LitSprite(h, &r->x, r->size, r->age, true);
-			FX_HELD(PoolMemo *pm = MemoRecord(2, i, n, r);)
 			if (Paused()) continue;
 			if (*(int16_t *)(h + 0x28) < 0)
 			{
 				r->alive = 0;
-				FX_HELD(MemoDied(pm);)
 				continue;
 			}
 			r->age++;
@@ -2547,7 +2499,6 @@ namespace o326
 			return 0;
 		}
 		SlashDraw(n, n->s1C, SlashFade(n->c, n->s20, n->p16));
-		FX_HELD(MemoNode(n);)
 		if (Paused()) return 0;
 		int16_t cc = n->c;
 		if (cc < shrink)
@@ -2606,10 +2557,6 @@ namespace o326
 		register_port(o326::ORIG_SlashBTask, (void *)o326::SlashBTask, "O326 SlashBTask", 326);
 		register_port(o326::ORIG_SlashCTask, (void *)o326::SlashCTask, "O326 SlashCTask", 326);
 		register_port(o326::ORIG_SlashDTask, (void *)o326::SlashDTask, "O326 SlashDTask", 326);
-		FX_HELD(register_mag326_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag326_odin_reverse_held.inc"
-#endif

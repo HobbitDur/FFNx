@@ -149,15 +149,10 @@ namespace g069
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag069_griever_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace g069
 {
-
 	static int32_t Lcg()
 	{
 		uint32_t s = (LcgSeed() * 125 + 14) & 0x7FFF;
@@ -595,7 +590,6 @@ namespace g069
 	static uint32_t __cdecl SequenceTask(TaskNode *n)
 	{
 		MasterNode *node = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (node->parity)
 		{
 			PacketCursor() = (uint32_t)(ModelBuffer() + MB_ARENA_A);
@@ -646,8 +640,6 @@ namespace g069
 		uint8_t *MB = ModelBuffer();
 		int32_t c = node->counter;
 
-		FX_HELD(held_note_timeline(node, c);)
-
 		if ((uint32_t)c < 0x5C)
 		{
 			if (c == 0) w::Decode(us(0x14D0C2C), node->prim, 0x8D4);
@@ -661,7 +653,6 @@ namespace g069
 			ctx.bias = -128;
 			ctx.scratch = (uint32_t)(MB + MB_SCRATCH);
 			ctx.scroll = (int16_t)(c << 4);
-			FX_HELD(held_note_prim(ctx);)
 			prim::play((prim::Layout *)node->prim, (prim::Callback)us(CB_PrimObject), (int)&ctx, 0);
 		}
 
@@ -677,7 +668,6 @@ namespace g069
 			else if (d == 0x1E) *(uint16_t *)Attacker() &= 0xFFFB;
 			if (draw)
 			{
-				FX_HELD(held_note_attacker();)
 				w::AttackerDraw(Attacker(), 0, var<uint32_t>(us(0x1D98B3C)));
 				*Attacker() |= 4;
 			}
@@ -690,7 +680,6 @@ namespace g069
 				int32_t q = (int32_t)((v * 28000u) / 50u);
 				if (q > 6000) q = 6000;
 				int32_t thr = (q * q) >> 12;
-				FX_HELD(held_note_models(thr);)
 				uint8_t *r = ShatterDraw(MODEL_1(), MB + MB_FACE_DIST, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x4068, 0x10);
 				ShatterDraw(MODEL_2(), r, thr, 0x3F, MB + MB_SCRATCH, RenderList() + 0x44, 0);
 				*MODEL_1_FLAGS() &= 0xFD;
@@ -705,17 +694,14 @@ namespace g069
 
 		if (node->counter < 0x30)
 		{
-			FX_HELD(held_note_sparks();)
 			SparksDraw(MB + MB_SPARKS);
 		}
-		FX_HELD(held_note_shards();)
 		ShardsDraw(MB + MB_SHARDS);
 
 		{
 			uint32_t t = (uint32_t)((int32_t)node->counter - 0x5E);
 			if (t < 0x20)
 			{
-				FX_HELD(held_note_fade((int32_t)t);)
 				PacketCursor() = w::Tile(0xFF, 0xFF, 0xFF, FadeLevel((int32_t)t), PacketCursor());
 			}
 		}
@@ -779,7 +765,6 @@ namespace g069
 
 		if (node->counter >= 0x7E) return TASK_END;
 		node->counter = (int16_t)(node->counter + 1);
-		FX_HELD(held_note_advanced();)
 		return 0;
 	}
 }
@@ -788,10 +773,6 @@ namespace g069
 	{
 		register_port(g069::ORIG_SequenceTask, (void *)g069::SequenceTask, "G069 SequenceTask", 69);
 		register_port(g069::ORIG_TimelineTask, (void *)g069::TimelineTask, "G069 TimelineTask", 69);
-		FX_HELD(register_mag069_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag069_griever_held.inc"
-#endif

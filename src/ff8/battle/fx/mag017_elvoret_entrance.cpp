@@ -187,10 +187,6 @@ namespace elvoret017
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag017_elvoret_entrance_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace elvoret017
@@ -198,7 +194,6 @@ namespace elvoret017
 	static uint32_t __cdecl ParticleTask(TaskNode *n)
 	{
 		ParticleNode *p = (ParticleNode *)n;
-		FX_HELD(held_note_particle(p);)
 		ParticleDraw(p);
 		ParticleStep(p);
 		return p->counter < 0xD ? 0 : TASK_END;
@@ -285,7 +280,6 @@ namespace elvoret017
 			arg.pos[3] = 0;
 			arg.flags = us(PART_Flags);
 			arg.morph = TexBase() + 0x1B9C;
-			FX_HELD(held_note_play(m, &arg);)
 			prim::play((prim::Layout *)m->layout, PartCallback, (int)&arg, 0);
 		}
 		if (m->counter == 0x76) ReleaseVoiceSlot(m->voice);
@@ -298,7 +292,6 @@ namespace elvoret017
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + 0x1BA4;
@@ -350,10 +343,6 @@ namespace elvoret017
 		register_port(elvoret017::ORIG_RootTask, (void *)elvoret017::RootTask, "017 RootTask", 17);
 		register_port(elvoret017::ORIG_MainTask, (void *)elvoret017::MainTask, "017 MainTask", 17);
 		register_port(elvoret017::ORIG_ParticleTask, (void *)elvoret017::ParticleTask, "017 ParticleTask", 17);
-		FX_HELD(register_mag017_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag017_elvoret_entrance_held.inc"
-#endif

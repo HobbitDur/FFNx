@@ -154,15 +154,10 @@ namespace sleep145
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag145_sleep_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace sleep145
 {
-
 	static uint32_t GlowPrims(uint32_t hdr, uint32_t ot, int32_t shift, uint32_t cursor)
 	{
 		uint32_t pk = cursor;
@@ -609,7 +604,6 @@ namespace sleep145
 	static void ModelRender(uint32_t hdr, uint32_t entity)
 	{
 		const uint32_t anim = entity + 0x60;
-		FX_HELD(held_model_pose(entity);)
 		if (!(U8(entity, 0) & 0x20))
 			FrameCursor() = DrawShadow(entity, var<uint32_t>(us(0x1D8E04C)) + 0x4064, 0x10, FrameCursor());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(entity + 0x40), (Mat4x3 *)(hdr + 0xBC));
@@ -681,7 +675,6 @@ namespace sleep145
 		if (c < 8)
 		{
 			int32_t fade = shl32(8 - c, 9);
-			FX_HELD(fade = held_ramp(fade, c, -0x200, 0x1000);)
 			H32(h, 0x1C) = 0xC0;
 			H32(h, 0xC) = (uint32_t)fade;
 		}
@@ -761,7 +754,6 @@ namespace sleep145
 	{
 		MainNode *p = (MainNode *)n;
 		Trail *trail = MainTrail(p->action);
-		FX_HELD(held_note_draw(us(ORIG_Main), p, trail);)
 		MainFrame f;
 		MainDraw(p, trail, &f);
 		if (DrawOnly()) return 0;
@@ -829,7 +821,6 @@ namespace sleep145
 		if (c >= 0xE)
 		{
 			int32_t fade = shl32(c - 0xE, 10);
-			FX_HELD(fade = held_ramp(fade, c, 0x400, -0x3800);)
 			H32(h, 0x1C) = 0xC0;
 			H32(h, 0xC) = (uint32_t)fade;
 		}
@@ -862,7 +853,6 @@ namespace sleep145
 	{
 		BubbleNode *p = (BubbleNode *)n;
 		Trail *trail = BubbleTrail(p->action, p->index);
-		FX_HELD(held_note_draw(us(ORIG_Bubble), p, trail);)
 		int16_t drawn[3];
 		BubbleDraw(p, trail, drawn);
 		if (DrawOnly()) return 0;
@@ -944,7 +934,6 @@ namespace sleep145
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_Particle), p, nullptr);)
 		ParticleDraw(p);
 		if (DrawOnly()) return 0;
 		ParticleUpdate(p);
@@ -969,7 +958,6 @@ namespace sleep145
 
 	static void ZzzTick()
 	{
-		FX_HELD(held_note_zzz();)
 		uint8_t *h = ZzzBegin();
 		for (Zzz *z = (Zzz *)us(ZZZ); P(z) < us(ZZZ_END); z++)
 		{
@@ -985,7 +973,6 @@ namespace sleep145
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		PacketCursor() = us(ARENA_ODD);
 		if (!(r->counter & 1)) PacketCursor() = us(ARENA_EVEN);
 		int alive = ExecuteTaskQueue(EffectQueue());
@@ -1110,10 +1097,6 @@ namespace sleep145
 		register_port(sleep145::ORIG_Main, (void *)sleep145::MainTask, "S145 MainTask", 145);
 		register_port(sleep145::ORIG_Bubble, (void *)sleep145::BubbleTask, "S145 BubbleTask", 145);
 		register_port(sleep145::ORIG_Particle, (void *)sleep145::ParticleTask, "S145 ParticleTask", 145);
-		FX_HELD(register_mag145_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag145_sleep_held.inc"
-#endif

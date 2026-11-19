@@ -257,10 +257,6 @@ namespace micromissiles299
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag299_micro_missiles_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace micromissiles299
@@ -343,7 +339,6 @@ namespace micromissiles299
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
@@ -363,11 +358,9 @@ namespace micromissiles299
 		HitNode *h = (HitNode *)n;
 		PrimArg arg;
 		HitArg(h, &arg);
-		FX_HELD(held_note_hit(h);)
 		const int left = prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0);
 		if (h->counter < 0xE)
 		{
-			FX_HELD(held_note_flash(h);)
 			FlashDraw(&arg, h->counter);
 			h->counter++;
 			return 0;
@@ -383,7 +376,6 @@ namespace micromissiles299
 	static uint32_t __cdecl MissileTask(TaskNode *n)
 	{
 		MissileNode *m = (MissileNode *)n;
-		FX_HELD(held_note_missile(m);)
 		uint8_t *h = AllocHeader(0xB4);
 		int32_t s = m->t - 0x990;
 		for (int16_t frame = 0xB; ; frame--)
@@ -496,7 +488,6 @@ namespace micromissiles299
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *mn = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (mn->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -539,10 +530,6 @@ namespace micromissiles299
 		register_port(micromissiles299::ORIG_MissileTask, (void *)micromissiles299::MissileTask, "299 MissileTask", 299);
 		register_port(micromissiles299::ORIG_HitTask, (void *)micromissiles299::HitTask, "299 HitTask", 299);
 		register_port(micromissiles299::ORIG_SparkTask, (void *)micromissiles299::SparkTask, "299 SparkTask", 299);
-		FX_HELD(register_mag299_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag299_micro_missiles_quistis_held.inc"
-#endif

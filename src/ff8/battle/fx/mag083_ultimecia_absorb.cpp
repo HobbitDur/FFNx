@@ -481,21 +481,15 @@ namespace u083
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag083_ultimecia_absorb_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace u083
 {
-
 	uint32_t __cdecl ud_797840(uint32_t a1)
 	{
 		g_mod = &MOD_083;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -712,7 +706,6 @@ namespace u083
 		case 1:
 			a_743190();
 			a_736C00();
-			FX_HELD(held_note_system(sys);)
 			ud_79AD10();
 			ud_798AD0();
 			sys = U32(us(0x25CFA50), 0);
@@ -1801,7 +1794,6 @@ namespace u083
 		callp(states[S8(node, 0x29)], node);
 		if ((U8(node, 0x26) & 8) != 0)
 		{
-			FX_HELD(held_note_absorb(node);)
 			ud_79DA20(node + 0x6C);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -1830,7 +1822,6 @@ namespace u083
 		x::GTE_MVMVA_RotV0_Tr();
 		x::GTE_ReadMAC123(m + 0x34);
 		ud_79DB00(U32(ent, 0x64), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, m);
-		FX_HELD(held_note_absorb_body();)
 		const uint32_t weapon = U32(ent, 0x78);
 		if (weapon != 0)
 			ud_79DB00(U32(weapon, 4), MEM<uint32_t>(us(0x1D8E04C)) + 0x44, 4, m);
@@ -2072,7 +2063,6 @@ namespace u083
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + U16(node, 0x126));
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			FX_HELD(held_note_creature(node);)
 			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(0x25CF3F8), MEM<uint32_t>(us(PACKET_CURSOR)));
 		}
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -2332,10 +2322,6 @@ namespace u083
 			act::register_module_port(83, p->addr, p->port, p->name);
 		for (const act::u083::ModPort *p = act::u083::PORTS; p->addr; p++)
 			act::register_module_port(83, p->addr, p->port, p->name);
-		FX_HELD(register_mag083_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag083_ultimecia_absorb_held.inc"
-#endif

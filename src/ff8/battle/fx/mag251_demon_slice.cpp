@@ -403,10 +403,6 @@ namespace demon251
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag251_demon_slice_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace demon251
@@ -497,7 +493,6 @@ namespace demon251
 		int alive = 1;
 		if (ms->running)
 		{
-			FX_HELD(held_note_master(n);)
 			g_task_fade = (int16_t)(uint32_t)n;
 			EffectCameraMatrix(&Camera(), OrthoView());
 			alive = ExecuteTaskQueue(QMain());
@@ -552,7 +547,6 @@ namespace demon251
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_FlameTask), p);)
 		FlameDraw(&p->f, p->frame, FLAME_LOOK, PacketCursor());
 		if (Pause() != 0) return 0;
 		if (p->frame == 0)
@@ -584,7 +578,6 @@ namespace demon251
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_SparkTask), p);)
 		FireSparkDraw(&p->s, p->life, SPARK_LOOK, PacketCursor());
 		if (Pause() != 0) return 0;
 		FireSparkMove(&p->s, &p->life, 4, 0x40);
@@ -600,7 +593,6 @@ namespace demon251
 			p->delay--;
 			return 0;
 		}
-		FX_HELD(held_note_draw(us(ORIG_EmberTask), p);)
 		EmberDraw(&p->e, p->frame, us(SEQ_Ember), 3, PacketCursor());
 		if (Pause() != 0) return 0;
 		EmberRise(&p->e, 5, 6);
@@ -777,7 +769,6 @@ namespace demon251
 		ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		g_task_fade = (int16_t)arg->m.t[1];
 		arg->morph = TexBase() + MORPH;
-		FX_HELD(held_note_layout(mn, site, layout, arg, x, y, z);)
 		prim::play((prim::Layout *)layout, PrimCallback, (int)arg, (int)Pause());
 	}
 
@@ -792,7 +783,6 @@ namespace demon251
 	static void FadeTile(int32_t t, int32_t r, int32_t g, int32_t b, int32_t in, int32_t hold, int32_t out)
 	{
 		const int32_t level = FadeLevel(t, in, hold, out);
-		FX_HELD(held_note_tile(t);)
 		PacketCursor() = Tile(r, g, b, level, PacketCursor());
 	}
 
@@ -872,7 +862,6 @@ namespace demon251
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *mn = (MainNode *)n;
-		FX_HELD(held_note_main(mn);)
 		int16_t sp[4];
 		sp[3] = g_spawn_pad;
 		if (mn->counter < 0x71)
@@ -1042,7 +1031,6 @@ namespace demon251
 			angles[2] = 0;
 			angles[1] = 0;
 			angles[3] = 0;
-			FX_HELD(held_note_target(mn, (int32_t)i, off);)
 			DrawEntity212(Target(), angles, off);
 			*Target() |= 4;
 		}
@@ -1240,7 +1228,6 @@ namespace demon251
 		{
 			TrailSplines(t, cnt);
 			TrailEnds(t);
-			FX_HELD(held_note_trail(t);)
 			TrailDraw(t->spl_a, t->spl_b, w);
 		}
 		FieldFree(0x40);
@@ -1264,7 +1251,6 @@ namespace demon251
 		arg.kind = us(KIND_Plain);
 		arg.fade = g_task_fade;
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_task_layout(t, &arg);)
 		const int left = prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, (int)Pause());
 		return left ? 0 : TASK_END;
 	}
@@ -1272,7 +1258,6 @@ namespace demon251
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		FX_HELD(held_note_draw(us(ORIG_SparkleTask), s);)
 		TransformCameraByShadowRotation(s->pos, 0x1000, -0x400);
 		uint8_t *h = AllocHeader(0xB4);
 		*(uint32_t *)h = us(SEQ_Sparkle);
@@ -1302,10 +1287,6 @@ namespace demon251
 		register_port(demon251::ORIG_TrailTask, (void *)demon251::TrailTask, "251 TrailTask", 251);
 		register_port(demon251::ORIG_LayoutTask, (void *)demon251::LayoutTask, "251 LayoutTask", 251);
 		register_port(demon251::ORIG_SparkleTask, (void *)demon251::SparkleTask, "251 SparkleTask", 251);
-		FX_HELD(register_mag251_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag251_demon_slice_held.inc"
-#endif

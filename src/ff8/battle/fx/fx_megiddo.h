@@ -716,10 +716,6 @@ namespace megiddo
 	}
 	}
 
-#ifdef FF8_FX_HELD
-	template<class D> struct MegiddoHeld;
-#endif
-
 	template<class D>
 	struct Megiddo
 	{
@@ -825,7 +821,6 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			EffectPoint(Point());
 			FrameAt(Point(), Frame());
-			FX_HELD(MegiddoHeld<D>::note_director(n);)
 			if (DrawOnly()) return 0;
 			if (n->c == 0)
 			{
@@ -1062,7 +1057,6 @@ namespace megiddo
 		static uint32_t __cdecl GlowTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Glow), n);)
 			GlowDraw(n, Frame(), GlowPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t c = n->c;
@@ -1097,7 +1091,6 @@ namespace megiddo
 		static uint32_t __cdecl SpinTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Spin), n);)
 			SpinDraw(n, Frame(), SpinPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1A;
@@ -1122,7 +1115,6 @@ namespace megiddo
 		static uint32_t __cdecl RingTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Ring), n);)
 			RingDraw(n, Frame(), RingPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1E;
@@ -1231,7 +1223,6 @@ namespace megiddo
 		static uint32_t __cdecl ArcTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Arc), n);)
 			ArcDraw(n, Point(), (const int16_t *)(Bolt(n->e) + 0x38 + 8 * n->w18), ArcPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t s = n->w1A;
@@ -1337,7 +1328,6 @@ namespace megiddo
 			if (k > 1)
 			{
 				SheetCurves(rec, k);
-				FX_HELD(MegiddoHeld<D>::note_sheet(n, rec, k);)
 				SheetDraw(SheetColour(n->c), rec, blk);
 			}
 			FieldFree(0x40);
@@ -1475,7 +1465,6 @@ namespace megiddo
 			const int32_t cnt = n->w18 + 1;
 			if (cnt >= 2)
 			{
-				FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Ribbon), n);)
 				RibbonTable(rec, blk, cnt);
 				RibbonDraw(n->c >= 0x18, RibbonFade(n->c), blk, cnt);
 			}
@@ -1529,7 +1518,6 @@ namespace megiddo
 		static uint32_t __cdecl ColumnTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Column), n);)
 			ColumnDraw(n, n->w1C);
 			if (DrawOnly()) return 0;
 			return StepScale(n, 8);
@@ -1547,7 +1535,6 @@ namespace megiddo
 		static uint32_t __cdecl ColumnFlashTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_ColumnFlash), n);)
 			ColumnFlashDraw(n, n->w1C, ColumnFlashPF(n->c));
 			if (DrawOnly()) return 0;
 			return StepScale(n, 8);
@@ -1563,7 +1550,6 @@ namespace megiddo
 		static uint32_t __cdecl PillarTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Pillar), n);)
 			PillarDraw(n, n->w1C, n->w20, PillarPF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w22;
@@ -1599,7 +1585,6 @@ namespace megiddo
 				n->e = (int16_t)(n->e - 1);
 				return 0;
 			}
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Flame), n);)
 			FlameDraw(n, mul32(n->w22, n->c), FlamePF(n->c));
 			if (DrawOnly()) return 0;
 			n->c = (int16_t)(n->c + 1);
@@ -1616,7 +1601,6 @@ namespace megiddo
 		static uint32_t __cdecl Ring2Task(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_node(us(ORIG_Ring2), n);)
 			Ring2Draw(n, n->w1C, Ring2PF(n->c));
 			if (DrawOnly()) return 0;
 			const int16_t r = n->w1E;
@@ -1686,7 +1670,6 @@ namespace megiddo
 			Node24 *n = (Node24 *)tn;
 			uint8_t *blk = (uint8_t *)FieldAlloc(0x48);
 			if (!DrawOnly() && n->c <= 0x10) SparksSpawn(n);
-			FX_HELD(MegiddoHeld<D>::note_pool(us(ORIG_Sparks), n);)
 			const int32_t live = SparksDraw(blk, G(us(POOL_A)), G(us(POOL_A_END)), !DrawOnly());
 			FieldFree(0x48);
 			if (DrawOnly()) return 0;
@@ -1745,7 +1728,6 @@ namespace megiddo
 		static uint32_t __cdecl DebrisTask(TaskNode *tn)
 		{
 			Node24 *n = (Node24 *)tn;
-			FX_HELD(MegiddoHeld<D>::note_pool(us(ORIG_Debris), n);)
 			uint8_t *hdr = AllocHeader(0x58);
 			uint8_t *blk = (uint8_t *)FieldAlloc(0x88);
 			ff8fx::copy<(0x20)>(blk + 0x28, &Camera());
@@ -1887,7 +1869,6 @@ namespace megiddo
 			RootNode *n = (RootNode *)tn;
 			if (n->c & 1) PacketCursor() = TexBase() + 0xC000;
 			else PacketCursor() = TexBase();
-			FX_HELD(MegiddoHeld<D>::note_root();)
 			const int running = ExecuteTaskQueue(QMain());
 			if (!running)
 			{

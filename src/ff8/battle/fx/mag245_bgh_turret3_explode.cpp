@@ -27,10 +27,6 @@ namespace turret245
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag245_bgh_turret3_explode_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -78,10 +74,6 @@ namespace turret245
 		turret245::describe(turret245::g_c);
 		init_clone(turret245::g_c, nullptr, 0);
 		register_port(0x9DCC00, (void *)turret245::SequenceTask, "MAG245 BGH251F2 3rd turret explosion SequenceTick", 245);
-		FX_HELD(register_mag245_bgh_turret3_explode_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag245_bgh_turret3_explode_held.inc"
-#endif

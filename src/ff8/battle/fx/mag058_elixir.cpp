@@ -147,21 +147,15 @@ namespace elixir
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag058_elixir_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace elixir
 {
-
 	uint32_t __cdecl el_7F7DD0(uint32_t a1)
 	{
 		g_mod = &MOD_058;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -521,7 +515,6 @@ namespace elixir
 		case 1:
 			el_7FCE50();
 			el_7FA500();
-			FX_HELD(held_note_system(sys);)
 			el_7FA3C0();
 			el_7F8D40();
 			sys = U32(us(0x260B308), 0);
@@ -1989,10 +1982,6 @@ namespace elixir
 			act::register_module_port(58, p->addr, p->port, p->name);
 		for (const act::elixir::ModPort *p = act::elixir::PORTS; p->addr; p++)
 			act::register_module_port(58, p->addr, p->port, p->name);
-		FX_HELD(register_mag058_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag058_elixir_held.inc"
-#endif

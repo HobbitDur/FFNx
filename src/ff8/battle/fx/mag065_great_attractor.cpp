@@ -204,10 +204,6 @@ namespace ga065
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag065_great_attractor_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace ga065
@@ -1776,7 +1772,6 @@ namespace ga065
 				const int32_t size = BackdropSize(s);
 				if (s < 10) *Caster() |= 8;
 				else *(uint16_t *)Caster() &= 0xFFF7;
-				FX_HELD(held_note_backdrop(0, (int32_t)s, size);)
 				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, 0, 0x800C, 0x800, us(0x1334FFC), PacketCursor());
 				PacketCursor() = Billboard(CasterPos()[0], -1000, CasterPos()[2] - 1000, 0, size, shl32((int32_t)s, 5), 0x8030, -0x200, us(0x1336924), PacketCursor());
 				PacketCursor() = Stars(0, CasterPos()[0], 0, CasterPos()[2], sdiv_pow2(size, 2), PacketCursor());
@@ -1786,7 +1781,6 @@ namespace ga065
 		if ((uint32_t)(m->counter - 0x20) < 0x1FE)
 		{
 			*(uint8_t *)us(0x1D98A15) &= 0xFD;
-			FX_HELD(held_note_backdrop(1, 0, 0);)
 			FrameArena() = Billboard(CasterPos()[0], 0, CasterPos()[2], 0, 0x1000, 0, 0xC, 0, us(0x1334FFC), FrameArena());
 			FrameArena() = Stars(0, CasterPos()[0], 0, CasterPos()[2], 0x10000, FrameArena());
 		}
@@ -1799,7 +1793,6 @@ namespace ga065
 					DecodeModelPrimLayout(LayoutData(0x27694), m->layout_a, 0x3AC);
 					DecodeModelPrimLayout(LayoutData(0x27694), m->layout_b, 0x3AC);
 				}
-				FX_HELD(held_note_mirrored(m, false);)
 				MirroredLayouts(m, false);
 			}
 		}
@@ -1812,7 +1805,6 @@ namespace ga065
 					DecodeModelPrimLayout(LayoutData(0x27698), m->layout_a, 0x1AC);
 					DecodeModelPrimLayout(LayoutData(0x27698), m->layout_b, 0x1AC);
 				}
-				FX_HELD(held_note_mirrored(m, true);)
 				MirroredLayouts(m, true);
 			}
 		}
@@ -1833,7 +1825,6 @@ namespace ga065
 						PartyShadowOn();
 					}
 				}
-				FX_HELD(held_note_caster_layout(m, s, true, P[k].len);)
 				CasterLayout(m, s, true);
 			}
 		}
@@ -1873,7 +1864,6 @@ namespace ga065
 				int32_t a, b;
 				BeamBends(s, &a, &b);
 				int16_t r0[3], l0[3], p[3];
-				FX_HELD(held_note_beams((int32_t)s, a, b);)
 				BonePoint16((const int16_t *)us(BONE_R), r0);
 				const int16_t *cp = CasterPos();
 				p[0] = (int16_t)(cp[0] + 0x2710); p[1] = (int16_t)(cp[1] - 0x2710); p[2] = (int16_t)(cp[2] - 0x7D0);
@@ -1904,7 +1894,6 @@ namespace ga065
 						PartyShadowOn();
 					}
 				}
-				FX_HELD(held_note_caster_layout(m, s, false, 0x1A);)
 				CasterLayout(m, s, false);
 			}
 		}
@@ -1946,7 +1935,6 @@ namespace ga065
 				if (Pause() == 0) *(int16_t *)(Caster() + 0x20) = (int16_t)(*(int16_t *)(Caster() + 0x20) - 0xAA);
 				int16_t c[3] = { m->centre[0], m->centre[1], (int16_t)(m->centre[2] + 0x7D0) };
 				int16_t r0[3], l0[3];
-				FX_HELD(held_note_rays((int32_t)s, t, u);)
 				BonePoint16((const int16_t *)us(BONE_R), r0);
 				Ray(r0, c, (uint8_t *)us(0x133AC40), t, u, -1, TexBase() + 0x36620);
 				Ray(r0, c, (uint8_t *)us(0x133AC54), t, u, 1, TexBase() + 0x393C8);
@@ -1971,7 +1959,6 @@ namespace ga065
 				int16_t c[3] = { m->centre[0], m->centre[1], (int16_t)(m->centre[2] + 0x7D0) };
 				const int32_t size = RingSize(s);
 				const int32_t spawn = s >= 6 ? 1 : 0;
-				FX_HELD(held_note_rings((int32_t)s, c, size);)
 				Ring((uint8_t *)us(0x133AC90), c, size, TexBase() + 0x36620, spawn);
 				Ring((uint8_t *)us(0x133ACB4), c, size, TexBase() + 0x393C8, spawn);
 				Ring((uint8_t *)us(0x133ACD8), c, size, TexBase() + 0x38490, spawn);
@@ -2034,7 +2021,6 @@ namespace ga065
 		}
 		if ((uint32_t)(m->counter - 0x1D2) < 0x1F)
 		{
-			FX_HELD(held_note_tile(m->counter - 0x1D2, 4, 2, 0x19, 0x1F);)
 			FadeTile(m->counter - 0x1D2, 0xFF, 0xFF, 0xFF, 4, 2, 0x19);
 		}
 		{
@@ -2106,7 +2092,6 @@ namespace ga065
 						q = QuadAlloc();
 					}
 				}
-				FX_HELD(held_note_overlay(m, s);)
 				PrimArg arg;
 				RotY(0, &arg.m);
 				arg.m.t[0] = 0;
@@ -2127,7 +2112,6 @@ namespace ga065
 			const int32_t s = m->counter - 0x214;
 			if ((uint32_t)s < 0x14)
 			{
-				FX_HELD(held_note_tile(s, 8, 4, 8, 0x14);)
 				FadeTile(s, 0xFF, 0xFF, 0xFF, 8, 4, 8);
 				if (s == 0xA)
 				{
@@ -2157,24 +2141,20 @@ namespace ga065
 		}
 		if (Flags()[0])
 		{
-			FX_HELD(held_note_particles(0);)
 			RibbonsDraw();
 		}
 		if (Flags()[1])
 		{
-			FX_HELD(held_note_particles(1);)
 			SpritesDraw();
 		}
 		else
 		{
 			if (Flags()[2])
 			{
-				FX_HELD(held_note_particles(2);)
 				PModelsDraw();
 			}
 			if (Flags()[3])
 			{
-				FX_HELD(held_note_particles(3);)
 				QuadsDraw();
 			}
 		}
@@ -2250,7 +2230,6 @@ namespace ga065
 	static uint32_t __cdecl LayoutTask(TaskNode *n)
 	{
 		LayoutNode *L = (LayoutNode *)n;
-		FX_HELD(held_note_layout(L);)
 		PrimArg arg;
 		arg.morph = TexBase() + 0x6CB8;
 		ff8fx::fill<(sizeof(arg.m.m))>(&arg.m, 0);
@@ -2273,7 +2252,6 @@ namespace ga065
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->parity)
 		{
 			PacketCursor() = TexBase() + 0x7648;
@@ -2369,10 +2347,6 @@ namespace ga065
 		register_port(ga065::ORIG_RootTask, (void *)ga065::RootTask, "A065 RootTask", 65);
 		register_port(ga065::ORIG_MasterTask, (void *)ga065::MasterTask, "A065 MasterTask", 65);
 		register_port(ga065::ORIG_LayoutTask, (void *)ga065::LayoutTask, "A065 LayoutTask", 65);
-		FX_HELD(register_mag065_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag065_great_attractor_held.inc"
-#endif

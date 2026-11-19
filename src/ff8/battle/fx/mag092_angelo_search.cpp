@@ -384,21 +384,15 @@ namespace angelo92
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag092_angelo_search_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace angelo92
 {
-
 	uint32_t __cdecl as_7552B0(uint32_t a1)
 	{
 		g_mod = &MOD_092;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -435,7 +429,6 @@ namespace angelo92
 			const uint32_t n = x::ExecuteTaskQueue(queues[i]);
 			U16(node, 0x5E) = (uint16_t)(U16(node, 0x5E) + (uint16_t)n);
 		}
-		FX_HELD(held_note_end();)
 		const uint8_t status = U8(node, 0x26);
 		U16(node, 0x5C) = (uint16_t)(U16(node, 0x5C) + 1);
 		U16(node, 0x24) = (uint16_t)(U16(node, 0x24) + 1);
@@ -564,7 +557,6 @@ namespace angelo92
 		U16(node, 0x4E) = (uint16_t)(U16(node, 0x4E) + U16(node, 0x126));
 		if ((U8(node, 0x26) & 4) == 0)
 		{
-			FX_HELD(held_note_draw(HK_ANGELO, node);)
 			MEM<uint32_t>(us(PACKET_CURSOR)) = a_746C10(node, us(0x2598320), MEM<uint32_t>(us(PACKET_CURSOR)));
 		}
 		const int32_t py = S16(node, 0x4E);
@@ -734,7 +726,6 @@ namespace angelo92
 	{
 		if (U8(a1, 0x26) & 4)
 			return 0;
-		FX_HELD(held_note_draw(HK_MODEL, a1);)
 		uint8_t m[0x20];
 		const uint32_t M = P(m);
 		x::UnpackRotationMatrix(us(0x1D97778), M);
@@ -1546,7 +1537,6 @@ namespace angelo92
 		const uint32_t node = a1;
 		if ((U8(node, 0x26) & 4) != 0)
 			return 0;
-		FX_HELD(held_note_draw(HK_RING, node);)
 		const uint32_t blk = x::Field_Alloc(0xD8);
 		const uint32_t mat = blk + 0xB8;
 		x::UnpackRotationMatrix(us(0x1D97778), mat);
@@ -1702,7 +1692,6 @@ namespace angelo92
 
 	uint32_t __cdecl as_758D70(uint32_t a1)
 	{
-		FX_HELD(held_note_draw(HK_PLAY, a1);)
 		alignas(4) uint8_t blk[0x5C] = {};
 		const uint32_t L = P(blk);
 		const uint32_t node = a1;
@@ -1976,10 +1965,6 @@ namespace angelo92
 			act::register_module_port(92, p->addr, p->port, p->name);
 		for (const act::angelo92::ModPort *p = act::angelo92::PORTS; p->addr; p++)
 			act::register_module_port(92, p->addr, p->port, p->name);
-		FX_HELD(register_mag092_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag092_angelo_search_held.inc"
-#endif

@@ -50,10 +50,6 @@ namespace renzo339
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag339_renzokuken_adel_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace renzo339
@@ -127,10 +123,6 @@ namespace renzo339
 		register_port(renzo339::ORIG_Emitter, (void *)renzo339::EmitterTask, "339 Emitter", 339);
 		register_port(renzo339::ORIG_RingA, (void *)renzo339::RingATask, "339 RingA", 339);
 		register_port(renzo339::ORIG_RingB, (void *)renzo339::RingBTask, "339 RingB", 339);
-		FX_HELD(register_mag339_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag339_renzokuken_adel_held.inc"
-#endif

@@ -263,10 +263,6 @@ namespace rapture288
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag288_rapture_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace rapture288
@@ -284,7 +280,6 @@ namespace rapture288
 	static uint32_t __cdecl SparkleTask(TaskNode *n)
 	{
 		SparkleNode *s = (SparkleNode *)n;
-		FX_HELD(held_note_part(s, 2);)
 		SparkleDraw(s);
 		s->pos[1] = (int16_t)(s->pos[1] + 0x1E);
 		s->frame++;
@@ -294,7 +289,6 @@ namespace rapture288
 	static uint32_t __cdecl FeatherTask(TaskNode *n)
 	{
 		FeatherNode *f = (FeatherNode *)n;
-		FX_HELD(held_note_part(f, 1);)
 		FeatherDraw(f);
 		f->ang[0] = (int16_t)(f->ang[0] + (int16_t)f->spin[0]);
 		f->ang[1] = (int16_t)(f->ang[1] + (int16_t)f->spin[1]);
@@ -313,7 +307,6 @@ namespace rapture288
 	{
 		TargetNode *t = (TargetNode *)n;
 		uint8_t *e = t->entity;
-		FX_HELD(held_note_target(t);)
 		int16_t def[4];
 		GetDefaultEffectPosition(e, def);
 		const int32_t s = TargetScale(S16(e, 0x26));
@@ -400,7 +393,6 @@ namespace rapture288
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root();)
 		if (r->arena)
 		{
 			PacketCursor() = TexBase() + ARENA_A;
@@ -476,10 +468,6 @@ namespace rapture288
 		register_port(rapture288::ORIG_TargetTask, (void *)rapture288::TargetTask, "288 TargetTask", 288);
 		register_port(rapture288::ORIG_FeatherTask, (void *)rapture288::FeatherTask, "288 FeatherTask", 288);
 		register_port(rapture288::ORIG_SparkleTask, (void *)rapture288::SparkleTask, "288 SparkleTask", 288);
-		FX_HELD(register_mag288_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag288_rapture_held.inc"
-#endif

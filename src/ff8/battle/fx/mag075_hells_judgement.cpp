@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag075_hells_judgement_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -370,7 +366,6 @@ namespace hells_judgement
 
 	static void __cdecl dh_66_ShatterMesh()
 	{
-		FX_HELD(if (held_active()) { dh_66_ShatterMeshHeld(); return; })
 		uint8_t *bone = CUR();
 		if (PTR(bone, 0xBC) == nullptr)
 		{
@@ -441,7 +436,6 @@ namespace hells_judgement
 			S32(p, 8) = mul32(S32(WS(), 0xFC), S32(p, 8)) / 256;
 			U8(p, 0x2C) = U8(desc, 6);
 		}
-		FX_HELD(held75_note(blk);)
 		h_B27130();
 		uint8_t *out = PTR(CTX(), 0x74);
 		const uint8_t *v = mesh + U32(mesh, 0x14);
@@ -510,10 +504,6 @@ namespace hells_judgement
 		hells_judgement::apply_draw61(hells_judgement::g_hj);
 		hells_judgement::g_hj.draw[66] = hells_judgement::dh_66_ShatterMesh;
 		register_port(0xB3EF50, (void *)hells_judgement::SequenceTask, "MAG075 Hell's Judgement SequenceTick", 75);
-		FX_HELD(register_mag075_hells_judgement_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag075_hells_judgement_held.inc"
-#endif

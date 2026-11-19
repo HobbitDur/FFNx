@@ -78,10 +78,6 @@ namespace clash026
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag026_clash_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -92,7 +88,6 @@ namespace clash026
 	{
 		if (U8(node, 0x26) & 4)
 			return;
-		FX_HELD(held_note_prim(node);)
 		Mat4x3 m = {};
 		cx::BuildRotationMatrixFromAngles(node + 0x44, P(&m));
 		m.t[0] = S16(node, 0x1C);
@@ -115,10 +110,8 @@ namespace clash026
 	{
 		if (U8(node, 0x26) & 4)
 		{
-			FX_HELD(held_note_sprite(node, scale, true);)
 			return;
 		}
-		FX_HELD(held_note_sprite(node, scale, false);)
 		cx::TransformCameraByShadowRotation(node + 0x1C, scale, (uint32_t)(int32_t)S16(node, 0x54));
 		const uint32_t h = x::Field_Alloc(0xB4);
 		U32(h, 0) = U32(node, 0x4C);
@@ -432,7 +425,6 @@ namespace clash026
 		const uint32_t node = a1;
 		if (FlashStep(node))
 		{
-			FX_HELD(held_note_flash(node);)
 			FlashDraw(U32(node, 0x34));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -716,7 +708,6 @@ namespace clash026
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		const uint32_t node = a1;
-		FX_HELD(held_note_master();)
 		if (U8(node, 0x5C) & 1)
 			MEM<uint32_t>(us(PACKET_CURSOR)) = MEM<uint32_t>(us(ARENA_ODD));
 		else
@@ -750,10 +741,6 @@ namespace clash026
 		register_port(act::clash026::ORIG_LandSpark, (void *)act::clash026::LandSpark, "026 LandSpark", 26);
 		register_port(act::clash026::ORIG_WalkDust, (void *)act::clash026::WalkDust, "026 WalkDust", 26);
 		register_port(act::clash026::ORIG_Flash, (void *)act::clash026::Flash, "026 Flash", 26);
-		FX_HELD(register_mag026_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag026_clash_held.inc"
-#endif

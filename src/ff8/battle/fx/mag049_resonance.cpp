@@ -397,21 +397,15 @@ namespace resonance
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag049_resonance_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace resonance
 {
-
 	uint32_t __cdecl rs_821690(uint32_t a1)
 	{
 		g_mod = &MOD_049;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -736,7 +730,6 @@ namespace resonance
 
 	uint32_t __cdecl rs_8244E0(uint32_t a1, uint32_t a2)
 	{
-		FX_HELD(held_note_warp(a1);)
 		rs_8246D0(a1, a2);
 		rs_824520(1);
 		rs_8245B0(a1, a2, 1);
@@ -1059,7 +1052,6 @@ namespace resonance
 		U32(L, 0x48) = us(BLEND_BUF);
 		U16(L, 0x56) = U16(node, 0x80);
 		U16(L, 0x58) = U16(node, 0x88);
-		FX_HELD(held_note_play(node);)
 		return prim_play(node + 0x94, us(PRIM_CB), L, 0);
 	}
 
@@ -1873,10 +1865,6 @@ namespace resonance
 			act::register_module_port(49, p->addr, p->port, p->name);
 		for (const act::resonance::ModPort *p = act::resonance::PORTS; p->addr; p++)
 			act::register_module_port(49, p->addr, p->port, p->name);
-		FX_HELD(register_mag049_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag049_resonance_held.inc"
-#endif

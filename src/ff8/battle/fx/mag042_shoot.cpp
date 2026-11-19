@@ -211,10 +211,6 @@ namespace shoot
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag042_shoot_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -224,7 +220,6 @@ namespace shoot
 	uint32_t __cdecl sh_83EE00(uint32_t a1)
 	{
 		g_mod = &MOD_042;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -1937,7 +1932,6 @@ namespace shoot
 		case 1:
 			sh_843F00();
 			sh_8415B0();
-			FX_HELD(held_note_system(sys);)
 			sh_841470();
 			sh_83FDF0();
 			sys = MEM<uint32_t>(us(ACTOR_STATE));
@@ -2036,7 +2030,6 @@ namespace shoot
 			const int16_t pz = (int16_t)(MEM<uint16_t>(us(BLK) + 0x80) - MEM<uint16_t>(us(BLK) + 0x78));
 			S16(ent, 0x20) = pz;
 			S32(ent, 0x5C) = pz;
-			FX_HELD(held_note_ball(node);)
 			sh_844160(us(BLK));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -2468,7 +2461,6 @@ namespace shoot
 		{
 			U32(node, 0x1C) = U32(node, 0x78 + 8 * i);
 			U32(node, 0x20) = U32(node, 0x7C + 8 * i);
-			FX_HELD(held_note_puff(node, i);)
 			sh_844EC0(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -2819,7 +2811,6 @@ namespace shoot
 		{
 			U32(node, 0x1C) = U32(node, 0x78 + 8 * i);
 			U32(node, 0x20) = U32(node, 0x7C + 8 * i);
-			FX_HELD(held_note_puff(node, i);)
 			sh_844EC0(node);
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -2888,7 +2879,6 @@ namespace shoot
 			x::sub_8DD7E0(L, (uint32_t)(int32_t)MEM<int16_t>(us(BLK) + 0xA4));
 		if (MEM<uint16_t>(us(BLK) + 0xA8) != 0)
 			x::sub_8DD960(L, (uint32_t)(int32_t)MEM<int16_t>(us(BLK) + 0xA8));
-		FX_HELD(held_note_play(node, L);)
 		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U32(L, 0x48) = us(BLEND_BUF);
 		if (prim_play(node + 0x94, us(PRIM_CB), L, 0) == 0)
@@ -2910,7 +2900,6 @@ namespace shoot
 		const uint32_t L = P(fr);
 		x::ComposeAffineTransform(us(0x1D97778), node + 0x30, L);
 		U32(L, 0x48) = us(BLEND_BUF);
-		FX_HELD(held_note_play(node, node + 0x30);)
 		if (prim_play(node + 0x94, us(PRIM_CB), L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -3159,10 +3148,6 @@ namespace shoot
 			act::register_module_port(42, p->addr, p->port, p->name);
 		for (const act::shoot::ModPort *p = act::shoot::PORTS; p->addr; p++)
 			act::register_module_port(42, p->addr, p->port, p->name);
-		FX_HELD(register_mag042_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag042_shoot_held.inc"
-#endif

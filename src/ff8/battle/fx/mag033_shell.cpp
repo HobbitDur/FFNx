@@ -160,10 +160,6 @@ namespace shell
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag033_shell_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
@@ -173,7 +169,6 @@ namespace shell
 	uint32_t __cdecl h_866150(uint32_t a1)
 	{
 		g_mod = &MOD_033;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -418,7 +413,6 @@ namespace shell
 		case 1:
 			h_86B280();
 			h_8688E0();
-			FX_HELD(held_note_system(sys);)
 			h_8687A0();
 			h_867120();
 			sys = U32(us(0x26C30E8), 0);
@@ -2245,7 +2239,6 @@ namespace shell
 		x::scale3DMatrix(L, node + 0x50);
 		x::ComposeAffineTransform(us(0x1D97778), L, L);
 		U32(L, 0x48) = us(BLEND_BUFFER);
-		FX_HELD(held_note_shield(node + 0x94, L);)
 		if (prim_play(node + 0x94, us(ORIG_ShieldCallback), L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -2438,10 +2431,6 @@ namespace shell
 			act::register_module_port(33, p->addr, p->port, p->name);
 		for (const act::shell::ModPort *p = act::shell::PORTS; p->addr; p++)
 			act::register_module_port(33, p->addr, p->port, p->name);
-		FX_HELD(register_mag033_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag033_shell_held.inc"
-#endif

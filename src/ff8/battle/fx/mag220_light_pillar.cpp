@@ -29,10 +29,6 @@ namespace pillar220
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag220_light_pillar_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -96,10 +92,6 @@ namespace pillar220
 		init_clone(pillar220::g_c, nullptr, 0);
 		pillar220::apply_slots(pillar220::g_c);
 		register_port(0xAB3990, (void *)pillar220::SequenceTask, "MAG220 Light Pillar SequenceTick", 220);
-		FX_HELD(register_mag220_light_pillar_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag220_light_pillar_held.inc"
-#endif

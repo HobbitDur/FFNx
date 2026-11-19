@@ -508,10 +508,6 @@ namespace acid132
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag132_dissolving_acid_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace acid132
@@ -519,7 +515,6 @@ namespace acid132
 	static uint32_t __cdecl DropTask(TaskNode *n)
 	{
 		DropNode *d = (DropNode *)n;
-		FX_HELD(held_note_drop(d);)
 		DropDraw(DropHeader(), d);
 		d->frame++;
 		if (d->frame >= 8) return TASK_END;
@@ -531,7 +526,6 @@ namespace acid132
 
 	static uint32_t RunDrops()
 	{
-		FX_HELD(held_note_drop_list();)
 		DropListHeader();
 		TaskQueue *q = QDrops();
 		TaskNode *prev = nullptr;
@@ -562,9 +556,7 @@ namespace acid132
 		PrimArg arg;
 		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, s->pos);
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_layout(s, &arg, true);)
 		prim::play((prim::Layout *)s->layout, PartCallback, (int)&arg, 0);
-		FX_HELD(held_note_sequence(s, false);)
 		SplashSequences(s);
 		s->counter++;
 		return s->counter < 0x10 ? 0 : TASK_END;
@@ -576,7 +568,6 @@ namespace acid132
 		PrimArg arg;
 		ff8fx::copy<(sizeof(arg.pos))>(arg.pos, s->pos);
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_layout(s, &arg, false);)
 		return prim::play((prim::Layout *)s->layout, PartCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -648,12 +639,10 @@ namespace acid132
 				}
 			}
 		}
-		FX_HELD(held_note_stream(s, grow);)
 		const uint32_t slot = ProjectChain(s->head);
 		if (s->count >= 2) Ribbon(s->head, s->count, slot);
 		if (s->counter < 8)
 		{
-			FX_HELD(held_note_sequence(s, true);)
 			StreamSequence(s);
 		}
 		s->counter++;
@@ -692,7 +681,6 @@ namespace acid132
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master();)
 		if (m->arena)
 		{
 			PacketCursor() = TexBase() + 0x4BDC;
@@ -768,10 +756,6 @@ namespace acid132
 		register_port(acid132::ORIG_DropTask, (void *)acid132::DropTask, "132 DropTask", 132);
 		register_port(acid132::ORIG_SplashTask, (void *)acid132::SplashTask, "132 SplashTask", 132);
 		register_port(acid132::ORIG_PuddleTask, (void *)acid132::PuddleTask, "132 PuddleTask", 132);
-		FX_HELD(register_mag132_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag132_dissolving_acid_held.inc"
-#endif

@@ -253,10 +253,6 @@ namespace megaspark279
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag279_mega_spark_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace megaspark279
@@ -511,7 +507,6 @@ namespace megaspark279
 	static uint32_t __cdecl SparkTask(TaskNode *n)
 	{
 		SparkNode *s = (SparkNode *)n;
-		FX_HELD(held_note_spark(s);)
 		SparkDraw(s);
 		s->frame++;
 		return s->frame < 8 ? 0 : TASK_END;
@@ -524,7 +519,6 @@ namespace megaspark279
 		ComposeAffineTransform(&Camera(), &p->m, &arg.m);
 		arg.morph = TexBase() + BUF_Morph;
 		arg.depth = -0x80;
-		FX_HELD(held_note_prim(p, &arg);)
 		return prim::play((prim::Layout *)p->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -660,7 +654,6 @@ namespace megaspark279
 			GteReadOTZ((void *)(p + 0x14));
 			p = U32(p, 0x24);
 		} while (p);
-		FX_HELD(held_note_bolt(b);)
 		if (b->count >= 2) BoltRibbon(b->head, b->count);
 		p = b->head;
 		do
@@ -802,7 +795,6 @@ namespace megaspark279
 			S16(q, 2) = (int16_t)(S16(q, 2) + (mul32(SharedRand() - 0x4000, e) >> 18));
 			S16(q, 4) = (int16_t)(S16(q, 4) + (mul32(SharedRand() - 0x4000, e) >> 18));
 		}
-		FX_HELD(held_note_arc(a, b, ArcResidue());)
 		ArcDraw(b, ArcResidue());
 		FieldFree(0x80);
 		if (a->counter >= 0xA)
@@ -852,7 +844,6 @@ namespace megaspark279
 					BonePoint((const int16_t *)(us(ANCHOR_0) + 8 * i), arg.m.t);
 					RotX(*(const int16_t *)(Caster() + 0xC), &arg.m);
 					ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-					FX_HELD(held_note_main(m, REC_RING, i, &arg);)
 					prim::play((prim::Layout *)m->ring[i], PrimCallback, (int)&arg, 0);
 				}
 			}
@@ -875,7 +866,6 @@ namespace megaspark279
 				ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
 				arg.morph = TexBase() + BUF_Morph;
 				arg.depth = -0x80;
-				FX_HELD(held_note_main(m, REC_ORB, 0, &arg);)
 				prim::play((prim::Layout *)m->orb, PrimCallback, (int)&arg, 0);
 			}
 			if ((c & 7) == 0)
@@ -936,7 +926,6 @@ namespace megaspark279
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		g_bolt_pt_pad = 0;
-		FX_HELD(held_note_master();)
 		MasterNode *mn = (MasterNode *)n;
 		if (mn->arena)
 		{
@@ -1005,10 +994,6 @@ namespace megaspark279
 		register_port(megaspark279::ORIG_ArcTask, (void *)megaspark279::ArcTask, "279 ArcTask", 279);
 		register_port(megaspark279::ORIG_PrimTask, (void *)megaspark279::PrimTask, "279 PrimTask", 279);
 		register_port(megaspark279::ORIG_SparkTask, (void *)megaspark279::SparkTask, "279 SparkTask", 279);
-		FX_HELD(megaspark279::register_mag279_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag279_mega_spark_held.inc"
-#endif

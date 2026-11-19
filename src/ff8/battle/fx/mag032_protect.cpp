@@ -63,21 +63,15 @@ namespace protect
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag032_protect_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace act
 {
 namespace protect
 {
-
 	static uint32_t __cdecl Master(uint32_t a1)
 	{
 		g_mod = &MOD_032;
-		FX_HELD(held_note_master();)
 
 		uint32_t states[11];
 		ff8fx::copy<(8 * 4)>((void *)us(0x2793E58), (const void *)us(0x1D97778));
@@ -215,7 +209,6 @@ namespace protect
 				U32(node, 0x34) = entry;
 				U16(node, 0x38) = (uint16_t)(idx + 1);
 			}
-			FX_HELD(held_note_flash(node);)
 			FlashDraw(U32(node, 0x34));
 		}
 		const uint8_t status = U8(node, 0x26);
@@ -272,7 +265,6 @@ namespace protect
 		const uint32_t L = P(fr);
 		ShieldMatrix(node, L);
 		U32(L, 0x48) = us(BLEND_BUFFER);
-		FX_HELD(held_note_shield(node);)
 		if (prim_play(node + 0x94, us(ORIG_ShieldDraw), L, 0) == 0)
 		{
 			const uint8_t st = U8(node, 0x29);
@@ -284,7 +276,6 @@ namespace protect
 
 	static uint32_t __cdecl ShieldDraw(uint32_t a1, uint32_t a2, uint32_t a3)
 	{
-		FX_HELD(held_note_callback();)
 		alignas(4) uint8_t loc[0x38] = {};
 		const uint32_t L = P(loc);
 		const uint32_t M = L + 0x18;
@@ -295,7 +286,6 @@ namespace protect
 			return 0;
 
 		const uint32_t hdr = x::Field_Alloc(0x58);
-		FX_HELD(held_header(hdr, 0x58);)
 		const int32_t model = S16(rec, 2);
 		const uint32_t data = U32(a1, 0);
 		const uint32_t blk = a3;
@@ -443,9 +433,7 @@ namespace protect
 	{
 		if ((U8(node, 0x26) & 4) != 0)
 			return;
-		FX_HELD(held_note_particle(node);)
 		const uint32_t hdr = x::Field_Alloc(0xB4);
-		FX_HELD(held_header(hdr, 0xB4);)
 		TransformCameraByShadowRotation((const void *)(node + 0x1C), 0x1000, S16(node, 0x54));
 		U32(hdr, 0) = U32(node, 0x4C);
 		const uint32_t cursor = MEM<uint32_t>(us(PACKET_CURSOR));
@@ -658,10 +646,6 @@ namespace protect
 			act::register_module_port(32, p->addr, p->port, p->name);
 		for (const act::protect::ModPort *p = act::protect::PORTS; p->addr; p++)
 			act::register_module_port(32, p->addr, p->port, p->name);
-		FX_HELD(register_mag032_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag032_protect_held.inc"
-#endif

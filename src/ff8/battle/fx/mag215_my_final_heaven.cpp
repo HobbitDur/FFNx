@@ -180,10 +180,6 @@ namespace heaven215
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag215_my_final_heaven_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace heaven215
@@ -547,7 +543,6 @@ namespace heaven215
 
 	static void DebrisDrawOne(const Debris *k, uint8_t *h)
 	{
-		FX_HELD(held_note_debris(k);)
 		Mat4x3 *m = (Mat4x3 *)h;
 		ScaledRotX(k->rx, k->scale, m);
 		RotYTable(k->ry, (Mat4x3 *)(h + 0x20));
@@ -622,7 +617,6 @@ namespace heaven215
 
 	static void DrawEntityWorld(uint8_t *e)
 	{
-		FX_HELD(held_note_world(e);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x4C);
 		FramePackets() = DrawShadow(e, OTBase() + 0x84, 6, FramePackets());
 		ComposeAffineTransform(&Camera(), (const Mat4x3 *)(e + 0x40), (Mat4x3 *)h);
@@ -651,7 +645,6 @@ namespace heaven215
 
 	static void DrawEntity(uint8_t *e, const int16_t *angles, const int16_t *off)
 	{
-		FX_HELD(held_note_entity(e, angles, off);)
 		uint8_t *h = (uint8_t *)FieldAlloc(0x5C);
 		Mat4x3 *m = (Mat4x3 *)h;
 		FramePackets() = DrawShadow(e, OTBase() + 0x84, 4, FramePackets());
@@ -772,7 +765,6 @@ namespace heaven215
 	static uint32_t __cdecl RingTask(TaskNode *n)
 	{
 		RingNode *k = (RingNode *)n;
-		FX_HELD(held_note_ring(k);)
 		ArgA arg;
 		ScaledRotY(k->angle, k->scale, &arg.m);
 		arg.m.t[0] = k->pos[0];
@@ -801,13 +793,11 @@ namespace heaven215
 
 	static void PlayA(DirectorNode *d, int site, uint8_t *layout, ArgA *arg, bool view)
 	{
-		FX_HELD(held_note_play(d, site, layout, arg, nullptr);)
 		if (view) ComposeAffineTransform(&Camera(), &arg->m, &arg->m);
 		prim::play((prim::Layout *)layout, CallbackA, (int)arg, 0);
 	}
 	static void PlayB(DirectorNode *d, int site, uint8_t *layout, ArgB *arg)
 	{
-		FX_HELD(held_note_play(d, site, layout, nullptr, arg);)
 		prim::play((prim::Layout *)layout, CallbackB, (int)arg, 0);
 	}
 
@@ -912,7 +902,6 @@ namespace heaven215
 	static uint32_t __cdecl DirectorTask(TaskNode *n)
 	{
 		DirectorNode *d = (DirectorNode *)n;
-		FX_HELD(held_note_director(d);)
 		const int16_t c = d->counter;
 		SetScreenFlash((uint32_t)FlashLevel(c), 0);
 		ArgA arga;
@@ -1311,7 +1300,6 @@ namespace heaven215
 	static uint32_t __cdecl RootTask(TaskNode *n)
 	{
 		RootNode *r = (RootNode *)n;
-		FX_HELD(held_note_root(r);)
 		if (r->parity)
 		{
 			PacketCursor() = TexBase() + 0x10518;
@@ -1379,10 +1367,6 @@ namespace heaven215
 		register_port(heaven215::ORIG_RootTask, (void *)heaven215::RootTask, "215 RootTask", 215);
 		register_port(heaven215::ORIG_DirectorTask, (void *)heaven215::DirectorTask, "215 DirectorTask", 215);
 		register_port(heaven215::ORIG_RingTask, (void *)heaven215::RingTask, "215 RingTask", 215);
-		FX_HELD(register_mag215_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag215_my_final_heaven_held.inc"
-#endif

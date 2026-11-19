@@ -200,10 +200,6 @@ namespace pulsar260
 }
 }
 
-#ifdef FF8_FX_HELD
-#include "mag260_shockwave_pulsar_quistis_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace pulsar260
@@ -1206,7 +1202,6 @@ namespace pulsar260
 			{
 				if (*(const uint16_t *)e & 2)
 				{
-					FX_HELD(held_note_model(rise, rec, e, vec);)
 					DrawEntityModel(e, rec->ang, vec, rec->scale);
 				}
 				e = NextLinked(e);
@@ -1221,7 +1216,6 @@ namespace pulsar260
 		}
 		else
 		{
-			FX_HELD(held_note_model(rise, rec, e0, vec);)
 			DrawEntityModel(e0, rec->ang, vec, rec->scale);
 			*e0 |= 4;
 		}
@@ -1248,7 +1242,6 @@ namespace pulsar260
 		const int32_t slot = SlotOf(e);
 		PrimArg arg;
 		TargetArg(arg, rec, e);
-		FX_HELD(held_note_play(K_LIFT, s, &arg, s->t.counter);)
 		prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		if (s->t.counter == 5)
 		{
@@ -1308,7 +1301,6 @@ namespace pulsar260
 		arg.pos[1] = s->pos[1];
 		arg.pos[2] = s->pos[2];
 		arg.morph = TexBase() + MORPH;
-		FX_HELD(held_note_play(K_RING, s, &arg, 0);)
 		const int left = prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		return left != 0 ? 0 : TASK_END;
 	}
@@ -1342,7 +1334,6 @@ namespace pulsar260
 		rec->scale = RiseScale(rec, s->t.counter);
 		PrimArg arg;
 		TargetArg(arg, rec, e);
-		FX_HELD(held_note_play(K_RISE, s, &arg, s->t.counter);)
 		prim::play((prim::Layout *)s->layout, PrimPart, (int)&arg, 0);
 		const uint32_t i = (uint32_t)((int32_t)s->t.counter - 0xD);
 		const uint32_t len = (uint32_t)(int32_t)s->t.len;
@@ -1494,7 +1485,6 @@ namespace pulsar260
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		FX_HELD(held_note_master(m);)
 		if (m->counter < 0x32)
 		{
 			const int32_t v = shl32(m->counter, 12);
@@ -1517,7 +1507,6 @@ namespace pulsar260
 			arg.morph = TexBase() + MORPH;
 			arg.objs = us(OBJS_A);
 			arg.depth = (int16_t)0xFF80;
-			FX_HELD(held_note_play(K_CENTRE, m, &arg, m->counter);)
 			prim::play((prim::Layout *)m->layout, PrimPart, (int)&arg, 0);
 		}
 
@@ -1527,7 +1516,6 @@ namespace pulsar260
 			const uint32_t w = (uint32_t)(s - 0x7E);
 			if (w < 8)
 			{
-				FX_HELD(held_note_tile((int32_t)w);)
 				FadeTile((int32_t)w, 0xFF, 0xFF, 0xFF, 7, 1, 0);
 			}
 			bool models = true;
@@ -1673,15 +1661,12 @@ namespace pulsar260
 			arg.pos[1] = 0;
 			arg.objs = us(OBJS_WAVE);
 			arg.depth = depth;
-			FX_HELD(held_note_play(K_WAVE, m, &arg, m->counter);)
 			prim::play((prim::Layout *)m->layout, PrimPart, (int)&arg, 0);
 		}
 
-		FX_HELD(held_note_sparks();)
 		SparksDraw((const Spark *)(TexBase() + SPARKS));
 		if (m->counter < 0xD5)
 		{
-			FX_HELD(held_note_shards();)
 			ShardsDraw((const Shard *)(TexBase() + SHARDS));
 		}
 		SparksUpdate();
@@ -1854,10 +1839,6 @@ namespace pulsar260
 		register_port(pulsar260::ORIG_LiftTask, (void *)pulsar260::LiftTask, "260 LiftTask", 260);
 		register_port(pulsar260::ORIG_RiseTask, (void *)pulsar260::RiseTask, "260 RiseTask", 260);
 		register_port(pulsar260::ORIG_RingTask, (void *)pulsar260::RingTask, "260 RingTask", 260);
-		FX_HELD(register_mag260_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag260_shockwave_pulsar_quistis_held.inc"
-#endif

@@ -18,10 +18,6 @@
 
 #include "gfc_engine.h"
 
-#ifdef FF8_FX_HELD
-#include "mag_brothers_held.h"
-#endif
-
 namespace ff8fx
 {
 namespace gfc
@@ -47,14 +43,12 @@ namespace part_brothers
 	}
 	static inline void xl_OffscreenModelRender_B65F30(void *desc, const void *pos, const void *angles)
 	{
-		FX_HELD(if (held_predicting()) return;)
 		x::f<int32_t (__cdecl *)(void *, const void *, const void *)>(us(0xB65F30))(desc, pos, angles);
 	}
 
 	static void __cdecl dh_03_AnimatedModelWithShadow()
 	{
 		h_B269E0();
-		FX_HELD(held_note_mid03();)
 		h_B26AD0(PTR(CUR(), 0xBC));
 		uint8_t *blk = PTR(CUR(), 0xBC);
 		U32(blk, 0x44) = U32(CTX(), 0x74);
@@ -76,7 +70,6 @@ namespace part_brothers
 		uint8_t *sp = PTR(hdr, 0x6C);
 		int32_t y = S16(sp, 2);
 		int32_t otspec = S16(sp, 0);
-		FX_HELD(if (held_shadow03(hdr, blk, otspec, y)) return;)
 		xl_ModelShadow_B67040(hdr, WS() + 0x80, otspec, y, 0x80);
 	}
 
@@ -86,7 +79,6 @@ namespace part_brothers
 		U8(ent, 0) |= 0x20;
 		uint8_t *hdr = ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(held_entity_attach_pose(ent);)
 		x::ComputeBonesWorldMatrices(hdr, root);
 		uint8_t *sk = PTR(PTR(ent, 0x64), 0);
 		int32_t i = 1;
@@ -205,7 +197,6 @@ namespace part_brothers
 	{
 		uint8_t *bone = CUR();
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(bone, 0x1B));
-		FX_HELD(held_entity_begin(ent, 0x24);)
 		if (U32(bone, 0xC4) == 0)
 		{
 			U32(bone, 0xC4) = 0xFFFFFFFF;
@@ -231,7 +222,6 @@ namespace part_brothers
 		xl_Apply3DTransform(WS() + 0x60, off, WS() + 0x74);
 		uint8_t *hdr = ent + 0x60;
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(held_entity_attach_pose(ent);)
 		blob::Blob_B66B80(hdr, 0xF1, 0x1000, WS() + 0x60);
 		GFC_TAINT(WS() + 0xE2, nullptr, 2);
 		uint8_t *w = WS();
@@ -267,7 +257,6 @@ namespace part_brothers
 		U16(p, 4) = ax;
 		U16(ent, 0x20) = ax;
 		EntityShadow_AF5D00(ent, WS() + 0x60, p);
-		FX_HELD(held_entity_end();)
 	}
 
 	static void SyncEntityModelCopy_AF6310(uint8_t *blk)
@@ -310,7 +299,6 @@ namespace part_brothers
 	{
 		uint8_t *bone = CUR();
 		uint8_t *ent = PTR(SCENE(), 0x60 + 4 * (int32_t)U8(bone, 0x1B));
-		FX_HELD(held_entity_begin(ent, 1);)
 		if (U32(bone, 0xBC) == 0)
 		{
 			U8(ent, 0) |= 4;
@@ -360,7 +348,6 @@ namespace part_brothers
 		U32(desc, 4) = U32(CTX(), 0x74);
 		U32(CTX(), 0x7C) = x::RenderGeometry(blk + 0x30, desc, ot, 4, cursor);
 		x::BuildBoneMatricesFromPose(hdr);
-		FX_HELD(held_entity_end();)
 	}
 
 	static void __cdecl op_09D_RecenterModelOffsetBone()
@@ -408,7 +395,6 @@ namespace part_brothers
 		n = S32(obj, 0x18);
 		if (n > 0)
 		{
-			FX_HELD(guard(v, mul32(n, 8));)
 			for (; n != 0; n--)
 			{
 				U16(v, 0) = (uint16_t)(U16(v, 0) - (uint16_t)minx);
@@ -454,12 +440,10 @@ namespace part_brothers
 			uint8_t *sc = SCENE();
 			if (U8(sc, 0x48) == 3)
 			{
-				FX_HELD(guard(&flag, 1);)
 				flag = 0;
 				STREAM() += 4;
 				return;
 			}
-			FX_HELD(guard(&flag, 1);)
 			flag = 1;
 			U8(sc, 0x41) = 4;
 			U8(SCENE(), 0x4B) = 3;
@@ -506,7 +490,6 @@ namespace part_brothers
 			U16(WS(), 0xD4) = U16(STREAM(), 6);
 			U16(WS(), 0xD6) = U16(STREAM(), 8);
 			uint8_t *d = PTR(CTX(), 0x74);
-			FX_HELD(guard(d, 0x10);)
 			U32(d, 0) = 0;
 			U32(d, 4) = 0;
 			U32(d, 0) = U32(CTX(), 0x74) + 0xEC;
@@ -587,10 +570,6 @@ namespace brothers
 		apply_brothers(brothers::g_c);
 		apply_shared_misc(brothers::g_c);
 		register_port(0xAF4B90, (void *)brothers::SequenceTask, "GFC205 Brothers SequenceTick", 205);
-		FX_HELD(register_gfc_brothers_held();)
 	}
 }
 
-#ifdef FF8_FX_HELD
-#include "mag_brothers_held.inc"
-#endif
