@@ -143,9 +143,9 @@ namespace mask303
 		const int32_t c1 = r.counter + 1;
 		switch (r.kind)
 		{
-		case SHARDS: return alive && c1 < 0x29;
-		case MAIN_PLAY: return alive && (uint32_t)c1 < 0x16;
-		case REDRAW: return alive && (uint32_t)(c1 - 0x18) < 0x10;
+		case SHARDS: return alive && c1 < PG().timing.end;
+		case MAIN_PLAY: return alive && (uint32_t)c1 < (uint32_t)PG().burst.ticks;
+		case REDRAW: return alive && (uint32_t)(c1 - PG().redraw.start) < (uint32_t)PG().redraw.ticks;
 		case PIECE: return alive && ((const LayoutNode *)r.node)->life > 0;
 		default: return alive;
 		}
@@ -219,7 +219,7 @@ namespace mask303
 			{
 				const MainNode *m = (const MainNode *)r.node;
 				memcpy(a.pos, m->pt, 8);
-				a.depth = -0x80;
+				a.depth = PG().burst.depth;
 				layout = (prim::Layout *)m->layout;
 			}
 			else if (r.kind == PIECE_PLAY)
@@ -231,9 +231,9 @@ namespace mask303
 			else if (r.kind == REDRAW)
 			{
 				const int32_t c = r.counter;
-				uoff = c * 2 + 2 * k / den;
-				voff = c * 4 + 4 * k / den;
-				angle = shl32((c - 0x18) & 0x1FFFFF, 7) + 0x80 * k / den;
+				uoff = c * PG().redraw.scroll_u + PG().redraw.scroll_u * k / den;
+				voff = c * PG().redraw.scroll_v + PG().redraw.scroll_v * k / den;
+				angle = mul32((c - PG().redraw.start) & 0x1FFFFF, PG().redraw.pulse) + PG().redraw.pulse * k / den;
 				memcpy(morph, g_vb, VB_BYTES);
 				if (k) pose_midpoint(Unmasked() + 0x60, Unmasked() + 0x6C, k, den);
 			}
@@ -254,15 +254,15 @@ namespace mask303
 			case REDRAW:
 			{
 				FrameScope fs;
-				const int16_t rect[4] = { 0x2C0, 0x100, 0x80, 0x80 };
+				const int16_t rect[4] = { PG().redraw.page_x, PG().redraw.page_y, 0x80, 0x80 };
 				const int32_t g = ComputeSin(angle) >> 6;
 				const uint8_t rgb[4] = { (uint8_t)g, (uint8_t)g, (uint8_t)g, 0 };
-				Redraw(Unmasked(), rect, REDRAW_Clut, uoff, voff, rgb, (uint32_t)morph);
+				Redraw(Unmasked(), rect, PG().redraw.clut, uoff, voff, rgb, (uint32_t)morph);
 				break;
 			}
 			case PIECE: PieceDraw(r.model, pos); break;
-			case SPARK: SpriteDraw(pos, (int16_t)(r.counter + (next && num >= den ? 1 : 0)), SEQ_Spark); break; // at 1 the next tick's frame
-			case SPRITE: SpriteDraw(pos, (int16_t)(r.counter + (next && num >= den ? 1 : 0)), SEQ_Sprite); break;
+			case SPARK: SpriteDraw(pos, (int16_t)(r.counter + (next && num >= den ? 1 : 0)), fxp::sequence(PG().seqs.spark, SEQ_Spark)); break; // at 1 the next tick's frame
+			case SPRITE: SpriteDraw(pos, (int16_t)(r.counter + (next && num >= den ? 1 : 0)), fxp::sequence(PG().seqs.sprite, SEQ_Sprite)); break;
 			}
 		}
 		memcpy((void *)0x1D99C18, seq_c18, sizeof(seq_c18));

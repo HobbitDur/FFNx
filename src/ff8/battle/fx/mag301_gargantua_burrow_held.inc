@@ -133,9 +133,9 @@ namespace burrow301
 	// the next tick draws the part again
 	static bool NextDraws(const Rec &r)
 	{
-		if (r.kind == PLAY || r.kind == BODY) return (uint32_t)(r.counter + 1) < 0x7A;
-		if (r.kind == ROCK) return r.rock.counter + 1 < 0x10;
-		if (r.kind == DUST) return r.dust.counter + 1 < 0x10;
+		if (r.kind == PLAY || r.kind == BODY) return (uint32_t)(r.counter + 1) < (uint32_t)PG().layout.ticks;
+		if (r.kind == ROCK) return r.rock.counter + 1 < PG().rocks.life;
+		if (r.kind == DUST) return r.dust.counter + 1 < PG().dust.life;
 		return false; // marks: static
 	}
 
@@ -194,7 +194,7 @@ namespace burrow301
 				uint8_t *c = Caster();
 				pose_midpoint(c + 0x60, c + 0x6C, k, den);
 				g_no_marks = true;
-				DrawBody(c, r.counter, GROUND, (uint32_t)g_held_verts);
+				DrawBody(c, r.counter, PG().body.ground, (uint32_t)g_held_verts);
 				g_no_marks = false;
 				break;
 			}
@@ -220,9 +220,9 @@ namespace burrow301
 			{
 				const RockNode &n = r.rock;
 				int16_t pos[3];
-				pos[0] = lerp16(n.pos[0], (int16_t)(n.pos[0] + (int16_t)(n.vel[0] << 4)), k, den);
-				pos[1] = lerp16(n.pos[1], (int16_t)(n.pos[1] + (int16_t)(n.vel[1] << 2)), k, den);
-				pos[2] = lerp16(n.pos[2], (int16_t)(n.pos[2] + (int16_t)(n.vel[2] << 4)), k, den);
+				pos[0] = lerp16(n.pos[0], (int16_t)(n.pos[0] + (int16_t)(n.vel[0] * PG().rocks.speed_xz)), k, den);
+				pos[1] = lerp16(n.pos[1], (int16_t)(n.pos[1] + (int16_t)(n.vel[1] * PG().rocks.speed_y)), k, den);
+				pos[2] = lerp16(n.pos[2], (int16_t)(n.pos[2] + (int16_t)(n.vel[2] * PG().rocks.speed_xz)), k, den);
 				RockDraw(pos, HeldAngle(n.angle[0], n.spin[0], k, den), HeldAngle(n.angle[1], n.spin[1], k, den));
 				break;
 			}

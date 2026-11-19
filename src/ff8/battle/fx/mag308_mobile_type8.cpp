@@ -54,10 +54,17 @@
 // fx_model_sweep.h. 0x6684C0 / 0x668970 / 0x669070 / 0x6691B0 / 0x6696B0 are the same code as 298's 0x671990 / 0x671E40 /
 // 0x672330 / 0x672470 / 0x672CD0 (and 290's 0x676B40 / 0x676C80).
 // NEVER-WRITTEN STACK WORDS: none read.
+// FUJIN: Fujin's described Mobile Type 8 break-up (effect_308.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the file loader (0x667680) and the setup (0x667670 -> _Init 0x6676A0) ported below; its
+// parameters (MobileParams: the sounds and the main's ticks, the screen flash, the tint, the white tile, the sparks; the
+// script layouts and flipbooks by their index, the sparks' 2 flipbooks, the 3 bone scripts, the texture name and the
+// camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
 #include "fx_model_sweep.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -68,17 +75,17 @@ namespace mobile308
 	using namespace msweep;
 
 	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x25074D0); }        // the effect's file (its TIM)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25074D4); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25074D8); }        // caster entity (setup); probes at + 0x9C / + 0x138
-	inline TaskQueue *QScripts() { return (TaskQueue *)0x25074E0; }        // pool: magic buffer, 0x2D x 0x2C
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x25074F0; }        // pool: + 0x7BC, 0x40 x 0x1C
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x2507500; }        // pool: + 0xEBC, 8 x 0x190
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2507510; }           // pool: + 0x1B3C, 1 x 0xE94
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2507520; }           // pool 0x2507530, 1 x 0x14
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2507544); }
-	inline uint32_t &Lcg() { return var<uint32_t>(0x2507548); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507550); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25074D0)); }        // the effect's file (its TIM)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25074D4)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25074D8)); }        // caster entity (setup); probes at + 0x9C / + 0x138
+	inline TaskQueue *QScripts() { return (TaskQueue *)own::R(0x25074E0); }        // pool: magic buffer, 0x2D x 0x2C
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x25074F0); }        // pool: + 0x7BC, 0x40 x 0x1C
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x2507500); }        // pool: + 0xEBC, 8 x 0x190
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2507510); }           // pool: + 0x1B3C, 1 x 0xE94
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2507520); }           // pool 0x2507530, 1 x 0x14
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2507544)); }
+	inline uint32_t &Lcg() { return var<uint32_t>(own::R(0x2507548)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507550)); }        // Magic_TextureOFF (magic buffer)
 
 	static const uint32_t ORIG_Setup = 0x667670, ORIG_FileLoader = 0x667680;
 	static const uint32_t ORIG_RootTask = 0x667720;
@@ -101,6 +108,52 @@ namespace mobile308
 	static const uint32_t MORPH = 0x22A18;             // magic buffer: blended vertex frames
 	static const uint32_t STREAM_STATE = 0x29D0, STREAM_DST = 0x2A18;
 	static const uint32_t ARENA_A = 0x2A18, ARENA_B = 0x12A18;
+
+	static const uint32_t SCRIPT_TABLE = 0x102E5A0, SCRIPT_TABLE_SIZE = 0x3A0;   // the 3 bone scripts (0x102E5A0..0x102E940)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_BODY = 1, PART_SPARKS = 2, PART_LAYOUTS = 3, PART_SPRITES = 4, PART_TILE = 5, PART_QUAD = 6 };
+	struct MobileParams
+	{
+		struct { uint32_t start, voice; } sounds;      // the start sound, the voice (its slot claimed at the start)
+		// the main's ticks: the start sound, the voice released, the battle files' loads, its end
+		struct { int16_t start, release, load, end; } timing;
+		struct { int16_t ramp, level; } flash;          // the screen flash: up over the first ticks, held, down to the end
+		struct { int16_t ticks, alpha; } tint;          // the three colours blended to black over the first ticks, 4th byte
+		struct { int16_t ticks; } body;                 // the three drawn by the module (and their sparks) below this tick
+		// the full-screen tile rising from start over ticks (the scripts, sprites and layouts dropped at its top), then fading
+		struct { int16_t start, ticks, r, g, b; } tile;
+		// the sparks off the marked polygons: their ticks (kind A: a quarter of the speed, kind B), the chance of A (of
+		// 0x7FFF: the module LCG above it), the polygons skipped after one, their speed's scale a tick
+		struct { int16_t life_a, life_b, chance_a, cooldown, speed; } sparks;
+		struct { uint32_t l[4]; } layouts;              // the scripts' layouts 0..3 (ops 0x10A0 / 0x10A1)
+		struct { uint32_t s[4]; } seqs;                 // the scripts' flipbooks 0..3 (ops 0x10A8 / 0x10A9)
+		struct { uint32_t a, b; } spark_seqs;           // the sparks' flipbooks (kind A, kind B)
+		struct { uint32_t scripts; } tables;            // the 3 bone scripts (byte code: their loop counters are written)
+		struct { uint32_t texture_name, camera; } res;  // its resources (data): texture file name, camera track
+	};
+	static const MobileParams GAME = { { 0x1025908, 0x102590C }, { 0, 0x6A, 0x67, 0x6E }, { 8, 0x8FC }, { 0x14, 0x32 },
+		{ 0x56 }, { 0x46, 0x10, 0xFF, 0xFF, 0xFF }, { 0xC, 0xB, 0x2EE0, 8, 4 },
+		{ { 0x1026308, 0x1027944, 0x1028BE4, 0x10297F0 } }, { { 0x1025D20, 0x1025E8C, 0x1026038, 0x1026198 } },
+		{ PART_SEQ0, PART_SEQ1 }, { SCRIPT_TABLE }, { TEXTURE_NAME, CAMERA } };
+	static MobileParams live = GAME;
+	static const MobileParams &PG() { return live; }
+	static const uint32_t LAYOUT_SIZE[4] = { 0x178, 0x130, 0x110, 0x110 };   // the table's decode sizes (their capacity)
+	// the scripts' layout k: the table's (0x102A400), the parameter for 0..3
+	static uint32_t LayoutData(int32_t k)
+	{
+		const uint32_t game = var<uint32_t>(LAYOUTS + k * 8);
+		return (uint32_t)k < 4 ? fxp::layout(PG().layouts.l[k], game, LAYOUT_SIZE[k]) : game;
+	}
+	// the scripts' flipbook k: the table's (0x10262F8), the parameter for 0..3
+	static uint32_t SeqData(int32_t k)
+	{
+		const uint32_t game = var<uint32_t>(SPRITES + k * 4);
+		return (uint32_t)k < 4 ? fxp::sequence(PG().seqs.s[k], game) : game;
+	}
 
 	// engine functions not in fx_port.h / mag_common.h / fx_model_sweep.h
 	inline void StreamLoad(int32_t id, uint32_t dst, int32_t kind) { fn<void (__cdecl *)(int32_t, uint32_t, int32_t)>(0x5341D0)(id, dst, kind); } // Stream_QueueLoad
@@ -303,17 +356,17 @@ namespace mobile308
 		if (!p) return;
 		*(uint32_t *)&p->pos[0] = F<uint32_t>(h, 0x2C);
 		*(uint32_t *)&p->pos[2] = F<uint32_t>(h, 0x30);
-		if (Rand15() > 0x2EE0)
+		if (Rand15() > PG().sparks.chance_a)
 		{
 			p->seq = 0;
-			p->life = 0xC;
+			p->life = PG().sparks.life_a;
 			p->vel[0] = (int8_t)(vx >> 2);
 			p->vel[1] = (int8_t)(vy >> 2);
 			p->vel[2] = (int8_t)(vz >> 2);
 			return;
 		}
 		p->seq = 1;
-		p->life = 0xB;
+		p->life = PG().sparks.life_b;
 		p->vel[0] = (int8_t)vx;
 		p->vel[1] = (int8_t)vy;
 		p->vel[2] = (int8_t)vz;
@@ -346,7 +399,7 @@ namespace mobile308
 						const int32_t b = F<int32_t>(h, 0x14);
 						F<int32_t>(h, 0x14) = b - 1;
 						if (b <= 0) return;
-						F<int32_t>(h, 0x18) = 8;
+						F<int32_t>(h, 0x18) = PG().sparks.cooldown;
 						Spark(h);
 						F<int32_t>(h, 0x18)--;
 					}
@@ -378,7 +431,7 @@ namespace mobile308
 						const int32_t b = F<int32_t>(h, 0x14);
 						F<int32_t>(h, 0x14) = b - 1;
 						if (b <= 0) return;
-						F<int32_t>(h, 0x18) = 8;
+						F<int32_t>(h, 0x18) = PG().sparks.cooldown;
 						Spark(h);
 						F<int32_t>(h, 0x18)--;
 					}
@@ -604,6 +657,7 @@ namespace mobile308
 		arg.depth = L->depth;
 		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(held_note_play(L, &arg);)
+		FX_PART(PART_LAYOUTS);
 		return prim::play((prim::Layout *)L->layout, PartCallback, (int)&arg, 0) != 0 ? 0 : TASK_END;
 	}
 
@@ -613,7 +667,7 @@ namespace mobile308
 	{
 		const int32_t bone = ip[0], flag = ip[1], layout = ip[2], scale = ip[3], turn = ip[4], depth = ip[5];
 		ip += 6;
-		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
+		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
 		if (!L) return ip;
 		uint8_t *anim = ent + 0x60;
 		PoseBones(anim, pose);
@@ -627,7 +681,7 @@ namespace mobile308
 		L->turn = (int16_t)turn;
 		L->depth = (int16_t)depth;
 		BuildBoneMatricesFromPose(anim);
-		DecodeModelPrimLayout(var<uint32_t>(LAYOUTS + layout * 8), L->layout, var<int32_t>(LAYOUTS + layout * 8 + 4));
+		DecodeModelPrimLayout(LayoutData(layout), L->layout, var<int32_t>(LAYOUTS + layout * 8 + 4));
 		return ip;
 	}
 
@@ -638,7 +692,7 @@ namespace mobile308
 	{
 		TransformCameraByShadowRotation(s->pos, s->size, -0x400);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		F<uint32_t>(h, 0) = var<uint32_t>(SPRITES + s->seq * 4);
+		F<uint32_t>(h, 0) = SeqData(s->seq);
 		F<uint16_t>(h, 4) = s->frame;
 		F<uint16_t>(h, 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, OT(0x44), 2, PacketCursor());
@@ -648,9 +702,10 @@ namespace mobile308
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
 		SpriteNode *s = (SpriteNode *)n;
-		const int32_t frames = *(const int16_t *)(var<uint32_t>(SPRITES + s->seq * 4) + 8);
+		const int32_t frames = *(const int16_t *)(SeqData(s->seq) + 8);
 		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(held_note_sprite(s);)
+		FX_PART(PART_SPRITES);
 		SpriteDraw(s);
 		const int8_t vx = s->vel[0], vy = s->vel[1];
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(vx << 2));
@@ -667,7 +722,7 @@ namespace mobile308
 	static const int16_t *SpawnSprite(const int16_t *ip, uint8_t *ent, PoseEntry *pose)
 	{
 		const int32_t mode = *ip++;
-		SpriteNode *s = mode == 0 ? (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask) : (SpriteNode *)ent;
+		SpriteNode *s = mode == 0 ? (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask)) : (SpriteNode *)ent;
 		if (!s) return ip + 10;
 		PoseBones(ent + 0x60, pose);
 		const int32_t bone = ip[0];
@@ -715,7 +770,7 @@ namespace mobile308
 		while (count-- != 0)
 		{
 			SpriteNode *s = (SpriteNode *)ent;
-			if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+			if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 			if (!s) break;
 			s->pos[0] = (int16_t)(Spread(r[0], r[1]) + at[0]);
 			s->pos[1] = (int16_t)(Spread(r[2], r[3]) + at[1]);
@@ -753,6 +808,7 @@ namespace mobile308
 		q[7] = 0x2A;
 		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(held_note_quad(ip);)
+		FX_PART(PART_QUAD);
 		InsertPrimAltViewport(OT(0x20), q);
 		return ip + 3;
 	}
@@ -834,8 +890,9 @@ namespace mobile308
 	// 0x667940: a bone script moving pose entry script[0] of `pose`
 	static void StartScript(uint8_t *ent, PoseEntry *pose, const int16_t *script)
 	{
-		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), ORIG_ScriptTask);
+		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), own::Fn(ORIG_ScriptTask));
 		Memset32(&s->cur, 0, 8);
+		script = (const int16_t *)(fxp::data(PG().tables.scripts, SCRIPT_TABLE, SCRIPT_TABLE_SIZE, 4) + ((uint32_t)script - SCRIPT_TABLE));
 		s->entity = ent;
 		s->pose = pose;
 		s->cur = pose + script[0];
@@ -1033,7 +1090,7 @@ namespace mobile308
 		F<int16_t>(h, 0x94) = 0x1000;
 		F<int16_t>(h, 0x8C) = 0x1000;
 		F<int16_t>(h, 0x84) = 0x1000;
-		const uint32_t seq = p->seq != 0 ? PART_SEQ1 : PART_SEQ0;
+		const uint32_t seq = p->seq != 0 ? fxp::sequence(PG().spark_seqs.b, PART_SEQ1) : fxp::sequence(PG().spark_seqs.a, PART_SEQ0);
 		F<uint32_t>(h, 0) = seq;
 		const uint32_t idx = (uint32_t)var<uint16_t>(seq + 8) - (uint32_t)(int32_t)p->life;
 		const uint32_t rec = seq + var<uint16_t>(seq + idx * 2 + 8);
@@ -1042,9 +1099,9 @@ namespace mobile308
 		F<uint32_t>(h, 0x2C) = rec + 4;
 		PacketCursor() = DrawSprites(h, OT(0x44), 2, PacketCursor(), true);
 		p->life--;
-		p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] << 2));
-		p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->vel[1] << 2));
-		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] << 2));
+		p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] * PG().sparks.speed));
+		p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->vel[1] * PG().sparks.speed));
+		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] * PG().sparks.speed));
 	}
 
 	static void Particles(MainNode *m)
@@ -1071,13 +1128,14 @@ namespace mobile308
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
+		const MobileParams &g = PG();
 		const int16_t c = m->counter;
 		int32_t level;
-		if (c < 8) level = mul32(c, 0x8FC) >> 3;
-		else if (c > 0x66) level = mul32(0x6E - c, 0x8FC) >> 3;
-		else level = 0x8FC;
+		if (c < g.flash.ramp) level = mul32(c, g.flash.level) / g.flash.ramp;
+		else if (c > g.timing.end - g.flash.ramp) level = mul32(g.timing.end - c, g.flash.level) / g.flash.ramp;
+		else level = g.flash.level;
 		SetScreenFlash((uint32_t)level, 0);
-		if (m->counter >= 0x6E)
+		if (m->counter >= g.timing.end)
 		{
 			*(uint16_t *)Caster() &= 0xFFF7;
 			*(uint16_t *)(Caster() + 0x9C) &= 0xFFF7;
@@ -1088,64 +1146,70 @@ namespace mobile308
 			SetScreenFlash(0, 0);
 			return TASK_END;
 		}
-		if (m->counter < 0x14)
+		if (m->counter < g.tint.ticks)
 		{
-			const int32_t w = shl32(m->counter, 12) / 20;
+			const int32_t w = shl32(m->counter, 12) / g.tint.ticks;
 			for (int k = 0; k < 3; k++)
 			{
-				ColourLerp(&m->colour[k], COLOUR_Target, 0x1000 - w, w, Caster() + k * 0x9C + 0x2C);
-				Caster()[k * 0x9C + 0x2F] = 0x32;
+				ColourLerp(&m->colour[k], own::R(COLOUR_Target), 0x1000 - w, w, Caster() + k * 0x9C + 0x2C);
+				Caster()[k * 0x9C + 0x2F] = (uint8_t)g.tint.alpha;
 			}
 		}
-		if ((uint16_t)m->counter < 0x56)
+		if ((uint16_t)m->counter < (uint16_t)g.body.ticks)
 		{
 			// 30 fps layer: see mag308_mobile_type8_held.inc
 			FX_HELD(held_note_entities(m);)
+			FX_PART(PART_BODY);
 			for (int k = 0; k < 3; k++)
 			{
 				EntityDraw(Caster() + k * 0x9C, m->pose[k]);
 				Caster()[k * 0x9C] |= 4;
 			}
 		}
-		const uint32_t t = (uint32_t)(m->counter - 0x46);
-		if (t < 0x10)
+		const uint32_t t = (uint32_t)(m->counter - g.tile.start);
+		if (t < (uint32_t)g.tile.ticks)
 		{
+			const int32_t up = shl32((int32_t)t, 12) / g.tile.ticks;
 			// 30 fps layer: see mag308_mobile_type8_held.inc
-			FX_HELD(held_note_tile((int32_t)((t & 0xFFFFF) << 8));)
-			PacketCursor() = Tile(0xFF, 0xFF, 0xFF, (int32_t)((t & 0xFFFFF) << 8), PacketCursor());
-			if (t == 0xF)
+			FX_HELD(held_note_tile(up);)
+			FX_PART(PART_TILE);
+			PacketCursor() = Tile(g.tile.r, g.tile.g, g.tile.b, up, PacketCursor());
+			if (t == (uint32_t)g.tile.ticks - 1)
 			{
 				QScripts()->head = nullptr; QScripts()->tail = nullptr;
 				QSprites()->head = nullptr; QSprites()->tail = nullptr;
 				QLayouts()->head = nullptr; QLayouts()->tail = nullptr;
 			}
 		}
-		const uint32_t t2 = (uint32_t)(m->counter - 0x56);
+		const uint32_t t2 = (uint32_t)(m->counter - (g.tile.start + g.tile.ticks));
 		if (t2 >= 0x3E8)
 		{
 			// 30 fps layer: see mag308_mobile_type8_held.inc
 			FX_HELD(held_note_parts(m);)
+			FX_PART(PART_SPARKS);
 			Particles(m);
 		}
-		else if (t2 < 0x10)
+		else if (t2 < (uint32_t)g.tile.ticks)
 		{
+			const int32_t down = 0x1000 - shl32((int32_t)t2, 12) / g.tile.ticks;
 			// 30 fps layer: see mag308_mobile_type8_held.inc
-			FX_HELD(held_note_tile((int32_t)(0x1000 - ((t2 & 0xFFFFF) << 8)));)
-			PacketCursor() = Tile(0xFF, 0xFF, 0xFF, (int32_t)(0x1000 - ((t2 & 0xFFFFF) << 8)), PacketCursor());
+			FX_HELD(held_note_tile(down);)
+			FX_PART(PART_TILE);
+			PacketCursor() = Tile(g.tile.r, g.tile.g, g.tile.b, down, PacketCursor());
 		}
-		if (m->counter == 0)
+		if (m->counter == g.timing.start)
 		{
-			BdPlaySE(SOUND_Start, 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
 			m->counter++;
 			return 0;
 		}
-		if (m->counter == 0x6A)
+		if (m->counter == g.timing.release)
 		{
 			ReleaseVoice(m->voice);
 			m->counter++;
 			return 0;
 		}
-		if (m->counter == 0x67)
+		if (m->counter == g.timing.load)
 		{
 			StreamLoad(0x168, TexBase() + STREAM_DST, 1);
 			StreamLoad(0x169, TexBase() + STREAM_DST, 0);
@@ -1180,9 +1244,9 @@ namespace mobile308
 			InitTaskQueuePool(QLayouts(), (void *)(TexBase() + 0xEBC), 0x190, 8);
 			InitTaskQueuePool(QSprites(), (void *)(TexBase() + 0x7BC), 0x1C, 0x40);
 			InitTaskQueuePool(QScripts(), (void *)TexBase(), 0x2C, 0x2D);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x3A2);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 			m->colour[0] = *(const uint32_t *)(Caster() + 0x2C);
 			m->colour[1] = *(const uint32_t *)(Caster() + 0xC8);
 			m->next = &m->parts[0];
@@ -1212,14 +1276,105 @@ namespace mobile308
 		r->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x667680) and setup (0x667670 -> _Init 0x6676A0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster (its flags 0x0C cleared), the root, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		*(uint16_t *)Caster() &= 0xFFF3;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2507530), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA));
+		return QRoot();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the start sound and the voice (claimed at the start, released near the end), the screen flash, the three entities' colours blended to black, the battle files loaded at the end; the texture and the camera" },
+			{ 0, "scripts", "Bone scripts", "The 3 bone scripts (one per entity: Mobile Type 8 and its two probes): each moves its entity's 45 pose entries (offsets, turns, their speeds, a bounce on the ground), throws sparks off bone groups, spawns layouts and sprites at bones, a full-screen quad, loops" },
+			{ PART_BODY, "body", "Bodies", "The three entities drawn by the module with their pose entries (their shadow, then the bones not hidden)" },
+			{ PART_SPARKS, "sparks", "Sparks", "Sparks off the marked bones' polygons along their normals, drifting (two flipbooks)" },
+			{ PART_LAYOUTS, "layouts", "Layouts", "The scripts' layouts at a bone, turned, scaled" },
+			{ PART_SPRITES, "sprites", "Sprites", "The scripts' sprites at a bone (one, or a random burst), drifting, accelerating" },
+			{ PART_TILE, "tile", "White tile", "A full-screen tile rising, then fading" },
+			{ PART_QUAD, "quad", "Script quad", "The scripts' flat full-screen quad" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+			{ "flash", "Screen flash", "The screen flash" },
+		};
+#define MPF(member) (uint32_t)offsetof(MobileParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "At the start sound's tick", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "sounds.voice", "Voice", "The sound block its voice slot is claimed with (at the start)", MPF(sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.start", "Sound", "The main's tick of the start sound", MPF(timing.start), fxp::I16, 0, 400 },
+			{ "main", "timing.release", "Voice released", "Its tick the voice slot is released", MPF(timing.release), fxp::I16, 0, 400 },
+			{ "main", "timing.load", "Files loaded", "Its tick the battle files 0x168 / 0x169 are streamed in", MPF(timing.load), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick (the colours put back; the effect ends once the files are in)", MPF(timing.end), fxp::I16, 1, 400 },
+			{ "main", "flash.ramp", "Flash ramp", "The screen flash rises over the first ticks and falls over the last (at least 1)", MPF(flash.ramp), fxp::I16, 1, 200 },
+			{ "main", "flash.level", "Flash level", "Its level in between", MPF(flash.level), fxp::I16, 0, 0x7FFF },
+			{ "main", "tint.ticks", "Tint ticks", "The three entities' colours blended to black over the first ticks (at least 1)", MPF(tint.ticks), fxp::I16, 1, 400 },
+			{ "main", "tint.alpha", "Tint byte", "Their colours' 4th byte set meanwhile", MPF(tint.alpha), fxp::I16, 0, 255 },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "scripts", "tables.scripts", "Bone scripts", "The 3 bone scripts' byte code (0x3A0 bytes, each script at its own offset: edit their numbers, keep their shape)", MPF(tables.scripts), fxp::Data, 0, 0x7FFFFFFF },
+			{ "body", "body.ticks", "Ticks", "The three drawn by the module (and the sparks drawn) on the main's ticks below this", MPF(body.ticks), fxp::I16, 0, 400 },
+			{ "sparks", "sparks.life_a", "Life A", "A kind A spark's ticks (its flipbook's frame count - its life left: 12 at most)", MPF(sparks.life_a), fxp::I16, 1, 12 },
+			{ "sparks", "sparks.life_b", "Life B", "A kind B spark's ticks (11 at most)", MPF(sparks.life_b), fxp::I16, 1, 11 },
+			{ "sparks", "sparks.chance_a", "Kind A chance", "A spark is of kind A (a quarter of the speed) when the module LCG (0..0x7FFF) is above this", MPF(sparks.chance_a), fxp::I16, 0, 0x7FFF },
+			{ "sparks", "sparks.cooldown", "Cool-down", "Marked polygons skipped after one that threw a spark", MPF(sparks.cooldown), fxp::I16, 1, 400 },
+			{ "sparks", "sparks.speed", "Speed", "A spark moves by its velocity bytes x this a tick", MPF(sparks.speed), fxp::I16, -64, 64 },
+			{ "sparks", "spark_seqs.a", "Flipbook A", "Kind A's flipbook", MPF(spark_seqs.a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sparks", "spark_seqs.b", "Flipbook B", "Kind B's flipbook", MPF(spark_seqs.b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "layouts", "layouts.l[0]", "Layout 0", "The scripts' layout 0", MPF(layouts.l[0]), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "layouts", "layouts.l[1]", "Layout 1", "The scripts' layout 1", MPF(layouts.l[1]), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "layouts", "layouts.l[2]", "Layout 2", "The scripts' layout 2", MPF(layouts.l[2]), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "layouts", "layouts.l[3]", "Layout 3", "The scripts' layout 3", MPF(layouts.l[3]), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.s[0]", "Flipbook 0", "The scripts' flipbook 0", MPF(seqs.s[0]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.s[1]", "Flipbook 1", "The scripts' flipbook 1", MPF(seqs.s[1]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.s[2]", "Flipbook 2", "The scripts' flipbook 2", MPF(seqs.s[2]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.s[3]", "Flipbook 3", "The scripts' flipbook 3", MPF(seqs.s[3]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "tile", "tile.start", "Start", "The main's tick it starts rising (then it fades over as many ticks)", MPF(tile.start), fxp::I16, 0, 400 },
+			{ "tile", "tile.ticks", "Ticks", "Its rise's ticks (at least 1; at its top the scripts, sprites and layouts are dropped)", MPF(tile.ticks), fxp::I16, 1, 200 },
+			{ "tile", "tile.r", "Red", "Its colour", MPF(tile.r), fxp::I16, 0, 255 },
+			{ "tile", "tile.g", "Green", "Its colour", MPF(tile.g), fxp::I16, 0, 255 },
+			{ "tile", "tile.b", "Blue", "Its colour", MPF(tile.b), fxp::I16, 0, 255 },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag308_mobile_type8()
 	{
+		fxp::register_params({ 308, "Mobile Type 8 break-up", &mobile308::live, &mobile308::GAME, sizeof(mobile308::MobileParams),
+		                       mobile308::table::PARTS, (int)(sizeof(mobile308::table::PARTS) / sizeof(mobile308::table::PARTS[0])),
+		                       mobile308::table::FIELDS, (int)(sizeof(mobile308::table::FIELDS) / sizeof(mobile308::table::FIELDS[0])),
+		                       mobile308::table::GROUPS, (int)(sizeof(mobile308::table::GROUPS) / sizeof(mobile308::table::GROUPS[0])) });
+		own::note(mobile308::ORIG_FileLoader, (void *)mobile308::FileLoader);
+		own::note(mobile308::ORIG_Setup, (void *)mobile308::Setup);
+		own::note(mobile308::ORIG_RootTask, (void *)mobile308::RootTask);
 		register_port(mobile308::ORIG_RootTask, (void *)mobile308::RootTask, "308 RootTask", 308);
+		own::note(mobile308::ORIG_MainTask, (void *)mobile308::MainTask);
 		register_port(mobile308::ORIG_MainTask, (void *)mobile308::MainTask, "308 MainTask", 308);
+		own::note(mobile308::ORIG_ScriptTask, (void *)mobile308::ScriptTask);
 		register_port(mobile308::ORIG_ScriptTask, (void *)mobile308::ScriptTask, "308 ScriptTask", 308);
+		own::note(mobile308::ORIG_LayoutTask, (void *)mobile308::LayoutTask);
 		register_port(mobile308::ORIG_LayoutTask, (void *)mobile308::LayoutTask, "308 LayoutTask", 308);
+		own::note(mobile308::ORIG_SpriteTask, (void *)mobile308::SpriteTask);
 		register_port(mobile308::ORIG_SpriteTask, (void *)mobile308::SpriteTask, "308 SpriteTask", 308);
 		// 30 fps layer: see mag308_mobile_type8_held.inc
 		FX_HELD(register_mag308_held();)

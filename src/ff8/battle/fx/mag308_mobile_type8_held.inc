@@ -165,16 +165,17 @@ namespace mobile308
 	// the main's tile level at counter c (0: no tile)
 	static bool TileAt(int32_t c, int32_t *level)
 	{
-		const uint32_t t = (uint32_t)(c - 0x46), t2 = (uint32_t)(c - 0x56);
-		if (t < 0x10) { *level = (int32_t)((t & 0xFFFFF) << 8); return true; }
-		if (t2 < 0x10) { *level = (int32_t)(0x1000 - ((t2 & 0xFFFFF) << 8)); return true; }
+		const int32_t n = PG().tile.ticks;
+		const uint32_t t = (uint32_t)(c - PG().tile.start), t2 = (uint32_t)(c - (PG().tile.start + n));
+		if (t < (uint32_t)n) { *level = shl32((int32_t)t, 12) / n; return true; }
+		if (t2 < (uint32_t)n) { *level = 0x1000 - shl32((int32_t)t2, 12) / n; return true; }
 		return false;
 	}
 
 	static void EntitiesHeld(const Rec &r, int num, int den)
 	{
 		const MainNode *m = (const MainNode *)(TexBase() + MAIN);
-		const bool next = (uint16_t)(r.c + 1) < 0x56;   // the next tick draws the entities again
+		const bool next = (uint16_t)(r.c + 1) < (uint16_t)PG().body.ticks;   // the next tick draws the entities again
 		for (int k = 0; k < 3; k++)
 			for (int i = 0; i < 0x2D; i++)
 			{
@@ -238,7 +239,7 @@ namespace mobile308
 					if (--p.life == 0) continue;
 				}
 				else if (p.life == 1) continue;
-				for (int a = 0; a < 3; a++) p.pos[a] = lerp16(p.pos[a], (int16_t)(p.pos[a] + (int16_t)(p.vel[a] << 2)), num, den);
+				for (int a = 0; a < 3; a++) p.pos[a] = lerp16(p.pos[a], (int16_t)(p.pos[a] + (int16_t)(p.vel[a] * PG().sparks.speed)), num, den);
 			}
 		Particles(g_held_main);
 	}
@@ -250,7 +251,7 @@ namespace mobile308
 		if (!g_held_main) g_held_main = new MainNode();
 		HeldScope scope(PacketCursor(), g_held_arena, ARENA, g_packets);
 		const int16_t c = ((const MainNode *)(TexBase() + MAIN))->counter; // the next tick's main counter
-		const bool dropped = c == 0x55;   // the next tick's main drops the script / sprite / layout queues before they run
+		const bool dropped = c == PG().tile.start + PG().tile.ticks - 1;   // the next tick's main drops the script / sprite / layout queues before they run
 		for (int i = 0; i < g_nrec; i++)
 		{
 			const Rec &r = g_recs[i];
@@ -264,11 +265,11 @@ namespace mobile308
 			{
 				int32_t level = r.level, next;
 				if (TileAt(c, &next) && num != 0) level = lerp_i(level, next, num, den);
-				PacketCursor() = Tile(0xFF, 0xFF, 0xFF, level, PacketCursor());
+				PacketCursor() = Tile(PG().tile.r, PG().tile.g, PG().tile.b, level, PacketCursor());
 				break;
 			}
 			case REC_PARTS:
-				PartsHeld(num, den, (uint16_t)c < 0x56);
+				PartsHeld(num, den, (uint16_t)c < (uint16_t)PG().body.ticks);
 				break;
 			case REC_QUAD:
 			{
@@ -309,7 +310,7 @@ namespace mobile308
 			case REC_SPRITE:
 			{
 				SpriteNode s = r.sprite;
-				const int32_t frames = *(const int16_t *)(var<uint32_t>(SPRITES + s.seq * 4) + 8);
+				const int32_t frames = *(const int16_t *)(SeqData(s.seq) + 8);
 				if (s.frame + 1 < frames && !dropped)
 				{
 					for (int a = 0; a < 3; a++) s.pos[a] = lerp16(s.pos[a], (int16_t)(s.pos[a] + (int16_t)(s.vel[a] * 4)), num, den);

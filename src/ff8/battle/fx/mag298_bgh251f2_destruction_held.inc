@@ -271,7 +271,7 @@ namespace destruct298
 			switch (r.kind)
 			{
 			case BODY:
-				BodyHeld(r, r.counter + 1 < 0x73 ? num : 0, den);
+				BodyHeld(r, r.counter + 1 < PG().timing.end ? num : 0, den);
 				break;
 			case FRAGS:
 				FragsHeld(m, num, den);

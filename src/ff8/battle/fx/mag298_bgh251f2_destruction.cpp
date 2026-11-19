@@ -62,9 +62,15 @@
 // 64's 0x6E67F0 / 0x6E68C0 (the module LCG as the spread source).
 // STACK WORDS: the 4th words of the vectors loaded into GTE V0 (spawn positions, mark points) reach the GTE's VZ0 high half
 // (0x1CA8A16) only.
+// FUJIN: Fujin's described BGH251F2 destruction (effect_298.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the file loader (0x670980) and the setup (0x670970 -> _Init 0x6709A0) ported below; its
+// parameters (DestructParams: the sounds and the master's ticks, the caster's sinking, the fragments, the marks; the
+// script layouts and flipbooks by their index, the marks' 2 flipbooks, the 3 fragment meshes, the 3 bone scripts, the
+// texture name and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
 #include <stddef.h>
 
 namespace ff8fx
@@ -75,14 +81,14 @@ namespace destruct298
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2507888); }        // caster entity (setup)
-	inline TaskQueue *QScript() { return (TaskQueue *)0x2507890; }         // pool: magic buffer, 45 x 0x24
-	inline TaskQueue *QSprite() { return (TaskQueue *)0x25078A0; }         // pool: + 0x654, 64 x 0x1C
-	inline TaskQueue *QLayout() { return (TaskQueue *)0x25078B0; }         // pool: + 0xD54, 8 x 0x148
-	inline TaskQueue *QMaster() { return (TaskQueue *)0x25078C0; }         // pool: + 0x1794, 1 x 0x89F4
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25078F4); }
-	inline uint32_t &LcgSeed() { return var<uint32_t>(0x25078F8); }        // module LCG
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2507900); }        // Magic_TextureOFF (magic buffer)
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2507888)); }        // caster entity (setup)
+	inline TaskQueue *QScript() { return (TaskQueue *)own::R(0x2507890); }         // pool: magic buffer, 45 x 0x24
+	inline TaskQueue *QSprite() { return (TaskQueue *)own::R(0x25078A0); }         // pool: + 0x654, 64 x 0x1C
+	inline TaskQueue *QLayout() { return (TaskQueue *)own::R(0x25078B0); }         // pool: + 0xD54, 8 x 0x148
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x25078C0); }         // pool: + 0x1794, 1 x 0x89F4
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25078F4)); }
+	inline uint32_t &LcgSeed() { return var<uint32_t>(own::R(0x25078F8)); }        // module LCG
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2507900)); }        // Magic_TextureOFF (magic buffer)
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }    // battle_texture_data_ptr (frame arena)
 	inline uint32_t &BoneWorkspace() { return var<uint32_t>(0x1D98B3C); }  // projected / world vertices
 	inline uint32_t RenderOT(uint32_t off) { return var<uint32_t>(0x1D8E04C) + off; }
@@ -107,6 +113,54 @@ namespace destruct298
 	static const void *const SOUND_Voice = (const void *)0x104E334;
 	static const void *const SOUND_Start = (const void *)0x104E330;
 	static const uint32_t SCRIPTS[3] = { 0x1056754, 0x10567E8, 0x1056560 };
+
+	static const uint32_t ORIG_FileLoader = 0x670980, ORIG_Setup = 0x670970;
+	static const uint32_t TEXTURE_NAME = 0x105687C, CAMERA_ANIM = 0x1052298;
+	static const uint32_t SCRIPT_TABLE = 0x1056560, SCRIPT_TABLE_SIZE = 0x31C;   // the 3 bone scripts (0x1056560..0x105687C)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2507880)); }     // the effect's file (its TIM)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_BODY = 1, PART_FRAGMENTS = 2, PART_MARKS = 3, PART_LAYOUTS = 4, PART_SPRITES = 5 };
+	struct DestructParams
+	{
+		struct { uint32_t start, voice; } sounds;      // the start sound, the voice (its slot claimed at the start)
+		struct { int16_t start, release, end; } timing; // the master's ticks: the start sound, the voice released, its end
+		struct { int16_t start, speed; } sink;          // from this tick the caster's position word +0x20 - speed a tick
+		// the fragments: polygons per fragment, life (+ a random below 16), fall speed's growth a tick, fade over their last
+		// ticks, spin range
+		struct { int16_t polys, life, gravity, fade, spin; } fragments;
+		// the marks: kind A's ticks (a quarter of the fragment's speed), kind B's, the chance of A (of 0x7FFF: the module
+		// LCG above it), their speed's scale a tick
+		struct { int16_t life_a, life_b, chance_a, speed; } marks;
+		struct { uint32_t l[4]; } layouts;              // the scripts' layouts 0..3 (ops 0x10A0 / 0x10A1)
+		struct { uint32_t s[4]; } seqs;                 // the scripts' flipbooks 0..3 (ops 0x10A8 / 0x10A9)
+		struct { uint32_t a, b; } mark_seqs;            // the marks' flipbooks (kind A, kind B)
+		struct { uint32_t frag[3]; } models;            // the fragments' meshes (one of three at random)
+		struct { uint32_t scripts; } tables;            // the 3 bone scripts (byte code: their loop counters are written)
+		struct { uint32_t texture_name, camera; } res;  // its resources (data): texture file name, camera track
+	};
+	static const DestructParams GAME = { { 0x104E330, 0x104E334 }, { 1, 0x6F, 0x73 }, { 0x5A, 0x80 }, { 0xC, 0x10, 0x14, 8, 0x200 },
+		{ 0xC, 0xB, 0x2EE0, 4 }, { { 0x104ED34, 0x104F7C0, 0x1050A60, 0x105166C } },
+		{ { 0x104E74C, 0x104E8B8, 0x104EA64, 0x104EBC4 } }, { SEQ_Mark0, SEQ_Mark1 },
+		{ { 0x104E464, 0x104E55C, 0x104E654 } }, { SCRIPT_TABLE }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static DestructParams live = GAME;
+	static const DestructParams &PG() { return live; }
+	static const uint32_t LAYOUT_SIZE[4] = { 0x50, 0x130, 0x110, 0x110 };   // the table's decode sizes (their capacity)
+	// the scripts' layout k: the table's (0x1052278), the parameter for 0..3
+	static uint32_t LayoutData(int32_t k)
+	{
+		const uint32_t game = *(const uint32_t *)(LAYOUTS + k * 8);
+		return (uint32_t)k < 4 ? fxp::layout(PG().layouts.l[k], game, LAYOUT_SIZE[k]) : game;
+	}
+	// the scripts' flipbook k: the table's (0x104ED24), the parameter for 0..3
+	static uint32_t SeqData(int32_t k)
+	{
+		const uint32_t game = *(const uint32_t *)(SEQUENCES + k * 4);
+		return (uint32_t)k < 4 ? fxp::sequence(PG().seqs.s[k], game) : game;
+	}
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -660,7 +714,7 @@ namespace destruct298
 		}
 		m->next_frag = (uintptr_t)f >= (uintptr_t)m + 0x8340 ? m->frags : f + 1;
 		const int32_t k = (ModLcg() * 3) >> 15;
-		if ((uint32_t)k <= 2) f->model = FRAG_Models[k];
+		if ((uint32_t)k <= 2) f->model = fxp::model(PG().models.frag[k], FRAG_Models[k]);
 		return f;
 	}
 
@@ -692,7 +746,7 @@ namespace destruct298
 	{
 		*(uint32_t *)f->pos = F<uint32_t>(s, 0x34);
 		*(uint32_t *)&f->pos[2] = F<uint32_t>(s, 0x38);
-		f->life = (int16_t)((SharedLcg() >> 0xC) + 0x10);
+		f->life = (int16_t)((SharedLcg() >> 0xC) + PG().fragments.life);
 		const int32_t x0 = F<int16_t>(s, 0x34), y0 = F<int16_t>(s, 0x36), z0 = F<int16_t>(s, 0x38);
 		F<int32_t>(s, 0x64) = x0 - F<int16_t>(s, 0x3C);
 		F<int32_t>(s, 0x68) = y0 - F<int16_t>(s, 0x3E);
@@ -715,8 +769,8 @@ namespace destruct298
 		GteSetLZCS(big);
 		f->angle[0] = (int16_t)ModLcg();
 		f->angle[1] = (int16_t)ModLcg();
-		f->spin[0] = (int16_t)((ModLcg() >> 5) - 0x200);
-		f->spin[1] = (int16_t)((ModLcg() >> 5) - 0x200);
+		f->spin[0] = (int16_t)((ModLcg() >> 5) - PG().fragments.spin);
+		f->spin[1] = (int16_t)((ModLcg() >> 5) - PG().fragments.spin);
 		int32_t lz;
 		GteReadLZCR(&lz);
 		if (lz < 0x12)
@@ -747,10 +801,10 @@ namespace destruct298
 		{
 			*(uint32_t *)k->pos = F<uint32_t>(s, 0x34);
 			*(uint32_t *)&k->pos[2] = F<uint32_t>(s, 0x38);
-			if (ModLcg() > 0x2EE0)
+			if (ModLcg() > PG().marks.chance_a)
 			{
 				k->type = 0;
-				k->life = 0xC;
+				k->life = PG().marks.life_a;
 				k->vel[0] = (int8_t)((uint16_t)f->vel[0] >> 2);
 				k->vel[1] = (int8_t)((uint16_t)f->vel[1] >> 2);
 				k->vel[2] = (int8_t)((uint16_t)f->vel[2] >> 2);
@@ -758,7 +812,7 @@ namespace destruct298
 			else
 			{
 				k->type = 1;
-				k->life = 0xB;
+				k->life = PG().marks.life_b;
 				k->vel[0] = (int8_t)f->vel[0];
 				k->vel[1] = (int8_t)f->vel[1];
 				k->vel[2] = (int8_t)f->vel[2];
@@ -779,7 +833,7 @@ namespace destruct298
 			const int32_t left = F<int32_t>(s, 0x14);
 			F<int32_t>(s, 0x14) = left - 1;
 			if (left <= 0) return POLY_STOP;
-			F<int32_t>(s, 0x18) = 0xC;
+			F<int32_t>(s, 0x18) = PG().fragments.polys;
 			Fragment *f = NewFragment(F<MasterNode *>(s, 0x30));
 			F<Fragment *>(s, 0x28) = f;
 			if (!f)
@@ -1115,7 +1169,7 @@ namespace destruct298
 	}
 
 	// sub_6725F0 (fade): over the fragment's last 8 ticks
-	static int32_t FragFade(int16_t life) { return life < 8 ? shl32(life, 9) : 0x1000; }
+	static int32_t FragFade(int16_t life) { return life < PG().fragments.fade ? shl32(life, 12) / PG().fragments.fade : 0x1000; }
 
 	// sub_6725F0 (one fragment): its frame (rotation x scale through the camera, its point through the camera), faded (work
 	// block 0x68: +0x00 matrix, S = +0x20)
@@ -1152,6 +1206,7 @@ namespace destruct298
 	{
 		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_frags(m);)
+		FX_PART(PART_FRAGMENTS);
 		uint8_t *h = (uint8_t *)FieldAlloc(0x68);
 		const Fragment *f = m->frags;
 		for (int32_t n = 0xC0; n != 0; n--, f++)
@@ -1177,7 +1232,7 @@ namespace destruct298
 			f->pos[0] = (int16_t)(f->pos[0] + f->vel[0]);
 			f->pos[2] = (int16_t)(f->pos[2] + f->vel[2]);
 			f->pos[1] = (int16_t)(f->pos[1] + f->vel[1]);
-			f->vel[1] = (int16_t)(f->vel[1] + 0x14);
+			f->vel[1] = (int16_t)(f->vel[1] + PG().fragments.gravity);
 			if (f->pos[1] > 0)
 			{
 				f->vel[1] = (int16_t)(-(int32_t)f->vel[1] >> 1);
@@ -1288,7 +1343,7 @@ namespace destruct298
 		F<uint16_t>(h, 0x94) = 0x1000;
 		F<uint16_t>(h, 0x8C) = 0x1000;
 		F<uint16_t>(h, 0x84) = 0x1000;
-		const uint32_t seq = k->type ? SEQ_Mark1 : SEQ_Mark0;
+		const uint32_t seq = k->type ? fxp::sequence(PG().mark_seqs.b, SEQ_Mark1) : fxp::sequence(PG().mark_seqs.a, SEQ_Mark0);
 		F<uint32_t>(h, 0) = seq;
 		const uint32_t f = (uint32_t)*(const uint16_t *)(seq + 8) - (uint32_t)(int32_t)k->life;
 		const uint32_t frame = seq + *(const uint16_t *)(seq + f * 2 + 8);
@@ -1303,9 +1358,9 @@ namespace destruct298
 	{
 		MarkSprite(h, k);
 		k->life--;
-		k->pos[0] = (int16_t)(k->pos[0] + (int16_t)(k->vel[0] << 2));
-		k->pos[1] = (int16_t)(k->pos[1] + (int16_t)(k->vel[1] << 2));
-		k->pos[2] = (int16_t)(k->pos[2] + (int16_t)(k->vel[2] << 2));
+		k->pos[0] = (int16_t)(k->pos[0] + (int16_t)(k->vel[0] * PG().marks.speed));
+		k->pos[1] = (int16_t)(k->pos[1] + (int16_t)(k->vel[1] * PG().marks.speed));
+		k->pos[2] = (int16_t)(k->pos[2] + (int16_t)(k->vel[2] * PG().marks.speed));
 	}
 
 	// sub_672C40: every live mark (work block 0xB4: the identity rotation and the sprite vertices' z words zeroed)
@@ -1313,6 +1368,7 @@ namespace destruct298
 	{
 		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_marks(m);)
+		FX_PART(PART_MARKS);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		F<uint16_t>(h, 0x92) = 0;
 		F<uint16_t>(h, 0x90) = 0;
@@ -1337,7 +1393,7 @@ namespace destruct298
 	{
 		TransformCameraByShadowRotation(s->pos, s->size, -0x400);
 		uint8_t *h = AllocHeader(0xB4);
-		const uint8_t *seq = *(const uint8_t *const *)(SEQUENCES + s->seq * 4);
+		const uint8_t *seq = (const uint8_t *)SeqData(s->seq);
 		*(const uint8_t **)h = seq;
 		*(uint16_t *)(h + 4) = s->frame;
 		*(uint16_t *)(h + 0x24) = 0;
@@ -1345,7 +1401,7 @@ namespace destruct298
 		FieldFree(0xB4);
 	}
 
-	static int32_t SpriteFrames(const SpriteNode *s) { return *(const int16_t *)(*(const uint8_t *const *)(SEQUENCES + s->seq * 4) + 8); }
+	static int32_t SpriteFrames(const SpriteNode *s) { return *(const int16_t *)(SeqData(s->seq) + 8); }
 
 	static uint32_t __cdecl SpriteTask(TaskNode *n)
 	{
@@ -1353,6 +1409,7 @@ namespace destruct298
 		const int32_t frames = SpriteFrames(s);
 		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_sprite(s);)
+		FX_PART(PART_SPRITES);
 		SpriteDraw(s);
 		const int8_t vx = s->vel[0];
 		s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(vx * 4));
@@ -1385,6 +1442,7 @@ namespace destruct298
 		arg.depth = L->depth;
 		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(held_note_layout(L, &arg);)
+		FX_PART(PART_LAYOUTS);
 		return prim::play((prim::Layout *)L->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -1399,7 +1457,7 @@ namespace destruct298
 		const int16_t turn = ip[4];
 		const int16_t depth = ip[5];
 		ip += 6;
-		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayout(), ORIG_LayoutTask);
+		LayoutNode *L = (LayoutNode *)AddTaskToQueue(QLayout(), own::Fn(ORIG_LayoutTask));
 		if (!L) return ip;
 		uint8_t *anim = entity + 0x60;
 		PoseBones(anim, pose);
@@ -1413,7 +1471,7 @@ namespace destruct298
 		L->turn = turn;
 		L->depth = depth;
 		BuildBoneMatricesFromPose(anim);
-		DecodeModelPrimLayout(*(const uint32_t *)(LAYOUTS + layout * 8), L->layout, *(const int32_t *)(LAYOUTS + layout * 8 + 4));
+		DecodeModelPrimLayout(LayoutData(layout), L->layout, *(const int32_t *)(LAYOUTS + layout * 8 + 4));
 		return ip;
 	}
 
@@ -1423,7 +1481,7 @@ namespace destruct298
 	{
 		const int32_t mode = *ip++;
 		SpriteNode *s;
-		if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprite(), ORIG_SpriteTask);
+		if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprite(), own::Fn(ORIG_SpriteTask));
 		else s = (SpriteNode *)entity;
 		if (!s) return ip + 10;
 		PoseBones(entity + 0x60, pose);
@@ -1475,7 +1533,7 @@ namespace destruct298
 		while (count-- != 0)
 		{
 			SpriteNode *s = (SpriteNode *)entity;
-			if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprite(), ORIG_SpriteTask);
+			if (mode == 0) s = (SpriteNode *)AddTaskToQueue(QSprite(), own::Fn(ORIG_SpriteTask));
 			if (!s) break;
 			s->pos[0] = (int16_t)(Spread(r[0], r[1]) + at[0]);
 			s->pos[1] = (int16_t)(Spread(r[2], r[3]) + at[1]);
@@ -1602,9 +1660,9 @@ namespace destruct298
 	// sub_670C10: a bone script on the pose entry of its first word
 	static void StartScript(uint32_t script)
 	{
-		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScript(), ORIG_ScriptTask);
+		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScript(), own::Fn(ORIG_ScriptTask));
 		Memset32(&s->cur, 0, 6);
-		const int16_t *p = (const int16_t *)script;
+		const int16_t *p = (const int16_t *)(fxp::data(PG().tables.scripts, SCRIPT_TABLE, SCRIPT_TABLE_SIZE, 4) + (script - SCRIPT_TABLE));
 		s->ip = p + 1;
 		s->cur = (PoseEntry *)(TexBase() + shl32(p[0] + 0x17B, 4));
 	}
@@ -1615,19 +1673,21 @@ namespace destruct298
 	static uint32_t __cdecl MasterTask(TaskNode *n)
 	{
 		MasterNode *m = (MasterNode *)n;
-		if (m->counter >= 0x73) return TASK_END;
+		const DestructParams &g = PG();
+		if (m->counter >= g.timing.end) return TASK_END;
 		if (m->counter >= 0)
 		{
 			// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 			FX_HELD(held_note_body(m);)
+			FX_PART(PART_BODY);
 			CasterDraw(Caster(), m->pose);
 			*(uint8_t *)Caster() |= 4;
 		}
 		DrawFragments(m);
 		DrawMarks(m);
-		if (m->counter == 1) BdPlaySE(SOUND_Start, 0, 0x80);
-		else if (m->counter == 0x6F) ReleaseVoiceSlot(m->voice);
-		if (m->counter >= 0x5A) *(int16_t *)(Caster() + 0x20) = (int16_t)(*(int16_t *)(Caster() + 0x20) - 0x80);
+		if (m->counter == g.timing.start) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		else if (m->counter == g.timing.release) ReleaseVoiceSlot(m->voice);
+		if (m->counter >= g.sink.start) *(int16_t *)(Caster() + 0x20) = (int16_t)(*(int16_t *)(Caster() + 0x20) - g.sink.speed);
 		MoveFragments(m);
 		m->counter++;
 		return 0;
@@ -1659,9 +1719,9 @@ namespace destruct298
 			InitTaskQueuePool(QLayout(), (void *)(TexBase() + POOL_Layout), 0x148, 8);
 			InitTaskQueuePool(QSprite(), (void *)(TexBase() + POOL_Sprite), 0x1C, 0x40);
 			InitTaskQueuePool(QScript(), (void *)TexBase(), 0x24, 0x2D);
-			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), ORIG_MasterTask);
+			MasterNode *m = (MasterNode *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask));
 			Memset32(&m->counter, 0, 0x227A);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 			m->next_frag = m->frags;
 			m->next_mark = m->marks;
 			m->at[0] = *(const uint32_t *)(Caster() + 0x1C);
@@ -1682,14 +1742,101 @@ namespace destruct298
 		rn->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x670980) and setup (0x670970 -> _Init 0x6709A0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster, the root, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		var<CastContext *>(own::R(0x2507884)) = ctx;
+		Caster() = Entity(ctx->attacker);
+		TaskQueue *root = (TaskQueue *)own::R(0x25078D0);
+		InitTaskQueuePool(root, (void *)own::R(0x25078E0), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The master's ticks, the start sound and the voice (claimed at the start, released near the end), the caster sinking at the end; the texture and the camera" },
+			{ 0, "scripts", "Bone scripts", "The 3 bone scripts: each moves the caster's 45 pose entries (offsets, turns, their speeds, a bounce on the ground), shatters bone groups into fragments (bones, count, speed, size, chance), spawns layouts and sprites at bones, loops" },
+			{ PART_BODY, "body", "Body", "The caster drawn by the module with the pose entries (its shadow, then its bones)" },
+			{ PART_FRAGMENTS, "fragments", "Fragments", "The shattered polygons: fragments of up to 12 of them on a small mesh, flying off along their normal, spinning, falling, bouncing, fading out" },
+			{ PART_MARKS, "marks", "Marks", "A flipbook where each fragment started, drifting the same way (two kinds)" },
+			{ PART_LAYOUTS, "layouts", "Layouts", "The scripts' layouts at a bone, turned, scaled" },
+			{ PART_SPRITES, "sprites", "Sprites", "The scripts' sprites at a bone (one, or a random burst), drifting, accelerating" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The master's ticks" },
+		};
+#define MPF(member) (uint32_t)offsetof(DestructParams, member)
+		static const Field FIELDS[] = {
+			{ "master", "sounds.start", "Sound", "At the start sound's tick", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.voice", "Voice", "The sound block its voice slot is claimed with (at the start)", MPF(sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "timing.start", "Sound", "The master's tick of the start sound", MPF(timing.start), fxp::I16, 0, 115 },
+			{ "master", "timing.release", "Voice released", "Its tick the voice slot is released", MPF(timing.release), fxp::I16, 0, 115 },
+			{ "master", "timing.end", "End", "Its last tick (the root runs its tasks below tick 116, then streams the battle file in)", MPF(timing.end), fxp::I16, 1, 115 },
+			{ "master", "sink.start", "Sink from", "From this tick the caster sinks", MPF(sink.start), fxp::I16, 0, 400 },
+			{ "master", "sink.speed", "Sink speed", "Its position word +0x20 - this a tick", MPF(sink.speed), fxp::I16, -0x800, 0x800 },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "scripts", "tables.scripts", "Bone scripts", "The 3 bone scripts' byte code (0x31C bytes, each script at its own offset: edit their numbers, keep their shape)", MPF(tables.scripts), fxp::Data, 0, 0x7FFFFFFF },
+			{ "fragments", "fragments.polys", "Polygons", "Polygons a fragment takes (12 at most)", MPF(fragments.polys), fxp::I16, 1, 12 },
+			{ "fragments", "fragments.life", "Life", "A fragment's ticks: this + a random below 16", MPF(fragments.life), fxp::I16, 1, 400 },
+			{ "fragments", "fragments.gravity", "Gravity", "Its fall speed grows by this a tick (it bounces at half its speed on the ground)", MPF(fragments.gravity), fxp::I16, -0x400, 0x400 },
+			{ "fragments", "fragments.fade", "Fade", "It fades out over its last ticks (at least 1)", MPF(fragments.fade), fxp::I16, 1, 400 },
+			{ "fragments", "fragments.spin", "Spin", "Its spin on each axis: a random below 0x400 - this a tick", MPF(fragments.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "fragments", "models.frag[0]", "Mesh 1", "A fragment's mesh (one of three at random)", MPF(models.frag[0]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "fragments", "models.frag[1]", "Mesh 2", "A fragment's mesh", MPF(models.frag[1]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "fragments", "models.frag[2]", "Mesh 3", "A fragment's mesh", MPF(models.frag[2]), fxp::Model, 0, 0x7FFFFFFF },
+			{ "marks", "marks.life_a", "Life A", "A kind A mark's ticks (its flipbook's frame count - its life left: 12 at most)", MPF(marks.life_a), fxp::I16, 1, 12 },
+			{ "marks", "marks.life_b", "Life B", "A kind B mark's ticks (11 at most)", MPF(marks.life_b), fxp::I16, 1, 11 },
+			{ "marks", "marks.chance_a", "Kind A chance", "A mark is of kind A (a quarter of its fragment's speed) when the module LCG (0..0x7FFF) is above this", MPF(marks.chance_a), fxp::I16, 0, 0x7FFF },
+			{ "marks", "marks.speed", "Speed", "A mark moves by its velocity bytes x this a tick", MPF(marks.speed), fxp::I16, -64, 64 },
+			{ "marks", "mark_seqs.a", "Flipbook A", "Kind A's flipbook", MPF(mark_seqs.a), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "marks", "mark_seqs.b", "Flipbook B", "Kind B's flipbook", MPF(mark_seqs.b), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "layouts", "layouts.l[0]", "Layout 0", "The scripts' layout 0", MPF(layouts.l[0]), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "layouts", "layouts.l[1]", "Layout 1", "The scripts' layout 1 (the game's scripts do not use it)", MPF(layouts.l[1]), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "layouts", "layouts.l[2]", "Layout 2", "The scripts' layout 2", MPF(layouts.l[2]), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "layouts", "layouts.l[3]", "Layout 3", "The scripts' layout 3", MPF(layouts.l[3]), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.s[0]", "Flipbook 0", "The scripts' flipbook 0", MPF(seqs.s[0]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.s[1]", "Flipbook 1", "The scripts' flipbook 1", MPF(seqs.s[1]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.s[2]", "Flipbook 2", "The scripts' flipbook 2 (the game's scripts do not use it)", MPF(seqs.s[2]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "sprites", "seqs.s[3]", "Flipbook 3", "The scripts' flipbook 3", MPF(seqs.s[3]), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag298_bgh251f2_destruction()
 	{
+		fxp::register_params({ 298, "BGH251F2 destruction", &destruct298::live, &destruct298::GAME, sizeof(destruct298::DestructParams),
+		                       destruct298::table::PARTS, (int)(sizeof(destruct298::table::PARTS) / sizeof(destruct298::table::PARTS[0])),
+		                       destruct298::table::FIELDS, (int)(sizeof(destruct298::table::FIELDS) / sizeof(destruct298::table::FIELDS[0])),
+		                       destruct298::table::GROUPS, (int)(sizeof(destruct298::table::GROUPS) / sizeof(destruct298::table::GROUPS[0])) });
+		own::note(destruct298::ORIG_FileLoader, (void *)destruct298::FileLoader);
+		own::note(destruct298::ORIG_Setup, (void *)destruct298::Setup);
+		own::note(destruct298::ORIG_RootTask, (void *)destruct298::RootTask);
 		register_port(destruct298::ORIG_RootTask, (void *)destruct298::RootTask, "298 RootTask", 298);
+		own::note(destruct298::ORIG_MasterTask, (void *)destruct298::MasterTask);
 		register_port(destruct298::ORIG_MasterTask, (void *)destruct298::MasterTask, "298 MasterTask", 298);
+		own::note(destruct298::ORIG_ScriptTask, (void *)destruct298::ScriptTask);
 		register_port(destruct298::ORIG_ScriptTask, (void *)destruct298::ScriptTask, "298 ScriptTask", 298);
+		own::note(destruct298::ORIG_LayoutTask, (void *)destruct298::LayoutTask);
 		register_port(destruct298::ORIG_LayoutTask, (void *)destruct298::LayoutTask, "298 LayoutTask", 298);
+		own::note(destruct298::ORIG_SpriteTask, (void *)destruct298::SpriteTask);
 		register_port(destruct298::ORIG_SpriteTask, (void *)destruct298::SpriteTask, "298 SpriteTask", 298);
 		// 30 fps layer: see mag298_bgh251f2_destruction_held.inc
 		FX_HELD(register_mag298_held();)
