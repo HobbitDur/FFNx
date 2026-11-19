@@ -99,7 +99,7 @@ namespace gravija214
 		const MainNode *w = (const MainNode *)(TexBase() + MAIN);
 		memcpy(&r->part, n, sizeof(ParticleNode));
 		r->amp = w->amp;
-		r->next_b = (int16_t)(w->counter - 0x12); // the main task already counted this tick
+		r->next_b = (int16_t)(w->counter - PG().particles.start); // the main task already counted this tick
 	}
 
 	static bool HeldReady() { return g_ported_tick == g_real_tick && g_log_tick == g_real_tick; }
@@ -109,8 +109,8 @@ namespace gravija214
 	{
 		switch (r.kind)
 		{
-			case K_PLAY: return r.counter + 1 < 0x4A;
-			case K_WARP: return r.counter + 1 - 0x12 < 0x38;
+			case K_PLAY: return r.counter + 1 < PG().layout.ticks;
+			case K_WARP: return r.counter + 1 - PG().warp.start < PG().warp.ticks;
 			default: return r.part.counter + 1 < r.part.life;
 		}
 	}
@@ -120,33 +120,34 @@ namespace gravija214
 	static int16_t HeldAmp(const Rec &r, int num, int den)
 	{
 		const int32_t nb = r.next_b;
-		if (num == 0 || nb < 1 || nb >= 0x32) return r.amp;
+		if (num == 0 || nb < 1 || nb >= PG().particles.ticks) return r.amp;
 		const int32_t x = (nb - 1) * den + num;
-		if (x < 0x10 * den) return (int16_t)ComputeSin((x << 6) / den);
-		if (x <= 0x22 * den) return 0x1000;
-		return (int16_t)ComputeCos(((x - 0x22 * den) << 6) / den);
+		const int32_t rise = PG().particles.rise, fall = PG().particles.fall;
+		if (x < rise * den) return (int16_t)ComputeSin(x * 0x400 / (rise * den));
+		if (x <= fall * den) return 0x1000;
+		return (int16_t)ComputeCos((x - fall * den) * 0x400 / (rise * den));
 	}
 
 	static void HeldWarp(const Rec &r, int num, int den)
 	{
 		const MainNode *w = (const MainNode *)r.node;
-		const int32_t b = r.counter - 0x12;
+		const int32_t b = r.counter - PG().warp.start;
 		Mat4x3 frame = WarpFrame();
 		int32_t z;
 		if (!WarpBox(w, frame, &z)) return;
 		const int32_t x = b * den + num;
-		const int32_t t = num ? (int32_t)(((uint32_t)x << 12) / (uint32_t)(56 * den)) : WavePhase(b);
+		const int32_t t = num ? (int32_t)(((uint32_t)x << 12) / (uint32_t)(PG().warp.period * den)) : WavePhase(b);
 		const int32_t amp = WaveAmp(t);
-		if (b < 8)
+		if (b < PG().warp.grow)
 		{
-			frame.m[0][0] = (int16_t)((uint32_t)mul32(frame.m[0][0], x) / (uint32_t)(8 * den));
-			frame.m[1][1] = (int16_t)((uint32_t)mul32(frame.m[1][1], x) / (uint32_t)(8 * den));
+			frame.m[0][0] = (int16_t)((uint32_t)mul32(frame.m[0][0], x) / (uint32_t)(PG().warp.grow * den));
+			frame.m[1][1] = (int16_t)((uint32_t)mul32(frame.m[1][1], x) / (uint32_t)(PG().warp.grow * den));
 		}
 		const int32_t f0 = WarpFade(b), f1 = WarpFade(b + 1);
 		const int32_t fade = f0 + (f1 - f0) * num / den;
 		GteSetRotMatrix(&frame);
 		GteSetTransVector(&frame);
-		Warp(MESH, MESH + 8, (z >> 2) + 0x11, fade, amp, t, g_held_vbuf);
+		Warp(Mesh(), Mesh() + 8, (z >> 2) + PG().warp.ot, fade, amp, t, g_held_vbuf);
 	}
 
 	static void HeldFrame(int num, int den)
@@ -177,7 +178,7 @@ namespace gravija214
 				const MainNode *m = (const MainNode *)r.node;
 				PrimArg arg;
 				memcpy(arg.pos, m->avg, 8);
-				arg.depth = -0x80;
+				arg.depth = PG().layout.depth;
 				arg.morph = (uint32_t)g_held_morph;
 				prim::play_held((prim::Layout *)m->layout, PrimCallback, (int)&arg, k, den);
 			}
@@ -185,7 +186,7 @@ namespace gravija214
 			else
 			{
 				ParticleNode p = r.part;
-				p.angle = (int16_t)(p.angle + 8 * k / den);
+				p.angle = (int16_t)(p.angle + PG().particles.spin * k / den);
 				ParticleDraw(&p, HeldAmp(r, k, den), w->avg);
 			}
 		}

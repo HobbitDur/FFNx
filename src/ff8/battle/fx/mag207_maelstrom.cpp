@@ -55,9 +55,16 @@
 // particles / 0x2517A38 main / 0x2517A48 master, the warp frame 0x2517A58 (m[0][0], m[1][1], TX, TY), the module matrix
 // 0x2517A80).
 // NEVER-WRITTEN WORDS: as 214 (GTE pads; the screen-copy polygons' CLUT / pad halves keep the arena's bytes).
+// (The file loader reads "mag206.tim", named at 0x11B5364; "00900901" at 0x11B5370 is the kinds string.)
+// FUJIN: Fujin's described Maelstrom (effect_207.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the file loader (0x6A3AC0) and the setup (0x6A3AB0 -> _Init 0x6A3AE0) ported below; its
+// parameters (MaelstromParams: the sound and the ticks, the layout's draw, the warp, the particles, the layout, the
+// particle flipbook, the warp mesh, the lens table, the texture name and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -67,13 +74,14 @@ namespace maelstrom207
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25102C8); }        // Magic_TextureOFF (magic buffer)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2517A0C); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2517A24); }
-	inline TaskQueue *QParticles() { return (TaskQueue *)0x2517A28; }      // pool: magic buffer, 0x40 x 0x20
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2517A38; }           // pool: + 0x800, 1 x 0x4E8
-	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(0x2517A58); }          // m[0][0], m[1][1], TX, TY written
-	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(0x2517A80); }       // the camera orthonormalised, every master tick
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25102C8)); }        // Magic_TextureOFF (magic buffer)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2517A0C)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2517A24)); }
+	inline TaskQueue *QParticles() { return (TaskQueue *)own::R(0x2517A28); }      // pool: magic buffer, 0x40 x 0x20
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x2517A48); }          // 1 x 0x14
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2517A38); }           // pool: + 0x800, 1 x 0x4E8
+	inline Mat4x3 &WarpFrame() { return var<Mat4x3>(own::R(0x2517A58)); }          // m[0][0], m[1][1], TX, TY written
+	inline Mat4x3 &ModuleMatrix() { return var<Mat4x3>(own::R(0x2517A80)); }       // the camera orthonormalised, every master tick
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_MasterTask = 0x6A3B70;
@@ -86,7 +94,7 @@ namespace maelstrom207
 	static const uint32_t MORPH_BYTES = VBUF - MORPH;
 	static const uint32_t ARENA_A = 0x1A2C;              // magic buffer: packet arenas
 	static const uint32_t ARENA_B = 0x11A2C;
-	static uint8_t *const MESH = (uint8_t *)0x25102CC;   // the warp mesh (module copy): size, count, vertices, triangles, quads
+	inline uint8_t *Mesh() { return (uint8_t *)own::R(0x25102CC); }   // the warp mesh (module copy): size, count, vertices, triangles, quads
 	static const uint16_t *const SQRT_TABLE = (const uint16_t *)0x11B3164;
 	static const int16_t *const LENS_TABLE = (const int16_t *)0x11B3364;  // 0x20 rows x 0x80 s16 (4.12 scale by length / 32)
 	static const uint32_t MODEL_Main = 0x11AE3F4;        // prim-model layout
@@ -94,6 +102,40 @@ namespace maelstrom207
 	static const uint32_t SEQ_Particle = 0x11AC414;      // sprite sequence
 	static const void *const SOUND_Maelstrom = (const void *)0x11AC274;
 	static const uint32_t COPY_X = 0x240, COPY_Y = 0x100; // VRAM screen copy
+	static const uint32_t ORIG_FileLoader = 0x6A3AC0, ORIG_Setup = 0x6A3AB0;
+	static const uint32_t TEXTURE_NAME = 0x11B5364, CAMERA_ANIM = 0x11AC278, MESH_DATA = 0x11AC624;
+	static const uint32_t DATA_COPY = 0x7740;          // the setup's copy of the data from the mesh on (the mesh: its first 0x1DD0)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25102C4)); }   // the effect's file (its TIM)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_LAYOUT = 1, PART_WARP = 2, PART_PARTICLES = 3 };
+	struct MaelstromParams
+	{
+		uint32_t sound;                                     // the main task's sound tick
+		// the master's tick of the screen copy (and the main task's start), the main task's sound tick, its last tick (the
+		// action results then, the battle textures restored)
+		struct { int16_t copy, sound, result; } timing;
+		struct { int16_t ticks, depth, scroll; } layout;   // the layout drawn on the main task's first ticks, its depth, texture scroll a tick
+		// the warp: from tick start for ticks, growing over its first ticks, its fade (a half sine over fade ticks), the lens row's
+		// steps (row ticks each), the box's least size (/ OTZ), the targets' head drop, the box's widening, the OT entry
+		struct { int16_t start, ticks, grow, fade, row; int32_t min_size; int16_t head, widen, ot; } warp;
+		// the particles: from tick start for ticks, count a tick, their distance (+ a random below dist_rand), draws
+		struct { int16_t start, ticks, count, dist, dist_rand, life; } particles;
+		struct { uint32_t main; } layouts;                  // the prim-model layout played (its models' animation)
+		struct { uint32_t particle; } seqs;                 // the sprite sequence drawn (flipbook)
+		struct { uint32_t mesh; } models;                   // the warp mesh (a prim model)
+		struct { uint32_t lens; } tables;                   // the lens table (0x20 rows x 0x80 s16)
+		struct { uint32_t texture_name, camera; } res;      // its resources (data): texture file name, camera track
+	};
+	static const MaelstromParams GAME = { 0x11AC274, { 1, 0, 0x50 }, { 0x50, -0x80, 32 },
+		{ 0x20, 0x30, 8, 48, 12, 0x18000, 0x200, 54, 0x11 }, { 0x30, 0x10, 4, 0x800, 0x800, 0x10 },
+		{ MODEL_Main }, { SEQ_Particle }, { MESH_DATA }, { 0x11B3364 }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static MaelstromParams live = GAME;
+	static const MaelstromParams &PG() { return live; }
+	inline const int16_t *LensTable() { return (const int16_t *)fxp::data(PG().tables.lens, 0x11B3364, 0x2000); }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t ComputeCos(int32_t a) { return fn<int32_t (__cdecl *)(int32_t)>(0x56D100)(a); }
@@ -471,7 +513,7 @@ namespace maelstrom207
 	{
 		const int16_t x = *(const int16_t *)(e + 0x1C), y = *(const int16_t *)(e + 0x1E), z = *(const int16_t *)(e + 0x20);
 		const int16_t size = (int16_t)(*(const int16_t *)(e + 0x26) + 0x100);
-		const int16_t hy = (int16_t)(*(const int16_t *)(e + 0x36) - 0x200);
+		const int16_t hy = (int16_t)(*(const int16_t *)(e + 0x36) - PG().warp.head);
 		int16_t pts[2][4] = { { x, y, z, 0 }, { x, hy, z, 0 } }; // (4th words: GTE V0 pad only)
 		int32_t any = 0, w = size;
 		for (int i = 1; i >= 0; i--)
@@ -486,7 +528,7 @@ namespace maelstrom207
 			if (i == 1)
 			{
 				const int32_t d = q[2] ? (int32_t)q[2] : 1;
-				w = mul32((int32_t)size, 54) / d;
+				w = mul32((int32_t)size, PG().warp.widen) / d;
 			}
 			q[0] = (int16_t)(q[0] - (int16_t)w);
 			any |= ExpandBox(box, q, minz);
@@ -768,7 +810,7 @@ namespace maelstrom207
 		GteReadSXY2(sxy); // (/ 8 into a local: not used)
 		int32_t otz;
 		GteReadOTZ(&otz);
-		const int16_t s = (int16_t)(0x18000 / (int32_t)(int16_t)otz);
+		const int16_t s = (int16_t)(PG().warp.min_size / (int32_t)(int16_t)otz);
 		if (bw < s) bw = s;
 		if (bh < s) bh = s;
 		frame.m[1][1] = bh;
@@ -779,18 +821,19 @@ namespace maelstrom207
 		return true;
 	}
 
-	// the warp's fade at b = counter - 0x20: 0x1000 - sin(b x 2048 / 48)
-	static int32_t WarpFade(int32_t b) { return 0x1000 - ComputeSin((int32_t)(((uint32_t)b << 11) / 48)); }
+	// the warp's fade at b = counter - start: 0x1000 - sin(b x 2048 / fade) (the game's: 48)
+	static int32_t WarpFade(int32_t b) { return 0x1000 - ComputeSin((int32_t)(((uint32_t)b << 11) / (uint32_t)PG().warp.fade)); }
 
-	// the warp's lens row at b
+	// the warp's lens row at b (the row's steps: q ticks each, the game's 12)
 	static int32_t WarpRow(int32_t b)
 	{
+		const uint32_t q = (uint32_t)PG().warp.row;
 		int32_t r;
-		if ((uint32_t)b < 0xC) r = 0x10 - (int32_t)(((uint32_t)b << 4) / 12);
-		else if ((uint32_t)b < 0x18) r = (int32_t)((((uint32_t)b - 0xC) << 4) / 12);
+		if ((uint32_t)b < q) r = 0x10 - (int32_t)(((uint32_t)b << 4) / q);
+		else if ((uint32_t)b < 2 * q) r = (int32_t)((((uint32_t)b - q) << 4) / q);
 		else
 		{
-			r = (int32_t)((((uint32_t)b - 0x18) << 4) / 12) + 0x10;
+			r = (int32_t)((((uint32_t)b - 2 * q) << 4) / q) + 0x10;
 			if (r <= 0x1F) return r;
 			r = 0x40 - r;
 		}
@@ -802,8 +845,9 @@ namespace maelstrom207
 	{
 		TransformCameraByShadowRotation(pos, 0x1000, (int32_t)0xFFFFFC00);
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		*(uint32_t *)h = SEQ_Particle;
-		*(int16_t *)(h + 4) = frame;
+		const uint32_t seq = fxp::sequence(PG().seqs.particle, SEQ_Particle);
+		*(uint32_t *)h = seq;
+		*(int16_t *)(h + 4) = fxp::last_frame(seq, frame);
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0xB4);
@@ -826,6 +870,7 @@ namespace maelstrom207
 		ParticleNode *p = (ParticleNode *)n;
 		// 30 fps layer: see mag207_maelstrom_held.inc
 		FX_HELD(held_note_particle(n);)
+		FX_PART(PART_PARTICLES);
 		ParticleDraw(p->pos, p->counter);
 		p->vel[0] = (int16_t)(p->vel[0] + (int16_t)p->acc[0]);
 		p->vel[1] = (int16_t)(p->vel[1] + (int16_t)p->acc[1]);
@@ -834,7 +879,7 @@ namespace maelstrom207
 		p->pos[1] = (int16_t)(p->pos[1] + p->vel[1]);
 		p->pos[2] = (int16_t)(p->pos[2] + p->vel[2]);
 		p->counter++;
-		return p->counter < 0x10 ? 0 : TASK_END;
+		return p->counter < PG().particles.life ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -843,49 +888,51 @@ namespace maelstrom207
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *w = (MainNode *)n;
-		if ((uint32_t)(int32_t)w->counter < 0x50)
+		if ((uint32_t)(int32_t)w->counter < (uint32_t)PG().layout.ticks)
 		{
 			PrimArg arg;
 			memcpy(arg.pos, w->avg, 8);
 			arg.kinds = KINDS;
-			arg.depth = -0x80;
-			arg.scroll = (int16_t)(w->counter << 5);
+			arg.depth = PG().layout.depth;
+			arg.scroll = (int16_t)(w->counter * PG().layout.scroll);
 			arg.morph = TexBase() + MORPH;
 			// 30 fps layer: see mag207_maelstrom_held.inc
 			FX_HELD(held_note_main(K_PLAY, n);)
+			FX_PART(PART_LAYOUT);
 			prim::play((prim::Layout *)w->layout, PrimCallback, (int)&arg, 0);
 		}
-		const int32_t b = (int32_t)w->counter - 0x20;
-		if ((uint32_t)b < 0x30)
+		const int32_t b = (int32_t)w->counter - PG().warp.start;
+		if ((uint32_t)b < (uint32_t)PG().warp.ticks)
 		{
 			// 30 fps layer: see mag207_maelstrom_held.inc
 			FX_HELD(held_note_main(K_WARP, n);)
+			FX_PART(PART_WARP);
 			int32_t z;
 			if (WarpBox(w, WarpFrame(), &z))
 			{
 				const int32_t fade = WarpFade(b);
-				if (b < 8)
+				if (b < PG().warp.grow)
 				{
-					WarpFrame().m[0][0] = (int16_t)((uint32_t)mul32(WarpFrame().m[0][0], b) >> 3);
-					WarpFrame().m[1][1] = (int16_t)((uint32_t)mul32(WarpFrame().m[1][1], b) >> 3);
+					WarpFrame().m[0][0] = (int16_t)((uint32_t)mul32(WarpFrame().m[0][0], b) / (uint32_t)PG().warp.grow);
+					WarpFrame().m[1][1] = (int16_t)((uint32_t)mul32(WarpFrame().m[1][1], b) / (uint32_t)PG().warp.grow);
 				}
 				GteSetRotMatrix(&WarpFrame());
 				GteSetTransVector(&WarpFrame());
-				Warp(MESH, MESH + 8, (z >> 2) + 0x11, fade, LENS_TABLE + WarpRow(b) * 0x80, (uint8_t *)(TexBase() + VBUF));
+				Warp(Mesh(), Mesh() + 8, (z >> 2) + PG().warp.ot, fade, LensTable() + WarpRow(b) * 0x80, (uint8_t *)(TexBase() + VBUF));
 			}
 		}
-		if (w->counter == 0) BdPlaySE(SOUND_Maelstrom, 0, 0x80);
-		if ((uint32_t)((int32_t)w->counter - 0x30) < 0x10)
+		if (w->counter == PG().timing.sound) BdPlaySE((const void *)fxp::sound(PG().sound, (uint32_t)SOUND_Maelstrom), 0, 0x80);
+		if ((uint32_t)((int32_t)w->counter - PG().particles.start) < (uint32_t)PG().particles.ticks)
 		{
-			for (int i = 0; i < 4; i++)
+			for (int i = 0; i < PG().particles.count; i++)
 			{
-				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), ORIG_ParticleTask);
+				ParticleNode *p = (ParticleNode *)AddTaskToQueue(QParticles(), own::Fn(ORIG_ParticleTask));
 				if (!p) break;
 				p->counter = 0;
 				const int32_t r1 = CrtRand();
 				const int32_t r2 = CrtRand();
 				DirectionFromPitchYaw(r2, r1, p->pos);
-				const int32_t dist = (CrtRand() & 0x7FF) + 0x800;
+				const int32_t dist = CrtRand() % PG().particles.dist_rand + PG().particles.dist;
 				const int32_t dx = mul32(p->pos[0], dist) >> 12;
 				const int32_t dy = mul32(p->pos[1], dist) >> 12;
 				const int32_t dz = mul32(p->pos[2], dist) >> 12;
@@ -900,12 +947,12 @@ namespace maelstrom207
 				p->pos[2] = (int16_t)((int16_t)dz + w->avg[2]);
 			}
 		}
-		if (w->counter < 0x50)
+		if (w->counter < PG().timing.result)
 		{
 			w->counter++;
 			return 0;
 		}
-		if (w->counter == 0x50)
+		if (w->counter == PG().timing.result)
 		{
 			ApplyActionResultToTargets(Ctx()->actions[0].targets, Ctx()->actions[0].target_count);
 			TextureRestoreTask((void *)(TexBase() + ARENA_A), &w->restored);
@@ -932,7 +979,7 @@ namespace maelstrom207
 			PacketCursor() = TexBase() + ARENA_B;
 			m->arena = 1;
 		}
-		if (m->counter == 1)
+		if (m->counter == PG().timing.copy)
 		{
 			// the screen copy: VRAM (0x240, 0x100) 320 x 256 cleared, the next OT pass drawn there
 			const int16_t rect[4] = { (int16_t)COPY_X, (int16_t)COPY_Y, 0x140, 0x100 };
@@ -940,13 +987,13 @@ namespace maelstrom207
 			RequestDrawOffset(COPY_X, COPY_Y);
 			if (!m->started)
 			{
-				PrepareMesh(MESH);
+				PrepareMesh(Mesh());
 				m->started = 1;
 				InitTaskQueuePool(QMain(), (void *)(TexBase() + MAIN), 0x4E8, 1);
 				InitTaskQueuePool(QParticles(), (void *)TexBase(), 0x20, 0x40);
-				MainNode *w = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+				MainNode *w = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 				Memset32(&w->counter, 0, 0x137);
-				DecodeModelPrimLayout(MODEL_Main, w->layout, 0x4B8);
+				DecodeModelPrimLayout(fxp::layout(PG().layouts.main, MODEL_Main, 0x4B8), w->layout, 0x4B8);
 				w->count = (int16_t)Ctx()->actions[0].target_count;
 				w->avg[2] = 0;
 				w->avg[1] = 0;
@@ -956,7 +1003,7 @@ namespace maelstrom207
 					w->ents[i] = Entity(Ctx()->actions[0].targets[i * TARGET_STRIDE]);
 					int16_t pos[4];
 					GetDefaultEffectPosition(w->ents[i], pos);
-					const int16_t y = (int16_t)(*(const int16_t *)(w->ents[i] + 0x36) - 0x200);
+					const int16_t y = (int16_t)(*(const int16_t *)(w->ents[i] + 0x36) - PG().warp.head);
 					w->avg[0] = (int16_t)(w->avg[0] + pos[0]);
 					w->avg[2] = (int16_t)(w->avg[2] + pos[2]);
 					w->avg[1] = (int16_t)(w->avg[1] + y);
@@ -979,12 +1026,93 @@ namespace maelstrom207
 		m->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x6A3AC0) and setup (0x6A3AB0 -> _Init 0x6A3AE0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the data copy (the warp mesh first), the cast and its caster's
+	// entity, the master (it sets up the rest), the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		memcpy(Mesh(), (const void *)MESH_DATA, DATA_COPY);
+		const uint32_t mesh = fxp::model(PG().models.mesh, MESH_DATA, true);
+		if (mesh != MESH_DATA) memcpy(Mesh(), (const void *)mesh, fxp::model_size(mesh, fxp::data_end(mesh, 8)));
+		Ctx() = ctx;
+		var<uint32_t>(own::R(0x25102C0)) = 0x1D972C0 + 0x9C * ctx->attacker;
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2517A10), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The screen copy (VRAM (0x240, 0x100) cleared, the next frame drawn there), the main task's start at the targets' average point, the sound; the action results, the battle textures restored; the texture and the camera" },
+			{ PART_LAYOUT, "layout", "Layout", "The prim-model layout at the targets' average point (its objects of kind 9 drawn with the screen copy)" },
+			{ PART_WARP, "warp", "Warp", "The screen warp around the targets: the mesh over their heads and feet, its vertices moved by the lens table's row, drawn faded then textured by the screen copy" },
+			{ PART_PARTICLES, "particles", "Particles", "Particles starting around the average point and falling back to it, each playing its flipbook" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The master's and the main task's ticks" },
+		};
+#define MPF(member) (uint32_t)offsetof(MaelstromParams, member)
+		static const Field FIELDS[] = {
+			{ "master", "sound", "Sound", "At the main task's sound tick", MPF(sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "timing.copy", "Screen copy", "The master's tick of the screen copy; its first one starts the main task", MPF(timing.copy), fxp::I16, 0, 200 },
+			{ "master", "timing.sound", "Sound", "The main task's tick of the sound", MPF(timing.sound), fxp::I16, 0, 200 },
+			{ "master", "timing.result", "Results", "The main task's last tick: the action results, the battle textures restored (it ends when that is done)", MPF(timing.result), fxp::I16, 0, 400 },
+			{ "master", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "layout", "layout.ticks", "Ticks", "The layout drawn on the main task's ticks below this", MPF(layout.ticks), fxp::I16, 0, 400 },
+			{ "layout", "layout.depth", "Depth", "Its depth offset", MPF(layout.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "layout", "layout.scroll", "Texture scroll", "Its scrolling objects' texture scroll a tick (low 7 bits used)", MPF(layout.scroll), fxp::I16, -128, 128 },
+			{ "layout", "layouts.main", "Layout", "The prim-model layout played (its models' animation)", MPF(layouts.main), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "warp", "warp.start", "Start", "The main task's tick the warp starts", MPF(warp.start), fxp::I16, 0, 400 },
+			{ "warp", "warp.ticks", "Ticks", "Its ticks", MPF(warp.ticks), fxp::I16, 0, 400 },
+			{ "warp", "warp.grow", "Grow", "Its box growing from nothing over its first ticks (at least 1)", MPF(warp.grow), fxp::I16, 1, 400 },
+			{ "warp", "warp.fade", "Fade", "Its fade: a half sine over this many ticks (at least 1)", MPF(warp.fade), fxp::I16, 1, 400 },
+			{ "warp", "warp.row", "Lens step", "The lens row it uses goes from 16 down to 0, up to 31 and back, this many ticks a step (at least 1)", MPF(warp.row), fxp::I16, 1, 400 },
+			{ "warp", "warp.min_size", "Least size", "The box's least width and height: this / the average point's depth", MPF(warp.min_size), fxp::I32, 0, 0x7FFFFFF },
+			{ "warp", "warp.head", "Head drop", "The targets' head points (and the average point's height): their height word minus this", MPF(warp.head), fxp::I16, -0x2000, 0x2000 },
+			{ "warp", "warp.widen", "Widening", "The box widened both ways at each point by (size + 0x100) x this / its depth", MPF(warp.widen), fxp::I16, 0, 0x1000 },
+			{ "warp", "warp.ot", "OT entry", "Drawn at the nearest point's depth / 4 + this", MPF(warp.ot), fxp::I16, 0, 0x400 },
+			{ "warp", "models.mesh", "Mesh", "The warp mesh (241 vertices, 240 polygons: its setup copies it whole into a block of its size: an edited one keeps its vertices and its size (move vertices, change colours))", MPF(models.mesh), fxp::Model, 0, 0x7FFFFFFF },
+			{ "warp", "tables.lens", "Lens table", "Each vertex's x and y scaled (4.12) by the row's value at its length / 32 (0x20 rows of 0x80)", MPF(tables.lens), fxp::Data, 0, 0x7FFFFFFF },
+			{ "particles", "particles.start", "Start", "The main task's tick the particles start", MPF(particles.start), fxp::I16, 0, 400 },
+			{ "particles", "particles.ticks", "Ticks", "New particles on this many ticks", MPF(particles.ticks), fxp::I16, 0, 400 },
+			{ "particles", "particles.count", "Count", "New particles a tick (0x40 alive at most)", MPF(particles.count), fxp::I16, 0, 0x40 },
+			{ "particles", "particles.dist", "Distance", "How far from the average point a particle starts: this + a random below the next (pulled back by 1/128 of it a tick, a tick)", MPF(particles.dist), fxp::I16, 0, 0x3FFF },
+			{ "particles", "particles.dist_rand", "Distance random", "(at least 1)", MPF(particles.dist_rand), fxp::I16, 1, 0x3FFF },
+			{ "particles", "particles.life", "Life", "A particle's draws (its flipbook's frames)", MPF(particles.life), fxp::I16, 0, 400 },
+			{ "particles", "seqs.particle", "Particle", "The sprite sequence of the particles (a flipbook: an edited one keeps as many frames)", MPF(seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag207_maelstrom()
 	{
+		fxp::register_params({ 207, "Maelstrom", &maelstrom207::live, &maelstrom207::GAME, sizeof(maelstrom207::MaelstromParams),
+		                       maelstrom207::table::PARTS, (int)(sizeof(maelstrom207::table::PARTS) / sizeof(maelstrom207::table::PARTS[0])),
+		                       maelstrom207::table::FIELDS, (int)(sizeof(maelstrom207::table::FIELDS) / sizeof(maelstrom207::table::FIELDS[0])),
+		                       maelstrom207::table::GROUPS, (int)(sizeof(maelstrom207::table::GROUPS) / sizeof(maelstrom207::table::GROUPS[0])) });
+		own::note(maelstrom207::ORIG_FileLoader, (void *)maelstrom207::FileLoader);
+		own::note(maelstrom207::ORIG_Setup, (void *)maelstrom207::Setup);
+		own::note(maelstrom207::ORIG_MasterTask, (void *)maelstrom207::MasterTask);
 		register_port(maelstrom207::ORIG_MasterTask, (void *)maelstrom207::MasterTask, "207 MasterTask", 207);
+		own::note(maelstrom207::ORIG_MainTask, (void *)maelstrom207::MainTask);
 		register_port(maelstrom207::ORIG_MainTask, (void *)maelstrom207::MainTask, "207 MainTask", 207);
+		own::note(maelstrom207::ORIG_ParticleTask, (void *)maelstrom207::ParticleTask);
 		register_port(maelstrom207::ORIG_ParticleTask, (void *)maelstrom207::ParticleTask, "207 ParticleTask", 207);
 		// 30 fps layer: see mag207_maelstrom_held.inc
 		FX_HELD(register_mag207_held();)

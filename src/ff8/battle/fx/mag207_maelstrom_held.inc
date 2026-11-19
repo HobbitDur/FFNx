@@ -102,33 +102,33 @@ namespace maelstrom207
 	{
 		switch (r.kind)
 		{
-			case K_PLAY: return r.counter + 1 < 0x50;
-			case K_WARP: return r.counter + 1 - 0x20 < 0x30;
-			default: return r.part.counter + 1 < 0x10;
+			case K_PLAY: return r.counter + 1 < PG().layout.ticks;
+			case K_WARP: return r.counter + 1 - PG().warp.start < PG().warp.ticks;
+			default: return r.part.counter + 1 < PG().particles.life;
 		}
 	}
 
 	static void HeldWarp(const Rec &r, int num, int den)
 	{
 		const MainNode *w = (const MainNode *)r.node;
-		const int32_t b = r.counter - 0x20;
+		const int32_t b = r.counter - PG().warp.start;
 		Mat4x3 frame = WarpFrame();
 		int32_t z;
 		if (!WarpBox(w, frame, &z)) return;
 		const int32_t x = b * den + num;
-		const int32_t fade = 0x1000 - ComputeSin((int32_t)(((uint32_t)x << 11) / (uint32_t)(48 * den)));
-		if (b < 8)
+		const int32_t fade = 0x1000 - ComputeSin((int32_t)(((uint32_t)x << 11) / (uint32_t)(PG().warp.fade * den)));
+		if (b < PG().warp.grow)
 		{
-			frame.m[0][0] = (int16_t)((uint32_t)mul32(frame.m[0][0], x) / (uint32_t)(8 * den));
-			frame.m[1][1] = (int16_t)((uint32_t)mul32(frame.m[1][1], x) / (uint32_t)(8 * den));
+			frame.m[0][0] = (int16_t)((uint32_t)mul32(frame.m[0][0], x) / (uint32_t)(PG().warp.grow * den));
+			frame.m[1][1] = (int16_t)((uint32_t)mul32(frame.m[1][1], x) / (uint32_t)(PG().warp.grow * den));
 		}
 		GteSetRotMatrix(&frame);
 		GteSetTransVector(&frame);
 		// the lens row num/den of the way from the tick's row to the next tick's (each of its 0x80 scales)
-		const int16_t *r0 = LENS_TABLE + WarpRow(b) * 0x80, *r1 = LENS_TABLE + WarpRow(b + 1) * 0x80;
+		const int16_t *r0 = LensTable() + WarpRow(b) * 0x80, *r1 = LensTable() + WarpRow(b + 1) * 0x80;
 		static int16_t row[0x80];
 		for (int i = 0; i < 0x80; i++) row[i] = (int16_t)(r0[i] + (r1[i] - r0[i]) * num / den);
-		Warp(MESH, MESH + 8, (z >> 2) + 0x11, fade, row, g_held_vbuf);
+		Warp(Mesh(), Mesh() + 8, (z >> 2) + PG().warp.ot, fade, row, g_held_vbuf);
 	}
 
 	static void HeldFrame(int num, int den)
@@ -159,8 +159,8 @@ namespace maelstrom207
 				PrimArg arg;
 				memcpy(arg.pos, m->avg, 8);
 				arg.kinds = KINDS;
-				arg.depth = -0x80;
-				arg.scroll = (int16_t)((r.counter << 5) + 32 * k / den);
+				arg.depth = PG().layout.depth;
+				arg.scroll = (int16_t)(r.counter * PG().layout.scroll + PG().layout.scroll * k / den);
 				arg.morph = (uint32_t)g_held_morph;
 				prim::play_held((prim::Layout *)m->layout, PrimCallback, (int)&arg, k, den);
 			}
