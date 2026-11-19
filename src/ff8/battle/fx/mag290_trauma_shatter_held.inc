@@ -249,7 +249,7 @@ namespace shatter290
 	static void MarksHeld(const MasterNode *m, int num, int den)
 	{
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
-		F<uint32_t>(h, 0) = SEQ_Mark;
+		F<uint32_t>(h, 0) = fxp::sequence(PG().seqs.mark, SEQ_Mark);
 		F<uint16_t>(h, 0x92) = 0;
 		F<uint16_t>(h, 0x90) = 0;
 		F<uint16_t>(h, 0x8E) = 0;
@@ -297,7 +297,7 @@ namespace shatter290
 			case PLAY_B:
 			case PLAY_C:
 			{
-				const bool next = r.kind == PLAY_A ? r.counter + 1 < 0x10 : (uint32_t)(r.counter + 1 - 0x14) < 0x16;
+				const bool next = r.kind == PLAY_A ? r.counter + 1 < PG().under.ticks : (uint32_t)(r.counter + 1 - PG().rings.start) < (uint32_t)PG().rings.ticks;
 				PrimArg arg = r.arg;
 				HeldFrame(r, &arg);
 				arg.morph = (uint32_t)g_held_morph;
@@ -306,10 +306,10 @@ namespace shatter290
 				break;
 			}
 			case UNDER:
-				SpriteDraw(r.pos, r.counter, SEQ_Under, 0x4000);
+				SpriteDraw(r.pos, r.counter, fxp::sequence(PG().seqs.under, SEQ_Under), PG().under.size);
 				break;
 			case BODY:
-				BodyHeld(r, r.counter + 1 < 0x5A ? num : 0, den);
+				BodyHeld(r, r.counter + 1 < PG().timing.end ? num : 0, den);
 				break;
 			case FRAGS:
 				FragsHeld(m, num, den);
@@ -324,8 +324,8 @@ namespace shatter290
 				const int16_t life = r.kind == SPRITE_A ? 0xC : 0xD;
 				if (s.counter + 1 < life)
 					for (int j = 0; j < 3; j++) s.pos[j] = lerp16(s.pos[j], (int16_t)(s.pos[j] + s.vel[j]), num, den);
-				if (r.kind == SPRITE_A) SpriteDraw(s.pos, s.counter, SEQ_A, 0x800);
-				else SpriteDraw(s.pos, s.counter, SEQ_B, 0x1770);
+				if (r.kind == SPRITE_A) SpriteDraw(s.pos, s.counter, fxp::sequence(PG().seqs.a, SEQ_A), PG().sprites.size_a);
+				else SpriteDraw(s.pos, s.counter, fxp::sequence(PG().seqs.b, SEQ_B), PG().sprites.size_b);
 				break;
 			}
 			default:

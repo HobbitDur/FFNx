@@ -146,15 +146,15 @@ namespace g218
 
 	static void ModelMemoTake(const Node24 *n)
 	{
-		TakeModel(0, E1);
-		TakeModel(1, E2);
+		TakeModel(0, E1_());
+		TakeModel(1, E2_());
 		MemoNode(n);
 	}
 
 	// AdvanceModel read the next pose after the draw: the next tick draws the pose just read
 	static void held_note_advanced(uint8_t *E)
 	{
-		ModelMemo &m = g_model[E == E1 ? 0 : 1];
+		ModelMemo &m = g_model[E == E1_() ? 0 : 1];
 		if (m.valid) m.midpoint = true;
 	}
 
@@ -184,7 +184,7 @@ namespace g218
 
 	static void GilNext(GilPred &g)
 	{
-		g.M = *(const Mat4x3 *)(E2 + 0x40);
+		g.M = *(const Mat4x3 *)(E2_() + 0x40);
 		g.colour = var<uint32_t>(0x24F3580);
 		g.jump = false;
 		g.anim = false;
@@ -383,7 +383,7 @@ namespace g218
 		ComposeAffineTransform(&Frame(), &m, &m);
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
-		if (drawn) PrimModel(0xE254D8, 0x33, false, 0, OT(), 3);
+		if (drawn) PrimModel(fxp::model(PG().models.sword, 0xE254D8), 0x33, false, 0, OT(), 3);
 	}
 
 	static void GlowHeld(const Rec &r, int num, int den)
@@ -394,7 +394,7 @@ namespace g218
 		if (Moved(r))
 		{
 			// E2's bone points with the GilTask's next model matrix (its bones as the model draw left them)
-			Mat4x3 *M2 = (Mat4x3 *)(E2 + 0x40);
+			Mat4x3 *M2 = (Mat4x3 *)(E2_() + 0x40);
 			const Mat4x3 keep = *M2;
 			const int16_t w = var<int16_t>(0x1D9770C);
 			*M2 = g_pred.M;
@@ -420,7 +420,7 @@ namespace g218
 		const int16_t s = mv ? Lerp16(r.m.s1C, r.node->s1C, num, den) : r.m.s1C;
 		int32_t level = shl32(c - 6, 9);
 		if (mv && c >= 6) level = lerp_i(level, shl32(c + 1 - 6, 9), num, den);
-		RingPrim(&r.m, 0xE1EF08, 0, s, s, c >= 6, level);
+		RingPrim(&r.m, fxp::model(PG().models.shock, 0xE1EF08), 0, s, s, c >= 6, level);
 	}
 
 	static void RiseRingHeld(const Rec &r, uint32_t model, int32_t step, int num, int den)
@@ -585,8 +585,8 @@ namespace g218
 	static void ModelsHeld(const Rec &r, int num, int den)
 	{
 		const bool mv = Moved(r);
-		ModelHeld(0, E1, mv, num, den);
-		ModelHeld(1, E2, mv, num, den);
+		ModelHeld(0, E1_(), mv, num, den);
+		ModelHeld(1, E2_(), mv, num, den);
 	}
 
 	static void HeldRec(const Rec &r, int num, int den)
@@ -612,8 +612,8 @@ namespace g218
 		case ORIG_ShardDustTask:
 		case ORIG_ShardChipTask: PoolHeld(r, num, den); break;
 		case ORIG_ShockRingTask: ShockRingHeld(r, num, den); break;
-		case ORIG_RisingRingTask: RiseRingHeld(r, 0xE1C918, 341, num, den); break;
-		case ORIG_WideRingTask: RiseRingHeld(r, 0xE1E260, 682, num, den); break;
+		case ORIG_RisingRingTask: RiseRingHeld(r, fxp::model(PG().models.rising, 0xE1C918), 341, num, den); break;
+		case ORIG_WideRingTask: RiseRingHeld(r, fxp::model(PG().models.wide, 0xE1E260), 682, num, den); break;
 		case ORIG_ShardTask: ShardHeld(r, num, den); break;
 		case ORIG_FlashTask: FlashHeld(r, num, den); break;
 		case ORIG_ShardsTask: GrabHeld(r, num, den); break;

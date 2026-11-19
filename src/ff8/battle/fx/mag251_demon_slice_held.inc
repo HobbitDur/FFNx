@@ -327,7 +327,7 @@ namespace demon251
 		g_fade_ok = false;
 		if (g_paused || !MainNext() || !g_main) return;
 		for (int i = 0; i < g_nrec; i++)
-			if (g_recs[i].kind == R_SPRITE && g_recs[i].fn == ORIG_SparkleTask && ((const SparkleNode *)g_recs[i].snode)->frame + 1 < 0xD) return;
+			if (g_recs[i].kind == R_SPRITE && g_recs[i].fn == ORIG_SparkleTask && ((const SparkleNode *)g_recs[i].snode)->frame + 1 < PG().sparkles.frames) return;
 		const int32_t cn = g_main_c + 1;
 		int32_t x, y = 0, z;
 		if ((uint32_t)(cn - 0xC8) < 0x14) { x = g_main->target0[0]; z = g_main->target0[2]; }
@@ -533,7 +533,7 @@ namespace demon251
 		{
 			FlameNode a;
 			memcpy(&a, r.snode, sizeof(a));
-			const bool next = flames && a.frame + 1 < 0x10;
+			const bool next = flames && a.frame + 1 < PG().flames.frames;
 			if (at_next && !next) break;
 			if (at_next && !g_paused) a.frame++;
 			FlameDraw(&a.f, a.frame, FLAME_LOOK, PacketCursor());
@@ -565,21 +565,21 @@ namespace demon251
 				EmberRise(&b.e, 5, 6);
 				b.frame++;
 			}
-			const bool next = flames && b.frame < 0x10;
+			const bool next = flames && b.frame < PG().flames.frames;
 			if (at_next && !next) break;
 			const int k = next ? num : 0;
 			EmberNode m = a;
 			m.e.pos[1] = lerp16(a.e.pos[1], b.e.pos[1], k, den);
 			m.e.scale = lerp16(a.e.scale, b.e.scale, k, den);
 			if (at_next) m.frame = b.frame;
-			EmberDraw(&m.e, m.frame, SEQ_Ember, 3, PacketCursor());
+			EmberDraw(&m.e, m.frame, fxp::sequence(PG().seqs.ember, SEQ_Ember), 3, PacketCursor());
 			return;
 		}
 		case ORIG_SparkleTask:
 		{
 			SparkleNode a;
 			memcpy(&a, r.snode, sizeof(a));
-			const bool next = !g_paused && MainNext() && a.frame + 1 < 0xD;
+			const bool next = !g_paused && MainNext() && a.frame + 1 < PG().sparkles.frames;
 			if (at_next && !next) break;
 			const int k = next ? num : 0;
 			SparkleNode m = a;
@@ -587,7 +587,7 @@ namespace demon251
 			if (at_next) m.frame = (int16_t)(a.frame + 1);
 			TransformCameraByShadowRotation(m.pos, 0x1000, -0x400);
 			uint8_t *h = AllocHeader(0xB4);
-			*(uint32_t *)h = SEQ_Sparkle;
+			*(uint32_t *)h = fxp::sequence(PG().seqs.sparkle, SEQ_Sparkle);
 			*(uint16_t *)(h + 4) = (uint16_t)m.frame;
 			*(uint16_t *)(h + 0x24) = 0;
 			PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());

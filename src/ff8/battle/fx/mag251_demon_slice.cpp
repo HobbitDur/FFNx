@@ -66,9 +66,16 @@
 // NEVER-WRITTEN STACK WORDS: the main task's spawn point's 4th word (entry esp - 0x42; 0x502170 stores 3 words) goes
 // into the node's +0x4E (counters < 0x71) and +0x3E (0x72), read by nothing; the callback's offset 4th word (GTE V0 pad),
 // the play blocks' unset words (+0x26..+0x33 of layouts that have no kind 0x31 / 0x41 / 0x42 object) are never read.
+// FUJIN: Fujin's described Demon Slice (effect_251.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the setup (0x6F44D0 -> _Init 0x6F44E0) ported below (the file loader is the engine's null
+// sub 0x5755C0); its parameters (DemonSliceParams: the sounds and the ticks, the screen flash, the flames, the layouts'
+// windows, the wave, the caster's and the target's moves, the hits, the white flashes, the trail, the sparkles, the 7
+// layouts, the 4 flipbooks, the TIM and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -283,19 +290,20 @@ namespace demon251
 
 
 	// --- module globals ---
-	inline uint32_t &Pause() { return var<uint32_t>(0x2556388); }           // never written by the game (0)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x255638C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2556390); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2556394); }
-	inline uint8_t *&Target() { return var<uint8_t *>(0x2556398); }
-	inline TaskQueue *QLayouts() { return (TaskQueue *)0x25563A0; }          // + 0, 0x10 x 0x158 (from 0x37)
-	inline TaskQueue *QTrail() { return (TaskQueue *)0x25563B0; }            // + 0x1700, 1 x 0x34C
-	inline TaskQueue *QSparkles() { return (TaskQueue *)0x25563D0; }         // + 0x1580, 0x10 x 0x18
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25563E0; }             // + 0xA294, 1 x 0x5EC
-	inline TaskQueue *QFlames() { return (TaskQueue *)0x2556440; }           // + 0, 0x96 x 0x24 (up to 0x21)
-	inline int32_t &FlashLevel() { return var<int32_t>(0x255643C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2556450); }          // Magic_TextureOFF (magic buffer)
-	inline Mat4x3 *OrthoView() { return (Mat4x3 *)0x2556458; }
+	inline uint32_t &Pause() { return var<uint32_t>(own::R(0x2556388)); }           // never written by the game (0)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x255638C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2556390)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2556394)); }
+	inline uint8_t *&Target() { return var<uint8_t *>(own::R(0x2556398)); }
+	inline TaskQueue *QLayouts() { return (TaskQueue *)own::R(0x25563A0); }          // + 0, 0x10 x 0x158 (from 0x37)
+	inline TaskQueue *QTrail() { return (TaskQueue *)own::R(0x25563B0); }            // + 0x1700, 1 x 0x34C
+	inline TaskQueue *QSparkles() { return (TaskQueue *)own::R(0x25563D0); }         // + 0x1580, 0x10 x 0x18
+	inline TaskQueue *QMaster() { return (TaskQueue *)own::R(0x25563F0); }         // 1 x 0x10 (0x2556400)
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25563E0); }             // + 0xA294, 1 x 0x5EC
+	inline TaskQueue *QFlames() { return (TaskQueue *)own::R(0x2556440); }           // + 0, 0x96 x 0x24 (up to 0x21)
+	inline int32_t &FlashLevel() { return var<int32_t>(own::R(0x255643C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2556450)); }          // Magic_TextureOFF (magic buffer)
+	inline Mat4x3 *OrthoView() { return (Mat4x3 *)own::R(0x2556458); }
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }
 
 	static const uint32_t ORIG_MasterTask = 0x6F4580;
@@ -309,6 +317,61 @@ namespace demon251
 	static const uint32_t ORIG_SparkleTask = 0x6F65F0;
 	static const uint32_t ORIG_PrimCallback = 0x6F60D0;
 	static const uint32_t ORIG_DrawEntity212 = 0x6A2F60;  // Burning Rave's module-drawn entity (MAG_212_sub_6A2F60)
+
+	static const uint32_t ORIG_Setup = 0x6F44D0;
+	static const uint32_t TIM = 0x143CC90, CAMERA_ANIM = 0x142D5AC;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_FLAMES = 1, PART_OPENING = 2, PART_WAVE = 3, PART_RISERS = 4, PART_SLASH = 5, PART_HITS = 6, PART_PUSH = 7,
+	             PART_FALL = 8, PART_TARGET = 9, PART_WHITES = 10, PART_TRAIL = 11, PART_SPARKLES = 12 };
+	struct DemonSliceParams
+	{
+		struct { uint32_t start, swing, fall; } sounds;      // the three sounds
+		// the main task's ticks: the three sounds, its last (the caster put back)
+		struct { int16_t start, swing, fall, end; } timing;
+		struct { int16_t level, rise, fall; } flash;        // the screen flash: its level, rising over, falling over the last
+		// the flames on the target (Fire's parts): how many, their frames, embers and sparks from each, their size (+ a
+		// random below size_rand), the main task's tick they are all dropped
+		struct { int16_t count, frames, embers, sparks, size, size_rand, drop; } flames;
+		// layout A at the caster's spawn point: from start for ticks, fading out from its tick fade_from over fade_ticks
+		struct { int16_t start, ticks, fade_from, fade_ticks; } opening;
+		// the wave layout at the spawn point: from start for ticks; its wave (phase step a tick, amplitude), texture scroll a
+		// tick; from its tick swell_from it swells (swell x sin over swell_ticks a quarter turn)
+		struct { int16_t start, ticks, phase, amp, scroll, swell_from, swell_ticks, swell; } wave;
+		// the rising layout tasks: every so many of the wave's ticks below until, lift above the spawn point
+		struct { int16_t every, until, lift; } risers;
+		// from the main task's tick start the wave grows taller over ticks; until end it lifts the caster and the target
+		struct { int16_t start, ticks, end; } lift;
+		// the caster: his slide to the far point (from, ticks), his swings (until), his way back (from, ticks)
+		struct { int16_t slide_from, slide_ticks, swing_until, back_from, back_ticks; } caster;
+		struct { int16_t start, ticks, scroll; } slash;     // the slash layout at the spawn point of its first tick
+		struct { int16_t start, ticks, every, chain; } hits; // the hit layout tasks at the target and his hit chain
+		// the push layout at the target's effect point (its height), the target pushed a step a tick (hidden at its end)
+		struct { int16_t start, ticks, height, step; } push;
+		// the target at his start: dropped over drop ticks, drawn turned by the module until ticks, then his result
+		struct { int16_t start, drop, ticks; } target;
+		struct { int16_t start, ticks; } fall;               // the fall layout at the target's start (his hit chain at its first tick)
+		// the two full-screen flashes: their ticks, in / hold / out ticks, colour
+		struct { int16_t first, second, in, hold, out, r, g, b; } whites;
+		// the blade trail (slot 4's bone 1): from start for ticks (shorter from shorten), its length, its colour (0xBBGGRR)
+		struct { int16_t start, ticks, shorten, length; int32_t colour; } trail;
+		struct { int16_t count, step, frames; } sparkles;    // the sparkles round the caster at his way back's end
+		struct { uint32_t opening, wave, rise, slash, push, fall, hit; } layouts;   // the prim-model layouts played
+		struct { uint32_t flame, glow, ember, sparkle; } seqs;   // the sprite sequences drawn (flipbooks)
+		struct { uint32_t tim, camera; } res;                   // its resources (data): the TIM its setup uploads, the camera track
+	};
+	static const DemonSliceParams GAME = { { 0x142D738, 0x142D740, 0x142D73C }, { 0, 0x44, 0xC7, 0xDC }, { 2300, 12, 12 },
+		{ 4, 0x10, 4, 10, 0xD00, 0x600, 0x21 }, { 0x49, 0x14, 10, 10 }, { 0x53, 0x5F, 0x40, 0x100, 0x20, 0x50, 15, 2 },
+		{ 6, 0x53, 0x100 }, { 0x8D, 27, 0xA8 }, { 0x53, 0x1F, 0x8D, 0xA8, 0xE }, { 0x72, 0x19, 0x20 }, { 0x72, 0x36, 5, 5 },
+		{ 0xA3, 0xE, -0x1000, 0x200 }, { 0xC0, 8, 0x1B }, { 0xC8, 0x14 }, { 0x72, 0xA3, 0, 1, 3, 0xFF, 0xFF, 0xFF },
+		{ 0x37, 0x13, 0xD, 777, 0x185820 }, { 0x10, 0x100, 0xD },
+		{ 0x142FB40, 0x1434430, 0x1431F88, 0x1433318, 0x1432448, 0x142D8A4, 0x1431418 },
+		{ 0x143878C, 0x1438938, 0x1438AE4, 0x142D744 }, { TIM, CAMERA_ANIM } };
+	static DemonSliceParams live = GAME;
+	static const DemonSliceParams &PG() { return live; }
 
 	static const uint32_t STREAM_STATE = 0xA24C;       // magic buffer offsets
 	static const uint32_t POOL_Main = 0xA294;
@@ -523,7 +586,7 @@ namespace demon251
 	// ------------------------------------------------------------------
 	static void StartFlameSpawner(uint8_t *e)
 	{
-		SpawnerNode *s = (SpawnerNode *)AddTaskToQueue(QFlames(), ORIG_FlameSpawner);
+		SpawnerNode *s = (SpawnerNode *)AddTaskToQueue(QFlames(), own::Fn(ORIG_FlameSpawner));
 		if (!s) return;
 		s->counter = 0;
 		s->w0E = 0;
@@ -548,7 +611,7 @@ namespace demon251
 		StreamStateInit((void *)(TexBase() + STREAM_STATE));
 		InitTaskQueuePool(QMain(), (void *)(TexBase() + POOL_Main), 0x5EC, 1);
 		InitTaskQueuePool(QFlames(), (void *)TexBase(), 0x24, 0x96);
-		MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+		MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 		Memset32(&m->counter, 0, 0x178);
 		StartFlameSpawner(Target());
 		memcpy(m->caster0, Caster() + 0x1C, 8);
@@ -568,9 +631,9 @@ namespace demon251
 		m->far_pt[1] = 0;
 		m->far_pt[0] = (int16_t)(s * dx / d + x0);
 		m->far_pt[2] = (int16_t)(s * dz / d + m->target_fx[2]);
-		m->step[0] = (int16_t)(shl32(-dx, 9) / d);
-		m->step[2] = (int16_t)(shl32(-dz, 9) / d);
-		uint8_t *wave = (uint8_t *)LAYOUT_Wave;
+		m->step[0] = (int16_t)(mul32(-dx, PG().push.step) / d);
+		m->step[2] = (int16_t)(mul32(-dz, PG().push.step) / d);
+		uint8_t *wave = (uint8_t *)fxp::layout(PG().layouts.wave, LAYOUT_Wave, 0x24C);
 		NormaliseHeights(wave + *(const int32_t *)(wave + 8));
 		NormaliseHeights(wave + *(const int32_t *)(wave + 0xC));
 	}
@@ -627,15 +690,18 @@ namespace demon251
 		SpawnerNode *s = (SpawnerNode *)n;
 		if (s->counter == 1)
 		{
-			const int32_t spread = FlameSpread(EntitySize(s->slot), FLAME_ROLLS);
+			FlameRolls rolls = FLAME_ROLLS;
+			rolls.scale.base = PG().flames.size;
+			rolls.scale.mod = PG().flames.size_rand;
+			const int32_t spread = FlameSpread(EntitySize(s->slot), rolls);
 			int16_t pos[4];
 			GetDefaultEffectPosition(Entity(s->slot), pos);
-			for (int32_t k = 0; k < 4; k++)
+			for (int32_t k = 0; k < PG().flames.count; k++)
 			{
-				FlameNode *f = (FlameNode *)AddTaskToQueue(QFlames(), ORIG_FlameTask);
+				FlameNode *f = (FlameNode *)AddTaskToQueue(QFlames(), own::Fn(ORIG_FlameTask));
 				if (!f) continue;
 				f->frame = 0;
-				FlameStart(&f->f, &f->delay, pos, EntityHeight(s->slot), spread, k, FLAME_ROLLS);
+				FlameStart(&f->f, &f->delay, pos, EntityHeight(s->slot), spread, k, rolls);
 			}
 		}
 		if (s->counter == 6)
@@ -661,26 +727,30 @@ namespace demon251
 		}
 		// 30 fps layer: see mag251_demon_slice_held.inc
 		FX_HELD(held_note_draw(ORIG_FlameTask, p);)
-		FlameDraw(&p->f, p->frame, FLAME_LOOK, PacketCursor());
+		FX_PART(PART_FLAMES);
+		FlameLook look = FLAME_LOOK;
+		look.seq = fxp::sequence(PG().seqs.flame, SEQ_Flame);
+		look.glow_seq = fxp::sequence(PG().seqs.glow, SEQ_FlameGlow);
+		FlameDraw(&p->f, p->frame, look, PacketCursor());
 		if (Pause() != 0) return 0;
 		if (p->frame == 0)
 		{
-			for (int32_t k = 0; k < 4; k++)
+			for (int32_t k = 0; k < PG().flames.embers; k++)
 			{
-				EmberNode *m = (EmberNode *)AddTaskToQueue(QFlames(), ORIG_EmberTask);
+				EmberNode *m = (EmberNode *)AddTaskToQueue(QFlames(), own::Fn(ORIG_EmberTask));
 				if (!m) continue;
 				m->frame = 0;
 				EmberStart(&m->e, &m->delay, p->f.pos, k, EMBER_ROLLS);
 			}
-			for (int32_t k = 0; k < 10; k++)
+			for (int32_t k = 0; k < PG().flames.sparks; k++)
 			{
-				SparkNode *m = (SparkNode *)AddTaskToQueue(QFlames(), ORIG_SparkTask);
+				SparkNode *m = (SparkNode *)AddTaskToQueue(QFlames(), own::Fn(ORIG_SparkTask));
 				if (!m) continue;
 				FireSparkStart(&m->s, &m->life, &m->delay, p->f.pos, k, SPARK_ROLLS);
 			}
 		}
 		p->frame++;
-		return p->frame >= 0x10 ? TASK_END : 0;
+		return p->frame >= PG().flames.frames ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl SparkTask(TaskNode *n)
@@ -694,6 +764,7 @@ namespace demon251
 		}
 		// 30 fps layer: see mag251_demon_slice_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkTask, p);)
+		FX_PART(PART_FLAMES);
 		FireSparkDraw(&p->s, p->life, SPARK_LOOK, PacketCursor());
 		if (Pause() != 0) return 0;
 		FireSparkMove(&p->s, &p->life, 4, 0x40);
@@ -711,7 +782,8 @@ namespace demon251
 		}
 		// 30 fps layer: see mag251_demon_slice_held.inc
 		FX_HELD(held_note_draw(ORIG_EmberTask, p);)
-		EmberDraw(&p->e, p->frame, SEQ_Ember, 3, PacketCursor());
+		FX_PART(PART_FLAMES);
+		EmberDraw(&p->e, p->frame, fxp::sequence(PG().seqs.ember, SEQ_Ember), 3, PacketCursor());
 		if (Pause() != 0) return 0;
 		EmberRise(&p->e, 5, 6);
 		p->frame++;
@@ -979,15 +1051,16 @@ namespace demon251
 	// the flash level at counter c (rising 0..0xB, 0x8FC, falling 0xD0..0xDB)
 	static int32_t FlashOf(int32_t c)
 	{
-		if (c < 0xC) return c * 2300 / 12;
-		if (c >= 0xD0) return (0xDC - c) * 2300 / 12;
-		return 0x8FC;
+		const DemonSliceParams &g = PG();
+		if (c < g.flash.rise) return c * g.flash.level / g.flash.rise;
+		if (c >= g.timing.end - g.flash.fall) return (g.timing.end - c) * g.flash.level / g.flash.fall;
+		return g.flash.level;
 	}
 
 	// the target's drop (0xC0..0xC7): 0x1000 - cos((0x1000 - cos(((i << 12) >> 3) + 0x100) >> 2) >> 2), as a height
 	static int16_t DropHeight(int32_t i)
 	{
-		const int32_t a = ComputeCos((int32_t)(((uint32_t)shl32(i, 12) >> 3) + 0x100) >> 2);
+		const int32_t a = ComputeCos((int32_t)((uint32_t)shl32(i, 12) / (uint32_t)PG().target.drop + 0x100) >> 2);
 		const int32_t b = ComputeCos((0x1000 - a) >> 2);
 		return (int16_t)(shl32(0x1000 - b, 12) / 4096 - 0x1000);
 	}
@@ -995,7 +1068,8 @@ namespace demon251
 	// 0x6F5AF0: the trail task (its ring cleared)
 	static void StartTrail()
 	{
-		TrailNode *t = (TrailNode *)AddTaskToQueue(QTrail(), ORIG_TrailTask);
+		TrailNode *t = (TrailNode *)AddTaskToQueue(QTrail(), own::Fn(ORIG_TrailTask));
+		if (!t) return;
 		t->counter = 0;
 		for (int32_t k = 0; k < 7; k++) t->ring[k].alive = 0;
 	}
@@ -1029,33 +1103,35 @@ namespace demon251
 			InitTaskQueuePool(QTrail(), (void *)(TexBase() + POOL_Trail), 0x34C, 1);
 			InitTaskQueuePool(QLayouts(), (void *)TexBase(), 0x158, 0x10);
 			InitTaskQueuePool(QSparkles(), (void *)(TexBase() + POOL_Sparkles), 0x18, 0x10);
-			if (Pause() == 0) StartTrail();
 		}
+		if (c0 == PG().trail.start && Pause() == 0) StartTrail();
 		// the play block (one stack block for every layout of the tick: each layout sets only its own words)
 		PlayArg arg = {};
 		// 0x49..0x5C: layout 0x142FB40 at the spawn point, fading from 0x54
-		uint32_t i = (uint32_t)(mn->counter - 0x49);
-		if (i < 0x14)
+		const DemonSliceParams &g = PG();
+		uint32_t i = (uint32_t)(mn->counter - g.opening.start);
+		if (i < (uint32_t)g.opening.ticks)
 		{
-			if (i == 0) DecodeModelPrimLayout(LAYOUT_Fade, mn->layout_a, 0x1C8);
+			if (i == 0) DecodeModelPrimLayout(fxp::layout(g.layouts.opening, LAYOUT_Fade, 0x1C8), mn->layout_a, 0x1C8);
 			arg.depth = 0;
 			arg.kind = KIND_Plain;
-			arg.fade = i > 10 ? (int16_t)((uint32_t)shl32(i - 10, 12) / 10) : 0;
+			arg.fade = i > (uint32_t)g.opening.fade_from ? (int16_t)((uint32_t)shl32(i - g.opening.fade_from, 12) / (uint32_t)g.opening.fade_ticks) : 0;
+			FX_PART(PART_OPENING);
 			Play(mn, 0, mn->layout_a, &arg, sp[0], 0, sp[2]);
 		}
 		// 0x53..0xB1: the wave layout at the spawn point; a rising layout task every 6 ticks up to 0xA5; the lift
-		i = (uint32_t)(mn->counter - 0x53);
-		if (i < 0x5F)
+		i = (uint32_t)(mn->counter - g.wave.start);
+		if (i < (uint32_t)g.wave.ticks)
 		{
-			if (i == 0) DecodeModelPrimLayout(LAYOUT_Wave, mn->layout_b, 0x24C);
-			if (i < 0x53 && i % 6 == 0 && Pause() == 0)
+			if (i == 0) DecodeModelPrimLayout(fxp::layout(g.layouts.wave, LAYOUT_Wave, 0x24C), mn->layout_b, 0x24C);
+			if (i < (uint32_t)g.risers.until && i % (uint32_t)g.risers.every == 0 && Pause() == 0)
 			{
-				LayoutNode *t = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
+				LayoutNode *t = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
 				if (t)
 				{
-					DecodeModelPrimLayout(LAYOUT_Rise, t->layout, 0xC0);
+					DecodeModelPrimLayout(fxp::layout(g.layouts.rise, LAYOUT_Rise, 0xC0), t->layout, 0xC0);
 					t->pos[0] = sp[0];
-					t->pos[1] = (int16_t)(sp[1] - 0x100);
+					t->pos[1] = (int16_t)(sp[1] - g.risers.lift);
 					t->pos[2] = sp[2];
 				}
 			}
@@ -1064,16 +1140,17 @@ namespace demon251
 			arg.wave_y = 0x1000;
 			arg.wave_xz = 0x1000;
 			arg.fade = 0;
-			if (i >= 0x50) arg.wave_xz = (int16_t)(ComputeSin((int32_t)((uint32_t)shl32(i - 0x50, 10) / 15)) * 2 + 0x1000);
-			arg.wave_amp = 0x100;
-			arg.wave_phase = (int16_t)(i << 6);
-			arg.scroll = (uint16_t)(i << 5);
-			if (mn->counter >= 0x8D)
+			if (i >= (uint32_t)g.wave.swell_from)
+				arg.wave_xz = (int16_t)(ComputeSin((int32_t)((uint32_t)shl32(i - g.wave.swell_from, 10) / (uint32_t)g.wave.swell_ticks)) * g.wave.swell + 0x1000);
+			arg.wave_amp = g.wave.amp;
+			arg.wave_phase = (int16_t)(i * (uint32_t)g.wave.phase);
+			arg.scroll = (uint16_t)(i * (uint32_t)g.wave.scroll);
+			if (mn->counter >= g.lift.start)
 			{
-				int32_t u = shl32(mn->counter - 0x8D, 12) / 27;
+				int32_t u = shl32(mn->counter - g.lift.start, 12) / g.lift.ticks;
 				if (u > 0x1000) u = 0x1000;
 				arg.wave_y = (int16_t)(u + 0x1000);
-				if (mn->counter < 0xA8)
+				if (mn->counter < g.lift.end)
 				{
 					const int32_t a = ComputeCos(u >> 2);
 					const int32_t b = ComputeCos((0x1000 - a) >> 2);
@@ -1082,73 +1159,87 @@ namespace demon251
 					*(int16_t *)(Target() + 0x1E) = (int16_t)(mn->target0[1] - lift);
 				}
 			}
+			FX_PART(PART_WAVE);
 			Play(mn, 1, mn->layout_b, &arg, sp[0], 0, sp[2]);
 		}
 		// 0x53..0x71: the caster slides from his start to the far point (sine ease)
-		i = (uint32_t)(mn->counter - 0x53);
-		if (i < 0x1F)
+		i = (uint32_t)(mn->counter - g.caster.slide_from);
+		if (i < (uint32_t)g.caster.slide_ticks)
 		{
-			const int32_t s = ComputeSin((int32_t)((uint32_t)shl32(i, 12) / 31 + 0x42) / 4);
+			const int32_t s = ComputeSin((int32_t)((uint32_t)shl32(i, 12) / (uint32_t)g.caster.slide_ticks + 0x42) / 4);
 			VecLerp(mn->caster0, mn->far_pt, 0x1000 - s, s, Caster() + 0x1C);
 		}
 		// 0x72..0x8A: layout 0x1433318 at the spawn point of 0x72
-		i = (uint32_t)(mn->counter - 0x72);
-		if (i < 0x19)
+		i = (uint32_t)(mn->counter - g.slash.start);
+		if (i < (uint32_t)g.slash.ticks)
 		{
 			if (i == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Swing, mn->layout_a, 0x1A0);
+				DecodeModelPrimLayout(fxp::layout(g.layouts.slash, LAYOUT_Swing, 0x1A0), mn->layout_a, 0x1A0);
 				memcpy(mn->keep, sp, 8);
 			}
 			arg.depth = 0;
 			arg.kind = KIND_Swing;
-			arg.scroll = (uint16_t)(i << 5);
+			arg.scroll = (uint16_t)(i * (uint32_t)g.slash.scroll);
 			arg.fade = 0;
+			FX_PART(PART_SLASH);
 			Play(mn, 2, mn->layout_a, &arg, mn->keep[0], 0, mn->keep[2]);
 		}
 		// 0xA3..0xB0: layout 0x1432448 at the target's effect point (y - 0x1000); the target pushed back, hidden at 0xB0
-		i = (uint32_t)(mn->counter - 0xA3);
-		if (i < 0xE)
+		i = (uint32_t)(mn->counter - g.push.start);
+		if (i < (uint32_t)g.push.ticks)
 		{
 			if (i == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Push, mn->layout_a, 0x144);
+				// (the game clears 0x144 bytes for it, its player state needs 392: an edited layout may use the block's 0x1C8)
+				DecodeModelPrimLayout(fxp::layout(g.layouts.push, LAYOUT_Push, 0x1C8), mn->layout_a, 0x144);
 				GetDefaultEffectPosition(Target(), mn->far_pt);
 			}
 			arg.depth = 0;
 			arg.kind = KIND_Plain;
 			arg.fade = 0;
-			Play(mn, 3, mn->layout_a, &arg, mn->far_pt[0], -0x1000, mn->far_pt[2]);
+			FX_PART(PART_PUSH);
+			Play(mn, 3, mn->layout_a, &arg, mn->far_pt[0], g.push.height, mn->far_pt[2]);
 			if (Pause() == 0)
 			{
 				*(int16_t *)(Target() + 0x1C) += mn->step[0];
 				*(int16_t *)(Target() + 0x20) += mn->step[2];
-				if (i == 0xD) *Target() |= 4;
+				if (i == (uint32_t)g.push.ticks - 1) *Target() |= 4;
 			}
 		}
 		// 0xC8..0xDB: layout 0x142D8A4 at the target's start; his hit chain at 0xC8
-		i = (uint32_t)(mn->counter - 0xC8);
-		if (i < 0x14)
+		i = (uint32_t)(mn->counter - g.fall.start);
+		if (i < (uint32_t)g.fall.ticks)
 		{
 			if (i == 0)
 			{
-				DecodeModelPrimLayout(LAYOUT_Fall, mn->layout_b, 0x208);
-				if (Pause() == 0) QueueChainTransformation(Target(), 5);
+				DecodeModelPrimLayout(fxp::layout(g.layouts.fall, LAYOUT_Fall, 0x208), mn->layout_b, 0x208);
+				if (Pause() == 0) QueueChainTransformation(Target(), g.hits.chain);
 			}
 			arg.depth = 0;
 			arg.kind = KIND_Plain;
 			arg.fade = 0;
+			FX_PART(PART_FALL);
 			Play(mn, 4, mn->layout_b, &arg, mn->target0[0], 0, mn->target0[2]);
 		}
 		// white flashes at 0x72 and 0xA3
-		i = (uint32_t)(mn->counter - 0x72);
-		if (i < 4) FadeTile((int32_t)i, 0xFF, 0xFF, 0xFF, 0, 1, 3);
-		i = (uint32_t)(mn->counter - 0xA3);
-		if (i < 4) FadeTile((int32_t)i, 0xFF, 0xFF, 0xFF, 0, 1, 3);
+		const uint32_t white = (uint32_t)(g.whites.in + g.whites.hold + g.whites.out);
+		i = (uint32_t)(mn->counter - g.whites.first);
+		if (i < white)
+		{
+			FX_PART(PART_WHITES);
+			FadeTile((int32_t)i, g.whites.r, g.whites.g, g.whites.b, g.whites.in, g.whites.hold, g.whites.out);
+		}
+		i = (uint32_t)(mn->counter - g.whites.second);
+		if (i < white)
+		{
+			FX_PART(PART_WHITES);
+			FadeTile((int32_t)i, g.whites.r, g.whites.g, g.whites.b, g.whites.in, g.whites.hold, g.whites.out);
+		}
 		// 0xC0..0xDA: the target at his start, dropped (0xC0..0xC7), drawn by the module and hidden; 0xDB: his result
-		i = (uint32_t)(mn->counter - 0xC0);
+		i = (uint32_t)(mn->counter - g.target.start);
 		bool draw_target = false;
-		if (i < 8)
+		if (i < (uint32_t)g.target.drop)
 		{
 			if (i == 0)
 			{
@@ -1158,7 +1249,7 @@ namespace demon251
 			if (Pause() == 0)
 			{
 				*(int16_t *)(Target() + 0x1E) = DropHeight((int32_t)i);
-				if (i == 7)
+				if (i == (uint32_t)g.target.drop - 1)
 				{
 					memcpy(Target() + 0x1C, &mn->target0[0], 4);
 					memcpy(Target() + 0x20, &mn->target0[2], 4);
@@ -1166,8 +1257,8 @@ namespace demon251
 			}
 			draw_target = true;
 		}
-		else if (i < 0x1B) draw_target = true;
-		else if (i == 0x1B)
+		else if (i < (uint32_t)g.target.ticks) draw_target = true;
+		else if (i == (uint32_t)g.target.ticks)
 		{
 			if (Pause() == 0) ApplyActionResultToTarget(Ctx()->actions[0].targets);
 			*(uint16_t *)Target() &= 0xFFFB;
@@ -1188,11 +1279,12 @@ namespace demon251
 			angles[3] = 0;
 			// 30 fps layer: see mag251_demon_slice_held.inc
 			FX_HELD(held_note_target(mn, (int32_t)i, off);)
+			FX_PART(PART_TARGET);
 			DrawEntity212(Target(), angles, off);
 			*Target() |= 4;
 		}
 		// counters: the flames dropped, the stream load, its wait, the pump
-		if (mn->counter == 0x21)
+		if (mn->counter == g.flames.drop)
 		{
 			QFlames()->tail = nullptr;
 			QFlames()->head = nullptr;
@@ -1200,42 +1292,42 @@ namespace demon251
 		else if (mn->counter == 0x23) StreamQueueLoad(0x2C9, TexBase() + ARENA_A, 0);
 		else if (mn->counter == 0x36 && StreamBusy() != 0) return 0;
 		StreamPump();
-		if (mn->counter == 0) BdPlaySE(SOUND_Start, 0, 0x80);
-		else if (mn->counter == 0x44) BdPlaySE(SOUND_Swing, 0, 0x80);
-		else if (mn->counter == 0xC7) BdPlaySE(SOUND_Fall, 0, 0x80);
+		if (mn->counter == g.timing.start) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		else if (mn->counter == g.timing.swing) BdPlaySE((const void *)fxp::sound(g.sounds.swing, (uint32_t)SOUND_Swing), 0, 0x80);
+		else if (mn->counter == g.timing.fall) BdPlaySE((const void *)fxp::sound(g.sounds.fall, (uint32_t)SOUND_Fall), 0, 0x80);
 		// 0x72..0xA7: every 5 ticks a hit layout task at the target and his hit chain; up to 0x8C the caster swings
-		i = (uint32_t)(mn->counter - 0x72);
-		if (i < 0x36)
+		i = (uint32_t)(mn->counter - g.hits.start);
+		if (i < (uint32_t)g.hits.ticks)
 		{
-			const uint32_t k = i % 5;
+			const uint32_t k = i % (uint32_t)g.hits.every;
 			if (k == 0)
 			{
-				LayoutNode *t = (LayoutNode *)AddTaskToQueue(QLayouts(), ORIG_LayoutTask);
+				LayoutNode *t = (LayoutNode *)AddTaskToQueue(QLayouts(), own::Fn(ORIG_LayoutTask));
 				if (t)
 				{
-					DecodeModelPrimLayout(LAYOUT_Hit, t->layout, 0x144);
+					DecodeModelPrimLayout(fxp::layout(g.layouts.hit, LAYOUT_Hit, 0x144), t->layout, 0x144);
 					GetDefaultEffectPosition(Target(), t->pos);
-					QueueChainTransformation(Target(), 5);
+					QueueChainTransformation(Target(), g.hits.chain);
 				}
 			}
-			if (mn->counter < 0x8D)
+			if (mn->counter < g.caster.swing_until)
 			{
 				const int32_t s = ComputeSin(shl32((int32_t)k, 12) / 9 / 2);
 				VecLerp(mn->far_pt, mn->near_pt, 0x1000 - s, s, Caster() + 0x1C);
 			}
 		}
 		// 0xA8..0xB5: the caster back to his start; 0xB5: 16 sparkles around him
-		i = (uint32_t)(mn->counter - 0xA8);
-		if (i < 0xE)
+		i = (uint32_t)(mn->counter - g.caster.back_from);
+		if (i < (uint32_t)g.caster.back_ticks)
 		{
-			const int32_t t = (int32_t)((uint32_t)shl32((int32_t)i + 1, 12) / 14);
+			const int32_t t = (int32_t)((uint32_t)shl32((int32_t)i + 1, 12) / (uint32_t)g.caster.back_ticks);
 			if (i == 0) memcpy(mn->keep, Caster() + 0x1C, 8);
 			VecLerp(mn->keep, mn->caster0, 0x1000 - t, t, Caster() + 0x1C);
-			if (i == 0xD)
+			if (i == (uint32_t)g.caster.back_ticks - 1)
 			{
-				int32_t count = 0x10;
+				int32_t count = g.sparkles.count;
 				int32_t angle = 0;
-				SparkleNode *s = (SparkleNode *)AddTaskToQueue(QSparkles(), ORIG_SparkleTask);
+				SparkleNode *s = count > 0 ? (SparkleNode *)AddTaskToQueue(QSparkles(), own::Fn(ORIG_SparkleTask)) : nullptr;
 				while (s)
 				{
 					const int32_t r = CrtRand() + 0x4000;
@@ -1245,16 +1337,16 @@ namespace demon251
 					s->pos[2] = (int16_t)(cz / 8 + mn->caster0[2]);
 					s->vel[0] = (int8_t)(sx >> 4);
 					s->vel[2] = (int8_t)(cz >> 4);
-					angle += 0x100;
+					angle += g.sparkles.step;
 					s->pos[1] = 0;
 					s->vel[1] = (int8_t)(0xF8 - (CrtRand() & 7));
 					s->frame = 0;
 					if (--count == 0) break;
-					s = (SparkleNode *)AddTaskToQueue(QSparkles(), ORIG_SparkleTask);
+					s = (SparkleNode *)AddTaskToQueue(QSparkles(), own::Fn(ORIG_SparkleTask));
 				}
 			}
 		}
-		if (mn->counter >= 0xDC)
+		if (mn->counter >= g.timing.end)
 		{
 			memcpy(Caster() + 0x1C, &mn->caster0[0], 4);
 			memcpy(Caster() + 0x20, &mn->caster0[2], 4);
@@ -1329,8 +1421,8 @@ namespace demon251
 		GteSetFarColor2(0, 0, 0);
 		uint32_t *pk = (uint32_t *)PacketCursor();
 		uint32_t *pk2 = pk + 9;
-		w->col1 = 0x3A185820;
-		w->base_col = 0x3A185820;
+		w->col1 = 0x3A000000 | ((uint32_t)PG().trail.colour & 0xFFFFFF);
+		w->base_col = w->col1;
 		for (int32_t k = 0, tacc = 0; tacc < 0x1E000; k++, tacc += 0x1000)
 		{
 			w->col0 = w->col1;
@@ -1373,15 +1465,15 @@ namespace demon251
 		TrailNode *t = (TrailNode *)n;
 		TrailWork *w = (TrailWork *)FieldAlloc(0x40);
 		WeaponBone(TRAIL_ENTITY, 1, w->dir, w->base);
-		w->tip[0] = (int16_t)((int16_t)(mul32(w->dir[0], 777) >> 12) + w->base[0]);
-		w->tip[1] = (int16_t)((int16_t)(mul32(w->dir[1], 777) >> 12) + w->base[1]);
-		w->tip[2] = (int16_t)((int16_t)(mul32(w->dir[2], 777) >> 12) + w->base[2]);
+		w->tip[0] = (int16_t)((int16_t)(mul32(w->dir[0], PG().trail.length) >> 12) + w->base[0]);
+		w->tip[1] = (int16_t)((int16_t)(mul32(w->dir[1], PG().trail.length) >> 12) + w->base[1]);
+		w->tip[2] = (int16_t)((int16_t)(mul32(w->dir[2], PG().trail.length) >> 12) + w->base[2]);
 		int32_t idx = t->counter % 7;
 		RingEntry *e = &t->ring[idx];
 		e->alive = 1;
 		memcpy(e->base, w->base, 8);
 		memcpy(e->tip, w->tip, 8);
-		const int32_t want = t->counter >= 0xD ? 0x14 - t->counter : 7;
+		const int32_t want = t->counter >= PG().trail.shorten ? PG().trail.ticks + 1 - t->counter : 7;
 		int32_t cnt = 0;
 		while (cnt < want)
 		{
@@ -1399,12 +1491,13 @@ namespace demon251
 			TrailEnds(t);
 			// 30 fps layer: see mag251_demon_slice_held.inc
 			FX_HELD(held_note_trail(t);)
+			FX_PART(PART_TRAIL);
 			TrailDraw(t->spl_a, t->spl_b, w);
 		}
 		FieldFree(0x40);
 		if (Pause() != 0) return 0;
 		t->counter++;
-		return t->counter >= 0x13 ? TASK_END : 0;
+		return t->counter >= PG().trail.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -1427,6 +1520,7 @@ namespace demon251
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag251_demon_slice_held.inc
 		FX_HELD(held_note_task_layout(t, &arg);)
+		FX_PART(*(const uint32_t *)t->layout == fxp::layout(PG().layouts.rise, LAYOUT_Rise, 0xC0) ? PART_RISERS : PART_HITS);
 		const int left = prim::play((prim::Layout *)t->layout, PrimCallback, (int)&arg, (int)Pause());
 		return left ? 0 : TASK_END;
 	}
@@ -1439,9 +1533,10 @@ namespace demon251
 		SparkleNode *s = (SparkleNode *)n;
 		// 30 fps layer: see mag251_demon_slice_held.inc
 		FX_HELD(held_note_draw(ORIG_SparkleTask, s);)
+		FX_PART(PART_SPARKLES);
 		TransformCameraByShadowRotation(s->pos, 0x1000, -0x400);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Sparkle;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.sparkle, SEQ_Sparkle);
 		*(uint16_t *)(h + 4) = (uint16_t)s->frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -1449,24 +1544,170 @@ namespace demon251
 		FieldFree(0xB4);
 		if (Pause() != 0) return 0;
 		s->frame++;
-		if (s->frame >= 0xD) return TASK_END;
+		if (s->frame >= PG().sparkles.frames) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// Setup (0x6F44D0 -> _Init 0x6F44E0): the game runs its own; Fujin's programs this (its memory may be a copy's): the
+	// TIM (exe data), the magic buffer, the context, the caster's and action 0's first target's entities, the master, the
+	// camera. (The file loader is the engine's null sub.)
+	// ------------------------------------------------------------------
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(fxp::tim(PG().res.tim, TIM));
+		TexBase() = (uint32_t)layouts::MagicBuffer();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		Target() = Entity(ctx->actions->targets[0]);
+		InitTaskQueuePool(QMaster(), (void *)own::R(0x2556400), 0x10, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QMaster(), own::Fn(ORIG_MasterTask)) + 0xC, 0, 1);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return QMaster();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "master", "Master", "The main task's ticks, its three sounds, the screen flash rising and falling; the TIM and the camera" },
+			{ 0, "caster", "Caster", "The caster sliding toward the target, swinging between two points by him, then back to his start (the effect moves him, it draws nothing)" },
+			{ PART_FLAMES, "flames", "Flames", "Flames around the target (Fire's parts), each with its ground glow, embers rising and sparks drifting" },
+			{ PART_OPENING, "opening", "Opening", "Layout A at the caster's spawn point, fading out" },
+			{ PART_WAVE, "wave", "Wave", "The wave layout at the caster's spawn point, its vertices pushed by a travelling wave, its texture scrolling; it swells, then grows taller as it lifts the caster and the target" },
+			{ PART_RISERS, "risers", "Risers", "Layout tasks rising above the caster's spawn point while the wave plays" },
+			{ PART_SLASH, "slash", "Slash", "The slash layout at the caster's spawn point of its first tick, its texture scrolling" },
+			{ PART_HITS, "hits", "Hits", "A hit layout task at the target every few ticks, with his hit chain" },
+			{ PART_PUSH, "push", "Push", "The push layout at the target's effect point; the target pushed back a step a tick, hidden at its end" },
+			{ PART_TARGET, "target", "Target", "The target back at his start, dropped from above, drawn by the module turned over about his middle; then his result" },
+			{ PART_FALL, "fall", "Fall", "The fall layout at the target's start, his hit chain at its first tick" },
+			{ PART_WHITES, "whites", "White flashes", "Two full-screen flashes (fading in, held, fading out)" },
+			{ PART_TRAIL, "trail", "Blade trail", "The blade trail of slot 4's bone 1: a ring of its last 7 points splined, drawn as gouraud quads fading along it" },
+			{ PART_SPARKLES, "sparkles", "Sparkles", "Sparkles flying out round the caster when he is back" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main task's ticks" },
+			{ "flash", "Screen flash", "The screen flash's level and slopes" },
+		};
+#define MPF(member) (uint32_t)offsetof(DemonSliceParams, member)
+		static const Field FIELDS[] = {
+			{ "master", "sounds.start", "Start sound", "At the start sound's tick", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.swing", "Swing sound", "At the swing sound's tick", MPF(sounds.swing), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "sounds.fall", "Fall sound", "At the fall sound's tick", MPF(sounds.fall), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "master", "timing.start", "Start sound", "The main task's tick of the start sound", MPF(timing.start), fxp::I16, 0, 400 },
+			{ "master", "timing.swing", "Swing sound", "Its tick of the swing sound", MPF(timing.swing), fxp::I16, 0, 400 },
+			{ "master", "timing.fall", "Fall sound", "Its tick of the fall sound", MPF(timing.fall), fxp::I16, 0, 400 },
+			{ "master", "timing.end", "End", "Its last tick: the caster put back at his start (the screen flash falls to 0 there)", MPF(timing.end), fxp::I16, 1, 400 },
+			{ "master", "flash.level", "Flash level", "The screen flash's level", MPF(flash.level), fxp::I16, 0, 0x1000 },
+			{ "master", "flash.rise", "Flash rise", "It rises over the first ticks (at least 1)", MPF(flash.rise), fxp::I16, 1, 400 },
+			{ "master", "flash.fall", "Flash fall", "It falls over the last ticks before the end (at least 1)", MPF(flash.fall), fxp::I16, 1, 400 },
+			{ "master", "res.tim", "TIM", "The TIM its setup uploads (exe data: the effect has no file)", MPF(res.tim), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "master", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "caster", "caster.slide_from", "Slide from", "The main task's tick the caster starts sliding to the far point (an eased sine)", MPF(caster.slide_from), fxp::I16, 0, 400 },
+			{ "caster", "caster.slide_ticks", "Slide ticks", "Its ticks (at least 1)", MPF(caster.slide_ticks), fxp::I16, 1, 400 },
+			{ "caster", "caster.swing_until", "Swings until", "While the hits run, below this tick the caster swings between the far and the near point", MPF(caster.swing_until), fxp::I16, 0, 400 },
+			{ "caster", "caster.back_from", "Back from", "The tick he starts back to his start (the sparkles at its end; 0x37 at least: their pool is set up then)", MPF(caster.back_from), fxp::I16, 0x37, 400 },
+			{ "caster", "caster.back_ticks", "Back ticks", "Its ticks (at least 1)", MPF(caster.back_ticks), fxp::I16, 1, 400 },
+			{ "flames", "flames.count", "Count", "Flames around the target", MPF(flames.count), fxp::I16, 0, 8 },
+			{ "flames", "flames.frames", "Frames", "A flame's frames (its flipbook's: 16 at most)", MPF(flames.frames), fxp::I16, 1, 16 },
+			{ "flames", "flames.embers", "Embers", "Embers rising from each flame", MPF(flames.embers), fxp::I16, 0, 16 },
+			{ "flames", "flames.sparks", "Sparks", "Sparks drifting from each flame", MPF(flames.sparks), fxp::I16, 0, 20 },
+			{ "flames", "flames.size", "Size", "A flame's size: this + a random below the next", MPF(flames.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "flames", "flames.size_rand", "Size random", "(at least 1)", MPF(flames.size_rand), fxp::I16, 1, 0x7FFF },
+			{ "flames", "flames.drop", "Dropped", "The main task's tick every flame, ember and spark is dropped", MPF(flames.drop), fxp::I16, 0, 400 },
+			{ "flames", "seqs.flame", "Flame", "The flames' sprite sequence (a flipbook)", MPF(seqs.flame), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "flames", "seqs.glow", "Ground glow", "Their ground glow's sprite sequence", MPF(seqs.glow), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "flames", "seqs.ember", "Ember", "The embers' sprite sequence", MPF(seqs.ember), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "opening", "opening.start", "Start", "The main task's tick it starts", MPF(opening.start), fxp::I16, 0, 400 },
+			{ "opening", "opening.ticks", "Ticks", "Its ticks", MPF(opening.ticks), fxp::I16, 0, 400 },
+			{ "opening", "opening.fade_from", "Fade from", "After this tick of it, it fades out", MPF(opening.fade_from), fxp::I16, 0, 400 },
+			{ "opening", "opening.fade_ticks", "Fade ticks", "Over so many ticks (at least 1)", MPF(opening.fade_ticks), fxp::I16, 1, 400 },
+			{ "opening", "layouts.opening", "Layout", "The prim-model layout played", MPF(layouts.opening), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "wave", "wave.start", "Start", "The main task's tick it starts (0x37 at least: the risers' pool is set up then)", MPF(wave.start), fxp::I16, 0x37, 400 },
+			{ "wave", "wave.ticks", "Ticks", "Its ticks", MPF(wave.ticks), fxp::I16, 0, 400 },
+			{ "wave", "wave.phase", "Wave step", "The wave's phase step a tick (0x1000 a turn)", MPF(wave.phase), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "wave", "wave.amp", "Wave amplitude", "How far the wave pushes the vertices", MPF(wave.amp), fxp::I16, -0x1000, 0x1000 },
+			{ "wave", "wave.scroll", "Scroll", "Its texture scroll a tick", MPF(wave.scroll), fxp::I16, -0x100, 0x100 },
+			{ "wave", "wave.swell_from", "Swell from", "From this tick of it, it swells sideways", MPF(wave.swell_from), fxp::I16, 0, 400 },
+			{ "wave", "wave.swell_ticks", "Swell ticks", "A quarter turn of the swell's sine over so many ticks (at least 1)", MPF(wave.swell_ticks), fxp::I16, 1, 400 },
+			{ "wave", "wave.swell", "Swell", "Its width grows by this x the sine (x 1 = its own width)", MPF(wave.swell), fxp::I16, -8, 8 },
+			{ "wave", "lift.start", "Lift from", "From this main task's tick it grows taller (to twice its height)", MPF(lift.start), fxp::I16, 0, 400 },
+			{ "wave", "lift.ticks", "Lift ticks", "Over so many ticks (at least 1)", MPF(lift.ticks), fxp::I16, 1, 400 },
+			{ "wave", "lift.end", "Lift until", "Below this tick it lifts the caster and the target (a cosine ease)", MPF(lift.end), fxp::I16, 0, 400 },
+			{ "wave", "layouts.wave", "Layout", "The wave layout played (its first two models' heights are normalised for the wave)", MPF(layouts.wave), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "risers", "risers.every", "Every", "A riser every so many of the wave's ticks (at least 1)", MPF(risers.every), fxp::I16, 1, 400 },
+			{ "risers", "risers.until", "Until", "Below this tick of the wave", MPF(risers.until), fxp::I16, 0, 400 },
+			{ "risers", "risers.lift", "Lift", "Above the caster's spawn point", MPF(risers.lift), fxp::I16, -0x2000, 0x2000 },
+			{ "risers", "layouts.rise", "Layout", "The risers' prim-model layout", MPF(layouts.rise), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "slash", "slash.start", "Start", "The main task's tick it starts", MPF(slash.start), fxp::I16, 0, 400 },
+			{ "slash", "slash.ticks", "Ticks", "Its ticks", MPF(slash.ticks), fxp::I16, 0, 400 },
+			{ "slash", "slash.scroll", "Scroll", "Its texture scroll a tick", MPF(slash.scroll), fxp::I16, -0x100, 0x100 },
+			{ "slash", "layouts.slash", "Layout", "The slash's prim-model layout", MPF(layouts.slash), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "hits", "hits.start", "Start", "The main task's tick the hits start (0x37 at least: their pool is set up then)", MPF(hits.start), fxp::I16, 0x37, 400 },
+			{ "hits", "hits.ticks", "Ticks", "For so many ticks", MPF(hits.ticks), fxp::I16, 0, 400 },
+			{ "hits", "hits.every", "Every", "A hit every so many ticks (at least 1); the caster's swing is that long too", MPF(hits.every), fxp::I16, 1, 400 },
+			{ "hits", "hits.chain", "Hit chain", "The target's hit chain (QueueChainTransformation) with each hit and the fall", MPF(hits.chain), fxp::I16, 0, 0x40 },
+			{ "hits", "layouts.hit", "Layout", "The hits' prim-model layout", MPF(layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "push", "push.start", "Start", "The main task's tick it starts", MPF(push.start), fxp::I16, 0, 400 },
+			{ "push", "push.ticks", "Ticks", "Its ticks (the target hidden at its last)", MPF(push.ticks), fxp::I16, 1, 400 },
+			{ "push", "push.height", "Height", "The layout's height", MPF(push.height), fxp::I16, -0x4000, 0x4000 },
+			{ "push", "push.step", "Step", "The target pushed back so much a tick", MPF(push.step), fxp::I16, -0x1000, 0x1000 },
+			{ "push", "layouts.push", "Layout", "The push's prim-model layout", MPF(layouts.push), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "target", "target.start", "Start", "The main task's tick he is back at his start", MPF(target.start), fxp::I16, 0, 400 },
+			{ "target", "target.drop", "Drop", "He drops from above over so many ticks (at least 1)", MPF(target.drop), fxp::I16, 1, 400 },
+			{ "target", "target.ticks", "Ticks", "He is drawn by the module until this tick of it, then his result and he is shown", MPF(target.ticks), fxp::I16, 0, 400 },
+			{ "fall", "fall.start", "Start", "The main task's tick it starts", MPF(fall.start), fxp::I16, 0, 400 },
+			{ "fall", "fall.ticks", "Ticks", "Its ticks", MPF(fall.ticks), fxp::I16, 0, 400 },
+			{ "fall", "layouts.fall", "Layout", "The fall's prim-model layout", MPF(layouts.fall), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "whites", "whites.first", "First", "The main task's tick of the first", MPF(whites.first), fxp::I16, 0, 400 },
+			{ "whites", "whites.second", "Second", "The tick of the second", MPF(whites.second), fxp::I16, 0, 400 },
+			{ "whites", "whites.in", "In", "Ticks fading in", MPF(whites.in), fxp::I16, 0, 100 },
+			{ "whites", "whites.hold", "Hold", "Ticks held", MPF(whites.hold), fxp::I16, 0, 100 },
+			{ "whites", "whites.out", "Out", "Ticks fading out", MPF(whites.out), fxp::I16, 0, 100 },
+			{ "whites", "whites.r", "Red", "Their colour", MPF(whites.r), fxp::I16, 0, 255 },
+			{ "whites", "whites.g", "Green", "Their colour", MPF(whites.g), fxp::I16, 0, 255 },
+			{ "whites", "whites.b", "Blue", "Their colour", MPF(whites.b), fxp::I16, 0, 255 },
+			{ "trail", "trail.start", "Start", "The main task's tick it starts (0x37 at least: its pool is set up then)", MPF(trail.start), fxp::I16, 0x37, 400 },
+			{ "trail", "trail.ticks", "Ticks", "Its ticks", MPF(trail.ticks), fxp::I16, 1, 400 },
+			{ "trail", "trail.shorten", "Shorter from", "From this tick of it, it keeps ticks + 1 - its tick points (7 before)", MPF(trail.shorten), fxp::I16, 0, 400 },
+			{ "trail", "trail.length", "Length", "Its tip's distance from the bone along the blade", MPF(trail.length), fxp::I16, -0x2000, 0x2000 },
+			{ "trail", "trail.colour", "Colour", "Its colour at the blade (0xBBGGRR), fading to black along it", MPF(trail.colour), fxp::I32, 0, 0xFFFFFF },
+			{ "sparkles", "sparkles.count", "Count", "How many", MPF(sparkles.count), fxp::I16, 0, 16 },
+			{ "sparkles", "sparkles.step", "Angle step", "The angle between two of them", MPF(sparkles.step), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "sparkles", "sparkles.frames", "Frames", "A sparkle's frames (its flipbook's: 13 at most)", MPF(sparkles.frames), fxp::I16, 1, 13 },
+			{ "sparkles", "seqs.sparkle", "Sparkle", "The sparkles' sprite sequence", MPF(seqs.sparkle), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag251_demon_slice()
 	{
+		fxp::register_params({ 251, "Demon Slice", &demon251::live, &demon251::GAME, sizeof(demon251::DemonSliceParams),
+		                       demon251::table::PARTS, (int)(sizeof(demon251::table::PARTS) / sizeof(demon251::table::PARTS[0])),
+		                       demon251::table::FIELDS, (int)(sizeof(demon251::table::FIELDS) / sizeof(demon251::table::FIELDS[0])),
+		                       demon251::table::GROUPS, (int)(sizeof(demon251::table::GROUPS) / sizeof(demon251::table::GROUPS[0])) });
+		own::note(demon251::ORIG_Setup, (void *)demon251::Setup);
+		own::note(demon251::ORIG_MasterTask, (void *)demon251::MasterTask);
 		register_port(demon251::ORIG_MasterTask, (void *)demon251::MasterTask, "251 MasterTask", 251);
+		own::note(demon251::ORIG_FlameSpawner, (void *)demon251::FlameSpawner);
 		register_port(demon251::ORIG_FlameSpawner, (void *)demon251::FlameSpawner, "251 FlameSpawner", 251);
+		own::note(demon251::ORIG_FlameTask, (void *)demon251::FlameTask);
 		register_port(demon251::ORIG_FlameTask, (void *)demon251::FlameTask, "251 FlameTask", 251);
+		own::note(demon251::ORIG_SparkTask, (void *)demon251::SparkTask);
 		register_port(demon251::ORIG_SparkTask, (void *)demon251::SparkTask, "251 SparkTask", 251);
+		own::note(demon251::ORIG_EmberTask, (void *)demon251::EmberTask);
 		register_port(demon251::ORIG_EmberTask, (void *)demon251::EmberTask, "251 EmberTask", 251);
+		own::note(demon251::ORIG_MainTask, (void *)demon251::MainTask);
 		register_port(demon251::ORIG_MainTask, (void *)demon251::MainTask, "251 MainTask", 251);
+		own::note(demon251::ORIG_TrailTask, (void *)demon251::TrailTask);
 		register_port(demon251::ORIG_TrailTask, (void *)demon251::TrailTask, "251 TrailTask", 251);
+		own::note(demon251::ORIG_LayoutTask, (void *)demon251::LayoutTask);
 		register_port(demon251::ORIG_LayoutTask, (void *)demon251::LayoutTask, "251 LayoutTask", 251);
+		own::note(demon251::ORIG_SparkleTask, (void *)demon251::SparkleTask);
 		register_port(demon251::ORIG_SparkleTask, (void *)demon251::SparkleTask, "251 SparkleTask", 251);
 		// 30 fps layer: see mag251_demon_slice_held.inc
 		FX_HELD(register_mag251_held();)

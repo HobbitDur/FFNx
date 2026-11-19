@@ -372,7 +372,7 @@ namespace blood210
 		ComposeAffineTransform(&Camera(), m, m);
 		GteSetRotMatrix(m);
 		GteSetTransVector(m);
-		*(uint32_t *)h = MODEL_Bone;
+		*(uint32_t *)h = fxp::model(PG().models.bone, MODEL_Bone);
 		*(uint32_t *)(h + 0x1C) = 0xF0;
 		*(uint32_t *)(h + 0xC) = (uint32_t)lerp_i(((uint32_t)r.i << 12) >> 3, ((uint32_t)(r.i + 1) << 12) >> 3, k, den);
 		*(uint32_t *)(h + 8) = 0;
@@ -600,7 +600,7 @@ namespace blood210
 		{
 			FlameNode a;
 			memcpy(&a, r.snode, sizeof(a));
-			const bool next = flames && a.frame + 1 < 0x10;
+			const bool next = flames && a.frame + 1 < PG().flames.frames;
 			if (at_next && !next) break;
 			if (at_next && !g_paused) a.frame++;
 			FlameDraw(&a.f, a.frame, FLAME_LOOK, PacketCursor());
@@ -632,21 +632,21 @@ namespace blood210
 				EmberRise(&b.e, 5, 6);
 				b.frame++;
 			}
-			const bool next = flames && b.frame < 0x10;
+			const bool next = flames && b.frame < PG().flames.frames;
 			if (at_next && !next) break;
 			const int k = next ? num : 0;
 			EmberNode m = a;
 			m.e.pos[1] = lerp16(a.e.pos[1], b.e.pos[1], k, den);
 			m.e.scale = lerp16(a.e.scale, b.e.scale, k, den);
 			if (at_next) m.frame = b.frame;
-			EmberDraw(&m.e, m.frame, SEQ_Ember, 3, PacketCursor());
+			EmberDraw(&m.e, m.frame, fxp::sequence(PG().seqs.ember, SEQ_Ember), 3, PacketCursor());
 			return;
 		}
 		case ORIG_SparkleTask:
 		{
 			SparkleNode a;
 			memcpy(&a, r.snode, sizeof(a));
-			const bool next = !g_paused && MainNext() && a.frame + 1 < 0x10;
+			const bool next = !g_paused && MainNext() && a.frame + 1 < PG().sparkles.frames;
 			if (at_next && !next) break;
 			const int k = next ? num : 0;
 			int16_t pos[3] = { a.pos[0], lerp16(a.pos[1], (int16_t)(a.pos[1] + a.vy), k, den), a.pos[2] };
