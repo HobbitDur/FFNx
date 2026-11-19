@@ -52,9 +52,16 @@
 // ENTITY WRITES: the first target's flag word +0 bit 2 (hidden while it is redrawn; restored at the end). CAMERA: the camera
 // animation 0xD68D0C (engine). Module globals: 0x23AF820..0x23B1370.
 // NEVER-WRITTEN STACK WORDS: none read.
+// FUJIN: Fujin's described Acid (effect_170.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the file loader (0x5DC910) and the setup (0x5DC930) ported below; its parameters (AcidParams: the
+// sound and the director's ticks, the stream's curve and ticks, the blob, the landing mesh, the puddles, the drips, the
+// splash, the melt's ticks, the three flipbooks, the two meshes, the texture name and the camera track). FX_PART tags
+// its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -72,13 +79,13 @@ namespace acid170
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
 	// --- module globals ---
-	inline int32_t &TargetSlot() { return var<int32_t>(0x23AF820); }
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x23AF838; }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23B01A8; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23B0FD0); }
-	inline int32_t &AttackerSlot() { return var<int32_t>(0x23B10E8); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23B1348); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23B134C); }
+	inline int32_t &TargetSlot() { return var<int32_t>(own::R(0x23AF820)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23AF838); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x23B01A8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x23B0FD0)); }
+	inline int32_t &AttackerSlot() { return var<int32_t>(own::R(0x23B10E8)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23B1348)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23B134C)); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	static const uint32_t DROPS = 0x23AF848, DROPS_END = 0x23B01A8;   // 100 x 0x18 bytes
 	static const uint32_t STREAM = 0x23B0FD8;                         // 1 x 0x110 bytes
@@ -90,9 +97,41 @@ namespace acid170
 		ORIG_Mesh = 0x5DD030, ORIG_Drips = 0x5DDE90, ORIG_Puddle = 0x5DE0B0, ORIG_Melt = 0x5DE200, ORIG_Splash = 0x5DEA10;
 	static const uint32_t SEQ_Blob = 0xD68DF8, SEQ_Drip = 0xD68EA0;
 	static const uint32_t MODEL_Mesh = 0xD6904C, MODEL_Puddle = 0xD69CBC;
-	static const uint32_t MESH_A = 0xD69054, MESH_B = 0xD69A74;       // 73 vertices of 8 bytes each
+	static const uint32_t MESH_B = 0xD69A74;                          // the second shape: 73 vertices of 8 bytes each (the first: the mesh's own)
 	static const int32_t *const DRIP_COUNTS = (const int32_t *)0xD6A3AC; // droplets per tick 0..12
 	static const uint32_t SOUND_Acid = 0xD6A3A4;
+	static const uint32_t ORIG_FileLoader = 0x5DC910, ORIG_Setup = 0x5DC930;
+	static const uint32_t TEXTURE_NAME = 0xD6A3EC, CAMERA = 0xD68D0C;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23B1338)); }
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_SPLASH = 1, PART_BLOB = 2, PART_MESH = 3, PART_DRIPS = 4, PART_PUDDLES = 5, PART_MELT = 6 };
+	struct AcidParams
+	{
+		uint32_t sound;                                     // at the director's sound tick
+		struct { int16_t sound, stream, damage, end; } timing; // the director's ticks (the stream and the splash at its tick)
+		// the stream: from the caster's effect point to the first target's default position + a random spread (on the
+		// ground), its two middle control points up by lift + a random below lift_rand each; the puddles and the melt, the
+		// mesh and the drips at its ticks; its end
+		struct { int16_t point, spread, lift, lift_rand, puddles, mesh, end; } stream;
+		struct { int16_t size, size_rand, speed; } blob;     // the blob running down the curve
+		struct { int16_t size, size_rand; } mesh;            // the landing mesh's start size (and growth)
+		struct { int16_t count, spread, size, size_rand; } puddles;
+		struct { int16_t size, size_rand, spread, fall, fall_rand; } drips;
+		struct { int16_t count, speed, speed_rand, rise, rise_rand; } splash;
+		struct { int16_t ticks; } melt;                       // the target drawn melting for this many ticks
+		struct { uint32_t blob, drip, splash; } seqs;         // the sprite sequences drawn (flipbooks)
+		struct { uint32_t mesh, puddle; } models;            // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res;       // its resources (data): texture file name, camera track
+	};
+	static const AcidParams GAME = { SOUND_Acid, { 1, 1, 0x2E, 0x37 }, { 0x29, 0x15E, 0x32, 100, 0xC, 0xD, 0x28 }, { 0x300, 0x50, 5 },
+		{ 0xB00, 0x400 }, { 4, 0x320, 0xA00, 0x600 }, { 0x700, 0xA00, 0x2BC, 20, 50 }, { 0x10, 0x32, 0x46, 0x3C, 0x50 }, { 0x22 },
+		{ SEQ_Blob, SEQ_Drip, SEQ_Blob }, { MODEL_Mesh, MODEL_Puddle }, { TEXTURE_NAME, CAMERA } };
+	static AcidParams live = GAME;
+	static const AcidParams &PA() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -169,8 +208,8 @@ namespace acid170
 #pragma pack(pop)
 	static_assert(sizeof(Node) == 0x24 && sizeof(Stream) == 0x110 && sizeof(Drop) == 0x18, "Acid nodes / entries");
 
-	inline Stream *StreamOf(int32_t i) { return (Stream *)(STREAM + (uint32_t)(i * 0x110)); }
-	inline Drop *Drops() { return (Drop *)DROPS; }
+	inline Stream *StreamOf(int32_t i) { return (Stream *)(own::R(STREAM) + (uint32_t)(i * 0x110)); }
+	inline Drop *Drops() { return (Drop *)own::R(DROPS); }
 
 	// the first free droplet (mask 0) among the first 100, or null
 	static Drop *FreeDrop()
@@ -178,7 +217,7 @@ namespace acid170
 		int32_t i = 0;
 		Drop *e = Drops();
 		for (; e->flags; e++, i++)
-			if (P(e + 1) >= DROPS_END) return nullptr;
+			if (P(e + 1) >= own::R(DROPS_END)) return nullptr;
 		return i < 0x64 ? e : nullptr;
 	}
 
@@ -684,15 +723,16 @@ namespace acid170
 	static uint32_t __cdecl MeltTask(TaskNode *tn)
 	{
 		Node *n = (Node *)tn;
-		if (n->counter < 0x22)
+		if (n->counter < PA().melt.ticks)
 		{
+			FX_PART(PART_MELT);
 			// 30 fps layer: see mag170_acid_held.inc
 			FX_HELD(held_note_draw(ORIG_Melt, n);)
 			MeltDraw(n, MeltAmount(n->counter));
 		}
 		if (DrawOnly()) return 0;
 		n->counter++;
-		if (n->counter <= 0x22) return 0;
+		if (n->counter <= PA().melt.ticks) return 0;
 		uint16_t &w = *(uint16_t *)Entity(TargetSlot());
 		w = (uint16_t)((w & 0xFFFB) | (uint16_t)n->a1a);
 		return TASK_END;
@@ -728,12 +768,12 @@ namespace acid170
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x5C));
-		U32(h, 0) = MODEL_Mesh;
+		U32(h, 0) = fxp::model(PA().models.mesh, MODEL_Mesh);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0x2033;
 		for (int32_t k = 0; k < 0x49; k++)
 		{
-			const uint32_t a = MESH_A + (uint32_t)k * 8, b = MESH_B + (uint32_t)k * 8, o = verts + (uint32_t)k * 8;
+			const uint32_t a = U32(h, 0) + 8 + (uint32_t)k * 8, b = MESH_B + (uint32_t)k * 8, o = verts + (uint32_t)k * 8;
 			for (int32_t w = 0; w < 3; w++)
 				S16(o, w * 2) = (int16_t)((mul32(S16(b, w * 2) - S16(a, w * 2), s) >> 12) + S16(a, w * 2));
 		}
@@ -762,7 +802,8 @@ namespace acid170
 		Node *n = (Node *)tn;
 		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Mesh, n);)
-		MeshDraw(n, MESH_VERTS + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
+		FX_PART(PART_MESH);
+		MeshDraw(n, own::R(MESH_VERTS) + (uint32_t)(n->idx * 0x248), MeshBlend(n->counter), MeshFade(n->counter));
 		if (DrawOnly()) return 0;
 		if (n->counter < 8)
 		{
@@ -793,7 +834,7 @@ namespace acid170
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Puddle;
+		U32(h, 0) = fxp::model(PA().models.puddle, MODEL_Puddle);
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xF3;
 		S32(h, 0xC) = fade;
@@ -812,6 +853,7 @@ namespace acid170
 		}
 		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Puddle, n);)
+		FX_PART(PART_PUDDLES);
 		PuddleDraw(n, PuddleFade(n->counter));
 		if (DrawOnly()) return 0;
 		n->a1c = (int16_t)(n->a1c + n->a1e);
@@ -828,7 +870,7 @@ namespace acid170
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t r = n->a1c;
 		U16(h, 0x24) = 0;
-		U32(h, 0) = SEQ_Blob;
+		U32(h, 0) = fxp::sequence(PA().seqs.blob, SEQ_Blob);
 		U16(h, 4) = (uint16_t)(n->counter % 6);
 		int32_t k = n->a18;
 		for (int i = 0; i < 4; i++, k--, r -= 0x70)
@@ -850,6 +892,7 @@ namespace acid170
 		FX_HELD(held_note_draw(ORIG_Blob, n);)
 		const int16_t *pos[4];
 		for (int i = 0; i < 4; i++) pos[i] = StreamOf(n->idx)->curve[0] + (n->a18 - i) * 4;
+		FX_PART(PART_BLOB);
 		BlobDraw(n, pos);
 		if (DrawOnly()) return 0;
 		const int16_t v = n->a1a;
@@ -874,11 +917,12 @@ namespace acid170
 		Node *n = (Node *)tn;
 		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Drips, n);)
+		FX_PART(PART_DRIPS);
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Drip;
+		U32(h, 0) = fxp::sequence(PA().seqs.drip, SEQ_Drip);
 		U16(h, 0x24) = 0;
-		for (Drop *e = Drops(); P(e) < DROPS_END; e++)
+		for (Drop *e = Drops(); P(e) < own::R(DROPS_END); e++)
 		{
 			if (!(e->flags & (uint32_t)(int32_t)n->idx)) continue;
 			DripDraw(h, e);
@@ -904,12 +948,12 @@ namespace acid170
 				if (!e) break;
 				e->flags = (uint32_t)(int32_t)n->idx;
 				e->frame = 0;
-				e->scale = (int16_t)(CrtRand() % 0xA00 + 0x700);
+				e->scale = (int16_t)(CrtRand() % PA().drips.size_rand + PA().drips.size);
 				memcpy(e->pos, n->pos, 8);
-				e->pos[0] = (int16_t)(e->pos[0] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
+				e->pos[0] = (int16_t)(e->pos[0] + (int16_t)(CrtRand() % (2 * PA().drips.spread) - PA().drips.spread));
 				e->pos[1] = (int16_t)(e->pos[1] + (int16_t)(-100 - CrtRand() % 300));
-				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(CrtRand() % 0x578 - 0x2BC));
-				e->vel[1] = (int16_t)(-20 - CrtRand() % 50);
+				e->pos[2] = (int16_t)(e->pos[2] + (int16_t)(CrtRand() % (2 * PA().drips.spread) - PA().drips.spread));
+				e->vel[1] = (int16_t)(-PA().drips.fall - CrtRand() % PA().drips.fall_rand);
 			}
 		}
 		n->counter++;
@@ -926,19 +970,19 @@ namespace acid170
 	{
 		int32_t down[3] = { 0, -0x1000, 0 };
 		int32_t dir[3];
-		dir[0] = (int32_t)S16(SPLASH_AT, 0) - S16(SPLASH_FROM, 0);
-		dir[1] = (int32_t)S16(SPLASH_AT, 2) - S16(SPLASH_FROM, 2);
-		dir[2] = (int32_t)S16(SPLASH_AT, 4) - S16(SPLASH_FROM, 4);
+		dir[0] = (int32_t)S16(own::R(SPLASH_AT), 0) - S16(own::R(SPLASH_FROM), 0);
+		dir[1] = (int32_t)S16(own::R(SPLASH_AT), 2) - S16(own::R(SPLASH_FROM), 2);
+		dir[2] = (int32_t)S16(own::R(SPLASH_AT), 4) - S16(own::R(SPLASH_FROM), 4);
 		NormalizeVector(dir, dir);
 		int32_t axis[3];
 		const int32_t angle = RotationBetweenVectors(down, dir, axis);
 		Mat4x3 m;
 		BuildAxisAngleRotationMatrix(angle, &m, axis);
-		m.t[0] = S16(SPLASH_AT, 0);
-		m.t[1] = S16(SPLASH_AT, 2);
-		m.t[2] = S16(SPLASH_AT, 4);
+		m.t[0] = S16(own::R(SPLASH_AT), 0);
+		m.t[1] = S16(own::R(SPLASH_AT), 2);
+		m.t[2] = S16(own::R(SPLASH_AT), 4);
 		ComposeAffineTransform(&Camera(), &m, &m);
-		GteSetRotMatrixCtrl((const Mat4x3 *)SPLASH_MATRIX);
+		GteSetRotMatrixCtrl((const Mat4x3 *)own::R(SPLASH_MATRIX));
 		GteSetLightMatrix(&m);
 		GteSetBKFromMatrix(&m);
 	}
@@ -947,7 +991,7 @@ namespace acid170
 	// the camera by scale / 16 into the splash matrix's translation, the scale on the rotation diagonal, frame / 2
 	static void SplashDraw(uint32_t h, const Drop *e, int32_t grey)
 	{
-		Mat4x3 &g = *(Mat4x3 *)SPLASH_MATRIX;
+		Mat4x3 &g = *(Mat4x3 *)own::R(SPLASH_MATRIX);
 		U32(h, 0x1C) = (uint32_t)((((grey << 8) | grey) << 8) | grey);
 		GteLoadV0(e->pos);
 		GteMVMVA_LightV0Bk();
@@ -971,12 +1015,13 @@ namespace acid170
 		Node *n = (Node *)tn;
 		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(held_note_draw(ORIG_Splash, n);)
+		FX_PART(PART_SPLASH);
 		const uint32_t h = P(FieldAlloc(0xB4));
 		int32_t alive = 0;
-		U32(h, 0) = SEQ_Blob;
+		U32(h, 0) = fxp::sequence(PA().seqs.splash, SEQ_Blob);
 		U16(h, 0x24) = 4;
 		SplashSetup();
-		for (Drop *e = Drops(); P(e) < DROPS_END; e++)
+		for (Drop *e = Drops(); P(e) < own::R(DROPS_END); e++)
 		{
 			if (!(e->flags & (uint32_t)(int32_t)n->idx)) continue;
 			SplashDraw(h, e, SplashGrey(e->frame));
@@ -995,7 +1040,7 @@ namespace acid170
 		if (DrawOnly()) return 0;
 		if (n->counter == 0)
 		{
-			for (int32_t k = 0; k < 0x10; k++)
+			for (int32_t k = 0; k < PA().splash.count; k++)
 			{
 				Drop *e = FreeDrop();
 				if (!e) break;
@@ -1006,9 +1051,9 @@ namespace acid170
 				e->pos[1] = 0;
 				e->pos[2] = (int16_t)(CrtRand() % 200 - 100);
 				const int32_t a = CrtRand() & 0xFFF;
-				const int32_t r = CrtRand() % 0x46 + 0x32;
+				const int32_t r = CrtRand() % PA().splash.speed_rand + PA().splash.speed;
 				e->vel[0] = (int16_t)(mul32(ComputeCos(a), r) >> 12);
-				e->vel[1] = (int16_t)(-0x3C - CrtRand() % 0x50);
+				e->vel[1] = (int16_t)(-PA().splash.rise - CrtRand() % PA().splash.rise_rand);
 				e->vel[2] = (int16_t)(mul32(ComputeSin(a), r) >> 12);
 			}
 		}
@@ -1022,21 +1067,21 @@ namespace acid170
 	// ------------------------------------------------------------------
 	static void StreamSetup(Stream *s)
 	{
-		GetEffectSpawnPosition(Entity(AttackerSlot()), 0x29, 0x600, s->src);
+		GetEffectSpawnPosition(Entity(AttackerSlot()), PA().stream.point, 0x600, s->src);
 		GetDefaultEffectPosition(Entity(TargetSlot()), s->dst);
-		s->dst[0] = (int16_t)(s->dst[0] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
+		s->dst[0] = (int16_t)(s->dst[0] + (int16_t)(CrtRand() % (2 * PA().stream.spread) - PA().stream.spread));
 		s->dst[1] = 0;
-		s->dst[2] = (int16_t)(s->dst[2] + (int16_t)(CrtRand() % 0x2BC - 0x15E));
+		s->dst[2] = (int16_t)(s->dst[2] + (int16_t)(CrtRand() % (2 * PA().stream.spread) - PA().stream.spread));
 		memcpy(s->cp[0], s->src, 8);
 		memcpy(s->cp[3], s->dst, 8);
 		const int16_t x0 = s->src[0];
 		const int32_t dx = (s->dst[0] - x0) / 3;
 		const int32_t dz = (s->dst[2] - s->src[2]) / 3;
 		s->cp[1][0] = (int16_t)(x0 + dx);
-		s->cp[1][1] = (int16_t)(s->src[1] - (int16_t)(CrtRand() % 100) - 0x32);
+		s->cp[1][1] = (int16_t)(s->src[1] - (int16_t)(CrtRand() % PA().stream.lift_rand) - PA().stream.lift);
 		s->cp[1][2] = (int16_t)(s->src[2] + dz);
 		s->cp[2][0] = (int16_t)(dx * 2 + s->src[0]);
-		s->cp[2][1] = (int16_t)(s->cp[1][1] - (int16_t)(CrtRand() % 100) - 0x32);
+		s->cp[2][1] = (int16_t)(s->cp[1][1] - (int16_t)(CrtRand() % PA().stream.lift_rand) - PA().stream.lift);
 		s->cp[2][2] = (int16_t)(dz * 2 + s->src[2]);
 		void *work = FieldAlloc(0x190);
 		BezierInit(4, s->cp, work);
@@ -1047,7 +1092,7 @@ namespace acid170
 
 	static Node *NewNode(uint32_t f)
 	{
-		Node *t = (Node *)AddTaskToQueue(EffectQueue(), f);
+		Node *t = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(f));
 		t->counter = 0;
 		return t;
 	}
@@ -1063,34 +1108,34 @@ namespace acid170
 			Node *b = NewNode(ORIG_Blob);
 			b->idx = n->idx;
 			b->a18 = 0;
-			b->a1a = 5;
-			b->a1c = (int16_t)(CrtRand() % 0x50 + 0x300);
+			b->a1a = PA().blob.speed;
+			b->a1c = (int16_t)(CrtRand() % PA().blob.size_rand + PA().blob.size);
 		}
-		if (n->counter == 0xD)
+		if (n->counter == PA().stream.mesh)
 		{
 			Node *m = NewNode(ORIG_Mesh);
 			memcpy(m->pos, s->dst, 8);
 			m->idx = n->idx;
 			m->a18 = (int16_t)(CrtRand() & 0xFFF);
 			m->a1a = (int16_t)(CrtRand() % 6 + 0x10);
-			m->a1e = m->a1c = (int16_t)(((CrtRand() & 0x3FF) + 0xB00) / 3);
+			m->a1e = m->a1c = (int16_t)((CrtRand() % PA().mesh.size_rand + PA().mesh.size) / 3);
 			Node *d = NewNode(ORIG_Drips);
 			d->idx = (int16_t)(1 << (U8(P(n), 0xE) & 31));
 			memcpy(d->pos, s->dst, 8);
 		}
-		if (n->counter == 0xC)
+		if (n->counter == PA().stream.puddles)
 		{
-			for (int32_t k = 0; k < 4; k++)
+			for (int32_t k = 0; k < PA().puddles.count; k++)
 			{
 				Node *p = NewNode(ORIG_Puddle);
 				p->idx = (int16_t)(CrtRand() % 6 + k);
-				p->pos[0] = (int16_t)(CrtRand() % 0x640 + s->dst[0] - 0x320);
+				p->pos[0] = (int16_t)(CrtRand() % (2 * PA().puddles.spread) + s->dst[0] - PA().puddles.spread);
 				p->pos[1] = s->dst[1];
-				p->pos[2] = (int16_t)(CrtRand() % 0x640 + s->dst[2] - 0x320);
+				p->pos[2] = (int16_t)(CrtRand() % (2 * PA().puddles.spread) + s->dst[2] - PA().puddles.spread);
 				p->a18 = (int16_t)(CrtRand() & 0xFFF);
-				p->a1e = p->a1c = (int16_t)((CrtRand() % 0x600 + 0xA00) / 10);
+				p->a1e = p->a1c = (int16_t)((CrtRand() % PA().puddles.size_rand + PA().puddles.size) / 10);
 			}
-			Node *m = (Node *)AddTaskToQueue(EffectQueue(), ORIG_Melt);
+			Node *m = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Melt));
 			m->idx = n->idx;
 			m->counter = 0;
 			GetDefaultEffectPosition(Entity(TargetSlot()), m->pos);
@@ -1100,7 +1145,7 @@ namespace acid170
 			m->a1a = (int16_t)(Entity(TargetSlot())[0] & 4);
 		}
 		n->counter++;
-		return n->counter >= 0x28 ? TASK_END : 0;
+		return n->counter >= PA().stream.end ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -1110,20 +1155,20 @@ namespace acid170
 	{
 		if (DrawOnly()) return 0;
 		Node *n = (Node *)tn;
-		if (n->counter == 1)
+		if (n->counter == PA().timing.stream)
 		{
 			Node *s = NewNode(ORIG_Stream);
 			s->idx = n->idx;
 			n->idx++;
-			GetEffectSpawnPosition(Entity(AttackerSlot()), 0x28, 0, (int16_t *)SPLASH_AT);
-			GetEffectSpawnPosition(Entity(AttackerSlot()), 0x26, 0, (int16_t *)SPLASH_FROM);
+			GetEffectSpawnPosition(Entity(AttackerSlot()), 0x28, 0, (int16_t *)own::R(SPLASH_AT));
+			GetEffectSpawnPosition(Entity(AttackerSlot()), 0x26, 0, (int16_t *)own::R(SPLASH_FROM));
 			Node *p = NewNode(ORIG_Splash);
 			p->idx = (int16_t)(1 << (U8(P(n), 0xE) & 31));
 		}
-		if (n->counter == 0x2E) ApplyActionResultToTarget(Ctx()->actions->targets);
-		if (n->counter == 1) BdPlaySE((const void *)SOUND_Acid, 0, 0x80);
+		if (n->counter == PA().timing.damage) ApplyActionResultToTarget(Ctx()->actions->targets);
+		if (n->counter == PA().timing.sound) BdPlaySE((const void *)fxp::sound(PA().sound, SOUND_Acid), 0, 0x80);
 		n->counter++;
-		return n->counter > 0x37 ? TASK_END : 0;
+		return n->counter > PA().timing.end ? TASK_END : 0;
 	}
 
 	static uint32_t __cdecl RootTask(TaskNode *tn)
@@ -1137,16 +1182,121 @@ namespace acid170
 		return running ? 0 : TASK_END;
 	}
 
+	// ------------------------------------------------------------------
+	// File loader (0x5DC910) and setup (0x5DC930): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the texture, the magic buffer, the cast, its first target's and its caster's slots, the root and the
+	// director, the droplets freed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PA().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		TargetSlot() = ctx->actions[0].targets[0];
+		AttackerSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23AF828), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x23B01B8), 0x24, 100);
+		Node *d = (Node *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director));
+		d->counter = 0;
+		d->idx = 0;
+		for (uint32_t a = own::R(DROPS); a < own::R(DROPS_END); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(PA().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The director's and the stream's ticks: the sound, the stream and its curve, the damage; the texture and the camera" },
+			{ PART_SPLASH, "splash", "Splash", "Droplets bursting out of the caster's mouth along its direction, slowing, fading" },
+			{ PART_BLOB, "blob", "Blob", "The acid blob (4 sprites, smaller and smaller) running down the curve, slowing" },
+			{ PART_MESH, "mesh", "Landing mesh", "A mesh at the landing point morphing between two shapes, growing, fading in and out" },
+			{ PART_DRIPS, "drips", "Drips", "Droplets falling around the landing point (a table: how many on each of the first 13 ticks)" },
+			{ PART_PUDDLES, "puddles", "Puddles", "Puddle meshes around the landing point, each after its own delay, growing, fading" },
+			{ PART_MELT, "melt", "Melting target", "The first target redrawn melting down toward the ground beyond the plane through the landing point, then back" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The director's ticks" },
+			{ "stream", "Stream", "The curve from the caster to the landing point, and the stream's ticks" },
+		};
+#define AC(member) (uint32_t)offsetof(AcidParams, member)
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's sound tick", AC(sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.sound", "Sound tick", "The sound at this tick of the director", AC(timing.sound), fxp::I16, 0, 200 },
+			{ "director", "timing.stream", "Stream tick", "The stream (and the splash at the caster's mouth) at this tick of the director", AC(timing.stream), fxp::I16, 0, 200 },
+			{ "director", "timing.damage", "Damage tick", "The damage at this tick of the director", AC(timing.damage), fxp::I16, 0, 200 },
+			{ "director", "timing.end", "End tick", "The director's last tick", AC(timing.end), fxp::I16, 0, 200 },
+			{ "director", "stream.point", "Mouth point", "The caster's effect point the curve starts at", AC(stream.point), fxp::I16, 0, 0xFF },
+			{ "director", "stream.spread", "Landing spread", "The landing point: the first target's default position, on the ground, + a random x and z up to this either side (at least 1)", AC(stream.spread), fxp::I16, 1, 0x3FFF },
+			{ "director", "stream.lift", "Arc", "The curve's middle control points each this much higher than the one before (+ the next random)", AC(stream.lift), fxp::I16, -4000, 4000 },
+			{ "director", "stream.lift_rand", "Arc random", "(at least 1)", AC(stream.lift_rand), fxp::I16, 1, 4000 },
+			{ "director", "stream.puddles", "Puddles tick", "The puddles and the melting target at this tick of the stream", AC(stream.puddles), fxp::I16, 0, 200 },
+			{ "director", "stream.mesh", "Mesh tick", "The landing mesh and the drips at this tick of the stream", AC(stream.mesh), fxp::I16, 0, 200 },
+			{ "director", "stream.end", "Stream end", "The stream's last tick", AC(stream.end), fxp::I16, 1, 200 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", AC(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", AC(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "splash", "splash.count", "Droplets", "How many (100 at most alive, with the drips)", AC(splash.count), fxp::I16, 0, 100 },
+			{ "splash", "splash.speed", "Speed", "Sideways: this + a random below the next, in a random direction (losing 1/4 a tick)", AC(splash.speed), fxp::I16, 0, 0x7FFF },
+			{ "splash", "splash.speed_rand", "Speed random", "(at least 1)", AC(splash.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "splash", "splash.rise", "Out", "Along the mouth's direction: this + a random below the next", AC(splash.rise), fxp::I16, -0x4000, 0x4000 },
+			{ "splash", "splash.rise_rand", "Out random", "(at least 1)", AC(splash.rise_rand), fxp::I16, 1, 0x7FFF },
+			{ "splash", "seqs.splash", "Splash", "The sprite sequence of a droplet (a flipbook: frames 4 on, an edited one keeps as many)", AC(seqs.splash), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "blob", "blob.size", "Size", "The first sprite's size: this + a random below the next (each next one 112 smaller)", AC(blob.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "blob", "blob.size_rand", "Size random", "(at least 1)", AC(blob.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "blob", "blob.speed", "Speed", "It moves this many of the curve's 28 points a tick at first, 1 less a tick down to 2 (before point 14)", AC(blob.speed), fxp::I16, 1, 28 },
+			{ "blob", "seqs.blob", "Blob", "The sprite sequence of the blob (a flipbook: an edited one keeps as many frames)", AC(seqs.blob), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "mesh", "mesh.size", "Size", "Its start size and growth: this + a random below the next, / 3 (the growth halved every tick for 8 ticks)", AC(mesh.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "mesh", "mesh.size_rand", "Size random", "(at least 1)", AC(mesh.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "mesh", "models.mesh", "Mesh", "The prim model drawn (a mesh of 73 vertices: an edited one keeps them; it morphs toward the game's second shape)", AC(models.mesh), fxp::Model, 0, 0x7FFFFFFF },
+			{ "drips", "drips.size", "Size", "A droplet's size: this + a random below the next", AC(drips.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "drips", "drips.size_rand", "Size random", "(at least 1)", AC(drips.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "drips", "drips.spread", "Spread", "Each one up to this far from the landing point in x and z (at least 1)", AC(drips.spread), fxp::I16, 1, 0x3FFF },
+			{ "drips", "drips.fall", "Fall", "Its first speed down: this + a random below the next (losing 1/16 a tick)", AC(drips.fall), fxp::I16, -0x4000, 0x4000 },
+			{ "drips", "drips.fall_rand", "Fall random", "(at least 1)", AC(drips.fall_rand), fxp::I16, 1, 0x7FFF },
+			{ "drips", "seqs.drip", "Drip", "The sprite sequence of a droplet (a flipbook: an edited one keeps as many frames)", AC(seqs.drip), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "puddles", "puddles.count", "Puddles", "How many", AC(puddles.count), fxp::I16, 0, 90 },
+			{ "puddles", "puddles.spread", "Spread", "Each one up to this far from the landing point in x and z (at least 1)", AC(puddles.spread), fxp::I16, 1, 0x3FFF },
+			{ "puddles", "puddles.size", "Size", "Its start size and growth a tick: this + a random below the next, / 10", AC(puddles.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "puddles", "puddles.size_rand", "Size random", "(at least 1)", AC(puddles.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "puddles", "models.puddle", "Puddle", "The prim model drawn (a mesh: an edited one keeps its vertices)", AC(models.puddle), fxp::Model, 0, 0x7FFFFFFF },
+			{ "melt", "melt.ticks", "Ticks", "The target drawn melting for this many ticks (then shown as it was)", AC(melt.ticks), fxp::I16, 0, 200 },
+		};
+#undef AC
+	}
+
 	void register_mag170_acid_ports()
 	{
+		fxp::register_params({ 170, "Acid", &live, &GAME, sizeof(AcidParams),
+		                       table::PARTS, (int)(sizeof(table::PARTS) / sizeof(table::PARTS[0])),
+		                       table::FIELDS, (int)(sizeof(table::FIELDS) / sizeof(table::FIELDS[0])),
+		                       table::GROUPS, (int)(sizeof(table::GROUPS) / sizeof(table::GROUPS[0])) });
+		own::note(ORIG_FileLoader, (void *)FileLoader);
+		own::note(ORIG_Setup, (void *)Setup);
+		own::note(ORIG_Root, (void *)RootTask);
 		register_port(ORIG_Root, (void *)RootTask, "170 RootTask", 170);
+		own::note(ORIG_Director, (void *)DirectorTask);
 		register_port(ORIG_Director, (void *)DirectorTask, "170 DirectorTask", 170);
+		own::note(ORIG_Stream, (void *)StreamTask);
 		register_port(ORIG_Stream, (void *)StreamTask, "170 StreamTask", 170);
+		own::note(ORIG_Blob, (void *)BlobTask);
 		register_port(ORIG_Blob, (void *)BlobTask, "170 BlobTask", 170);
+		own::note(ORIG_Mesh, (void *)MeshTask);
 		register_port(ORIG_Mesh, (void *)MeshTask, "170 MeshTask", 170);
+		own::note(ORIG_Drips, (void *)DripTask);
 		register_port(ORIG_Drips, (void *)DripTask, "170 DripTask", 170);
+		own::note(ORIG_Puddle, (void *)PuddleTask);
 		register_port(ORIG_Puddle, (void *)PuddleTask, "170 PuddleTask", 170);
+		own::note(ORIG_Melt, (void *)MeltTask);
 		register_port(ORIG_Melt, (void *)MeltTask, "170 MeltTask", 170);
+		own::note(ORIG_Splash, (void *)SplashTask);
 		register_port(ORIG_Splash, (void *)SplashTask, "170 SplashTask", 170);
 		// 30 fps layer: see mag170_acid_held.inc
 		FX_HELD(register_mag170_held();)

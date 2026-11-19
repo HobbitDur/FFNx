@@ -17,8 +17,8 @@
 // relative of Odin's GF module 187 (mag187_odin.cpp): the same sword sparks, blade trail and target
 // slices, driven by the caster's own model instead of a summoned creature.
 //
-// Structure (file loader 0x5E29F0: "mag166.tim" (name 0xD716CC) into 0x23BEF58; setup 0x5E2A10, not
-// ported: it runs once):
+// Structure (file loader 0x5E29F0: "mag166.tim" (name 0xD716CC) into 0x23BEF58; setup 0x5E2A10, ported
+// below for Fujin's programs):
 //   setup - packet arena = Magic_TextureOFF_ToEAX1 (0x23BF02C); cast context 0x23BEF50, caster slot
 //     0x23BEF54, first target slot 0x23BD400; root queue 0x23BD5A8 (pool 0x23BD598, 1 x 0x10) with
 //     the master, sub-queue 0x23BE130 (pool 0x23BE140, 100 x 0x24) with the timeline; spark pool
@@ -35,6 +35,11 @@
 // set).
 // The module-private renderer (clipped model 0x5E4030 with 0x5E4320 / 0x5E48A0..0x5E4D40, a pure
 // function of a scratch header, = Odin 187's 0x648ED0) is called through its original address.
+// FUJIN: Fujin's described Zantetsuken (effect_167.json) runs this code: its memory (0x23BD350..0x23BF034) through own::R()
+// (fx_port.h), its spawns through own::Fn(), the file loader (0x5E29F0) and the setup (0x5E2A10) ported below (the
+// renderer 0x5E4030 reads no module memory); its parameters (ZantetsukenParams: the sound and the timeline's ticks, the
+// caster's move, the sword sparks, the blade trail, the two screen models, the target slices, the spark flipbook, the two
+// meshes, the texture name and the camera track). FX_PART tags its parts in the lab.
 
 #include "fx_port.h"
 #include "fx_params.h"
@@ -83,16 +88,21 @@ namespace z167
 		inline void GteSetFarColor(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DD60)(r, g, b); }  // GTE_SetFarColor
 		inline void GteSetFarColor2(int32_t r, int32_t g, int32_t b) { fn<void (__cdecl *)(int32_t, int32_t, int32_t)>(0x45DDA0)(r, g, b); } // pre_someCameraWork_45DD60
 		// module-private renderer called through its original address
+		inline uint32_t IO_GetFile_MAGIC(const char *name) { return fn<uint32_t (__cdecl *)(const char *)>(0x571B80)(name); }
+		inline void PlayCameraAnimation(const void *track) { fn<void (__cdecl *)(const void *)>(0x5099A0)(track); }   // Battle_PlayCameraAnimation
+		inline uint32_t QueueTimUpload(uint32_t tim) { return fn<uint32_t (__cdecl *)(uint32_t)>(0x505E30)(tim); }     // Battle_QueueTIMUpload_GetEOF
+		inline uint32_t MagicBuffer() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }                              // Magic_TextureOFF_ToEAX1
+		inline void CameraArmReturn() { fn<void (__cdecl *)()>(0x50A730)(); }                                          // BS_Camera_ArmReturnAfterEffect
 		inline uint32_t SliceRender(void *geom, void *h, uint32_t ot, int32_t mode, uint32_t cursor) { return fn<uint32_t (__cdecl *)(void *, void *, uint32_t, int32_t, uint32_t)>(0x5E4030)(geom, h, ot, mode, cursor); } // MAG_167_sub_5E4030
 	}
 	using namespace x;
 
 	// --- module globals ---
 	inline bool Paused() { return (var<uint32_t>(0x1D96A9C) & 0x201) != 0; } // battle_to_update_flags_dword_1D96A9C
-	inline TaskQueue &SubQueue() { return var<TaskQueue>(0x23BE130); }
-	inline uint8_t *CastCtx() { return var<uint8_t *>(0x23BEF50); }
-	inline uint32_t CasterSlot() { return var<uint32_t>(0x23BEF54); }
-	inline uint32_t &Cursor() { return var<uint32_t>(0x23BF030); }        // the module's packet cursor (arena 0x23BF02C)
+	inline TaskQueue &SubQueue() { return var<TaskQueue>(own::R(0x23BE130)); }
+	inline uint8_t *CastCtx() { return var<uint8_t *>(own::R(0x23BEF50)); }
+	inline uint32_t CasterSlot() { return var<uint32_t>(own::R(0x23BEF54)); }
+	inline uint32_t &Cursor() { return var<uint32_t>(own::R(0x23BF030)); }        // the module's packet cursor (arena 0x23BF02C)
 	inline uint32_t &EngineCursor() { return var<uint32_t>(0x1D8E054); }  // battle_texture_data_ptr_1D8E054 (the target slices)
 	inline uint32_t OT() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 	inline uint8_t *Actions() { return *(uint8_t **)(CastCtx() + 4); }    // +0x08 -> 0x18-byte target records (byte 0 = slot), +0x10 u8 count
@@ -115,6 +125,40 @@ namespace z167
 	static const uint32_t ORIG_PrimATask = 0x5E38D0;
 	static const uint32_t ORIG_PrimBTask = 0x5E3A00;
 	static const uint32_t ORIG_SliceTask = 0x5E3C20;
+	static const uint32_t ORIG_FileLoader = 0x5E29F0, ORIG_Setup = 0x5E2A10;
+	static const uint32_t SOUND = 0xD71564, SEQ_Spark = 0xD6F8D0, MODEL_A = 0xD6FA7C, MODEL_B = 0xD7042C;
+	static const uint32_t TEXTURE_NAME = 0xD716CC, CAMERA = 0xD6F7A4;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23BEF58)); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23BD5A8); }             // 1 x 0x10 (pool 0x23BD598)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_SPARKS = 1, PART_TRAIL = 2, PART_SCREEN_A = 3, PART_SCREEN_B = 4, PART_SLICES = 5 };
+	struct ZantetsukenParams
+	{
+		uint32_t sound;                                    // at the timeline's sound tick
+		// the timeline's ticks: the sound, each task's start, the stage shown (entities flagged 4) and hidden again, the
+		// screen fade, the caster moved (flagged 8), the damage, the end
+		struct { int16_t sound, sparks, trail, screen_a, screen_b, slices, stage, fade, move, unstage, damage, end; } timing;
+		struct { int16_t y, z; } move;                      // the caster's position + this at the move tick
+		// sparks off the caster's sword bone along a spline through its last 3 ticks: per_tick a tick for its first ticks
+		struct { int16_t bone, ticks, per_tick, size, size_rand, speed, speed_rand, r, g, b; } sparks;
+		struct { int16_t ticks, r, g, b; } trail;            // the blade trail: its ticks, its colour (fading to black)
+		struct { int16_t ticks, size, height; } screen_a;    // the first screen model: its ticks, its start size (x, y / z)
+		struct { int16_t ticks, size; } screen_b;            // the second one
+		struct { int16_t life, fade, speed, speed_rand, tilt; } slices; // a target cut in two, its half sliding off
+		struct { uint32_t spark; } seqs;                     // the sprite sequence drawn (flipbook)
+		struct { uint32_t screen_a, screen_b; } models;      // the prim models drawn (meshes)
+		struct { uint32_t texture_name, camera; } res;       // its resources (data): texture file name, camera track
+	};
+	static const ZantetsukenParams GAME = { SOUND, { 0x1C, 0x1B, 0x2C, 0x40, 0x44, 0x61, 0x40, 0x48, 0x4A, 0x4D, 0x8F, 0x91 },
+		{ 0x2BC, 0x1130 }, { 0x28, 0xC, 5, 0x280, 0x380, 0x19, 0xF, 0x30, 0x38, 0x48 }, { 0x14, 0x30, 0x30, 0x90 },
+		{ 0xD, 0x700, 0x800 }, { 9, 0x500 }, { 0x28, 0x20, 0x30, 0x30, 0x280 }, { SEQ_Spark }, { MODEL_A, MODEL_B },
+		{ TEXTURE_NAME, CAMERA } };
+	static ZantetsukenParams live = GAME;
+	static const ZantetsukenParams &PZ() { return live; }
 
 	// every sub-queue node is 0x24 bytes (pool 0x23BE140); field use differs per task
 #pragma pack(push, 1)
@@ -154,7 +198,7 @@ namespace ff8fx
 {
 namespace z167
 {
-	inline Rec *RecOf(int i) { return (Rec *)(POOL + 0x18 * i); }
+	inline Rec *RecOf(int i) { return (Rec *)(own::R(POOL) + 0x18 * i); }
 
 	// ------------------------------------------------------------------
 	// Master (0x5E4E20, au_re_BdlinkTask_20): node from pool 0x23BD598, +0x0C counter
@@ -162,7 +206,7 @@ namespace z167
 	static uint32_t __cdecl Master(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		uint32_t arena = var<uint32_t>(0x23BF02C);
+		uint32_t arena = var<uint32_t>(own::R(0x23BF02C));
 		Cursor() = (*(const uint8_t *)&n->c & 1) ? arena + 0x8000 : arena;
 		// 30 fps layer: see mag167_zantetsuken_held.inc
 		FX_HELD(held_note_master();)
@@ -242,7 +286,7 @@ namespace z167
 
 	static Node24 *Spawn(uint32_t task_fn)
 	{
-		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), task_fn);
+		Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(task_fn));
 		n->c = 0;
 		return n;
 	}
@@ -254,7 +298,7 @@ namespace z167
 		for (int32_t i = 0; i < (int32_t)Actions()[0x10]; i++)
 		{
 			uint32_t slot = (*(uint8_t **)(Actions() + 8))[0x18 * i];
-			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), ORIG_SliceTask);
+			Node24 *n = (Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_SliceTask));
 			n->c = 0;
 			n->e = (int16_t)slot;
 			uint8_t *ent = Entity(slot);
@@ -270,73 +314,73 @@ namespace z167
 			n->p12 = (int16_t)(n->p12 + (int16_t)(d - half));
 			d = CrtRand() % range;
 			n->p14 = (int16_t)(n->p14 + (int16_t)(d - half));
-			d = CrtRand() % 0x500;
+			d = CrtRand() % (2 * PZ().slices.tilt);
 			n->s1C = 0;
-			n->a18 = (int16_t)(d - 0x280);
+			n->a18 = (int16_t)(d - PZ().slices.tilt);
 			if (cap > 0xA00) cap = 0xA00;
-			d = CrtRand() % 0x30 + 0x30;
+			d = CrtRand() % PZ().slices.speed_rand + PZ().slices.speed;
 			n->s1E = (int16_t)(mul32(d, cap) >> 12);
 		}
 	}
 
 	static uint32_t __cdecl TimelineTask(TaskNode *tn)
 	{
-		var<uint32_t>(0x23BF028) = 1;
+		var<uint32_t>(own::R(0x23BF028)) = 1;
 		if (Paused()) return 0;
 		Node24 *n = (Node24 *)tn;
-		if (n->c == 0x1B)
+		if (n->c == PZ().timing.sparks)
 		{
 			Spawn(ORIG_SparkTask);
-			for (uint32_t a = SPARK_HIST; a < 0x23BD444; a += 0x14) var<uint32_t>(a) = 0;
+			for (uint32_t a = own::R(SPARK_HIST); a < own::R(0x23BD444); a += 0x14) var<uint32_t>(a) = 0;
 		}
-		if (n->c == 0x2C)
+		if (n->c == PZ().timing.trail)
 		{
 			Spawn(ORIG_TrailTask);
-			for (uint32_t a = TRAIL_RECS; a < 0x23BF028; a += 0x14) var<uint32_t>(a) = 0;
+			for (uint32_t a = own::R(TRAIL_RECS); a < own::R(0x23BF028); a += 0x14) var<uint32_t>(a) = 0;
 		}
-		if (n->c == 0x40)
+		if (n->c == PZ().timing.screen_a)
 		{
 			Node24 *p = Spawn(ORIG_PrimATask);
 			p->p10 = (int16_t)0xFF56;
 			p->p12 = (int16_t)0xFFCE;
-			p->s1E = 0x700;
-			p->s1C = 0x700;
-			p->s20 = 0x800;
+			p->s1E = PZ().screen_a.size;
+			p->s1C = PZ().screen_a.size;
+			p->s20 = PZ().screen_a.height;
 		}
-		if (n->c == 0x44)
+		if (n->c == PZ().timing.screen_b)
 		{
 			Node24 *p = Spawn(ORIG_PrimBTask);
 			p->p10 = 0;
 			p->p12 = 0;
-			p->s1E = 0x500;
-			p->s1C = 0x500;
+			p->s1E = PZ().screen_b.size;
+			p->s1C = PZ().screen_b.size;
 		}
-		if (n->c == 0x61 && Actions()[0x10] != 0) SpawnSlices();
-		if (n->c == 0x40)
+		if (n->c == PZ().timing.slices && Actions()[0x10] != 0) SpawnSlices();
+		if (n->c == PZ().timing.stage)
 		{
 			ShowStage();
 			SetFlag(4);
 		}
-		if (n->c == 0x4D)
+		if (n->c == PZ().timing.unstage)
 		{
 			HideStage();
 			ClearFlag4();
 		}
-		if (n->c == 0x48) ScreenFade(4, 3, 5, 0xFF);
-		if (n->c == 0x4A)
+		if (n->c == PZ().timing.fade) ScreenFade(4, 3, 5, 0xFF);
+		if (n->c == PZ().timing.move)
 		{
 			SetFlag(8);
 			uint8_t *e = Caster();
-			var<uint32_t>(0x23BE118) = *(uint32_t *)(e + 0x1C);
+			var<uint32_t>(own::R(0x23BE118)) = *(uint32_t *)(e + 0x1C);
 			uint32_t w = *(uint32_t *)(e + 0x20);
-			*(int16_t *)(e + 0x1E) = (int16_t)(*(int16_t *)(e + 0x1E) + 0x2BC);
-			*(int16_t *)(e + 0x20) = (int16_t)(*(int16_t *)(e + 0x20) + 0x1130);
-			var<uint32_t>(0x23BE11C) = w;
+			*(int16_t *)(e + 0x1E) = (int16_t)(*(int16_t *)(e + 0x1E) + PZ().move.y);
+			*(int16_t *)(e + 0x20) = (int16_t)(*(int16_t *)(e + 0x20) + PZ().move.z);
+			var<uint32_t>(own::R(0x23BE11C)) = w;
 		}
-		if (n->c == 0x8F) ApplyActionResultToTargets(*(uint32_t *)(Actions() + 8), Actions()[0x10]);
-		if (n->c == 0x1C) BdPlaySE(0xD71564, 0, 0x80);
+		if (n->c == PZ().timing.damage) ApplyActionResultToTargets(*(uint32_t *)(Actions() + 8), Actions()[0x10]);
+		if (n->c == PZ().timing.sound) BdPlaySE(fxp::sound(PZ().sound, SOUND), 0, 0x80);
 		n->c++;
-		if (n->c <= 0x91) return 0;
+		if (n->c <= PZ().timing.end) return 0;
 		*(uint16_t *)(*(uint8_t **)(Caster() + 0x74) + 0x2C) |= 0x40;
 		return TASK_END;
 	}
@@ -352,8 +396,8 @@ namespace z167
 	// ------------------------------------------------------------------
 	static int32_t BoneHistory(int32_t c, uint8_t *s)
 	{
-		GetEffectSpawnPosition(Caster(), 0x28, 0, (int16_t *)s);
-		GetEffectSpawnPosition(Caster(), 0x28, 0x1000, (int16_t *)(s + 8));
+		GetEffectSpawnPosition(Caster(), PZ().sparks.bone, 0, (int16_t *)s);
+		GetEffectSpawnPosition(Caster(), PZ().sparks.bone, 0x1000, (int16_t *)(s + 8));
 		int16_t *a = (int16_t *)s, *b = (int16_t *)(s + 8);
 		int16_t d0 = (int16_t)(b[0] - a[0]), d1 = (int16_t)(b[1] - a[1]), d2 = (int16_t)(b[2] - a[2]);
 		a[0] = d0;
@@ -361,7 +405,7 @@ namespace z167
 		a[2] = d2;
 		NormalizeVector16(a, a);
 		int32_t idx = c % 3;
-		uint32_t *t = (uint32_t *)(SPARK_HIST + 0x14 * idx);
+		uint32_t *t = (uint32_t *)(own::R(SPARK_HIST) + 0x14 * idx);
 		t[0] = 1;
 		t[1] = *(uint32_t *)(s + 8);
 		t[2] = *(uint32_t *)(s + 0xC);
@@ -370,12 +414,12 @@ namespace z167
 		int32_t n = 0;
 		for (int32_t j = idx; n < 3; n++)
 		{
-			const uint32_t *e = (const uint32_t *)(SPARK_HIST + 0x14 * j);
+			const uint32_t *e = (const uint32_t *)(own::R(SPARK_HIST) + 0x14 * j);
 			if (!e[0]) break;
-			var<uint32_t>(HIST_A + 8 * n) = e[1];
-			var<uint32_t>(HIST_A + 8 * n + 4) = e[2];
-			var<uint32_t>(HIST_B + 8 * n) = e[3];
-			var<uint32_t>(HIST_B + 8 * n + 4) = e[4];
+			var<uint32_t>(own::R(HIST_A) + 8 * n) = e[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * n + 4) = e[2];
+			var<uint32_t>(own::R(HIST_B) + 8 * n) = e[3];
+			var<uint32_t>(own::R(HIST_B) + 8 * n + 4) = e[4];
 			if (--j < 0) j = 2;
 		}
 		return n;
@@ -385,8 +429,8 @@ namespace z167
 	static void SparkSetup(uint8_t *h, uint8_t *s)
 	{
 		memcpy(s + 0x10, &Camera(), 0x20);
-		*(uint32_t *)h = 0xD6F8D0;
-		*(uint32_t *)(h + 0x1C) = 0x483830;
+		*(uint32_t *)h = fxp::sequence(PZ().seqs.spark, SEQ_Spark);
+		*(uint32_t *)(h + 0x1C) = (uint32_t)(uint8_t)PZ().sparks.r | (uint32_t)(uint8_t)PZ().sparks.g << 8 | (uint32_t)(uint8_t)PZ().sparks.b << 16;
 		*(int16_t *)(h + 0x24) = 0xC;
 		GteSetLightMatrix(s + 0x10);
 		GteSetBackColorFromTrans(s + 0x10);
@@ -416,10 +460,10 @@ namespace z167
 	static void SplineRails(int32_t n, int32_t points, int32_t div)
 	{
 		uint8_t *w = (uint8_t *)FieldAlloc(0x190);
-		SplineSetup(n, HIST_A, w);
-		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, SPLINE_A + 8 * i, t / div);
-		SplineSetup(n, HIST_B, w);
-		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, SPLINE_B + 8 * i, t / div);
+		SplineSetup(n, own::R(HIST_A), w);
+		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, own::R(SPLINE_A) + 8 * i, t / div);
+		SplineSetup(n, own::R(HIST_B), w);
+		for (int32_t i = 0, t = 0; i < points; i++, t += 0x1000) SplineEval(n, w, own::R(SPLINE_B) + 8 * i, t / div);
 		FieldFree(0x190);
 	}
 
@@ -429,6 +473,7 @@ namespace z167
 		uint8_t *h = (uint8_t *)FieldAlloc(0xB4);
 		uint8_t *s = (uint8_t *)FieldAlloc(0x50);
 		int32_t hist = BoneHistory(n->c, s);
+		FX_PART(PART_SPARKS);
 		SparkSetup(h, s);
 		int32_t count = 0;
 		for (int i = 0; i < 100; i++)
@@ -452,10 +497,11 @@ namespace z167
 		FieldFree(0xB4);
 		if (Paused()) return 0;
 		int16_t c = n->c;
-		if (c >= 0 && c <= 0xB && hist > 1)
+		const int32_t per = PZ().sparks.per_tick;
+		if (c >= 0 && c < PZ().sparks.ticks && hist > 1)
 		{
-			SplineRails(hist, 6, 5);
-			for (int j = 0; j < 5; j++)
+			SplineRails(hist, per + 1, per);
+			for (int j = 0; j < per; j++)
 			{
 				int i = 0;
 				while (i < 100 && RecOf(i)->alive != 0) i++;
@@ -463,16 +509,16 @@ namespace z167
 				Rec *r = RecOf(i);
 				r->alive = 1;
 				r->age = 0;
-				int32_t sz = CrtRand() % 0x380;
-				uint32_t pa = var<uint32_t>(SPLINE_A + 8 * j), pb = var<uint32_t>(SPLINE_A + 8 * j + 4);
-				r->size = (int16_t)(sz + 0x280);
+				int32_t sz = CrtRand() % PZ().sparks.size_rand;
+				uint32_t pa = var<uint32_t>(own::R(SPLINE_A) + 8 * j), pb = var<uint32_t>(own::R(SPLINE_A) + 8 * j + 4);
+				r->size = (int16_t)(sz + PZ().sparks.size);
 				*(uint32_t *)&r->x = pa;
 				*(uint32_t *)&r->z = pb;
 				r->x = (int16_t)(r->x + (int16_t)(CrtRand() % 10 - 5));
 				r->y = (int16_t)(r->y + (int16_t)(CrtRand() % 10 - 5));
 				r->z = (int16_t)(r->z + (int16_t)(CrtRand() % 10 - 5));
-				int32_t sp = CrtRand() % 0xF + 0x19;
-				const int16_t *d = (const int16_t *)(SPLINE_B + 8 * j);
+				int32_t sp = CrtRand() % PZ().sparks.speed_rand + PZ().sparks.speed;
+				const int16_t *d = (const int16_t *)(own::R(SPLINE_B) + 8 * j);
 				int32_t k = CrtRand() % 10;
 				r->vx = (int16_t)(k + (mul32(d[0], sp) >> 12) - 5);
 				k = CrtRand() % 10;
@@ -543,8 +589,9 @@ namespace z167
 		GteSetTransVector(&Camera());
 		GteSetFarColor2(0, 0, 0);
 		uint32_t pk = Cursor();
-		*(uint32_t *)(s + 0x14) = 0x3A903030;
-		*(uint32_t *)(s + 0x1C) = 0x3A903030;
+		const uint32_t colour = 0x3A000000u | (uint32_t)(uint8_t)PZ().trail.r | (uint32_t)(uint8_t)PZ().trail.g << 8 | (uint32_t)(uint8_t)PZ().trail.b << 16;
+		*(uint32_t *)(s + 0x14) = colour;
+		*(uint32_t *)(s + 0x1C) = colour;
 		uint32_t pk2 = pk + 0x24;
 		int32_t acc = 0;
 		for (uint32_t j = 0; j < 0xF0; j += 8, acc += 0x1000)
@@ -592,37 +639,38 @@ namespace z167
 	{
 		Node24 *n = (Node24 *)tn;
 		uint8_t *s = (uint8_t *)FieldAlloc(0x40);
-		BladePoints(s, (int16_t *)BLADE_P0, (int16_t *)BLADE_P1);
+		BladePoints(s, (int16_t *)own::R(BLADE_P0), (int16_t *)own::R(BLADE_P1));
 		int32_t idx = (int32_t)n->c % 10;
-		uint32_t *rec = (uint32_t *)(TRAIL_RECS + 0x14 * idx);
+		uint32_t *rec = (uint32_t *)(own::R(TRAIL_RECS) + 0x14 * idx);
 		rec[0] = 1;
-		rec[1] = var<uint32_t>(BLADE_P0);
-		rec[2] = var<uint32_t>(BLADE_P0 + 4);
-		rec[3] = var<uint32_t>(BLADE_P1);
-		rec[4] = var<uint32_t>(BLADE_P1 + 4);
+		rec[1] = var<uint32_t>(own::R(BLADE_P0));
+		rec[2] = var<uint32_t>(own::R(BLADE_P0) + 4);
+		rec[3] = var<uint32_t>(own::R(BLADE_P1));
+		rec[4] = var<uint32_t>(own::R(BLADE_P1) + 4);
 		int32_t cnt = 0;
 		for (int32_t j = idx; cnt < 10; cnt++)
 		{
-			const uint32_t *e = (const uint32_t *)(TRAIL_RECS + 0x14 * j);
+			const uint32_t *e = (const uint32_t *)(own::R(TRAIL_RECS) + 0x14 * j);
 			if (!e[0]) break;
-			var<uint32_t>(HIST_A + 8 * cnt) = e[1];
-			var<uint32_t>(HIST_A + 8 * cnt + 4) = e[2];
-			const uint32_t *src = cnt == 0 ? (const uint32_t *)BLADE_P1 : e + 3;
-			var<uint32_t>(HIST_B + 8 * cnt) = src[0];
-			var<uint32_t>(HIST_B + 8 * cnt + 4) = src[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * cnt) = e[1];
+			var<uint32_t>(own::R(HIST_A) + 8 * cnt + 4) = e[2];
+			const uint32_t *src = cnt == 0 ? (const uint32_t *)own::R(BLADE_P1) : e + 3;
+			var<uint32_t>(own::R(HIST_B) + 8 * cnt) = src[0];
+			var<uint32_t>(own::R(HIST_B) + 8 * cnt + 4) = src[1];
 			if (--j < 0) j = 9;
 		}
 		FX_HELD(TrailMemo *m = held_trail_put(n);)
 		if (cnt > 1)
 		{
+			FX_PART(PART_TRAIL);
 			SplineRails(cnt, 32, 31);
-			TrailDraw(SPLINE_A, SPLINE_B, s);
+			TrailDraw(own::R(SPLINE_A), own::R(SPLINE_B), s);
 			FX_HELD(held_trail_drawn(m);)
 		}
 		FieldFree(0x40);
 		if (Paused()) return 0;
 		n->c++;
-		return n->c >= 0x14 ? TASK_END : 0;
+		return n->c >= PZ().trail.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -668,17 +716,19 @@ namespace z167
 	static uint32_t __cdecl PrimATask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		PrimDraw(n, 0xD6FA7C, 0x8AC, n->s1C, n->s20);
+		FX_PART(PART_SCREEN_A);
+		PrimDraw(n, fxp::model(PZ().models.screen_a, MODEL_A), 0x8AC, n->s1C, n->s20);
 		FX_HELD(MemoNode(n);)
-		return PrimTask(n, 0xD);
+		return PrimTask(n, PZ().screen_a.ticks);
 	}
 
 	static uint32_t __cdecl PrimBTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		PrimDraw(n, 0xD7042C, 0, n->s1C, n->s1C);
+		FX_PART(PART_SCREEN_B);
+		PrimDraw(n, fxp::model(PZ().models.screen_b, MODEL_B), 0, n->s1C, n->s1C);
 		FX_HELD(MemoNode(n);)
-		return PrimTask(n, 9);
+		return PrimTask(n, PZ().screen_b.ticks);
 	}
 
 	// ------------------------------------------------------------------
@@ -774,12 +824,13 @@ namespace z167
 	static uint32_t __cdecl SliceTask(TaskNode *tn)
 	{
 		Node24 *n = (Node24 *)tn;
-		if (n->c < 0x28)
+		if (n->c < PZ().slices.life)
 		{
+			FX_PART(PART_SLICES);
 			uint8_t *ent = Entity((uint32_t)(int32_t)n->e);
 			ent[0] |= 4;
 			uint8_t *h = (uint8_t *)FieldAlloc(0x1D0);
-			SliceDraw(h, n, ent, n->s1C, n->c >= 0x20 ? SliceFadeW(n->c) : -1);
+			SliceDraw(h, n, ent, n->s1C, n->c >= PZ().slices.fade ? SliceFadeW(n->c - PZ().slices.fade + 0x20) : -1);
 			FieldFree(0x1D0);
 			FX_HELD(MemoNode(n);)
 		}
@@ -794,18 +845,126 @@ namespace z167
 			n->s1E = nv < 2 ? (int16_t)2 : nv;
 		}
 		n->c = (int16_t)(cc + 1);
-		return n->c > 0x28 ? TASK_END : 0;
+		return n->c > PZ().slices.life ? TASK_END : 0;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x5E29F0) and setup (0x5E2A10): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the texture, the magic buffer, the cast, its first target's and its caster's slots, the master and the
+	// timeline, the spark pool freed, the camera's return armed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PZ().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(uint8_t *ctx)
+	{
+		var<uint32_t>(own::R(0x23BF02C)) = MagicBuffer();
+		uint8_t *actions = *(uint8_t **)(ctx + 4);
+		var<uint8_t *>(own::R(0x23BEF50)) = ctx;
+		var<uint32_t>(own::R(0x23BD400)) = (*(uint8_t **)(actions + 8))[0];
+		var<uint32_t>(own::R(0x23BEF54)) = ctx[0];
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23BD598), 0x10, 1);
+		((Node24 *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Master)))->c = 0;
+		InitTaskQueuePool(&SubQueue(), (void *)own::R(0x23BE140), 0x24, 100);
+		((Node24 *)AddTaskToQueue(&SubQueue(), own::Fn(ORIG_TimelineTask)))->c = 0;
+		for (uint32_t a = own::R(POOL); a < own::R(SPLINE_A); a += 0x18) *(uint32_t *)a = 0;
+		CameraArmReturn();
+		PlayCameraAnimation((const void *)fxp::camera(PZ().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Timeline", "The timeline: the sound, each part's start, the stage shown and hidden, the screen fade, the caster moved away, "
+			  "the damage, the end; the texture and the camera" },
+			{ PART_SPARKS, "sparks", "Sword sparks", "Sparks thrown off the caster's sword bone along its swing, growing, slowing" },
+			{ PART_TRAIL, "trail", "Blade trail", "A trail of the blade's last 10 ticks (its base and tip through the caster's bone matrix), fading along it" },
+			{ PART_SCREEN_A, "screen_a", "Screen model 1", "A prim model drawn on the screen, tilted, stretched, its size growing fast then slowing" },
+			{ PART_SCREEN_B, "screen_b", "Screen model 2", "A second prim model on the screen, growing the same way" },
+			{ PART_SLICES, "slices", "Target slices", "Each target cut in two along a tilted plane, one half sliding off, its colour fading to the background's" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The timeline's ticks" },
+			{ "move", "Caster's move", "Where the caster is moved at the move tick" },
+		};
+#define ZT(member) (uint32_t)offsetof(ZantetsukenParams, member)
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the timeline's sound tick", ZT(sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.sound", "Sound", "The sound", ZT(timing.sound), fxp::I16, 0, 300 },
+			{ "director", "timing.sparks", "Sword sparks", "The sword sparks start", ZT(timing.sparks), fxp::I16, 0, 300 },
+			{ "director", "timing.trail", "Blade trail", "The blade trail starts", ZT(timing.trail), fxp::I16, 0, 300 },
+			{ "director", "timing.screen_a", "Screen model 1", "The first screen model starts", ZT(timing.screen_a), fxp::I16, 0, 300 },
+			{ "director", "timing.screen_b", "Screen model 2", "The second one starts", ZT(timing.screen_b), fxp::I16, 0, 300 },
+			{ "director", "timing.slices", "Slices", "The target slices start (one a target)", ZT(timing.slices), fxp::I16, 0, 300 },
+			{ "director", "timing.stage", "Stage shown", "The stage shown, the caster and the party flagged 4 (not drawn by the battle)", ZT(timing.stage), fxp::I16, 0, 300 },
+			{ "director", "timing.fade", "Screen fade", "The screen fade starts", ZT(timing.fade), fxp::I16, 0, 300 },
+			{ "director", "timing.move", "Caster moved", "The caster and the party flagged 8, the caster moved", ZT(timing.move), fxp::I16, 0, 300 },
+			{ "director", "timing.unstage", "Stage hidden", "The stage hidden again, the flags 4 cleared", ZT(timing.unstage), fxp::I16, 0, 300 },
+			{ "director", "timing.damage", "Damage", "The damage to every target", ZT(timing.damage), fxp::I16, 0, 300 },
+			{ "director", "timing.end", "End", "The timeline's last tick (then the caster's model flagged 0x40)", ZT(timing.end), fxp::I16, 0, 300 },
+			{ "director", "move.y", "Down", "The caster's y + this (y down)", ZT(move.y), fxp::I16, -0x4000, 0x4000 },
+			{ "director", "move.z", "Back", "The caster's z + this", ZT(move.z), fxp::I16, -0x4000, 0x4000 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", ZT(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", ZT(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.bone", "Bone", "The caster's bone they leave (its base to its tip)", ZT(sparks.bone), fxp::I16, 0, 0xFF },
+			{ "sparks", "sparks.ticks", "Ticks", "New sparks on the part's first ticks", ZT(sparks.ticks), fxp::I16, 0, 300 },
+			{ "sparks", "sparks.per_tick", "A tick", "How many a tick (along the spline: at least 1, 31 at most; 100 alive at most)", ZT(sparks.per_tick), fxp::I16, 1, 31 },
+			{ "sparks", "sparks.size", "Size", "A spark's size: this + a random below the next (growing 1/32 a tick)", ZT(sparks.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "sparks", "sparks.size_rand", "Size random", "(at least 1)", ZT(sparks.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "sparks", "sparks.speed", "Speed", "Along the bone's direction: this + a random below the next (losing 1/8 a tick)", ZT(sparks.speed), fxp::I16, 0, 0x7FFF },
+			{ "sparks", "sparks.speed_rand", "Speed random", "(at least 1)", ZT(sparks.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "sparks", "sparks.r", "Red", "The sparks' colour (lit by the camera; 128 = the texture as it is)", ZT(sparks.r), fxp::I16, 0, 255 },
+			{ "sparks", "sparks.g", "Green", "", ZT(sparks.g), fxp::I16, 0, 255 },
+			{ "sparks", "sparks.b", "Blue", "", ZT(sparks.b), fxp::I16, 0, 255 },
+			{ "sparks", "seqs.spark", "Spark", "The sprite sequence of a spark (a flipbook: an edited one keeps as many frames)", ZT(seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "trail", "trail.ticks", "Ticks", "The trail's ticks", ZT(trail.ticks), fxp::I16, 1, 300 },
+			{ "trail", "trail.r", "Red", "Its colour at the blade, fading to black along the trail", ZT(trail.r), fxp::I16, 0, 255 },
+			{ "trail", "trail.g", "Green", "", ZT(trail.g), fxp::I16, 0, 255 },
+			{ "trail", "trail.b", "Blue", "", ZT(trail.b), fxp::I16, 0, 255 },
+			{ "screen_a", "screen_a.ticks", "Ticks", "Its ticks", ZT(screen_a.ticks), fxp::I16, 1, 300 },
+			{ "screen_a", "screen_a.size", "Size", "Its x size at the start, and its growth (a third less every tick)", ZT(screen_a.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "screen_a", "screen_a.height", "Height", "Its y and z size", ZT(screen_a.height), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "screen_a", "models.screen_a", "Model", "The prim model drawn (a mesh: an edited one keeps its vertices)", ZT(models.screen_a), fxp::Model, 0, 0x7FFFFFFF },
+			{ "screen_b", "screen_b.ticks", "Ticks", "Its ticks", ZT(screen_b.ticks), fxp::I16, 1, 300 },
+			{ "screen_b", "screen_b.size", "Size", "Its size at the start, and its growth (a third less every tick)", ZT(screen_b.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "screen_b", "models.screen_b", "Model", "The prim model drawn (a mesh: an edited one keeps its vertices)", ZT(models.screen_b), fxp::Model, 0, 0x7FFFFFFF },
+			{ "slices", "slices.life", "Ticks", "A target drawn cut for this many ticks (then the battle draws it again)", ZT(slices.life), fxp::I16, 0, 300 },
+			{ "slices", "slices.fade", "Fade from", "Its colour fades to the background's from this tick (over 8 ticks)", ZT(slices.fade), fxp::I16, 0, 300 },
+			{ "slices", "slices.speed", "Speed", "The sliding half's speed: this + a random below the next, x the target's size (at most 2560) / 4096; x 3 for 4 ticks, then losing 1/10 a tick", ZT(slices.speed), fxp::I16, 0, 0x7FFF },
+			{ "slices", "slices.speed_rand", "Speed random", "(at least 1)", ZT(slices.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "slices", "slices.tilt", "Tilt", "The cut's angle: a random up to this either way (at least 1)", ZT(slices.tilt), fxp::I16, 1, 0x800, fxp::Angle },
+		};
+#undef ZT
 	}
 }
 
 	void register_mag167_zantetsuken()
 	{
+		fxp::register_params({ 167, "Zantetsuken (Odin)", &z167::live, &z167::GAME, sizeof(z167::ZantetsukenParams),
+		                       z167::table::PARTS, (int)(sizeof(z167::table::PARTS) / sizeof(z167::table::PARTS[0])),
+		                       z167::table::FIELDS, (int)(sizeof(z167::table::FIELDS) / sizeof(z167::table::FIELDS[0])),
+		                       z167::table::GROUPS, (int)(sizeof(z167::table::GROUPS) / sizeof(z167::table::GROUPS[0])) });
+		own::note(z167::ORIG_FileLoader, (void *)z167::FileLoader);
+		own::note(z167::ORIG_Setup, (void *)z167::Setup);
+		own::note(z167::ORIG_Master, (void *)z167::Master);
 		register_port(z167::ORIG_Master, (void *)z167::Master, "167 Master", 167);
+		own::note(z167::ORIG_TimelineTask, (void *)z167::TimelineTask);
 		register_port(z167::ORIG_TimelineTask, (void *)z167::TimelineTask, "167 TimelineTask", 167);
+		own::note(z167::ORIG_SparkTask, (void *)z167::SparkTask);
 		register_port(z167::ORIG_SparkTask, (void *)z167::SparkTask, "167 SparkTask", 167);
+		own::note(z167::ORIG_TrailTask, (void *)z167::TrailTask);
 		register_port(z167::ORIG_TrailTask, (void *)z167::TrailTask, "167 TrailTask", 167);
+		own::note(z167::ORIG_PrimATask, (void *)z167::PrimATask);
 		register_port(z167::ORIG_PrimATask, (void *)z167::PrimATask, "167 PrimATask", 167);
+		own::note(z167::ORIG_PrimBTask, (void *)z167::PrimBTask);
 		register_port(z167::ORIG_PrimBTask, (void *)z167::PrimBTask, "167 PrimBTask", 167);
+		own::note(z167::ORIG_SliceTask, (void *)z167::SliceTask);
 		register_port(z167::ORIG_SliceTask, (void *)z167::SliceTask, "167 SliceTask", 167);
 		// 30 fps layer: see mag167_zantetsuken_held.inc
 		FX_HELD(register_mag167_held();)

@@ -43,9 +43,16 @@
 // animation 0xD65640 (engine). Module globals: 0x23AD700..0x23AF81C.
 // NEVER-WRITTEN STACK WORDS: the 4th word of the puff's / wisp's spawn point (0x56C4F0 writes 3 words) is copied into its
 // particles' +0x0E (only ever loaded into the GTE VZ0 pad: never read); modelled 0 (SpawnPad).
+// FUJIN: Fujin's described Poison Gas (effect_171.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the file loader (0x5DB250) and the setup (0x5DB270) ported below; its parameters
+// (PoisonGasParams: the sound and the director's ticks, the screen flash, the tinted caster's ticks, the puffs and
+// wisps, the two clouds, the target gas, the two flipbooks, the cloud mesh, the texture name and the camera track).
+// FX_PART tags its parts in the lab.
 
 #include "mag_common.h"
 #include "fx_params.h"
+#include "fx_layouts.h"
+#include <stddef.h>
 
 namespace ff8fx
 {
@@ -63,12 +70,12 @@ namespace poisongas171
 	inline uint32_t P(const void *p) { return (uint32_t)p; }
 
 	// --- module globals ---
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x23AD718; }
-	inline TaskQueue *EffectQueue() { return (TaskQueue *)0x23AE9E8; }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x23AF808); }
-	inline int32_t &CasterSlot() { return var<int32_t>(0x23AF80C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x23AF814); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x23AF818); }
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x23AD718); }
+	inline TaskQueue *EffectQueue() { return (TaskQueue *)own::R(0x23AE9E8); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x23AF808)); }
+	inline int32_t &CasterSlot() { return var<int32_t>(own::R(0x23AF80C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x23AF814)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x23AF818)); }
 	inline uint32_t &FrameCursor() { return var<uint32_t>(0x1D8E054); }
 	static const uint32_t PARTS_A = 0x23AD728, PARTS_B = 0x23AE088, PARTS_END = 0x23AE9E8; // 100 x 0x18 each
 	static const uint32_t ROWS = 0xD68CC0;                                                 // spawn table rows (8 bytes)
@@ -76,6 +83,38 @@ namespace poisongas171
 	static const uint32_t ORIG_Root = 0x5DC8C0, ORIG_Director = 0x5DB340, ORIG_Tint = 0x5DB620, ORIG_Puff = 0x5DBED0,
 		ORIG_Wisp = 0x5DC270, ORIG_Cloud = 0x5DC5B0, ORIG_Emitter = 0x5DC700;
 	static const uint32_t SEQ_Puff = 0xD658A0, SEQ_Emitter = 0xD656F4, MODEL_Cloud = 0xD65A4C, SOUND_Gas = 0xD68CB4;
+	static const uint32_t ORIG_FileLoader = 0x5DB250, ORIG_Setup = 0x5DB270;
+	static const uint32_t TEXTURE_NAME = 0xD68D00, CAMERA = 0xD65640;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x23AF810)); }
+	inline int32_t &FirstTarget() { return var<int32_t>(own::R(0x23AD700)); }
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_TINT = 1, PART_PUFFS = 2, PART_WISPS = 3, PART_CLOUDS = 4, PART_GAS = 5 };
+	struct PoisonGasParams
+	{
+		uint32_t sound;                                     // at the director's sound tick
+		// the director's ticks: the sound, the tinted caster with the puffs and wisps, the clouds, the target gas, the damage
+		// to every target, the end
+		struct { int16_t sound, start, clouds, gas, damage, end; } timing;
+		struct { int16_t up, down; } flash;                  // the screen flash: rising until tick up, falling from tick down
+		struct { int16_t ticks; } tint;                      // the caster redrawn with its gas faces for this many ticks
+		// the puffs and wisps from the caster's effect point: 2 a tick on their first ticks, thrown along the caster's spawn
+		// table rows
+		struct { int16_t point, ticks, size, size_rand, speed, speed_rand; } puffs;
+		struct { int16_t x, size, ticks, step_a, step_b, spin_a, spin_b; } clouds; // two cloud meshes drifting across the screen
+		struct { int16_t ticks, spread, size, size_rand; } gas;  // one particle a tick at each target
+		struct { uint32_t puff, gas; } seqs;                 // the sprite sequences drawn (flipbooks)
+		struct { uint32_t cloud; } models;                   // the prim model drawn (mesh)
+		struct { uint32_t texture_name, camera; } res;       // its resources (data): texture file name, camera track
+	};
+	static const PoisonGasParams GAME = { SOUND_Gas, { 1, 1, 8, 0x1B, 0x1E, 0x32 }, { 0x10, 0x2A }, { 0x18 },
+		{ 0xF1, 0x11, 0x680, 0x400, 0x28, 0x5F }, { -400, 0xB00, 0x36, 0xA, 6, 0x1E, 0xF }, { 0xE, 0x1F4, 0x300, 0x900 },
+		{ SEQ_Puff, SEQ_Emitter }, { MODEL_Cloud }, { TEXTURE_NAME, CAMERA } };
+	static PoisonGasParams live = GAME;
+	static const PoisonGasParams &PG() { return live; }
 
 	inline uint32_t RenderOT44() { return var<uint32_t>(0x1D8E04C) + 0x44; }
 
@@ -359,15 +398,16 @@ namespace poisongas171
 	{
 		const uint32_t n = P(tn);
 		const int16_t c = S16(n, 0xC);
-		if (c < 0x18)
+		if (c < PG().tint.ticks)
 		{
+			FX_PART(PART_TINT);
 			// 30 fps layer: see mag171_poison_gas_held.inc
 			FX_HELD(held_note_node(REC_TINT, n);)
 			TintDraw(TintGrey(c), shl32(c, 2));
 		}
 		if (DrawOnly()) return 0;
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		if (S16(n, 0xC) < 0x18) return 0;
+		if (S16(n, 0xC) < PG().tint.ticks) return 0;
 		uint16_t &w = *(uint16_t *)Entity(CasterSlot());
 		w = (uint16_t)((w & 0xFFFB) | U16(n, 0x1A));
 		return TASK_END;
@@ -392,7 +432,7 @@ namespace poisongas171
 		GteSetRotMatrix(&m);
 		GteSetTransVector(&m);
 		const uint32_t h = P(FieldAlloc(0x58));
-		U32(h, 0) = MODEL_Cloud;
+		U32(h, 0) = fxp::model(PG().models.cloud, MODEL_Cloud);
 		S32(h, 0xC) = 0x800;
 		U32(h, 8) = 0;
 		U32(h, 0x1C) = 0xC3;
@@ -406,12 +446,13 @@ namespace poisongas171
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(held_note_node(REC_CLOUD, n);)
+		FX_PART(PART_CLOUDS);
 		CloudDraw(n, CloudFade(S16(n, 0xC)));
 		if (DrawOnly()) return 0;
 		S16(n, 0x10) = (int16_t)(S16(n, 0x10) + S16(n, 0x16));
 		S16(n, 0x18) = (int16_t)(S16(n, 0x18) + S16(n, 0x1A));
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		return S16(n, 0xC) >= 0x36 ? TASK_END : 0;
+		return S16(n, 0xC) >= PG().clouds.ticks ? TASK_END : 0;
 	}
 
 	// ------------------------------------------------------------------
@@ -489,9 +530,9 @@ namespace poisongas171
 			if (!p) break;
 			U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0xE);
 			S16(p, P_FRAME) = 0;
-			S16(p, P_SIZE) = (int16_t)((CrtRand() & 0x3FF) + 0x680);
+			S16(p, P_SIZE) = (int16_t)(CrtRand() % PG().puffs.size_rand + PG().puffs.size);
 			memcpy((void *)(p + P_POS), from, 8);
-			const int32_t v = CrtRand() % 0x5F + 0x28;
+			const int32_t v = CrtRand() % PG().puffs.speed_rand + PG().puffs.speed;
 			if (puff)
 			{
 				S16(p, P_VEL) = (int16_t)(CrtRand() % 0x28 + (mul32(v, d[0]) >> 12) - 0x14);
@@ -514,13 +555,15 @@ namespace poisongas171
 	{
 		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(held_note_parts(puff ? REC_PUFF : REC_WISP, n);)
-		const int alive = puff ? PartsDraw(n, PARTS_B, PARTS_END, SEQ_Puff, true, true) : PartsDraw(n, PARTS_A, PARTS_B, SEQ_Puff, false, true);
+		FX_PART(puff ? PART_PUFFS : PART_WISPS);
+		const uint32_t seq = fxp::sequence(PG().seqs.puff, SEQ_Puff);
+		const int alive = puff ? PartsDraw(n, own::R(PARTS_B), own::R(PARTS_END), seq, true, true) : PartsDraw(n, own::R(PARTS_A), own::R(PARTS_B), seq, false, true);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0x10)
+		if (c >= 0 && c < PG().puffs.ticks)
 		{
-			if (puff) PartsSpawn(n, PARTS_B, PARTS_END, true);
-			else PartsSpawn(n, PARTS_A, PARTS_B, false);
+			if (puff) PartsSpawn(n, own::R(PARTS_B), own::R(PARTS_END), true);
+			else PartsSpawn(n, own::R(PARTS_A), own::R(PARTS_B), false);
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
 		return S16(n, 0xC) >= 4 && !alive ? TASK_END : 0;
@@ -535,22 +578,23 @@ namespace poisongas171
 		const uint32_t n = P(tn);
 		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(held_note_parts(REC_EMITTER, n);)
-		const int alive = PartsDraw(n, PARTS_B, PARTS_END, SEQ_Emitter, false, false);
+		FX_PART(PART_GAS);
+		const int alive = PartsDraw(n, own::R(PARTS_B), own::R(PARTS_END), fxp::sequence(PG().seqs.gas, SEQ_Emitter), false, false);
 		if (DrawOnly()) return 0;
 		const int16_t c = S16(n, 0xC);
-		if (c >= 0 && c <= 0xD)
+		if (c >= 0 && c < PG().gas.ticks)
 		{
-			const uint32_t p = FreeParticle(PARTS_B, PARTS_END);
+			const uint32_t p = FreeParticle(own::R(PARTS_B), own::R(PARTS_END));
 			if (p)
 			{
 				U32(p, P_MASK) = (uint32_t)(int32_t)S16(n, 0xE);
 				S16(p, P_FRAME) = 0;
-				S16(p, P_SIZE) = (int16_t)(CrtRand() % 0x900 + 0x300);
+				S16(p, P_SIZE) = (int16_t)(CrtRand() % PG().gas.size_rand + PG().gas.size);
 				U32(p, P_POS) = U32(n, 0x10);
 				U32(p, P_POS + 4) = U32(n, 0x14);
-				S16(p, P_POS) = (int16_t)(S16(p, P_POS) + CrtRand() % 0x3E8 - 0x1F4);
-				S16(p, P_POS + 2) = (int16_t)(S16(p, P_POS + 2) + CrtRand() % 0x3E8 - 0x1F4);
-				S16(p, P_POS + 4) = (int16_t)(S16(p, P_POS + 4) + CrtRand() % 0x3E8 - 0x1F4);
+				S16(p, P_POS) = (int16_t)(S16(p, P_POS) + CrtRand() % (2 * PG().gas.spread) - PG().gas.spread);
+				S16(p, P_POS + 2) = (int16_t)(S16(p, P_POS + 2) + CrtRand() % (2 * PG().gas.spread) - PG().gas.spread);
+				S16(p, P_POS + 4) = (int16_t)(S16(p, P_POS + 4) + CrtRand() % (2 * PG().gas.spread) - PG().gas.spread);
 			}
 		}
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
@@ -562,7 +606,7 @@ namespace poisongas171
 	// ------------------------------------------------------------------
 	static uint32_t NewTask(uint32_t f)
 	{
-		const uint32_t t = (uint32_t)AddTaskToQueue(EffectQueue(), f);
+		const uint32_t t = (uint32_t)AddTaskToQueue(EffectQueue(), own::Fn(f));
 		S16(t, 0xC) = 0;
 		return t;
 	}
@@ -571,11 +615,11 @@ namespace poisongas171
 	{
 		if (DrawOnly()) return 0;
 		const uint32_t n = P(tn);
-		if (S16(n, 0xC) == 1)
+		if (S16(n, 0xC) == PG().timing.start)
 		{
 			const uint32_t t = NewTask(ORIG_Tint);
 			U16(t, 0x1A) = (uint16_t)(Entity(CasterSlot())[0] & 4);
-			GetEffectSpawnPosition(Entity(CasterSlot()), 0xF1, 0, (int16_t *)(n + 0x10));
+			GetEffectSpawnPosition(Entity(CasterSlot()), PG().puffs.point, 0, (int16_t *)(n + 0x10));
 			static const int16_t MASK[4] = { 1, 2, 1, 2 }, ROW[4] = { 0, 2, 4, 6 };
 			for (int k = 0; k < 4; k++)
 			{
@@ -586,22 +630,22 @@ namespace poisongas171
 				S16(p, 0x18) = ROW[k];
 			}
 		}
-		if (S16(n, 0xC) == 8)
+		if (S16(n, 0xC) == PG().timing.clouds)
 		{
 			uint32_t t = NewTask(ORIG_Cloud);
-			S16(t, 0x10) = -400;
-			S16(t, 0x16) = 0xA;
-			S16(t, 0x1C) = 0xB00;
+			S16(t, 0x10) = PG().clouds.x;
+			S16(t, 0x16) = PG().clouds.step_a;
+			S16(t, 0x1C) = PG().clouds.size;
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
-			S16(t, 0x1A) = 0x1E;
+			S16(t, 0x1A) = PG().clouds.spin_a;
 			t = NewTask(ORIG_Cloud);
-			S16(t, 0x10) = -400;
-			S16(t, 0x16) = 6;
-			S16(t, 0x1C) = 0xB00;
+			S16(t, 0x10) = PG().clouds.x;
+			S16(t, 0x16) = PG().clouds.step_b;
+			S16(t, 0x1C) = PG().clouds.size;
 			S16(t, 0x18) = (int16_t)(CrtRand() & 0xFFF);
-			S16(t, 0x1A) = 0xF;
+			S16(t, 0x1A) = PG().clouds.spin_b;
 		}
-		if (S16(n, 0xC) == 0x1B)
+		if (S16(n, 0xC) == PG().timing.gas)
 		{
 			for (int j = 0; j < Ctx()->actions->target_count; j++)
 			{
@@ -611,13 +655,13 @@ namespace poisongas171
 				GetEffectSpawnPosition(Entity(slot), 0xF1, 0, (int16_t *)(e + 0x10));
 			}
 		}
-		if (S16(n, 0xC) == 0x1E) ApplyActionResultToTargets(Ctx()->actions->targets, Ctx()->actions->target_count);
+		if (S16(n, 0xC) == PG().timing.damage) ApplyActionResultToTargets(Ctx()->actions->targets, Ctx()->actions->target_count);
 		const int16_t c = S16(n, 0xC);
-		if (c <= 0x10) SetScreenFlash((uint32_t)shl32(c, 7), 0);
-		else if (c >= 0x2A) SetScreenFlash((uint32_t)shl32(0x32 - c, 8), 0);
-		if (S16(n, 0xC) == 1) BdPlaySE((const void *)SOUND_Gas, 0, 0x80);
+		if (c <= PG().flash.up) SetScreenFlash((uint32_t)shl32(c, 7), 0);
+		else if (c >= PG().flash.down) SetScreenFlash((uint32_t)shl32(PG().timing.end - c, 8), 0);
+		if (S16(n, 0xC) == PG().timing.sound) BdPlaySE((const void *)fxp::sound(PG().sound, SOUND_Gas), 0, 0x80);
 		S16(n, 0xC) = (int16_t)(S16(n, 0xC) + 1);
-		if (S16(n, 0xC) <= 0x32) return 0;
+		if (S16(n, 0xC) <= PG().timing.end) return 0;
 		SetScreenFlash(0, 0);
 		return TASK_END;
 	}
@@ -633,14 +677,108 @@ namespace poisongas171
 		return running ? 0 : TASK_END;
 	}
 
+	// ------------------------------------------------------------------
+	// File loader (0x5DB250) and setup (0x5DB270): the game runs its own; Fujin's programs these (its memory may be a
+	// copy's): the texture, the magic buffer, the cast, its first target's and its caster's slots, the root and the
+	// director, both particle arrays freed, the camera and the TIM
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		TexBase() = layouts::MagicBuffer();
+		Ctx() = ctx;
+		FirstTarget() = ctx->actions[0].targets[0];
+		CasterSlot() = ctx->attacker;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x23AD708), 0x10, 1);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_Root)) + 0xC) = 0;
+		InitTaskQueuePool(EffectQueue(), (void *)own::R(0x23AE9F8), 0x24, 100);
+		*(uint16_t *)((uint8_t *)AddTaskToQueue(EffectQueue(), own::Fn(ORIG_Director)) + 0xC) = 0;
+		for (uint32_t a = own::R(PARTS_B); a < own::R(PARTS_END); a += 0x18) *(int32_t *)a = 0;
+		for (uint32_t a = own::R(PARTS_A); a < own::R(PARTS_B); a += 0x18) *(int32_t *)a = 0;
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA));
+		QueueTimUpload(TexFile());
+		return QRoot();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "director", "Director", "The director's ticks: the sound, each part's start, the damage to every target, the end; the screen flash; the texture and the camera" },
+			{ PART_TINT, "tint", "Tinted caster", "The caster redrawn with a scrolling gas face over each of its faces, its grey rising then falling" },
+			{ PART_PUFFS, "puffs", "Puffs", "Gas puffs thrown out of the caster's effect point along its spawn table's rows, growing, slowing" },
+			{ PART_WISPS, "wisps", "Wisps", "Thinner gas wisps thrown the same way along other rows (their flipbook played twice as fast)" },
+			{ PART_CLOUDS, "clouds", "Clouds", "Two cloud meshes on the screen drifting sideways, spinning, fading in and out" },
+			{ PART_GAS, "gas", "Target gas", "Still gas particles appearing around every target's body" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The director's ticks" },
+			{ "flash", "Screen flash", "Up by 128 a tick until tick up, down from tick down to 0 at the end" },
+		};
+#define PGF(member) (uint32_t)offsetof(PoisonGasParams, member)
+		static const Field FIELDS[] = {
+			{ "director", "sound", "Sound", "At the director's sound tick", PGF(sound), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "director", "timing.sound", "Sound", "The sound", PGF(timing.sound), fxp::I16, 0, 200 },
+			{ "director", "timing.start", "Caster", "The tinted caster, the puffs and the wisps start", PGF(timing.start), fxp::I16, 0, 200 },
+			{ "director", "timing.clouds", "Clouds", "The two clouds start", PGF(timing.clouds), fxp::I16, 0, 200 },
+			{ "director", "timing.gas", "Target gas", "The target gas starts (one a target)", PGF(timing.gas), fxp::I16, 0, 200 },
+			{ "director", "timing.damage", "Damage", "The damage to every target", PGF(timing.damage), fxp::I16, 0, 200 },
+			{ "director", "timing.end", "End", "The director's last tick (the screen flash back to 0)", PGF(timing.end), fxp::I16, 0, 200 },
+			{ "director", "flash.up", "Up until", "The flash at tick x 128 until this tick", PGF(flash.up), fxp::I16, 0, 200 },
+			{ "director", "flash.down", "Down from", "From this tick (end - tick) x 256", PGF(flash.down), fxp::I16, 0, 200 },
+			{ "director", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", PGF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "director", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", PGF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "tint", "tint.ticks", "Ticks", "The caster drawn tinted for this many ticks (its grey: up 32 a tick to 128, down 16 a tick from tick 16)", PGF(tint.ticks), fxp::I16, 0, 200 },
+			{ "puffs", "puffs.point", "Point", "The caster's effect point they leave", PGF(puffs.point), fxp::I16, 0, 0xFF },
+			{ "puffs", "puffs.ticks", "Ticks", "2 puffs (or wisps) a tick on their first ticks (100 alive at most each)", PGF(puffs.ticks), fxp::I16, 0, 200 },
+			{ "puffs", "puffs.size", "Size", "A puff's (or wisp's) size: this + a random below the next (growing 1/32 a tick)", PGF(puffs.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "puffs", "puffs.size_rand", "Size random", "(at least 1)", PGF(puffs.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "puffs", "puffs.speed", "Speed", "Along its row: this + a random below the next (losing 1/32 a tick)", PGF(puffs.speed), fxp::I16, 0, 0x7FFF },
+			{ "puffs", "puffs.speed_rand", "Speed random", "(at least 1)", PGF(puffs.speed_rand), fxp::I16, 1, 0x7FFF },
+			{ "puffs", "seqs.puff", "Puff", "The sprite sequence of the puffs and the wisps (a flipbook: an edited one keeps as many frames)", PGF(seqs.puff), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "clouds", "clouds.x", "Start x", "The clouds' x on the screen at the start", PGF(clouds.x), fxp::I16, -4000, 4000 },
+			{ "clouds", "clouds.size", "Size", "Their size (1.5 times wider)", PGF(clouds.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "clouds", "clouds.ticks", "Ticks", "Their ticks (fading in over the first 12, out from tick 42)", PGF(clouds.ticks), fxp::I16, 0, 200 },
+			{ "clouds", "clouds.step_a", "Drift 1", "The first cloud's x step a tick", PGF(clouds.step_a), fxp::I16, -400, 400 },
+			{ "clouds", "clouds.step_b", "Drift 2", "The second cloud's", PGF(clouds.step_b), fxp::I16, -400, 400 },
+			{ "clouds", "clouds.spin_a", "Spin 1", "The first cloud's x angle step a tick", PGF(clouds.spin_a), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "clouds", "clouds.spin_b", "Spin 2", "The second cloud's", PGF(clouds.spin_b), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "clouds", "models.cloud", "Cloud", "The prim model drawn (a mesh: an edited one keeps its vertices)", PGF(models.cloud), fxp::Model, 0, 0x7FFFFFFF },
+			{ "gas", "gas.ticks", "Ticks", "One particle a tick at each target on its first ticks", PGF(gas.ticks), fxp::I16, 0, 200 },
+			{ "gas", "gas.spread", "Spread", "Each one up to this far from the target's body point on each axis (at least 1)", PGF(gas.spread), fxp::I16, 1, 0x3FFF },
+			{ "gas", "gas.size", "Size", "Its size: this + a random below the next", PGF(gas.size), fxp::I16, 0, 0x7FFF, fxp::Scale },
+			{ "gas", "gas.size_rand", "Size random", "(at least 1)", PGF(gas.size_rand), fxp::I16, 1, 0x7FFF, fxp::Scale },
+			{ "gas", "seqs.gas", "Gas", "The sprite sequence of the target gas (a flipbook: an edited one keeps as many frames)", PGF(seqs.gas), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef PGF
+	}
+
 	void register_mag171_poison_gas_ports()
 	{
+		fxp::register_params({ 171, "Poison Gas", &live, &GAME, sizeof(PoisonGasParams),
+		                       table::PARTS, (int)(sizeof(table::PARTS) / sizeof(table::PARTS[0])),
+		                       table::FIELDS, (int)(sizeof(table::FIELDS) / sizeof(table::FIELDS[0])),
+		                       table::GROUPS, (int)(sizeof(table::GROUPS) / sizeof(table::GROUPS[0])) });
+		own::note(ORIG_FileLoader, (void *)FileLoader);
+		own::note(ORIG_Setup, (void *)Setup);
+		own::note(ORIG_Root, (void *)RootTask);
 		register_port(ORIG_Root, (void *)RootTask, "171 RootTask", 171);
+		own::note(ORIG_Director, (void *)DirectorTask);
 		register_port(ORIG_Director, (void *)DirectorTask, "171 DirectorTask", 171);
+		own::note(ORIG_Tint, (void *)TintTask);
 		register_port(ORIG_Tint, (void *)TintTask, "171 TintTask", 171);
+		own::note(ORIG_Puff, (void *)PuffTask);
 		register_port(ORIG_Puff, (void *)PuffTask, "171 PuffTask", 171);
+		own::note(ORIG_Wisp, (void *)WispTask);
 		register_port(ORIG_Wisp, (void *)WispTask, "171 WispTask", 171);
+		own::note(ORIG_Cloud, (void *)CloudTask);
 		register_port(ORIG_Cloud, (void *)CloudTask, "171 CloudTask", 171);
+		own::note(ORIG_Emitter, (void *)EmitterTask);
 		register_port(ORIG_Emitter, (void *)EmitterTask, "171 EmitterTask", 171);
 		// 30 fps layer: see mag171_poison_gas_held.inc
 		FX_HELD(register_mag171_held();)
