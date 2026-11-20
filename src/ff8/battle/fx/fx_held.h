@@ -40,6 +40,7 @@ namespace ff8fx
 	// function, this layer has nothing registered for, the lookups below ask it (its export FujinEffects_HeldApi, found
 	// at each real tick; none: nothing changes). It counts the real ticks with this layer (real_tick).
 	struct HeldGate;   // (below: the gate's helpers)
+	struct HeldEntity; struct HeldBoneScale;   // (below: what a held frame moves)
 	struct HeldApi
 	{
 		int version;   // HELD_API_VERSION
@@ -57,8 +58,13 @@ namespace ff8fx
 		bool (__cdecl *eq_held_draw)(uint32_t fn, const void *node, int num, int den);
 		// version 2: the provider runs this effect (its held frames are the provider's: held_provider_owns)
 		bool (__cdecl *owns)(int effect_id);
+		// version 3: the entities and the bone scales the provider's held frame moves (held_entities / held_bonescales
+		// below, for an effect id this layer has nothing registered for)
+		int (__cdecl *entities)(int effect_id, HeldEntity *out, int max);
+		int (__cdecl *bonescales)(int effect_id, HeldBoneScale *out, int max);
 	};
-	static const int HELD_API_VERSION = 2;   // (a version 1 provider is still asked: it gets no helpers)
+	static const int HELD_API_VERSION = 3;
+#define HELD_API_ENTITIES 1   // (HeldApi has entities / bonescales: a provider built on older sources leaves them out)   // (a version 1 provider is still asked: it gets no helpers)
 	typedef const HeldApi *(__cdecl *HeldApiFn)();
 
 	// A module's ready() says its ports ran on the last real tick (their memos are current);

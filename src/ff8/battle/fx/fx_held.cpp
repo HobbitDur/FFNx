@@ -139,6 +139,11 @@ namespace ff8fx
 				const int n = g_ent[i].fn(out, max);
 				return n < 0 ? 0 : (n > max ? max : n);
 			}
+		if (g_provider && g_provider->version >= 3 && g_provider->entities)
+		{
+			const int n = g_provider->entities(effect_id, out, max);
+			return n < 0 ? 0 : (n > max ? max : n);
+		}
 		return 0;
 	}
 
@@ -159,6 +164,11 @@ namespace ff8fx
 				const int n = g_bscale[i].fn(out, max);
 				return n < 0 ? 0 : (n > max ? max : n);
 			}
+		if (g_provider && g_provider->version >= 3 && g_provider->bonescales)
+		{
+			const int n = g_provider->bonescales(effect_id, out, max);
+			return n < 0 ? 0 : (n > max ? max : n);
+		}
 		return 0;
 	}
 

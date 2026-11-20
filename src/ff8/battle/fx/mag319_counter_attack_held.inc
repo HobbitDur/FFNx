@@ -206,7 +206,7 @@ namespace counter319
 		for (TaskNode *t = QBones()->head; t && n < max; t = t->next)
 		{
 			const BoneNode *b = (const BoneNode *)t;
-			if (!(t->flags & 1) || (uint32_t)t->func != ORIG_BoneScaleTask) continue;
+			if (!(t->flags & 1) || ((uint32_t)t->func != ORIG_BoneScaleTask && (uint32_t)t->func != own::Fn(ORIG_BoneScaleTask))) continue;   // (a Fujin program's: its own task)
 			HeldBoneScale &h = out[n++];
 			h.ent = Caster();
 			h.matrix = b->bone + 0x10;
