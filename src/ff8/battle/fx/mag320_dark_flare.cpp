@@ -122,8 +122,9 @@ namespace flare320
 		struct { int16_t start, ticks, depth; } ring;    // layout 2 at S: its window, depth
 		// layout 3 at T: its window, depth, its texture's v scroll a tick
 		struct { int16_t start, ticks, depth, scroll; } burst;
-		// the full-screen grey tiles: at the flight's start, on the burst's ticks 1 (between two draw modes) .. 4
-		struct { int32_t flight, burst[4]; } tiles;
+		// the full-screen grey tiles (their grey levels): at the flight's start, on the burst's ticks 1 (between two draw
+		// modes) .. 4
+		struct { int16_t flight, burst[4]; } tiles;
 		// the sparks: two a tick from `start` while charging at the caster's points (x +-side + 0x1F + a random below
 		// 0x1F, y, z, the point's bone), sized size + a random below size_spread; every spark's ticks (its flipbook's
 		// frames), its fall a tick
@@ -136,11 +137,13 @@ namespace flare320
 		struct { uint32_t texture_name, camera; } res;    // its resources (data): texture file name, camera track
 	};
 	static const FlareParams GAME = { { 0xFE7298 }, { 0, 0x53, 0x62 }, { 0, 0xC8, -0x400, 0x1B }, { 0x24, 10, -0x10 },
-		{ 0x24, 0x10, -0x10 }, { 0x2D, 0x35, -0x200, 0x10 }, { 0x808080, { 0x808080, 0xF0F0F0, 0xA0A0A0, 0x505050 } },
+		{ 0x24, 0x10, -0x10 }, { 0x2D, 0x35, -0x200, 0x10 }, { 0x80, { 0x80, 0xF0, 0xA0, 0x50 } },
 		{ 0xF, 0x64, 0, -0x320, 0x400, 0x400, 0x10, 2 }, { 4, 0x66, 0x10, 0x10, 0x1000, 0x800 },
 		{ MODEL_1, MODEL_2, MODEL_3 }, { SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM } };
 	static FlareParams live = GAME;
 	static const FlareParams &PG() { return live; }
+	// a grey tile's colour word (0xBBGGRR) from its grey level
+	static inline uint32_t Grey(int16_t level) { return (uint32_t)(uint8_t)level * 0x10101u; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -885,7 +888,7 @@ namespace flare320
 		{
 			const int32_t w = LerpWeight(c);
 			FX_PART(PART_TILES);
-			if (c == g.flight.start) Tile((uint32_t)g.tiles.flight);
+			if (c == g.flight.start) Tile(Grey(g.tiles.flight));
 			int16_t L[4];
 			VecLerp(m->T, m->S, w, 0x1000 - w, L);
 			m->M.t[0] = L[0];
@@ -912,10 +915,10 @@ namespace flare320
 		if ((uint32_t)e < (uint32_t)g.burst.ticks)
 		{
 			FX_PART(PART_TILES);
-			if (e == 1) TileModes((uint32_t)g.tiles.burst[0]);
-			else if (e == 2) Tile((uint32_t)g.tiles.burst[1]);
-			else if (e == 3) Tile((uint32_t)g.tiles.burst[2]);
-			else if (e == 4) Tile((uint32_t)g.tiles.burst[3]);
+			if (e == 1) TileModes(Grey(g.tiles.burst[0]));
+			else if (e == 2) Tile(Grey(g.tiles.burst[1]));
+			else if (e == 3) Tile(Grey(g.tiles.burst[2]));
+			else if (e == 4) Tile(Grey(g.tiles.burst[3]));
 			RotY(0, &arg.m);
 			arg.m.t[0] = m->T[0];
 			arg.m.t[1] = m->T[1];
@@ -1089,11 +1092,11 @@ namespace flare320
 			{ "burst", "burst.depth", "Depth", "Its layout's depth offset", DPF(burst.depth), fxp::I16, -0x1000, 0x1000 },
 			{ "burst", "burst.scroll", "Scroll", "Its texture's v scroll a tick (its scrolling objects)", DPF(burst.scroll), fxp::I16, -0x80, 0x80 },
 			{ "burst", "layouts.burst", "Layout", "Layout 3", DPF(layouts.burst), fxp::Layout, 0, 0x7FFFFFFF },
-			{ "tiles", "tiles.flight", "Flight", "The grey tile at the flight's start (0xBBGGRR)", DPF(tiles.flight), fxp::I32, 0, 0xFFFFFF },
-			{ "tiles", "tiles.burst[0]", "Burst 1", "On the burst's tick 1 (between two draw modes)", DPF(tiles.burst[0]), fxp::I32, 0, 0xFFFFFF },
-			{ "tiles", "tiles.burst[1]", "Burst 2", "On its tick 2", DPF(tiles.burst[1]), fxp::I32, 0, 0xFFFFFF },
-			{ "tiles", "tiles.burst[2]", "Burst 3", "On its tick 3", DPF(tiles.burst[2]), fxp::I32, 0, 0xFFFFFF },
-			{ "tiles", "tiles.burst[3]", "Burst 4", "On its tick 4", DPF(tiles.burst[3]), fxp::I32, 0, 0xFFFFFF },
+			{ "tiles", "tiles.flight", "Flight", "The grey level of the tile at the flight's start", DPF(tiles.flight), fxp::I16, 0, 0xFF },
+			{ "tiles", "tiles.burst[0]", "Burst 1", "On the burst's tick 1 (between two draw modes)", DPF(tiles.burst[0]), fxp::I16, 0, 0xFF },
+			{ "tiles", "tiles.burst[1]", "Burst 2", "On its tick 2", DPF(tiles.burst[1]), fxp::I16, 0, 0xFF },
+			{ "tiles", "tiles.burst[2]", "Burst 3", "On its tick 3", DPF(tiles.burst[2]), fxp::I16, 0, 0xFF },
+			{ "tiles", "tiles.burst[3]", "Burst 4", "On its tick 4", DPF(tiles.burst[3]), fxp::I16, 0, 0xFF },
 			{ "sparks", "sparks.start", "Start", "The main's tick the caster's sparks start (two a tick while charging)", DPF(sparks.start), fxp::I16, 0, 400 },
 			{ "sparks", "sparks.side", "Side", "Their points' x: +- this (through the caster's bone)", DPF(sparks.side), fxp::I16, -0x2000, 0x2000 },
 			{ "sparks", "sparks.y", "y", "Their points' y", DPF(sparks.y), fxp::I16, -0x2000, 0x2000 },
