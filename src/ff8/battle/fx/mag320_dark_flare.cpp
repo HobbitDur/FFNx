@@ -55,6 +55,12 @@
 // spark direction) reaches VZ0's high half only; the parameter block's scroll word is written for layout 3 only (the
 // other layouts' kind tables have no '1' / '2'); the matrices' pad words are never read; the prim header keeps the
 // scratch's words but the ones the callback sets.
+// FUJIN: Fujin's described Dark Flare (effect_320.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn(), the file loader (0x65BC20) and the setup (0x65BC10 -> _Init 0x65BC40) ported below; its
+// parameters (FlareParams: the sound, the main's ticks, the caster's point, the three layouts' windows and depths, the
+// layout-3 scroll, the grey tiles, the sparks; the three layouts, the flipbook, the texture name and the camera track).
+// The layouts' per-object kind / renderer tables stay the exe's (they follow the game layouts' objects). FX_PART tags
+// its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -68,12 +74,12 @@ namespace flare320
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250534C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2505350); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505354); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x250539C); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2505358; }         // pool: + 0x754, 0x40 x 0x20
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505368; }           // pool: magic buffer, 1 x 0x754
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x250534C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2505350)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2505354)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x250539C)); }        // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2505358); }         // pool: + 0x754, 0x40 x 0x20
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2505368); }           // pool: magic buffer, 1 x 0x754
 	inline uint32_t OTBase() { return var<uint32_t>(0x1D8E04C); }          // g_Battle_FrameRenderListBase
 
 	static const uint32_t ORIG_RootTask = 0x65BCC0;
@@ -93,6 +99,48 @@ namespace flare320
 	static const void *const SOUND = (const void *)0xFE7298;
 	static const int16_t *const POINT_S = (const int16_t *)0xFF12A0; // caster point (x, y, z, bone)
 	static int16_t *const POINT_SPARK = (int16_t *)0xFF12A8;         // spark point (x written by the main task)
+
+	static const uint32_t ORIG_FileLoader = 0x65BC20, ORIG_Setup = 0x65BC10;
+	static const uint32_t TEXTURE_NAME = 0xFF12B0, CAMERA_ANIM = 0xFE729C;
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2505348)); }     // the effect's file (its TIM)
+	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }   // Magic_TextureOFF_ToEAX1
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_CHARGE = 1, PART_FLIGHT = 2, PART_RING = 3, PART_BURST = 4, PART_TILES = 5, PART_SPARKS = 6 };
+	struct FlareParams
+	{
+		struct { uint32_t start; } sounds;               // the sound
+		struct { int16_t sound, damage, end; } timing;   // the main's ticks: the sound, the targets' damage, its end
+		// the caster's point S (x, y, z through its bone): layout 1 charges there (ticks 0 .. flight start - 1)
+		struct { int16_t x, y, z, bone; } point;
+		// layout 1 flying from S to the targets' mean point T: from `start`, the weight of T tick / ticks (drawn ticks + 1
+		// ticks), its depth (also while charging)
+		struct { int16_t start, ticks, depth; } flight;
+		struct { int16_t start, ticks, depth; } ring;    // layout 2 at S: its window, depth
+		// layout 3 at T: its window, depth, its texture's v scroll a tick
+		struct { int16_t start, ticks, depth, scroll; } burst;
+		// the full-screen grey tiles: at the flight's start, on the burst's ticks 1 (between two draw modes) .. 4
+		struct { int32_t flight, burst[4]; } tiles;
+		// the sparks: two a tick from `start` while charging at the caster's points (x +-side + 0x1F + a random below
+		// 0x1F, y, z, the point's bone), sized size + a random below size_spread; every spark's ticks (its flipbook's
+		// frames), its fall a tick
+		struct { int16_t start, side, y, z, size, size_spread, life, fall; } sparks;
+		// the flight's sparks: count a tick along T -> S (step back each), thrown out by speed + a random below
+		// speed_spread, sized size + a random below size_spread
+		struct { int16_t count, step, speed, speed_spread, size, size_spread; } trail;
+		struct { uint32_t charge, ring, burst; } layouts; // layouts 1, 2, 3
+		struct { uint32_t spark; } seqs;                  // the sparks' flipbook
+		struct { uint32_t texture_name, camera; } res;    // its resources (data): texture file name, camera track
+	};
+	static const FlareParams GAME = { { 0xFE7298 }, { 0, 0x53, 0x62 }, { 0, 0xC8, -0x400, 0x1B }, { 0x24, 10, -0x10 },
+		{ 0x24, 0x10, -0x10 }, { 0x2D, 0x35, -0x200, 0x10 }, { 0x808080, { 0x808080, 0xF0F0F0, 0xA0A0A0, 0x505050 } },
+		{ 0xF, 0x64, 0, -0x320, 0x400, 0x400, 0x10, 2 }, { 4, 0x66, 0x10, 0x10, 0x1000, 0x800 },
+		{ MODEL_1, MODEL_2, MODEL_3 }, { SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static FlareParams live = GAME;
+	static const FlareParams &PG() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline void DecodeModelPrimLayout(uint32_t data, void *layout, int32_t size) { fn<void (__cdecl *)(uint32_t, void *, int32_t)>(0x7016B0)(data, layout, size); }
@@ -668,7 +716,9 @@ namespace flare320
 	{
 		uint8_t *c = Caster();
 		Mat4x3 m = {};
-		ComposeAffineTransform((const Mat4x3 *)(c + 0x40), (const Mat4x3 *)(**(uint8_t ***)(c + 0x64) + 0x20 + (int32_t)v[3] * 0x30), &m);
+		const uint8_t bones = (**(uint8_t ***)(c + 0x64))[0];
+		const int32_t bone = v[3] < 0 ? 0 : v[3] < bones ? v[3] : bones - 1;   // below the caster's bone count
+		ComposeAffineTransform((const Mat4x3 *)(c + 0x40), (const Mat4x3 *)(**(uint8_t ***)(c + 0x64) + 0x20 + bone * 0x30), &m);
 		GteSetRotMatrixCtrl(&m);
 		GteSetTransVectorCtrl(&m);
 		GteLoadV0(v);
@@ -718,7 +768,7 @@ namespace flare320
 	{
 		uint8_t *h = AllocHeader(0xB4);
 		TransformCameraByShadowRotation(pos, scale, -0x100);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, OTBase() + 0x44, 2, PacketCursor());
@@ -735,8 +785,8 @@ namespace flare320
 		M->t[2] = S[2];
 	}
 
-	// the weight of T for counters 0x24..0x2E: (c - 0x24) / 10
-	static inline int32_t LerpWeight(int32_t c) { return (int32_t)(((uint32_t)(c - 0x24) << 12) / 10u); }
+	// the weight of T for counters 0x24..0x2E: (c - 0x24) / 10 (the flight's start and ticks)
+	static inline int32_t LerpWeight(int32_t c) { return (int32_t)(((uint32_t)(c - PG().flight.start) << 12) / (uint32_t)PG().flight.ticks); }
 
 	static void SetArg(PrimArg *arg, uint32_t kinds, uint32_t draws, int16_t depth)
 	{
@@ -764,13 +814,14 @@ namespace flare320
 		SparkNode *s = (SparkNode *)n;
 		// 30 fps layer: see mag320_dark_flare_held.inc
 		FX_HELD(held_note_spark(n);)
+		FX_PART(PART_SPARKS);
 		SparkDraw(s->pos, s->scale, s->counter);
 		s->counter++;
-		if (s->counter >= 0x10) return TASK_END;
+		if (s->counter >= PG().sparks.life) return TASK_END;
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
-		s->vel[1] = (int16_t)(s->vel[1] - 2);
+		s->vel[1] = (int16_t)(s->vel[1] - PG().sparks.fall);
 		return 0;
 	}
 
@@ -782,40 +833,46 @@ namespace flare320
 		MainNode *m = (MainNode *)n;
 		PrimArg arg;
 		arg.scroll = 0; // (never-written stack word: only read for layout 3's kinds, which write it)
+		const FlareParams &g = PG();
 		const int32_t c = m->counter;
-		if ((uint32_t)c < 0x24)
+		if (c < g.flight.start)
 		{
-			CasterBonePoint(POINT_S, m->S);
+			const int16_t S[4] = { g.point.x, g.point.y, g.point.z, g.point.bone };
+			CasterBonePoint(S, m->S);
 			MainFrame(m, m->S, &m->M);
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
-			SetArg(&arg, KINDS_1, DRAWS_1, -0x10);
+			SetArg(&arg, KINDS_1, DRAWS_1, g.flight.depth);
 			// 30 fps layer: see mag320_dark_flare_held.inc
 			FX_HELD(held_note_main(PLAY_1, n);)
+			FX_PART(PART_CHARGE);
 			prim::play((prim::Layout *)m->layout_1, PrimCallback, (int)&arg, 0);
-			if ((uint32_t)c >= 0xF)
+			if (c >= g.sparks.start)
 			{
+				int16_t sp[4] = { 0, g.sparks.y, g.sparks.z, g.point.bone };   // the exe's word 0xFF12A8 and its own bone
 				int16_t p[4];
-				p[1] = POINT_SPARK[1];
-				p[3] = POINT_SPARK[3];
+				p[1] = sp[1];
+				p[3] = sp[3];
 				for (int k = 0; k < 2; k++)
 				{
-					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+					SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 					if (!s) break;
 					p[0] = (int16_t)((CrtRand() & 0x1F) + 0x1F);
 					if (k == 0)
 					{
-						p[0] = (int16_t)(p[0] + 0x64);
-						POINT_SPARK[0] = 0x64;
+						p[0] = (int16_t)(p[0] + g.sparks.side);
+						sp[0] = g.sparks.side;
 					}
 					else
 					{
-						p[0] = (int16_t)(-0x64 - p[0]);
-						POINT_SPARK[0] = -0x64;
+						p[0] = (int16_t)(-g.sparks.side - p[0]);
+						sp[0] = (int16_t)-g.sparks.side;
 					}
-					CasterBonePoint(POINT_SPARK, s->pos);
-					s->counter = (int16_t)((uint32_t)c > 0x14 ? c - 0x14 : 0);
-					s->scale = (int16_t)((CrtRand() & 0x3FF) + 0x400);
-					p[2] = (int16_t)((CrtRand() & 0xF) + *(const int32_t *)(POINT_SPARK + 2) + 0x10);
+					POINT_SPARK[0] = sp[0];   // (the game writes its .data word)
+					CasterBonePoint(sp, s->pos);
+					// (a frame of its flipbook)
+					s->counter = fxp::last_frame(fxp::sequence(g.seqs.spark, SEQ_Spark), (int16_t)((uint32_t)c > 0x14 ? c - 0x14 : 0));
+					s->scale = (int16_t)(CrtRand() % g.sparks.size_spread + g.sparks.size);
+					p[2] = (int16_t)((CrtRand() & 0xF) + sp[2] + 0x10);
 					int16_t q[4];
 					CasterBonePoint(p, q);
 					s->vel[0] = (int16_t)(q[0] - s->pos[0]);
@@ -824,60 +881,65 @@ namespace flare320
 				}
 			}
 		}
-		if ((uint32_t)(c - 0x24) <= 0xA)
+		if ((uint32_t)(c - g.flight.start) <= (uint32_t)g.flight.ticks)
 		{
 			const int32_t w = LerpWeight(c);
-			if (c == 0x24) Tile(0x808080);
+			FX_PART(PART_TILES);
+			if (c == g.flight.start) Tile((uint32_t)g.tiles.flight);
 			int16_t L[4];
 			VecLerp(m->T, m->S, w, 0x1000 - w, L);
 			m->M.t[0] = L[0];
 			m->M.t[1] = L[1];
 			m->M.t[2] = L[2];
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
-			SetArg(&arg, KINDS_1, DRAWS_1, -0x10);
+			SetArg(&arg, KINDS_1, DRAWS_1, g.flight.depth);
 			FX_HELD(held_note_main(PLAY_1L, n);)
+			FX_PART(PART_FLIGHT);
 			prim::play((prim::Layout *)m->layout_1, PrimCallback, (int)&arg, 0);
 		}
-		if ((uint32_t)(c - 0x24) < 0x10)
+		if ((uint32_t)(c - g.ring.start) < (uint32_t)g.ring.ticks)
 		{
 			m->M.t[0] = m->S[0];
 			m->M.t[1] = m->S[1];
 			m->M.t[2] = m->S[2];
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
-			SetArg(&arg, KINDS_2, DRAWS_2, -0x10);
+			SetArg(&arg, KINDS_2, DRAWS_2, g.ring.depth);
 			FX_HELD(held_note_main(PLAY_2, n);)
+			FX_PART(PART_RING);
 			prim::play((prim::Layout *)m->layout_2, PrimCallback, (int)&arg, 0);
 		}
-		const int32_t e = c - 0x2D;
-		if ((uint32_t)e < 0x35)
+		const int32_t e = c - g.burst.start;
+		if ((uint32_t)e < (uint32_t)g.burst.ticks)
 		{
-			if (e == 1) TileModes(0x808080);
-			else if (e == 2) Tile(0xF0F0F0);
-			else if (e == 3) Tile(0xA0A0A0);
-			else if (e == 4) Tile(0x505050);
+			FX_PART(PART_TILES);
+			if (e == 1) TileModes((uint32_t)g.tiles.burst[0]);
+			else if (e == 2) Tile((uint32_t)g.tiles.burst[1]);
+			else if (e == 3) Tile((uint32_t)g.tiles.burst[2]);
+			else if (e == 4) Tile((uint32_t)g.tiles.burst[3]);
 			RotY(0, &arg.m);
 			arg.m.t[0] = m->T[0];
 			arg.m.t[1] = m->T[1];
 			arg.m.t[2] = m->T[2];
 			ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-			SetArg(&arg, KINDS_3, DRAWS_3, -0x200);
-			arg.scroll = (int16_t)(e << 4);
+			SetArg(&arg, KINDS_3, DRAWS_3, g.burst.depth);
+			arg.scroll = (int16_t)(e * g.burst.scroll);
 			FX_HELD(held_note_main(PLAY_3, n);)
+			FX_PART(PART_BURST);
 			prim::play((prim::Layout *)m->layout_3, PrimCallback, (int)&arg, 0);
 		}
-		if (c == 0) BdPlaySE(SOUND, 0, 0x80);
-		if ((uint32_t)(c - 0x24) <= 0xA)
+		if (c == g.timing.sound) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND), 0, 0x80);
+		if ((uint32_t)(c - g.flight.start) <= (uint32_t)g.flight.ticks)
 		{
 			int32_t w = LerpWeight(c);
 			GteSetRotMatrix(&m->M);
 			int32_t ws = 0x1000 - w;
-			for (int k = 0; k < 4; k++)
+			for (int k = 0; k < g.trail.count; k++)
 			{
-				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+				SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 				if (!s) break;
 				s->counter = 0;
 				VecLerp(m->T, m->S, w, ws, s->pos);
-				s->scale = (int16_t)((CrtRand() & 0x7FF) + 0x1000);
+				s->scale = (int16_t)(CrtRand() % g.trail.size_spread + g.trail.size);
 				const int32_t a = CrtRand();
 				int16_t d[4];
 				d[0] = (int16_t)ComputeSin(a);
@@ -890,22 +952,22 @@ namespace flare320
 				s->pos[0] = (int16_t)(s->pos[0] + (int16_t)(d[0] >> 6));
 				s->pos[1] = (int16_t)(s->pos[1] + (int16_t)(d[1] >> 6));
 				s->pos[2] = (int16_t)(s->pos[2] + (int16_t)(d[2] >> 6));
-				GteSetIR0((CrtRand() & 0xF) + 0x10);
+				GteSetIR0(CrtRand() % g.trail.speed_spread + g.trail.speed);
 				GteLoadIR123(d);
 				GteGPF();
 				GteStoreIR123(s->vel);
-				w -= 0x66;
-				ws += 0x66;
+				w -= g.trail.step;
+				ws += g.trail.step;
 				if (w < 0) break;
 			}
 		}
-		if (c == 0x53)
+		if (c == g.timing.damage)
 		{
 			ActionData *a = Ctx()->actions;
 			ApplyActionResultToTargets(a->targets, a->target_count);
 		}
 		m->counter++;
-		return m->counter < 0x62 ? 0 : TASK_END;
+		return m->counter < g.timing.end ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -934,7 +996,7 @@ namespace flare320
 				InitTaskQueuePool(QMain(), (void *)TexBase(), 0x754, 1);
 				InitTaskQueuePool(QSparks(), (void *)(TexBase() + POOL_Sparks), 0x20, 0x40);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x1D2);
 			const int32_t count = Ctx()->actions->target_count;
 			m->T[2] = 0;
@@ -949,9 +1011,9 @@ namespace flare320
 			m->T[1] = 0;
 			m->T[0] = (int16_t)((int32_t)m->T[0] / count);
 			m->T[2] = (int16_t)((int32_t)m->T[2] / count);
-			DecodeModelPrimLayout(MODEL_1, m->layout_1, 0x1F0);
-			DecodeModelPrimLayout(MODEL_2, m->layout_2, 0x110);
-			DecodeModelPrimLayout(MODEL_3, m->layout_3, 0x414);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.charge, MODEL_1, 0x1F0), m->layout_1, 0x1F0);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.ring, MODEL_2, 0x110), m->layout_2, 0x110);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.burst, MODEL_3, 0x414), m->layout_3, 0x414);
 		}
 		if (r->started)
 		{
@@ -962,12 +1024,109 @@ namespace flare320
 		r->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x65BC20) and setup (0x65BC10 -> _Init 0x65BC40): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster, the root, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = MagicTextureOff();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		TaskQueue *root = (TaskQueue *)own::R(0x2505378);
+		InitTaskQueuePool(root, (void *)own::R(0x2505388), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the sound, the targets' damage; the texture and the camera" },
+			{ PART_CHARGE, "charge", "Charge", "Layout 1 at the caster's point, turned toward the targets' mean point" },
+			{ PART_FLIGHT, "flight", "Flight", "Layout 1 flying from the caster's point to the targets' mean point" },
+			{ PART_RING, "ring", "Ring", "Layout 2 at the caster's point" },
+			{ PART_BURST, "burst", "Burst", "Layout 3 at the targets' mean point (its texture scrolling)" },
+			{ PART_TILES, "tiles", "Grey tiles", "Full-screen grey tiles at the flight's start and the burst's first ticks" },
+			{ PART_SPARKS, "sparks", "Sparks", "Sparks at the caster while it charges and along the flight (a flipbook), falling" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+			{ "point", "Caster's point", "The point through the caster's bone" },
+		};
+#define DPF(member) (uint32_t)offsetof(FlareParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "At the sound's tick", DPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.sound", "Sound", "The main's tick of the sound", DPF(timing.sound), fxp::I16, 0, 400 },
+			{ "main", "timing.damage", "Damage", "Its tick the targets' damage is shown", DPF(timing.damage), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick", DPF(timing.end), fxp::I16, 1, 400 },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", DPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", DPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "charge", "point.x", "Point x", "The caster's point (through its bone): x", DPF(point.x), fxp::I16, -0x2000, 0x2000 },
+			{ "charge", "point.y", "Point y", "y", DPF(point.y), fxp::I16, -0x2000, 0x2000 },
+			{ "charge", "point.z", "Point z", "z", DPF(point.z), fxp::I16, -0x2000, 0x2000 },
+			{ "charge", "point.bone", "Bone", "The caster's bone (also the sparks')", DPF(point.bone), fxp::I16, 0, 63 },
+			{ "charge", "layouts.charge", "Layout", "Layout 1 (charge and flight)", DPF(layouts.charge), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "flight", "flight.start", "Start", "The main's tick it leaves the caster (layout 1 charges before)", DPF(flight.start), fxp::I16, 0, 400 },
+			{ "flight", "flight.ticks", "Ticks", "Its flight's ticks (drawn one tick more)", DPF(flight.ticks), fxp::I16, 1, 400 },
+			{ "flight", "flight.depth", "Depth", "Layout 1's depth offset (charge and flight)", DPF(flight.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "ring", "ring.start", "Start", "The main's tick it starts", DPF(ring.start), fxp::I16, 0, 400 },
+			{ "ring", "ring.ticks", "Ticks", "Its ticks", DPF(ring.ticks), fxp::I16, 0, 400 },
+			{ "ring", "ring.depth", "Depth", "Its layout's depth offset", DPF(ring.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "ring", "layouts.ring", "Layout", "Layout 2", DPF(layouts.ring), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "burst", "burst.start", "Start", "The main's tick it starts", DPF(burst.start), fxp::I16, 0, 400 },
+			{ "burst", "burst.ticks", "Ticks", "Its ticks", DPF(burst.ticks), fxp::I16, 0, 400 },
+			{ "burst", "burst.depth", "Depth", "Its layout's depth offset", DPF(burst.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "burst", "burst.scroll", "Scroll", "Its texture's v scroll a tick (its scrolling objects)", DPF(burst.scroll), fxp::I16, -0x80, 0x80 },
+			{ "burst", "layouts.burst", "Layout", "Layout 3", DPF(layouts.burst), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "tiles", "tiles.flight", "Flight", "The grey tile at the flight's start (0xBBGGRR)", DPF(tiles.flight), fxp::I32, 0, 0xFFFFFF },
+			{ "tiles", "tiles.burst[0]", "Burst 1", "On the burst's tick 1 (between two draw modes)", DPF(tiles.burst[0]), fxp::I32, 0, 0xFFFFFF },
+			{ "tiles", "tiles.burst[1]", "Burst 2", "On its tick 2", DPF(tiles.burst[1]), fxp::I32, 0, 0xFFFFFF },
+			{ "tiles", "tiles.burst[2]", "Burst 3", "On its tick 3", DPF(tiles.burst[2]), fxp::I32, 0, 0xFFFFFF },
+			{ "tiles", "tiles.burst[3]", "Burst 4", "On its tick 4", DPF(tiles.burst[3]), fxp::I32, 0, 0xFFFFFF },
+			{ "sparks", "sparks.start", "Start", "The main's tick the caster's sparks start (two a tick while charging)", DPF(sparks.start), fxp::I16, 0, 400 },
+			{ "sparks", "sparks.side", "Side", "Their points' x: +- this (through the caster's bone)", DPF(sparks.side), fxp::I16, -0x2000, 0x2000 },
+			{ "sparks", "sparks.y", "y", "Their points' y", DPF(sparks.y), fxp::I16, -0x2000, 0x2000 },
+			{ "sparks", "sparks.z", "z", "Their points' z", DPF(sparks.z), fxp::I16, -0x2000, 0x2000 },
+			{ "sparks", "sparks.size", "Size", "Their size (plus a random below the size spread)", DPF(sparks.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "sparks", "sparks.size_spread", "Size spread", "The random part of their size", DPF(sparks.size_spread), fxp::I16, 1, 0x4000 },
+			{ "sparks", "sparks.life", "Life", "Every spark's ticks (their flipbook's frames: 16 at most)", DPF(sparks.life), fxp::I16, 1, 16 },
+			{ "sparks", "sparks.fall", "Fall", "Every spark's fall a tick", DPF(sparks.fall), fxp::I16, -0x100, 0x100 },
+			{ "sparks", "trail.count", "Flight: count", "The flight's sparks a tick (64 alive at most)", DPF(trail.count), fxp::I16, 0, 64 },
+			{ "sparks", "trail.step", "Flight: step", "Each one that much further back along the flight (of 4096)", DPF(trail.step), fxp::I16, 1, 0x1000 },
+			{ "sparks", "trail.speed", "Flight: speed", "Thrown out of the flight by this (plus a random below its spread)", DPF(trail.speed), fxp::I16, 0, 0x1000 },
+			{ "sparks", "trail.speed_spread", "Flight: speed spread", "The random part of their speed", DPF(trail.speed_spread), fxp::I16, 1, 0x1000 },
+			{ "sparks", "trail.size", "Flight: size", "Their size (plus a random below its spread)", DPF(trail.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "sparks", "trail.size_spread", "Flight: size spread", "The random part of their size", DPF(trail.size_spread), fxp::I16, 1, 0x4000 },
+			{ "sparks", "seqs.spark", "Flipbook", "The sparks' flipbook", DPF(seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef DPF
+	}
 }
 
 	void register_mag320_dark_flare()
 	{
+		fxp::register_params({ 320, "Dark Flare", &flare320::live, &flare320::GAME, sizeof(flare320::FlareParams),
+		                       flare320::table::PARTS, (int)(sizeof(flare320::table::PARTS) / sizeof(flare320::table::PARTS[0])),
+		                       flare320::table::FIELDS, (int)(sizeof(flare320::table::FIELDS) / sizeof(flare320::table::FIELDS[0])),
+		                       flare320::table::GROUPS, (int)(sizeof(flare320::table::GROUPS) / sizeof(flare320::table::GROUPS[0])) });
+		own::note(flare320::ORIG_FileLoader, (void *)flare320::FileLoader);
+		own::note(flare320::ORIG_Setup, (void *)flare320::Setup);
+		own::note(flare320::ORIG_RootTask, (void *)flare320::RootTask);
 		register_port(flare320::ORIG_RootTask, (void *)flare320::RootTask, "320 RootTask", 320);
+		own::note(flare320::ORIG_MainTask, (void *)flare320::MainTask);
 		register_port(flare320::ORIG_MainTask, (void *)flare320::MainTask, "320 MainTask", 320);
+		own::note(flare320::ORIG_SparkTask, (void *)flare320::SparkTask);
 		register_port(flare320::ORIG_SparkTask, (void *)flare320::SparkTask, "320 SparkTask", 320);
 		// 30 fps layer: see mag320_dark_flare_held.inc
 		FX_HELD(register_mag320_held();)
