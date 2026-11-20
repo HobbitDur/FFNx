@@ -106,7 +106,7 @@ namespace abadon314
 
 	static void held_note_main(const MainNode *m)
 	{
-		if ((uint32_t)(m->counter - 0x10) >= 0x32) return;
+		if ((uint32_t)(m->counter - PG().sweep.start) >= (uint32_t)PG().sweep.ticks) return;
 		if (!held_add(REC_SWEEP, m->counter)) return;
 		NoteVerts();
 	}
@@ -142,9 +142,8 @@ namespace abadon314
 
 	static void held_note_tiles(int32_t c)
 	{
-		if ((uint32_t)c < 5) held_add(REC_TILE, (int16_t)c);
-		if ((uint32_t)(c - 0xF) < 5) held_add(REC_TILE, (int16_t)(c - 0xF));
-		if ((uint32_t)(c - 0x13) < 5) held_add(REC_TILE, (int16_t)(c - 0x13));
+		for (int k = 0; k < 3; k++)
+			if ((uint32_t)(c - PG().tiles.start[k]) < (uint32_t)PG().tiles.ticks) held_add(REC_TILE, (int16_t)(c - PG().tiles.start[k]));
 	}
 
 	static void held_note_parts(const MainNode *m)
@@ -164,8 +163,9 @@ namespace abadon314
 	// 0x659A10's level at step t with in 1, out 4
 	static int32_t TileLevel(int32_t t)
 	{
-		if (t < 1) return shl32(t + 1, 12) / 1;
-		return shl32(1 - t - 1, 12) / 4 + 0x1000;
+		const int32_t in = PG().tiles.in, out = PG().tiles.out;
+		if (t < in) return shl32(t + 1, 12) / in;
+		return shl32(in - t - 1, 12) / out + 0x1000;
 	}
 	inline uint32_t Tile(int32_t r, int32_t g, int32_t b, int32_t level, uint32_t cursor) { return fn<uint32_t (__cdecl *)(int32_t, int32_t, int32_t, int32_t, uint32_t)>(0x7040B0)(r, g, b, level, cursor); } // Effect_FullScreenTile
 
@@ -207,18 +207,18 @@ namespace abadon314
 	static void SweepHeld(const Rec &r, int num, int den)
 	{
 		int16_t level = LevelA(r.c);
-		if (num != 0 && (uint32_t)(r.c + 1 - 0x10) < 0x32) level = (int16_t)lerp_i(level, LevelA(r.c + 1), num, den);
+		if (num != 0 && (uint32_t)(r.c + 1 - PG().sweep.start) < (uint32_t)PG().sweep.ticks) level = (int16_t)lerp_i(level, LevelA(r.c + 1), num, den);
 		CasterScope([&](uint8_t *ent, bool posed)
 		{
 			if (posed) pose_midpoint(ent + 0x60, ent + 0x6C, num, den);
-			SweepA(ent, level, PAGE_MOVE, CLUT_MOVE, PacketCursor());
+			SweepA(ent, level, PG().sweep.page, PG().sweep.clut, PacketCursor());
 		});
 	}
 
 	static void CasterHeld(const Rec &r, int num, int den)
 	{
 		const MainNode *m = (const MainNode *)(TexBase() + MAIN);
-		const bool next = r.c + 1 < 0xE2;   // the next tick draws the caster again
+		const bool next = r.c + 1 < PG().timing.end;   // the next tick draws the caster again
 		for (int i = 0; i < 0x70; i++)
 		{
 			PoseEntry p = g_pose_drawn[i];
@@ -236,7 +236,7 @@ namespace abadon314
 		// the polygons as drawn: the shard sweep after the draw hid some (they fly off as shards from the next tick)
 		const uint8_t *model = *(const uint8_t *const *)(Caster() + 0x64);
 		ForEachPolyFlag(model, [](int k, uint8_t *f) { g_polyflags_now[k] = *f; if (k < g_npolys) *f = g_polyflags[k]; });
-		CasterScope([&](uint8_t *ent, bool) { CasterDraw(ent, g_pose_held, PAGE_MOVE, CLUT_MOVE); });
+		CasterScope([&](uint8_t *ent, bool) { CasterDraw(ent, g_pose_held, PG().sweep.page, PG().sweep.clut); });
 		ForEachPolyFlag(model, [](int k, uint8_t *f) { *f = g_polyflags_now[k]; });
 	}
 
@@ -248,7 +248,7 @@ namespace abadon314
 		{
 			Particle &p = g_held_main->parts[k];
 			if (p.life == 0 || p.life == 1) continue;
-			for (int a = 0; a < 3; a++) p.pos[a] = lerp16(p.pos[a], (int16_t)(p.pos[a] + (int16_t)(p.vel[a] << 2)), num, den);
+			for (int a = 0; a < 3; a++) p.pos[a] = lerp16(p.pos[a], (int16_t)(p.pos[a] + (int16_t)(p.vel[a] * PG().particles.speed)), num, den);
 		}
 		Particles(g_held_main);
 		// shards: the live ones that moved on, half way
@@ -289,8 +289,8 @@ namespace abadon314
 			case REC_TILE:
 			{
 				int32_t level = TileLevel(r.c);
-				if (r.c + 1 < 5) level = lerp_i(level, TileLevel(r.c + 1), num, den);
-				PacketCursor() = Tile(0xFF, 0x80, 0x80, level, PacketCursor());
+				if (r.c + 1 < PG().tiles.ticks) level = lerp_i(level, TileLevel(r.c + 1), num, den);
+				PacketCursor() = Tile(PG().tiles.r, PG().tiles.g, PG().tiles.b, level, PacketCursor());
 				break;
 			}
 			case REC_PARTS:

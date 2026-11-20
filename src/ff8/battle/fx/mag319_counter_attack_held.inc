@@ -107,8 +107,8 @@ namespace counter319
 		switch (r.kind)
 		{
 		case PLAY_A:
-		case DRAW_SPIKE: return (uint32_t)(c1 - 2) <= 6;
-		case PLAY_B: return (uint32_t)(c1 - 7) < 0x20;
+		case DRAW_SPIKE: return (uint32_t)(c1 - PG().spike.start) <= (uint32_t)PG().spike.ticks;
+		case PLAY_B: return (uint32_t)(c1 - PG().burst.start) < (uint32_t)PG().burst.ticks;
 		default: return (r.node->flags & 1) != 0;
 		}
 	}
@@ -117,13 +117,13 @@ namespace counter319
 	static void HeldSpikePoint(const MainNode *m, int32_t c, int k, int den, int16_t *L)
 	{
 		int16_t L0[4], L1[4];
-		SpikePoint(m, c - 2, L0);
+		SpikePoint(m, c - PG().spike.start, L0);
 		if (k == 0)
 		{
 			memcpy(L, L0, 6);
 			return;
 		}
-		SpikePoint(m, c - 1, L1);
+		SpikePoint(m, c + 1 - PG().spike.start, L1);
 		for (int j = 0; j < 3; j++) L[j] = lerp16(L0[j], L1[j], k, den);
 	}
 
@@ -164,7 +164,7 @@ namespace counter319
 				}
 			}
 			else if (r.kind == PLAY_B) ComposeAffineTransform(&Camera(), &m->M2, &arg.m);
-			arg.depth = -0x80;
+			arg.depth = r.kind == PLAY_B ? PG().burst.depth : (r.kind == PLAY_A || r.kind == DRAW_SPIKE) ? PG().spike.depth : -0x80;
 			arg.morph = morph;
 			// a replayed draw starts from the GTE state and scratch of the real one
 			memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);

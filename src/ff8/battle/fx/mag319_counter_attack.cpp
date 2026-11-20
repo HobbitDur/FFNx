@@ -53,6 +53,11 @@
 // magic buffer base 0x2505410).
 // NEVER-WRITTEN STACK WORDS: as 277's (the 4th word of the callback's record offset reaches the GTE VZ0 high half only,
 // the matrices' pad words are never read, the model's prim header keeps the scratch's words but +0x00 / +0x1C).
+// FUJIN: Fujin's described Counter-attack (effect_319.json) runs this code: its memory through own::R() (fx_port.h), its
+// spawns through own::Fn() (the bone scales: 318's task, its port in a program), the file loader (0x65DB40) and the setup
+// (0x65DB30 -> _Init 0x65DB60) ported below; its parameters (CounterParams: the sound, the main's ticks, the spike and
+// burst layouts' ticks and depths, the spike's bone, the sprites, the five bone scales; the two layouts, the spike model,
+// the sprites' flipbook, the offsets, the texture name and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -66,13 +71,13 @@ namespace counter319
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25053A4); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25053A8); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25053AC); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505410); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x25053B0; }        // pool: + 0x924, 0x10 x 0x18
-	inline TaskQueue *QBones() { return (TaskQueue *)0x25053C0; }          // pool: + 0x898, 5 x 0x1C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x25053D0; }           // pool: magic buffer, 1 x 0x898
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25053A4)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25053A8)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25053AC)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2505410)); }        // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x25053B0); }        // pool: + 0x924, 0x10 x 0x18
+	inline TaskQueue *QBones() { return (TaskQueue *)own::R(0x25053C0); }          // pool: + 0x898, 5 x 0x1C
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x25053D0); }           // pool: magic buffer, 1 x 0x898
 
 	static const uint32_t ORIG_RootTask = 0x65DBE0;
 	static const uint32_t ORIG_MainTask = 0x65DDA0;
@@ -90,6 +95,48 @@ namespace counter319
 	static const uint32_t SEQ_Sprite = 0xFF12E0;         // sprite sequence
 	static const void *const SOUND = (const void *)0xFF75CC;
 	static const int16_t *const OFFSETS = (const int16_t *)0xFF7780; // three vectors of 4 words (through M)
+
+	static const uint32_t ORIG_FileLoader = 0x65DB40, ORIG_Setup = 0x65DB30;
+	static const uint32_t TEXTURE_NAME = 0xFF7798, CAMERA_ANIM = 0xFF75D0;
+	static const uint32_t OFFSETS_TABLE = 0xFF7780, OFFSETS_SIZE = 0x18;   // the three offsets (4 words each)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25053A0)); }     // the effect's file (its TIM)
+	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }   // Magic_TextureOFF_ToEAX1
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_SPIKE = 1, PART_BURST = 2, PART_SPRITES = 3 };
+	struct CounterParams
+	{
+		struct { uint32_t start; } sounds;            // the sound
+		struct { int16_t sound, damage, bones, end; } timing; // the main's ticks: the sound, the damage, the bone scales, its end
+		// the spike (layout A and the spike model): from `start` for ticks + 1 ticks, travelling from the caster's bone to
+		// the target (the weight of the target: tick / ticks), its layout's depth
+		struct { int16_t start, ticks, bone, depth; } spike;
+		struct { int16_t start, ticks, depth; } burst;  // layout B at the target: its ticks, its depth
+		// the sprites around the target: on the ticks first..last every `every` (inside the burst's), count, a random
+		// below 2 x spread - spread on each axis, their ticks (frames), size
+		struct { int16_t first, last, every, count, spread, life, size; } sprites;
+		// the caster's five bones grown back from nothing (after their delays, x / y by grow_x, z by grow_y a tick)
+		struct { int16_t bone[5], delay[5], grow_x, grow_y; } bones;
+		struct { uint32_t spike, burst; } layouts;      // layouts A and B
+		struct { uint32_t spike; } models;              // the spike model
+		struct { uint32_t sprite; } seqs;               // the sprites' flipbook
+		struct { uint32_t offsets; } tables;            // three offsets through the spike's frame (the first one used)
+		struct { uint32_t texture_name, camera; } res;  // its resources (data): texture file name, camera track
+	};
+	static const CounterParams GAME = { { 0xFF75CC }, { 1, 0xC, 0x1B, 0x27 }, { 2, 6, 0xD, -0x80 }, { 7, 0x20, -0x80 },
+		{ 15, 21, 2, 4, 0x200, 0xA, 0x1000 }, { { 0xA, 0xD, 0x17, 0x18, 0x19 }, { 0, 8, 0x10, 0x10, 0x10 }, 0x200, 0x400 },
+		{ MODEL_A, MODEL_B }, { PRIM_Spike }, { SEQ_Sprite }, { OFFSETS_TABLE }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static CounterParams live = GAME;
+	static const CounterParams &PG() { return live; }
+	// a bone of the caster's skeleton: the parameter, below its bone count (else its last bone)
+	static int32_t CasterBone(int32_t bone)
+	{
+		const uint8_t count = (**(uint8_t ***)(Caster() + 0x64))[0];
+		return bone < 0 ? 0 : bone < count ? bone : count - 1;
+	}
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -255,10 +302,10 @@ namespace counter319
 		FieldFree(0x58);
 	}
 
-	// counters 2..8 (0x65DE69..0x65DE9B): the point L between T and S, weight (c - 2) / 6 of T
+	// counters 2..8 (0x65DE69..0x65DE9B): the point L between T and S, weight (c - 2) / 6 of T (the spike's ticks)
 	static void SpikePoint(const MainNode *m, int32_t c2, int16_t *L)
 	{
-		const uint32_t t = ((uint32_t)c2 << 12) / 6u;
+		const uint32_t t = ((uint32_t)c2 << 12) / (uint32_t)PG().spike.ticks;
 		VecLerp(m->pos, m->spawn, (int32_t)t, (int32_t)(0x1000 - t), L);
 	}
 
@@ -272,7 +319,7 @@ namespace counter319
 		GteSetRotMatrix(&arg->m);
 		GteSetTransVector(&arg->m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = PRIM_Spike;
+		*(uint32_t *)h = fxp::model(PG().models.spike, PRIM_Spike);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -282,8 +329,8 @@ namespace counter319
 	static void SpriteDraw(const int16_t *pos, int16_t frame)
 	{
 		uint8_t *h = AllocHeader(0xB4);
-		TransformCameraByShadowRotation(pos, 0x1000, -0x400);
-		*(uint32_t *)h = SEQ_Sprite;
+		TransformCameraByShadowRotation(pos, PG().sprites.size, -0x400);
+		*(uint32_t *)h = fxp::sequence(PG().seqs.sprite, SEQ_Sprite);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -308,16 +355,17 @@ namespace counter319
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag319_counter_attack_held.inc
 		FX_HELD(held_note_sprite(n, s->pos, s->counter);)
+		FX_PART(PART_SPRITES);
 		SpriteDraw(s->pos, s->counter);
 		s->counter++;
-		return s->counter < 0xA ? 0 : TASK_END;
+		return s->counter < PG().sprites.life ? 0 : TASK_END;
 	}
 
 	// 0x65E4B0: a bone scale task on the caster's skeleton bone `bone` (no pool check: 5 nodes for the 5 calls)
 	static void StartBoneScale(int32_t bone, int16_t delay, int16_t dx, int16_t dy)
 	{
-		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), ORIG_BoneScaleTask);
-		b->bone = **(uint8_t ***)(Caster() + 0x64) + bone * 0x30 + 0x10;
+		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), own::Fn(ORIG_BoneScaleTask));
+		b->bone = **(uint8_t ***)(Caster() + 0x64) + CasterBone(bone) * 0x30 + 0x10;
 		b->delay = delay;
 		b->dx = dx;
 		b->dy = dy;
@@ -331,10 +379,12 @@ namespace counter319
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
+		const CounterParams &g = PG();
 		PrimArg arg;
 		if (m->counter == 2)
 		{
-			GetEffectSpawnPosition(Caster(), 0xD, 0x800, m->spawn);
+			GetEffectSpawnPosition(Caster(), CasterBone(g.spike.bone), 0x800, m->spawn);
+			const int16_t *const OFFSETS = (const int16_t *)fxp::data(g.tables.offsets, OFFSETS_TABLE, OFFSETS_SIZE);
 			int32_t v[3] = { (int32_t)m->pos[0] - m->spawn[0], (int32_t)m->spawn[1] - m->pos[1], (int32_t)m->spawn[2] - m->pos[2] };
 			BuildOrthonormalBasis(v, &m->M);
 			MatrixMulVector(&m->M, OFFSETS, m->off[0]);
@@ -344,8 +394,8 @@ namespace counter319
 			v[2] = 0 - v[2];
 			BuildOrthonormalBasis(v, &m->M2);
 		}
-		const int32_t c2 = m->counter - 2;
-		if ((uint32_t)c2 <= 6)
+		const int32_t c2 = m->counter - g.spike.start;
+		if ((uint32_t)c2 <= (uint32_t)g.spike.ticks)
 		{
 			if (c2 == 0) *(uint32_t *)(Caster() + 0x7C) &= ~2u;
 			int16_t L[4];
@@ -355,50 +405,50 @@ namespace counter319
 			m->M.t[2] = (int32_t)m->off[0][2] + L[2];
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
 			arg.morph = TexBase() + MORPH;
-			arg.depth = -0x80;
+			arg.depth = g.spike.depth;
 			// 30 fps layer: see mag319_counter_attack_held.inc
 			FX_HELD(held_note_main(PLAY_A, n);)
+			FX_PART(PART_SPIKE);
 			prim::play((prim::Layout *)m->layout_a, PrimCallback, (int)&arg, 0);
 			FX_HELD(held_note_main(DRAW_SPIKE, n);)
 			SpikeDraw(&m->M, L, &arg);
 		}
-		const int32_t c7 = m->counter - 7;
-		if ((uint32_t)c7 < 0x20)
+		const int32_t c7 = m->counter - g.burst.start;
+		if ((uint32_t)c7 < (uint32_t)g.burst.ticks)
 		{
 			m->M2.t[0] = (int32_t)m->pos[0] - m->off[0][0];
 			m->M2.t[1] = (int32_t)m->pos[1] - m->off[0][1];
 			m->M2.t[2] = (int32_t)m->pos[2] - m->off[0][2];
 			ComposeAffineTransform(&Camera(), &m->M2, &arg.m);
 			arg.morph = TexBase() + MORPH;
-			arg.depth = -0x80;
+			arg.depth = g.burst.depth;
 			FX_HELD(held_note_main(PLAY_B, n);)
+			FX_PART(PART_BURST);
 			prim::play((prim::Layout *)m->layout_b, PrimCallback, (int)&arg, 0);
-			if ((uint32_t)c7 >= 8 && (uint32_t)c7 < 0xF && !(c7 & 1))
+			const int32_t cs = m->counter - g.sprites.first;
+			if (cs >= 0 && m->counter <= g.sprites.last && cs % g.sprites.every == 0)
 			{
-				for (int k = 4; k != 0; k--)
+				for (int k = g.sprites.count; k > 0; k--)
 				{
-					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 					if (!s) continue;
 					s->counter = 0;
-					s->pos[0] = (int16_t)((CrtRand() & 0x3FF) + m->pos[0] - 0x200);
-					s->pos[1] = (int16_t)((CrtRand() & 0x3FF) + m->pos[1] - 0x200);
-					s->pos[2] = (int16_t)((CrtRand() & 0x3FF) + m->pos[2] - 0x200);
+					const int32_t sp = g.sprites.spread;
+					s->pos[0] = (int16_t)(CrtRand() % (2 * sp) + m->pos[0] - sp);
+					s->pos[1] = (int16_t)(CrtRand() % (2 * sp) + m->pos[1] - sp);
+					s->pos[2] = (int16_t)(CrtRand() % (2 * sp) + m->pos[2] - sp);
 				}
 			}
 		}
-		if (m->counter == 1) BdPlaySE(SOUND, 0, 0x80);
-		if (m->counter == 0xC) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (m->counter == 0x1B)
+		if (m->counter == g.timing.sound) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND), 0, 0x80);
+		if (m->counter == g.timing.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (m->counter == g.timing.bones)
 		{
 			*(uint32_t *)(Caster() + 0x7C) |= 2u;
-			StartBoneScale(0xA, 0, 0x200, 0x400);
-			StartBoneScale(0xD, 8, 0x200, 0x400);
-			StartBoneScale(0x17, 0x10, 0x200, 0x400);
-			StartBoneScale(0x18, 0x10, 0x200, 0x400);
-			StartBoneScale(0x19, 0x10, 0x200, 0x400);
+			for (int k = 0; k < 5; k++) StartBoneScale(g.bones.bone[k], g.bones.delay[k], g.bones.grow_x, g.bones.grow_y);
 		}
 		m->counter++;
-		if (m->counter >= 0x27)
+		if (m->counter >= g.timing.end)
 		{
 			StreamLoad(0x168, TexBase() + STREAM_DEST, 0);
 			return TASK_END;
@@ -433,12 +483,12 @@ namespace counter319
 				InitTaskQueuePool(QBones(), (void *)(TexBase() + POOL_Bones), 0x1C, 5);
 				InitTaskQueuePool(QSprites(), (void *)(TexBase() + POOL_Sprites), 0x18, 0x10);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x223);
 			m->ent = Entity(Ctx()->actions[0].targets[0]);
 			GetDefaultEffectPosition(m->ent, m->pos);
-			DecodeModelPrimLayout(MODEL_A, m->layout_a, 0x368);
-			DecodeModelPrimLayout(MODEL_B, m->layout_b, 0x46C);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.spike, MODEL_A, 0x368), m->layout_a, 0x368);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.burst, MODEL_B, 0x46C), m->layout_b, 0x46C);
 			StreamStateInit((void *)(TexBase() + STREAM_STATE));
 		}
 		int a0, a1, a2;
@@ -458,12 +508,101 @@ namespace counter319
 		r->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x65DB40) and setup (0x65DB30 -> _Init 0x65DB60): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster, the root, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = MagicTextureOff();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		TaskQueue *root = (TaskQueue *)own::R(0x25053E0);
+		InitTaskQueuePool(root, (void *)own::R(0x25053F0), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the sound, the damage; the texture and the camera" },
+			{ PART_SPIKE, "spike", "Spike", "Layout A and the spike model travelling from the caster's bone to the target (the caster's arm object shown)" },
+			{ PART_BURST, "burst", "Burst", "Layout B at the target" },
+			{ PART_SPRITES, "sprites", "Sprites", "Sprites around the target on a few ticks (a flipbook)" },
+			{ 0, "bones", "Arm regrowth", "The caster's arm object hidden and five of its bones grown back from nothing" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+		};
+#define CPF(member) (uint32_t)offsetof(CounterParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "At the sound's tick", CPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.sound", "Sound", "The main's tick of the sound", CPF(timing.sound), fxp::I16, 0, 400 },
+			{ "main", "timing.damage", "Damage", "Its tick the target's damage is shown", CPF(timing.damage), fxp::I16, 0, 400 },
+			{ "main", "timing.bones", "Bones", "Its tick the arm is hidden and its bones grow back", CPF(timing.bones), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick (then the battle file it streams)", CPF(timing.end), fxp::I16, 1, 400 },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", CPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", CPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "spike", "spike.start", "Start", "The main's tick it starts (its points are taken on tick 2)", CPF(spike.start), fxp::I16, 2, 400 },
+			{ "spike", "spike.ticks", "Ticks", "Its travel's ticks (drawn one tick more: from the caster's bone to the target)", CPF(spike.ticks), fxp::I16, 1, 400 },
+			{ "spike", "spike.bone", "Bone", "The caster's bone it starts from", CPF(spike.bone), fxp::I16, 0, 63 },
+			{ "spike", "spike.depth", "Depth", "Its layout's depth offset", CPF(spike.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "spike", "tables.offsets", "Offsets", "Three offsets x / y / z (4 words each) turned along its direction: the first one moves the spike and the burst", CPF(tables.offsets), fxp::Data, 0, 0x7FFFFFFF },
+			{ "spike", "layouts.spike", "Layout", "Layout A", CPF(layouts.spike), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "spike", "models.spike", "Model", "The spike model", CPF(models.spike), fxp::Model, 0, 0x7FFFFFFF },
+			{ "burst", "burst.start", "Start", "The main's tick it starts", CPF(burst.start), fxp::I16, 2, 400 },
+			{ "burst", "burst.ticks", "Ticks", "Its ticks", CPF(burst.ticks), fxp::I16, 0, 400 },
+			{ "burst", "burst.depth", "Depth", "Its layout's depth offset", CPF(burst.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "burst", "layouts.burst", "Layout", "Layout B", CPF(layouts.burst), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sprites", "sprites.first", "First tick", "The main's first tick they appear on (during the burst)", CPF(sprites.first), fxp::I16, 0, 400 },
+			{ "sprites", "sprites.last", "Last tick", "Its last tick they appear on", CPF(sprites.last), fxp::I16, 0, 400 },
+			{ "sprites", "sprites.every", "Every", "Every that many ticks", CPF(sprites.every), fxp::I16, 1, 400 },
+			{ "sprites", "sprites.count", "Count", "How many each time (16 at most alive)", CPF(sprites.count), fxp::I16, 0, 16 },
+			{ "sprites", "sprites.spread", "Scatter", "Around the target: a random below 2 x this - this on each axis", CPF(sprites.spread), fxp::I16, 1, 0x2000 },
+			{ "sprites", "sprites.life", "Life", "Their ticks (their flipbook's frames: 10 at most)", CPF(sprites.life), fxp::I16, 1, 10 },
+			{ "sprites", "sprites.size", "Size", "Their size", CPF(sprites.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "sprites", "seqs.sprite", "Flipbook", "The sprites' flipbook", CPF(seqs.sprite), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bones", "bones.bone[0]", "Bone 1", "The first bone grown back", CPF(bones.bone[0]), fxp::I16, 0, 63 },
+			{ "bones", "bones.bone[1]", "Bone 2", "The second", CPF(bones.bone[1]), fxp::I16, 0, 63 },
+			{ "bones", "bones.bone[2]", "Bone 3", "The third", CPF(bones.bone[2]), fxp::I16, 0, 63 },
+			{ "bones", "bones.bone[3]", "Bone 4", "The fourth", CPF(bones.bone[3]), fxp::I16, 0, 63 },
+			{ "bones", "bones.bone[4]", "Bone 5", "The fifth", CPF(bones.bone[4]), fxp::I16, 0, 63 },
+			{ "bones", "bones.delay[0]", "Delay 1", "The first bone's ticks before it grows", CPF(bones.delay[0]), fxp::I16, 0, 400 },
+			{ "bones", "bones.delay[1]", "Delay 2", "The second's", CPF(bones.delay[1]), fxp::I16, 0, 400 },
+			{ "bones", "bones.delay[2]", "Delay 3", "The third's", CPF(bones.delay[2]), fxp::I16, 0, 400 },
+			{ "bones", "bones.delay[3]", "Delay 4", "The fourth's", CPF(bones.delay[3]), fxp::I16, 0, 400 },
+			{ "bones", "bones.delay[4]", "Delay 5", "The fifth's", CPF(bones.delay[4]), fxp::I16, 0, 400 },
+			{ "bones", "bones.grow_x", "Growth x / y", "Their scale x / y grows by this a tick (up to 0x1000)", CPF(bones.grow_x), fxp::I16, 1, 0x1000, fxp::Scale },
+			{ "bones", "bones.grow_y", "Growth z", "Their scale z grows by this a tick (up to 0x1000)", CPF(bones.grow_y), fxp::I16, 1, 0x1000, fxp::Scale },
+		};
+#undef CPF
+	}
 }
 
 	void register_mag319_counter_attack()
 	{
+		fxp::register_params({ 319, "Counter-attack", &counter319::live, &counter319::GAME, sizeof(counter319::CounterParams),
+		                       counter319::table::PARTS, (int)(sizeof(counter319::table::PARTS) / sizeof(counter319::table::PARTS[0])),
+		                       counter319::table::FIELDS, (int)(sizeof(counter319::table::FIELDS) / sizeof(counter319::table::FIELDS[0])),
+		                       counter319::table::GROUPS, (int)(sizeof(counter319::table::GROUPS) / sizeof(counter319::table::GROUPS[0])) });
+		own::note(counter319::ORIG_FileLoader, (void *)counter319::FileLoader);
+		own::note(counter319::ORIG_Setup, (void *)counter319::Setup);
+		own::note(counter319::ORIG_RootTask, (void *)counter319::RootTask);
 		register_port(counter319::ORIG_RootTask, (void *)counter319::RootTask, "319 RootTask", 319);
+		own::note(counter319::ORIG_MainTask, (void *)counter319::MainTask);
 		register_port(counter319::ORIG_MainTask, (void *)counter319::MainTask, "319 MainTask", 319);
+		own::note(counter319::ORIG_SpriteTask, (void *)counter319::SpriteTask);
 		register_port(counter319::ORIG_SpriteTask, (void *)counter319::SpriteTask, "319 SpriteTask", 319);
 		// 30 fps layer: see mag319_counter_attack_held.inc
 		FX_HELD(register_mag319_held();)

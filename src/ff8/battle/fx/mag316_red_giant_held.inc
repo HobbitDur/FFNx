@@ -44,8 +44,8 @@ namespace redgiant316
 	enum SweepKind { SWEEP_NONE, SWEEP_A, SWEEP_B };
 	static SweepKind SweepOf(int32_t c)
 	{
-		if ((uint32_t)(c - 0x14) < 0x82) return SWEEP_A;
-		if ((uint32_t)(c - 0x96) < 0x96) return SWEEP_B;
+		if ((uint32_t)(c - PG().sweep_a.start) < (uint32_t)PG().sweep_a.ticks) return SWEEP_A;
+		if ((uint32_t)(c - PG().sweep_b.start) < (uint32_t)PG().sweep_b.ticks) return SWEEP_B;
 		return SWEEP_NONE;
 	}
 
@@ -144,13 +144,13 @@ namespace redgiant316
 			const uint32_t verts = var<uint32_t>(0x1D98B3C);
 			memcpy(g_held_verts, g_verts_drawn, VERTS_ENG);
 			var<uint32_t>(0x1D98B3C) = (uint32_t)g_held_verts;
-			SweepA(ent, level, PAGE_MOVE, CLUT_MOVE, PacketCursor());
+			SweepA(ent, level, PG().sweep.page, PG().sweep.clut, PacketCursor());
 			var<uint32_t>(0x1D98B3C) = verts;
 		}
 		else
 		{
 			memcpy(g_held_verts, g_verts_drawn, VERTS_MOD);
-			SweepB((MainNode *)g_main, ent, (uint32_t)g_held_verts, level, PAGE_MOVE, CLUT_MOVE);
+			SweepB((MainNode *)g_main, ent, (uint32_t)g_held_verts, level, PG().sweep.page, PG().sweep.clut);
 		}
 		g_drawing = false;
 		FrameArena() = frame;
@@ -167,7 +167,7 @@ namespace redgiant316
 		{
 			Particle &p = g_held_main.parts[k];
 			if (p.life == 0 || p.life == 1) continue;
-			for (int a = 0; a < 3; a++) p.pos[a] = lerp16(p.pos[a], (int16_t)(p.pos[a] + (int16_t)(p.vel[a] << 2)), num, den);
+			for (int a = 0; a < 3; a++) p.pos[a] = lerp16(p.pos[a], (int16_t)(p.pos[a] + (int16_t)(p.vel[a] * PG().particles.speed)), num, den);
 		}
 		Particles(&g_held_main);
 	}

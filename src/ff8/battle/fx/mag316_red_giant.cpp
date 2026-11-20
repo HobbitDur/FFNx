@@ -52,6 +52,11 @@
 // no IDB start) in Krysta 318's: both ported here. The polygon / vertex draws 0x661720 / 0x661EB0 and 0x662630 have no IDB start.
 // NEVER-WRITTEN STACK WORDS: none read. Sweep A's vertex entries keep the scratch's bytes +6 / +7 when the vertex is behind
 // the camera (only the depth word is cleared), B's keep +7 always and +6 then: the polygon tests read them (as vanilla).
+// FUJIN: Fujin's described Red Giant death (effect_316.json) runs this code: its memory through own::R() (fx_port.h; the
+// colour target 0x2505570, never written, too), its spawns through own::Fn(), the file loader (0x6610C0) and the setup
+// (0x6610B0 -> _Init 0x6610E0) ported below; its parameters (RedGiantParams: the sounds and the main's ticks, the screen
+// flash, the two light sweeps (windows, levels, the texture moves), the colour fade, the particles; their flipbook, the
+// exe's TIM, the texture name and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -66,15 +71,15 @@ namespace redgiant316
 	using namespace msweep;
 
 	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2505520); }        // the effect's file (its TIM)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2505524); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505528); }        // caster entity (setup)
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505530; }           // pool: magic buffer, 1 x 0x81C
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x2505540; }           // pool 0x2505550, 1 x 0x14
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2505564); }
-	inline uint32_t &Lcg() { return var<uint32_t>(0x2505568); }
-	inline uint32_t &Flash() { return var<uint32_t>(0x250556C); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505574); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2505520)); }        // the effect's file (its TIM)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2505524)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2505528)); }        // caster entity (setup)
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2505530); }           // pool: magic buffer, 1 x 0x81C
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x2505540); }           // pool 0x2505550, 1 x 0x14
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2505564)); }
+	inline uint32_t &Lcg() { return var<uint32_t>(own::R(0x2505568)); }
+	inline uint32_t &Flash() { return var<uint32_t>(own::R(0x250556C)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2505574)); }        // Magic_TextureOFF (magic buffer)
 
 	static const uint32_t ORIG_Setup = 0x6610B0, ORIG_FileLoader = 0x6610C0;
 	static const uint32_t ORIG_RootTask = 0x661190;
@@ -89,6 +94,36 @@ namespace redgiant316
 	static const uint32_t VERTS_B = 0x81C;              // magic buffer: sweep B's vertices
 	static const uint32_t ARENA_A = 0x881C, ARENA_B = 0x1881C;
 	static const int16_t PAGE_MOVE = 0xB, CLUT_MOVE = 0x414;
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_SWEEP_A = 1, PART_SWEEP_B = 2, PART_PARTICLES = 3 };
+	struct RedGiantParams
+	{
+		struct { uint32_t start, voice; } sounds;      // the sound, the voice (its slot claimed at the start)
+		struct { int16_t sound, release, end; } timing; // the main's ticks: the sound, the voice released, its end
+		struct { int16_t ramp, level; } flash;        // the screen flash: up / down over `ramp` ticks, its level between
+		// the light level both sweeps measure the caster's vertices against (grey = (y - level) / 4 + 0x40), its top, the
+		// texture page / CLUT moves of the lit polygons
+		struct { int16_t top, page, clut; } sweep;
+		// sweep A (falling): its ticks, the level falling by range over `fall` ticks (then held)
+		struct { int16_t start, ticks, range, fall; } sweep_a;
+		// sweep B (rising, its lit polygons throwing particles): its ticks (the level rising by range over them)
+		struct { int16_t start, ticks, range; } sweep_b;
+		struct { int16_t start, ticks, alpha; } fade;  // the caster's colour faded to black: its ticks, its byte +0x2F
+		// the particles thrown by sweep B's lit polygons: the chance (of 0x8000), their ticks, size (+ a random below 8),
+		// their velocity's scale a tick
+		struct { int16_t chance, life, size, speed; } particles;
+		struct { uint32_t particle; } seqs;             // the particles' flipbook
+		struct { uint32_t tim, texture_name, camera; } res; // its resources (data): the exe's TIM, texture file name, camera track
+	};
+	static const RedGiantParams GAME = { { 0x1005D50, 0x1005D54 }, { 0x2D, 0x134, 0x138 }, { 8, 1000 }, { 0x200, PAGE_MOVE, CLUT_MOVE },
+		{ 0x14, 0x82, 4000, 0x64 }, { 0x96, 0x96, 4000 }, { 0x96, 0x8C, 0x32 }, { 0x800, 0xB, 0x400, 4 }, { SEQ_Particle },
+		{ TIM_Exe, TEXTURE_NAME, CAMERA } };
+	static RedGiantParams live = GAME;
+	static const RedGiantParams &PG() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h / fx_model_sweep.h
 	inline void FillDwords(void *dst, uint32_t value, uint32_t dwords) { fn<void (__cdecl *)(void *, uint32_t, uint32_t)>(0x6DA380)(dst, value, dwords); } // Effect_FillDwords
@@ -187,8 +222,8 @@ namespace redgiant316
 		m->next = s < &m->parts[0x7F] ? s + 1 : &m->parts[0];
 		*(uint32_t *)&s->pos[0] = F<uint32_t>(h, 0x7C);
 		*(uint32_t *)&s->pos[2] = F<uint32_t>(h, 0x80);
-		s->life = 0xB;
-		s->size = (int16_t)((Rand15() >> 0xC) + 0x400);
+		s->life = PG().particles.life;
+		s->size = (int16_t)((Rand15() >> 0xC) + PG().particles.size);
 		s->vel[0] = (int8_t)((Rand15() >> 0xD) - 2);
 		s->vel[1] = (int8_t)(0xFD - (Rand15() >> 0xB));
 		s->vel[2] = (int8_t)((Rand15() >> 0xD) - 2);
@@ -199,7 +234,7 @@ namespace redgiant316
 	{
 		// 30 fps layer: see mag316_red_giant_held.inc
 		FX_HELD(if (held_drawing()) return;)
-		if (Rand15() >= 0x800) return;
+		if (Rand15() >= PG().particles.chance) return;
 		F<int16_t>(h, 0x7C) = (int16_t)(((int32_t)F<int16_t>(h, 0x44) + F<int16_t>(h, 0x34) + F<int16_t>(h, 0x24)) / 3);
 		F<int16_t>(h, 0x7E) = (int16_t)(((int32_t)F<int16_t>(h, 0x46) + F<int16_t>(h, 0x36) + F<int16_t>(h, 0x26)) / 3);
 		F<int16_t>(h, 0x80) = (int16_t)(((int32_t)F<int16_t>(h, 0x48) + F<int16_t>(h, 0x38) + F<int16_t>(h, 0x28)) / 3);
@@ -210,7 +245,7 @@ namespace redgiant316
 	{
 		// 30 fps layer: see mag316_red_giant_held.inc
 		FX_HELD(if (held_drawing()) return;)
-		if (Rand15() >= 0x800) return;
+		if (Rand15() >= PG().particles.chance) return;
 		F<int16_t>(h, 0x7C) = (int16_t)(((int32_t)F<int16_t>(h, 0x54) + F<int16_t>(h, 0x44) + F<int16_t>(h, 0x34) + F<int16_t>(h, 0x24)) / 4);
 		F<int16_t>(h, 0x7E) = (int16_t)(((int32_t)F<int16_t>(h, 0x56) + F<int16_t>(h, 0x46) + F<int16_t>(h, 0x36) + F<int16_t>(h, 0x26)) / 4);
 		F<int16_t>(h, 0x80) = (int16_t)(((int32_t)F<int16_t>(h, 0x58) + F<int16_t>(h, 0x48) + F<int16_t>(h, 0x38) + F<int16_t>(h, 0x28)) / 4);
@@ -478,20 +513,22 @@ namespace redgiant316
 		GteMVMVA_RotV0Tr();
 		GteReadMAC123((int32_t *)(h + 0x98));
 		const int16_t size = p->size;
-		F<uint32_t>(h, 0) = SEQ_Particle;
+		const uint32_t seq = fxp::sequence(PG().seqs.particle, SEQ_Particle);
+		F<uint32_t>(h, 0) = seq;
 		F<int16_t>(h, 0x94) = size;
 		F<int16_t>(h, 0x8C) = size;
 		F<int16_t>(h, 0x84) = size;
-		const uint32_t idx = (var<uint32_t>(SEQ_Particle + 8) & 0xFFFF) - (uint32_t)(int32_t)p->life;
-		const uint32_t rec = (uint32_t)var<uint16_t>(SEQ_Particle + 8 + idx * 2) + SEQ_Particle;
+		const uint32_t idx = (var<uint32_t>(seq + 8) & 0xFFFF) - (uint32_t)(int32_t)p->life;
+		const uint32_t rec = (uint32_t)var<uint16_t>(seq + 8 + idx * 2) + seq;
 		F<uint32_t>(h, 0x2C) = rec;
 		F<uint32_t>(h, 0x30) = var<uint32_t>(rec);
 		F<uint32_t>(h, 0x2C) = rec + 4;
 		PacketCursor() = DrawSprites(h, OT(0x44), 2, PacketCursor(), false);
 		p->life--;
-		p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] << 2));
-		p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->vel[1] << 2));
-		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] << 2));
+		const int32_t speed = PG().particles.speed;
+		p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] * speed));
+		p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->vel[1] * speed));
+		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] * speed));
 	}
 
 	// the particles (0x662720): every live slot, in slot order
@@ -513,16 +550,19 @@ namespace redgiant316
 		FieldFree(0xB4);
 	}
 
-	// sweep levels: A at counter c (0x14..0x95), B at counter c (0x96..0x12B)
+	// sweep levels: A at counter c (0x14..0x95), B at counter c (0x96..0x12B) (the parameters' windows)
 	static int16_t LevelA(int32_t c)
 	{
-		const uint32_t t = (uint32_t)(c - 0x14);
-		return t < 0x64 ? (int16_t)(0x200 - (int32_t)(t * 4000u / 100u)) : (int16_t)-0xDA0;
+		const RedGiantParams &g = PG();
+		const uint32_t t = (uint32_t)(c - g.sweep_a.start), range = (uint32_t)(int32_t)g.sweep_a.range;
+		return t < (uint32_t)g.sweep_a.fall ? (int16_t)(g.sweep.top - (int32_t)(t * range / (uint32_t)g.sweep_a.fall))
+		                                    : (int16_t)(g.sweep.top - (int32_t)range);
 	}
 	static int16_t LevelB(int32_t c)
 	{
-		const uint32_t t = (uint32_t)(c - 0x96);
-		return (int16_t)(0x200 - (int32_t)((600000u - t * 4000u) / 150u));
+		const RedGiantParams &g = PG();
+		const uint32_t t = (uint32_t)(c - g.sweep_b.start), range = (uint32_t)(int32_t)g.sweep_b.range, ticks = (uint32_t)g.sweep_b.ticks;
+		return (int16_t)(g.sweep.top - (int32_t)((range * ticks - t * range) / ticks));
 	}
 
 	// ------------------------------------------------------------------
@@ -531,8 +571,9 @@ namespace redgiant316
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
+		const RedGiantParams &g = PG();
 		const int16_t c = m->counter;
-		if (c >= 0x138)
+		if (c >= g.timing.end)
 		{
 			*(uint16_t *)Caster() &= 0xFFF7;
 			*(uint32_t *)(Caster() + 0x2C) = m->colour;
@@ -541,39 +582,42 @@ namespace redgiant316
 			*(uint16_t *)Entity(2) &= 0xFFFB;
 			return TASK_END;
 		}
-		if (c < 8) Flash() = (uint32_t)(mul32(c, 1000) >> 3);
-		else if (c > 0x130) Flash() = (uint32_t)(mul32(0x138 - c, 1000) >> 3);
-		else Flash() = 0x3E8;
+		if (c < g.flash.ramp) Flash() = (uint32_t)(mul32(c, g.flash.level) / g.flash.ramp);
+		else if (c > g.timing.end - g.flash.ramp) Flash() = (uint32_t)(mul32(g.timing.end - c, g.flash.level) / g.flash.ramp);
+		else Flash() = (uint32_t)(int32_t)g.flash.level;
 		// 30 fps layer: see mag316_red_giant_held.inc
 		FX_HELD(held_note_main(m);)
-		if ((uint32_t)(c - 0x14) < 0x82)
+		if ((uint32_t)(c - g.sweep_a.start) < (uint32_t)g.sweep_a.ticks)
 		{
-			SweepA(Caster(), LevelA(c), PAGE_MOVE, CLUT_MOVE, PacketCursor());
+			FX_PART(PART_SWEEP_A);
+			SweepA(Caster(), LevelA(c), g.sweep.page, g.sweep.clut, PacketCursor());
 			*Caster() |= 4;
 		}
-		if ((uint32_t)(c - 0x96) < 0x96)
+		if ((uint32_t)(c - g.sweep_b.start) < (uint32_t)g.sweep_b.ticks)
 		{
-			SweepB(m, Caster(), TexBase() + VERTS_B, LevelB(c), PAGE_MOVE, CLUT_MOVE);
+			FX_PART(PART_SWEEP_B);
+			SweepB(m, Caster(), TexBase() + VERTS_B, LevelB(c), g.sweep.page, g.sweep.clut);
 			*Caster() |= 4;
 		}
-		const uint32_t t3 = (uint32_t)(m->counter - 0x96);
-		if (t3 < 0x8C)
+		const uint32_t t3 = (uint32_t)(m->counter - g.fade.start);
+		if (t3 < (uint32_t)g.fade.ticks)
 		{
-			const int32_t w = (int32_t)((t3 << 12) / 140u);
-			ColourLerp(&m->colour, COLOUR_Target, 0x1000 - w, w, Caster() + 0x2C);
-			Caster()[0x2F] = 0x32;
+			const int32_t w = (int32_t)((t3 << 12) / (uint32_t)g.fade.ticks);
+			ColourLerp(&m->colour, own::R(COLOUR_Target), 0x1000 - w, w, Caster() + 0x2C);
+			Caster()[0x2F] = (uint8_t)g.fade.alpha;
 		}
 		if (m->counter >= 0x3C) *Caster() |= 8;
 		// 30 fps layer: see mag316_red_giant_held.inc
 		FX_HELD(held_note_particles(m);)
+		FX_PART(PART_PARTICLES);
 		Particles(m);
-		if (m->counter == 0x2D)
+		if (m->counter == g.timing.sound)
 		{
-			BdPlaySE(SOUND_Start, 0, 0x80);
+			BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
 			m->counter++;
 			return 0;
 		}
-		if (m->counter == 0x134) ReleaseVoice(m->voice);
+		if (m->counter == g.timing.release) ReleaseVoice(m->voice);
 		m->counter++;
 		return 0;
 	}
@@ -602,9 +646,9 @@ namespace redgiant316
 			r->started = 1;
 			MusicVolumeFade(0xF0);
 			InitTaskQueuePool(QMain(), (void *)TexBase(), 0x81C, 1);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			FillDwords(&m->counter, 0, 0x204);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 			m->next = &m->parts[0];
 			m->colour = *(const uint32_t *)(Caster() + 0x2C);
 			ShowAllPolys(Caster());
@@ -615,11 +659,94 @@ namespace redgiant316
 		r->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x6610C0) and setup (0x6610B0 -> _Init 0x6610E0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIMs, the magic buffer, the context, the caster (flags 0x0C cleared), the root, the
+	// party's normal draw hidden, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		QueueTimUpload(fxp::tim(PG().res.tim, TIM_Exe));
+		TexBase() = MagicTextureOff();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		*(uint16_t *)Caster() &= 0xFFF3;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x2505550), 0x14, 1);
+		FillDwords((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		*(uint16_t *)Entity(0) |= 4;
+		*(uint16_t *)Entity(1) |= 4;
+		*(uint16_t *)Entity(2) |= 4;
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA));
+		return QRoot();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the sound and the voice (claimed at the start, released near the end), the screen flash, the music faded; the TIMs and the camera" },
+			{ PART_SWEEP_A, "sweep_a", "Sweep down", "The caster drawn lit by a light level falling down its body (its vertices grey by their height)" },
+			{ PART_SWEEP_B, "sweep_b", "Sweep up", "The caster drawn by the level rising back, its lit polygons semi-transparent, some throwing particles" },
+			{ 0, "fade", "Colour fade", "The caster's colour faded to black" },
+			{ PART_PARTICLES, "particles", "Particles", "Particles thrown up from sweep B's lit polygons (a flipbook by their life)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+		};
+#define RPF(member) (uint32_t)offsetof(RedGiantParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "At the sound's tick", RPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "sounds.voice", "Voice", "The sound block its voice slot is claimed with (at the start)", RPF(sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.sound", "Sound", "The main's tick of the sound", RPF(timing.sound), fxp::I16, 0, 400 },
+			{ "main", "timing.release", "Voice released", "Its tick the voice slot is released", RPF(timing.release), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick (the caster's colour put back, the party drawn again)", RPF(timing.end), fxp::I16, 1, 400 },
+			{ "main", "flash.ramp", "Flash ramp", "The screen flash's ticks up at the start and down at the end", RPF(flash.ramp), fxp::I16, 1, 400 },
+			{ "main", "flash.level", "Flash level", "The screen flash's level between", RPF(flash.level), fxp::I16, 0, 4000 },
+			{ "main", "res.tim", "Exe TIM", "The image its setup uploads besides the texture file (as it is)", RPF(res.tim), fxp::Tim, 0, 0x7FFFFFFF },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", RPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", RPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "sweep_a", "sweep.top", "Top level", "The light level's top (sweep A starts there, sweep B ends there; y down)", RPF(sweep.top), fxp::I16, -0x4000, 0x4000 },
+			{ "sweep_a", "sweep.page", "Page move", "The lit polygons' texture page word moved by this (both sweeps)", RPF(sweep.page), fxp::I16, -0x400, 0x400 },
+			{ "sweep_a", "sweep.clut", "CLUT move", "Their CLUT word moved by this (both sweeps)", RPF(sweep.clut), fxp::I16, -0x8000, 0x7FFF },
+			{ "sweep_a", "sweep_a.start", "Start", "The main's tick it starts", RPF(sweep_a.start), fxp::I16, 0, 400 },
+			{ "sweep_a", "sweep_a.ticks", "Ticks", "Its ticks", RPF(sweep_a.ticks), fxp::I16, 0, 400 },
+			{ "sweep_a", "sweep_a.range", "Fall", "The level falls by this from the top", RPF(sweep_a.range), fxp::I16, 0, 0x4000 },
+			{ "sweep_a", "sweep_a.fall", "Fall ticks", "Over that many ticks (then it holds)", RPF(sweep_a.fall), fxp::I16, 1, 400 },
+			{ "sweep_b", "sweep_b.start", "Start", "The main's tick it starts", RPF(sweep_b.start), fxp::I16, 0, 400 },
+			{ "sweep_b", "sweep_b.ticks", "Ticks", "Its ticks (the level rises back to the top over them)", RPF(sweep_b.ticks), fxp::I16, 1, 400 },
+			{ "sweep_b", "sweep_b.range", "Rise", "The level rises by this to the top", RPF(sweep_b.range), fxp::I16, 0, 0x4000 },
+			{ "fade", "fade.start", "Start", "The main's tick it starts", RPF(fade.start), fxp::I16, 0, 400 },
+			{ "fade", "fade.ticks", "Ticks", "Its ticks", RPF(fade.ticks), fxp::I16, 1, 400 },
+			{ "fade", "fade.alpha", "Alpha byte", "The caster's byte +0x2F while it fades", RPF(fade.alpha), fxp::I16, 0, 0xFF },
+			{ "particles", "particles.chance", "Chance", "A lit polygon throws one when a random below 0x8000 is below this", RPF(particles.chance), fxp::I16, 0, 0x7FFF },
+			{ "particles", "particles.life", "Life", "Their ticks (below their flipbook's frame count: 11 at most)", RPF(particles.life), fxp::I16, 1, 11 },
+			{ "particles", "particles.size", "Size", "Their size (+ a random below 8)", RPF(particles.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "particles", "particles.speed", "Speed", "Their velocity's scale a tick", RPF(particles.speed), fxp::I16, -64, 64 },
+			{ "particles", "seqs.particle", "Flipbook", "The particles' flipbook", RPF(seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef RPF
+	}
 }
 
 	void register_mag316_red_giant()
 	{
+		fxp::register_params({ 316, "Red Giant death", &redgiant316::live, &redgiant316::GAME, sizeof(redgiant316::RedGiantParams),
+		                       redgiant316::table::PARTS, (int)(sizeof(redgiant316::table::PARTS) / sizeof(redgiant316::table::PARTS[0])),
+		                       redgiant316::table::FIELDS, (int)(sizeof(redgiant316::table::FIELDS) / sizeof(redgiant316::table::FIELDS[0])),
+		                       redgiant316::table::GROUPS, (int)(sizeof(redgiant316::table::GROUPS) / sizeof(redgiant316::table::GROUPS[0])) });
+		own::note(redgiant316::ORIG_FileLoader, (void *)redgiant316::FileLoader);
+		own::note(redgiant316::ORIG_Setup, (void *)redgiant316::Setup);
+		own::note(redgiant316::ORIG_RootTask, (void *)redgiant316::RootTask);
 		register_port(redgiant316::ORIG_RootTask, (void *)redgiant316::RootTask, "316 RootTask", 316);
+		own::note(redgiant316::ORIG_MainTask, (void *)redgiant316::MainTask);
 		register_port(redgiant316::ORIG_MainTask, (void *)redgiant316::MainTask, "316 MainTask", 316);
 		// 30 fps layer: see mag316_red_giant_held.inc
 		FX_HELD(register_mag316_held();)

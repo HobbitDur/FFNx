@@ -53,6 +53,12 @@
 // are ported in fx_model_sweep.h; this module's 0x663760 is used by 316 (also there); 0x662C00 is called by Griever's 064 too.
 // NEVER-WRITTEN STACK WORDS: none read (0x662C00's second path reads its stack arrays only at entries written for a parent
 // bone, which precedes its children in the skeletons).
+// FUJIN: Fujin's described Abadon death (effect_314.json) runs this code: its memory through own::R() (fx_port.h; the
+// colour target 0x25055D8, never written, too), its spawns through own::Fn(), the file loader (0x6628A0) and the setup
+// (0x662890 -> _Init 0x6628C0) ported below; its parameters (AbadonParams: the sounds and the main's ticks, the screen
+// flash, the light sweep, the colour fade, the bone scripts' tick, the white tiles, the sparks, the dust, the shards, the
+// particles; the particles' 4 flipbooks, the 29 bone scripts' byte code (one table), the texture name and the camera
+// track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -67,16 +73,16 @@ namespace abadon314
 	using namespace msweep;
 
 	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2505578); }        // the effect's file (its TIM)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x250557C); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505580); }        // caster entity (setup); lower half at + 0x9C
-	inline TaskQueue *QScripts() { return (TaskQueue *)0x2505588; }        // pool: magic buffer, 0x38 x 0x30
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505598; }           // pool: + 0xA80, 1 x 0x4C28
-	inline TaskQueue *QRoot() { return (TaskQueue *)0x25055A8; }           // pool 0x25055B8, 1 x 0x14
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25055CC); }
-	inline uint32_t &Lcg() { return var<uint32_t>(0x25055D0); }
-	inline uint32_t &Flash() { return var<uint32_t>(0x25055D4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25055DC); }        // Magic_TextureOFF (magic buffer)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2505578)); }        // the effect's file (its TIM)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x250557C)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2505580)); }        // caster entity (setup); lower half at + 0x9C
+	inline TaskQueue *QScripts() { return (TaskQueue *)own::R(0x2505588); }        // pool: magic buffer, 0x38 x 0x30
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2505598); }           // pool: + 0xA80, 1 x 0x4C28
+	inline TaskQueue *QRoot() { return (TaskQueue *)own::R(0x25055A8); }           // pool 0x25055B8, 1 x 0x14
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25055CC)); }
+	inline uint32_t &Lcg() { return var<uint32_t>(own::R(0x25055D0)); }
+	inline uint32_t &Flash() { return var<uint32_t>(own::R(0x25055D4)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25055DC)); }        // Magic_TextureOFF (magic buffer)
 
 	static const uint32_t ORIG_Setup = 0x662890, ORIG_FileLoader = 0x6628A0;
 	static const uint32_t ORIG_RootTask = 0x662970;
@@ -96,6 +102,46 @@ namespace abadon314
 		0x101AA50, 0x101AAB0, 0x101AA7C, 0x101AADC, 0x101AB08, 0x101AB34, 0x101AB64, 0x101AB94, 0x101ABC0, 0x101ABEC,
 		0x101AC18, 0x101AC38, 0x101AC64, 0x101AC90, 0x101ACB0, 0x101ACDC, 0x101AD08, 0x101AD28, 0x101AD58, 0x101AD88,
 		0x101ADB4, 0x101ADE0, 0x101AE0C, 0x101AE2C, 0x101AE58, 0x101AE84, 0x101AEA4, 0x101AED0, 0x101AEFC };
+
+	static const uint32_t SCRIPT_TABLE = 0x101AA50, SCRIPT_TABLE_SIZE = 0x4CC;   // the 29 bone scripts (0x101AA50..0x101AF1C)
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_SWEEP = 1, PART_BODY = 2, PART_TILES = 3, PART_PARTICLES = 4, PART_SHARDS = 5 };
+	struct AbadonParams
+	{
+		struct { uint32_t start, voice; } sounds;      // the sound, the voice (its slot claimed at the start)
+		struct { int16_t sound, release, end; } timing; // the main's ticks: the sound, the voice released, its end
+		struct { int16_t ramp, level; } flash;        // the screen flash: up / down over `ramp` ticks, its level between
+		// the light sweep: its ticks, the level falling from `top` by range over them; the texture page / CLUT moves (of
+		// the swept, the scripted body's and the shards' polygons)
+		struct { int16_t start, ticks, top, range, page, clut; } sweep;
+		struct { int16_t start, ticks, alpha; } fade;  // both halves' colours faded to black: its ticks, their byte +0x2F
+		struct { int16_t start; } scripts;             // the bone scripts started (and the body drawn from then on)
+		// the white tiles: three windows of `ticks` ticks, colour, the tile's ramp in / out
+		struct { int16_t start[3], ticks, r, g, b, in, out; } tiles;
+		// the sparks at random bones on the first ticks: count a tick, their ticks, size (+ a random below 0x800)
+		struct { int16_t ticks, count, life, size; } sparks;
+		// the dust where a scripted bone first bounces: count, ticks, size (+ a random below 0x800), scatter
+		struct { int16_t count, life, size, spread; } dust;
+		// the shard sweep: its ticks, the level's base (rising), the velocity mask, life (+ a random below 8), the chance
+		// (of 0x8000) a shard throws a particle, the 64 spin matrices' angles (a random below 2 x spin - spin) and scale
+		// (this - a random below 0x200)
+		struct { int16_t start, ticks, base, spread, life, chance, spin, scale; } shards;
+		struct { int16_t shard_life, speed; } particles; // the shards' particles' ticks; every particle's velocity scale
+		struct { uint32_t s[4]; } seqs;                 // the particles' flipbooks: dust, shard particles, sparks A / B
+		struct { uint32_t scripts; } tables;            // the 29 bone scripts (byte code: their loop counters are written)
+		struct { uint32_t texture_name, camera; } res; // its resources (data): texture file name, camera track
+	};
+	static const AbadonParams GAME = { { 0x101619C, 0x10161A0 }, { 1, 0xDE, 0xE2 }, { 8, 1000 },
+		{ 0x10, 0x32, 0x200, 4200, PAGE_MOVE, CLUT_MOVE }, { 0x51, 0x10, 0x32 }, { 0x42 },
+		{ { 0, 0xF, 0x13 }, 5, 0xFF, 0x80, 0x80, 1, 4 }, { 0x10, 8, 0xF, 0x200 }, { 0x10, 0xC, 0xC00, 0x400 },
+		{ 0x64, 0x6F, 0x400, 0x7F, 4, 0x2000, 0x100, 0xF00 }, { 0xB, 4 },
+		{ { 0x10162C4, 0x1016424, 0x1016568, 0x1016714 } }, { SCRIPT_TABLE }, { TEXTURE_NAME, CAMERA } };
+	static AbadonParams live = GAME;
+	static const AbadonParams &PG() { return live; }
 
 	// engine functions not in fx_port.h / mag_common.h / fx_model_sweep.h
 	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }                                // Magic_TextureOFF_ToEAX1
@@ -591,7 +637,7 @@ namespace abadon314
 		*(uint32_t *)&p->pos[0] = *(const uint32_t *)&s->pos[0];
 		*(uint32_t *)&p->pos[2] = *(const uint32_t *)&s->pos[2];
 		*(uint32_t *)&p->vel[0] = 0;
-		p->life = 0xB;
+		p->life = PG().particles.shard_life;
 		p->size = 0x1000;
 		p->vel[0] = 0;
 		p->vel[1] = (int8_t)-(int8_t)(Rand15() & 7);
@@ -674,7 +720,7 @@ namespace abadon314
 					const int32_t r1 = Rand15() & sp;
 					s->vel[2] = (int16_t)-(r1 + (int16_t)((int16_t)F<int16_t>(h, 0x16) >> 1));
 					s->vel[1] = (int16_t)(-(Rand15() & (int32_t)F<int16_t>(h, 0x16)) >> 1);
-					s->life = (int16_t)((Rand15() & 7) + 4);
+					s->life = (int16_t)((Rand15() & 7) + PG().shards.life);
 					s->uv0 = *(const uint32_t *)(p + 8);
 					s->uv1 = *(const uint32_t *)(p + 0xC);
 					s->uv2 = *(const uint16_t *)(p + 6);
@@ -682,7 +728,7 @@ namespace abadon314
 					*((uint16_t *)&s->uv0 + 1) = (uint16_t)(*((uint16_t *)&s->uv0 + 1) + F<uint16_t>(h, 0x1A));
 					s->spin = F<uint8_t *>(h, 0x54) + (Rand15() & 0x3F) * 0x14;
 					p[0xF] |= 0x80;
-					if (Rand15() < 0x2000) ShardParticle(m, s);
+					if (Rand15() < PG().shards.chance) ShardParticle(m, s);
 				}
 			}
 			p += 0x10;
@@ -727,7 +773,7 @@ namespace abadon314
 					s->vel[0] = (int16_t)((Rand15() & (uint16_t)sp) - (int16_t)(sp >> 1));
 					s->vel[2] = (int16_t)-(int32_t)((Rand15() & (uint16_t)sp) + (int16_t)(sp >> 1));
 					s->vel[1] = (int16_t)-(int16_t)(Rand15() & (uint16_t)F<int16_t>(h, 0x16));
-					s->life = (int16_t)((Rand15() & 7) + 4);
+					s->life = (int16_t)((Rand15() & 7) + PG().shards.life);
 					s->uv0 = *(const uint32_t *)(p + 8);
 					s->uv1 = *(const uint32_t *)(p + 0xC);
 					s->uv2 = *(const uint16_t *)(p + 0x10);
@@ -736,7 +782,7 @@ namespace abadon314
 					*((uint16_t *)&s->uv0 + 1) = (uint16_t)(*((uint16_t *)&s->uv0 + 1) + F<uint16_t>(h, 0x1A));
 					s->spin = F<uint8_t *>(h, 0x54) + (Rand15() & 0x3F) * 0x14;
 					p[0xF] |= 0x80;
-					if (Rand15() < 0x2000) ShardParticle(m, s);
+					if (Rand15() < PG().shards.chance) ShardParticle(m, s);
 				}
 			}
 			p += 0x14;
@@ -945,7 +991,8 @@ namespace abadon314
 		F<int16_t>(h, 0x94) = size;
 		F<int16_t>(h, 0x8C) = size;
 		F<int16_t>(h, 0x84) = size;
-		const uint32_t seq = var<uint32_t>(SEQUENCES + (int32_t)p->seq * 4);
+		const uint32_t game_seq = var<uint32_t>(SEQUENCES + (int32_t)p->seq * 4);
+		const uint32_t seq = (uint32_t)p->seq < 4 ? fxp::sequence(PG().seqs.s[p->seq], game_seq) : game_seq;
 		F<uint32_t>(h, 0) = seq;
 		const uint32_t idx = (uint32_t)var<uint16_t>(seq + 8) - (uint32_t)(int32_t)p->life;
 		const uint32_t rec = seq + var<uint16_t>(seq + idx * 2 + 8);
@@ -954,9 +1001,10 @@ namespace abadon314
 		F<uint32_t>(h, 0x2C) = rec + 4;
 		PacketCursor() = DrawSprites(h, OT(0x44), 2, PacketCursor(), true);
 		p->life--;
-		p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] << 2));
-		p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->vel[1] << 2));
-		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] << 2));
+		const int32_t speed = PG().particles.speed;
+		p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] * speed));
+		p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->vel[1] * speed));
+		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] * speed));
 	}
 
 	static void Particles(MainNode *m)
@@ -1037,16 +1085,18 @@ namespace abadon314
 				if (s->bounced) continue;
 				s->bounced = 1;
 				MainNode *m = (MainNode *)(TexBase() + MAIN);
-				Particle *p = AllocParticle(m);
-				for (int left = 0x10; p; )
+				const AbadonParams &g = PG();
+				const int32_t sp = g.dust.spread;
+				Particle *p = g.dust.count > 0 ? AllocParticle(m) : nullptr;
+				for (int left = g.dust.count; p; )
 				{
 					GetEffectSpawnPosition(Caster(), (int32_t)((uint8_t *)s->cur - (uint8_t *)s->pose) >> 4, CrtRand() & 0xFFF, p);
-					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)((CrtRand() & 0x7FF) + e->pos[0] - 0x400));
+					p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(CrtRand() % (2 * sp) + e->pos[0] - sp));
 					p->pos[1] = (int16_t)(p->pos[1] + e->pos[1]);
-					const int16_t dz = (int16_t)((CrtRand() & 0x7FF) + e->pos[2]);
-					p->life = 0xC;
-					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(dz - 0x400));
-					p->size = (int16_t)((CrtRand() & 0x7FF) + 0xC00);
+					const int16_t dz = (int16_t)(CrtRand() % (2 * sp) + e->pos[2]);
+					p->life = g.dust.life;
+					p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(dz - sp));
+					p->size = (int16_t)((CrtRand() & 0x7FF) + g.dust.size);
 					p->vel[0] = (int8_t)((CrtRand() & 7) - 4);
 					p->vel[2] = (int8_t)((CrtRand() & 7) - 4);
 					const uint8_t vy = (uint8_t)(0xF8 - (uint8_t)(CrtRand() & 7));
@@ -1097,7 +1147,7 @@ namespace abadon314
 	// 0x664CD0: a bone script moving pose entry script[0]
 	static void StartScript(uint8_t *ent, PoseEntry *pose, const int16_t *script)
 	{
-		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), ORIG_ScriptTask);
+		ScriptNode *s = (ScriptNode *)AddTaskToQueue(QScripts(), own::Fn(ORIG_ScriptTask));
 		Memset32(&s->cur, 0, 9);
 		s->entity = ent;
 		s->pose = pose;
@@ -1105,10 +1155,14 @@ namespace abadon314
 		s->ip = script + 1;
 	}
 
-	// sweep A level at counter c (0x10..0x41)
-	static int16_t LevelA(int32_t c) { return (int16_t)(0x200 - (int32_t)((uint32_t)(c - 0x10) * 4200u / 50u)); }
-	// shard sweep level at counter c (0x64..0xD2)
-	static int16_t LevelShards(int32_t c) { return (int16_t)(mul32(3 * (c - 0x64) - 0x14A, 1000) / 110 + 0x400); }
+	// sweep A level at counter c (0x10..0x41: the parameters' window)
+	static int16_t LevelA(int32_t c)
+	{
+		const AbadonParams &g = PG();
+		return (int16_t)(g.sweep.top - (int32_t)((uint32_t)(c - g.sweep.start) * (uint32_t)(int32_t)g.sweep.range / (uint32_t)g.sweep.ticks));
+	}
+	// shard sweep level at counter c (0x64..0xD2: the parameters' window)
+	static int16_t LevelShards(int32_t c) { return (int16_t)(mul32(3 * (c - PG().shards.start) - 0x14A, 1000) / 110 + PG().shards.base); }
 
 	// ------------------------------------------------------------------
 	// Main task (0x662F40)
@@ -1116,8 +1170,9 @@ namespace abadon314
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
+		const AbadonParams &g = PG();
 		const int16_t c = m->counter;
-		if (c >= 0xE2)
+		if (c >= g.timing.end)
 		{
 			*(uint16_t *)Caster() &= 0xFFF7;
 			*(uint16_t *)(Caster() + 0x9C) &= 0xFFF7;
@@ -1130,46 +1185,54 @@ namespace abadon314
 			*(uint16_t *)Entity(2) &= 0xFFFB;
 			return TASK_END;
 		}
-		if (c < 8) Flash() = (uint32_t)(mul32(c, 1000) >> 3);
-		else if (c > 0xDA) Flash() = (uint32_t)(mul32(0xE2 - c, 1000) >> 3);
-		else Flash() = 0x3E8;
+		if (c < g.flash.ramp) Flash() = (uint32_t)(mul32(c, g.flash.level) / g.flash.ramp);
+		else if (c > g.timing.end - g.flash.ramp) Flash() = (uint32_t)(mul32(g.timing.end - c, g.flash.level) / g.flash.ramp);
+		else Flash() = (uint32_t)(int32_t)g.flash.level;
 		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(held_note_main(m);)
-		if ((uint32_t)(m->counter - 0x10) < 0x32)
+		if ((uint32_t)(m->counter - g.sweep.start) < (uint32_t)g.sweep.ticks)
 		{
-			SweepA(Caster(), LevelA(m->counter), PAGE_MOVE, CLUT_MOVE, PacketCursor());
+			FX_PART(PART_SWEEP);
+			SweepA(Caster(), LevelA(m->counter), g.sweep.page, g.sweep.clut, PacketCursor());
 			*Caster() |= 4;
 		}
-		const uint32_t t = (uint32_t)(m->counter - 0x51);
-		if (t < 0x10)
+		const uint32_t t = (uint32_t)(m->counter - g.fade.start);
+		if (t < (uint32_t)g.fade.ticks)
 		{
-			const int32_t w = (int32_t)((t & 0xFFFFF) << 8);
+			const int32_t w = (int32_t)((t << 12) / (uint32_t)g.fade.ticks);
 			for (int k = 0; k < 2; k++)
 			{
-				ColourLerp(&m->colour[k], COLOUR_Target, 0x1000 - w, w, Caster() + k * 0x9C + 0x2C);
-				Caster()[k * 0x9C + 0x2F] = 0x32;
+				ColourLerp(&m->colour[k], own::R(COLOUR_Target), 0x1000 - w, w, Caster() + k * 0x9C + 0x2C);
+				Caster()[k * 0x9C + 0x2F] = (uint8_t)g.fade.alpha;
 			}
 		}
-		if (m->counter == 0x42)
-			for (int k = 0; k < 29; k++) StartScript(Caster(), m->pose, (const int16_t *)SCRIPTS[k]);
-		if (m->counter >= 0x42)
+		if (m->counter == g.scripts.start)
+		{
+			const uint32_t table = fxp::data(g.tables.scripts, SCRIPT_TABLE, SCRIPT_TABLE_SIZE);
+			for (int k = 0; k < 29; k++) StartScript(Caster(), m->pose, (const int16_t *)(table + (SCRIPTS[k] - SCRIPT_TABLE)));
+		}
+		if (m->counter >= g.scripts.start)
 		{
 			// 30 fps layer: see mag314_abadon_held.inc
 			FX_HELD(held_note_caster(m);)
-			CasterDraw(Caster(), m->pose, PAGE_MOVE, CLUT_MOVE);
+			FX_PART(PART_BODY);
+			CasterDraw(Caster(), m->pose, g.sweep.page, g.sweep.clut);
 			*Caster() |= 4;
 		}
 		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(held_note_tiles(m->counter);)
-		if ((uint32_t)m->counter < 5) PacketCursor() = FlashTile(m->counter, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
-		if ((uint32_t)(m->counter - 0xF) < 5) PacketCursor() = FlashTile(m->counter - 0xF, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
-		if ((uint32_t)(m->counter - 0x13) < 5) PacketCursor() = FlashTile(m->counter - 0x13, 0xFF, 0x80, 0x80, 1, 4, PacketCursor());
+		FX_PART(PART_TILES);
+		for (int k = 0; k < 3; k++)
+			if ((uint32_t)(m->counter - g.tiles.start[k]) < (uint32_t)g.tiles.ticks)
+				PacketCursor() = FlashTile(m->counter - g.tiles.start[k], g.tiles.r, g.tiles.g, g.tiles.b, g.tiles.in, g.tiles.out, PacketCursor());
 		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(held_note_parts(m);)
+		FX_PART(PART_PARTICLES);
 		Particles(m);
+		FX_PART(PART_SHARDS);
 		ShardsDraw(m);
-		if (m->counter == 1) BdPlaySE(SOUND_Start, 0, 0x80);
-		else if (m->counter == 0xDE) ReleaseVoice(m->voice);
+		if (m->counter == g.timing.sound) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Start), 0, 0x80);
+		else if (m->counter == g.timing.release) ReleaseVoice(m->voice);
 		ShardsUpdate(m);
 		if ((uint32_t)m->counter <= 8)
 		{
@@ -1180,30 +1243,33 @@ namespace abadon314
 			}
 		}
 		const int32_t c2 = m->counter;
-		if ((uint32_t)c2 <= 0x10)
+		if ((uint32_t)c2 <= (uint32_t)g.sparks.ticks)
 		{
-			Particle *p = AllocParticle(m);
-			for (int left = 8; p; )
+			Particle *p = g.sparks.count > 0 ? AllocParticle(m) : nullptr;
+			for (int left = g.sparks.count; p; )
 			{
 				uint8_t *ent = Caster();
 				const int32_t bone = CrtRand() % (int32_t)(uint32_t)***(uint8_t ***)(ent + 0x64);
 				GetEffectSpawnPosition(ent, bone, 0, p);
-				p->life = 0xF;
+				p->life = g.sparks.life;
 				const int32_t r = CrtRand();
 				*(uint32_t *)&p->vel[0] = 0;
-				p->size = (int16_t)((r & 0x7FF) + 0x200);
+				p->size = (int16_t)((r & 0x7FF) + g.sparks.size);
 				p->seq = (int8_t)((CrtRand() & 1) + 2);
 				if (--left == 0) break;
 				p = AllocParticle(m);
 			}
+		}
+		if ((uint32_t)c2 <= 0x10)
+		{
 			const int32_t w = (int32_t)(((uint32_t)c2 << 12) >> 4) + 0x80;
-			ColourLerp(&m->tint1, COLOUR_Target, 0x1000 - w, w, Caster() + 0xC4);
+			ColourLerp(&m->tint1, own::R(COLOUR_Target), 0x1000 - w, w, Caster() + 0xC4);
 			Caster()[0xC7] = 2;
 			Caster()[0x9D] |= 8;
 		}
 		if (c2 == 0x10) Caster()[0x9C] |= 4;
-		if ((uint32_t)(m->counter - 0x64) <= 0x6E)
-			ShardSweep(Caster(), m->pose, &m->spins[0][0], LevelShards(m->counter), 0x7F, PAGE_MOVE, CLUT_MOVE);
+		if ((uint32_t)(m->counter - g.shards.start) < (uint32_t)g.shards.ticks)
+			ShardSweep(Caster(), m->pose, &m->spins[0][0], LevelShards(m->counter), g.shards.spread, g.sweep.page, g.sweep.clut);
 		m->counter++;
 		return 0;
 	}
@@ -1233,9 +1299,9 @@ namespace abadon314
 			MusicVolumeFade(0xF0);
 			InitTaskQueuePool(QMain(), (void *)(TexBase() + MAIN), 0x4C28, 1);
 			InitTaskQueuePool(QScripts(), (void *)TexBase(), 0x30, 0x38);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x1307);
-			m->voice = ClaimVoiceSlot(SOUND_Voice, 1, 0x80);
+			m->voice = ClaimVoiceSlot((const void *)fxp::sound(PG().sounds.voice, (uint32_t)SOUND_Voice), 1, 0x80);
 			m->colour[0] = *(const uint32_t *)(Caster() + 0x2C);
 			m->colour[1] = *(const uint32_t *)(Caster() + 0xC8);
 			m->tint1 = *(const uint32_t *)(Caster() + 0xC4);
@@ -1245,16 +1311,18 @@ namespace abadon314
 			for (int k = 0; k < 0x40; k++)
 			{
 				int16_t ang[4];
-				ang[0] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
-				ang[1] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
-				ang[2] = (int16_t)((CrtRand() & 0x1FF) - 0x100);
+				const int32_t spin = PG().shards.spin;
+				ang[0] = (int16_t)(CrtRand() % (2 * spin) - spin);
+				ang[1] = (int16_t)(CrtRand() % (2 * spin) - spin);
+				ang[2] = (int16_t)(CrtRand() % (2 * spin) - spin);
 				BuildRotationMatrixFromAngles(ang, (Mat4x3 *)m->spins[k]);
-				const int32_t s = 0xF00 - (CrtRand() & 0x1FF);
+				const int32_t s = PG().shards.scale - (CrtRand() & 0x1FF);
 				const int32_t sc[3] = { s, s, s };
 				Scale3DMatrix((Mat4x3 *)m->spins[k], sc);
 			}
 		}
-		if (r->started && r->counter < 0xE4)
+		const int32_t stop = PG().timing.end + 2;   // (0xE4: the main's end + 2)
+		if (r->started && r->counter < stop)
 		{
 			ExecuteTaskQueue(QMain());
 			PoseBones(Caster() + 0x60, (const PoseEntry *)(TexBase() + MAIN + 0x20));
@@ -1262,22 +1330,134 @@ namespace abadon314
 			BuildBoneMatricesFromPose(Caster() + 0x60);
 		}
 		SetScreenFlash(Flash(), 0);
-		if (r->counter == 0xE4)
+		if (r->counter == stop)
 		{
 			StreamLoad(0x168, TexBase() + STREAM_DST, 1);
 			StreamLoad(0x169, TexBase() + STREAM_DST, 0);
 		}
 		if (r->started) StreamPump();
-		if (r->counter > 0xE4) return StreamPending(1) ? TASK_END : 0;
+		if (r->counter > stop) return StreamPending(1) ? TASK_END : 0;
 		r->counter++;
 		return 0;
+	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x6628A0) and setup (0x662890 -> _Init 0x6628C0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster (both halves' flags 0x0C cleared), the
+	// root, the party's normal draw hidden, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = MagicTextureOff();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		*(uint16_t *)Caster() &= 0xFFF3;
+		*(uint16_t *)(Caster() + 0x9C) &= 0xFFF3;
+		InitTaskQueuePool(QRoot(), (void *)own::R(0x25055B8), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(QRoot(), own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		*(uint16_t *)Entity(0) |= 4;
+		*(uint16_t *)Entity(1) |= 4;
+		*(uint16_t *)Entity(2) |= 4;
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA));
+		return QRoot();
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the sound and the voice (claimed at the start, released near the end), the screen flash, the music faded; the texture and the camera" },
+			{ PART_SWEEP, "sweep", "Light sweep", "The caster drawn lit by a light level falling down its body (its vertices grey by their height)" },
+			{ 0, "fade", "Colour fade", "Both halves' colours faded to black" },
+			{ 0, "scripts", "Bone scripts", "The 29 bone scripts: each moves a pose entry of the caster's upper body (offsets, turns, their speeds, a bounce on the ground throwing dust once, hiding it), loops" },
+			{ PART_BODY, "body", "Body", "The caster's upper body drawn with the scripts' pose entries" },
+			{ PART_TILES, "tiles", "White tiles", "Full-screen tiles flashing in three windows" },
+			{ PART_PARTICLES, "sparks", "Sparks", "Sparks at random bones of the caster on the first ticks (flipbooks C and D)" },
+			{ 0, "dust", "Dust", "Dust where a scripted bone first bounces on the ground (flipbook A)" },
+			{ PART_SHARDS, "shards", "Shards", "The body's polygons above a rising level leaving it as spinning shards, some throwing a particle" },
+			{ 0, "particles", "Particles", "Every particle (sparks, dust, the shards'): its flipbooks, its speed; the shards' particles' life" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+		};
+#define APF(member) (uint32_t)offsetof(AbadonParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "At the sound's tick", APF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "sounds.voice", "Voice", "The sound block its voice slot is claimed with (at the start)", APF(sounds.voice), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.sound", "Sound", "The main's tick of the sound", APF(timing.sound), fxp::I16, 0, 400 },
+			{ "main", "timing.release", "Voice released", "Its tick the voice slot is released", APF(timing.release), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick (the colours put back, every polygon shown again; the scripts stop 2 ticks later, then the battle files it streams)", APF(timing.end), fxp::I16, 1, 400 },
+			{ "main", "flash.ramp", "Flash ramp", "The screen flash's ticks up at the start and down at the end", APF(flash.ramp), fxp::I16, 1, 400 },
+			{ "main", "flash.level", "Flash level", "The screen flash's level between", APF(flash.level), fxp::I16, 0, 4000 },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", APF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", APF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "sweep", "sweep.start", "Start", "The main's tick it starts", APF(sweep.start), fxp::I16, 0, 400 },
+			{ "sweep", "sweep.ticks", "Ticks", "Its ticks", APF(sweep.ticks), fxp::I16, 1, 400 },
+			{ "sweep", "sweep.top", "Top level", "The light level's start (y down)", APF(sweep.top), fxp::I16, -0x4000, 0x4000 },
+			{ "sweep", "sweep.range", "Fall", "The level falls by this over its ticks", APF(sweep.range), fxp::I16, 0, 0x4000 },
+			{ "sweep", "sweep.page", "Page move", "The swept, the scripted body's and the shards' texture page word moved by this", APF(sweep.page), fxp::I16, -0x400, 0x400 },
+			{ "sweep", "sweep.clut", "CLUT move", "Their CLUT word moved by this", APF(sweep.clut), fxp::I16, -0x8000, 0x7FFF },
+			{ "fade", "fade.start", "Start", "The main's tick it starts", APF(fade.start), fxp::I16, 0, 400 },
+			{ "fade", "fade.ticks", "Ticks", "Its ticks", APF(fade.ticks), fxp::I16, 1, 400 },
+			{ "fade", "fade.alpha", "Alpha byte", "Both halves' byte +0x2F while they fade", APF(fade.alpha), fxp::I16, 0, 0xFF },
+			{ "scripts", "scripts.start", "Start", "The main's tick the scripts start (the body is drawn by the module from then on)", APF(scripts.start), fxp::I16, 0, 400 },
+			{ "scripts", "tables.scripts", "Bone scripts", "The 29 bone scripts' byte code (0x4CC bytes, each script at its own offset: edit their numbers, keep their shape)", APF(tables.scripts), fxp::Data, 0, 0x7FFFFFFF },
+			{ "tiles", "tiles.start[0]", "Window 1", "The main's tick the first window starts", APF(tiles.start[0]), fxp::I16, 0, 400 },
+			{ "tiles", "tiles.start[1]", "Window 2", "The second's", APF(tiles.start[1]), fxp::I16, 0, 400 },
+			{ "tiles", "tiles.start[2]", "Window 3", "The third's", APF(tiles.start[2]), fxp::I16, 0, 400 },
+			{ "tiles", "tiles.ticks", "Ticks", "Each window's ticks", APF(tiles.ticks), fxp::I16, 0, 400 },
+			{ "tiles", "tiles.r", "Red", "The tiles' red", APF(tiles.r), fxp::I16, 0, 0xFF },
+			{ "tiles", "tiles.g", "Green", "Their green", APF(tiles.g), fxp::I16, 0, 0xFF },
+			{ "tiles", "tiles.b", "Blue", "Their blue", APF(tiles.b), fxp::I16, 0, 0xFF },
+			{ "tiles", "tiles.in", "Ramp in", "A tile's ticks fading in", APF(tiles.in), fxp::I16, 1, 400 },
+			{ "tiles", "tiles.out", "Ramp out", "Its ticks fading out", APF(tiles.out), fxp::I16, 1, 400 },
+			{ "sparks", "sparks.ticks", "Ticks", "Thrown on the main's ticks up to this", APF(sparks.ticks), fxp::I16, 0, 400 },
+			{ "sparks", "sparks.count", "Count", "How many a tick (128 particles at most alive)", APF(sparks.count), fxp::I16, 0, 128 },
+			{ "sparks", "sparks.life", "Life", "Their ticks (below their flipbooks' frame count: 15 at most)", APF(sparks.life), fxp::I16, 1, 15 },
+			{ "sparks", "sparks.size", "Size", "Their size (+ a random below 0x800)", APF(sparks.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "dust", "dust.count", "Count", "How many at a bounce", APF(dust.count), fxp::I16, 0, 128 },
+			{ "dust", "dust.life", "Life", "Their ticks (below their flipbook's frame count: 12 at most)", APF(dust.life), fxp::I16, 1, 12 },
+			{ "dust", "dust.size", "Size", "Their size (+ a random below 0x800)", APF(dust.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "dust", "dust.spread", "Scatter", "Around the bone: a random below 2 x this - this on x / z", APF(dust.spread), fxp::I16, 1, 0x2000 },
+			{ "shards", "shards.start", "Start", "The main's tick the shard sweep starts", APF(shards.start), fxp::I16, 0, 400 },
+			{ "shards", "shards.ticks", "Ticks", "Its ticks", APF(shards.ticks), fxp::I16, 0, 400 },
+			{ "shards", "shards.base", "Level", "The rising level's base (polygons above it leave the body)", APF(shards.base), fxp::I16, -0x4000, 0x4000 },
+			{ "shards", "shards.spread", "Velocity mask", "A shard's velocity: a random masked by this (half of it off x, z backwards, y up)", APF(shards.spread), fxp::I16, 0, 0x7FFF },
+			{ "shards", "shards.life", "Life", "Its ticks: this + a random below 8", APF(shards.life), fxp::I16, 1, 400 },
+			{ "shards", "shards.chance", "Particle chance", "It throws a particle when a random below 0x8000 is below this", APF(shards.chance), fxp::I16, 0, 0x7FFF },
+			{ "shards", "shards.spin", "Spin", "The 64 spin matrices' angles: a random below 2 x this - this on each axis, a tick", APF(shards.spin), fxp::I16, 1, 0x800, fxp::Angle },
+			{ "shards", "shards.scale", "Shrink", "Their scale: this - a random below 0x200 (0x1000: the shards keep their size)", APF(shards.scale), fxp::I16, 0, 0x2000, fxp::Scale },
+			{ "particles", "particles.shard_life", "Shard particles' life", "The shards' particles' ticks (below their flipbook's frame count: 11 at most)", APF(particles.shard_life), fxp::I16, 1, 11 },
+			{ "particles", "particles.speed", "Speed", "Every particle's velocity scale a tick", APF(particles.speed), fxp::I16, -64, 64 },
+			{ "particles", "seqs.s[0]", "Flipbook A", "The dust's flipbook", APF(seqs.s[0]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "particles", "seqs.s[1]", "Flipbook B", "The shards' particles' flipbook", APF(seqs.s[1]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "particles", "seqs.s[2]", "Flipbook C", "The sparks' first flipbook", APF(seqs.s[2]), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "particles", "seqs.s[3]", "Flipbook D", "The sparks' second flipbook", APF(seqs.s[3]), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef APF
 	}
 }
 
 	void register_mag314_abadon()
 	{
+		fxp::register_params({ 314, "Abadon death", &abadon314::live, &abadon314::GAME, sizeof(abadon314::AbadonParams),
+		                       abadon314::table::PARTS, (int)(sizeof(abadon314::table::PARTS) / sizeof(abadon314::table::PARTS[0])),
+		                       abadon314::table::FIELDS, (int)(sizeof(abadon314::table::FIELDS) / sizeof(abadon314::table::FIELDS[0])),
+		                       abadon314::table::GROUPS, (int)(sizeof(abadon314::table::GROUPS) / sizeof(abadon314::table::GROUPS[0])) });
+		own::note(abadon314::ORIG_FileLoader, (void *)abadon314::FileLoader);
+		own::note(abadon314::ORIG_Setup, (void *)abadon314::Setup);
+		own::note(abadon314::ORIG_RootTask, (void *)abadon314::RootTask);
 		register_port(abadon314::ORIG_RootTask, (void *)abadon314::RootTask, "314 RootTask", 314);
+		own::note(abadon314::ORIG_MainTask, (void *)abadon314::MainTask);
 		register_port(abadon314::ORIG_MainTask, (void *)abadon314::MainTask, "314 MainTask", 314);
+		own::note(abadon314::ORIG_ScriptTask, (void *)abadon314::ScriptTask);
 		register_port(abadon314::ORIG_ScriptTask, (void *)abadon314::ScriptTask, "314 ScriptTask", 314);
 		// 30 fps layer: see mag314_abadon_held.inc
 		FX_HELD(register_mag314_held();)

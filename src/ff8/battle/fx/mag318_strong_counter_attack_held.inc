@@ -124,10 +124,10 @@ namespace strong318
 		const int32_t c1 = r.counter + 1;
 		switch (r.kind)
 		{
-		case PLAY_A: return (uint32_t)(c1 - 2) < 0x16;
+		case PLAY_A: return (uint32_t)(c1 - PG().charge.start) < (uint32_t)PG().charge.ticks;
 		case PLAY_B:
-		case DRAW_SPIKE: return (uint32_t)(c1 - 4) < 0x10;
-		case PLAY_C: return (uint32_t)(c1 - 0x13) < 0x20;
+		case DRAW_SPIKE: return (uint32_t)(c1 - PG().spike.start) < (uint32_t)PG().spike.ticks;
+		case PLAY_C: return (uint32_t)(c1 - PG().burst.start) < (uint32_t)PG().burst.ticks;
 		case PARTS: return true; // (per cell: HeldParticles)
 		default: return (r.node->flags & 1) != 0;
 		}
@@ -137,13 +137,13 @@ namespace strong318
 	static void HeldSpikePoint(const MainNode *m, int32_t c, int k, int den, int16_t *L)
 	{
 		int16_t L0[4], L1[4];
-		SpikePoint(m, Ease4((int32_t)((uint32_t)((c - 4) << 12) >> 4)), L0);
+		SpikePoint(m, Ease4((int32_t)((uint32_t)((c - PG().spike.start) << 12) / (uint32_t)PG().spike.ticks)), L0);
 		if (k == 0)
 		{
 			memcpy(L, L0, 6);
 			return;
 		}
-		SpikePoint(m, Ease4((int32_t)((uint32_t)((c - 3) << 12) >> 4)), L1);
+		SpikePoint(m, Ease4((int32_t)((uint32_t)((c + 1 - PG().spike.start) << 12) / (uint32_t)PG().spike.ticks)), L1);
 		for (int j = 0; j < 3; j++) L[j] = lerp16(L0[j], L1[j], k, den);
 	}
 
@@ -161,7 +161,7 @@ namespace strong318
 				if (--p.life == 0) continue;
 			}
 			else if (p.life == 1) continue;
-			for (int j = 0; j < 3; j++) p.pos[j] = lerp16(p.pos[j], (int16_t)(p.pos[j] + (int16_t)(p.vel[j] << 2)), num, den);
+			for (int j = 0; j < 3; j++) p.pos[j] = lerp16(p.pos[j], (int16_t)(p.pos[j] + (int16_t)(p.vel[j] * PG().particles.speed)), num, den);
 		}
 	}
 
@@ -208,7 +208,7 @@ namespace strong318
 			else if (r.kind == PARTS) HeldParticles(num, den);
 			else if (r.kind == SPR)
 				for (int j = 0; j < 3; j++) pos[j] = lerp16(r.pos[j], (int16_t)(r.pos[j] + r.step[j]), k, den);
-			arg.depth = r.kind == PLAY_A ? 0 : -0x80;
+			arg.depth = r.kind == PLAY_A ? PG().charge.depth : r.kind == PLAY_C ? PG().burst.depth : (r.kind == PLAY_B || r.kind == DRAW_SPIKE) ? PG().spike.depth : -0x80;
 			arg.morph = morph;
 			// a replayed draw starts from the GTE state and scratch of the real one
 			memcpy((void *)GTE_DATA, r.gte, GTE_DATA_SIZE);
