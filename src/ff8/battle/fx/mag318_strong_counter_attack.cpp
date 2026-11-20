@@ -61,6 +61,11 @@
 // NEVER-WRITTEN STACK WORDS: as 319's; the particle spawn's angle word [1] and the 4th words of the vectors loaded into GTE V0
 // (sprite offsets, the start velocity's +0x2E copy of the pool word +0x1E) reach nothing but the GTE VZ0 high half; the main
 // task's loop counter and the quad renderer's u width live in their caller's argument slots (written, never read back).
+// FUJIN: Fujin's described Strong counter-attack (effect_318.json) runs this code: its memory through own::R() (fx_port.h),
+// its spawns through own::Fn(), the file loader (0x65E520) and the setup (0x65E510 -> _Init 0x65E540) ported below; its
+// parameters (StrongParams: the sound, the main's ticks, the three layouts' ticks and depths, the spike's bone, the
+// particles, the flying sprites, the five bone scales; the three layouts, the spike model, the sprites' and particles'
+// flipbooks, the offsets, the texture name and the camera track). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -74,14 +79,14 @@ namespace strong318
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x250541C); }
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2505420); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505424); }        // caster entity (setup)
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505488); }        // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSprites() { return (TaskQueue *)0x2505428; }        // pool: + 0x1390, 0x20 x 0x30
-	inline TaskQueue *QBones() { return (TaskQueue *)0x2505438; }          // pool: + 0x1304, 5 x 0x1C
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505448; }           // pool: magic buffer, 1 x 0x1304
-	static const int16_t *const ZERO_VEC = (const int16_t *)0x2505480;    // a module word quad the sprite task only reads
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x250541C)); }
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2505420)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2505424)); }        // caster entity (setup)
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2505488)); }        // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QSprites() { return (TaskQueue *)own::R(0x2505428); }        // pool: + 0x1390, 0x20 x 0x30
+	inline TaskQueue *QBones() { return (TaskQueue *)own::R(0x2505438); }          // pool: + 0x1304, 5 x 0x1C
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2505448); }           // pool: magic buffer, 1 x 0x1304
+	inline const int16_t *ZeroVec() { return (const int16_t *)own::R(0x2505480); } // a module word quad the sprite task only reads
 
 	static const uint32_t ORIG_RootTask = 0x65E5C0;
 	static const uint32_t ORIG_MainTask = 0x65E790;
@@ -101,6 +106,55 @@ namespace strong318
 	static const uint32_t SEQ_Particle = 0xFF7B6C;       // particle quads: +8 frame count, +8 + 2 i frame offsets
 	static const void *const SOUND = (const void *)0xFF77A8;
 	static const int16_t *const OFFSETS = (const int16_t *)0xFFE688; // three vectors of 4 words (through M)
+
+	static const uint32_t ORIG_FileLoader = 0x65E520, ORIG_Setup = 0x65E510;
+	static const uint32_t TEXTURE_NAME = 0xFFE6A0, CAMERA_ANIM = 0xFF77AC;
+	static const uint32_t OFFSETS_TABLE = 0xFFE688, OFFSETS_SIZE = 0x18;   // the three offsets (4 words each)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2505418)); }     // the effect's file (its TIM)
+	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }   // Magic_TextureOFF_ToEAX1
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_CHARGE = 1, PART_SPIKE = 2, PART_PARTICLES = 3, PART_BURST = 4, PART_SPRITES = 5 };
+	struct StrongParams
+	{
+		struct { uint32_t start; } sounds;            // the sound
+		// the main's ticks: the sound, the damage, the bone scales, its end (the battle file streamed 10 ticks before)
+		struct { int16_t sound, damage, bones, end; } timing;
+		struct { int16_t start, ticks, depth; } charge; // layout A at the caster's bone: its ticks, its depth
+		// the spike (layout B and the spike model): from `start` for `ticks` ticks, from the caster's bone to the target
+		// (the weight of the target: (tick / ticks)^4), its layout's depth
+		struct { int16_t start, ticks, bone, depth; } spike;
+		// the particles along the spike (its ticks + 1): `steps` points a tick, each `lag` (of 4096) behind the last, two
+		// particles at offset 2 from each, two more at offset 3 from the spike's tick `second` on; their ticks, size
+		// (+ a random below 0x1000), their velocity's scale a tick
+		struct { int16_t steps, lag, second, life, size, speed; } particles;
+		struct { int16_t start, ticks, depth; } burst;  // layout C at the target: its ticks, its depth
+		// the flying sprites at the target on the burst's first `ticks` ticks: count, their directions `turn` apart,
+		// speed (+ a random below 0x100), slowing by their speed / `slow` a tick, ticks (frames), size
+		struct { int16_t ticks, count, turn, speed, slow, life, size; } sprites;
+		// the caster's five bones grown back from nothing (after their delays, x / y by grow_x, z by grow_y a tick)
+		struct { int16_t bone[5], delay[5], grow_x, grow_y; } bones;
+		struct { uint32_t charge, spike, burst; } layouts; // layouts A, B and C
+		struct { uint32_t spike; } models;              // the spike model
+		struct { uint32_t sprite, particle; } seqs;     // the flying sprites' and the particles' flipbooks
+		struct { uint32_t offsets; } tables;            // three offsets through the spike's frame
+		struct { uint32_t texture_name, camera; } res;  // its resources (data): texture file name, camera track
+	};
+	static const StrongParams GAME = { { 0xFF77A8 }, { 8, 0x18, 0x27, 0x33 }, { 2, 0x16, 0 }, { 4, 0x10, 0x1D, -0x80 },
+		{ 4, 0x40, 4, 0xB, 0x800, 4 }, { 0x13, 0x20, -0x80 }, { 4, 8, 0x200, 0x80, 12, 0xC, 0x400 },
+		{ { 0x16, 0x1D, 0x21, 0x22, 0x23 }, { 0, 8, 0x10, 0x10, 0x10 }, 0x200, 0x400 },
+		{ MODEL_A, MODEL_B, MODEL_C }, { PRIM_Spike }, { SEQ_Sprite, SEQ_Particle }, { OFFSETS_TABLE }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static StrongParams live = GAME;
+	static const StrongParams &PG() { return live; }
+	// a bone of the caster's skeleton: the parameter, below its bone count (else its last bone)
+	static int32_t CasterBone(int32_t bone)
+	{
+		const uint8_t count = (**(uint8_t ***)(Caster() + 0x64))[0];
+		return bone < 0 ? 0 : bone < count ? bone : count - 1;
+	}
 	static const int PARTICLES = 0x80;
 
 	// engine functions not in fx_port.h / mag_common.h
@@ -318,7 +372,7 @@ namespace strong318
 		GteSetRotMatrix(&arg->m);
 		GteSetTransVector(&arg->m);
 		uint8_t *h = AllocHeader(0x58);
-		*(uint32_t *)h = PRIM_Spike;
+		*(uint32_t *)h = fxp::model(PG().models.spike, PRIM_Spike);
 		*(uint32_t *)(h + 0x1C) = 0;
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
@@ -366,8 +420,8 @@ namespace strong318
 		else m->cursor = p + 1;
 		*(uint32_t *)&p->pos[0] = *(const uint32_t *)&pos[0];
 		*(uint32_t *)&p->pos[2] = *(const uint32_t *)&pos[2];
-		p->life = 0xB;
-		p->size = (int16_t)((CrtRand() >> 4) + 0x800);
+		p->life = PG().particles.life;
+		p->size = (int16_t)((CrtRand() >> 4) + PG().particles.size);
 		int16_t d[4];
 		AngleToDir(ang, d);
 		GteLoadV0(d);
@@ -468,19 +522,21 @@ namespace strong318
 		GteLoadV0(p->pos);
 		GteMVMVA_RotV0Tr();
 		GteReadMAC123((int32_t *)(h + 0x98));
-		*(uint32_t *)h = SEQ_Particle;
+		const uint32_t seq = fxp::sequence(PG().seqs.particle, SEQ_Particle);
+		*(uint32_t *)h = seq;
 		*(int16_t *)(h + 0x94) = p->size;
 		*(int16_t *)(h + 0x8C) = p->size;
 		*(int16_t *)(h + 0x84) = p->size;
-		const uint32_t idx = (*(const uint32_t *)(SEQ_Particle + 8) & 0xFFFF) - (int32_t)p->life;
-		const uint32_t f = *(const uint16_t *)(SEQ_Particle + 8 + idx * 2) + SEQ_Particle;
+		const uint32_t idx = (*(const uint32_t *)(seq + 8) & 0xFFFF) - (int32_t)p->life;
+		const uint32_t f = *(const uint16_t *)(seq + 8 + idx * 2) + seq;
 		*(uint32_t *)(h + 0x30) = *(const uint32_t *)f;
 		*(uint32_t *)(h + 0x2C) = f + 4;
 		PacketCursor() = RenderQuads(h, RenderOT(), 2, PacketCursor());
 		p->life--;
-		p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] << 2));
-		p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->vel[1] << 2));
-		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] << 2));
+		const int32_t speed = PG().particles.speed;
+		p->pos[0] = (int16_t)(p->pos[0] + (int16_t)(p->vel[0] * speed));
+		p->pos[1] = (int16_t)(p->pos[1] + (int16_t)(p->vel[1] * speed));
+		p->pos[2] = (int16_t)(p->pos[2] + (int16_t)(p->vel[2] * speed));
 	}
 
 	// 0x65F340: every live cell of the table drawn (one header for all)
@@ -511,17 +567,17 @@ namespace strong318
 		d[1] = (int16_t)(pos[1] - vel0[1]);
 		d[2] = (int16_t)(pos[2] - vel0[2]);
 		d[3] = 0; // (never written: only the GTE VZ0 high half would see it; TransformCameraByShadowRotation reads 3 words)
-		TransformCameraByShadowRotation(d, 0x400, -0x100);
-		GteLoadV0(ZERO_VEC);
+		TransformCameraByShadowRotation(d, PG().sprites.size, -0x100);
+		GteLoadV0(ZeroVec());
 		GteMVMVA_RotV0Tr();
 		int16_t a[4], b[4];
 		GteStoreIR123(a);
-		TransformCameraByShadowRotation(pos, 0x400, -0x100);
+		TransformCameraByShadowRotation(pos, PG().sprites.size, -0x100);
 		GteLoadV0(vel0);
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(b);
 		*(int32_t *)(h + 8) = 0 - CartesianToGameAngle((int32_t)a[1] - b[1], (int32_t)b[0] - a[0]);
-		*(uint32_t *)h = SEQ_Sprite;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.sprite, SEQ_Sprite);
 		*(int16_t *)(h + 0x24) = 1;
 		*(int16_t *)(h + 4) = frame;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -546,9 +602,10 @@ namespace strong318
 		SpriteNode *s = (SpriteNode *)n;
 		// 30 fps layer: see mag318_strong_counter_attack_held.inc
 		FX_HELD(held_note_sprite(n);)
+		FX_PART(PART_SPRITES);
 		SpriteDraw(s->pos, s->vel0, s->counter);
 		s->counter++;
-		if (s->counter >= 0xC) return TASK_END;
+		if (s->counter >= PG().sprites.life) return TASK_END;
 		s->vel[1] = (int16_t)(s->vel[1] + s->drag[1]);
 		s->vel[0] = (int16_t)(s->vel[0] + s->drag[0]);
 		s->vel[2] = (int16_t)(s->vel[2] + s->drag[2]);
@@ -582,8 +639,8 @@ namespace strong318
 	// 0x65F250: a bone scale task on the caster's skeleton bone `bone` (no pool check: 5 nodes for the 5 calls)
 	static void StartBoneScale(int32_t bone, int16_t delay, int16_t dx, int16_t dy)
 	{
-		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), ORIG_BoneScaleTask);
-		b->bone = **(uint8_t ***)(Caster() + 0x64) + bone * 0x30 + 0x10;
+		BoneNode *b = (BoneNode *)AddTaskToQueue(QBones(), own::Fn(ORIG_BoneScaleTask));
+		b->bone = **(uint8_t ***)(Caster() + 0x64) + CasterBone(bone) * 0x30 + 0x10;
 		b->delay = delay;
 		b->dx = dx;
 		b->dy = dy;
@@ -597,10 +654,12 @@ namespace strong318
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
+		const StrongParams &g = PG();
 		PrimArg arg;
 		if (m->counter == 2)
 		{
-			GetEffectSpawnPosition(Caster(), 0x1D, 0x800, m->S);
+			GetEffectSpawnPosition(Caster(), CasterBone(g.spike.bone), 0x800, m->S);
+			const int16_t *const OFFSETS = (const int16_t *)fxp::data(g.tables.offsets, OFFSETS_TABLE, OFFSETS_SIZE);
 			int32_t v[3] = { (int32_t)m->T[0] - m->S[0], (int32_t)m->S[1] - m->T[1], (int32_t)m->S[2] - m->T[2] };
 			BuildOrthonormalBasis(v, &m->M);
 			MatrixMulVector(&m->M, OFFSETS, m->off[0]);
@@ -611,44 +670,46 @@ namespace strong318
 			v[2] = 0 - v[2];
 			BuildOrthonormalBasis(v, &m->M3);
 		}
-		if ((uint32_t)(m->counter - 2) < 0x16)
+		if ((uint32_t)(m->counter - g.charge.start) < (uint32_t)g.charge.ticks)
 		{
 			m->M2.t[0] = (int32_t)m->S[0] - m->off[0][0];
 			m->M2.t[1] = (int32_t)m->S[1] - m->off[0][1];
 			m->M2.t[2] = (int32_t)m->S[2] - m->off[0][2];
 			ComposeAffineTransform(&Camera(), &m->M2, &arg.m);
 			arg.morph = TexBase() + MORPH;
-			arg.depth = 0;
+			arg.depth = g.charge.depth;
 			// 30 fps layer: see mag318_strong_counter_attack_held.inc
 			FX_HELD(held_note_main(PLAY_A, n);)
+			FX_PART(PART_CHARGE);
 			prim::play((prim::Layout *)m->layout_a, PrimCallback, (int)&arg, 0);
 		}
-		const int32_t e4 = m->counter - 4;
-		if ((uint32_t)e4 < 0x10)
+		const int32_t e4 = m->counter - g.spike.start;
+		if ((uint32_t)e4 < (uint32_t)g.spike.ticks)
 		{
 			if (e4 == 0) *(uint32_t *)(Caster() + 0x7C) &= ~8u;
 			int16_t L[4];
-			SpikePoint(m, Ease4((int32_t)((uint32_t)(e4 << 12) >> 4)), L);
+			SpikePoint(m, Ease4((int32_t)((uint32_t)(e4 << 12) / (uint32_t)g.spike.ticks)), L);
 			m->M.t[0] = (int32_t)m->off[0][0] + L[0];
 			m->M.t[1] = (int32_t)m->off[0][1] + L[1];
 			m->M.t[2] = (int32_t)m->off[0][2] + L[2];
 			ComposeAffineTransform(&Camera(), &m->M, &arg.m);
 			arg.morph = TexBase() + MORPH;
-			arg.depth = -0x80;
+			arg.depth = g.spike.depth;
 			FX_HELD(held_note_main(PLAY_B, n);)
+			FX_PART(PART_SPIKE);
 			prim::play((prim::Layout *)m->layout_b, PrimCallback, (int)&arg, 0);
 			FX_HELD(held_note_main(DRAW_SPIKE, n);)
 			SpikeDraw(&m->M, L, &arg);
 		}
-		if ((uint32_t)e4 < 0x11)
+		if ((uint32_t)e4 <= (uint32_t)g.spike.ticks)
 		{
 			GteSetRotMatrix(&m->M);
-			int32_t x = (e4 << 12) / 16;
-			for (int i = 0; i < 4; i++)
+			int32_t x = (e4 << 12) / g.spike.ticks;
+			for (int i = 0; i < g.particles.steps; i++)
 			{
 				int16_t L[4];
 				SpikePoint(m, Ease4(x), L);
-				x -= 0x40;
+				x -= g.particles.lag;
 				int16_t ang[3], pos[4];
 				ang[0] = 0x400;
 				ang[2] = (int16_t)CrtRand();
@@ -661,7 +722,7 @@ namespace strong318
 					SpawnParticle(m, pos, ang);
 					ang[2] = (int16_t)(ang[2] + 0x800);
 				}
-				if ((uint32_t)e4 >= 4)
+				if (e4 >= g.particles.second)
 				{
 					ang[0] = 0x400;
 					ang[2] = (int16_t)CrtRand();
@@ -676,24 +737,25 @@ namespace strong318
 				}
 			}
 		}
-		const int32_t c13 = m->counter - 0x13;
-		if ((uint32_t)c13 < 0x20)
+		const int32_t c13 = m->counter - g.burst.start;
+		if ((uint32_t)c13 < (uint32_t)g.burst.ticks)
 		{
 			m->M3.t[0] = m->T[0];
 			m->M3.t[1] = m->T[1];
 			m->M3.t[2] = m->T[2];
 			ComposeAffineTransform(&Camera(), &m->M3, &arg.m);
 			arg.morph = TexBase() + MORPH;
-			arg.depth = -0x80;
+			arg.depth = g.burst.depth;
 			FX_HELD(held_note_main(PLAY_C, n);)
+			FX_PART(PART_BURST);
 			prim::play((prim::Layout *)m->layout_c, PrimCallback, (int)&arg, 0);
-			if ((uint32_t)c13 < 4)
+			if ((uint32_t)c13 < (uint32_t)g.sprites.ticks)
 			{
 				int16_t ang[2];
 				ang[1] = (int16_t)CrtRand();
-				for (int k = 8; k != 0; k--)
+				for (int k = g.sprites.count; k > 0; k--)
 				{
-					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), ORIG_SpriteTask);
+					SpriteNode *s = (SpriteNode *)AddTaskToQueue(QSprites(), own::Fn(ORIG_SpriteTask));
 					if (s)
 					{
 						s->counter = 0;
@@ -701,40 +763,37 @@ namespace strong318
 						*(uint32_t *)&s->pos[2] = *(const uint32_t *)&m->T[2];
 						ang[0] = (int16_t)((mul32(CrtRand(), 1500) >> 15) - 0x2EE);
 						AngleToUnitVector(ang, s->vel);
-						GteSetIR0((CrtRand() & 0xFF) + 0x80);
+						GteSetIR0((CrtRand() & 0xFF) + g.sprites.speed);
 						GteLoadIR123(s->vel);
 						GteGPF();
 						GteStoreIR123(s->vel);
-						s->drag[0] = (int16_t)(s->vel[0] / -12);
-						s->drag[1] = (int16_t)(s->vel[1] / -12);
-						s->drag[2] = (int16_t)(s->vel[2] / -12);
+						s->drag[0] = (int16_t)(s->vel[0] / -g.sprites.slow);
+						s->drag[1] = (int16_t)(s->vel[1] / -g.sprites.slow);
+						s->drag[2] = (int16_t)(s->vel[2] / -g.sprites.slow);
 						*(uint32_t *)&s->vel0[0] = *(const uint32_t *)&s->vel[0];
 						*(uint32_t *)&s->vel0[2] = *(const uint32_t *)&s->vel[2];
 					}
-					ang[1] = (int16_t)(ang[1] + 0x200);
+					ang[1] = (int16_t)(ang[1] + g.sprites.turn);
 				}
 			}
 		}
 		FX_HELD(held_note_particles(n);)
+		FX_PART(PART_PARTICLES);
 		ParticleWalk(m->parts);
-		if (m->counter == 8) BdPlaySE(SOUND, 0, 0x80);
-		if (m->counter == 0x29) StreamLoad(0x168, TexBase() + STREAM_DEST, 0);
+		if (m->counter == g.timing.sound) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND), 0, 0x80);
+		if (m->counter == g.timing.end - 10) StreamLoad(0x168, TexBase() + STREAM_DEST, 0);
 		StreamPump();
-		if (m->counter == 0x18) ApplyActionResultToTarget(Ctx()->actions[0].targets);
-		if (m->counter == 0x27)
+		if (m->counter == g.timing.damage) ApplyActionResultToTarget(Ctx()->actions[0].targets);
+		if (m->counter == g.timing.bones)
 		{
 			*(uint32_t *)(Caster() + 0x7C) |= 8u;
-			StartBoneScale(0x16, 0, 0x200, 0x400);
-			StartBoneScale(0x1D, 8, 0x200, 0x400);
-			StartBoneScale(0x21, 0x10, 0x200, 0x400);
-			StartBoneScale(0x22, 0x10, 0x200, 0x400);
-			StartBoneScale(0x23, 0x10, 0x200, 0x400);
+			for (int k = 0; k < 5; k++) StartBoneScale(g.bones.bone[k], g.bones.delay[k], g.bones.grow_x, g.bones.grow_y);
 		}
 		m->counter++;
-		if (m->counter >= 0x33)
+		if (m->counter >= g.timing.end)
 		{
 			if (StreamDone(0) != 0) return TASK_END;
-			m->counter = 0x33;
+			m->counter = g.timing.end;
 		}
 		return 0;
 	}
@@ -766,14 +825,14 @@ namespace strong318
 				InitTaskQueuePool(QBones(), (void *)(TexBase() + POOL_Bones), 0x1C, 5);
 				InitTaskQueuePool(QSprites(), (void *)(TexBase() + POOL_Sprites), 0x30, 0x20);
 			}
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			Memset32(&m->counter, 0, 0x4BE);
 			m->ent = Entity(Ctx()->actions[0].targets[0]);
 			GetDefaultEffectPosition(m->ent, m->T);
 			m->cursor = m->parts;
-			DecodeModelPrimLayout(MODEL_A, m->layout_a, 0xEC);
-			DecodeModelPrimLayout(MODEL_B, m->layout_b, 0x5E8);
-			DecodeModelPrimLayout(MODEL_C, m->layout_c, 0x348);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.charge, MODEL_A, 0xEC), m->layout_a, 0xEC);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.spike, MODEL_B, 0x5E8), m->layout_b, 0x5E8);
+			DecodeModelPrimLayout(fxp::layout(PG().layouts.burst, MODEL_C, 0x348), m->layout_c, 0x348);
 			StreamStateInit((void *)(TexBase() + STREAM_STATE));
 		}
 		int a0, a1, a2;
@@ -793,13 +852,117 @@ namespace strong318
 		r->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x65E520) and setup (0x65E510 -> _Init 0x65E540): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster, the root, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = MagicTextureOff();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		TaskQueue *root = (TaskQueue *)own::R(0x2505458);
+		InitTaskQueuePool(root, (void *)own::R(0x2505468), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_RootTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the sound, the damage; the texture and the camera" },
+			{ PART_CHARGE, "charge", "Charge", "Layout A at the caster's bone" },
+			{ PART_SPIKE, "spike", "Spike", "Layout B and the spike model rushing from the caster's bone to the target (the caster's arm object shown)" },
+			{ PART_PARTICLES, "particles", "Particles", "Particles thrown off along the spike's way (a flipbook by their life)" },
+			{ PART_BURST, "burst", "Burst", "Layout C at the target" },
+			{ PART_SPRITES, "sprites", "Flying sprites", "Sprites flying off the target, slowing down, turned along their way (a flipbook)" },
+			{ 0, "bones", "Arm regrowth", "The caster's arm object hidden and five of its bones grown back from nothing" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+		};
+#define SPF(member) (uint32_t)offsetof(StrongParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "At the sound's tick", SPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.sound", "Sound", "The main's tick of the sound", SPF(timing.sound), fxp::I16, 0, 400 },
+			{ "main", "timing.damage", "Damage", "Its tick the target's damage is shown", SPF(timing.damage), fxp::I16, 0, 400 },
+			{ "main", "timing.bones", "Bones", "Its tick the arm is hidden and its bones grow back", SPF(timing.bones), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick (it waits there for the battle file it streams from 10 ticks before)", SPF(timing.end), fxp::I16, 10, 400 },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", SPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", SPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "charge", "charge.start", "Start", "The main's tick it starts (its points are taken on tick 2)", SPF(charge.start), fxp::I16, 2, 400 },
+			{ "charge", "charge.ticks", "Ticks", "Its ticks", SPF(charge.ticks), fxp::I16, 0, 400 },
+			{ "charge", "charge.depth", "Depth", "Its layout's depth offset", SPF(charge.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "charge", "layouts.charge", "Layout", "Layout A", SPF(layouts.charge), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "spike", "spike.start", "Start", "The main's tick it starts", SPF(spike.start), fxp::I16, 2, 400 },
+			{ "spike", "spike.ticks", "Ticks", "Its ticks (from the caster's bone to the target, faster and faster)", SPF(spike.ticks), fxp::I16, 1, 400 },
+			{ "spike", "spike.bone", "Bone", "The caster's bone it starts from", SPF(spike.bone), fxp::I16, 0, 63 },
+			{ "spike", "spike.depth", "Depth", "Its layout's depth offset", SPF(spike.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "spike", "tables.offsets", "Offsets", "Three offsets x / y / z (4 words each) turned along its direction: the first one moves the charge and the spike, the others are the particles' points", SPF(tables.offsets), fxp::Data, 0, 0x7FFFFFFF },
+			{ "spike", "layouts.spike", "Layout", "Layout B", SPF(layouts.spike), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "spike", "models.spike", "Model", "The spike model", SPF(models.spike), fxp::Model, 0, 0x7FFFFFFF },
+			{ "particles", "particles.steps", "Points", "Points along the spike's way a tick (two particles each)", SPF(particles.steps), fxp::I16, 0, 32 },
+			{ "particles", "particles.lag", "Lag", "Each point behind the last by this (of 4096 of the way)", SPF(particles.lag), fxp::I16, -0x1000, 0x1000 },
+			{ "particles", "particles.second", "Second pair", "The spike's tick from which two more particles leave each point", SPF(particles.second), fxp::I16, 0, 400 },
+			{ "particles", "particles.life", "Life", "Their ticks (below their flipbook's frame count: 11 at most)", SPF(particles.life), fxp::I16, 1, 11 },
+			{ "particles", "particles.size", "Size", "Their size (+ a random below 0x1000)", SPF(particles.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "particles", "particles.speed", "Speed", "Their velocity's scale a tick", SPF(particles.speed), fxp::I16, -64, 64 },
+			{ "particles", "seqs.particle", "Flipbook", "The particles' flipbook", SPF(seqs.particle), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "burst", "burst.start", "Start", "The main's tick it starts", SPF(burst.start), fxp::I16, 2, 400 },
+			{ "burst", "burst.ticks", "Ticks", "Its ticks", SPF(burst.ticks), fxp::I16, 0, 400 },
+			{ "burst", "burst.depth", "Depth", "Its layout's depth offset", SPF(burst.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "burst", "layouts.burst", "Layout", "Layout C", SPF(layouts.burst), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sprites", "sprites.ticks", "Ticks", "Thrown on the burst's first ticks", SPF(sprites.ticks), fxp::I16, 0, 400 },
+			{ "sprites", "sprites.count", "Count", "How many a tick (32 at most alive)", SPF(sprites.count), fxp::I16, 0, 32 },
+			{ "sprites", "sprites.turn", "Turn", "Their directions this far apart (from a random one)", SPF(sprites.turn), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "sprites", "sprites.speed", "Speed", "Their speed (+ a random below 0x100)", SPF(sprites.speed), fxp::I16, 0, 0x1000 },
+			{ "sprites", "sprites.slow", "Slowing", "They slow by their speed / this a tick", SPF(sprites.slow), fxp::I16, 1, 400 },
+			{ "sprites", "sprites.life", "Life", "Their ticks (their flipbook's frames: 12 at most)", SPF(sprites.life), fxp::I16, 1, 12 },
+			{ "sprites", "sprites.size", "Size", "Their size", SPF(sprites.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "sprites", "seqs.sprite", "Flipbook", "The sprites' flipbook", SPF(seqs.sprite), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "bones", "bones.bone[0]", "Bone 1", "The first bone grown back", SPF(bones.bone[0]), fxp::I16, 0, 63 },
+			{ "bones", "bones.bone[1]", "Bone 2", "The second", SPF(bones.bone[1]), fxp::I16, 0, 63 },
+			{ "bones", "bones.bone[2]", "Bone 3", "The third", SPF(bones.bone[2]), fxp::I16, 0, 63 },
+			{ "bones", "bones.bone[3]", "Bone 4", "The fourth", SPF(bones.bone[3]), fxp::I16, 0, 63 },
+			{ "bones", "bones.bone[4]", "Bone 5", "The fifth", SPF(bones.bone[4]), fxp::I16, 0, 63 },
+			{ "bones", "bones.delay[0]", "Delay 1", "The first bone's ticks before it grows", SPF(bones.delay[0]), fxp::I16, 0, 400 },
+			{ "bones", "bones.delay[1]", "Delay 2", "The second's", SPF(bones.delay[1]), fxp::I16, 0, 400 },
+			{ "bones", "bones.delay[2]", "Delay 3", "The third's", SPF(bones.delay[2]), fxp::I16, 0, 400 },
+			{ "bones", "bones.delay[3]", "Delay 4", "The fourth's", SPF(bones.delay[3]), fxp::I16, 0, 400 },
+			{ "bones", "bones.delay[4]", "Delay 5", "The fifth's", SPF(bones.delay[4]), fxp::I16, 0, 400 },
+			{ "bones", "bones.grow_x", "Growth x / y", "Their scale x / y grows by this a tick (up to 0x1000)", SPF(bones.grow_x), fxp::I16, 1, 0x1000, fxp::Scale },
+			{ "bones", "bones.grow_y", "Growth z", "Their scale z grows by this a tick (up to 0x1000)", SPF(bones.grow_y), fxp::I16, 1, 0x1000, fxp::Scale },
+		};
+#undef SPF
+	}
 }
 
 	void register_mag318_strong_counter_attack()
 	{
+		fxp::register_params({ 318, "Strong counter-attack", &strong318::live, &strong318::GAME, sizeof(strong318::StrongParams),
+		                       strong318::table::PARTS, (int)(sizeof(strong318::table::PARTS) / sizeof(strong318::table::PARTS[0])),
+		                       strong318::table::FIELDS, (int)(sizeof(strong318::table::FIELDS) / sizeof(strong318::table::FIELDS[0])),
+		                       strong318::table::GROUPS, (int)(sizeof(strong318::table::GROUPS) / sizeof(strong318::table::GROUPS[0])) });
+		own::note(strong318::ORIG_FileLoader, (void *)strong318::FileLoader);
+		own::note(strong318::ORIG_Setup, (void *)strong318::Setup);
+		own::note(strong318::ORIG_RootTask, (void *)strong318::RootTask);
 		register_port(strong318::ORIG_RootTask, (void *)strong318::RootTask, "318 RootTask", 318);
+		own::note(strong318::ORIG_MainTask, (void *)strong318::MainTask);
 		register_port(strong318::ORIG_MainTask, (void *)strong318::MainTask, "318 MainTask", 318);
+		own::note(strong318::ORIG_SpriteTask, (void *)strong318::SpriteTask);
 		register_port(strong318::ORIG_SpriteTask, (void *)strong318::SpriteTask, "318 SpriteTask", 318);
+		// (Counter-attack 319 queues this task too: in a program, its own::Fn finds it here)
+		own::note(strong318::ORIG_BoneScaleTask, (void *)strong318::BoneScaleTask);
 		register_port(strong318::ORIG_BoneScaleTask, (void *)strong318::BoneScaleTask, "318 BoneScaleTask", 318);
 		// 30 fps layer: see mag318_strong_counter_attack_held.inc
 		FX_HELD(register_mag318_held();)
