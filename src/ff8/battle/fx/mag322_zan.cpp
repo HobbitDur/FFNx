@@ -62,6 +62,12 @@
 //   - the frame vector's +6 word, the matrices' pad words (GTE R33 pad only) reach no output; a streak's never-written
 //     +0x1A goes with its first velocity into +0x2A (the GTE V0 pad only); the prim headers keep the Field_Alloc
 //     scratch's unwritten fields, as in the game.
+// FUJIN: Fujin's described Zan (effect_322.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the file loader (0x65AB80) and the setup (0x65AB70 -> _Init 0x65ABA0) ported below; its parameters
+// (ZanParams: the sound, the main's ticks, the blade's bone, spin and path points, the trails, the hit layout's depth, the
+// streaks, the dust; the blade and trail models, the hit layout, the two flipbooks, the texture name and the camera
+// track). The blade's path schedule (304's segment blend: its four segments' counters and eases) stays code (the 30 fps
+// layer replays it). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -74,17 +80,17 @@ namespace zan322
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x25052B8); }        // caster entity (setup)
-	inline uint32_t &TexFile() { return var<uint32_t>(0x25052B0); }         // the effect's file (its TIM)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x25052B4); }
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x2505334); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x2505340); }         // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QDust() { return (TaskQueue *)0x25052C0; }            // pool: + 0x9A4, 0x20 x 0x18
-	inline TaskQueue *QStreaks() { return (TaskQueue *)0x25052D0; }         // pool: + 0x424, 0x20 x 0x2C
-	inline TaskQueue *QHit() { return (TaskQueue *)0x25052E0; }             // pool: + 0x1FC, 1 x 0x228
-	inline TaskQueue *QTrails() { return (TaskQueue *)0x25052F0; }          // pool: + 0x7C, 8 x 0x30
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505300; }            // pool: + 0, 1 x 0x7C
-	static const int16_t *const ZERO_VECTOR = (const int16_t *)0x2505338; // bss, never written
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x25052B8)); }        // caster entity (setup)
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x25052B0)); }         // the effect's file (its TIM)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x25052B4)); }
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x2505334)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x2505340)); }         // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QDust() { return (TaskQueue *)own::R(0x25052C0); }            // pool: + 0x9A4, 0x20 x 0x18
+	inline TaskQueue *QStreaks() { return (TaskQueue *)own::R(0x25052D0); }         // pool: + 0x424, 0x20 x 0x2C
+	inline TaskQueue *QHit() { return (TaskQueue *)own::R(0x25052E0); }             // pool: + 0x1FC, 1 x 0x228
+	inline TaskQueue *QTrails() { return (TaskQueue *)own::R(0x25052F0); }          // pool: + 0x7C, 8 x 0x30
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2505300); }            // pool: + 0, 1 x 0x7C
+	inline const int16_t *ZeroVector() { return (const int16_t *)own::R(0x2505338); } // bss, never written
 
 	static const uint32_t ORIG_MasterTask = 0x65AC20;
 	static const uint32_t ORIG_MainTask = 0x65AE00;
@@ -107,6 +113,49 @@ namespace zan322
 	static const uint32_t SEQ_Streak = 0xFE42A8;         // sprite sequences
 	static const uint32_t SEQ_Dust = 0xFE4384;
 	static const void *const SOUND_Throw = (const void *)0xFE7000;
+
+	static const uint32_t ORIG_FileLoader = 0x65AB80, ORIG_Setup = 0x65AB70;
+	static const uint32_t TEXTURE_NAME = 0xFE7288, CAMERA_ANIM = 0xFE7004;
+	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }   // Magic_TextureOFF_ToEAX1
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_BLADE = 1, PART_TRAILS = 2, PART_HIT = 3, PART_STREAKS = 4, PART_DUST = 5 };
+	struct ZanParams
+	{
+		struct { uint32_t start; } sounds;               // the throw
+		// the main's ticks: the sound, the hit (inside the blade's flight: 14..71), the blade's way back re-aimed at the
+		// caster's bone, its end (the master ends after its tick 0x3B: later parts are dropped)
+		struct { int16_t sound, hit, back, end; } timing;
+		struct { int16_t bone, spin; } blade;            // the caster's bone it leaves and comes back to, its spin a tick
+		// the path's points in the target's frame (z toward the caster negative): the one before the target (z, y) and
+		// the one after it
+		struct { int16_t before_z, before_y, after_z, after_y; } path;
+		struct { int16_t life; } trails;                 // the trails' ticks (their fade: a quarter sine over them)
+		struct { int16_t depth; } hit;                   // the hit layout's depth offset
+		// the streaks thrown out of the blade's plane at the hit: count, their turn step, speed (+ a random below
+		// spread) in the plane and out of it, drag (their first velocity / drag taken off a tick), ticks, size
+		struct { int16_t count, turn, speed, spread, drag, life, size; } streaks;
+		// the dust under the blade while it is below `level` (two a tick): its size (y x 8 + size), ticks
+		struct { int16_t level, size, life; } dust;
+		struct { uint32_t blade, trail; } models;        // the blade and trail models
+		struct { uint32_t hit; } layouts;                // the hit layout
+		struct { uint32_t streak, dust; } seqs;          // the streaks' and the dust's flipbooks
+		struct { uint32_t texture_name, camera; } res;   // its resources (data): texture file name, camera track
+	};
+	static const ZanParams GAME = { { 0xFE7000 }, { 0xF, 0x24, 0x1E, 0x39 }, { 0x18, 0x400 }, { -1000, 300, 1000, -600 },
+		{ 8 }, { -0x80 }, { 0x20, 0x80, 0x40, 0x40, 12, 8, 0x400 }, { -0x200, 0x1800, 0xC },
+		{ MODEL_Blade, MODEL_Trail }, { MODEL_Hit }, { SEQ_Streak, SEQ_Dust }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static ZanParams live = GAME;
+	static const ZanParams &PG() { return live; }
+	// a bone of the caster's skeleton: the parameter, below its bone count (else its last bone)
+	static int32_t CasterBone(int32_t bone)
+	{
+		const uint8_t count = (**(uint8_t ***)(Caster() + 0x64))[0];
+		return bone < 0 ? 0 : bone < count ? bone : count - 1;
+	}
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -365,7 +414,7 @@ namespace zan322
 		GteSetRotMatrix(&cam);
 		GteSetTransVector(&cam);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Blade;
+		*(uint32_t *)h = fxp::model(PG().models.blade, MODEL_Blade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -391,7 +440,7 @@ namespace zan322
 		if (blue > 0xFF) blue = 0xFF;
 		h[0xA] = (uint8_t)blue;
 		*(uint32_t *)(h + 0x1C) = 0xF0;
-		*(uint32_t *)h = MODEL_Trail;
+		*(uint32_t *)h = fxp::model(PG().models.trail, MODEL_Trail);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -402,16 +451,16 @@ namespace zan322
 		uint8_t *h = AllocHeader(0xB4);
 		int16_t d[4] = { (int16_t)(pos[0] - v0[0]), (int16_t)(pos[1] - v0[1]), (int16_t)(pos[2] - v0[2]), 0 }; // (+6: GTE V0 pad only)
 		int16_t p1[4] = {}, p2[4] = {};
-		TransformCameraByShadowRotation(d, 0x400, -0x100);
-		GteLoadV0(ZERO_VECTOR);
+		TransformCameraByShadowRotation(d, PG().streaks.size, -0x100);
+		GteLoadV0(ZeroVector());
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(p1);
-		TransformCameraByShadowRotation(pos, 0x400, -0x100);
+		TransformCameraByShadowRotation(pos, PG().streaks.size, -0x100);
 		GteLoadV0(v0);
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(p2);
 		*(int32_t *)(h + 8) = -CartesianToGameAngle((int32_t)p1[1] - p2[1], (int32_t)p2[0] - p1[0]);
-		*(uint32_t *)h = SEQ_Streak;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.streak, SEQ_Streak);
 		*(int16_t *)(h + 0x24) = 1;
 		*(int16_t *)(h + 4) = frame;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -423,7 +472,7 @@ namespace zan322
 	{
 		TransformCameraByShadowRotation(pos, height, -(height >> 2));
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Dust;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.dust, SEQ_Dust);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -448,9 +497,10 @@ namespace zan322
 		DustNode *d = (DustNode *)n;
 		// 30 fps layer: see mag322_zan_held.inc
 		FX_HELD(held_note_dust(n);)
+		FX_PART(PART_DUST);
 		DustDraw(d->pos, d->height, d->counter);
 		d->counter++;
-		return d->counter < 0xC ? 0 : TASK_END;
+		return d->counter < PG().dust.life ? 0 : TASK_END;
 	}
 
 	// ------------------------------------------------------------------
@@ -461,9 +511,10 @@ namespace zan322
 		StreakNode *s = (StreakNode *)n;
 		// 30 fps layer: see mag322_zan_held.inc
 		FX_HELD(held_note_streak(n);)
+		FX_PART(PART_STREAKS);
 		StreakDraw(s->pos, s->v0, s->counter);
 		s->counter++;
-		if (s->counter >= 8) return TASK_END;
+		if (s->counter >= PG().streaks.life) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
@@ -481,10 +532,11 @@ namespace zan322
 		HitNode *h = (HitNode *)n;
 		PrimArg arg;
 		memcpy(arg.pos, h->pos, 8);
-		arg.depth = -0x80;
+		arg.depth = PG().hit.depth;
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag322_zan_held.inc
 		FX_HELD(held_note_hit(n);)
+		FX_PART(PART_HIT);
 		return prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -496,16 +548,17 @@ namespace zan322
 		TrailNode *t = (TrailNode *)n;
 		// 30 fps layer: see mag322_zan_held.inc
 		FX_HELD(held_note_trail(n);)
-		TrailDraw(t, (int32_t)t->counter * 0x400 / 8);
+		FX_PART(PART_TRAILS);
+		TrailDraw(t, (int32_t)t->counter * 0x400 / PG().trails.life);
 		t->counter++;
-		return t->counter < 8 ? 0 : TASK_END;
+		return t->counter < PG().trails.life ? 0 : TASK_END;
 	}
 
 	// the path on counter 14 (0x65AE56..0x65AF5B): from the caster's bone towards the target and back
 	static void BuildPath(MainNode *m)
 	{
 		int16_t bone[4] = {}; // (word +6 never written: stack residue, modelled 0)
-		GetEffectSpawnPosition(Caster(), 0x18, 0x800, bone);
+		GetEffectSpawnPosition(Caster(), CasterBone(PG().blade.bone), 0x800, bone);
 		int32_t v[3] = { (int32_t)bone[0] - m->tpos[0], 0, (int32_t)m->tpos[2] - bone[2] };
 		Mat4x3 basis;
 		BuildOrthonormalBasis(v, &basis);
@@ -516,17 +569,17 @@ namespace zan322
 		memcpy(m->path[1], bone, 8);
 		GteSetRotMatrix(&basis);
 		GteSetTransVector(&basis);
-		int16_t off[4] = { 0, 0, -1000, 0 }; // (word +6 never written: GTE V0 pad only)
+		int16_t off[4] = { 0, 0, PG().path.before_z, 0 }; // (word +6 never written: GTE V0 pad only)
 		GteLoadV0(off);
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(m->path[2]);
-		m->path[2][1] = (int16_t)(m->path[2][1] + 300);
+		m->path[2][1] = (int16_t)(m->path[2][1] + PG().path.before_y);
 		memcpy(m->path[3], m->tpos, 8);
-		off[2] = 1000;
+		off[2] = PG().path.after_z;
 		GteLoadV0(off);
 		GteMVMVA_RotV0Tr();
 		GteStoreIR123(m->path[4]);
-		m->path[4][1] = (int16_t)(m->path[4][1] - 600);
+		m->path[4][1] = (int16_t)(m->path[4][1] + PG().path.after_y);
 		memcpy(m->path[5], bone, 8);
 		memcpy(m->path[6], bone, 8);
 	}
@@ -537,9 +590,10 @@ namespace zan322
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
+		const ZanParams &g = PG();
 		if (m->counter == 0xD)
 		{
-			GetEffectSpawnPosition(Caster(), 0x18, 0x800, m->cur);
+			GetEffectSpawnPosition(Caster(), CasterBone(g.blade.bone), 0x800, m->cur);
 			memcpy(m->prev, m->cur, 8);
 		}
 		const int32_t k = m->counter - 0xE;
@@ -569,13 +623,14 @@ namespace zan322
 			int16_t cur[4] = {}; // (word +6 never written: stack residue, modelled 0)
 			PathPoint(m, seg, t, cur);
 			if (m->cur[0] != cur[0] || m->cur[2] != cur[2]) memcpy(m->prev, m->cur, 8);
-			m->spin = (int16_t)(m->spin + 0x400);
+			m->spin = (int16_t)(m->spin + g.blade.spin);
 			memcpy(m->cur, cur, 8);
 			*(uint32_t *)(Caster() + 0x7C) &= 0xFFFFFFFDu;
 			int32_t dir[3] = { (int32_t)m->prev[0] - cur[0], 0, (int32_t)cur[2] - m->prev[2] };
 			Mat4x3 frame;
+			FX_PART(PART_BLADE);
 			BladeDraw(cur, dir, m->spin, &frame);
-			TrailNode *tr = (TrailNode *)AddTaskToQueue(QTrails(), ORIG_TrailTask);
+			TrailNode *tr = (TrailNode *)AddTaskToQueue(QTrails(), own::Fn(ORIG_TrailTask));
 			if (tr)
 			{
 				tr->counter = 0;
@@ -585,10 +640,10 @@ namespace zan322
 				else if ((uint32_t)k > 0x24) tr->fade = (int16_t)((0x2C - k) << 9);
 				else tr->fade = 0x1000;
 			}
-			if (cur[1] > -0x200)
+			if (cur[1] > g.dust.level)
 			{
-				const int16_t height = (int16_t)(cur[1] * 8 + 0x1800);
-				DustNode *d = (DustNode *)AddTaskToQueue(QDust(), ORIG_DustTask);
+				const int16_t height = (int16_t)(cur[1] * 8 + g.dust.size);
+				DustNode *d = (DustNode *)AddTaskToQueue(QDust(), own::Fn(ORIG_DustTask));
 				if (d)
 				{
 					memcpy(d->pos, cur, 8);
@@ -596,7 +651,7 @@ namespace zan322
 					d->counter = 0;
 					d->height = height;
 				}
-				d = (DustNode *)AddTaskToQueue(QDust(), ORIG_DustTask);
+				d = (DustNode *)AddTaskToQueue(QDust(), own::Fn(ORIG_DustTask));
 				if (d)
 				{
 					d->pos[0] = (int16_t)(((int32_t)m->prev[0] + cur[0]) >> 1);
@@ -606,49 +661,49 @@ namespace zan322
 					d->height = height;
 				}
 			}
-			if (m->counter == 0x24)
+			if (m->counter == g.timing.hit)
 			{
 				uint8_t *ent = m->target;
-				HitNode *h = (HitNode *)AddTaskToQueue(QHit(), ORIG_HitTask);
+				HitNode *h = (HitNode *)AddTaskToQueue(QHit(), own::Fn(ORIG_HitTask));
 				if (h)
 				{
 					h->ent = ent;
 					GetDefaultEffectPosition(ent, h->pos);
-					DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x210);
+					DecodeModelPrimLayout(fxp::layout(g.layouts.hit, MODEL_Hit, 0x210), h->layout, 0x210);
 				}
 				Mat4x3 basis;
 				BuildOrthonormalBasis(dir, &basis);
 				int32_t angle = 0;
 				cur[3] = 0;
-				for (int i = 0; i < 0x20; i++)
+				for (int i = 0; i < g.streaks.count; i++)
 				{
-					StreakNode *s = (StreakNode *)AddTaskToQueue(QStreaks(), ORIG_StreakTask);
+					StreakNode *s = (StreakNode *)AddTaskToQueue(QStreaks(), own::Fn(ORIG_StreakTask));
 					if (!s) continue;
 					memcpy(s->pos, cur, 8); // (+0x12: the counter, 0)
-					const int32_t speed = (CrtRand() & 0x3F) + 0x40;
+					const int32_t speed = CrtRand() % g.streaks.spread + g.streaks.speed;
 					s->vel[0] = (int16_t)(mul32(ComputeSin(angle), speed) / 0x1000);
 					s->vel[1] = (int16_t)(mul32(ComputeCos(angle), speed) / 0x1000);
-					s->vel[2] = (int16_t)((CrtRand() & 0x3F) + 0x40);
+					s->vel[2] = (int16_t)(CrtRand() % g.streaks.spread + g.streaks.speed);
 					MatrixMulVector(&basis, s->vel, s->vel);
 					memcpy(s->v0, s->vel, 8); // (with the never-written +0x1A)
-					s->drag[0] = (int16_t)((int32_t)s->vel[0] / -12);
-					s->drag[1] = (int16_t)((int32_t)s->vel[1] / -12);
-					s->drag[2] = (int16_t)((int32_t)s->vel[2] / -12);
-					angle += 0x80;
+					s->drag[0] = (int16_t)((int32_t)s->vel[0] / -g.streaks.drag);
+					s->drag[1] = (int16_t)((int32_t)s->vel[1] / -g.streaks.drag);
+					s->drag[2] = (int16_t)((int32_t)s->vel[2] / -g.streaks.drag);
+					angle += g.streaks.turn;
 				}
 				ApplyActionResultToTarget(Ctx()->actions[0].targets);
 			}
 		}
-		if (m->counter == 0xF) BdPlaySE(SOUND_Throw, 0, 0x80);
-		if (m->counter == 0x1E)
+		if (m->counter == g.timing.sound) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Throw), 0, 0x80);
+		if (m->counter == g.timing.back)
 		{
 			int16_t bone[4] = {}; // (word +6 never written: stack residue, modelled 0)
-			GetEffectSpawnPosition(Caster(), 0x18, 0x800, bone);
+			GetEffectSpawnPosition(Caster(), CasterBone(g.blade.bone), 0x800, bone);
 			memcpy(m->path[5], bone, 8);
 			memcpy(m->path[6], bone, 8);
 		}
 		m->counter++;
-		if (m->counter < 0x39) return 0;
+		if (m->counter < g.timing.end) return 0;
 		*(uint32_t *)(Caster() + 0x7C) |= 2;
 		return TASK_END;
 	}
@@ -679,7 +734,7 @@ namespace zan322
 			InitTaskQueuePool(QHit(), (void *)(TexBase() + POOL_Hit), 0x228, 1);
 			InitTaskQueuePool(QStreaks(), (void *)(TexBase() + POOL_Streaks), 0x2C, 0x20);
 			InitTaskQueuePool(QDust(), (void *)(TexBase() + POOL_Dust), 0x18, 0x20);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x1C);
@@ -708,15 +763,101 @@ namespace zan322
 		ms->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x65AB80) and setup (0x65AB70 -> _Init 0x65ABA0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster, the master, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = MagicTextureOff();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		TaskQueue *root = (TaskQueue *)own::R(0x2505310);
+		InitTaskQueuePool(root, (void *)own::R(0x2505320), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the sound, the hit; the texture and the camera" },
+			{ PART_BLADE, "blade", "Blade", "The blade (a model) thrown from the caster's bone past the target and back along a path, spinning (the caster's weapon object hidden meanwhile)" },
+			{ PART_TRAILS, "trails", "Trails", "A fading copy of the blade left every tick (blue as it fades)" },
+			{ PART_HIT, "hit", "Hit", "The hit layout at the target" },
+			{ PART_STREAKS, "streaks", "Streaks", "Streaks thrown out of the blade's plane at the hit (a flipbook)" },
+			{ PART_DUST, "dust", "Dust", "Dust on the floor under the blade while it flies low (a flipbook)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+			{ "path", "Path", "The path's points around the target" },
+		};
+#define ZPF(member) (uint32_t)offsetof(ZanParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "The throw, at the sound's tick", ZPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.sound", "Sound", "The main's tick of the sound", ZPF(timing.sound), fxp::I16, 0, 400 },
+			{ "main", "timing.hit", "Hit", "Its tick of the hit layout, the streaks and the target's damage (inside the blade's flight: 14..71)", ZPF(timing.hit), fxp::I16, 0, 400 },
+			{ "main", "timing.back", "Way back", "Its tick the path's last two points are taken again at the caster's bone", ZPF(timing.back), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick (the caster's weapon shown again; the master ends after its tick 59 anyway)", ZPF(timing.end), fxp::I16, 1, 400 },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", ZPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", ZPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "blade", "blade.bone", "Bone", "The caster's bone it leaves from and comes back to", ZPF(blade.bone), fxp::I16, 0, 63 },
+			{ "blade", "blade.spin", "Spin", "Its spin a tick", ZPF(blade.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "blade", "path.before_z", "Before: distance", "The path's point before the target: along the target's frame (toward the caster negative)", ZPF(path.before_z), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "path.before_y", "Before: height", "Its height offset (up negative)", ZPF(path.before_y), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "path.after_z", "After: distance", "The path's point after the target: along the target's frame", ZPF(path.after_z), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "path.after_y", "After: height", "Its height offset (up negative)", ZPF(path.after_y), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "models.blade", "Model", "The blade model", ZPF(models.blade), fxp::Model, 0, 0x7FFFFFFF },
+			{ "trails", "trails.life", "Life", "Their ticks (their fade: a quarter sine over them; 8 alive at most)", ZPF(trails.life), fxp::I16, 1, 64 },
+			{ "trails", "models.trail", "Model", "The trail model", ZPF(models.trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "hit", "hit.depth", "Depth", "Its layout's depth offset", ZPF(hit.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "hit", "layouts.hit", "Layout", "The hit layout", ZPF(layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "streaks", "streaks.count", "Count", "How many (32 alive at most)", ZPF(streaks.count), fxp::I16, 0, 32 },
+			{ "streaks", "streaks.turn", "Turn", "The angle between two streaks in the blade's plane", ZPF(streaks.turn), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "streaks", "streaks.speed", "Speed", "Their speed in the plane and out of it (plus a random below the spread)", ZPF(streaks.speed), fxp::I16, 0, 0x1000 },
+			{ "streaks", "streaks.spread", "Spread", "The random part of their speed (below this)", ZPF(streaks.spread), fxp::I16, 1, 0x1000 },
+			{ "streaks", "streaks.drag", "Drag", "Their first velocity / this taken off a tick", ZPF(streaks.drag), fxp::I16, 1, 0x100 },
+			{ "streaks", "streaks.life", "Life", "Their ticks (their flipbook's frames: 8 at most)", ZPF(streaks.life), fxp::I16, 1, 8 },
+			{ "streaks", "streaks.size", "Size", "Their size", ZPF(streaks.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "streaks", "seqs.streak", "Flipbook", "The streaks' flipbook", ZPF(seqs.streak), fxp::Seq, 0, 0x7FFFFFFF },
+			{ "dust", "dust.level", "Level", "Dust while the blade is below this height (two a tick: under it and half way to its last point)", ZPF(dust.level), fxp::I16, -0x4000, 0x1000 },
+			{ "dust", "dust.size", "Size", "Its size: the blade's height x 8 + this", ZPF(dust.size), fxp::I16, 0, 0x7FFF },
+			{ "dust", "dust.life", "Life", "Its ticks (its flipbook's frames: 12 at most)", ZPF(dust.life), fxp::I16, 1, 12 },
+			{ "dust", "seqs.dust", "Flipbook", "The dust's flipbook", ZPF(seqs.dust), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef ZPF
+	}
 }
 
 	void register_mag322_zan()
 	{
+		fxp::register_params({ 322, "Zan", &zan322::live, &zan322::GAME, sizeof(zan322::ZanParams),
+		                       zan322::table::PARTS, (int)(sizeof(zan322::table::PARTS) / sizeof(zan322::table::PARTS[0])),
+		                       zan322::table::FIELDS, (int)(sizeof(zan322::table::FIELDS) / sizeof(zan322::table::FIELDS[0])),
+		                       zan322::table::GROUPS, (int)(sizeof(zan322::table::GROUPS) / sizeof(zan322::table::GROUPS[0])) });
+		own::note(zan322::ORIG_FileLoader, (void *)zan322::FileLoader);
+		own::note(zan322::ORIG_Setup, (void *)zan322::Setup);
+		own::note(zan322::ORIG_MasterTask, (void *)zan322::MasterTask);
 		register_port(zan322::ORIG_MasterTask, (void *)zan322::MasterTask, "322 MasterTask", 322);
+		own::note(zan322::ORIG_MainTask, (void *)zan322::MainTask);
 		register_port(zan322::ORIG_MainTask, (void *)zan322::MainTask, "322 MainTask", 322);
+		own::note(zan322::ORIG_TrailTask, (void *)zan322::TrailTask);
 		register_port(zan322::ORIG_TrailTask, (void *)zan322::TrailTask, "322 TrailTask", 322);
+		own::note(zan322::ORIG_HitTask, (void *)zan322::HitTask);
 		register_port(zan322::ORIG_HitTask, (void *)zan322::HitTask, "322 HitTask", 322);
+		own::note(zan322::ORIG_StreakTask, (void *)zan322::StreakTask);
 		register_port(zan322::ORIG_StreakTask, (void *)zan322::StreakTask, "322 StreakTask", 322);
+		own::note(zan322::ORIG_DustTask, (void *)zan322::DustTask);
 		register_port(zan322::ORIG_DustTask, (void *)zan322::DustTask, "322 DustTask", 322);
 		// 30 fps layer: see mag322_zan_held.inc
 		FX_HELD(register_mag322_held();)

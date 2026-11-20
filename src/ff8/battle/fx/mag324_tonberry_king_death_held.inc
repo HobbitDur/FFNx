@@ -182,18 +182,18 @@ namespace tonk324
 				memcpy(&copy, t, sizeof(copy));
 				TintColour(&copy, Entity(copy.word0E), copy.counter);
 			}
-		if (g->counter >= 0x10)
+		if (g->counter >= PG().ghost.fade_start)
 		{
 			GteSetFarColor(0, 0, 0);
 			GteLoadRGBC(e + 0x28);
-			GteSetIR0((g->counter - 0x10) << 8);
+			GteSetIR0((g->counter - PG().ghost.fade_start) * PG().ghost.fade);
 			GteDPCS();
 			GteStoreRGB2(e + 0x28);
 			e[0x2B] = 2;
 			e[7] = 0;
 		}
 		next = r;
-		memcpy(next.matrix, g->counter > 6 ? (const void *)KEPT_MATRIX : (const void *)(e + 0x40), sizeof(next.matrix));
+		memcpy(next.matrix, g->counter > PG().ghost.hold ? (const void *)own::R(KEPT_MATRIX) : (const void *)(e + 0x40), sizeof(next.matrix));
 		next.tint = *(const uint32_t *)(e + 0x28);
 		next.b07 = e[7];
 		next.b2b = e[0x2B];
@@ -271,7 +271,7 @@ namespace tonk324
 			if (w)
 			{
 				// (draw-only: the draw steps nothing; else it steps the private copy only)
-				SparkDraw(w, g_cells_held, r.kind == SPARKS_A ? 1 : 2, r.kind == SPARKS_A ? SEQ_SparkA : SEQ_SparkB, r.kind == SPARKS_A);
+				SparkDraw(w, g_cells_held, r.kind == SPARKS_A ? 1 : 2, r.kind == SPARKS_A ? fxp::sequence(PG().seqs.spark_a, SEQ_SparkA) : fxp::sequence(PG().seqs.spark_b, SEQ_SparkB), r.kind == SPARKS_A);
 				FieldFree(0x48);
 			}
 			else if (r.kind == GHOST)

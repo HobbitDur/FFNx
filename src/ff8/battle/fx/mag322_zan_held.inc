@@ -115,10 +115,10 @@ namespace zan322
 		if (g_end_tick == g_real_tick) return false;
 		switch (r.kind)
 		{
-		case K_BLADE: return r.counter + 1 < 0x39;
-		case K_TRAIL: return r.counter + 1 < 8;
-		case K_STREAK: return r.counter + 1 < 8;
-		case K_DUST: return r.counter + 1 < 0xC;
+		case K_BLADE: return r.counter + 1 < PG().timing.end;
+		case K_TRAIL: return r.counter + 1 < PG().trails.life;
+		case K_STREAK: return r.counter + 1 < PG().streaks.life;
+		case K_DUST: return r.counter + 1 < PG().dust.life;
 		default: return (r.node->flags & 1) != 0;
 		}
 	}
@@ -162,7 +162,7 @@ namespace zan322
 		int16_t cur[4] = {};
 		PathPoint(m, seg, t, cur);
 		const int16_t *prev = (m->cur[0] != cur[0] || m->cur[2] != cur[2]) ? m->cur : m->prev;
-		const int16_t spin = lerp_angle(m->spin, (int16_t)(m->spin + 0x400), k, den);
+		const int16_t spin = lerp_angle(m->spin, (int16_t)(m->spin + PG().blade.spin), k, den);
 		int32_t dir[3] = { (int32_t)prev[0] - cur[0], 0, (int32_t)cur[2] - prev[2] };
 		Mat4x3 frame;
 		BladeDraw(cur, dir, spin, &frame);
@@ -192,13 +192,13 @@ namespace zan322
 			memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
 			memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
 			if (r.kind == K_BLADE) HeldBlade(r, k, den);
-			else if (r.kind == K_TRAIL) TrailDraw((const TrailNode *)r.node, (r.counter * den + k) * 0x80 / den);
+			else if (r.kind == K_TRAIL) TrailDraw((const TrailNode *)r.node, (r.counter * den + k) * 0x400 / (PG().trails.life * den));
 			else if (r.kind == K_HIT)
 			{
 				const HitNode *h = (const HitNode *)r.node;
 				PrimArg arg;
 				memcpy(arg.pos, h->pos, 8);
-				arg.depth = -0x80;
+				arg.depth = PG().hit.depth;
 				arg.morph = morph;
 				prim::play_held((prim::Layout *)h->layout, PrimCallback, (int)&arg, k, den);
 			}

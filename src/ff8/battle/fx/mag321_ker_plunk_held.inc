@@ -145,7 +145,7 @@ namespace kerplunk321
 			{
 				memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
 				const bool ring = r.kind == REC_RING;
-				const int32_t from = ring ? 0xC : 6;
+				const int32_t from = ring ? PG().rings.fade : PG().target_rings.fade;
 				int32_t fade = RingFade(cnt, from);
 				if (k)
 				{
@@ -211,7 +211,7 @@ namespace kerplunk321
 			if (r.kind != REC_LIFT) continue;
 			const int16_t cnt = *(const int16_t *)(r.copy + 0xC);
 			held_entity_init(out[k], Entity(*(const int16_t *)(r.copy + 0xE)));
-			if (cnt >= 0x42)
+			if (cnt >= PG().lift.end)
 				for (int c = 0; c < 6; c++) held_entity_jump(out[k], c);
 			k++;
 		}

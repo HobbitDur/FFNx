@@ -116,10 +116,10 @@ namespace flare320
 		const int32_t c1 = r.counter + 1;
 		switch (r.kind)
 		{
-		case PLAY_1: return c1 <= 0x24; // at 0x24 the same layout goes on (counters 0x24..0x2E)
-		case PLAY_1L: return c1 <= 0x2E;
-		case PLAY_2: return c1 < 0x34;
-		case PLAY_3: return c1 < 0x62;
+		case PLAY_1: return c1 <= PG().flight.start; // at 0x24 the same layout goes on (counters 0x24..0x2E)
+		case PLAY_1L: return c1 <= PG().flight.start + PG().flight.ticks;
+		case PLAY_2: return c1 < PG().ring.start + PG().ring.ticks;
+		case PLAY_3: return c1 < PG().burst.start + PG().burst.ticks && c1 < PG().timing.end;
 		default: return (r.node->flags & 1) != 0;
 		}
 	}
@@ -128,17 +128,17 @@ namespace flare320
 	// the draw modes
 	static int TileBefore1(int32_t c, uint32_t *rgb)
 	{
-		*rgb = 0x808080;
-		return c == 0x24 ? 1 : 0;
+		*rgb = Grey(PG().tiles.flight);
+		return c == PG().flight.start ? 1 : 0;
 	}
 	static int TileBefore3(int32_t c, uint32_t *rgb)
 	{
-		switch (c - 0x2D)
+		switch (c - PG().burst.start)
 		{
-		case 1: *rgb = 0x808080; return 2;
-		case 2: *rgb = 0xF0F0F0; return 1;
-		case 3: *rgb = 0xA0A0A0; return 1;
-		case 4: *rgb = 0x505050; return 1;
+		case 1: *rgb = Grey(PG().tiles.burst[0]); return 2;
+		case 2: *rgb = Grey(PG().tiles.burst[1]); return 1;
+		case 3: *rgb = Grey(PG().tiles.burst[2]); return 1;
+		case 4: *rgb = Grey(PG().tiles.burst[3]); return 1;
 		}
 		return 0;
 	}
@@ -173,7 +173,7 @@ namespace flare320
 	// rebuilt from the pose afterwards), the basis of T - S at S
 	static void HeldFrame1(MainNode *m, const Rec &r, int k, int den, Mat4x3 *M)
 	{
-		if (k == 0 || r.counter == 0x23)
+		if (k == 0 || r.counter == PG().flight.start - 1)
 		{
 			// tick N's frame (at 0x23 the next tick keeps it)
 			*M = m->M;
@@ -185,7 +185,8 @@ namespace flare320
 		uint8_t *c = Caster();
 		pose_midpoint(c + 0x60, c + 0x6C, k, den);
 		int16_t S[4] = {};
-		CasterBonePoint(POINT_S, S);
+		const int16_t P[4] = { PG().point.x, PG().point.y, PG().point.z, PG().point.bone };
+		CasterBonePoint(P, S);
 		BuildBoneMatricesFromPose(c + 0x60);
 		MainFrame(m, S, M);
 	}
@@ -230,11 +231,11 @@ namespace flare320
 			prim::Layout *layout = nullptr;
 			if (r.kind == PLAY_1)
 			{
-				if (num >= den && r.counter + 1 == 0x24) Tile(0x808080); // the next tick's first draw
+				if (num >= den && r.counter + 1 == PG().flight.start) Tile(Grey(PG().tiles.flight)); // the next tick's first draw
 				Mat4x3 M;
 				HeldFrame1(m, r, k, den, &M);
 				ComposeAffineTransform(&Camera(), &M, &arg.m);
-				SetArg(&arg, KINDS_1, DRAWS_1, -0x10);
+				SetArg(&arg, KINDS_1, DRAWS_1, PG().flight.depth);
 				layout = (prim::Layout *)m->layout_1;
 			}
 			else if (r.kind == PLAY_1L)
@@ -247,7 +248,7 @@ namespace flare320
 				M.t[1] = L[1];
 				M.t[2] = L[2];
 				ComposeAffineTransform(&Camera(), &M, &arg.m);
-				SetArg(&arg, KINDS_1, DRAWS_1, -0x10);
+				SetArg(&arg, KINDS_1, DRAWS_1, PG().flight.depth);
 				layout = (prim::Layout *)m->layout_1;
 			}
 			else if (r.kind == PLAY_2)
@@ -257,7 +258,7 @@ namespace flare320
 				M.t[1] = m->S[1];
 				M.t[2] = m->S[2];
 				ComposeAffineTransform(&Camera(), &M, &arg.m);
-				SetArg(&arg, KINDS_2, DRAWS_2, -0x10);
+				SetArg(&arg, KINDS_2, DRAWS_2, PG().ring.depth);
 				layout = (prim::Layout *)m->layout_2;
 			}
 			else if (r.kind == PLAY_3)
@@ -268,8 +269,8 @@ namespace flare320
 				arg.m.t[1] = m->T[1];
 				arg.m.t[2] = m->T[2];
 				ComposeAffineTransform(&Camera(), &arg.m, &arg.m);
-				SetArg(&arg, KINDS_3, DRAWS_3, -0x200);
-				arg.scroll = (int16_t)(((r.counter - 0x2D) << 4) + 0x10 * k / den);
+				SetArg(&arg, KINDS_3, DRAWS_3, PG().burst.depth);
+				arg.scroll = (int16_t)((r.counter - PG().burst.start) * PG().burst.scroll + PG().burst.scroll * k / den);
 				layout = (prim::Layout *)m->layout_3;
 			}
 			else

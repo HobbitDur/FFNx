@@ -55,6 +55,12 @@
 //     of the verification harness, which clears the stack at the tick start). MODEL: 0 (the locals start at 0).
 //   - the segment points' 4th words, the matrices' pad words (GTE R33 pad only) reach no output; the prim headers keep
 //     the Field_Alloc scratch's unwritten fields, as in the game.
+// FUJIN: Fujin's described Metsu (effect_323.json) runs this code: its memory through own::R() (fx_port.h), its spawns
+// through own::Fn(), the file loader (0x659A90) and the setup (0x659A80 -> _Init 0x659AB0) ported below; its parameters
+// (MetsuParams: the sound, the main's ticks, the blade's bone, spin, tilt and path points, the trails, the hit layout's
+// depth, the sparks; the blade and trail models, the hit layout, the flipbook, the texture name and the camera track).
+// The blade's path schedule (304's segment blend: its segments' counters and eases, the hits when it passes a target)
+// stays code (the 30 fps layer replays it). FX_PART tags its parts.
 
 #include "mag_common.h"
 #include "fx_params.h"
@@ -67,15 +73,15 @@ namespace metsu323
 	using namespace magc;
 
 	// --- module globals ---
-	inline uint32_t &TexFile() { return var<uint32_t>(0x2505230); }         // the effect's file (its TIM)
-	inline CastContext *&Ctx() { return var<CastContext *>(0x2505234); }
-	inline uint8_t *&Caster() { return var<uint8_t *>(0x2505238); }        // caster entity (setup)
-	inline uint32_t &PacketCursor() { return var<uint32_t>(0x25052A4); }
-	inline uint32_t &TexBase() { return var<uint32_t>(0x25052A8); }         // Magic_TextureOFF (magic buffer)
-	inline TaskQueue *QSparks() { return (TaskQueue *)0x2505240; }          // pool: + 0xE54, 0x40 x 0x24
-	inline TaskQueue *QHits() { return (TaskQueue *)0x2505250; }            // pool: + 0x6BC, 3 x 0x288
-	inline TaskQueue *QTrails() { return (TaskQueue *)0x2505260; }          // pool: + 0xBC, 0x20 x 0x30
-	inline TaskQueue *QMain() { return (TaskQueue *)0x2505270; }            // pool: + 0, 1 x 0xBC
+	inline uint32_t &TexFile() { return var<uint32_t>(own::R(0x2505230)); }         // the effect's file (its TIM)
+	inline CastContext *&Ctx() { return var<CastContext *>(own::R(0x2505234)); }
+	inline uint8_t *&Caster() { return var<uint8_t *>(own::R(0x2505238)); }        // caster entity (setup)
+	inline uint32_t &PacketCursor() { return var<uint32_t>(own::R(0x25052A4)); }
+	inline uint32_t &TexBase() { return var<uint32_t>(own::R(0x25052A8)); }         // Magic_TextureOFF (magic buffer)
+	inline TaskQueue *QSparks() { return (TaskQueue *)own::R(0x2505240); }          // pool: + 0xE54, 0x40 x 0x24
+	inline TaskQueue *QHits() { return (TaskQueue *)own::R(0x2505250); }            // pool: + 0x6BC, 3 x 0x288
+	inline TaskQueue *QTrails() { return (TaskQueue *)own::R(0x2505260); }          // pool: + 0xBC, 0x20 x 0x30
+	inline TaskQueue *QMain() { return (TaskQueue *)own::R(0x2505270); }            // pool: + 0, 1 x 0xBC
 
 	static const uint32_t ORIG_MasterTask = 0x659B30;
 	static const uint32_t ORIG_MainTask = 0x659DD0;
@@ -93,6 +99,47 @@ namespace metsu323
 	static const uint32_t MODEL_Hit = 0xFE2BE4;          // prim-model layout
 	static const uint32_t SEQ_Spark = 0xFE12B4;          // sprite sequence
 	static const void *const SOUND_Throw = (const void *)0xFE12B0;
+
+	static const uint32_t ORIG_FileLoader = 0x659A90, ORIG_Setup = 0x659A80;
+	static const uint32_t TEXTURE_NAME = 0xFE429C, CAMERA_ANIM = 0xFE0FCC;
+	inline uint32_t MagicTextureOff() { return fn<uint32_t (__cdecl *)()>(0x571B50)(); }   // Magic_TextureOFF_ToEAX1
+
+	// ------------------------------------------------------------------
+	// parameters (Fujin's effect lab: fx_params.h)
+	// ------------------------------------------------------------------
+	// the parts (FX_PART tags: what draws now, in the lab)
+	enum : int { PART_BLADE = 1, PART_TRAILS = 2, PART_HITS = 3, PART_SPARKS = 4 };
+	struct MetsuParams
+	{
+		struct { uint32_t start; } sounds;               // the throw
+		// the main's ticks: the sound (with the path), the blade's way back re-aimed at the caster's bone, its end
+		struct { int16_t sound, back, end; } timing;
+		// the caster's bone it leaves and comes back to, its spin a tick, its first tilt and the tilt's step a tick
+		struct { int16_t bone, spin, tilt, tilt_step; } blade;
+		// the path: the first point `lead` nearer than the bone, past the targets' x by `margin`, `depth` nearer than their
+		// mean z, the first target point `rise` higher, the way back's middle `arc` higher, the last point `back` nearer
+		struct { int16_t lead, margin, depth, rise, arc, back; } path;
+		struct { int16_t life; } trails;                 // the trails' ticks (their fade: a quarter sine over them)
+		struct { int16_t depth; } hits;                  // the hit layouts' depth offset
+		// the sparks thrown out of the blade's plane at each hit: count, their turn step, speed (+ a random below spread)
+		// in the plane and out of it, drag (their first velocity / drag taken off a tick), ticks, size
+		struct { int16_t count, turn, speed, spread, drag, life, size; } sparks;
+		struct { uint32_t blade, trail; } models;        // the blade and trail models
+		struct { uint32_t hit; } layouts;                // the hit layout
+		struct { uint32_t spark; } seqs;                 // the sparks' flipbook
+		struct { uint32_t texture_name, camera; } res;   // its resources (data): texture file name, camera track
+	};
+	static const MetsuParams GAME = { { 0xFE12B0 }, { 0xC, 0x1D, 0x40 }, { 0x18, 0x400, 0x400, 0x4D },
+		{ 500, 1000, 1000, 1000, 1500, 1000 }, { 8 }, { -0x80 }, { 0x15, 0xC3, 0x40, 0x40, 12, 0xA, 0x800 },
+		{ MODEL_Blade, MODEL_Trail }, { MODEL_Hit }, { SEQ_Spark }, { TEXTURE_NAME, CAMERA_ANIM } };
+	static MetsuParams live = GAME;
+	static const MetsuParams &PG() { return live; }
+	// a bone of the caster's skeleton: the parameter, below its bone count (else its last bone)
+	static int32_t CasterBone(int32_t bone)
+	{
+		const uint8_t count = (**(uint8_t ***)(Caster() + 0x64))[0];
+		return bone < 0 ? 0 : bone < count ? bone : count - 1;
+	}
 
 	// engine functions not in fx_port.h / mag_common.h
 	inline int32_t GetEffectSpawnPosition(uint8_t *entity, int32_t bone, int32_t flag, int16_t *out) { return fn<int32_t (__cdecl *)(uint8_t *, int32_t, int32_t, int16_t *)>(0x502170)(entity, bone, flag, out); }
@@ -351,7 +398,7 @@ namespace metsu323
 		GteSetRotMatrix(&cam);
 		GteSetTransVector(&cam);
 		*(uint32_t *)(h + 0x1C) = 0;
-		*(uint32_t *)h = MODEL_Blade;
+		*(uint32_t *)h = fxp::model(PG().models.blade, MODEL_Blade);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -377,7 +424,7 @@ namespace metsu323
 		if (blue > 0xFF) blue = 0xFF;
 		h[0xA] = (uint8_t)blue;
 		*(uint32_t *)(h + 0x1C) = 0xF0;
-		*(uint32_t *)h = MODEL_Trail;
+		*(uint32_t *)h = fxp::model(PG().models.trail, MODEL_Trail);
 		PacketCursor() = RenderPrimModel(h, RenderOT(), 2, PacketCursor());
 		FieldFree(0x58);
 	}
@@ -385,9 +432,9 @@ namespace metsu323
 	// the sprite (0x65A660..0x65A6BF)
 	static void SpriteDraw(int16_t *pos, int16_t frame)
 	{
-		TransformCameraByShadowRotation(pos, 0x800, -0x200);
+		TransformCameraByShadowRotation(pos, PG().sparks.size, -0x200);
 		uint8_t *h = AllocHeader(0xB4);
-		*(uint32_t *)h = SEQ_Spark;
+		*(uint32_t *)h = fxp::sequence(PG().seqs.spark, SEQ_Spark);
 		*(int16_t *)(h + 4) = frame;
 		*(uint16_t *)(h + 0x24) = 0;
 		PacketCursor() = InitEffectSequenceFromData(h, RenderOT(), 2, PacketCursor());
@@ -412,9 +459,10 @@ namespace metsu323
 		SparkNode *s = (SparkNode *)n;
 		// 30 fps layer: see mag323_metsu_held.inc
 		FX_HELD(held_note_spark(n);)
+		FX_PART(PART_SPARKS);
 		SpriteDraw(s->pos, s->counter);
 		s->counter++;
-		if (s->counter >= 0xA) return TASK_END;
+		if (s->counter >= PG().sparks.life) return TASK_END;
 		s->pos[0] = (int16_t)(s->pos[0] + s->vel[0]);
 		s->pos[1] = (int16_t)(s->pos[1] + s->vel[1]);
 		s->pos[2] = (int16_t)(s->pos[2] + s->vel[2]);
@@ -432,10 +480,11 @@ namespace metsu323
 		HitNode *h = (HitNode *)n;
 		PrimArg arg;
 		memcpy(arg.pos, h->pos, 8);
-		arg.depth = -0x80;
+		arg.depth = PG().hits.depth;
 		arg.morph = TexBase() + MORPH;
 		// 30 fps layer: see mag323_metsu_held.inc
 		FX_HELD(held_note_hit(n);)
+		FX_PART(PART_HITS);
 		return prim::play((prim::Layout *)h->layout, PrimCallback, (int)&arg, 0) ? 0 : TASK_END;
 	}
 
@@ -447,9 +496,10 @@ namespace metsu323
 		TrailNode *t = (TrailNode *)n;
 		// 30 fps layer: see mag323_metsu_held.inc
 		FX_HELD(held_note_trail(n);)
-		TrailDraw(t, (int32_t)t->counter * 0x400 / 8);
+		FX_PART(PART_TRAILS);
+		TrailDraw(t, (int32_t)t->counter * 0x400 / PG().trails.life);
 		t->counter++;
-		return t->counter < 8 ? 0 : TASK_END;
+		return t->counter < PG().trails.life ? 0 : TASK_END;
 	}
 
 	// 0x65A5F0 (= Boomerang Sword's 0x66A2C0): applies action 0's results to the target records of this entity
@@ -466,14 +516,15 @@ namespace metsu323
 	// the path on counter 12 (0x659E33..0x659F17)
 	static void BuildPath(MainNode *m)
 	{
-		GetEffectSpawnPosition(Caster(), 0x18, 0x800, m->spawn);
+		const MetsuParams &g = PG();
+		GetEffectSpawnPosition(Caster(), CasterBone(g.blade.bone), 0x800, m->spawn);
 		int16_t (*p)[4] = m->path;
 		memcpy(*p, m->spawn, 8);
-		(*p)[2] = (int16_t)((*p)[2] - 500);
+		(*p)[2] = (int16_t)((*p)[2] - g.path.lead);
 		p++;
 		memcpy(*p++, m->spawn, 8);
 		(*p)[0] = m->maxx;
-		(*p)[1] = (int16_t)(m->meany - 1000);
+		(*p)[1] = (int16_t)(m->meany - g.path.rise);
 		(*p)[2] = m->meanz;
 		p++;
 		for (int32_t i = 0; i < m->count; i++) memcpy(*p++, m->tpos[i], 8);
@@ -482,7 +533,7 @@ namespace metsu323
 		(*p)[2] = m->meanz;
 		p++;
 		(*p)[0] = (int16_t)(((int32_t)m->spawn[0] + m->minx) / 2);
-		(*p)[1] = (int16_t)(m->meany - 1500);
+		(*p)[1] = (int16_t)(m->meany - g.path.arc);
 		(*p)[2] = (int16_t)(((int32_t)m->spawn[2] + m->meanz) / 2);
 		p++;
 		memcpy(*p++, m->spawn, 8);
@@ -495,11 +546,12 @@ namespace metsu323
 	static uint32_t __cdecl MainTask(TaskNode *n)
 	{
 		MainNode *m = (MainNode *)n;
+		const MetsuParams &g = PG();
 		if (m->counter == 0xB)
 		{
-			GetEffectSpawnPosition(Caster(), 0x18, 0x800, m->cur);
+			GetEffectSpawnPosition(Caster(), CasterBone(g.blade.bone), 0x800, m->cur);
 			memcpy(m->prev, m->cur, 8);
-			m->tilt = 0x400;
+			m->tilt = g.blade.tilt;
 		}
 		const int32_t k = m->counter - 0xC;
 		int32_t seg = 0, t = 0;
@@ -532,19 +584,20 @@ namespace metsu323
 		}
 		if ((uint32_t)k < 0x41)
 		{
-			m->tilt = (int16_t)(m->tilt + 0x4D);
+			m->tilt = (int16_t)(m->tilt + g.blade.tilt_step);
 			// 30 fps layer: see mag323_metsu_held.inc
 			FX_HELD(held_note_blade(n);)
 			int16_t cur[4] = {}; // (word +6 never written: stack residue, modelled 0)
 			PathPoint(m, seg, t, cur);
 			if (m->cur[0] != cur[0] || m->cur[1] != cur[1] || m->cur[2] != cur[2]) memcpy(m->prev, m->cur, 8);
-			m->spin = (int16_t)(m->spin + 0x400);
+			m->spin = (int16_t)(m->spin + g.blade.spin);
 			memcpy(m->cur, cur, 8);
 			*(uint32_t *)(Caster() + 0x7C) &= 0xFFFFFFFDu;
 			int32_t dir[3] = { (int32_t)m->prev[0] - cur[0], 0, (int32_t)cur[2] - m->prev[2] };
 			Mat4x3 frame;
+			FX_PART(PART_BLADE);
 			BladeDraw(cur, dir, m->spin, m->tilt, &frame);
-			TrailNode *tr = (TrailNode *)AddTaskToQueue(QTrails(), ORIG_TrailTask);
+			TrailNode *tr = (TrailNode *)AddTaskToQueue(QTrails(), own::Fn(ORIG_TrailTask));
 			if (tr)
 			{
 				tr->counter = 0;
@@ -559,48 +612,48 @@ namespace metsu323
 				uint8_t *ent = m->ents[m->next];
 				if (cur[0] < *(const int16_t *)(ent + 0x1C))
 				{
-					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), ORIG_HitTask);
+					HitNode *h = (HitNode *)AddTaskToQueue(QHits(), own::Fn(ORIG_HitTask));
 					ApplyResultsOf(ent);
 					if (h)
 					{
 						h->ent = ent;
 						GetDefaultEffectPosition(ent, h->pos);
-						DecodeModelPrimLayout(MODEL_Hit, h->layout, 0x270);
+						DecodeModelPrimLayout(fxp::layout(g.layouts.hit, MODEL_Hit, 0x270), h->layout, 0x270);
 					}
 					int32_t angle = 0;
 					Mat4x3 basis;
 					BuildOrthonormalBasis(dir, &basis);
 					cur[3] = 0;
-					for (int i = 0; i < 0x15; i++)
+					for (int i = 0; i < g.sparks.count; i++)
 					{
-						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), ORIG_SparkTask);
+						SparkNode *s = (SparkNode *)AddTaskToQueue(QSparks(), own::Fn(ORIG_SparkTask));
 						if (!s) continue;
 						memcpy(s->pos, cur, 8); // (+0x12: the counter, 0)
-						const int32_t speed = (CrtRand() & 0x3F) + 0x40;
+						const int32_t speed = CrtRand() % g.sparks.spread + g.sparks.speed;
 						s->vel[0] = (int16_t)(mul32(ComputeSin(angle), speed) / 0x1000);
 						s->vel[1] = (int16_t)(mul32(ComputeCos(angle), speed) / 0x1000);
-						s->vel[2] = (int16_t)((CrtRand() & 0x3F) + 0x40);
+						s->vel[2] = (int16_t)(CrtRand() % g.sparks.spread + g.sparks.speed);
 						MatrixMulVector(&basis, s->vel, s->vel);
-						s->drag[0] = (int16_t)((int32_t)s->vel[0] / -12);
-						s->drag[1] = (int16_t)((int32_t)s->vel[1] / -12);
-						s->drag[2] = (int16_t)((int32_t)s->vel[2] / -12);
-						angle += 0xC3;
+						s->drag[0] = (int16_t)((int32_t)s->vel[0] / -g.sparks.drag);
+						s->drag[1] = (int16_t)((int32_t)s->vel[1] / -g.sparks.drag);
+						s->drag[2] = (int16_t)((int32_t)s->vel[2] / -g.sparks.drag);
+						angle += g.sparks.turn;
 					}
 					m->next++;
 				}
 			}
 		}
-		if (m->counter == 0xC) BdPlaySE(SOUND_Throw, 0, 0x80);
-		if (m->counter == 0x1D)
+		if (m->counter == g.timing.sound) BdPlaySE((const void *)fxp::sound(g.sounds.start, (uint32_t)SOUND_Throw), 0, 0x80);
+		if (m->counter == g.timing.back)
 		{
 			int16_t bone[4] = {}; // (word +6 never written: stack residue, modelled 0)
-			GetEffectSpawnPosition(Caster(), 0x18, 0x800, bone);
+			GetEffectSpawnPosition(Caster(), CasterBone(g.blade.bone), 0x800, bone);
 			memcpy(m->path[m->count + 5], bone, 8);
 			memcpy(m->path[m->count + 6], bone, 8);
-			m->path[m->count + 6][2] = (int16_t)(m->path[m->count + 6][2] - 1000);
+			m->path[m->count + 6][2] = (int16_t)(m->path[m->count + 6][2] - g.path.back);
 		}
 		m->counter++;
-		if (m->counter < 0x40) return 0;
+		if (m->counter < g.timing.end) return 0;
 		*(uint32_t *)(Caster() + 0x7C) |= 2;
 		return TASK_END;
 	}
@@ -630,7 +683,7 @@ namespace metsu323
 			InitTaskQueuePool(QTrails(), (void *)(TexBase() + POOL_Trails), 0x30, 0x20);
 			InitTaskQueuePool(QHits(), (void *)(TexBase() + POOL_Hits), 0x288, 3);
 			InitTaskQueuePool(QSparks(), (void *)(TexBase() + POOL_Sparks), 0x24, 0x40);
-			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), ORIG_MainTask);
+			MainNode *m = (MainNode *)AddTaskToQueue(QMain(), own::Fn(ORIG_MainTask));
 			if (m)
 			{
 				Memset32(&m->counter, 0, 0x2C);
@@ -659,10 +712,10 @@ namespace metsu323
 					if (m->maxx < m->tpos[i][0]) m->maxx = m->tpos[i][0];
 				}
 				const int32_t y = (int32_t)m->meany / m->count;
-				m->minx = (int16_t)(m->minx - 1000);
-				m->maxx = (int16_t)(m->maxx + 1000);
+				m->minx = (int16_t)(m->minx - PG().path.margin);
+				m->maxx = (int16_t)(m->maxx + PG().path.margin);
 				m->meany = (int16_t)y;
-				m->meanz = (int16_t)((int32_t)m->meanz / m->count - 1000);
+				m->meanz = (int16_t)((int32_t)m->meanz / m->count - PG().path.depth);
 			}
 		}
 		int a0, a1, a2;
@@ -683,14 +736,97 @@ namespace metsu323
 		ms->counter++;
 		return 0;
 	}
+
+	// ------------------------------------------------------------------
+	// File loader (0x659A90) and setup (0x659A80 -> _Init 0x659AB0): the game runs its own; Fujin's programs these (its
+	// memory may be a copy's): the TIM, the magic buffer, the context, the caster, the master, the camera
+	// ------------------------------------------------------------------
+	static uint32_t __cdecl FileLoader()
+	{
+		TexFile() = IO_GetFile_MAGIC((const char *)fxp::name(PG().res.texture_name, TEXTURE_NAME));
+		return TexFile();
+	}
+
+	static TaskQueue *__cdecl Setup(CastContext *ctx)
+	{
+		QueueTimUpload(TexFile());
+		TexBase() = MagicTextureOff();
+		Ctx() = ctx;
+		Caster() = Entity(ctx->attacker);
+		TaskQueue *root = (TaskQueue *)own::R(0x2505280);
+		InitTaskQueuePool(root, (void *)own::R(0x2505290), 0x14, 1);
+		Memset32((uint8_t *)AddTaskToQueue(root, own::Fn(ORIG_MasterTask)) + 0xC, 0, 2);
+		PlayCameraAnimation((const void *)fxp::camera(PG().res.camera, CAMERA_ANIM));
+		return root;
+	}
+
+	namespace table
+	{
+		using fxp::Field;
+		static const fxp::Part PARTS[] = {
+			{ 0, "main", "Main", "The main's ticks, the sound; the texture and the camera" },
+			{ PART_BLADE, "blade", "Blade", "The blade (a model) thrown from the caster's bone past every target and back along a path, spinning and tilting (the caster's weapon object hidden meanwhile); each target's damage as it passes it" },
+			{ PART_TRAILS, "trails", "Trails", "A fading copy of the blade left every tick (blue as it fades)" },
+			{ PART_HITS, "hits", "Hits", "The hit layout at each target passed" },
+			{ PART_SPARKS, "sparks", "Sparks", "Sparks thrown out of the blade's plane at each hit (a flipbook)" },
+		};
+		static const fxp::Group GROUPS[] = {
+			{ "timing", "Ticks", "The main's ticks" },
+			{ "path", "Path", "The path's points around the targets" },
+		};
+#define MPF(member) (uint32_t)offsetof(MetsuParams, member)
+		static const Field FIELDS[] = {
+			{ "main", "sounds.start", "Sound", "The throw, at the sound's tick", MPF(sounds.start), fxp::Sound, 0, 0x7FFFFFFF },
+			{ "main", "timing.sound", "Sound", "The main's tick of the sound", MPF(timing.sound), fxp::I16, 0, 400 },
+			{ "main", "timing.back", "Way back", "Its tick the path's last two points are taken again at the caster's bone", MPF(timing.back), fxp::I16, 0, 400 },
+			{ "main", "timing.end", "End", "Its last tick (the caster's weapon shown again)", MPF(timing.end), fxp::I16, 1, 400 },
+			{ "main", "res.texture_name", "Texture file", "The texture file its loader reads from the magic folder (a name of at most 31 letters)", MPF(res.texture_name), fxp::Name, 0, 0x7FFFFFFF },
+			{ "main", "res.camera", "Camera track", "The camera track its setup plays (any length: its offsets are its own)", MPF(res.camera), fxp::Camera, 0, 0x7FFFFFFF },
+			{ "blade", "blade.bone", "Bone", "The caster's bone it leaves from and comes back to", MPF(blade.bone), fxp::I16, 0, 63 },
+			{ "blade", "blade.spin", "Spin", "Its spin a tick", MPF(blade.spin), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "blade", "blade.tilt", "Tilt", "Its first tilt", MPF(blade.tilt), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "blade", "blade.tilt_step", "Tilt a tick", "Its tilt's step a tick", MPF(blade.tilt_step), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "blade", "path.lead", "Lead", "The path's first point (only the start's tangent: its sign counts, not its size): this nearer than the caster's bone (z)", MPF(path.lead), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "path.margin", "Margin", "The path goes past the targets' x by this on both sides", MPF(path.margin), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "path.depth", "Depth", "Its points beside the targets: this nearer than their mean z", MPF(path.depth), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "path.rise", "Rise", "The point before the first target: this higher than their mean height", MPF(path.rise), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "path.arc", "Arc", "The way back's middle point: this higher", MPF(path.arc), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "path.back", "Back", "The path's last point (taken again at the way back's tick; only the end's tangent: its sign counts, not its size): this nearer than the caster's bone", MPF(path.back), fxp::I16, -0x2000, 0x2000 },
+			{ "blade", "models.blade", "Model", "The blade model", MPF(models.blade), fxp::Model, 0, 0x7FFFFFFF },
+			{ "trails", "trails.life", "Life", "Their ticks (their fade: a quarter sine over them; 32 alive at most)", MPF(trails.life), fxp::I16, 1, 64 },
+			{ "trails", "models.trail", "Model", "The trail model", MPF(models.trail), fxp::Model, 0, 0x7FFFFFFF },
+			{ "hits", "hits.depth", "Depth", "Their layout's depth offset", MPF(hits.depth), fxp::I16, -0x1000, 0x1000 },
+			{ "hits", "layouts.hit", "Layout", "The hit layout", MPF(layouts.hit), fxp::Layout, 0, 0x7FFFFFFF },
+			{ "sparks", "sparks.count", "Count", "How many at each hit (64 alive at most)", MPF(sparks.count), fxp::I16, 0, 64 },
+			{ "sparks", "sparks.turn", "Turn", "The angle between two sparks in the blade's plane", MPF(sparks.turn), fxp::I16, -0x800, 0x800, fxp::Angle },
+			{ "sparks", "sparks.speed", "Speed", "Their speed in the plane and out of it (plus a random below the spread)", MPF(sparks.speed), fxp::I16, 0, 0x1000 },
+			{ "sparks", "sparks.spread", "Spread", "The random part of their speed (below this)", MPF(sparks.spread), fxp::I16, 1, 0x1000 },
+			{ "sparks", "sparks.drag", "Drag", "Their first velocity / this taken off a tick", MPF(sparks.drag), fxp::I16, 1, 0x100 },
+			{ "sparks", "sparks.life", "Life", "Their ticks (their flipbook's frames: 10 at most)", MPF(sparks.life), fxp::I16, 1, 10 },
+			{ "sparks", "sparks.size", "Size", "Their size", MPF(sparks.size), fxp::I16, 0, 0x4000, fxp::Scale },
+			{ "sparks", "seqs.spark", "Flipbook", "The sparks' flipbook", MPF(seqs.spark), fxp::Seq, 0, 0x7FFFFFFF },
+		};
+#undef MPF
+	}
 }
 
 	void register_mag323_metsu()
 	{
+		fxp::register_params({ 323, "Metsu", &metsu323::live, &metsu323::GAME, sizeof(metsu323::MetsuParams),
+		                       metsu323::table::PARTS, (int)(sizeof(metsu323::table::PARTS) / sizeof(metsu323::table::PARTS[0])),
+		                       metsu323::table::FIELDS, (int)(sizeof(metsu323::table::FIELDS) / sizeof(metsu323::table::FIELDS[0])),
+		                       metsu323::table::GROUPS, (int)(sizeof(metsu323::table::GROUPS) / sizeof(metsu323::table::GROUPS[0])) });
+		own::note(metsu323::ORIG_FileLoader, (void *)metsu323::FileLoader);
+		own::note(metsu323::ORIG_Setup, (void *)metsu323::Setup);
+		own::note(metsu323::ORIG_MasterTask, (void *)metsu323::MasterTask);
 		register_port(metsu323::ORIG_MasterTask, (void *)metsu323::MasterTask, "323 MasterTask", 323);
+		own::note(metsu323::ORIG_MainTask, (void *)metsu323::MainTask);
 		register_port(metsu323::ORIG_MainTask, (void *)metsu323::MainTask, "323 MainTask", 323);
+		own::note(metsu323::ORIG_TrailTask, (void *)metsu323::TrailTask);
 		register_port(metsu323::ORIG_TrailTask, (void *)metsu323::TrailTask, "323 TrailTask", 323);
+		own::note(metsu323::ORIG_HitTask, (void *)metsu323::HitTask);
 		register_port(metsu323::ORIG_HitTask, (void *)metsu323::HitTask, "323 HitTask", 323);
+		own::note(metsu323::ORIG_SparkTask, (void *)metsu323::SparkTask);
 		register_port(metsu323::ORIG_SparkTask, (void *)metsu323::SparkTask, "323 SparkTask", 323);
 		// 30 fps layer: see mag323_metsu_held.inc
 		FX_HELD(register_mag323_held();)

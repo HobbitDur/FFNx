@@ -112,9 +112,9 @@ namespace metsu323
 	{
 		switch (r.kind)
 		{
-		case K_BLADE: return r.counter + 1 < 0x40;
-		case K_TRAIL: return r.counter + 1 < 8;
-		case K_SPARK: return r.counter + 1 < 0xA && g_end_tick != g_real_tick;
+		case K_BLADE: return r.counter + 1 < PG().timing.end;
+		case K_TRAIL: return r.counter + 1 < PG().trails.life;
+		case K_SPARK: return r.counter + 1 < PG().sparks.life && g_end_tick != g_real_tick;
 		default: return (r.node->flags & 1) != 0;
 		}
 	}
@@ -153,7 +153,7 @@ namespace metsu323
 	// the tilt the main task's update at counter c leaves (from the one before): + 0x4D on every drawn counter
 	static int16_t TiltAfter(int16_t tilt, int32_t c)
 	{
-		if ((uint32_t)(c - 0xC) < 0x41) return (int16_t)(tilt + 0x4D);
+		if ((uint32_t)(c - 0xC) < 0x41) return (int16_t)(tilt + PG().blade.tilt_step);
 		return tilt;
 	}
 
@@ -172,7 +172,7 @@ namespace metsu323
 		int16_t cur[4] = {};
 		PathPoint(m, seg, t, cur);
 		const int16_t *prev = (m->cur[0] != cur[0] || m->cur[1] != cur[1] || m->cur[2] != cur[2]) ? m->cur : m->prev;
-		const int16_t spin = lerp_angle(m->spin, (int16_t)(m->spin + 0x400), k, den);
+		const int16_t spin = lerp_angle(m->spin, (int16_t)(m->spin + PG().blade.spin), k, den);
 		const int16_t tilt = lerp_angle(m->tilt, TiltAfter(m->tilt, r.counter + 1), k, den);
 		int32_t dir[3] = { (int32_t)prev[0] - cur[0], 0, (int32_t)cur[2] - prev[2] };
 		Mat4x3 frame;
@@ -203,13 +203,13 @@ namespace metsu323
 			memcpy((void *)GTE_CTRL, r.gte + GTE_DATA_SIZE, GTE_CTRL_SIZE);
 			memcpy(var<uint8_t *>(0x1D999C4), r.scratch, SCRATCH);
 			if (r.kind == K_BLADE) HeldBlade(r, k, den);
-			else if (r.kind == K_TRAIL) TrailDraw((const TrailNode *)r.node, (r.counter * den + k) * 0x80 / den);
+			else if (r.kind == K_TRAIL) TrailDraw((const TrailNode *)r.node, (r.counter * den + k) * 0x400 / (PG().trails.life * den));
 			else if (r.kind == K_HIT)
 			{
 				const HitNode *h = (const HitNode *)r.node;
 				PrimArg arg;
 				memcpy(arg.pos, h->pos, 8);
-				arg.depth = -0x80;
+				arg.depth = PG().hits.depth;
 				arg.morph = morph;
 				prim::play_held((prim::Layout *)h->layout, PrimCallback, (int)&arg, k, den);
 			}
