@@ -5588,6 +5588,183 @@ int __cdecl ff8_bgate_fade_hook(uint8_t *slot)
 	return 0;
 }
 
+// ---------------------------------------------------------------------------
+// Drawn every host frame, counted per draw (ported from FF8Battle60, the Battle Menu 60 FPS mod)
+// ---------------------------------------------------------------------------
+// Active character marker (the rotating triangle over the character whose turn it is): BdLink draws
+// it (call at 0x500960 -> BattleHUD_DrawActiveCharaMarker 0x4BB090) and every draw advances its
+// rotation, colour and brightness: n times the native pace. Held frames draw the last real tick's state.
+static int (__cdecl *ff8_bgate_marker_orig)() = nullptr;
+static struct { uint32_t frame, color_table; uint16_t color_step, rotation; bool valid; } ff8_bgate_marker_memo;
+
+static int __cdecl ff8_bgate_marker_hook()
+{
+	uint32_t *frame = (uint32_t *)0x1D76710, *color_table = (uint32_t *)0x1D7670C;
+	uint16_t *color_step = (uint16_t *)0x1D7670A, *rotation = (uint16_t *)0x1D76708;
+	auto &m = ff8_bgate_marker_memo;
+	if (ff8_bgate_phase == 0)
+		m = { *frame, *color_table, *color_step, *rotation, true };
+	else if (m.valid)
+	{
+		*frame = m.frame;
+		*color_table = m.color_table;
+		*color_step = m.color_step;
+		*rotation = m.rotation;
+	}
+	return ff8_bgate_marker_orig();
+}
+
+// The rest of this block is for 60 fps only (n = 4, data tick 1-in-2): the 30 fps build installs none of it.
+
+// Description window (text of the selected command / entry / target, 0x4C8B70, drawn by the visible UI
+// tick): every draw advances the byte that blinks its transparency (0x1D77311). With one UI tick per
+// frame, held frames step it back first so the draw puts back the last real tick's value (the draw
+// resets it to 0 when the window is not shown).
+static int (__cdecl *ff8_bgate_descwin_orig)(int, int) = (int(__cdecl *)(int, int))0x4C8B70;
+static uint32_t ff8_bgate_descwin_ri = 0;
+
+static int __cdecl ff8_bgate_descwin_hook(int prims, int next)
+{
+	if (ff8_bgate_phase != 0) (*(uint8_t *)0x1D77311)--;
+	unreplace_function(ff8_bgate_descwin_ri);
+	int r = ff8_bgate_descwin_orig(prims, next);
+	rereplace_function(ff8_bgate_descwin_ri);
+	return r;
+}
+
+// Cursor fingers: every UI tick records the fingers it shows in the slots of its tick phase (0..3,
+// 0x1D74EA8; 2 slots of 0x2C bytes per phase at 0x1D6D4B0) and the battle loop draws all of them once
+// per frame (call at 0x47D14B -> 0x4A78E0), then resets the phase and the slots: a frame shows the
+// fingers of its 4 UI ticks together (a hand on each target of a multiple target selection) and the
+// blink toggles on the 4th. With one UI tick per frame, the phase keeps counting over 4 frames and
+// every frame draws the fingers of the last 4 UI ticks.
+#define FF8_BGATE_FINGER_SLOTS ((uint8_t *)0x1D6D4B0)
+#define FF8_BGATE_FINGER_SLOT_SIZE 0x2C
+static void (__cdecl *ff8_bgate_fingers_orig)() = nullptr;
+
+static void ff8_bgate_finger_clear(uint8_t *slot)
+{
+	// the engine's own reset after drawing: inactive, no position, no target, no icon
+	slot[0] = 0;
+	slot[1] = 0;
+	memset(slot + 4, 0xFF, 5 * sizeof(uint32_t));
+	slot[0x2B] = 0;
+}
+
+static void __cdecl ff8_bgate_fingers_hook()
+{
+	uint32_t *phase = (uint32_t *)0x1D74EA8, *phase_base = (uint32_t *)0x1D74EA0;
+	uint8_t slots[8 * FF8_BGATE_FINGER_SLOT_SIZE];
+	const uint32_t p = *phase, pb = *phase_base;
+	memcpy(slots, FF8_BGATE_FINGER_SLOTS, sizeof(slots));
+	ff8_bgate_fingers_orig();
+	memcpy(FF8_BGATE_FINGER_SLOTS, slots, sizeof(slots));
+	*phase = p;
+	*phase_base = pb;
+	// the next UI tick records the fingers of this phase again
+	for (int finger = 0; finger < 2; finger++)
+		ff8_bgate_finger_clear(FF8_BGATE_FINGER_SLOTS + (2 * (p & 3) + finger) * FF8_BGATE_FINGER_SLOT_SIZE);
+}
+
+// Battle stage at 60 fps. The stage tasks draw every host frame and count those calls; the 30FPS
+// Battle mod's 30FPSBattleStage.hext rescales those counts for 30 calls/s. Between two data ticks the
+// stage queue (call at 0x50097E -> 0x506C30, task queue 0x1D98A40) runs with the engine's own stage
+// freeze bits set (BATTLE_STAGE_RENDER_GROUPS[0] flags 0x1D9898C: 1 sky rotation, 2 texture
+// animations, 8 stage scripts: Edea's room, Ultimecia's colour / feedback effects...), so the stage
+// is drawn every host frame and counts 30 calls/s, as at 30 fps.
+static int (__cdecl *ff8_bgate_stagedraw_orig)() = nullptr;
+
+static int __cdecl ff8_bgate_stagedraw_hook()
+{
+	if (ff8_bgate_data_tick()) return ff8_bgate_stagedraw_orig();
+	uint8_t *freeze = (uint8_t *)0x1D9898C;
+	const uint8_t saved = *freeze & 0x0B;
+	*freeze |= 0x0B;
+	int r = ff8_bgate_stagedraw_orig();
+	*freeze = (uint8_t)((*freeze & ~0x0B) | saved);
+	return r;
+}
+
+// Stage counters outside the freeze bits, one data tick in two at 60 fps:
+// - HP palette blends of stages 37 / 142 (Ultimecia, 0x518F90 / 0x512A00): a palette upload per call,
+//   skipped in between (the palette holds);
+// - pulsing overlays of stages 44 / 45 / 46 (Fisherman's Horizon, 0x518480 / 0x5182D0 / 0x518100) and
+//   the stage 19 train shake (Gerogero, 0x51A000): drawn every call, counter advanced after (pulse) or
+//   before (shake) the draw. In between, the counter is stepped back first, so the call draws the
+//   state of the last data tick and leaves the counter where it was.
+struct ff8_bgate_stagefn_t { uint32_t func, ri; int32_t *counter; int32_t step; };
+static ff8_bgate_stagefn_t ff8_bgate_stagefn[6]; // 0, 1: palette blends; 2..4: pulses; 5: train shake
+
+static int ff8_bgate_stagefn_call(ff8_bgate_stagefn_t &f)
+{
+	unreplace_function(f.ri);
+	int r = ((int(__cdecl *)())f.func)();
+	rereplace_function(f.ri);
+	return r;
+}
+
+static int ff8_bgate_stagefn_run(int i)
+{
+	ff8_bgate_stagefn_t &f = ff8_bgate_stagefn[i];
+	if (ff8_bgate_data_tick()) return ff8_bgate_stagefn_call(f);
+	if (!f.counter) return 0; // palette blend: skipped
+	*f.counter -= f.step;
+	return ff8_bgate_stagefn_call(f);
+}
+
+static int __cdecl ff8_bgate_stagefn0() { return ff8_bgate_stagefn_run(0); }
+static int __cdecl ff8_bgate_stagefn1() { return ff8_bgate_stagefn_run(1); }
+static int __cdecl ff8_bgate_stagefn2() { return ff8_bgate_stagefn_run(2); }
+static int __cdecl ff8_bgate_stagefn3() { return ff8_bgate_stagefn_run(3); }
+static int __cdecl ff8_bgate_stagefn4() { return ff8_bgate_stagefn_run(4); }
+static int __cdecl ff8_bgate_stagefn5() { return ff8_bgate_stagefn_run(5); }
+
+static void ff8_bgate_stagefn_install()
+{
+	static int(__cdecl *const hooks[6])() = { ff8_bgate_stagefn0, ff8_bgate_stagefn1, ff8_bgate_stagefn2,
+		ff8_bgate_stagefn3, ff8_bgate_stagefn4, ff8_bgate_stagefn5 };
+	const uint32_t funcs[6] = { 0x518F90, 0x512A00, 0x518480, 0x5182D0, 0x518100, 0x51A000 };
+	for (int i = 0; i < 6; i++)
+	{
+		ff8_bgate_stagefn_t &f = ff8_bgate_stagefn[i];
+		f = { funcs[i], 0, nullptr, 0 };
+		const uint8_t *code = (const uint8_t *)funcs[i];
+		if (i >= 2 && i <= 4)
+		{
+			// xor eax, eax; mov ecx, [phase] ... add eax, step; pop edi; pop esi; mov [phase], eax (+0xA7 .. +0xAE
+			// at 46, at the same distance from the end in 44 / 45: found by its pattern)
+			if (code[2] != 0x8B || code[3] != 0x0D) { ffnx_warning("battle 60fps: stage pulse 0x%X not recognised, left at 60 calls/s\n", funcs[i]); continue; }
+			f.counter = *(int32_t **)(code + 4);
+			for (int o = 0x10; o < 0xC0 && !f.step; o++)
+				if (code[o] == 0x05 && code[o + 5] == 0x5F && code[o + 6] == 0x5E && code[o + 7] == 0xA3 && *(int32_t **)(code + o + 8) == f.counter)
+					f.step = *(const int32_t *)(code + o + 1);
+			if (!f.step) { ffnx_warning("battle 60fps: stage pulse 0x%X step not found, left at 60 calls/s\n", funcs[i]); f.counter = nullptr; continue; }
+		}
+		else if (i == 5)
+		{
+			// mov eax, [counter]; inc eax; test al, 1 (2 with 30FPSBattleStage.hext); mov [counter], eax
+			if (code[0] != 0xA1 || code[5] != 0x40) { ffnx_warning("battle 60fps: stage 19 shake not recognised, left at 60 calls/s\n"); continue; }
+			f.counter = *(int32_t **)(code + 1);
+			f.step = 1;
+		}
+		f.ri = replace_function(funcs[i], (void *)hooks[i]);
+	}
+}
+
+// Camera return ease (camera script opcode 04 XX, task 0x509930): converted data (its ticks x2), one
+// step per call: one data tick in two at 60 fps.
+static uint32_t (__cdecl *ff8_bgate_camease_orig)(void *) = (uint32_t(__cdecl *)(void *))0x509930;
+static uint32_t ff8_bgate_camease_ri = 0;
+
+static uint32_t __cdecl ff8_bgate_camease_hook(void *task)
+{
+	if (!ff8_bgate_data_tick()) return 0; // 0 = keep the task
+	unreplace_function(ff8_bgate_camease_ri);
+	uint32_t r = ff8_bgate_camease_orig(task);
+	rereplace_function(ff8_bgate_camease_ri);
+	return r;
+}
+
 // Per-battle state is keyed by addresses (anim_cmd, entity slot, effect ctx) that the next
 // battle reuses for DIFFERENT models and effects. Carrying it over crashed the second battle
 // of a session: an anim_cmd kept battle 1's "SLOW forced by us" policy, so its frame-count
@@ -5631,6 +5808,9 @@ static void ff8_bgate_battle_reset()
 	ff8_bgate_inside_queue_anim = false;
 	ff8_bgate_tick_skip = false;
 	ff8_bgate_hidden_idx = 0;
+	ff8_bgate_marker_memo.valid = false;
+	if (ff8_bgate_n == 4)
+		for (int i = 0; i < 8; i++) ff8_bgate_finger_clear(FF8_BGATE_FINGER_SLOTS + i * FF8_BGATE_FINGER_SLOT_SIZE);
 	ff8_bgate_phase = ff8_bgate_n - 1; // the bump right after makes the battle's first BdLink a real frame (vanilla tick 0)
 	ffnx_info("battle 30fps: new battle, per-battle state reset\n");
 }
@@ -5881,6 +6061,23 @@ void ff8_bgate_install_hooks()
 	ff8_bgate_texscroll_orig = (void(__cdecl *)(void *, int, int))get_relative_call(0x50CB90, 0);
 	replace_call(0x50CB90, (void *)ff8_bgate_texscroll_hook);
 	patch_code_dword(0x511E1A, (DWORD)ff8_bgate_stage147_hook); // push 0x511EF0 (AddTaskToQueue callback)
+
+	// active character marker: drawn every host frame, advanced on real frames only
+	ff8_bgate_marker_orig = (int(__cdecl *)())get_relative_call(0x500960, 0);
+	replace_call(0x500960, (void *)ff8_bgate_marker_hook);
+
+	if (ff8_bgate_n == 4)
+	{
+		// 60 fps only: one UI tick per frame (description blink, cursor fingers), and the 30 Hz data
+		// played one data tick in two (battle stage counters, camera return ease)
+		ff8_bgate_descwin_ri = replace_function(0x4C8B70, (void *)ff8_bgate_descwin_hook);
+		ff8_bgate_fingers_orig = (void(__cdecl *)())get_relative_call(0x47D14B, 0);
+		replace_call(0x47D14B, (void *)ff8_bgate_fingers_hook);
+		ff8_bgate_stagedraw_orig = (int(__cdecl *)())get_relative_call(0x50097E, 0);
+		replace_call(0x50097E, (void *)ff8_bgate_stagedraw_hook);
+		ff8_bgate_stagefn_install();
+		ff8_bgate_camease_ri = replace_function(0x509930, (void *)ff8_bgate_camease_hook);
+	}
 
 	// (Magic cast safety timeout "++MAGIC_EFFECT_TIMEOUT_CTR < 0x384" @0x50ACB4: no patch any more, the battle-stage
 	// queue that runs BattleActionSequence_Tick_MagicCast is paced to real frames: 0x384 calls = the native 60 s)
