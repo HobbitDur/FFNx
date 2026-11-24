@@ -23,7 +23,8 @@
 // (InitEffectSequenceFromData) from the real draw's GTE state and header scratch:
 //   - prim i of frame N that is the same image in frame N + 1 (width, height, gpu code, u0 / v0, clut, flags / tpage
 //     equal: same index first, else the nearest unpaired one) moves num / den of the way: centre offset, angle (the short
-//     way), scale x / y, intensity;
+//     way), scale x / y, intensity - unless that prim of frame N + 1 sits where another prim of frame N is (Pairable: a
+//     flipbook playing in place hands its image to the next place, it does not move there);
 //   - the other prims cross-fade (CROSS_FADE): frame N's at intensity x (den - num) / den, frame N + 1's at intensity x
 //     num / den. Every prim of the table's 32 sequences is semi-transparent, modulated and additive (tpage mode 1), so the
 //     two draws add up to exactly the in-between light (a modulated prim's colour scales linearly with its intensity).
@@ -204,6 +205,25 @@ namespace sprite
 
 	static uint8_t Scaled(uint8_t v, int num, int den) { return (uint8_t)((int32_t)v * num / den); }
 
+	static bool SamePlace(const SeqPrim &a, const SeqPrim &b)
+	{
+		const int32_t dx = (int32_t)a.ox - b.ox, dy = (int32_t)a.oy - b.oy;
+		return dx >= -1 && dx <= 1 && dy >= -1 && dy <= 1;
+	}
+
+	// A[i] may become b on the next frame unless b sits where another prim of frame N already is while A[i] is elsewhere:
+	// b is then that prim's next image (a flipbook playing in place), not A[i] moving there. Table entry 13 (the gunblade
+	// crit smoke) has three puffs at fixed places whose images rotate between them each frame (frame 8: (192,64) at A,
+	// (128,64) at B; frame 9: (192,64) at B, (128,64) at C): pairing by image slid each puff half-way into the next puff's
+	// place on held frames and halved the rest, so the lobes jumped and dimmed at 15 Hz
+	static bool Pairable(const SeqPrim *A, int na, int i, const SeqPrim &b)
+	{
+		if (SamePlace(A[i], b)) return true;
+		for (int k = 0; k < na; k++)
+			if (k != i && SamePlace(A[k], b)) return false;
+		return true;
+	}
+
 	// frame `frame` of seq as a one-frame sequence in g_seq (frame index 0), num / den of the way to the next frame when
 	// step; false when the frame does not read as one the held draw can rebuild (more than MAX_PRIMS prims)
 	static bool BuildFrame(const uint8_t *seq, int frame, bool step, int num, int den)
@@ -240,7 +260,7 @@ namespace sprite
 		for (int i = 0; i < na; i++)
 		{
 			match[i] = -1;
-			if (B && i < nb && SameImage(A[i], B[i]))
+			if (B && i < nb && SameImage(A[i], B[i]) && Pairable(A, na, i, B[i]))
 			{
 				match[i] = i;
 				used[i] = true;
@@ -252,7 +272,7 @@ namespace sprite
 			int best = -1, bd = 0x7FFFFFFF;
 			for (int j = 0; j < nb; j++)
 			{
-				if (used[j] || !SameImage(A[i], B[j])) continue;
+				if (used[j] || !SameImage(A[i], B[j]) || !Pairable(A, na, i, B[j])) continue;
 				const int32_t dx = (int32_t)A[i].ox - B[j].ox, dy = (int32_t)A[i].oy - B[j].oy;
 				const int32_t d = (dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy);
 				if (d < bd) { bd = d; best = j; }
