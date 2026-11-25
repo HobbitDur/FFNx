@@ -5890,6 +5890,275 @@ extern "C" __declspec(dllexport) int __cdecl ff8_bgate_next_bdlink_real()
 	return (ff8_bgate_phase + 1) % ff8_bgate_n == 0 ? 1 : 0;
 }
 
+/// --- precise battle bones: the bone matrices a model is DRAWN with, without the 7-bit skeleton ---
+// BattleModel_BuildBoneMatricesFromPose (0x508C90) scales the root bone's rotation by the skeleton's
+// model_scale (party models and their weapons: 127, out of 4096) and every child inherits it through
+// 12-bit fixed point products: each bone matrix keeps ~7 bits, each bone origin is rounded to 4096 /
+// model_scale (~32) raw units. Every bone snaps on its own as a pose moves slowly, so a thin weapon
+// held in a hand shivers against it by a pixel or more (vanilla too, twice as often at 30 fps;
+// Selphie's nunchaku seen from behind, 2026-11-25). The engine's own matrices are left exactly as they
+// are (effects, shadows, attach points, targets read them); only the vertices of a model drawn by
+// RenderGeometry use a precise copy:
+//   0x508C90: the same build run first with model_scale 4096 (the same engine code, 32x the
+//     precision), kept aside scaled back to the true size, then the normal build;
+//   0x5095B0 (bones x camera/world, in place): the same composition in doubles from the precise copy,
+//     checked against the engine's integer result (a disagreement beyond rounding turns it off);
+//   0x509B30 (GTE load of a bone matrix) + ParseVertices 0x50F900: the vertices of that bone
+//     projected from the precise matrix and translation (the same projection, clip flags and depth).
+// Anything not recognised (a matrix the engine changed since, another caller of the GTE) goes through
+// the engine's own code.
+#ifndef FF8_BGATE_PRECISE_BONES
+#define FF8_BGATE_PRECISE_BONES 1
+#endif
+#define FF8_BGATE_PB_SLOTS 48
+#define FF8_BGATE_PB_BONES 96
+
+struct ff8_bgate_pb_t
+{
+	uint8_t *sk;
+	uint32_t used;
+	int nb;
+	bool valid, world;
+	double r[FF8_BGATE_PB_BONES][9], t[FF8_BGATE_PB_BONES][3];   // precise local pose (true size, 4096 = 1)
+	int32_t loc[FF8_BGATE_PB_BONES][12];                         // the engine's local ints after its build
+	double wr[FF8_BGATE_PB_BONES][9], wt[FF8_BGATE_PB_BONES][3]; // precise world (camera space)
+	int32_t wint[FF8_BGATE_PB_BONES][12];                        // the engine's world ints
+};
+static ff8_bgate_pb_t ff8_bgate_pb[FF8_BGATE_PB_SLOTS];
+static uint32_t ff8_bgate_pb_clock = 0;
+static bool ff8_bgate_pb_on = FF8_BGATE_PRECISE_BONES != 0;
+static uint32_t ff8_bgate_pb_build_ri = 0, ff8_bgate_pb_world_ri = 0, ff8_bgate_pb_load_ri = 0, ff8_bgate_pb_parse_ri = 0;
+
+static inline uint8_t *ff8_bgate_pb_bone(uint8_t *sk, int b) { return sk + 16 + 48 * b; }
+
+// a bone's engine matrix: 9 int16 at +0x10, translation 3 int32 at +0x24
+static void ff8_bgate_pb_read_ints(uint8_t *sk, int b, int32_t out[12])
+{
+	const uint8_t *bone = ff8_bgate_pb_bone(sk, b);
+	const int16_t *m = (const int16_t *)(bone + 0x10);
+	const int32_t *v = (const int32_t *)(bone + 0x24);
+	for (int i = 0; i < 9; i++) out[i] = m[i];
+	for (int i = 0; i < 3; i++) out[9 + i] = v[i];
+}
+
+static ff8_bgate_pb_t *ff8_bgate_pb_find(uint8_t *sk, bool create)
+{
+	ff8_bgate_pb_t *oldest = &ff8_bgate_pb[0];
+	for (int i = 0; i < FF8_BGATE_PB_SLOTS; i++)
+	{
+		if (ff8_bgate_pb[i].sk == sk) return &ff8_bgate_pb[i];
+		if (ff8_bgate_pb[i].used < oldest->used) oldest = &ff8_bgate_pb[i];
+	}
+	if (!create) return nullptr;
+	oldest->sk = sk;
+	oldest->valid = oldest->world = false;
+	return oldest;
+}
+
+static void ff8_bgate_pb_off(const char *why)
+{
+	if (!ff8_bgate_pb_on) return;
+	ff8_bgate_pb_on = false;
+	for (int i = 0; i < FF8_BGATE_PB_SLOTS; i++) ff8_bgate_pb[i].valid = ff8_bgate_pb[i].world = false;
+	ffnx_error("battle precise bones: turned off (%s)\n", why);
+}
+
+void __cdecl ff8_bgate_pb_build_hook(void *header)
+{
+	uint8_t *sk = ff8_bgate_skeleton(header);
+	const int nb = sk ? sk[0] : 0;
+	int16_t *ms = sk ? (int16_t *)(sk + 2) : nullptr;
+	const int scale = ms ? *ms : 0;
+	const bool precise = ff8_bgate_pb_on && nb > 0 && nb <= FF8_BGATE_PB_BONES && scale > 0 && scale < 4096;
+	ff8_bgate_pb_t *e = sk ? ff8_bgate_pb_find(sk, precise) : nullptr;
+	unreplace_function(ff8_bgate_pb_build_ri);
+	if (e && precise)
+	{
+		// the engine's own build at full precision, scaled back to the true size
+		*ms = 4096;
+		((void(__cdecl *)(void *))0x508C90)(header);
+		*ms = (int16_t)scale;
+		const double k = scale / 4096.0;
+		for (int b = 0; b < nb; b++)
+		{
+			int32_t big[12];
+			ff8_bgate_pb_read_ints(sk, b, big);
+			for (int i = 0; i < 9; i++) e->r[b][i] = big[i] * k;
+			for (int i = 0; i < 3; i++) e->t[b][i] = big[9 + i] * k;
+		}
+		((void(__cdecl *)(void *))0x508C90)(header);
+		for (int b = 0; b < nb; b++) ff8_bgate_pb_read_ints(sk, b, e->loc[b]);
+		e->nb = nb;
+		e->valid = true;
+		e->world = false;
+		e->used = ++ff8_bgate_pb_clock;
+	}
+	else
+	{
+		((void(__cdecl *)(void *))0x508C90)(header);
+		if (e) e->valid = e->world = false;
+	}
+	rereplace_function(ff8_bgate_pb_build_ri);
+}
+
+void __cdecl ff8_bgate_pb_world_hook(void *header, void *mat)
+{
+	uint8_t *sk = ff8_bgate_skeleton(header);
+	ff8_bgate_pb_t *e = (ff8_bgate_pb_on && sk) ? ff8_bgate_pb_find(sk, false) : nullptr;
+	bool ok = e && e->valid && e->nb == sk[0];
+	for (int b = 0; ok && b < e->nb; b++)
+	{
+		int32_t cur[12];
+		ff8_bgate_pb_read_ints(sk, b, cur);
+		ok = memcmp(cur, e->loc[b], sizeof(cur)) == 0;
+	}
+	unreplace_function(ff8_bgate_pb_world_ri);
+	((void(__cdecl *)(void *, void *))0x5095B0)(header, mat);
+	rereplace_function(ff8_bgate_pb_world_ri);
+	if (!e) return;
+	e->world = false;
+	if (!ok) return;
+	const int16_t *m = (const int16_t *)mat;
+	const int32_t *mt = (const int32_t *)((const uint8_t *)mat + 0x14);
+	double worst_r = 0.0, worst_t = 0.0;
+	for (int b = 0; b < e->nb; b++)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			for (int j = 0; j < 3; j++)
+				e->wr[b][3 * i + j] = (m[3 * i] * e->r[b][j] + m[3 * i + 1] * e->r[b][3 + j] + m[3 * i + 2] * e->r[b][6 + j]) / 4096.0;
+			e->wt[b][i] = (m[3 * i] * e->t[b][0] + m[3 * i + 1] * e->t[b][1] + m[3 * i + 2] * e->t[b][2]) / 4096.0 + mt[i];
+		}
+		ff8_bgate_pb_read_ints(sk, b, e->wint[b]);
+		for (int i = 0; i < 9; i++) worst_r = fmax(worst_r, fabs(e->wr[b][i] - e->wint[b][i]));
+		for (int i = 0; i < 3; i++) worst_t = fmax(worst_t, fabs(e->wt[b][i] - e->wint[b][9 + i]));
+	}
+	// the engine's rounding: a few units on a matrix element, a few units of bone origin down a chain
+	if (worst_r > 8.0 || worst_t > 64.0)
+	{
+		char why[128];
+		snprintf(why, sizeof(why), "precise and engine bones disagree: matrix %.1f, origin %.1f", worst_r, worst_t);
+		ff8_bgate_pb_off(why);
+		return;
+	}
+	e->world = true;
+}
+
+static const double *ff8_bgate_pb_cur_r = nullptr, *ff8_bgate_pb_cur_t = nullptr;
+static const int32_t *ff8_bgate_pb_cur_int = nullptr;
+
+// the GTE's float rotation mirror (Rf = matrix / 4096) and its integer translation
+static inline float ff8_bgate_gte_rf(int row, int col)
+{
+	static const uint32_t addr[3][3] = { { 0x1CA923C, 0x1CA9238, 0x1CA9234 }, { 0x1CA9248, 0x1CA9244, 0x1CA9240 }, { 0x1CA9254, 0x1CA9250, 0x1CA924C } };
+	return *(const float *)addr[row][col];
+}
+static inline int32_t ff8_bgate_gte_tr(int i) { return *(const int32_t *)(0x1CA9290 + 4 * i); }
+
+int __cdecl ff8_bgate_pb_load_hook(void *transform)
+{
+	unreplace_function(ff8_bgate_pb_load_ri);
+	const int r = ((int(__cdecl *)(void *))0x509B30)(transform);
+	rereplace_function(ff8_bgate_pb_load_ri);
+	ff8_bgate_pb_cur_r = ff8_bgate_pb_cur_t = nullptr;
+	ff8_bgate_pb_cur_int = nullptr;
+	if (!ff8_bgate_pb_on) return r;
+	uint8_t *p = (uint8_t *)transform;
+	for (int i = 0; i < FF8_BGATE_PB_SLOTS; i++)
+	{
+		ff8_bgate_pb_t *e = &ff8_bgate_pb[i];
+		if (!e->world || !e->sk) continue;
+		uint8_t *first = e->sk + 16 + 0x10;
+		if (p < first || p >= first + 48 * e->nb || (p - first) % 48) continue;
+		const int b = (int)((p - first) / 48);
+		int32_t cur[12];
+		ff8_bgate_pb_read_ints(e->sk, b, cur);
+		if (memcmp(cur, e->wint[b], sizeof(cur)) != 0) return r;
+		ff8_bgate_pb_cur_r = e->wr[b];
+		ff8_bgate_pb_cur_t = e->wt[b];
+		ff8_bgate_pb_cur_int = e->wint[b];
+		return r;
+	}
+	return r;
+}
+
+int __cdecl ff8_bgate_pb_parse_hook(uint8_t *ctx, int16_t **vertex_stream, uint32_t **output_cursor)
+{
+	const int32_t *wi = ff8_bgate_pb_cur_int;
+	bool mine = ff8_bgate_pb_on && wi != nullptr;
+	// the GTE must still hold that bone's matrix (nothing reloaded it since)
+	for (int i = 0; mine && i < 3; i++)
+		mine = ff8_bgate_gte_tr(i) == wi[9 + i];
+	for (int row = 0; mine && row < 3; row++)
+		for (int col = 0; mine && col < 3; col++)
+			mine = fabsf(ff8_bgate_gte_rf(row, col) - (float)(wi[3 * row + col] / 4096.0)) < 1e-4f;
+	if (!mine)
+	{
+		unreplace_function(ff8_bgate_pb_parse_ri);
+		const int r = ((int(__cdecl *)(void *, void *, void *))0x50F900)(ctx, vertex_stream, output_cursor);
+		rereplace_function(ff8_bgate_pb_parse_ri);
+		return r;
+	}
+	const double *R = ff8_bgate_pb_cur_r, *T = ff8_bgate_pb_cur_t;
+	int16_t *v = *vertex_stream;
+	uint32_t *out = *output_cursor;
+	const int n = *v;
+	if (n == 0) return 0;
+	v++;
+	const int x0 = 8 * *(const int16_t *)(ctx + 0x14), y0 = 8 * *(const int16_t *)(ctx + 0x16);
+	const int x1 = x0 + 8 * *(const int16_t *)(ctx + 0x18), y1 = y0 + 8 * *(const int16_t *)(ctx + 0x1A);
+	const int h = (int)(*(const uint32_t *)0x1CA92E4 & 0xFFFF), half = h >> 1;
+	const int ofx = 8 * *(const int16_t *)0x1CA92DE, ofy = 8 * *(const int16_t *)0x1CA92E2;
+	for (int i = 0; i < n; i++, v += 3)
+	{
+		const double x = v[0], y = v[1], z = v[2];
+		const double cx8 = 8.0 * ((R[0] * x + R[1] * y + R[2] * z) / 4096.0 + T[0]);
+		const double cy8 = 8.0 * ((R[3] * x + R[4] * y + R[5] * z) / 4096.0 + T[1]);
+		const double cz = (R[6] * x + R[7] * y + R[8] * z) / 4096.0 + T[2];
+		const int zr = (int)lrint(cz);
+		uint32_t flags = 0;
+		int sx, sy;
+		if (zr > half)
+		{
+			const double inv = h / cz;
+			sx = (int)lrint(inv * cx8) + ofx;
+			sy = (int)lrint(inv * cy8) + ofy;
+		}
+		else
+		{
+			flags = 0x20000;
+			sx = ofx + 2 * (int)lrint(cx8);
+			sy = ofy + 2 * (int)lrint(cy8);
+		}
+		if (x0 || y0)
+		{
+			if (sx < x0) flags |= 0x1100000; else if (sx > x1) flags |= 0x1200000;
+			if (sy < y0) flags |= 0x2400000; else if (sy > y1) flags |= 0x2800000;
+		}
+		else
+		{
+			if ((uint32_t)sx > (uint32_t)x1) flags |= 0x1000000;
+			if ((uint32_t)sy > (uint32_t)y1) flags |= 0x2000000;
+		}
+		out[0] = ((uint32_t)sx & 0xFFFF) | ((uint32_t)sy << 16);
+		out[1] = flags | ((uint32_t)zr & 0xFFFF);
+		out += 2;
+	}
+	*vertex_stream = v;
+	*output_cursor = out;
+	return n;
+}
+
+static void ff8_bgate_pb_install()
+{
+	if (!ff8_bgate_pb_on) return;
+	ff8_bgate_pb_build_ri = replace_function(0x508C90, (void *)ff8_bgate_pb_build_hook);
+	ff8_bgate_pb_world_ri = replace_function(0x5095B0, (void *)ff8_bgate_pb_world_hook);
+	ff8_bgate_pb_load_ri = replace_function(0x509B30, (void *)ff8_bgate_pb_load_hook);
+	ff8_bgate_pb_parse_ri = replace_function(0x50F900, (void *)ff8_bgate_pb_parse_hook);
+	ffnx_info("battle precise bones: on (model vertices drawn from full precision bone matrices)\n");
+}
+
 void ff8_bgate_install_hooks()
 {
 	// The one knob: host frames per real battle tick. ff8_limit_fps() drives the battle module
@@ -5897,6 +6166,9 @@ void ff8_bgate_install_hooks()
 	ff8_bgate_n = (ff8_fps_limiter >= FPS_LIMITER_60FPS) ? 4 : 2;
 	// converted battle data is 30 Hz: host frames per data tick
 	ff8_bgate_data_div = ff8_bgate_n / 2 > 1 ? ff8_bgate_n / 2 : 1;
+
+	// model vertices from full precision bone matrices (the 7-bit model_scale skeleton shiver)
+	ff8_bgate_pb_install();
 
 	// Battle frame phase driver
 	ff8_bgate_bdlink_orig = (int(__cdecl *)())0x500900;
