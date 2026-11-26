@@ -35,10 +35,12 @@
 //   Ice trail - the header as the task builds it (the frame's camera), every polygon the tick drew at
 //     the in-between of its draw on this tick and on the next one (the next tick's branch emulated on
 //     the live polygon state; after a draw-only tick the counter stays and the next tick only turns
-//     its flying polygons before drawing them): offset, x / z angles and depth cue half way; a polygon
-//     that starts flying on the next tick goes from its whole draw (offset 0, angles 0, cue 0) to its
-//     first flying draw; one the next tick no longer draws holds (not drawn at 1); polygons the next
-//     tick adds (growth) appear on the real frame (at 1: the next tick's draw, the added ones included).
+//     its flying polygons before drawing them): offset, x / z angles and depth cue half way, the cue's
+//     one-tick flash of a first flying draw (-0x1000) held as a 15 Hz step; a polygon that starts flying
+//     on the next tick goes from its whole draw (offset 0, angles 0, cue 0) to its first flying draw; one
+//     the next tick no longer draws holds (not drawn at 1); polygons the next tick adds (growth) appear on
+//     the real frame (at 1: the next tick's draw, the added ones included). trail.each copies after the
+//     first draw the polygon states the first one moved (one step ahead): theirs go from those on.
 //   Crystal players - prim::play_held (every object's exact in-between record); blended vertex frames
 //     go to a private buffer; a layout that ends on the tick holds (not drawn at 1).
 // Spawns (random) stay at 15 Hz; parts spawned on the next tick are not drawn before they exist
@@ -320,7 +322,12 @@ namespace ib173
 		return d;
 	}
 
-	static uint32_t TrailHeldPolys(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor, const Rec &r, int num, int den)
+	// copy: a trail.each copy after the first (TrailTaskEach, g_trail_copy). The copies share the polygon states and the
+	// first one moves them as it draws (TrailPolyMove), so on a real tick every later copy draws the states already moved
+	// (its offset and depth cue one step ahead, its angles as moved) and on the next tick the states moved once more:
+	// its in-between goes from the one to the other (from the noted states, as the first copy's, it went back half a step
+	// on every held frame: Arctic Wind's ice under the second and third targets shaking and flickering as it breaks)
+	static uint32_t TrailHeldPolys(uint32_t h, uint32_t ot, int32_t mode, uint32_t cursor, const Rec &r, int num, int den, bool copy)
 	{
 		const int idx = *(const int16_t *)(r.node + 0xE);
 		const int32_t c = *(const int16_t *)(r.node + 0xC);
@@ -334,25 +341,39 @@ namespace ib173
 			// the next tick's draw: counter + 1 (a draw-only tick does not count: the counter stays, nothing moved, and the
 			// next tick turns its flying polygons before drawing them)
 			const int32_t cn = r.draw_only ? c : c + 1;
-			const PolyDraw a = PolyAt(pre + (uint32_t)k * 0x20, c, !r.draw_only);
+			// a later copy: drawn after the first one moved the states (a flying tick that is not draw-only), so from the
+			// live states as they are, and on the next tick (flying) from them moved once more
+			const bool ahead = copy && !r.draw_only && c >= P().trail.grow_ticks;
+			const bool ahead_next = copy && cn >= P().trail.grow_ticks;
+			uint8_t moved[0x20];
+			if (ahead_next)
+			{
+				memcpy(moved, (const void *)(live + (uint32_t)k * 0x20), sizeof(moved));
+				if (S16((uint32_t)moved, 0xE) >= 0 && S16((uint32_t)moved, 6) < cn - P().trail.grow_ticks) TrailPolyMove((uint32_t)moved);
+			}
+			const PolyDraw a = ahead ? PolyAt(live + (uint32_t)k * 0x20, c, false) : PolyAt(pre + (uint32_t)k * 0x20, c, !r.draw_only);
+			const auto next = [&]() { return ahead_next ? PolyAt((uint32_t)moved, cn, false) : PolyAt(live + (uint32_t)k * 0x20, cn, true); };
 			PolyDraw d = a;
 			if (num >= den)
 			{
 				// fraction 1: the next tick's draw (the polygons it adds included: the mesh's visible set grows in 15 Hz steps)
-				d = PolyAt(live + (uint32_t)k * 0x20, cn, true);
+				d = next();
 				if (!d.vis) continue;
 			}
 			else if (!a.vis) continue; // not drawn on the tick (polygons the next tick adds appear on the real frame)
 			else
 			{
-				const PolyDraw b = PolyAt(live + (uint32_t)k * 0x20, cn, true);
+				const PolyDraw b = next();
 				if (num > 0 && b.vis && b.fly)
 				{
 					d.fly = true;
 					for (int i = 0; i < 3; i++) d.off[i] = lerp16(a.off[i], b.off[i], num, den);
 					d.ax = lerp16(a.ax, b.ax, num, den);
 					d.az = lerp16(a.az, b.az, num, den);
-					d.cue = lerp_i(a.cue, b.cue, num, den);
+					// the depth cue fades in 15 Hz steps of 0x100 from its first flying draw, which flashes it (-0x1000: twice as
+					// bright, one tick): blended across that flash, the batch breaking on each tick flashed on the real frame
+					// and half on the held one (Arctic Wind's ice pulsing white at 15 Hz as it breaks); the flash holds its tick
+					d.cue = a.cue < 0 || b.cue < 0 ? a.cue : lerp_i(a.cue, b.cue, num, den);
 				}
 			}
 			const uint32_t st = (uint32_t)g_trail[idx] + (uint32_t)k * 0x20;
@@ -392,7 +413,7 @@ namespace ib173
 	}
 
 	// one copy of the mesh at m (the node's place, or a target's spot: trail.each), from the polygon states as drawn
-	static void TrailHeldCopy(uint32_t h, uint32_t n, const Mat4x3 &m, const Rec &r, int num, int den)
+	static void TrailHeldCopy(uint32_t h, uint32_t n, const Mat4x3 &m, const Rec &r, int num, int den, bool copy = false)
 	{
 		S32(h, 0x24) = S16(n, 0xE);
 		U32(h, 0x1C) = 0x30;
@@ -407,7 +428,7 @@ namespace ib173
 		GteSetFarColour(U8(h, 8), U8(h, 9), U8(h, 0xA));
 		U32(h, 0x2C) = U32(h, 0x2C) + 0x18;
 		U32(h, 0x28) = (uint32_t)g_trail[S16(n, 0xE)];
-		PacketCursor() = TrailHeldPolys(h, OT44(), 2, PacketCursor(), r, num, den);
+		PacketCursor() = TrailHeldPolys(h, OT44(), 2, PacketCursor(), r, num, den, copy);
 	}
 
 	// the trail as its task draws it (TrailTask): at the node's place, or (trail.each, TrailTaskEach) one copy on each
@@ -448,7 +469,7 @@ namespace ib173
 				}
 				const int32_t sv[3] = { s, sy, s };
 				Scale3DMatrix(&m, sv);
-				TrailHeldCopy(h, n, m, r, num, den);
+				TrailHeldCopy(h, n, m, r, num, den, i > 0);
 			}
 		}
 		else
